@@ -1,0 +1,60 @@
+# Shared declaration ownership and direct proof imports for the informal spec.
+# Core imports remain authoritative in scripts/boundaries.toml.
+schema = 1
+
+[proof_imports]
+EthFieldMathlib = ["EthField"]
+EthCurveMathlib = ["EthCurve", "EthFieldMathlib"]
+EthPairingMathlib = ["EthPairing", "EthCurveMathlib"]
+EthSecurity = ["EthStateless", "EthStateFull", "EthPairingMathlib"]
+
+[owners]
+HashConsts = "EthBase"
+KeccakQuery = "EthHash"
+SszSchema = "EthCodec"
+GasCosts = "EthVmCore"
+StateGasCosts = "EthVmCore"
+VmLimits = "EthVmCore"
+VmFault = "EthVmCore"
+StateError = "EthState"
+WitnessError = "EthState"
+CheckedT = "EthVmRunner"
+Account = "EthState"
+MathState = "EthState"
+PreState = "EthState"
+BlockDiff = "EthState"
+TxRevertible = "EthState"
+TxState = "EthState"
+TxObs = "EthState"
+WriteOrder = "EthState"
+CodeComplete = "EthStateFull"
+Models = "EthStateCommit"
+CodeAuthentic = "EthStateCommit"
+CodeChangesAuthentic = "EthStateCommit"
+ChildSettled = "EthVmCore"
+VmWorld = "EthVmCore"
+VmConfig = "EthVmCore"
+FrameCtx = "EthVmCore"
+Frame = "EthVmCore"
+GasMeter = "EthVmCore"
+Log = "EthVmCore"
+LogRope = "EthVmCore"
+PrecompileResult = "EthVmCore"
+PrecompileFn = "EthVmCore"
+PrecompileTable = "EthVmCore"
+StepResult = "EthVmInstructions"
+CallRequest = "EthVmInstructions"
+CreateRequest = "EthVmInstructions"
+ChildOutcome = "EthVmInstructions"
+InternalError = "EthVmRunner"
+CheckedResult = "EthVmRunner"
+RunnerEnv = "EthVmRunner"
+FrameResult = "EthVmRunner"
+BlockConfig = "EthBlock"
+BlockOutput = "EthBlock"
+Transaction = "EthBlock"
+ParentHeader = "EthBlock"
+BlockError = "EthBlock"
+TxDecodeError = "EthBlock"
+StatelessInput = "EthStateless"
+StatelessValidationResult = "EthStateless"

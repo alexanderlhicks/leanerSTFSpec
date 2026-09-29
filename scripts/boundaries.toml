@@ -1,0 +1,81 @@
+# Allowed dependencies between core libraries (STFSpec/informal/ARCHITECTURE.md §3).
+# `deps` lists DIRECT dependencies; a library may import any module in the transitive
+# closure of its deps, and nothing else from the core. Lean's own `Init`, `Std` and `Lean`
+# are always allowed; anything else outside the core (Mathlib, Batteries, ...) is forbidden.
+# Checked by scripts/check_boundaries.py in CI. Change this file and ARCHITECTURE together.
+
+[libs.EthBase]
+root = "STFSpec.Base"
+deps = []
+
+[libs.EthHash]
+root = "STFSpec.Hash"
+deps = ["EthBase"]
+
+[libs.EthField]
+root = "STFSpec.Field"
+deps = ["EthBase"]
+
+[libs.EthCurve]
+root = "STFSpec.Curve"
+deps = ["EthField"]
+
+[libs.EthPairing]
+root = "STFSpec.Pairing"
+deps = ["EthCurve"]
+
+[libs.EthCodec]
+root = "STFSpec.Codec"
+deps = ["EthHash"]
+
+[libs.EthState]            # state semantics: must not see commitments or codecs
+root = "STFSpec.State"
+deps = ["EthBase"]
+
+[libs.EthCommit]           # generic over encoded keys and values: knows nothing about accounts
+root = "STFSpec.Commit"
+deps = ["EthCodec"]
+
+[libs.EthStateCommit]      # integration: account/storage encodings, state-root law, code-hash agreement
+root = "STFSpec.StateCommit"
+deps = ["EthState", "EthCommit"]
+
+[libs.EthStateFull]
+root = "STFSpec.StateFull"
+deps = ["EthStateCommit"]
+
+[libs.EthStateWitness]
+root = "STFSpec.StateWitness"
+deps = ["EthStateCommit"]
+
+[libs.EthVmCore]
+root = "STFSpec.Vm.Core"
+deps = ["EthState"]
+
+[libs.EthVmInstructions]   # must not see the runner or precompile implementations
+root = "STFSpec.Vm.Instructions"
+deps = ["EthVmCore", "EthHash", "EthCodec"]
+
+[libs.EthPrecompiles]
+root = "STFSpec.Precompiles"
+deps = ["EthVmCore", "EthPairing", "EthHash"]
+
+[libs.EthVmRunner]       # EthCurve: secp256k1 recovery for EIP-7702 authorities and tx senders (D26)
+root = "STFSpec.Vm.Runner"
+deps = ["EthVmInstructions", "EthCurve"]
+
+[libs.EthBlock]
+root = "STFSpec.Block"
+deps = ["EthVmRunner", "EthCodec", "EthCommit"]
+
+[libs.EthFork]
+root = "STFSpec.Fork"
+deps = ["EthBlock", "EthPrecompiles"]
+
+[libs.EthStateless]
+root = "STFSpec.Stateless"
+deps = ["EthFork", "EthStateWitness"]
+
+[libs.EthConformance]
+root = "STFSpec.Conformance"
+deps = ["EthStateless", "EthStateFull"]

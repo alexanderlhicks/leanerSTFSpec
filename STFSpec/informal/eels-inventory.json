@@ -1,0 +1,6141 @@
+{
+ "release": "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36",
+ "scope": [
+  "src/ethereum/forks/amsterdam",
+  "src/ethereum/state.py",
+  "src/ethereum/state_mpt.py",
+  "src/ethereum/merkle_patricia_trie.py",
+  "src/ethereum/exceptions.py",
+  "src/ethereum/crypto",
+  "src/ethereum/utils",
+  "src/ethereum/forks/bpo5/blocks.py"
+ ],
+ "items": [
+  {
+   "file": "forks/amsterdam/__init__.py",
+   "name": "FORK_CRITERIA",
+   "kind": "constant",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "StorageChange",
+   "kind": "class",
+   "line": 34
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "BalanceChange",
+   "kind": "class",
+   "line": 61
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "NonceChange",
+   "kind": "class",
+   "line": 88
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "CodeChange",
+   "kind": "class",
+   "line": 115
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "SlotChanges",
+   "kind": "class",
+   "line": 142
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "AccountChanges",
+   "kind": "class",
+   "line": 167
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "AccountData",
+   "kind": "class",
+   "line": 244
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "BlockAccessListBuilder",
+   "kind": "class",
+   "line": 285
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "ensure_account",
+   "kind": "function",
+   "line": 337
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_storage_write",
+   "kind": "function",
+   "line": 351
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_storage_read",
+   "kind": "function",
+   "line": 388
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_balance_change",
+   "kind": "function",
+   "line": 402
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_nonce_change",
+   "kind": "function",
+   "line": 439
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_code_change",
+   "kind": "function",
+   "line": 476
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "remove_storage_write",
+   "kind": "function",
+   "line": 516
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "remove_balance_change",
+   "kind": "function",
+   "line": 543
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "remove_nonce_change",
+   "kind": "function",
+   "line": 564
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "remove_code_change",
+   "kind": "function",
+   "line": 585
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "add_touched_account",
+   "kind": "function",
+   "line": 606
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "_build_from_builder",
+   "kind": "function",
+   "line": 625
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "_get_pre_tx_account",
+   "kind": "function",
+   "line": 690
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "_get_pre_tx_storage",
+   "kind": "function",
+   "line": 708
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "_index_start_account",
+   "kind": "function",
+   "line": 727
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "_index_start_storage",
+   "kind": "function",
+   "line": 747
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "update_builder_from_tx",
+   "kind": "function",
+   "line": 765
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "build_block_access_list",
+   "kind": "function",
+   "line": 831
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "hash_block_access_list",
+   "kind": "function",
+   "line": 854
+  },
+  {
+   "file": "forks/amsterdam/block_access_lists.py",
+   "name": "validate_block_access_list_gas_limit",
+   "kind": "function",
+   "line": 863
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.bytes.Bytes8",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "Withdrawal",
+   "kind": "class",
+   "line": 38
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "Header",
+   "kind": "class",
+   "line": 72
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "Block",
+   "kind": "class",
+   "line": 276
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "Log",
+   "kind": "class",
+   "line": 330
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "Receipt",
+   "kind": "class",
+   "line": 363
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "encode_receipt",
+   "kind": "function",
+   "line": 394
+  },
+  {
+   "file": "forks/amsterdam/blocks.py",
+   "name": "decode_receipt",
+   "kind": "function",
+   "line": 417
+  },
+  {
+   "file": "forks/amsterdam/bloom.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/bloom.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/bloom.py",
+   "name": "add_to_bloom",
+   "kind": "function",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/bloom.py",
+   "name": "logs_bloom",
+   "kind": "function",
+   "line": 62
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "WrongChainIdError",
+   "kind": "class",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "WrongChainIdError.__init__",
+   "kind": "method",
+   "line": 23
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "TransactionTypeError",
+   "kind": "class",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "TransactionTypeError.__init__",
+   "kind": "method",
+   "line": 41
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "TransactionTypeContractCreationError",
+   "kind": "class",
+   "line": 46
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "TransactionTypeContractCreationError.__init__",
+   "kind": "method",
+   "line": 56
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "BlobGasLimitExceededError",
+   "kind": "class",
+   "line": 64
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "InsufficientMaxFeePerBlobGasError",
+   "kind": "class",
+   "line": 70
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "InsufficientMaxFeePerGasError",
+   "kind": "class",
+   "line": 76
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "InsufficientMaxFeePerGasError.__init__",
+   "kind": "method",
+   "line": 91
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "InvalidBlobVersionedHashError",
+   "kind": "class",
+   "line": 102
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "NoBlobDataError",
+   "kind": "class",
+   "line": 108
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "BlobCountExceededError",
+   "kind": "class",
+   "line": 114
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "PriorityFeeGreaterThanMaxFeeError",
+   "kind": "class",
+   "line": 120
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "EmptyAuthorizationListError",
+   "kind": "class",
+   "line": 126
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "InitCodeTooLargeError",
+   "kind": "class",
+   "line": 132
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "TransactionGasLimitExceededError",
+   "kind": "class",
+   "line": 138
+  },
+  {
+   "file": "forks/amsterdam/exceptions.py",
+   "name": "BlockAccessListGasLimitExceededError",
+   "kind": "class",
+   "line": 148
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/forkchoice_update.py",
+   "name": "notify_forkchoice_updated",
+   "kind": "function",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/get_payload.py",
+   "name": "get_payload",
+   "kind": "function",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "is_valid_block_hash",
+   "kind": "function",
+   "line": 28
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "is_valid_versioned_hashes",
+   "kind": "function",
+   "line": 50
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "execute_new_payload_request",
+   "kind": "function",
+   "line": 75
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/new_payload.py",
+   "name": "verify_and_notify_new_payload",
+   "kind": "function",
+   "line": 139
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.bytes.Bytes48",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.bytes.Bytes96",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "DEPOSIT_REQUEST_SIZE",
+   "kind": "constant",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "WITHDRAWAL_REQUEST_SIZE",
+   "kind": "constant",
+   "line": 33
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "CONSOLIDATION_REQUEST_SIZE",
+   "kind": "constant",
+   "line": 34
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "BUILDER_DEPOSIT_REQUEST_SIZE",
+   "kind": "constant",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "BUILDER_EXIT_REQUEST_SIZE",
+   "kind": "constant",
+   "line": 36
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "DepositRequest",
+   "kind": "class",
+   "line": 42
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "WithdrawalRequest",
+   "kind": "class",
+   "line": 55
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ConsolidationRequest",
+   "kind": "class",
+   "line": 66
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "BuilderDepositRequest",
+   "kind": "class",
+   "line": 77
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "BuilderExitRequest",
+   "kind": "class",
+   "line": 89
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "ExecutionRequests",
+   "kind": "class",
+   "line": 99
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_encode_deposit",
+   "kind": "function",
+   "line": 119
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_encode_withdrawal",
+   "kind": "function",
+   "line": 129
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_encode_consolidation",
+   "kind": "function",
+   "line": 137
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_encode_builder_deposit",
+   "kind": "function",
+   "line": 145
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_encode_builder_exit",
+   "kind": "function",
+   "line": 154
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_decode_deposit",
+   "kind": "function",
+   "line": 158
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_decode_withdrawal",
+   "kind": "function",
+   "line": 168
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_decode_consolidation",
+   "kind": "function",
+   "line": 176
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_decode_builder_deposit",
+   "kind": "function",
+   "line": 184
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "_decode_builder_exit",
+   "kind": "function",
+   "line": 193
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "encode_execution_requests",
+   "kind": "function",
+   "line": 200
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/requests.py",
+   "name": "decode_execution_requests",
+   "kind": "function",
+   "line": 236
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.bytes.Bytes8",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "_ZERO_HASH32",
+   "kind": "constant",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "MAX_EXTRA_DATA_BYTES",
+   "kind": "constant",
+   "line": 33
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "ExecutionPayload",
+   "kind": "class",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "NewPayloadRequest",
+   "kind": "class",
+   "line": 78
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "PayloadAttributes",
+   "kind": "class",
+   "line": 102
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "BlobsBundle",
+   "kind": "class",
+   "line": 118
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/types.py",
+   "name": "GetPayloadResponse",
+   "kind": "class",
+   "line": 131
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "ethereum_types.bytes.Bytes8",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "_payload_header",
+   "kind": "function",
+   "line": 23
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "_payload_transaction_to_block_transaction",
+   "kind": "function",
+   "line": 88
+  },
+  {
+   "file": "forks/amsterdam/execution_engine/validation_helpers.py",
+   "name": "_payload_block",
+   "kind": "function",
+   "line": 100
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.bytes.Bytes0",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "BASE_FEE_MAX_CHANGE_DENOMINATOR",
+   "kind": "constant",
+   "line": 114
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ELASTICITY_MULTIPLIER",
+   "kind": "constant",
+   "line": 115
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "EMPTY_OMMER_HASH",
+   "kind": "constant",
+   "line": 116
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "SYSTEM_ADDRESS",
+   "kind": "constant",
+   "line": 117
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "BEACON_ROOTS_ADDRESS",
+   "kind": "constant",
+   "line": 118
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "SYSTEM_TRANSACTION_GAS",
+   "kind": "constant",
+   "line": 121
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "SYSTEM_MAX_SSTORES_PER_CALL",
+   "kind": "constant",
+   "line": 122
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "GWEI_TO_WEI",
+   "kind": "constant",
+   "line": 127
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS",
+   "kind": "constant",
+   "line": 129
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS",
+   "kind": "constant",
+   "line": 132
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "BUILDER_DEPOSIT_CONTRACT_ADDRESS",
+   "kind": "constant",
+   "line": 135
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "BUILDER_EXIT_CONTRACT_ADDRESS",
+   "kind": "constant",
+   "line": 138
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "HISTORY_STORAGE_ADDRESS",
+   "kind": "constant",
+   "line": 141
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "MAX_BLOCK_SIZE",
+   "kind": "constant",
+   "line": 144
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "SAFETY_MARGIN",
+   "kind": "constant",
+   "line": 145
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "MAX_RLP_BLOCK_SIZE",
+   "kind": "constant",
+   "line": 146
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "ChainContext",
+   "kind": "class",
+   "line": 152
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "BlockChain",
+   "kind": "class",
+   "line": 169
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "apply_fork",
+   "kind": "function",
+   "line": 179
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "get_last_256_block_hashes",
+   "kind": "function",
+   "line": 202
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "state_transition",
+   "kind": "function",
+   "line": 242
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "execute_block",
+   "kind": "function",
+   "line": 281
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "calculate_base_fee_per_gas",
+   "kind": "function",
+   "line": 386
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "validate_header",
+   "kind": "function",
+   "line": 449
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "check_transaction",
+   "kind": "function",
+   "line": 506
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "make_receipt",
+   "kind": "function",
+   "line": 669
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "process_checked_system_transaction",
+   "kind": "function",
+   "line": 706
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "process_unchecked_system_transaction",
+   "kind": "function",
+   "line": 766
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "apply_body",
+   "kind": "function",
+   "line": 825
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "process_general_purpose_requests",
+   "kind": "function",
+   "line": 901
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "update_sender_state",
+   "kind": "function",
+   "line": 970
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "disburse_gas_fees",
+   "kind": "function",
+   "line": 1011
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "process_transaction",
+   "kind": "function",
+   "line": 1050
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "process_withdrawals",
+   "kind": "function",
+   "line": 1142
+  },
+  {
+   "file": "forks/amsterdam/fork.py",
+   "name": "check_gas_limit",
+   "kind": "function",
+   "line": 1164
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.bytes.Bytes256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.numeric.U8",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.numeric.U32",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "StateGasPerByte",
+   "kind": "class",
+   "line": 45
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "StateGasPerByte.__mul__",
+   "kind": "method",
+   "line": 58
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "StateGasPerByte.__rmul__",
+   "kind": "method",
+   "line": 62
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "encode_account",
+   "kind": "function",
+   "line": 67
+  },
+  {
+   "file": "forks/amsterdam/fork_types.py",
+   "name": "Authorization",
+   "kind": "class",
+   "line": 87
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_rlp.Extended",
+   "kind": "external",
+   "line": 30
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 30
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 31
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "MutableLeafNode",
+   "kind": "class",
+   "line": 50
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "MutableExtensionNode",
+   "kind": "class",
+   "line": 62
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "MutableBranchNode",
+   "kind": "class",
+   "line": 74
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "HashedNode",
+   "kind": "class",
+   "line": 86
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "Witness",
+   "kind": "class",
+   "line": 103
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "IncrementalMPT",
+   "kind": "class",
+   "line": 111
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_build_mutable_tree",
+   "kind": "function",
+   "line": 126
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "build_mpt",
+   "kind": "function",
+   "line": 191
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_invalidate_hash",
+   "kind": "function",
+   "line": 231
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_record_witness",
+   "kind": "function",
+   "line": 240
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_encode_mutable_node",
+   "kind": "function",
+   "line": 257
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_encode_mutable_node_to_extended",
+   "kind": "function",
+   "line": 287
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_compute_node_hash_and_rlp",
+   "kind": "function",
+   "line": 316
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "mpt_get",
+   "kind": "function",
+   "line": 349
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_mpt_traverse_for_witness",
+   "kind": "function",
+   "line": 381
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "mpt_set",
+   "kind": "function",
+   "line": 417
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_mpt_insert_node",
+   "kind": "function",
+   "line": 473
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_insert_into_leaf",
+   "kind": "function",
+   "line": 502
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_create_branch_from_two_leaves",
+   "kind": "function",
+   "line": 538
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_insert_into_extension",
+   "kind": "function",
+   "line": 575
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_split_extension",
+   "kind": "function",
+   "line": 609
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_insert_into_branch",
+   "kind": "function",
+   "line": 653
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_mpt_delete_node",
+   "kind": "function",
+   "line": 680
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_delete_from_extension",
+   "kind": "function",
+   "line": 708
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_delete_from_branch",
+   "kind": "function",
+   "line": 753
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_collapse_branch",
+   "kind": "function",
+   "line": 787
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "mpt_root",
+   "kind": "function",
+   "line": 831
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "compact_to_nibbles",
+   "kind": "function",
+   "line": 859
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_resolve_child_ref",
+   "kind": "function",
+   "line": 892
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_decode_witness_node",
+   "kind": "function",
+   "line": 917
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "decode_witness_to_mpt",
+   "kind": "function",
+   "line": 994
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "hashlib.sha256",
+   "kind": "external",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 38
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "DEPOSIT_CONTRACT_ADDRESS",
+   "kind": "constant",
+   "line": 49
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "DEPOSIT_EVENT_SIGNATURE_HASH",
+   "kind": "constant",
+   "line": 60
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "DEPOSIT_REQUEST_TYPE",
+   "kind": "constant",
+   "line": 71
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "WITHDRAWAL_REQUEST_TYPE",
+   "kind": "constant",
+   "line": 78
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "CONSOLIDATION_REQUEST_TYPE",
+   "kind": "constant",
+   "line": 86
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "BUILDER_DEPOSIT_REQUEST_TYPE",
+   "kind": "constant",
+   "line": 93
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "BUILDER_EXIT_REQUEST_TYPE",
+   "kind": "constant",
+   "line": 100
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "DEPOSIT_EVENT_LENGTH",
+   "kind": "constant",
+   "line": 108
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "PUBKEY_OFFSET",
+   "kind": "constant",
+   "line": 114
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "WITHDRAWAL_CREDENTIALS_OFFSET",
+   "kind": "constant",
+   "line": 120
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "AMOUNT_OFFSET",
+   "kind": "constant",
+   "line": 126
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "SIGNATURE_OFFSET",
+   "kind": "constant",
+   "line": 131
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "INDEX_OFFSET",
+   "kind": "constant",
+   "line": 136
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "PUBKEY_SIZE",
+   "kind": "constant",
+   "line": 141
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "WITHDRAWAL_CREDENTIALS_SIZE",
+   "kind": "constant",
+   "line": 147
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "AMOUNT_SIZE",
+   "kind": "constant",
+   "line": 153
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "SIGNATURE_SIZE",
+   "kind": "constant",
+   "line": 158
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "INDEX_SIZE",
+   "kind": "constant",
+   "line": 163
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "extract_deposit_data",
+   "kind": "function",
+   "line": 170
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "parse_deposit_requests",
+   "kind": "function",
+   "line": 274
+  },
+  {
+   "file": "forks/amsterdam/requests.py",
+   "name": "compute_requests_hash",
+   "kind": "function",
+   "line": 307
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 33
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 33
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "ethereum_types.frozen.modify",
+   "kind": "external",
+   "line": 34
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "BlockState",
+   "kind": "class",
+   "line": 57
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "TransactionState",
+   "kind": "class",
+   "line": 91
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_pre_state_account_optional",
+   "kind": "function",
+   "line": 120
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_pre_state_account",
+   "kind": "function",
+   "line": 153
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_account_optional",
+   "kind": "function",
+   "line": 187
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_account",
+   "kind": "function",
+   "line": 213
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_code",
+   "kind": "function",
+   "line": 241
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_storage",
+   "kind": "function",
+   "line": 281
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_storage_original",
+   "kind": "function",
+   "line": 317
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_transient_storage",
+   "kind": "function",
+   "line": 346
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "account_exists",
+   "kind": "function",
+   "line": 371
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "account_deployable",
+   "kind": "function",
+   "line": 391
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "account_exists_and_is_empty",
+   "kind": "function",
+   "line": 402
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "is_account_alive",
+   "kind": "function",
+   "line": 432
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "set_account",
+   "kind": "function",
+   "line": 453
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "set_storage",
+   "kind": "function",
+   "line": 476
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "destroy_account",
+   "kind": "function",
+   "line": 503
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "clear_account_preserving_balance",
+   "kind": "function",
+   "line": 523
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "destroy_storage",
+   "kind": "function",
+   "line": 547
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "mark_account_created",
+   "kind": "function",
+   "line": 571
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "set_transient_storage",
+   "kind": "function",
+   "line": 593
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "modify_state",
+   "kind": "function",
+   "line": 620
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "move_ether",
+   "kind": "function",
+   "line": 635
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "create_ether",
+   "kind": "function",
+   "line": 669
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "set_account_balance",
+   "kind": "function",
+   "line": 692
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "increment_nonce",
+   "kind": "function",
+   "line": 715
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "set_code",
+   "kind": "function",
+   "line": 734
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "copy_tx_state",
+   "kind": "function",
+   "line": 763
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "restore_tx_state",
+   "kind": "function",
+   "line": 799
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "incorporate_tx_into_block",
+   "kind": "function",
+   "line": 823
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "extract_block_diff",
+   "kind": "function",
+   "line": 880
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "get_witness_ancestors",
+   "kind": "function",
+   "line": 903
+  },
+  {
+   "file": "forks/amsterdam/state_tracker.py",
+   "name": "track_ancestor_access",
+   "kind": "function",
+   "line": 925
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ethereum_types.numeric.U16",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "MAX_WITNESS_HEADERS",
+   "kind": "constant",
+   "line": 33
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "MAX_BYTES_PER_CODE",
+   "kind": "constant",
+   "line": 34
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "MAX_BYTES_PER_HEADER",
+   "kind": "constant",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "MAX_BYTES_PER_WITNESS_NODE",
+   "kind": "constant",
+   "line": 36
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "PUBLIC_KEY_BYTES",
+   "kind": "constant",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ExecutionWitness",
+   "kind": "class",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ExecutionPayloadHeader",
+   "kind": "class",
+   "line": 78
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "NewPayloadRequestHeader",
+   "kind": "class",
+   "line": 89
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "ProtocolFork",
+   "kind": "class",
+   "line": 103
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "STATELESS_INPUT_SCHEMA_FORK_INDEX",
+   "kind": "constant",
+   "line": 131
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "STATELESS_INPUT_SCHEMA_REVISION",
+   "kind": "constant",
+   "line": 132
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "STATELESS_INPUT_SCHEMA_ID",
+   "kind": "constant",
+   "line": 133
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "STATELESS_INPUT_SCHEMA_ID_SIZE",
+   "kind": "constant",
+   "line": 136
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "STATELESS_INPUT_SCHEMA_ID_BYTES",
+   "kind": "constant",
+   "line": 137
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "StatelessInput",
+   "kind": "class",
+   "line": 146
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "StatelessValidationResult",
+   "kind": "class",
+   "line": 181
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "compute_new_payload_request_root",
+   "kind": "function",
+   "line": 220
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "_decode_header",
+   "kind": "function",
+   "line": 229
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "validate_headers",
+   "kind": "function",
+   "line": 240
+  },
+  {
+   "file": "forks/amsterdam/stateless.py",
+   "name": "verify_stateless_new_payload",
+   "kind": "function",
+   "line": 263
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 5
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "ethereum_types.numeric.U16",
+   "kind": "external",
+   "line": 6
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 6
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "serialize_stateless_output",
+   "kind": "function",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "deserialize_stateless_input",
+   "kind": "function",
+   "line": 26
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "_default_failed_stateless_output",
+   "kind": "function",
+   "line": 41
+  },
+  {
+   "file": "forks/amsterdam/stateless_guest.py",
+   "name": "run_stateless_guest",
+   "kind": "function",
+   "line": 53
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "serialize_stateless_input",
+   "kind": "function",
+   "line": 34
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "deserialize_stateless_output",
+   "kind": "function",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/stateless_host.py",
+   "name": "build_stateless_input",
+   "kind": "function",
+   "line": 48
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_build_pre_state_storage_mpts",
+   "kind": "function",
+   "line": 25
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_build_pre_state_account_mpt",
+   "kind": "function",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_collect_storage_accesses",
+   "kind": "function",
+   "line": 56
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_capture_pre_state_storage_nodes",
+   "kind": "function",
+   "line": 73
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_apply_storage_writes",
+   "kind": "function",
+   "line": 85
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_get_all_dirty_accounts",
+   "kind": "function",
+   "line": 106
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_capture_pre_state_account_nodes",
+   "kind": "function",
+   "line": 113
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_apply_account_writes",
+   "kind": "function",
+   "line": 123
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "_collect_accessed_nodes",
+   "kind": "function",
+   "line": 154
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "build_execution_witness",
+   "kind": "function",
+   "line": 165
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "get_witness_codes",
+   "kind": "function",
+   "line": 236
+  },
+  {
+   "file": "forks/amsterdam/stateless_host_exec_witness.py",
+   "name": "get_witness_ancestors",
+   "kind": "function",
+   "line": 271
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.bytes.Bytes0",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "IntrinsicGasCost",
+   "kind": "class",
+   "line": 46
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX",
+   "kind": "constant",
+   "line": 62
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "BLOB_COUNT_LIMIT",
+   "kind": "constant",
+   "line": 64
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "VERSIONED_HASH_VERSION_KZG",
+   "kind": "constant",
+   "line": 69
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ACCESS_LIST_ADDRESS_FLOOR_TOKENS",
+   "kind": "constant",
+   "line": 74
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS",
+   "kind": "constant",
+   "line": 82
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "LegacyTransaction",
+   "kind": "class",
+   "line": 94
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "Access",
+   "kind": "class",
+   "line": 157
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "AccessListTransaction",
+   "kind": "class",
+   "line": 177
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "FeeMarketTransaction",
+   "kind": "class",
+   "line": 250
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "BlobTransaction",
+   "kind": "class",
+   "line": 328
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "SetCodeTransaction",
+   "kind": "class",
+   "line": 417
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "encode_transaction",
+   "kind": "function",
+   "line": 540
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "decode_transaction",
+   "kind": "function",
+   "line": 562
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "validate_transaction",
+   "kind": "function",
+   "line": 592
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "calculate_intrinsic_cost",
+   "kind": "function",
+   "line": 692
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "count_tokens_in_data",
+   "kind": "function",
+   "line": 804
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "calculate_effective_gas_price",
+   "kind": "function",
+   "line": 816
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "calculate_max_gas_fee",
+   "kind": "function",
+   "line": 845
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "check_nonce",
+   "kind": "function",
+   "line": 855
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "chain_id",
+   "kind": "function",
+   "line": 865
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "recover_sender",
+   "kind": "function",
+   "line": 883
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "recover_transaction_public_key",
+   "kind": "function",
+   "line": 903
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "recover_sender_from_public_key",
+   "kind": "function",
+   "line": 916
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "_sender_address_from_public_key",
+   "kind": "function",
+   "line": 937
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "_signature_recovery_parameters",
+   "kind": "function",
+   "line": 944
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_pre155",
+   "kind": "function",
+   "line": 1015
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_155",
+   "kind": "function",
+   "line": 1039
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_2930",
+   "kind": "function",
+   "line": 1065
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_1559",
+   "kind": "function",
+   "line": 1091
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_4844",
+   "kind": "function",
+   "line": 1118
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "signing_hash_7702",
+   "kind": "function",
+   "line": 1147
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "get_transaction_hash",
+   "kind": "function",
+   "line": 1175
+  },
+  {
+   "file": "forks/amsterdam/transactions.py",
+   "name": "has_access_list",
+   "kind": "function",
+   "line": 1191
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "to_address_masked",
+   "kind": "function",
+   "line": 24
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "compute_contract_address",
+   "kind": "function",
+   "line": 42
+  },
+  {
+   "file": "forks/amsterdam/utils/address.py",
+   "name": "compute_create2_contract_address",
+   "kind": "function",
+   "line": 66
+  },
+  {
+   "file": "forks/amsterdam/utils/hexadecimal.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/utils/hexadecimal.py",
+   "name": "hex_to_root",
+   "kind": "function",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/utils/hexadecimal.py",
+   "name": "hex_to_address",
+   "kind": "function",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "TRANSFER_TOPIC",
+   "kind": "constant",
+   "line": 40
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "SYSTEM_ADDRESS",
+   "kind": "constant",
+   "line": 41
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "CALL_SUCCESS",
+   "kind": "constant",
+   "line": 44
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "BlockEnvironment",
+   "kind": "class",
+   "line": 49
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "BlockOutput",
+   "kind": "class",
+   "line": 72
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "TransactionEnvironment",
+   "kind": "class",
+   "line": 125
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "Evm",
+   "kind": "class",
+   "line": 153
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "incorporate_child",
+   "kind": "function",
+   "line": 194
+  },
+  {
+   "file": "forks/amsterdam/vm/__init__.py",
+   "name": "emit_transfer_log",
+   "kind": "function",
+   "line": 253
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "SET_CODE_TX_MAGIC",
+   "kind": "constant",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "EOA_DELEGATION_MARKER",
+   "kind": "constant",
+   "line": 36
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "EOA_DELEGATION_MARKER_LENGTH",
+   "kind": "constant",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "EOA_DELEGATED_CODE_LENGTH",
+   "kind": "constant",
+   "line": 38
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "NULL_ADDRESS",
+   "kind": "constant",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "is_valid_delegation",
+   "kind": "function",
+   "line": 42
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "get_delegated_code_address",
+   "kind": "function",
+   "line": 64
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "resolve_delegated_code_address",
+   "kind": "function",
+   "line": 84
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "recover_authority",
+   "kind": "function",
+   "line": 116
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "calculate_delegation_cost",
+   "kind": "function",
+   "line": 159
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "validate_authorization",
+   "kind": "function",
+   "line": 199
+  },
+  {
+   "file": "forks/amsterdam/vm/eoa_delegation.py",
+   "name": "set_delegation",
+   "kind": "function",
+   "line": 243
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "ExceptionalHalt",
+   "kind": "class",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "Revert",
+   "kind": "class",
+   "line": 24
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "StackUnderflowError",
+   "kind": "class",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "StackOverflowError",
+   "kind": "class",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "OutOfGasError",
+   "kind": "class",
+   "line": 51
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "InvalidOpcode",
+   "kind": "class",
+   "line": 60
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "InvalidOpcode.__init__",
+   "kind": "method",
+   "line": 67
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "InvalidJumpDestError",
+   "kind": "class",
+   "line": 72
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "StackDepthLimitError",
+   "kind": "class",
+   "line": 84
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "WriteInStaticContext",
+   "kind": "class",
+   "line": 92
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "OutOfBoundsRead",
+   "kind": "class",
+   "line": 101
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "InvalidParameter",
+   "kind": "class",
+   "line": 110
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "InvalidContractPrefix",
+   "kind": "class",
+   "line": 118
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "AddressCollision",
+   "kind": "class",
+   "line": 126
+  },
+  {
+   "file": "forks/amsterdam/vm/exceptions.py",
+   "name": "KZGProofError",
+   "kind": "class",
+   "line": 134
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "StateGasCosts",
+   "kind": "class",
+   "line": 48
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "GasCosts",
+   "kind": "class",
+   "line": 72
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "BLOB_SCHEDULE_TARGET",
+   "kind": "constant",
+   "line": 262
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "BLOB_SCHEDULE_MAX",
+   "kind": "constant",
+   "line": 263
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "BLOB_BASE_FEE_UPDATE_FRACTION",
+   "kind": "constant",
+   "line": 264
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "MAX_BLOB_GAS_PER_BLOCK",
+   "kind": "constant",
+   "line": 265
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "GasMeter",
+   "kind": "class",
+   "line": 272
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "ExtendMemory",
+   "kind": "class",
+   "line": 341
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "MessageCallGas",
+   "kind": "class",
+   "line": 357
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "check_gas",
+   "kind": "function",
+   "line": 374
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "charge_gas_from_meter",
+   "kind": "function",
+   "line": 391
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "charge_gas",
+   "kind": "function",
+   "line": 408
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "charge_state_gas_from_meter",
+   "kind": "function",
+   "line": 425
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "charge_state_gas",
+   "kind": "function",
+   "line": 451
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "commit_state_gas",
+   "kind": "function",
+   "line": 471
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "restore_state_gas",
+   "kind": "function",
+   "line": 505
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "restore_state_gas_to_entry",
+   "kind": "function",
+   "line": 532
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "tx_state_gas_used",
+   "kind": "function",
+   "line": 570
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "credit_state_gas_refund",
+   "kind": "function",
+   "line": 606
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "repay_state_gas_spill",
+   "kind": "function",
+   "line": 631
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "forfeit_remaining_gas",
+   "kind": "function",
+   "line": 662
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "withhold_create_gas",
+   "kind": "function",
+   "line": 678
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "drain_state_gas_reservoir",
+   "kind": "function",
+   "line": 701
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "restore_child_gas",
+   "kind": "function",
+   "line": 725
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_memory_gas_cost",
+   "kind": "function",
+   "line": 749
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_gas_extend_memory",
+   "kind": "function",
+   "line": 776
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_message_call_gas",
+   "kind": "function",
+   "line": 816
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "max_message_call_gas",
+   "kind": "function",
+   "line": 861
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "init_code_cost",
+   "kind": "function",
+   "line": 879
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_excess_blob_gas",
+   "kind": "function",
+   "line": 901
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_total_blob_gas",
+   "kind": "function",
+   "line": 951
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_blob_gas_price",
+   "kind": "function",
+   "line": 972
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "calculate_data_fee",
+   "kind": "function",
+   "line": 994
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "check_max_fee_per_blob_gas",
+   "kind": "function",
+   "line": 1016
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "check_block_gas_capacity",
+   "kind": "function",
+   "line": 1053
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "EvmGasAllocation",
+   "kind": "class",
+   "line": 1108
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "allocate_evm_gas",
+   "kind": "function",
+   "line": 1120
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "TransactionGasSettlement",
+   "kind": "class",
+   "line": 1157
+  },
+  {
+   "file": "forks/amsterdam/vm/gas.py",
+   "name": "settle_transaction_gas",
+   "kind": "function",
+   "line": 1178
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/__init__.py",
+   "name": "Ops",
+   "kind": "class",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "add",
+   "kind": "function",
+   "line": 28
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "sub",
+   "kind": "function",
+   "line": 55
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "mul",
+   "kind": "function",
+   "line": 82
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "div",
+   "kind": "function",
+   "line": 109
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "U255_CEIL_VALUE",
+   "kind": "constant",
+   "line": 139
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "sdiv",
+   "kind": "function",
+   "line": 142
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "mod",
+   "kind": "function",
+   "line": 175
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "smod",
+   "kind": "function",
+   "line": 205
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "addmod",
+   "kind": "function",
+   "line": 235
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "mulmod",
+   "kind": "function",
+   "line": 266
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "exp",
+   "kind": "function",
+   "line": 297
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/arithmetic.py",
+   "name": "signextend",
+   "kind": "function",
+   "line": 334
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_and",
+   "kind": "function",
+   "line": 24
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_or",
+   "kind": "function",
+   "line": 49
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_xor",
+   "kind": "function",
+   "line": 74
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_not",
+   "kind": "function",
+   "line": 99
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "get_byte",
+   "kind": "function",
+   "line": 123
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_shl",
+   "kind": "function",
+   "line": 159
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_shr",
+   "kind": "function",
+   "line": 189
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "bitwise_sar",
+   "kind": "function",
+   "line": 219
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/bitwise.py",
+   "name": "count_leading_zeros",
+   "kind": "function",
+   "line": 251
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "block_hash",
+   "kind": "function",
+   "line": 22
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "coinbase",
+   "kind": "function",
+   "line": 72
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "timestamp",
+   "kind": "function",
+   "line": 106
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "number",
+   "kind": "function",
+   "line": 140
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "prev_randao",
+   "kind": "function",
+   "line": 173
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "gas_limit",
+   "kind": "function",
+   "line": 206
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "chain_id",
+   "kind": "function",
+   "line": 239
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/block.py",
+   "name": "slot_number",
+   "kind": "function",
+   "line": 269
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "less_than",
+   "kind": "function",
+   "line": 24
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "signed_less_than",
+   "kind": "function",
+   "line": 51
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "greater_than",
+   "kind": "function",
+   "line": 77
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "signed_greater_than",
+   "kind": "function",
+   "line": 104
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "equal",
+   "kind": "function",
+   "line": 130
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/comparison.py",
+   "name": "is_zero",
+   "kind": "function",
+   "line": 157
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "stop",
+   "kind": "function",
+   "line": 25
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "jump",
+   "kind": "function",
+   "line": 48
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "jumpi",
+   "kind": "function",
+   "line": 73
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "pc",
+   "kind": "function",
+   "line": 104
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "gas_left",
+   "kind": "function",
+   "line": 128
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/control_flow.py",
+   "name": "jumpdest",
+   "kind": "function",
+   "line": 152
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "address",
+   "kind": "function",
+   "line": 35
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "balance",
+   "kind": "function",
+   "line": 58
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "origin",
+   "kind": "function",
+   "line": 89
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "caller",
+   "kind": "function",
+   "line": 113
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "callvalue",
+   "kind": "function",
+   "line": 136
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "calldataload",
+   "kind": "function",
+   "line": 159
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "calldatasize",
+   "kind": "function",
+   "line": 185
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "calldatacopy",
+   "kind": "function",
+   "line": 208
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "codesize",
+   "kind": "function",
+   "line": 246
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "codecopy",
+   "kind": "function",
+   "line": 269
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "gasprice",
+   "kind": "function",
+   "line": 307
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "extcodesize",
+   "kind": "function",
+   "line": 330
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "extcodecopy",
+   "kind": "function",
+   "line": 364
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "returndatasize",
+   "kind": "function",
+   "line": 411
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "returndatacopy",
+   "kind": "function",
+   "line": 434
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "extcodehash",
+   "kind": "function",
+   "line": 476
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "self_balance",
+   "kind": "function",
+   "line": 513
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "base_fee",
+   "kind": "function",
+   "line": 539
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "blob_hash",
+   "kind": "function",
+   "line": 562
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/environment.py",
+   "name": "blob_base_fee",
+   "kind": "function",
+   "line": 589
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/keccak.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/keccak.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/keccak.py",
+   "name": "keccak",
+   "kind": "function",
+   "line": 30
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/log.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/log.py",
+   "name": "log_n",
+   "kind": "function",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "mstore",
+   "kind": "function",
+   "line": 30
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "mstore8",
+   "kind": "function",
+   "line": 61
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "mload",
+   "kind": "function",
+   "line": 93
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "msize",
+   "kind": "function",
+   "line": 123
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/memory.py",
+   "name": "mcopy",
+   "kind": "function",
+   "line": 146
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "ethereum_types.numeric.U8",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "pop",
+   "kind": "function",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "push_n",
+   "kind": "function",
+   "line": 52
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "dup_n",
+   "kind": "function",
+   "line": 85
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "swap_n",
+   "kind": "function",
+   "line": 113
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "dupn",
+   "kind": "function",
+   "line": 216
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "swapn",
+   "kind": "function",
+   "line": 248
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/stack.py",
+   "name": "exchange",
+   "kind": "function",
+   "line": 284
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/storage.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/storage.py",
+   "name": "sload",
+   "kind": "function",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/storage.py",
+   "name": "sstore",
+   "kind": "function",
+   "line": 68
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/storage.py",
+   "name": "tload",
+   "kind": "function",
+   "line": 164
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/storage.py",
+   "name": "tstore",
+   "kind": "function",
+   "line": 189
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "generic_create",
+   "kind": "function",
+   "line": 66
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "create",
+   "kind": "function",
+   "line": 195
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "create2",
+   "kind": "function",
+   "line": 249
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "return_",
+   "kind": "function",
+   "line": 314
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "GenericCall",
+   "kind": "class",
+   "line": 349
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "generic_call",
+   "kind": "function",
+   "line": 376
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "call",
+   "kind": "function",
+   "line": 472
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "callcode",
+   "kind": "function",
+   "line": 599
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "selfdestruct",
+   "kind": "function",
+   "line": 713
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "delegatecall",
+   "kind": "function",
+   "line": 788
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "staticcall",
+   "kind": "function",
+   "line": 891
+  },
+  {
+   "file": "forks/amsterdam/vm/instructions/system.py",
+   "name": "revert",
+   "kind": "function",
+   "line": 994
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "STACK_DEPTH_LIMIT",
+   "kind": "constant",
+   "line": 84
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "MAX_CODE_SIZE",
+   "kind": "constant",
+   "line": 85
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "MAX_INIT_CODE_SIZE",
+   "kind": "constant",
+   "line": 86
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "TransactionOutput",
+   "kind": "class",
+   "line": 91
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "charge_value_transfer_to_non_alive_account",
+   "kind": "function",
+   "line": 124
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "create_evm",
+   "kind": "function",
+   "line": 138
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "process_top_level",
+   "kind": "function",
+   "line": 241
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "process_create",
+   "kind": "function",
+   "line": 330
+  },
+  {
+   "file": "forks/amsterdam/vm/interpreter.py",
+   "name": "process_call",
+   "kind": "function",
+   "line": 401
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "memory_write",
+   "kind": "function",
+   "line": 20
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "memory_read_bytes",
+   "kind": "function",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/vm/memory.py",
+   "name": "buffer_read",
+   "kind": "function",
+   "line": 63
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "ECRECOVER_ADDRESS",
+   "kind": "constant",
+   "line": 38
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "SHA256_ADDRESS",
+   "kind": "constant",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "RIPEMD160_ADDRESS",
+   "kind": "constant",
+   "line": 40
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "IDENTITY_ADDRESS",
+   "kind": "constant",
+   "line": 41
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "MODEXP_ADDRESS",
+   "kind": "constant",
+   "line": 42
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "ALT_BN128_ADD_ADDRESS",
+   "kind": "constant",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "ALT_BN128_MUL_ADDRESS",
+   "kind": "constant",
+   "line": 44
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "ALT_BN128_PAIRING_CHECK_ADDRESS",
+   "kind": "constant",
+   "line": 45
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLAKE2F_ADDRESS",
+   "kind": "constant",
+   "line": 46
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "POINT_EVALUATION_ADDRESS",
+   "kind": "constant",
+   "line": 47
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_G1_ADD_ADDRESS",
+   "kind": "constant",
+   "line": 48
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_G1_MSM_ADDRESS",
+   "kind": "constant",
+   "line": 49
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_G2_ADD_ADDRESS",
+   "kind": "constant",
+   "line": 50
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_G2_MSM_ADDRESS",
+   "kind": "constant",
+   "line": 51
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_PAIRING_ADDRESS",
+   "kind": "constant",
+   "line": 52
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_MAP_FP_TO_G1_ADDRESS",
+   "kind": "constant",
+   "line": 53
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "BLS12_MAP_FP2_TO_G2_ADDRESS",
+   "kind": "constant",
+   "line": 54
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/__init__.py",
+   "name": "P256VERIFY_ADDRESS",
+   "kind": "constant",
+   "line": 55
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.FQ",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.FQ2",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.FQ12",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.add",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.b",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.b2",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.curve_order",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.field_modulus",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.is_inf",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.is_on_curve",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.multiply",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_curve.normalize",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.optimized_bn128.optimized_pairing.pairing",
+   "kind": "external",
+   "line": 30
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "py_ecc.typing.Optimized_Point3D",
+   "kind": "external",
+   "line": 31
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "bytes_to_g1",
+   "kind": "function",
+   "line": 40
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "bytes_to_g2",
+   "kind": "function",
+   "line": 86
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "alt_bn128_add",
+   "kind": "function",
+   "line": 140
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "alt_bn128_mul",
+   "kind": "function",
+   "line": 168
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/alt_bn128.py",
+   "name": "alt_bn128_pairing_check",
+   "kind": "function",
+   "line": 196
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/blake2f.py",
+   "name": "blake2f",
+   "kind": "function",
+   "line": 21
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.FQ",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.FQ2",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.b",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.b2",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.curve_order",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.is_inf",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.is_on_curve",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.normalize",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.multiply",
+   "kind": "external",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "py_ecc.typing.Optimized_Point3D",
+   "kind": "external",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "G1_K_DISCOUNT",
+   "kind": "constant",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "G2_K_DISCOUNT",
+   "kind": "constant",
+   "line": 168
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "G1_MAX_DISCOUNT",
+   "kind": "constant",
+   "line": 299
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "G2_MAX_DISCOUNT",
+   "kind": "constant",
+   "line": 300
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "MULTIPLIER",
+   "kind": "constant",
+   "line": 301
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "_bytes_to_g1_cached",
+   "kind": "function",
+   "line": 309
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "bytes_to_g1",
+   "kind": "function",
+   "line": 341
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "g1_to_bytes",
+   "kind": "function",
+   "line": 372
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "decode_g1_scalar_pair",
+   "kind": "function",
+   "line": 394
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "bytes_to_fq",
+   "kind": "function",
+   "line": 426
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "bytes_to_fq2",
+   "kind": "function",
+   "line": 457
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "_bytes_to_g2_cached",
+   "kind": "function",
+   "line": 495
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "bytes_to_g2",
+   "kind": "function",
+   "line": 523
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "fq2_to_bytes",
+   "kind": "function",
+   "line": 554
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "g2_to_bytes",
+   "kind": "function",
+   "line": 573
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py",
+   "name": "decode_g2_scalar_pair",
+   "kind": "function",
+   "line": 594
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "py_ecc.bls.hash_to_curve.clear_cofactor_G1",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "py_ecc.bls.hash_to_curve.map_to_curve_G1",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.FQ",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.add",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.multiply",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "LENGTH_PER_PAIR",
+   "kind": "constant",
+   "line": 39
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "bls12_g1_add",
+   "kind": "function",
+   "line": 42
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "bls12_g1_msm",
+   "kind": "function",
+   "line": 73
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
+   "name": "bls12_map_fp_to_g1",
+   "kind": "function",
+   "line": 124
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "py_ecc.bls.hash_to_curve.clear_cofactor_G2",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "py_ecc.bls.hash_to_curve.map_to_curve_G2",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.FQ2",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.add",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.multiply",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "LENGTH_PER_PAIR",
+   "kind": "constant",
+   "line": 40
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "bls12_g2_add",
+   "kind": "function",
+   "line": 43
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "bls12_g2_msm",
+   "kind": "function",
+   "line": 74
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
+   "name": "bls12_map_fp2_to_g2",
+   "kind": "function",
+   "line": 125
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "py_ecc.optimized_bls12_381.FQ12",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "py_ecc.optimized_bls12_381.curve_order",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "py_ecc.optimized_bls12_381.is_inf",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "py_ecc.optimized_bls12_381.pairing",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "py_ecc.optimized_bls12_381.multiply",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
+   "name": "bls12_pairing",
+   "kind": "function",
+   "line": 25
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ecrecover.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ecrecover.py",
+   "name": "ecrecover",
+   "kind": "function",
+   "line": 26
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/identity.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/identity.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/identity.py",
+   "name": "identity",
+   "kind": "function",
+   "line": 26
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/mapping.py",
+   "name": "PRE_COMPILED_CONTRACTS",
+   "kind": "constant",
+   "line": 59
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "modexp",
+   "kind": "function",
+   "line": 24
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "complexity",
+   "kind": "function",
+   "line": 76
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "iterations",
+   "kind": "function",
+   "line": 102
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/modexp.py",
+   "name": "gas_cost",
+   "kind": "function",
+   "line": 143
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/p256verify.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/p256verify.py",
+   "name": "p256verify",
+   "kind": "function",
+   "line": 31
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "ethereum_types.bytes.Bytes48",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "FIELD_ELEMENTS_PER_BLOB",
+   "kind": "constant",
+   "line": 27
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "BLS_MODULUS",
+   "kind": "constant",
+   "line": 28
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "VERSIONED_HASH_VERSION_KZG",
+   "kind": "constant",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/point_evaluation.py",
+   "name": "point_evaluation",
+   "kind": "function",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ripemd160.py",
+   "name": "hashlib",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ripemd160.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ripemd160.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/ripemd160.py",
+   "name": "ripemd160",
+   "kind": "function",
+   "line": 29
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
+   "name": "hashlib",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
+   "name": "sha256",
+   "kind": "function",
+   "line": 28
+  },
+  {
+   "file": "forks/amsterdam/vm/runtime.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/runtime.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/runtime.py",
+   "name": "ethereum_types.numeric.ulen",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/amsterdam/vm/runtime.py",
+   "name": "get_valid_jump_destinations",
+   "kind": "function",
+   "line": 22
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "ethereum_types.numeric.U8",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "decode_single",
+   "kind": "function",
+   "line": 25
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "decode_pair",
+   "kind": "function",
+   "line": 56
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "pop",
+   "kind": "function",
+   "line": 94
+  },
+  {
+   "file": "forks/amsterdam/vm/stack.py",
+   "name": "push",
+   "kind": "function",
+   "line": 115
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "build_node_db",
+   "kind": "function",
+   "line": 37
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "build_code_db",
+   "kind": "function",
+   "line": 45
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "_trie_lookup",
+   "kind": "function",
+   "line": 53
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "_decode_account_from_leaf",
+   "kind": "function",
+   "line": 103
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState",
+   "kind": "class",
+   "line": 132
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState._get_decoded_secure_root",
+   "kind": "method",
+   "line": 148
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState.get_account_optional",
+   "kind": "method",
+   "line": 162
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState.get_storage",
+   "kind": "method",
+   "line": 179
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState.get_code",
+   "kind": "method",
+   "line": 205
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState.compute_state_root",
+   "kind": "method",
+   "line": 215
+  },
+  {
+   "file": "forks/amsterdam/witness_state.py",
+   "name": "WitnessState.compute_state_root_and_trie_changes",
+   "kind": "method",
+   "line": 229
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 27
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.bytes.Bytes20",
+   "kind": "external",
+   "line": 27
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 27
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 28
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 29
+  },
+  {
+   "file": "state.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 29
+  },
+  {
+   "file": "state.py",
+   "name": "EMPTY_CODE_HASH",
+   "kind": "constant",
+   "line": 36
+  },
+  {
+   "file": "state.py",
+   "name": "Account",
+   "kind": "class",
+   "line": 42
+  },
+  {
+   "file": "state.py",
+   "name": "EMPTY_ACCOUNT",
+   "kind": "constant",
+   "line": 52
+  },
+  {
+   "file": "state.py",
+   "name": "BlockDiff",
+   "kind": "class",
+   "line": 61
+  },
+  {
+   "file": "state.py",
+   "name": "PreState",
+   "kind": "class",
+   "line": 92
+  },
+  {
+   "file": "state.py",
+   "name": "PreState.get_account_optional",
+   "kind": "method",
+   "line": 100
+  },
+  {
+   "file": "state.py",
+   "name": "PreState.get_storage",
+   "kind": "method",
+   "line": 108
+  },
+  {
+   "file": "state.py",
+   "name": "PreState.get_code",
+   "kind": "method",
+   "line": 116
+  },
+  {
+   "file": "state.py",
+   "name": "PreState.compute_state_root",
+   "kind": "method",
+   "line": 124
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "State",
+   "kind": "class",
+   "line": 34
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "State.get_code",
+   "kind": "method",
+   "line": 49
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "State.get_account_optional",
+   "kind": "method",
+   "line": 59
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "State.get_storage",
+   "kind": "method",
+   "line": 67
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "State.compute_state_root",
+   "kind": "method",
+   "line": 82
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "close_state",
+   "kind": "function",
+   "line": 123
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "apply_changes_to_state",
+   "kind": "function",
+   "line": 133
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "store_code",
+   "kind": "function",
+   "line": 164
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "set_account",
+   "kind": "function",
+   "line": 174
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "set_storage",
+   "kind": "function",
+   "line": 187
+  },
+  {
+   "file": "state_mpt.py",
+   "name": "state_root",
+   "kind": "function",
+   "line": 209
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ethereum_rlp.Extended",
+   "kind": "external",
+   "line": 61
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 61
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 62
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 63
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 64
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "EMPTY_TRIE_ROOT",
+   "kind": "constant",
+   "line": 71
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "LeafNode",
+   "kind": "class",
+   "line": 91
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "ExtensionNode",
+   "kind": "class",
+   "line": 110
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "BranchNode",
+   "kind": "class",
+   "line": 165
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "K",
+   "kind": "constant",
+   "line": 189
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "V",
+   "kind": "constant",
+   "line": 190
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "encode_account",
+   "kind": "function",
+   "line": 193
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "encode_internal_node",
+   "kind": "function",
+   "line": 213
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "encode_node",
+   "kind": "function",
+   "line": 252
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "Trie",
+   "kind": "class",
+   "line": 274
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "copy_trie",
+   "kind": "function",
+   "line": 315
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "trie_set",
+   "kind": "function",
+   "line": 325
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "trie_get",
+   "kind": "function",
+   "line": 341
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "common_prefix_length",
+   "kind": "function",
+   "line": 350
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "nibble_list_to_compact",
+   "kind": "function",
+   "line": 360
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "bytes_to_nibble_list",
+   "kind": "function",
+   "line": 395
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "_prepare_data",
+   "kind": "function",
+   "line": 407
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "_prepare_trie",
+   "kind": "function",
+   "line": 451
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "root",
+   "kind": "function",
+   "line": 478
+  },
+  {
+   "file": "merkle_patricia_trie.py",
+   "name": "patricialize",
+   "kind": "function",
+   "line": 507
+  },
+  {
+   "file": "exceptions.py",
+   "name": "EthereumException",
+   "kind": "class",
+   "line": 6
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InvalidBlock",
+   "kind": "class",
+   "line": 13
+  },
+  {
+   "file": "exceptions.py",
+   "name": "StateWithEmptyAccount",
+   "kind": "class",
+   "line": 19
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InvalidTransaction",
+   "kind": "class",
+   "line": 25
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InvalidSenderError",
+   "kind": "class",
+   "line": 31
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InvalidSignatureError",
+   "kind": "class",
+   "line": 38
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InsufficientBalanceError",
+   "kind": "class",
+   "line": 44
+  },
+  {
+   "file": "exceptions.py",
+   "name": "NonceMismatchError",
+   "kind": "class",
+   "line": 51
+  },
+  {
+   "file": "exceptions.py",
+   "name": "GasUsedExceedsLimitError",
+   "kind": "class",
+   "line": 58
+  },
+  {
+   "file": "exceptions.py",
+   "name": "InsufficientTransactionGasError",
+   "kind": "class",
+   "line": 65
+  },
+  {
+   "file": "exceptions.py",
+   "name": "NonceOverflowError",
+   "kind": "class",
+   "line": 72
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "spit_le_to_uint",
+   "kind": "function",
+   "line": 10
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2",
+   "kind": "class",
+   "line": 35
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.max_word",
+   "kind": "method",
+   "line": 53
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.w_R1",
+   "kind": "method",
+   "line": 60
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.w_R2",
+   "kind": "method",
+   "line": 68
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.w_R3",
+   "kind": "method",
+   "line": 76
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.w_R4",
+   "kind": "method",
+   "line": 84
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.sigma_len",
+   "kind": "method",
+   "line": 127
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.get_blake2_parameters",
+   "kind": "method",
+   "line": 133
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.G",
+   "kind": "method",
+   "line": 152
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2.compress",
+   "kind": "method",
+   "line": 194
+  },
+  {
+   "file": "crypto/blake2.py",
+   "name": "Blake2b",
+   "kind": "class",
+   "line": 253
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "spec256k1",
+   "kind": "external",
+   "line": 3
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "Crypto.Util.asn1.DerSequence",
+   "kind": "external",
+   "line": 4
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "cryptography.exceptions.InvalidSignature",
+   "kind": "external",
+   "line": 5
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "cryptography.hazmat.backends.default_backend",
+   "kind": "external",
+   "line": 6
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "cryptography.hazmat.primitives.hashes",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "cryptography.hazmat.primitives.asymmetric.ec",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "cryptography.hazmat.primitives.asymmetric.utils.Prehashed",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256K1B",
+   "kind": "constant",
+   "line": 17
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256K1P",
+   "kind": "constant",
+   "line": 18
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256K1N",
+   "kind": "constant",
+   "line": 21
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "secp256k1_recover",
+   "kind": "function",
+   "line": 26
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256R1N",
+   "kind": "constant",
+   "line": 79
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256R1P",
+   "kind": "constant",
+   "line": 82
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256R1A",
+   "kind": "constant",
+   "line": 85
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "SECP256R1B",
+   "kind": "constant",
+   "line": 88
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "secp256r1_verify",
+   "kind": "function",
+   "line": 93
+  },
+  {
+   "file": "crypto/elliptic_curve.py",
+   "name": "is_on_curve_secp256r1",
+   "kind": "function",
+   "line": 134
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "hashlib",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "Crypto.Hash.keccak",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "ethereum_types.bytes.Bytes64",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "_hashlib_has_keccak",
+   "kind": "function",
+   "line": 23
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "_USE_HASHLIB",
+   "kind": "constant",
+   "line": 39
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "keccak256",
+   "kind": "function",
+   "line": 62
+  },
+  {
+   "file": "crypto/hash.py",
+   "name": "keccak512",
+   "kind": "function",
+   "line": 80
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "hashlib.sha256",
+   "kind": "external",
+   "line": 3
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "eth_typing.bls.BLSPubkey",
+   "kind": "external",
+   "line": 6
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "eth_typing.bls.BLSSignature",
+   "kind": "external",
+   "line": 6
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "ethereum_types.bytes.Bytes48",
+   "kind": "external",
+   "line": 7
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 8
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.bls.G2ProofOfPossession",
+   "kind": "external",
+   "line": 9
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.bls.g2_primitives.pubkey_to_G1",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.bls.g2_primitives.signature_to_G2",
+   "kind": "external",
+   "line": 10
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.fields.optimized_bls12_381_FQ",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.fields.optimized_bls12_381_FQ2",
+   "kind": "external",
+   "line": 11
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.fields.optimized_bls12_381_FQ12",
+   "kind": "external",
+   "line": 12
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.add",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.multiply",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.neg",
+   "kind": "external",
+   "line": 13
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.G1",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_curve.G2",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_pairing.final_exponentiate",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "py_ecc.optimized_bls12_381.optimized_pairing.pairing",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "FQ",
+   "kind": "constant",
+   "line": 22
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "FQ2",
+   "kind": "constant",
+   "line": 25
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "KZGCommitment",
+   "kind": "class",
+   "line": 30
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "KZGProof",
+   "kind": "class",
+   "line": 36
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "BLSFieldElement",
+   "kind": "class",
+   "line": 42
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "VersionedHash",
+   "kind": "class",
+   "line": 48
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "VERSIONED_HASH_VERSION_KZG",
+   "kind": "constant",
+   "line": 54
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "BYTES_PER_COMMITMENT",
+   "kind": "constant",
+   "line": 55
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "BYTES_PER_PROOF",
+   "kind": "constant",
+   "line": 56
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "BYTES_PER_FIELD_ELEMENT",
+   "kind": "constant",
+   "line": 57
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "G1_POINT_AT_INFINITY",
+   "kind": "constant",
+   "line": 58
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "BLS_MODULUS",
+   "kind": "constant",
+   "line": 59
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "KZG_SETUP_G2_MONOMIAL_1",
+   "kind": "constant",
+   "line": 62
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "kzg_commitment_to_versioned_hash",
+   "kind": "function",
+   "line": 65
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "validate_kzg_g1",
+   "kind": "function",
+   "line": 77
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "bytes_to_kzg_commitment",
+   "kind": "function",
+   "line": 88
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "bytes_to_bls_field",
+   "kind": "function",
+   "line": 96
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "bytes_to_kzg_proof",
+   "kind": "function",
+   "line": 107
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "pairing_check",
+   "kind": "function",
+   "line": 115
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "verify_kzg_proof",
+   "kind": "function",
+   "line": 127
+  },
+  {
+   "file": "crypto/kzg.py",
+   "name": "verify_kzg_proof_impl",
+   "kind": "function",
+   "line": 152
+  },
+  {
+   "file": "utils/__init__.py",
+   "name": "has_field",
+   "kind": "function",
+   "line": 9
+  },
+  {
+   "file": "utils/byte.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "utils/byte.py",
+   "name": "ethereum_types.numeric.FixedUnsigned",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/byte.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/byte.py",
+   "name": "left_pad_zero_bytes",
+   "kind": "function",
+   "line": 18
+  },
+  {
+   "file": "utils/byte.py",
+   "name": "right_pad_zero_bytes",
+   "kind": "function",
+   "line": 40
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.bytes.Bytes8",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.bytes.Bytes256",
+   "kind": "external",
+   "line": 14
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.numeric.U8",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "has_hex_prefix",
+   "kind": "function",
+   "line": 20
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "remove_hex_prefix",
+   "kind": "function",
+   "line": 38
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_bytes",
+   "kind": "function",
+   "line": 60
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_bytes8",
+   "kind": "function",
+   "line": 78
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_bytes32",
+   "kind": "function",
+   "line": 96
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_bytes256",
+   "kind": "function",
+   "line": 114
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_hash",
+   "kind": "function",
+   "line": 134
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_uint",
+   "kind": "function",
+   "line": 152
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_u8",
+   "kind": "function",
+   "line": 170
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_u64",
+   "kind": "function",
+   "line": 188
+  },
+  {
+   "file": "utils/hexadecimal.py",
+   "name": "hex_to_u256",
+   "kind": "function",
+   "line": 206
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "ethereum_types.numeric.U32",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "get_sign",
+   "kind": "function",
+   "line": 19
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "ceil32",
+   "kind": "function",
+   "line": 43
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "is_prime",
+   "kind": "function",
+   "line": 68
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "le_bytes_to_uint32_sequence",
+   "kind": "function",
+   "line": 96
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "le_uint32_sequence_to_bytes",
+   "kind": "function",
+   "line": 122
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "le_uint32_sequence_to_uint",
+   "kind": "function",
+   "line": 155
+  },
+  {
+   "file": "utils/numeric.py",
+   "name": "taylor_exponential",
+   "kind": "function",
+   "line": 177
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "ethereum_types.bytes.FixedBytes",
+   "kind": "external",
+   "line": 19
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "ethereum_types.numeric.FixedUnsigned",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "ethereum_types.numeric.Unsigned",
+   "kind": "external",
+   "line": 20
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.basic",
+   "kind": "external",
+   "line": 21
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.byte_arrays.ByteList",
+   "kind": "external",
+   "line": 22
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.byte_arrays.ByteVector",
+   "kind": "external",
+   "line": 22
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.complex.Container",
+   "kind": "external",
+   "line": 23
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.complex.List",
+   "kind": "external",
+   "line": 24
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.progressive.ProgressiveByteList",
+   "kind": "external",
+   "line": 25
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.progressive.ProgressiveContainer",
+   "kind": "external",
+   "line": 25
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "remerkleable.progressive.ProgressiveList",
+   "kind": "external",
+   "line": 25
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_SszType",
+   "kind": "class",
+   "line": 32
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_Uint",
+   "kind": "class",
+   "line": 38
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ByteVector",
+   "kind": "class",
+   "line": 44
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ByteList",
+   "kind": "class",
+   "line": 50
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_List",
+   "kind": "class",
+   "line": 56
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ProgressiveList",
+   "kind": "class",
+   "line": 63
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_Container",
+   "kind": "class",
+   "line": 69
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_Bool",
+   "kind": "class",
+   "line": 73
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ProgressiveByteList",
+   "kind": "class",
+   "line": 77
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ListLimit",
+   "kind": "class",
+   "line": 83
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_ProgressiveListMarker",
+   "kind": "class",
+   "line": 87
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "uint",
+   "kind": "function",
+   "line": 91
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "byte_vector",
+   "kind": "function",
+   "line": 98
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "byte_list",
+   "kind": "function",
+   "line": 103
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "ssz_list",
+   "kind": "function",
+   "line": 108
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "progressive_list",
+   "kind": "function",
+   "line": 113
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "progressive_byte_list",
+   "kind": "function",
+   "line": 118
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_C",
+   "kind": "constant",
+   "line": 123
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "SszContainer",
+   "kind": "class",
+   "line": 126
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "SszContainer.encode_bytes",
+   "kind": "method",
+   "line": 129
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "SszContainer.hash_tree_root",
+   "kind": "method",
+   "line": 133
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "SszContainer.decode_bytes",
+   "kind": "method",
+   "line": 138
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "ProgressiveSszContainer",
+   "kind": "class",
+   "line": 149
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_annotated",
+   "kind": "function",
+   "line": 153
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_collection_element",
+   "kind": "function",
+   "line": 169
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_infer",
+   "kind": "function",
+   "line": 179
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_rmk_type",
+   "kind": "function",
+   "line": 208
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_FIELD_TYPES",
+   "kind": "constant",
+   "line": 228
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_field_types",
+   "kind": "function",
+   "line": 231
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_CONTAINER_TYPES",
+   "kind": "constant",
+   "line": 240
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_container_type",
+   "kind": "function",
+   "line": 243
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_to_ssz_value",
+   "kind": "function",
+   "line": 263
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_to_view",
+   "kind": "function",
+   "line": 288
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_from_ssz_value",
+   "kind": "function",
+   "line": 299
+  },
+  {
+   "file": "utils/ssz.py",
+   "name": "_from_view",
+   "kind": "function",
+   "line": 318
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_rlp.rlp",
+   "kind": "external",
+   "line": 15
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.bytes.Bytes",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.bytes.Bytes8",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 16
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.frozen.slotted_freezable",
+   "kind": "external",
+   "line": 17
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.numeric.U64",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "ethereum_types.numeric.Uint",
+   "kind": "external",
+   "line": 18
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "Withdrawal",
+   "kind": "class",
+   "line": 37
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "Header",
+   "kind": "class",
+   "line": 71
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "Block",
+   "kind": "class",
+   "line": 253
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "Log",
+   "kind": "class",
+   "line": 307
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "Receipt",
+   "kind": "class",
+   "line": 340
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "encode_receipt",
+   "kind": "function",
+   "line": 370
+  },
+  {
+   "file": "forks/bpo5/blocks.py",
+   "name": "decode_receipt",
+   "kind": "function",
+   "line": 393
+  }
+ ]
+}

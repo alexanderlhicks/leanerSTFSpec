@@ -1,0 +1,65 @@
+# The pinned reference: the specification source (execution-specs) and the conformance
+# corpus (EEST zkevm fixtures), identified together, plus the locked Python dependencies
+# and the Lean version. Change them only together, in one commit, recording the change in
+# the commit message and in STFSpec/informal/DECISIONS.md P1. Changing the pin also means regenerating
+# STFSpec/informal/eels-inventory.json and REFERENCE-RECORDS.md (scripts/gen_eels_inventory.py,
+# scripts/gen_reference_records.py). Checked by scripts/check_reference.py. The guest
+# input/output contract is STFSpec/informal/CONTRACT.md.
+
+schema = 1
+
+[release]
+# Canonical source per eth-act/zkevm-standards handbooks/guest-handbook.md
+# (@b1c0260): the latest `tests-zkevm@vA.B.C` tag on execution-specs branch
+# `projects/zkevm-releases` (a merge of `projects/zkevm` and a devnet test branch).
+repository = "https://github.com/ethereum/execution-specs"
+tag = "tests-zkevm@v21.0.0"
+branch = "projects/zkevm-releases"
+commit = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"   # tag target; = branch head on 2026-09-28
+published = "2026-09-24T13:56:11Z"
+prerelease = true                                      # as marked on GitHub
+
+[release.spec]
+fork_package = "src/ethereum/forks/amsterdam"
+guest_entry = "src/ethereum/forks/amsterdam/stateless_guest.py:run_stateless_guest"
+validation_entry = "src/ethereum/forks/amsterdam/stateless.py:verify_stateless_new_payload"
+fork = "Amsterdam"
+protocol_fork_index = 0x15
+schema_revision = 0x01
+schema_id = 0x1501                                     # (fork_index << 8) | revision, 2 bytes big-endian
+
+[release.fixtures]
+asset = "fixtures_zkevm.tar.gz"
+url = "https://github.com/ethereum/execution-specs/releases/download/tests-zkevm%40v21.0.0/fixtures_zkevm.tar.gz"
+size_bytes = 586431069
+sha256 = "44cfcb54fe08b870c53c96879f8ebbc960434032eb3696139dbe2a1629eebe1a"
+input_field = "statelessInputBytes"
+output_field = "statelessOutputBytes"
+debug_only_fields = ["executionWitness"]
+# Verified locally 2026-09-28: sha256 matches; 6875 JSON files, i.e. 6874 test files plus 1 .meta (blockchain_tests 3435,
+# blockchain_tests_engine 3439, .meta 1). All 29030 statelessInputBytes /
+# statelessOutputBytes records are in blockchain_tests (blockchain_tests_engine carries
+# none); 24283 of the inputs are distinct (corrected 2026-09-28; the earlier comment implied
+# the records spanned both formats).
+json_files = 6875
+guest_records = 29030
+distinct_guest_inputs = 24283
+
+# Python dependencies whose behaviour is part of the reference semantics, with the
+# locked versions from execution-specs uv.lock at the release commit and where each is used
+# (checked by import scan at the release commit).
+[release.python_dependencies]
+ethereum-types = "0.4.1"      # Uint / U256 / Bytes semantics (everywhere)
+ethereum-rlp = "0.1.6"        # RLP encoding/decoding and canonical-form rules
+eth-remerkleable = "0.1.31"   # SSZ (src/ethereum/utils/ssz.py)
+py-ecc = "8.0.0"              # BN254 (alt_bn128.py), BLS12-381 and KZG (crypto/kzg.py)
+pycryptodome = "3.23.0"       # keccak fallback (crypto/hash.py); DER parsing (elliptic_curve.py)
+spec256k1 = "0.2.3"           # secp256k1 recovery (crypto/elliptic_curve.py)
+cryptography = "45.0.7"       # P-256 verification (crypto/elliptic_curve.py)
+# Not pinned by uv.lock: Python's hashlib, backed by the host OpenSSL, supplies sha256,
+# ripemd160 (precompiled_contracts/ripemd160.py uses hashlib.new("ripemd160")) and keccak
+# when OpenSSL provides it (crypto/hash.py prefers hashlib, falling back to pycryptodome).
+# ckzg 2.1.5 is in uv.lock but is not imported by src/.
+
+[lean]
+toolchain = "leanprover/lean4:v4.34.0"

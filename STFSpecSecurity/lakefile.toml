@@ -1,0 +1,26 @@
+# Security package: witness binding, stateless => stateful agreement and random-oracle bounds
+# for the guest (STFSpec/informal/ARCHITECTURE.md §3, §5.6). It depends on the core and the Mathlib bridge
+# package; neither depends on it. VCV-io is added here, and only here, when this work starts,
+# pinned to a full commit (the analysis was against upstream main f5119c6; toolchain v4.34.0).
+name = "STFSpecSecurity"
+version = "0.0.0"
+defaultTargets = ["EthSecurity"]
+# Share the bridge package's dependency checkouts (Mathlib and its dependencies) instead of
+# fetching a second copy.
+packagesDir = "../STFSpecMathlib/.lake/packages"
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "stfspec"
+path = ".."
+
+[[require]]
+name = "STFSpecMathlib"
+path = "../STFSpecMathlib"
+
+[[lean_lib]]
+name = "EthSecurity"
+roots = ["STFSpecSecurity"]

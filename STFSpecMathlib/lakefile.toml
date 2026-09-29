@@ -1,0 +1,31 @@
+# Mathlib bridge package: Mathlib-dependent correctness results about the core (field
+# isomorphisms, group laws, bilinearity; STFSpec/informal/ARCHITECTURE.md §3). It depends on the core;
+# the core never depends on it. Security results are in ../STFSpecSecurity.
+name = "STFSpecMathlib"
+version = "0.0.0"
+defaultTargets = ["EthFieldMathlib", "EthCurveMathlib", "EthPairingMathlib"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "stfspec"
+path = ".."
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.0"
+
+[[lean_lib]]
+name = "EthFieldMathlib"
+roots = ["STFSpecMathlib.Field"]
+
+[[lean_lib]]
+name = "EthCurveMathlib"
+roots = ["STFSpecMathlib.Curve"]
+
+[[lean_lib]]
+name = "EthPairingMathlib"
+roots = ["STFSpecMathlib.Pairing"]

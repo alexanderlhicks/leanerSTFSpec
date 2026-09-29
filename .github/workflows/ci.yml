@@ -1,0 +1,102 @@
+# Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
+# Checks that hold from the first commit (CONTRIBUTING.md, STFSpec/informal/ARCHITECTURE.md §3).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"   # weekly: full pinned-corpus verification
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELAN_INIT: https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
+
+jobs:
+  core:
+    name: Core package (Mathlib-free)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4
+        with:
+          path: .lake
+          key: core-lake-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}-${{ github.sha }}
+          restore-keys: core-lake-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}-
+      - name: Build (warnings are errors)
+        run: lake build --wfail
+      - name: Dependency and hygiene boundaries (source level)
+        run: python3 scripts/check_boundaries.py
+      - name: Declaration check (compiled; strict)
+        run: scripts/check_decls.sh core
+      - name: Checker regression tests
+        run: |
+          lake build CheckDeclsTest
+          scripts/test_checks.sh
+      - name: Pinned reference consistency
+        run: |
+          python3 scripts/check_reference.py
+          python3 scripts/test_reference_checks.py
+      - name: README architecture diagram matches the registries and pin
+        run: python3 scripts/gen_arch_diagram.py --check
+      - name: Informal specification coverage and consistency
+        run: python3 scripts/check_spec.py
+      - name: Informal specification checker regressions
+        run: python3 scripts/test_spec_checks.py
+      - name: Gap register is up to date
+        run: python3 scripts/gen_gaps.py --check
+      - name: Deterministic conformance checks (core profile)
+        run: lake build EthConformance --wfail
+      # The bounded EEST fixture slice runs here once the fixture runner exists
+      # (STFSpec.Conformance); until then this job verifies only the pin (see `fixtures`).
+
+  mathlib:
+    name: Mathlib bridge and security packages
+    runs-on: ubuntu-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # STFSpecSecurity shares STFSpecMathlib/.lake/packages (its packagesDir), so one cache serves both.
+      - uses: actions/cache@v4
+        with:
+          path: STFSpecMathlib/.lake
+          key: mathlib-lake-${{ hashFiles('lean-toolchain', 'STFSpecMathlib/lakefile.toml', 'STFSpecMathlib/lake-manifest.json') }}-${{ github.sha }}
+          restore-keys: mathlib-lake-${{ hashFiles('lean-toolchain', 'STFSpecMathlib/lakefile.toml', 'STFSpecMathlib/lake-manifest.json') }}-
+      - name: Fetch Mathlib cache
+        working-directory: STFSpecMathlib
+        run: lake exe cache get
+      - name: Build the Mathlib bridge package
+        working-directory: STFSpecMathlib
+        run: lake build --wfail
+      - name: Declaration check, bridge package (sorry reported; everything else strict)
+        run: scripts/check_decls.sh mathlib
+      - name: Build the security package
+        working-directory: STFSpecSecurity
+        run: lake build --wfail
+      - name: Declaration check, security package (sorry reported; everything else strict)
+        run: scripts/check_decls.sh security
+
+  fixtures:
+    name: Pinned EEST zkevm corpus
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify the pinned fixture archive
+        run: |
+          python3 scripts/check_reference.py --fetch "$RUNNER_TEMP/fixtures"
+          python3 scripts/gen_fixture_index.py "$RUNNER_TEMP/fixtures/fixtures_zkevm.tar.gz" --check
+      # The full-corpus conformance run is added here with the fixture runner.

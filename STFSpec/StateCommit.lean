@@ -1,0 +1,18 @@
+/-
+Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
+-/
+
+/-!
+# STFSpec.StateCommit
+
+Integration of state semantics with commitments: the account and storage leaf encodings, the
+state root of a mathematical state (`mathStateRoot`), the root clause of the `PreState`
+contract (`stateRoot d = .ok r → r = mathStateRoot (σ.apply d)`), and code-hash agreement.
+`EthState` (lookup, overlay and rollback laws) and `EthCommit` (a trie generic over encoded
+keys and values) do not depend on each other; this library connects them, and both state
+backends build on it.
+
+Library `EthStateCommit`. Its allowed dependencies are listed in `scripts/boundaries.toml`
+(see `STFSpec/informal/ARCHITECTURE.md` §3). No definitions yet: scaffolding only.
+Spec guidance: `STFSpec/informal/modules/EthStateCommit.md`.
+-/

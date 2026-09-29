@@ -1,0 +1,13 @@
+.lake/
+*.olean
+*.ilean
+build/
+__pycache__/
+.claude/scheduled_tasks.lock
+
+# Internal material (research, plans, spikes, ledger, references). Never published.
+internal/
+CLAUDE.local.md
+
+# Local Claude Code configuration (agent roles, settings). Not published.
+.claude/

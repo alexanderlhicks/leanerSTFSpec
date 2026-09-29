@@ -1,0 +1,102 @@
+name = "stfspec"
+version = "0.0.0"
+# The Mathlib-free executable core. This package must never `require` anything:
+# the Mathlib boundary is enforced at the package level (CONTRIBUTING.md §4).
+defaultTargets = ["EthBase", "EthHash", "EthField", "EthCurve", "EthPairing", "EthCodec", "EthState", "EthCommit", "EthStateCommit", "EthStateFull", "EthStateWitness", "EthVmCore", "EthVmInstructions", "EthPrecompiles", "EthVmRunner", "EthBlock", "EthFork", "EthStateless", "EthConformance", "check-decls"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "EthBase"
+roots = ["STFSpec.Base"]
+
+[[lean_lib]]
+name = "EthHash"
+roots = ["STFSpec.Hash"]
+
+[[lean_lib]]
+name = "EthField"
+roots = ["STFSpec.Field"]
+
+[[lean_lib]]
+name = "EthCurve"
+roots = ["STFSpec.Curve"]
+
+[[lean_lib]]
+name = "EthPairing"
+roots = ["STFSpec.Pairing"]
+
+[[lean_lib]]
+name = "EthCodec"
+roots = ["STFSpec.Codec"]
+
+[[lean_lib]]
+name = "EthState"
+roots = ["STFSpec.State"]
+
+[[lean_lib]]
+name = "EthCommit"
+roots = ["STFSpec.Commit"]
+
+[[lean_lib]]
+name = "EthStateCommit"
+roots = ["STFSpec.StateCommit"]
+
+[[lean_lib]]
+name = "EthStateFull"
+roots = ["STFSpec.StateFull"]
+
+[[lean_lib]]
+name = "EthStateWitness"
+roots = ["STFSpec.StateWitness"]
+
+[[lean_lib]]
+name = "EthVmCore"
+roots = ["STFSpec.Vm.Core"]
+
+[[lean_lib]]
+name = "EthVmInstructions"
+roots = ["STFSpec.Vm.Instructions"]
+
+[[lean_lib]]
+name = "EthPrecompiles"
+roots = ["STFSpec.Precompiles"]
+
+[[lean_lib]]
+name = "EthVmRunner"
+roots = ["STFSpec.Vm.Runner"]
+
+[[lean_lib]]
+name = "EthBlock"
+roots = ["STFSpec.Block"]
+
+[[lean_lib]]
+name = "EthFork"
+roots = ["STFSpec.Fork"]
+
+[[lean_lib]]
+name = "EthStateless"
+roots = ["STFSpec.Stateless"]
+
+[[lean_lib]]
+name = "EthConformance"
+roots = ["STFSpec.Conformance"]
+
+# Checks compiled declarations: axioms, sorry, unsafe/partial, extern/implemented_by, csimp.
+[[lean_lib]]
+name = "CheckDecls"
+srcDir = "scripts"
+roots = ["CheckDecls"]
+
+[[lean_exe]]
+name = "check-decls"
+srcDir = "scripts"
+root = "CheckDeclsMain"
+supportInterpreter = true
+# Regression fixtures for check-decls itself (not a default target; see scripts/test_checks.sh).
+[[lean_lib]]
+name = "CheckDeclsTest"
+srcDir = "scripts"
+roots = ["CheckDeclsTest.Bad", "CheckDeclsTest.Good", "CheckDeclsTest.ProvedCsimp", "CheckDeclsTest.Superseded"]
