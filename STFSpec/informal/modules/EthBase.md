@@ -108,8 +108,8 @@ Each is specified as follows:
 The following declarations are in `STFSpec/Base/U256.lean`, namespace
 `STFSpec.Base.U256` (the structure is `STFSpec.Base.U256`). All rows are
 **discharged for this slice**: total, pure and without state effects. The source is the
-locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic slice below is also implemented; all other APIs remain
-**unimplemented** and the module's draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
+locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic and comparison/bitwise slices below are also implemented;
+all other APIs remain **unimplemented** and the module's draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
 are the stable Lean observer/checked-result names for Python `__int__`/`to_signed`
 and `U256(...)`/`from_signed`; `ofNat` is an additional wrapping model helper.
 
@@ -151,7 +151,7 @@ priority remain owned by `EthVmInstructions` and are not claimed implemented her
 Checked failures return `none`; their named fault and first-handler projection belong
 to each consumer under D14/B14. Same-type operands make Python `TypeError` cases
 unreachable at this seam. Signed division/remainder and exponentiation remain
-**unimplemented**, as do the remaining APIs outside the earlier value slice.
+**unimplemented**, as do the APIs outside the discharged slices.
 
 | Source at the pin (dependencies: `ethereum-types` 0.4.1) | Lean declaration and public type | Success/model observation | Ordered failures / consumer | Public laws | Regression evidence |
 |---|---|---|---|---|---|
@@ -175,7 +175,7 @@ instances to `U256`: `add_comm`, `add_assoc`, `add_zero`, `zero_add`, `mul_comm`
 Together these provide the addition/multiplication identities, associativity,
 commutativity, distributivity and additive inverse (`sub zero a`) required by §7.
 `div_mod_decomposition` uses an unbounded product/sum; `div_mod_eq` proves the word-level
-reconstruction too. Signed arithmetic and shift laws remain separate.
+reconstruction too. Signed arithmetic remains unimplemented; the shift model and saturation laws are in the comparison/bitwise slice below. Derived small-shift composition remains open (§10).
 
 Regression paths are under `STFSpec/Conformance/Base/`; `U256ArithmeticClient.lean`
 contains fixed caller proofs using only public observers and operation laws, imported
@@ -190,6 +190,70 @@ invoke the actual dependency operators. The fixed seed is 2562: 130 binary cases
 operation, including all pairs of eight boundaries and multiplication boundaries, and
 196 ternary cases per modular operation. It generates and executes 1692 scratch guards;
 no oracle output is committed and no EEST guest record is executed.
+
+### Implemented U256 comparison and bitwise slice
+
+All declarations below are in `STFSpec/Base/U256Bitwise.lean`, namespace
+`STFSpec.Base.U256`. Each row is **discharged for operation values**: the accepted
+input domain is all words (pairs where applicable), and there are no state effects
+or failures in these total value functions. Arguments follow EELS's first-popped
+order. The opcode handlers additionally pop the stack, charge gas, push the result
+and advance the program counter; their stack and gas failures and first consuming
+handler (CONTRACT O8) belong to EthVmInstructions, and are not implemented here.
+The discharged shift rows cover model equations, full-word guards and saturation.
+The derived small-shift composition laws in §7 remain an explicit §10 gap.
+The source columns name EELS `src/ethereum/` paths at the pin, except for the locked
+`ethereum-types` 0.4.1 dependency paths. Lean names `and`/`or`/`xor`/`not`, `byte`,
+`shl`/`shr`/`sar` and `clz` follow the §5 API names; their EELS handler names are
+shown below. The three Boolean comparisons are API helpers; `bitLength` follows
+the dependency method. Each is mapped separately.
+
+| Source at the pin | Lean declaration and public type | Success observation / ordered value guards | Public model laws | Regression evidence |
+|---|---|---|---|---|
+| `forks/amsterdam/vm/instructions/comparison.py:24` (`less_than`) | `lt : U256 → U256 → U256` | 1 iff first unsigned value is less than second; otherwise 0 | `toNat_lt_word` | 0/1 both argument orders; max/zero |
+| `forks/amsterdam/vm/instructions/comparison.py:77` (`greater_than`) | `gt : U256 → U256 → U256` | 1 iff first unsigned value is greater than second; otherwise 0 | `toNat_gt` | both argument orders; max/zero |
+| `forks/amsterdam/vm/instructions/comparison.py:51` (`signed_less_than`) | `slt : U256 → U256 → U256` | 1 iff first signed value is less than second; otherwise 0 | `toNat_slt` | −1/0 and signed boundary |
+| `forks/amsterdam/vm/instructions/comparison.py:104` (`signed_greater_than`) | `sgt : U256 → U256 → U256` | 1 iff first signed value is greater than second; otherwise 0 | `toNat_sgt` | −1/0 both orders |
+| `forks/amsterdam/vm/instructions/comparison.py:130` (`equal`) | `eq : U256 → U256 → U256` | 1 iff unsigned numeric values are equal; otherwise 0 | `toNat_eq_word` | equal and unequal pairs |
+| `forks/amsterdam/vm/instructions/comparison.py:157` (`is_zero`) | `iszero : U256 → U256` | 1 iff numeric value is zero; otherwise 0 | `toNat_iszero` | zero/max |
+| `ethereum_types/numeric.py:357` (`__lt__`) | `ult : U256 → U256 → Bool` | unsigned strict comparison | `ult_eq` | max/zero; differential pair matrix |
+| `ethereum_types/numeric.py:343` (`__le__`) | `ule : U256 → U256 → Bool` | unsigned non-strict comparison | `ule_eq` | equal max; reversed unequal pair |
+| `ethereum_types/numeric.py:357,675` (comparison after `to_signed`) | `slt' : U256 → U256 → Bool` | signed strict comparison | `slt'_eq` | −1/0; differential pair matrix |
+| `forks/amsterdam/vm/instructions/bitwise.py:24` (`bitwise_and`) | `and : U256 → U256 → U256` | bitwise conjunction | `toBitVec_and` | disjoint bits; max/one |
+| `forks/amsterdam/vm/instructions/bitwise.py:49` (`bitwise_or`) | `or : U256 → U256 → U256` | bitwise disjunction | `toBitVec_or` | disjoint bits; max/zero |
+| `forks/amsterdam/vm/instructions/bitwise.py:74` (`bitwise_xor`) | `xor : U256 → U256 → U256` | bitwise exclusive disjunction | `toBitVec_xor` | mixed bits; max/max |
+| `forks/amsterdam/vm/instructions/bitwise.py:99` (`bitwise_not`) | `not : U256 → U256` | masked bitwise complement | `toBitVec_not` | zero/max both directions |
+| `forks/amsterdam/vm/instructions/bitwise.py:123` (`get_byte`) | `byte : U256 → U256 → U256` | index ≥32 returns zero before arithmetic; else MSB-indexed positional byte | `toNat_byte`, `byte_eq_zero_of_le` | indices 0/30/31/32/max; differential all indices |
+| `forks/amsterdam/vm/instructions/arithmetic.py:334` (`signextend`) | `signextend : U256 → U256 → U256` | index >31 returns input; else retain low 8·(index+1) bits and fill from their sign bit | `toBitVec_signextend`, `toNat_signextend`, `getLsbD_signextend`, `signextend_eq_self_of_lt`, `signextend_eq_self_of_eq` | indices 0/1/31/32/max; differential every byte sign boundary |
+| `forks/amsterdam/vm/instructions/bitwise.py:159` (`bitwise_shl`) | `shl : U256 → U256 → U256` | amount ≥256 returns zero before shifting; else unsigned shift reduced mod 2²⁵⁶ | `toBitVec_shl`, `toNat_shl`, `shl_eq_zero_of_le` | amounts 0/255/256/max; shifted-out high bit |
+| `forks/amsterdam/vm/instructions/bitwise.py:189` (`bitwise_shr`) | `shr : U256 → U256 → U256` | amount ≥256 returns zero before shifting; else unsigned right shift | `toBitVec_shr`, `toNat_shr`, `shr_eq_zero_of_le` | amounts 0/255/256/max |
+| `forks/amsterdam/vm/instructions/bitwise.py:219` (`bitwise_sar`) | `sar : U256 → U256 → U256` | amount ≥256 returns zero for nonnegative input, max otherwise; else signed right shift | `toBitVec_sar`, `toInt_sar`, `ofInt?_sar_shift`, `sar_eq_zero_of_le`, `sar_eq_max_of_le` | both sign cases at 255/256/max; signed floor shift of −3 |
+| `ethereum_types/numeric.py:509` (`bit_length`) | `bitLength : U256 → Nat` | zero ↦0; nonzero ↦floor(log₂(value))+1; result ≤256 | `bitLength_eq`, `bitLength_le` | zero/one/max; differential dependency method |
+| `forks/amsterdam/vm/instructions/bitwise.py:251` (`count_leading_zeros`) | `clz : U256 → U256` | 256 minus bit length; no checked-subtraction underflow | `toNat_clz`, `toNat_clz_eq`, `clz_zero`, `clz_max` | zero/one/max and signed boundary |
+
+All regression cases are in `STFSpec/Conformance/Base/U256Bitwise.lean`.
+`U256BitwiseClient.lean` exercises the public laws for callers, without stored fields
+or inherited BitVec instances. Both are imported by `STFSpec/Conformance.lean`.
+The failure-site obligations in the successful value branch are local: BYTE's index
+guard makes its subtraction and multiplication in range; SIGNEXTEND's guarded width
+is in 8…256 and the numeric/bit laws describe precisely the copied and prepended bytes;
+SAR's signed shift is in range by `ofInt?_sar_shift`; `bitLength_le` discharges CLZ's
+subtraction underflow and constructor range. These facts do not close the global X1
+ledger or any opcode's stack/gas behavior.
+
+The driver `STFSpec/Conformance/Base/u256_bitwise_differential.py` checks the EELS
+checkout commit and dependency version against `reference.toml`, then executes the
+actual pinned handlers. A minimal Python `SimpleNamespace` provides valid operands,
+a program counter and sufficient execution gas, with EELS's discard tracer. The
+harness compares only result words with Lean's public API; it claims no whole-opcode
+or guest fidelity. Seed 7939 covers 128 pairs per binary comparison/logic operation,
+72 words per unary operation, 176 pairs per shift, 384 BYTE pairs, 448 SIGNEXTEND pairs,
+and the three Boolean helpers and bit-length dependency method: 3,056 generated guards.
+Cases include every byte index and byte sign boundary, mixed indexed words, shifts
+255/256 and maximum-word amounts. Invoke it using the frozen EELS venv's Python with
+`--eels <checkout> --output <scratch-file.lean>`; generated observations are run by
+Lean and kept outside both repositories. No oracle expected values are committed,
+and no EEST guest records are executed by this slice.
 
 ## 4. Tests
 
@@ -369,7 +433,7 @@ structure Envelope where
 - `(signextend k x).toBitVec = if k.toNat > 31 then x.toBitVec else (x.toBitVec.setWidth (8*(k.toNat+1))).signExtend 256`.
 - `(byte i x).toNat = if i.toNat ≥ 32 then 0 else x.toNat / 2^(8*(31 − i.toNat)) % 256`.
 - `(shl s v).toBitVec = if s.toNat ≥ 256 then 0 else v.toBitVec <<< s.toNat`; `shr` with `>>>`.
-- `(sar s v).toBitVec = v.toBitVec.sshiftRight s.toNat`. *Inferred:* `BitVec.sshiftRight` saturates to all sign bits for shifts ≥ 256, matching EELS's explicit branch. This must be proved against the EELS case split, not assumed.
+- `(sar s v).toBitVec = v.toBitVec.sshiftRight s.toNat`. The equality with EELS's explicit sign-dependent ≥256 branch is proved in `toBitVec_sar`; `toInt_sar` gives the source case split, and `ofInt?_sar_shift` discharges its checked signed conversion.
 - `(clz x).toNat = 256 − x.toNat.log2 − 1` for `x ≠ 0`, and `256` for `x = 0`.
 - `(lt a b).toNat = if a.toNat < b.toNat then 1 else 0`; `slt` via `toInt`; `eq`, `iszero`, `gt`, `sgt` likewise.
 - Checked: `checkedAdd a b = some c ↔ a.toNat + b.toNat < 2^256 ∧ c.toNat = a.toNat + b.toNat`; likewise for `checkedSub`, `checkedMul`, `ofNat?`, `ofInt?`, `checkedDiv`, `checkedMod`.
@@ -428,11 +492,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **U256 value and unsigned arithmetic slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod and checkedAdd/Sub/Mul/Div/Mod laws are discharged in §3. Signed division/remainder, exponentiation, comparisons/bitwise/shift operations, byte conversions, narrow/unbounded integer helpers and remaining records are unimplemented. `U256Client.lean` and `U256ArithmeticClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **U256 value, unsigned arithmetic and comparison/bitwise slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod, checkedAdd/Sub/Mul/Div/Mod, comparisons, Boolean comparison helpers, bit logic, BYTE, SIGNEXTEND, shifts, bit length and CLZ laws are discharged for operation values in §3. Signed division/remainder, exponentiation, byte conversions, narrow/unbounded integer helpers and remaining records are unimplemented. `U256Client.lean`, `U256ArithmeticClient.lean` and `U256BitwiseClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **Derived small-shift composition laws.** EthBase owns the §7 composition equations for SHL, SHR and SAR when the sum of the unsigned shift amounts is below 256. The comparison/bitwise slice discharges only the named model, guard and saturation laws in §3; no named Lean theorem or caller proof for these derived composition equations is implemented. They remain a separate law work item, with public observer-based proofs and boundary cases required.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:61,65,204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. This is the largest semantic risk in this module.
-- **`sar` saturation law and the `signextend` bit-level law.** These are stated but unproved. The Lean core `BitVec` lemma coverage at v4.34.0 has not been checked; missing lemmas would have to be proved locally, since Mathlib is not allowed.
 - **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
 - **`exp` performance.** Square-and-multiply mod 2^256 over `BitVec` is not benchmarked. A naive `BitVec` power would be catastrophic.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); `U64` is `UInt64`-backed and needs no such benchmark.
@@ -441,4 +505,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, and checked unsigned arithmetic with dependency operators. Signed arithmetic, exponentiation, comparisons/bitwise/shifts and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
+- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, checked unsigned arithmetic with dependency operators, and comparisons/bitwise/shifts with actual pinned handlers. Signed arithmetic, exponentiation and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
