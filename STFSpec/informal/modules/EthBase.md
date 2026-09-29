@@ -108,8 +108,8 @@ Each is specified as follows:
 The following declarations are in `STFSpec/Base/U256.lean`, namespace
 `STFSpec.Base.U256` (the structure is `STFSpec.Base.U256`). All rows are
 **discharged for this slice**: total, pure and without state effects. The source is the
-locked `ethereum-types` 0.4.1 at the EELS pin. The rest of this module remains
-**unimplemented**; its draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
+locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic slice below is also implemented; all other APIs remain
+**unimplemented** and the module's draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
 are the stable Lean observer/checked-result names for Python `__int__`/`to_signed`
 and `U256(...)`/`from_signed`; `ofNat` is an additional wrapping model helper.
 
@@ -140,6 +140,56 @@ Generated observations are bug-finding evidence only (CONTRIBUTING §1), never c
 normative values. Invoke the script with the EELS venv's Python and
 `--eels <checkout> --output <scratch-file.lean>`; it runs Lean and reports the executed guards and rejection counts.
 No EEST guest records are executed by this slice.
+
+### Implemented unsigned arithmetic slice
+
+`STFSpec/Base/U256Arithmetic.lean` adds the following operations in
+`STFSpec.Base.U256`. All rows are **discharged for this value slice**, on all
+word inputs, with no state effects. They implement only the numerical part of the
+EELS handlers: stack admission/pop/push, gas charging, PC updates and frame error
+priority remain owned by `EthVmInstructions` and are not claimed implemented here.
+Checked failures return `none`; their named fault and first-handler projection belong
+to each consumer under D14/B14. Same-type operands make Python `TypeError` cases
+unreachable at this seam. Signed division/remainder and exponentiation remain
+**unimplemented**, as do the remaining APIs outside the earlier value slice.
+
+| Source at the pin (dependencies: `ethereum-types` 0.4.1) | Lean declaration and public type | Success/model observation | Ordered failures / consumer | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:28`; `ethereum_types/numeric.py:614` | `add : U256 → U256 → U256` | Sum modulo `2^256`; bit-vector addition | None at the value seam | `toBitVec_add`, `toNat_add` | `U256Arithmetic.lean`: max+1 wraps to zero; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:55`; `ethereum_types/numeric.py:625` | `sub : U256 → U256 → U256` | First minus second modulo `2^256`; bit-vector subtraction; `(2^256−b.toNat+a.toNat) % 2^256` | None at the value seam | `toBitVec_sub`, `toNat_sub` | `U256Arithmetic.lean`: 0−1 wraps to max; 7−3 and 3−7; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:82`; `ethereum_types/numeric.py:636` | `mul : U256 → U256 → U256` | Product modulo `2^256`; bit-vector multiplication | None at the value seam | `toBitVec_mul`, `toNat_mul` | `U256Arithmetic.lean`: max·max=1, `2^128·2^128=0`; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:109`; `ethereum_types/numeric.py:158` | `div : U256 → U256 → U256` | Zero if divisor is zero; otherwise first unsigned value divided by second | EVM zero-divisor branch succeeds with zero; nonzero quotient fits, so checked dependency construction cannot overflow | `toNat_div`, `div_zero`, `div_mod_decomposition`, `div_mod_eq` | `U256Arithmetic.lean`: zero divisors, asymmetric operands, max/1; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:175`; `ethereum_types/numeric.py:178` | `mod : U256 → U256 → U256` | Zero if divisor is zero; otherwise first unsigned value modulo second | EVM zero-divisor branch succeeds with zero; nonzero remainder is below divisor and fits | `toNat_mod`, `mod_zero`, `mod_lt`, `div_mod_decomposition`, `div_mod_eq` | `U256Arithmetic.lean`: max%0=0 (not Nat/BitVec remainder), asymmetric operands, decomposition; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:235` | `addmod : U256 → U256 → U256 → U256` | Zero if modulus is zero; otherwise unbounded `(a.toNat+b.toNat) % n.toNat`, without intermediate wrapping | Zero branch before reduction; nonzero modulus proves remainder fits and constructor failure is unreachable | `toNat_addmod`, `addmod_lt` | `U256Arithmetic.lean`: addmod max 1 max=1, moduli 0/1; handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:266` | `mulmod : U256 → U256 → U256 → U256` | Zero if modulus is zero; otherwise unbounded `(a.toNat*b.toNat) % n.toNat`, without intermediate wrapping | Zero branch before reduction; nonzero modulus proves remainder fits and constructor failure is unreachable | `toNat_mulmod`, `mulmod_lt` | `U256Arithmetic.lean`: mulmod max max 12=9, moduli 0/1; handler differential |
+| `ethereum_types/numeric.py:91,44,611` | `checkedAdd : U256 → U256 → Option U256` | Succeeds iff unreduced sum is below `2^256`, retaining that sum | OverflowError becomes `none`; consumer owns first handler/outcome | `checkedAdd_eq_some_iff`, `checkedAdd_eq_none_iff` | `U256Arithmetic.lean`: max+1 fails, max+0 and (max−1)+1 succeed; dependency differential |
+| `ethereum_types/numeric.py:103,44,611` | `checkedSub : U256 → U256 → Option U256` | Succeeds iff second unsigned value is at most first, retaining the difference | Underflow (source OverflowError) becomes `none`; underflow guard precedes subtraction. Result constructor cannot overflow; consumer owns first handler/outcome | `checkedSub_eq_some_iff`, `checkedSub_eq_none_iff` | `U256Arithmetic.lean`: 0−1 fails, 0−0/max−max/max−0 succeed; dependency differential |
+| `ethereum_types/numeric.py:131,44,611` | `checkedMul : U256 → U256 → Option U256` | Succeeds iff unreduced product is below `2^256`, retaining that product | OverflowError becomes `none`; consumer owns first handler/outcome | `checkedMul_eq_some_iff`, `checkedMul_eq_none_iff` | `U256Arithmetic.lean`: max·max and `2^128·2^128` fail; max·1/max·0 and `(2^128−1)(2^128+1)` succeed; dependency differential |
+| `ethereum_types/numeric.py:158,44,611` | `checkedDiv : U256 → U256 → Option U256` | Succeeds iff divisor is nonzero, retaining unsigned quotient | ZeroDivisionError becomes `none`; quotient cannot overflow; consumer owns first handler/outcome | `checkedDiv_eq_some_iff`, `checkedDiv_eq_none_iff` | `U256Arithmetic.lean`: max/0 and 0/0 fail; 0/1 and max/1 succeed; dependency differential |
+| `ethereum_types/numeric.py:178,44,611` | `checkedMod : U256 → U256 → Option U256` | Succeeds iff divisor is nonzero, retaining unsigned remainder | ZeroDivisionError becomes `none`; remainder cannot overflow; consumer owns first handler/outcome | `checkedMod_eq_some_iff`, `checkedMod_eq_none_iff` | `U256Arithmetic.lean`: max%0 and 0%0 fail; 0%1 and max%1 succeed; dependency differential |
+
+The derived modular algebra is proved as named equalities, without adding arithmetic
+instances to `U256`: `add_comm`, `add_assoc`, `add_zero`, `zero_add`, `mul_comm`,
+`mul_assoc`, `mul_one`, `one_mul`, `mul_zero`, `zero_mul`, `mul_add`, `add_mul`,
+`sub_eq_add_sub_zero`, `add_sub_zero`, `sub_self`, `add_sub_cancel`, `sub_add_cancel`.
+Together these provide the addition/multiplication identities, associativity,
+commutativity, distributivity and additive inverse (`sub zero a`) required by §7.
+`div_mod_decomposition` uses an unbounded product/sum; `div_mod_eq` proves the word-level
+reconstruction too. Signed arithmetic and shift laws remain separate.
+
+Regression paths are under `STFSpec/Conformance/Base/`; `U256ArithmeticClient.lean`
+contains fixed caller proofs using only public observers and operation laws, imported
+by the Conformance root alongside the guards. The separate host driver
+`u256_arithmetic_differential.py` takes `--eels <checkout> --output <scratch-file.lean>`
+when run by that checkout's frozen venv Python. It verifies the pin/dependency version,
+imports the actual seven pinned opcode handlers without modifying them, and invokes
+them through a minimal frame adapter supplying stack, PC and a real `GasMeter` with
+sufficient gas. The reference's actual pop/push, gas charge and default discarded trace
+execute; gas/stack failures and full `Evm` construction are not compared. Checked cases
+invoke the actual dependency operators. The fixed seed is 2562: 130 binary cases per
+operation, including all pairs of eight boundaries and multiplication boundaries, and
+196 ternary cases per modular operation. It generates and executes 1692 scratch guards;
+no oracle output is committed and no EEST guest record is executed.
 
 ## 4. Tests
 
@@ -378,7 +428,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **U256 value slice complete; remaining API unimplemented.** The structure, observers, constructors, constants and unsigned equality/order laws are discharged in §3. Arithmetic, checked arithmetic, byte conversions, narrow/unbounded integer helpers and the remaining records are unimplemented. `U256Client.lean` preserves baseline client proof scripts using only the public observer/law API; full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **U256 value and unsigned arithmetic slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod and checkedAdd/Sub/Mul/Div/Mod laws are discharged in §3. Signed division/remainder, exponentiation, comparisons/bitwise/shift operations, byte conversions, narrow/unbounded integer helpers and remaining records are unimplemented. `U256Client.lean` and `U256ArithmeticClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:61,65,204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. This is the largest semantic risk in this module.
@@ -391,4 +441,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage beyond constructors.** The §3 U256 value-slice driver exists and compares constructors, signed interpretation, constants, Booleans and numeric order with the pinned `ethereum-types`. Arithmetic, shifts and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
+- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, and checked unsigned arithmetic with dependency operators. Signed arithmetic, exponentiation, comparisons/bitwise/shifts and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
