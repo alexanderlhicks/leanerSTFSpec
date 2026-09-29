@@ -102,6 +102,7 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 ### [`EthBase`](modules/EthBase.md)
 
+- **U256 value slice complete; remaining API unimplemented.** The structure, observers, constructors, constants and unsigned equality/order laws are discharged in §3. Arithmetic, checked arithmetic, byte conversions, narrow/unbounded integer helpers and the remaining records are unimplemented. `U256Client.lean` preserves baseline client proof scripts using only the public observer/law API; full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:61,65,204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. This is the largest semantic risk in this module.
@@ -114,7 +115,7 @@ None: every inventory item is claimed by a module or excluded with a reason.
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential harness against `ethereum_types`.** It does not exist yet.
+- **Differential coverage beyond constructors.** The §3 U256 value-slice driver exists and compares constructors, signed interpretation, constants, Booleans and numeric order with the pinned `ethereum-types`. Arithmetic, shifts and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
 
 ### [`EthHash`](modules/EthHash.md)
 

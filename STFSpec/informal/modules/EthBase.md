@@ -103,6 +103,44 @@ Each is specified as follows:
 - **`Bytes` and the fixed-width types.** R8.
 - **`slotted_freezable`/`modify`.** Python immutability plumbing. Lean values are immutable, and `modify obj f` is functional record update. There is no semantic content, but consumers must not rely on mutation-after-freeze (none observed).
 
+### Implemented U256 value slice
+
+The following declarations are in `STFSpec/Base/U256.lean`, namespace
+`STFSpec.Base.U256` (the structure is `STFSpec.Base.U256`). All rows are
+**discharged for this slice**: total, pure and without state effects. The source is the
+locked `ethereum-types` 0.4.1 at the EELS pin. The rest of this module remains
+**unimplemented**; its draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
+are the stable Lean observer/checked-result names for Python `__int__`/`to_signed`
+and `U256(...)`/`from_signed`; `ofNat` is an additional wrapping model helper.
+
+| Dependency/source at the pin | Lean declaration and public type | Domain and success observation | Ordered failures / consumer | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| `ethereum_types/numeric.py:690` (`U256`) | `structure U256` | All 256-bit words | None | `ext`, `toBitVec_inj`, `toNat_inj`, `toInt_inj` | `U256Client.lean`: observer injectivity |
+| `ethereum_types/numeric.py:325` (`__eq__`) | `DecidableEq U256` | All word pairs; equality is numeric equality within the word type | None; Python cross-type equality is represented by numeric observers, not heterogeneous Lean equality | `toNat_inj`, `toInt_inj` | `U256.lean`: checked construction equals constants; `U256Client.lean`: injectivity |
+| Lean model of `numeric.py:690` | `toBitVec : U256 → BitVec 256` | All words; stable abstraction | None | `toNat_eq`, `toInt_eq`, `toBitVec_inj` | `U256Client.lean`: model extensionality |
+| `ethereum_types/numeric.py:321` (`__int__`) | `toNat : U256 → Nat` | All words; unsigned integer in `[0, 2^256)` | None | `toNat_lt`, `toNat_inj` | `U256.lean`: 0, 1, signed-boundary words, max |
+| `ethereum_types/numeric.py:675` (`to_signed`) | `toInt : U256 → Int` | All words; unsigned value below `2^255`, otherwise unsigned value minus `2^256` | None | `toInt_eq_toNat_cond`, `le_toInt`, `toInt_lt`, `toInt_inj` | `U256.lean`: `2^255−1`, `2^255`, `2^255+1`, max; differential signed observations |
+| Lean model constructor | `ofBitVec : BitVec 256 → U256` | All model values; bit-vector observation is the input | None | `toBitVec_ofBitVec`, `ofBitVec_toBitVec` | `U256Client.lean`: extensionality; constructor laws compiled universally |
+| Lean wrapping model helper, not Python `U256(n)` | `ofNat : Nat → U256` | All natural inputs; value reduced modulo `2^256` | None | `toBitVec_ofNat`, `toNat_ofNat`, `toNat_ofNat_of_lt`, `ofNat_toNat` | `U256.lean`: `2^256`, `2^256+1`; differential checked Python construction after masking |
+| `ethereum_types/numeric.py:44,611` (`U256(n)`) | `ofNat? : Nat → Option U256` | Succeeds iff `n < 2^256`; unsigned observation is `n` | Unsigned overflow becomes `none`; callers own named fault/first-handler projection (D14/B14), not this primitive | `ofNat?_eq_some_iff`, `ofNat?_eq_none_iff`, `ofNat?_toNat` | `U256.lean`: 0, 1, `2^255±1`, max, `2^256`; differential success/rejection |
+| `ethereum_types/numeric.py:594` (`from_signed`) | `ofInt? : Int → Option U256` | Succeeds iff `−2^255 ≤ i < 2^255`; signed observation is `i`, unsigned observation encodes two's complement | Upper overflow first; after the source's nonnegative success branch, lower overflow; both become `none`. Lean tests the lower bound also on nonnegative inputs, where it holds. Callers own fault projection (D14/B14) | `ofInt?_eq_some_iff`, `ofInt?_eq_none_iff`, `ofInt?_toInt`, `toNat_ofInt?` | `U256.lean`: signed min/min−1/max/max+1, −1/0/1; universal inverse in `U256Client.lean`; differential success/rejection |
+| `ethereum_types/numeric.py:44` on `bool`; EELS `forks/amsterdam/vm/instructions/comparison.py:43` | `ofBool : Bool → U256` | All Booleans; false ↦ 0, true ↦ 1 | None | `toNat_ofBool`, `toInt_ofBool`, `ofBool_eq_ofNat` | `U256.lean`: both Booleans; differential Boolean construction |
+| `ethereum_types/numeric.py:44` on 0 | `zero : U256` | Unsigned and signed value 0 | None | `toNat_zero`, `toInt_zero` | `U256.lean`: zero |
+| `ethereum_types/numeric.py:44` on 1 | `one : U256` | Unsigned and signed value 1 | None | `toNat_one`, `toInt_one` | `U256.lean`: one |
+| `ethereum_types/numeric.py:711–712` (`MAX_VALUE`) | `max : U256` | Unsigned `2^256−1`, signed −1 | None | `toNat_max`, `toInt_max` | `U256.lean`: max; differential dependency constant |
+| `ethereum_types/numeric.py:343–369` (numeric comparisons) | `Ord U256`; `Std.TransOrd U256`; `Std.LawfulEqOrd U256` | All pairs of words; compare unsigned numeric observations | None in the typed same-word domain; Python cross-type order errors are unreachable here | `compare_eq`, `compare_eq_eq_iff`, `compare_eq_lt_iff`, `compare_eq_gt_iff` | `U256.lean`: unsigned sign-boundary order, wrapped equality; `U256Client.lean`: laws only; differential numeric comparisons |
+
+Regression paths in the table are under `STFSpec/Conformance/Base/`. The root
+`STFSpec/Conformance.lean` imports both Lean suites. The host driver
+`STFSpec/Conformance/Base/u256_differential.py` reads the actual pinned dependency in
+the frozen EELS venv, checks its version and the checkout commit against `reference.toml`,
+and generates public-API guards outside the repository. Its fixed seed is 256; the
+72 unsigned cases, 73 signed cases and 75 comparison pairs include the listed boundaries.
+Generated observations are bug-finding evidence only (CONTRIBUTING §1), never committed
+normative values. Invoke the script with the EELS venv's Python and
+`--eels <checkout> --output <scratch-file.lean>`; it runs Lean and reports the executed guards and rejection counts.
+No EEST guest records are executed by this slice.
+
 ## 4. Tests
 
 - **EEST fixture areas:**
@@ -340,6 +378,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **U256 value slice complete; remaining API unimplemented.** The structure, observers, constructors, constants and unsigned equality/order laws are discharged in §3. Arithmetic, checked arithmetic, byte conversions, narrow/unbounded integer helpers and the remaining records are unimplemented. `U256Client.lean` preserves baseline client proof scripts using only the public observer/law API; full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:61,65,204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. This is the largest semantic risk in this module.
@@ -352,4 +391,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential harness against `ethereum_types`.** It does not exist yet.
+- **Differential coverage beyond constructors.** The §3 U256 value-slice driver exists and compares constructors, signed interpretation, constants, Booleans and numeric order with the pinned `ethereum-types`. Arithmetic, shifts and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
