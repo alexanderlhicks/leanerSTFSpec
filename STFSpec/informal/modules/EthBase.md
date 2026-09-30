@@ -468,25 +468,29 @@ Fixed-32 overflow and bounded input-length rejection still precede conversion.
 No stored fields are available to this file or the caller proofs, and these local
 cost properties do not discharge the full C1–C4 target measurements.
 
-The local complete-output diagnostic in [`scripts/FixedEndianBench.lean`](../../../scripts/FixedEndianBench.lean)
-retains 200,000 outputs from runtime-loaded boundary, asymmetric and seeded inputs.
-On 2026-09-30, source `aa713bb74e39720a4028b47cb6f8c18ada1e44c6`, Lean 4.34.0,
-clang 22.1.4 (`-O3`), Linux x86-64 and an Intel Core Ultra 7 165U, five paired
-samples gave the following construction times; the shared host was not isolated:
+The local [benchmark](../../../scripts/FixedEndianBench.lean) retains 200,000 complete
+packed outputs from runtime-loaded boundary, asymmetric and seeded inputs. The
+measured conversion source is `aa713bb74e39720a4028b47cb6f8c18ada1e44c6`; the
+retained benchmark was introduced in `2dc466bfb48a026fe95327fee01011b9fdb7e122`.
+On 2026-09-30, Lean 4.34.0, clang 22.1.4 (`-O3`), Linux x86-64 and an Intel Core
+Ultra 7 165U, five paired samples gave these construction times. The shared host
+was not isolated. Each ratio divides current by direct time within the same pair:
 
-| Complete packed output | Numeric reversal then byte observation | Direct packed shift generation |
-|---|---|---|
-| `U256.toLeBytes32` (517 input values) | 3,500–8,056 ms | 1,002–1,781 ms |
-| `U64.toLeBytes8` (325 input values) | 350–793 ms | 125–364 ms |
+| Output | Current | Direct | Paired current/direct |
+|---|---|---|---|
+| `U256.toLeBytes32` (517 inputs) | 3,500–8,056 ms | 1,002–1,781 ms | 3.49–5.54× |
+| `U64.toLeBytes8` (325 inputs) | 350–793 ms | 125–364 ms | 2.18–2.96× |
 
 Both paths passed full-byte, width and decode checks before timing, with matching
 checksums afterward. Input loading, correctness checks, checksum and output cleanup
 are outside the timed batch. The artifact includes exact input-generation, build
 and run commands. These bounded 32/8-byte measurements identify the extra pass's
 local cost; they establish no universal ratio, opcode cost or guest resource bound.
+Excluding cleanup means this diagnostic does not satisfy the composed lifetime
+cost methodology in [REVIEW §7.5](../REVIEW.md#75-composed-cost-checks).
 Pinned EELS `forks/amsterdam/execution_engine/requests.py:123,125,133,149` uses
-`U64` little-endian output in request serialization. Reassess the implementation
-against representative consumer and target measurements under C1–C4.
+`U64` little-endian output in request serialization. Reassessment belongs to the
+D1/D2 cost obligation in [§10](#10-gaps).
 
 Regression evidence is in `STFSpec/Conformance/Base/IntegerBytesGuards.lean`,
 `IntegerBytesCallerProofs.lean` and `integer_bytes_differential.py`. The driver
@@ -830,6 +834,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); the local `U64` checked-bounds allocation exception is recorded in [DEBT-U64-CHECKED](../DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds). Native storage and that local diagnostic do not discharge aggregate cost checks.
+  EthBase maintainers own reassessment of the bounded little-endian construction
+  diagnostic in §3 against representative consumer and target measurements under
+  C1–C4; the diagnostic does not close this obligation.
 - **Consumer sorting proofs.** The lexical byte-order laws and F19 address/slot pair order are implemented in §3. EthState map consumers still need their own ordered-key proofs. The BAL address sort uses `Address.compare_toBytes`; its slot sorts use U256 numeric order and still need the big-endian Bytes32→U256 conversion/order bridge and EthBlock's sorting refinement (`block_access_lists.py:671–672,685,824,845`).
 - **`Envelope` has no fields yet.** By DECISIONS B6 each field must name the consumer theorem that needs it; none has been named.
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
