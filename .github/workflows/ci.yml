@@ -39,6 +39,10 @@ jobs:
           lake build bytes-native-tests --wfail
           lake exe check-decls BytesNativeTests
           lake exe bytes-native-tests
+      - name: Fixed-endian benchmark build and declaration audit
+        run: |
+          lake build fixed-endian-bench --wfail
+          lake exe check-decls FixedEndianBench
       - name: Dependency and hygiene boundaries (source level)
         run: python3 scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)

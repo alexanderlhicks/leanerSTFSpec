@@ -96,6 +96,12 @@ name = "bytes-native-tests"
 srcDir = "scripts"
 root = "BytesNativeTests"
 
+# Build and audit the local cost diagnostic in CI; measurements run manually.
+[[lean_exe]]
+name = "fixed-endian-bench"
+srcDir = "scripts"
+root = "FixedEndianBench"
+
 [[lean_exe]]
 name = "check-decls"
 srcDir = "scripts"

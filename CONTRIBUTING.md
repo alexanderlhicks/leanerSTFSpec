@@ -136,6 +136,8 @@ Run before opening a pull request (CI runs the same):
 lake build --wfail
 lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
+lake build fixed-endian-bench --wfail
+lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
@@ -147,6 +149,8 @@ python3 scripts/gen_gaps.py --check
 lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py
 ```
+
+The fixed-endian benchmark is built and audited here; timing measurements remain manual.
 
 Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there and `scripts/check_decls.sh mathlib` or `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.
 

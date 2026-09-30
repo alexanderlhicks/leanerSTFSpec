@@ -13,7 +13,7 @@ Compile and run as described there. Arguments: `u64|u256 current|direct INPUT CO
 INPUT contains one in-range decimal natural per line. Both paths construct complete
 packed byte outputs. Inputs and correctness checks precede the clocks; outputs are
 retained until after timing, when their checksum is computed. This is a local cost
-diagnostic, not a CI gate or an opcode/guest benchmark. Output cleanup is outside
+diagnostic, not a CI performance gate or an opcode/guest benchmark. Output cleanup is outside
 this construction-only timing. Reproduce from the repository root:
 
 ```sh
