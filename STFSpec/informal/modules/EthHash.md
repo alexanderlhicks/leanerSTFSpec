@@ -1,7 +1,7 @@
 # `EthHash`: Keccak, SHA-256, RIPEMD-160, BLAKE2b F and the `KeccakQuery` seam
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1–F4, F15, F16, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, F1–F4, F15, F18.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1–F4, F15, F16, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, F1–F4, F15, F18.*
 
 Paths are relative to `src/ethereum/` at the pin unless prefixed. Host-library behaviour was first checked in a scratch venv (Python 3.12, OpenSSL 3.0.13, pycryptodome 3.23.0) and re-observed in a lock-exact environment (CPython 3.13.7, OpenSSL 3.0.16, pycryptodome 3.23.0) used for the full-corpus EELS run. Both hosts lack OpenSSL keccak-256 and provide RIPEMD-160.
 
@@ -61,7 +61,7 @@ The generic `Blake2` dataclass (`:35–247`) is instantiated only as `Blake2b` (
 
 **R6. `KeccakQuery`.** **Every** keccak use in the spec goes through `[Monad m] [KeccakQuery m]` (D5 broad scope, B10; interfaces settled by DECISIONS §3, F1–F4, F15, F18). That covers the trie, witness and code DBs, the header chain and `validate_header`'s parent hash, the block-hash check, the transaction and withdrawal roots, the KECCAK256 opcode, CREATE/CREATE2 addresses, ECRECOVER's address hash, code preimages and newly installed code hashes, the EIP-7708 transfer topic, and the keccak-derived constants.
 - **Monad-parametric interfaces.** Everything that hashes is generic in `{m} [Monad m] [KeccakQuery m]`; the types that only carry a hashing pre-state or precompile (`PreState m`, `StateM m`, `VmM m`, `PrecompileFn m`, owned by their modules) take `{m} [Monad m]` and never mention the class. Public entry points specialise to `m := Id`. The class stays here; `EthState` and `EthVmCore` mention `m` but never need the class, so no import boundary changes.
-- **Constants.** The keccak-derived constants are the `HashConsts` record (`EthBase`). `HashConsts.query` computes them through the oracle; `EthBlock.executeBlock` calls it once per block and carries the result in the block state. The literal values (`HashConsts.literals`, `EthBase`) are the `Id` values, and §7 checks that they agree.
+- **Constants.** The keccak-derived constants are the `HashConsts` record (`EthBase`). `HashConsts.query` computes them through the oracle; acquisition and consumer coherence follow F20 (EthStateless R5, EthBlock §2.7). The literal values (`HashConsts.literals`, `EthBase`) are the `Id` values, and §7 checks that they agree.
 - **Lifts.** `KeccakQuery` has instances for `ExceptT ε m` and `StateT σ m` that forward to the underlying oracle, so the spec's transformer stacks inherit it and add no hashing.
 - A narrower scope must be justified by the witness/full-state agreement prototype. The executable instance at `m := Id` must be definitionally `keccak256`, so that no proof is needed to run the spec.
 
@@ -160,7 +160,7 @@ instance [Monad m] [KeccakQuery m] : KeccakQuery (ExceptT ε m) := ⟨fun b => E
 instance [Monad m] [KeccakQuery m] : KeccakQuery (StateT σ m)  := ⟨fun b => StateT.lift (keccak b)⟩
 -- (EthSecurity, outside the core:  instance [HasQuery keccakSpec m] : KeccakQuery m)
 
--- Keccak-derived constants (EthBase.HashConsts), one query each; called once per block
+-- Keccak-derived constants (EthBase.HashConsts), one query each; acquisition scope is F20
 def HashConsts.query {m} [Monad m] [KeccakQuery m] : m HashConsts
   -- emptyCodeHash ← keccak b"", emptyTrieRoot ← keccak 0x80,
   -- emptyOmmerHash ← keccak 0xc0, transferTopic ← keccak b"Transfer(address,address,uint256)"
@@ -210,7 +210,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 8. Composition
 
 - **Depends on:** `EthBase`.
-- **Used by:** `EthCodec` (SSZ merkleization, address derivation), `EthVmInstructions` (`KECCAK256`, `EXTCODEHASH`, CREATE/CREATE2), `EthPrecompiles` (SHA-256, RIPEMD-160, BLAKE2F, and ECRECOVER's address hash through `KeccakQuery`), `EthBlock` (`HashConsts.query`, once per block), and transitively `EthCommit`, `EthStateWitness`, `EthVmRunner` and `EthStateless` (via `KeccakQuery`).
+- **Used by:** `EthCodec` (SSZ merkleization, address derivation), `EthVmInstructions` (`KECCAK256`, `EXTCODEHASH`, CREATE/CREATE2), `EthPrecompiles` (SHA-256, RIPEMD-160, BLAKE2F, and ECRECOVER's address hash through `KeccakQuery`), `EthBlock` (standalone acquisition wrapper, F20), `EthStateless` (guest acquisition, F20), `EthConformance` (engine acquisition, R4/F20), and transitively `EthCommit`, `EthStateWitness` and `EthVmRunner` (via `KeccakQuery`).
 - **Seams provided.** `keccak256`/`sha256` as plain functions. `KeccakQuery m`, with its `Id`, `ExceptT` and `StateT` instances, for kernels that `EthSecurity` must reinterpret. `HashConsts.query` for the keccak-derived constants. `Blake2b.getParameters` and `compress` for the precompile, which must charge gas *before* calling `compress`.
 - **Guarantees.** Totality, determinism and independence from the host.
 - **Relies on.** `Hash32`, `Bytes32` and `FixedBytes` from `EthBase`, and Lean core `UInt64`/`UInt32` rotations.

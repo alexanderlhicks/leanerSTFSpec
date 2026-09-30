@@ -1,7 +1,7 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `44cfcb54…be1a`), the pinned source, or by running pinned EELS on fixture inputs; **[I]** marks an inference.
 
@@ -27,9 +27,9 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 - **Guest records need not describe the fixture's block.** 138 records sit on block entries with `expectException` yet have `successful_validation = true` (85 `INVALID_BLOCK_ACCESS_LIST`, 49 `INVALID_REQUESTS`, 2 `INCORRECT_BLOCK_FORMAT`, 2 combined). In 60 of these checked, the payload `block_hash` in the decoded input differs from the hash of the fixture block's header, and pinned EELS reproduces the recorded output [V]. So a runner must **not** assert `successful_validation = ¬ expectException`, and must not reconstruct the guest input from the block. Conversely, 39 records on valid blocks have `false` (witness/public-key/chain-id/header mutation tests in `eip8025_optional_proofs`).
 - 4,807 block entries have no guest record [V]: 4,408 invalid blocks and 399 valid ones, of which 162 are pre-activation blocks of the transition fixtures; the rest (mostly `cancun/eip4844_blobs`, 216) have not been explained (Gaps).
 
-**R3. Stateful blockchain runner via `EthStateFull`.** For each `blockchain_tests` case: build the full state from `pre`, check `genesisRLP` and the genesis hash, then for each block entry decode `rlp` into a `Block` (`EthBlock`), run `executeBlock` over the full-state backend with the chain's last 256 hashes and parent header, and apply the diff. A block with `expectException` must fail (the specific exception class is compared through a mapping table and a class mismatch is reported as a warning only, since EEST exception names are test-framework artefacts; DECISIONS Q9); a block without it must succeed. At the end `postState` (or `postStateHash`) and `lastblockhash` must match. These fixtures are decisive for *block validity and post-state* where they speak (P2), but they are a second test of the same `executeBlock`, not of the guest. Transition fixtures (`for_bpo2toamsterdamattime15k`) contain pre-activation BPO2 blocks that this Amsterdam-only spec cannot execute (D3): the runner must report them as **skipped (fork not instantiated)**, not as failures, and must still run the Amsterdam blocks after them if the pre-state can be obtained (it cannot without BPO2 execution unless the fixture's intermediate state is reconstructed; Gaps).
+**R3. Stateful blockchain runner via `EthStateFull`.** For each `blockchain_tests` case: build the full state from `pre`, check `genesisRLP` and the genesis hash, then for each block entry decode `rlp` into a `Block` (`EthBlock`), run `executeBlockStandalone` with the provider factory `fun consts ↦ pure (fullState.toPreState consts)`, the chain's last 256 hashes and parent header, and apply the diff (`stateTransition` composes this path). A block with `expectException` must fail (the specific exception class is compared through a mapping table and a class mismatch is reported as a warning only, since EEST exception names are test-framework artefacts; DECISIONS Q9); a block without it must succeed. At the end `postState` (or `postStateHash`) and `lastblockhash` must match. These fixtures are decisive for *block validity and post-state* where they speak (P2), but they are a second test of the same `executeBlock`, not of the guest. Transition fixtures (`for_bpo2toamsterdamattime15k`) contain pre-activation BPO2 blocks that this Amsterdam-only spec cannot execute (D3): the runner must report them as **skipped (fork not instantiated)**, not as failures, and must still run the Amsterdam blocks after them if the pre-state can be obtained (it cannot without BPO2 execution unless the fixture's intermediate state is reconstructed; Gaps).
 
-**R4. Engine runner.** For `blockchain_tests_engine`, convert each `params` into `NewPayloadRequest` (JSON → typed, with `decodeExecutionRequests` for the wire-form requests; `execution_engine/requests.py:236–296`), then run the stateful new-payload path `verifyAndNotifyNewPayload` (`execution_engine/new_payload.py:139–169`) over `EthStateFull`, which catches only `InvalidBlock` and keeps the last 255 blocks. `validationError` present ⇔ result `false`. This exercises `executeNewPayloadRequest` with `keys = none`, the payload-to-block conversion and request decoding without the guest. It adds no guest records; its main use is cross-checking the payload path and building extra *non-decisive* guest inputs (R7).
+**R4. Engine runner.** For `blockchain_tests_engine`, convert each `params` into `NewPayloadRequest` (JSON → typed, with `decodeExecutionRequests` for the wire-form requests; `execution_engine/requests.py:236–296`), then run the stateful new-payload path `verifyAndNotifyNewPayload` (`execution_engine/new_payload.py:139–169`) over `EthStateFull`, which catches only `InvalidBlock` and keeps the last 255 blocks. For each request, first derive its chain context (`new_payload.py:146–150`), then acquire `consts ← HashConsts.query` once, build `fullState.toPreState consts`, and call `executeNewPayloadRequest consts req pre ctx none` (`:156–157`; Lean acquisition boundary, F20). The provider and payload kernel receive the same record, and the kernel performs no acquisition. Runs acquire independently; later failures have still made the queries. The runner must report internal failures as spec bugs; the result/error adapter is an implementation gap (§10). `validationError` present ⇔ result `false`. This exercises `executeNewPayloadRequest` with `keys = none`, the payload-to-block conversion and request decoding without the guest. It adds no guest records; its main use is cross-checking the payload path and building extra *non-decisive* guest inputs (R7).
 
 **R5. Tiers** (adopting the tiers of [kim-em/hex-dev](https://github.com/kim-em/hex-dev) @76780a50, `SPEC/testing.md`):
 - **`core`** (every push, merge-gating): Lean-only `#guard`/`#guard_msgs` on committed inputs. For the guest: the 9 sentinel inputs (≤ 10,736 bytes each), the O3a record, one record per O-row reachable from fixtures (including the O13 BLOCKHASH fault, fixture `validation_headers_missing_oldest_blockhash_ancestor`), the EELS unit-test inputs ported from `tests/json_loader/test_stateless_guest.py`, round trips of the host codecs, and hand-built adversarial inputs (EthStateless §4). No IO, no archive. `#guard`/`decide` cannot evaluate a term whose dependencies reach a `sorry` leaf, even on a path never taken (F16); schedule such cases after their dependencies are implemented. A `lean_exe` does not make evaluating a proof hole valid; core proof holes are banned.
@@ -81,6 +81,28 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).
 - **Implementer guidance (F16).** Implement every dependency before running a guard or executable check. Core definitions may not contain `sorry`; evaluate only complete definitions. Prototype observations about proof-hole evaluation do not authorize executable stubs in the specification.
 - **`core` cases.** Runner self-tests: a synthetic fixture file with one passing, one mismatching and one malformed record, checking the verdicts and the R6 record fields; hex decoding edge cases; `decodeExecutionRequests` on empty blob, duplicate type, descending types, unknown type `0x05`, a body one byte short, and each type's size multiple; `encode ∘ decode` and `decode ∘ encode` on all five types.
+- **F20 engine cases to implement (R4, L-engine-constants).**
+  - Fail chain-context formation, including the empty-chain parent lookup: no constants
+    record is acquired. This failure precedes the engine's `InvalidBlock` handler
+    (`new_payload.py:146–150,152`); it must not become a validation `false`.
+  - Use a synthetic oracle whose four constant values differ from the literals. After
+    context formation, acquire once before constructing the full-state provider or
+    running a payload guard. The provider's empty-code and empty-root observations,
+    both payload-header constructions and the block kernel use that same record.
+  - Trace the actual `executeNewPayloadRequest` and shared block kernel: neither
+    acquires another record. A substituted payload callback checks only the engine
+    caller, not those kernels. Repeating an ordinary constant-preimage query during
+    validation does not constitute another record acquisition.
+  - Fail the empty-transaction, block-hash and versioned-hash guards separately:
+    acquisition queries precede each failure and the first failing guard determines
+    the error. An `InvalidBlock` result becomes `false` without applying a diff or
+    appending a block; other faults such as `InvalidTransaction` propagate, and an
+    `InternalError` is reported as a spec bug, never as `false` (§10).
+  - Run two engine requests, including one after an `InvalidBlock` failure: each
+    acquires independently. On success, apply the diff, append the block and retain
+    the last 255 blocks in source order (`new_payload.py:164–169`).
+  These trace and failure cases remain open until the engine implementation and
+  its checked result/error adapter are available; documentation checks do not run them.
 - **Property checks.** `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for generated well-formed `x`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`; `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`.
 - **Differential.** R7 oracles on the `ci` slice and on fuzzed inputs; the stateful-vs-stateless cross-check on engine fixtures (build an input from `params` + `executionWitness` + recovered keys, compare `successful_validation` with `¬ validationError`), reported as bug-finding only because R2 shows guest records and block validity can legitimately differ.
 
@@ -121,6 +143,7 @@ def runGuestRecord (r : GuestRecord) : Verdict         -- R1, pure
 def runBlockchainFixture (f : BlockchainFixture) : Array (Nat × Verdict)   -- R3, pure
 def runEngineFixture (f : EngineFixture) : Array (Nat × Verdict)           -- R4, pure
 def verifyAndNotifyNewPayload (chain : FullChain) (req : NewPayloadRequest) : Bool × FullChain
+  -- result/error adapter unresolved: see §10; R4 requires checked failures to stay visible
 
 -- tiers, replay, oracles (public; IO)
 inductive Tier | core | ci | local
@@ -157,6 +180,29 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 - [C] **L-host-inverse**: `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for `x.WF`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`.
 - [C] **L-requests-roundtrip**: `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`. For accepted wire forms, `decodeExecutionRequests w = .ok rq → encodeExecutionRequests rq = normalizeRequests w`, where normalization removes type-only blobs. Equality with `w` requires non-empty bodies. The counterexample `w = #[00]` is accepted and re-encodes as `#[]`; the decoder must retain that acceptance.
 - [C] **L-build**: `buildStatelessInput` sets `blockHash := keccak256 (rlp blk.header)`, lists transaction bytes in block order (legacy transactions re-encoded), collects public keys only for transactions whose signature recovers, and collects versioned hashes only from those. So for blocks with an unrecoverable signature, the key count differs from the transaction count, and the guest fails with O5 by design (`stateless_host.py:81–92` [V]).
+- [R] **L-engine-constants** (F20, pending implementation and proof): after R4's
+  chain-context formation succeeds with `ctx`, its protected payload-validation action
+  must satisfy this monadic equation, with `fullState` the chain's current state:
+
+  ```lean
+  validationBody fullState req ctx = do
+    let consts ← HashConsts.query
+    let pre := fullState.toPreState consts
+    executeNewPayloadRequest consts req pre ctx none
+  ```
+
+  `validationBody` denotes that action within the engine's `InvalidBlock` handler;
+  context formation precedes the handler. The equation includes the query trace,
+  not only the returned value: one record acquisition, followed by provider
+  construction and the supplied-record payload kernel, without kernel reacquisition.
+  The record and its observations are preserved through the provider, both payload
+  headers, block validation and existing contexts. Context failures make no
+  acquisition; later failures retain preceding queries. Only `InvalidBlock` becomes
+  `false`; other faults propagate and `InternalError` stays a spec bug. Runs acquire
+  independently, and successful state application follows R4. The §4 cases must
+  execute these laws with a synthetic oracle. The engine implementation, ordinary
+  equations and checked result/error adapter (§10) remain open; this sketch does not
+  fix the adapter's type or claim a compiled theorem. Generic coherence remains D5/X7.
 - [C] **L-slice-deterministic**: `selectSlice t idx` depends only on `t` and `idx`.
 - [C] **L-replay**: `replay r` recomputes the verdict from `r` alone and equals the original for deterministic runners.
 - [T] every runner function in the library is total; IO drivers may fail only on IO errors, reported separately from verdicts.
@@ -169,7 +215,7 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 
 **Argument.** Guest records are evaluated independently from their containing block's expected validity: the raw input and expected 43 bytes define the comparison. A checked InternalError is a failing verdict even if an unchecked fallback matches the expected bytes. FailureRecord retains the raw input, expected/actual bytes and checked outcome; replay reruns the same pure comparison. For stateful tests, induction over blocks maintains the full-state invariant after successful transitions. A skipped pre-fork block breaks that induction, so dependent Amsterdam blocks must be skipped too unless their authenticated pre-state is independently reconstructed. Request conversion has asymmetric inverse laws: decode(encode rq) = rq, while encode(decode wire) removes accepted type-only blobs. Its wire round trip is identity only on that canonical subset.
 
-**Open obligations.** Implement the corpus/exception-label adapters, fixture slice, transition policy and malformed-input cases. Passing fixtures provides differential evidence; it is not a proof of module laws or a substitute for adversarial cases absent from the corpus.
+**Open obligations.** Implement and prove L-engine-constants with its §4 trace and failure cases and the checked engine result/error adapter (§10). Implement the corpus/exception-label adapters, fixture slice, transition policy and malformed-input cases. Passing fixtures provides differential evidence; it is not a proof of module laws or a substitute for adversarial cases absent from the corpus.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -177,7 +223,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthStateless`, `EthStateFull`
 - **Used by:** nothing in the core; CI workflows and developers; benchmark packages may reuse its fixture parser.
-- **Seams consumed:** `runStatelessGuestChecked`, `classify`, `deserializeStatelessInput`, `serializeStatelessOutput`, `executeNewPayloadRequest`, `encodeExecutionRequests` (`EthStateless`); the full-state `PreState` and state application (`EthStateFull`); `executeBlock`, `Block` RLP decoding, `recoverTransactionPublicKey`, `getLast256BlockHashes`, `BlockChain` (`EthBlock`/`EthFork`, transitively).
+- **Seams consumed:** `runStatelessGuestChecked`, `classify`, `deserializeStatelessInput`, `serializeStatelessOutput`, `executeNewPayloadRequest`, `encodeExecutionRequests` (`EthStateless`); the full-state `PreState` and state application (`EthStateFull`); `HashConsts.query` (`EthHash`, transitively); `executeBlock`, `executeBlockStandalone`, `Block` RLP decoding, `recoverTransactionPublicKey`, `getLast256BlockHashes`, `BlockChain` (`EthBlock`/`EthFork`, transitively). R3 uses the standalone wrapper and its provider factory; R4 owns the engine driver's acquisition. Guest acquisition follows EthStateless R5 (F20).
 - **Invariants relied on:** the checked runner reports every internal failure as `.error` (never as an output); every full-state `PreState` built from `pre` satisfies `Models` (from `EthStateFull`). **Guaranteed:** no verdict is derived from an oracle; required fixtures are never skipped for lack of an oracle; skipped items are counted and reported.
 
 ## 9. Open decisions
@@ -193,6 +239,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - EEST exception-name mapping: resolved, DECISIONS Q9 (warning-only).
 
 ## 10. Gaps
+
+- **Engine result/error adapter.** R4 catches only EELS `InvalidBlock` (`execution_engine/new_payload.py:161–162`); `InvalidTransaction` has a separate base class (`src/ethereum/exceptions.py:13,25`). The informal `Bool × FullChain` result in §5 cannot yet express all propagated payload faults or `InternalError`. Expand its checked adapter and exception mapping before implementation; internal failures must be spec-bug verdicts, and other faults must retain the pinned handler behaviour rather than all becoming `false`.
+
+- **F20 engine acquisition.** Implement and prove L-engine-constants, including the §4 synthetic-oracle, failure-trace and repeated-run cases against the actual payload and block kernels. The acquisition equation and cases are pending independently of the result/error adapter above; documentation checks establish neither.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

@@ -1,7 +1,7 @@
 # `EthFork`: the Amsterdam composition
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8.*
 
 Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or evaluated) at the pin; **[I]** means an inference.
 
@@ -12,7 +12,7 @@ Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or e
 - the **precompile table** built from `EthPrecompiles`;
 - the selection of the named fork modules.
 
-It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStateless`. Like `EthBlock.executeBlock`, it is generic in `{m} [Monad m] [KeccakQuery m]` (D5); `EthStateless`'s public entry point uses it at `m := Id`, where `KeccakQuery Id` is concrete keccak256. The keccak-derived constants (`HashConsts`, `EthBase`) are not values of this module: `EthBlock.executeBlock` queries them once per block with `HashConsts.query` (`EthHash`). It also states the hypotheses that generic proofs (termination, arithmetic safety, conservation) need of a configuration, and discharges them for the Amsterdam instance. It contains no execution logic.
+It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStateless`. Like `EthBlock.executeBlock`, it is generic in `{m} [Monad m] [KeccakQuery m]` (D5); `EthStateless`'s public entry point uses it at `m := Id`, where `KeccakQuery Id` is concrete keccak256. The keccak-derived constants (`HashConsts`, `EthBase`) arrive from the caller under F20: this module forwards the same `consts` to `EthBlock.executeBlock` without acquisition or literal substitution. It also states the hypotheses that generic proofs (termination, arithmetic safety, conservation) need of a configuration, and discharges them for the Amsterdam instance. It contains no execution logic.
 
 ## 2. Requirements
 
@@ -59,7 +59,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
   - EIP-8282: `EthBlock` requests.
   
   Only Amsterdam modules exist (D3). The bpo5 `PrevHeader` type in `EthBlock` is the only previous-fork artefact.
-- **R-F7 (composition).** `Amsterdam.executeBlock := EthBlock.executeBlock Amsterdam.config`. `EthStateless` must call only this, never `EthBlock.executeBlock` with another config.
+- **R-F7 (composition).** `Amsterdam.executeBlock consts := EthBlock.executeBlock Amsterdam.config consts`. `EthStateless` must call only this, never `EthBlock.executeBlock` with another config.
 - **R-F8 (fork metadata).**
   - `forkCriteria = Unscheduled(order_index = 3)` (`__init__.py:43`) is recorded as data only. The guest never consults it: the reference excludes fork-activation checks (CONTRACT §5, `stateless.py` comment), and so does the spec.
   - `applyFork` (`fork.py:179`) is the identity on `BlockChain σ`. It is used by `EthConformance` only if a transition fixture is ever driven through the full-state path.
@@ -124,7 +124,8 @@ def precompiles {m} [Monad m] [KeccakQuery m] : Vm.PrecompileTable m := STFSpec.
 def config       : Block.BlockConfig :=
   { gas := gasCosts, stateGas := stateGasCosts, block := blockParams,
     tx := txParams, system := systemAddrs, precompiles := precompiles, limits := vmConfig.limits }
-def executeBlock {m} [Monad m] [KeccakQuery m] := Block.executeBlock (m := m) config  -- R-F7, the only entry for EthStateless
+def executeBlock {m} [Monad m] [KeccakQuery m] (consts : HashConsts) :=
+  Block.executeBlock (m := m) config consts  -- R-F7, the only entry for EthStateless
 def stateTransition := Block.stateTransition config   -- full-state path, at m := Id
 def applyFork {σ} : Block.BlockChain σ → Block.BlockChain σ := id      -- R-F8
 def forkCriteria : String := "Unscheduled(order_index=3)"            -- data only
@@ -181,7 +182,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D3** (accepted): Amsterdam only. The previous fork contributes only the `PrevHeader` type in `EthBlock`.
 - **D12**: the precompile deliverables are tracked in `EthPrecompiles`; this module only installs the table.
 - **D13/D17**: `TerminationReady` is the gas-schedule hypothesis of the recursive runner.
-- **D5** (provisional, broad): `executeBlock` is monad-parametric; the keccak-derived constants are `HashConsts`, queried in `EthBlock`, not literals here.
+- **D5** (provisional, broad): `executeBlock` is monad-parametric; the keccak-derived constants are `HashConsts`, forwarded from the caller under F20, not literals here.
 - **D21** (accepted): no `@[csimp]` here; constants are plain definitions.
 - Values in `EthFork`, types next to their semantics: resolved by DECISIONS B8 (Q1/Q26/Q43) and F8.
 

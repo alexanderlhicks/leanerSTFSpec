@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
@@ -87,16 +87,20 @@ It returns `IntrinsicGasCost`.
 5. `timestamp ≤ parent.timestamp` raises `header .timestamp`.
 6. `number ≠ parent.number + 1` raises `header .number`.
 7. `len extraData > 32` raises `header .extraData`.
-8. `difficulty ≠ 0` raises `header .difficulty`; `nonce ≠ 0⁸` raises `header .nonce`; `ommersHash ≠ consts.emptyOmmerHash` (`= keccak(rlp [])`, a `HashConsts` field) raises `header .ommersHash`.
+8. `difficulty ≠ 0` raises `header .difficulty`; `nonce ≠ 0⁸` raises `header .nonce`; `ommersHash ≠ EMPTY_OMMER_HASH` (`= keccak(rlp [])`, a `HashConsts` field) raises `header .ommersHash`.
 9. `parentHash ≠ keccak(rlp parent)` raises `header .parentHash`, with the hash queried through `KeccakQuery` (D5). This is the CONTRACT §7 anchor.
 
 `validateHeader` checks nothing else (Gaps: slot number, fork activation, timestamp upper bound).
 
 ### 2.7 Block execution (R-EB, `execute_block`, `fork.py:281–383`), in order
 
+`executeBlock cfg consts` is the kernel: its caller supplies the constants record (F20), and the kernel neither calls `HashConsts.query` nor uses literals. `executeBlockStandalone` calls `HashConsts.query` once on entry, builds the pre-state with `mkPre consts`, then runs steps 1–10 below. The provider factory must use that same record and oracle interpretation. Each wrapper run acquires independently, without caching the record. A run that fails in steps 1–4 has still made the constant queries and called its factory.
+
+`stateTransition cfg toPre apply chain block` first derives the parent header and block hashes, then calls `executeBlockStandalone` with the provider factory `fun consts ↦ pure (toPre chain.state consts)` and `none` for the public-key hint.
+
 1. `len (rlp block) > cfg.block.maxRlpBlockSize` [8 388 608] raises `rlpSizeExceeded` (EIP-7934).
 2. `publicKeys = some ks ∧ |ks| ≠ |txs|` raises `publicKeyCountMismatch` (O5).
-3. `validateHeader cfg consts ctx.parentHeader header`, with constants already acquired (F20).
+3. `validateHeader cfg consts ctx.parentHeader header`.
 4. `ommers ≠ []` raises `ommersNotEmpty`.
 5. Build the `BlockState` over `preState` and `consts` (`BlockState` carries them), and the `BlockEnvironment` from the header fields, a fresh `BalBuilder` and `publicKeys`.
 6. `applyBody`.
@@ -175,7 +179,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/fork.py::EMPTY_OMMER_HASH` | 116 | `HashConsts.emptyOmmerHash` (`EthBase`) | `keccak256 (rlp [])`, queried once per block by `HashConsts.query` (D5, F2); the literal `1dcc4de8…9347` (computed at pin) is its `Id` value, checked by `#guard` |
+| `forks/amsterdam/fork.py::EMPTY_OMMER_HASH` | 116 | `HashConsts.emptyOmmerHash` (`EthBase`) | `keccak256 (rlp [])`, supplied by the caller under F20 (D5, F2); the literal `1dcc4de8…9347` (computed at pin) is its `Id` value, checked by `#guard` |
 | `forks/amsterdam/fork.py::GWEI_TO_WEI` | 127 | `gweiToWei` | 10^9; withdrawal amounts |
 | `forks/amsterdam/fork.py::ChainContext` | 152 | `ChainContext` | `parentHeader : ParentHeader` |
 | `forks/amsterdam/fork.py::BlockChain` | 169 | `BlockChain σ` | generic over the state carrier (§6) |
@@ -367,6 +371,18 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
   - a BAL-hash-only mismatch; `gasUsed` equal to the execution total when the state total is larger;
   - 0 transactions with withdrawals only; a block exactly at `maxRlpBlockSize`.
 - **Property and differential checks.** Codec round-trips; `rlp (rlp⁻¹ b) = b` for canonical transaction bytes; BAL output sorted and deduplicated for random builder traces; replaying the EELS order of `add/remove` on random traces against the Python builder (bug-finding only, CONTRIBUTING §1).
+- **F20 composition cases to implement.** Use a synthetic oracle whose four constant
+  answers each differ from the literals:
+  - Run the standalone wrapper with both full-state and witness provider factories; its query trace follows §2.7 and each factory receives the acquired record.
+  - Fail the size, key-count and header checks separately; the trace still contains acquisition and factory effects, in R-EB order.
+  - Run the kernel directly; it makes no acquisition and stores the supplied record at step 5.
+  - Change the stored fields; body and state consumers observe the corresponding empty-root, empty-code and transfer-topic values.
+  - Use a provider factory or kernel that substitutes literals for the acquired record;
+    its empty-root or empty-code observations differ from the synthetic oracle-derived
+    record. The required coherence premise cannot be established; no runtime coherence
+    check or new rejection is introduced.
+  - Run the wrapper twice; each run acquires independently. Ordinary later queries of a constant preimage remain ordinary queries, not record acquisitions.
+  - Raise a provider fault or internal/fuel error; it stays in the inner or outer checked channel, respectively.
 
 ## 5. Interface
 
@@ -511,17 +527,26 @@ def processWithdrawals (cfg) : BlockEnvironment → BlockAcc m → Array Withdra
 def processGeneralPurposeRequests (cfg) : BlockEnvironment → BlockAcc m → BlockM m (BlockAcc m)
 def applyBody (cfg) : BlockEnvironment → Array BlockTx → Array Withdrawal
     → BlockState m → BlockM m (BlockAcc m)
-def executeBlockM (cfg : BlockConfig) (block : Block) (preState : PreState m)
+def executeBlockM (cfg : BlockConfig) (consts : HashConsts) (block : Block) (preState : PreState m)
     (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) : BlockM m BlockDiff
-def executeBlock (cfg : BlockConfig) (block : Block) (preState : PreState m)
+def executeBlock (cfg : BlockConfig) (consts : HashConsts) (block : Block) (preState : PreState m)
     (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) : m (CheckedResult BlockError BlockDiff)
-    := (executeBlockM cfg block preState ctx publicKeys).run.run
+    := (executeBlockM cfg consts block preState ctx publicKeys).run.run
+-- standalone caller: acquisition precedes provider construction and all validation (F20)
+def executeBlockStandalone (cfg : BlockConfig) (mkPre : HashConsts → m (PreState m))
+    (block : Block) (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) :
+    m (CheckedResult BlockError BlockDiff) := do
+  let consts ← HashConsts.query
+  let preState ← mkPre consts
+  executeBlock cfg consts block preState ctx publicKeys
 -- full-state driver (instantiated by EthConformance, at m := Id)
 structure BlockChain (σ : Type) where blocks : Array Block; state : σ; chainId : U64
 def getLast256BlockHashes : BlockChain σ → m (Array Hash32)      -- hashes the most recent header
 def stateTransition (cfg) (toPre : σ → HashConsts → PreState m) (apply : σ → BlockDiff → σ)
     : BlockChain σ → Block → m (CheckedResult BlockError (BlockChain σ))
 ```
+
+Constants-consuming entry and header helpers use `consts : HashConsts` and local EELS notation (CONTRIBUTING §7.2, F20). `validateHeader` takes the record explicitly because it runs before `BlockState.new`. Body, transaction, BAL and state consumers project `BlockState.consts` through their existing accumulator, state or world arguments. Construction and validation order follow R-EB (§2.7); the provider factory's type alone does not prove coherence.
 
 Execution threads `BlockState`, transaction observations and `BalBuilder` explicitly. Pure admission/codec checks return `Except BlockError`; functions that hash return in `m`; functions enclosing a runner call run in `BlockM m`, retaining the outer `InternalError` through system calls, body execution and stateful drivers. `runVmChecked` returns `m (CheckedResult …)` (F14); its `VmFault` is mapped through `BlockError.ofVmFault` into the inner channel, and an internal error passes through unchanged (see COMPOSITION.md). No global `IO` or mutable reference is used. Decoding (`decodeTransaction`, `decodeReceipt`, `extractDepositData`) stays pure.
 
@@ -560,7 +585,8 @@ Per operation (model-based, D25):
   Each is [T]: it justifies computing with `Nat` truncated subtraction where EELS would raise.
 - **Order.** `validateHeader` returns the error of the first failing check in R-VH order, and similarly for R-VT, R-CT and R-EB. These are stated as equations that unfold one check at a time. [R]
 - **Hint equivalence.** If `chainId tx ∈ {none, some ctx.chainId}` and `ks[i] = recoverTransactionPublicKey ctx.chainId tx`, then the hint path and `recoverSender` return the same sender. Otherwise the hint path raises `invalidSignature`. [C] It is used by consumers that replace full recovery (CONTRACT §2). [R]
-- **Seam.** `executeBlock cfg b ps ctx ks` depends on `ps` only through the `PreState m` operations. At `m := Id`, a **successful witness execution** over `ps` is simulated by a progressive full backend of σ, assuming `Models ps σ`, code authenticity, reachable caller invariants, and agreement on every successful answer; the post-state root agrees or yields a named hash collision. This is the directional block-level agreement obligation for EthSecurity (COMPOSITION §5), not equality of success and failure for arbitrary `Models` providers. [R][S] The oracle coupling at generic `m` is open (D5).
+- **Seam.** `executeBlock cfg consts b ps ctx ks` depends on `ps` only through the `PreState m` operations. At `m := Id`, a **successful witness execution** over `ps` is simulated by a progressive full backend of σ, assuming `Models ps σ`, code authenticity, reachable caller invariants, and agreement on every successful answer; the post-state root agrees or yields a named hash collision. This is the directional block-level agreement obligation for EthSecurity (COMPOSITION §5), not equality of success and failure for arbitrary `Models` providers. [R][S] The oracle coupling at generic `m` is open (D5).
+- **Constants lifetime (F20).** Prove the acquisition and effect order in §2.7 as implementation equations. The kernel preserves the supplied record in `BlockState.new`; context consumers read the stored fields, including under synthetic constants differing from the Id literals. These laws are unimplemented; generic oracle and backend coupling remains D5/X7. [R]
 - **Determinism and totality.** Every function here is total. The only recursion is structural over the transaction, withdrawal, log and BAL arrays, apart from the runner calls, whose totality is `EthVmRunner`'s obligation (O11). [T]
 - **Conservation** (generic, a hypothesis on `cfg`; discharged for Amsterdam in `EthFork`): the sum of balance changes over sender, coinbase and burn in one transaction is 0 when the frame's value transfers are counted. [C] The strategy is open (Gaps).
 
@@ -615,6 +641,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Mathematical termination is required but not yet proved; practical feasibility remains open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

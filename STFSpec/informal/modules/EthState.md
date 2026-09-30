@@ -1,7 +1,7 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F7, F19 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
 
@@ -14,8 +14,8 @@ Line references are to the pinned source under `src/ethereum/` (`state.py`, and 
 ### 2.1 Accounts and constants
 
 - R1. `Account` has exactly `nonce : Nat`, `balance : U256`, `codeHash : Hash32` (`state.py:42–49`). The nonce is EELS `Uint` (unbounded); no overflow check exists in the tracker (`st:715–731`). Nonce limits (EIP-2681) are transaction validation, owned by `EthBlock`.
-- R2. `emptyCodeHash` is `HashConsts.emptyCodeHash` (`EthBase`; D5, DECISIONS §3): a keccak-derived constant queried once per block by `HashConsts.query` (`EthHash`) and carried in `BlockState.consts`. `EthState` cannot import `EthHash` and never hashes; it receives the record as data. At `m := Id` its value is the literal `0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470` (`state.py:36`, `keccak256(b"")`) [verified value by execution], held in `HashConsts.literals` (`EthBase`); `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals` (`EthHash` §7). Below, `emptyCodeHash` abbreviates the `consts` field in scope.
-- R3. `emptyAccount k = {nonce := 0, balance := 0, codeHash := k.emptyCodeHash}` for `k : HashConsts` (`state.py:52–56`). A non-existent account (`none`) is distinct from `emptyAccount` (`state.py:12–13`) and every operation must preserve the distinction.
+- R2. `emptyCodeHash` is `HashConsts.emptyCodeHash` (`EthBase`; D5, DECISIONS §3): a keccak-derived constant acquired by the caller under F20 through `HashConsts.query` (`EthHash`) and carried in `BlockState.consts`. `EthState` cannot import `EthHash` and never hashes; it receives the record as data. At `m := Id` its value is the literal `0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470` (`state.py:36`, `keccak256(b"")`) [verified value by execution], held in `HashConsts.literals` (`EthBase`); `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals` (`EthHash` §7). Below, `emptyCodeHash` refers to that field; definition bodies use local EELS notation `EMPTY_CODE_HASH` projected from their constants/state context (F20).
+- R3. `emptyAccount consts = {nonce := 0, balance := 0, codeHash := consts.emptyCodeHash}` for `consts : HashConsts` (`state.py:52–56`). A non-existent account (`none`) is distinct from `emptyAccount` (`state.py:12–13`) and every operation must preserve the distinction.
 
 ### 2.2 `BlockDiff`
 
@@ -158,7 +158,7 @@ structure Account where
   nonce : Nat
   balance : U256
   codeHash : Hash32
-def emptyAccount (k : HashConsts) : Account      -- R3; HashConsts from EthBase (R2)
+def emptyAccount (consts : HashConsts) : Account      -- R3; HashConsts from EthBase (R2)
 
 inductive WitnessItem | node (h : Hash32) | code (h : Hash32) | leaf   -- coarse, commitment-agnostic
 inductive WitnessError
@@ -192,7 +192,7 @@ structure MathState where
   code     : Std.ExtTreeMap Hash32 ByteArray
 def MathState.account? (σ) (a : Address) : Option Account
 def MathState.storageAt (σ) (a : Address) (k : Bytes32) : U256        -- default 0
-def MathState.code? (σ) (k : HashConsts) (h : Hash32) : Option ByteArray  -- k.emptyCodeHash ↦ some empty
+def MathState.code? (σ) (consts : HashConsts) (h : Hash32) : Option ByteArray  -- consts.emptyCodeHash ↦ some empty
 def MathState.WF (σ) : Prop           -- no zero values, no empty inner maps, storage keys ⊆ account keys
 def MathState.apply (σ) (d : BlockDiff) : MathState                  -- R5
 def BlockDiff.WF (σ) (d) : Prop       -- §7.4
@@ -225,7 +225,7 @@ structure TxObs where                 -- linear, never reverted within a transac
   createdAccounts : Std.HashSet Address
 structure BlockState (m : Type → Type) where
   preState : PreState m
-  consts   : HashConsts                 -- queried once per block (R2)
+  consts   : HashConsts                 -- supplied by the caller (R2, F20)
   accountWrites : Std.ExtTreeMap Address (Option Account)
   accountOrder  : WriteOrder Address
   storageWrites : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)
@@ -243,7 +243,7 @@ structure TxState (m : Type → Type) where
   obs   : TxObs
 abbrev StateM (m : Type → Type) := StateT (TxState m) (ExceptT StateError m)
 
-def BlockState.new (ps : PreState m) (k : HashConsts) : BlockState m
+def BlockState.new (ps : PreState m) (consts : HashConsts) : BlockState m
 def TxState.new (b : BlockState m) : TxState m
 
 -- reads (R10–R13)
@@ -368,6 +368,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthBase`
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
+- **Constants context (F20).** `BlockState.new` preserves the supplied record: `(BlockState.new ps consts).consts = consts`. State operations read it through their existing `TxState`/`BlockState` context; they receive no parallel constants argument. Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their necessary data parameter and EELS-named local notation. This constructor/context law remains an implementation obligation.
 - **Relies on:** every `PreState Id` passed to execution satisfies `ModelsLookups` for some WF σ₀ (proved by backends via `Models`); `EthBase` supplies checked `U256` add/sub, lawful `compare` on `Address`/`Bytes32`/`Hash32` keys (D2), the orderings for `(Address × Bytes32)` keys and `LawfulEqCmp Address` (F19), and the `HashConsts` record (R2).
 - **Guarantees:** the laws of §7; `BlockDiff.WF` and `AccountWritesLookedUp` for `EthStateCommit`/`EthStateWitness`; the first-write order in `BlockDiff.accountOrder`.
 - **Ordering contract with `EthBlock`:** `update_builder_from_tx` runs on the unmerged states immediately before `incorporateTxIntoBlock` (R25(1)); `EthState` does not import the builder.
