@@ -1,6 +1,6 @@
 # Working in STFspec
 
-*Status: current repository entry point. Date: 2026-09-29.*
+*Status: current repository entry point. Date: 2026-09-30.*
 
 This is the entry point for anyone, human or agent, working in this repository. It says where things are and which document wins. It restates no facts: follow the links.
 
@@ -38,6 +38,11 @@ These are enforced by `check-decls` and `scripts/check_boundaries.py` where poss
 ## Working as an agent
 
 This file and [`CONTRIBUTING.md`](CONTRIBUTING.md) apply in any harness. Agent-driven work follows CONTRIBUTING §6.4–§6.6: each change is a work item that is committed only after its checks pass and an independent adversarial review finds it clean; larger components become stacked pull requests; and work is divided among defined roles (orchestrator, researcher, prototyper, implementer, conformance engineer, adversarial reviewer, polisher). Harness-specific configuration stays local and only points to those sections.
+
+Finding severity and the treatment of tooling issues are owned by
+[`CONTRIBUTING.md` §5.5](CONTRIBUTING.md#5-tests-review-and-automation);
+§6.4 defines a clean review verdict. Apply those rules before treating a review
+recommendation as a merge blocker.
 
 ## Task map
 
