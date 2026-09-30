@@ -5,9 +5,9 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Base
 
 /-!
-# Primitive record client proofs
+# Primitive record public-law examples
 
-Library `EthConformance`: fixed clients use public record projections and model laws,
+Library `EthConformance`: examples use public record projections and model laws,
 without unpacking the replaceable word, address or hash representations.
 Spec guidance: `STFSpec/informal/modules/EthBase.md` §§3–4.
 -/
@@ -16,7 +16,7 @@ open STFSpec.Base
 
 example (k : HashConsts) :
     HashConsts.mk k.emptyCodeHash k.emptyTrieRoot k.emptyOmmerHash k.transferTopic = k :=
-  HashConsts.mk_projections k
+  HashConsts.eta k
 
 example (a b c d : Hash32) : (HashConsts.mk a b c d).emptyCodeHash = a :=
   HashConsts.emptyCodeHash_mk a b c d
@@ -36,7 +36,7 @@ example (x y : HashConsts) (ha : x.emptyCodeHash.toBytes = y.emptyCodeHash.toByt
 
 example (a : Authorization) :
     Authorization.mk a.chainId a.address a.nonce a.yParity a.r a.s = a :=
-  Authorization.mk_projections a
+  Authorization.eta a
 
 example (x y : Authorization) (hc : x.chainId.toNat = y.chainId.toNat)
     (ha : x.address.toBytes = y.address.toBytes) (hn : x.nonce.toNat = y.nonce.toNat)
@@ -46,7 +46,7 @@ example (x y : Authorization) (hc : x.chainId.toNat = y.chainId.toNat)
     (U64.toNat_inj.mp hn) (U8.toNat_inj.mp hy) (U256.toNat_inj.mp hr) (U256.toNat_inj.mp hs)
 
 example (g : StateGasPerByte) : StateGasPerByte.mk g.rate = g :=
-  StateGasPerByte.mk_projections g
+  StateGasPerByte.eta g
 example (x y : StateGasPerByte) (h : x.rate = y.rate) : x = y := StateGasPerByte.ext h
 example (n : Nat) : (StateGasPerByte.mk n).rate = n := StateGasPerByte.rate_mk n
 example (g : StateGasPerByte) (n : Nat) : g.charge n = g.rate * n :=
@@ -54,7 +54,7 @@ example (g : StateGasPerByte) (n : Nat) : g.charge n = g.rate * n :=
 example (g : StateGasPerByte) (n : Nat) : g.charge n = n * g.rate :=
   StateGasPerByte.charge_eq_mul_rate g n
 example (g : StateGasPerByte) : g.charge 0 = 0 := StateGasPerByte.charge_zero g
-example (n : Nat) : (StateGasPerByte.mk 0).charge n = 0 := StateGasPerByte.zero_rate_charge n
+example (n : Nat) : (StateGasPerByte.mk 0).charge n = 0 := StateGasPerByte.charge_mk_zero n
 example (g : StateGasPerByte) (a b : Nat) : g.charge (a + b) = g.charge a + g.charge b := by
   rw [StateGasPerByte.charge_eq, StateGasPerByte.charge_eq, StateGasPerByte.charge_eq]
   exact Nat.mul_add _ _ _

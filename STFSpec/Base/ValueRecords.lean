@@ -4,8 +4,8 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Base.FixedBytes
 import STFSpec.Base.U256
-import STFSpec.Base.U8
 import STFSpec.Base.U64
+import STFSpec.Base.U8
 
 /-!
 # Primitive records and concrete hash-constant values
@@ -19,7 +19,7 @@ Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 
 namespace STFSpec.Base
 
-/-- Keccak-derived values, acquired and threaded by EthHash (D5/F20). -/
+/-- Keccak-derived values acquired through EthHash and threaded by callers (D5/F20). -/
 structure HashConsts where
   /-- Empty code hash value; EELS `src/ethereum/state.py:36`. -/
   emptyCodeHash : Hash32
@@ -71,7 +71,7 @@ theorem ext {x y : HashConsts}
   rfl
 
 /-- Reconstructing the public fields returns the original record. -/
-theorem mk_projections (x : HashConsts) :
+theorem eta (x : HashConsts) :
     HashConsts.mk x.emptyCodeHash x.emptyTrieRoot x.emptyOmmerHash x.transferTopic = x := by
   cases x
   rfl
@@ -144,7 +144,7 @@ theorem ext {x y : Authorization}
   rfl
 
 /-- Reconstructing the public fields returns the original record. -/
-theorem mk_projections (x : Authorization) :
+theorem eta (x : Authorization) :
     Authorization.mk x.chainId x.address x.nonce x.yParity x.r x.s = x := by
   cases x
   rfl
@@ -172,7 +172,7 @@ theorem ext {x y : StateGasPerByte}
   rfl
 
 /-- Reconstructing the public fields returns the original record. -/
-theorem mk_projections (x : StateGasPerByte) :
+theorem eta (x : StateGasPerByte) :
     StateGasPerByte.mk x.rate = x := by
   cases x
   rfl
@@ -193,7 +193,7 @@ theorem charge_eq_mul_rate (g : StateGasPerByte) (numBytes : Nat) :
 theorem charge_zero (g : StateGasPerByte) : g.charge 0 = 0 := Nat.mul_zero _
 
 /-- A zero rate incurs no charge for any byte count. -/
-theorem zero_rate_charge (numBytes : Nat) : (StateGasPerByte.mk 0).charge numBytes = 0 :=
+theorem charge_mk_zero (numBytes : Nat) : (StateGasPerByte.mk 0).charge numBytes = 0 :=
   Nat.zero_mul _
 
 end StateGasPerByte

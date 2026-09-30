@@ -2,14 +2,12 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import STFSpec.Conformance.Base.BytesGuards
 import STFSpec.Conformance.Base.BytesCallerProofs
-import STFSpec.Conformance.Base.FixedBytesGuards
+import STFSpec.Conformance.Base.BytesGuards
 import STFSpec.Conformance.Base.FixedBytesCallerProofs
+import STFSpec.Conformance.Base.FixedBytesGuards
 import STFSpec.Conformance.Base.IntegerBytesCallerProofs
 import STFSpec.Conformance.Base.IntegerBytesGuards
-import STFSpec.Conformance.Base.ValueRecordsGuards
-import STFSpec.Conformance.Base.ValueRecordsCallerProofs
 import STFSpec.Conformance.Base.NarrowCallerProofs
 import STFSpec.Conformance.Base.NarrowGuards
 import STFSpec.Conformance.Base.NumericCallerProofs
@@ -26,6 +24,8 @@ import STFSpec.Conformance.Base.U256ShiftCallerProofs
 import STFSpec.Conformance.Base.U256ShiftGuards
 import STFSpec.Conformance.Base.U256SignedCallerProofs
 import STFSpec.Conformance.Base.U256SignedGuards
+import STFSpec.Conformance.Base.ValueRecordsCallerProofs
+import STFSpec.Conformance.Base.ValueRecordsGuards
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
