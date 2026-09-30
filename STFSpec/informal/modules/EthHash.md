@@ -107,7 +107,7 @@ with no state effects outside the returned state and no failures or consuming er
 handler. EELS `crypto/hash.py:62–77` delegates to its backend; it has no raw permutation
 surface. Accordingly these rows cite the published algorithm underlying the pinned
 pycryptodome 3.23.0 dependency rather than claim Python round execution. The
-fixed-rate sponge below is also implemented and proved; remaining hash and query APIs
+fixed-rate sponge below is also implemented and proved; remaining hash APIs
 are listed in §10.
 
 | Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
@@ -355,7 +355,54 @@ installed RECORD. Pre/post identities include sources, interpreter and shared dr
 These tests establish no all-host, all-resource, guest/EEST or cryptographic claim.
 DISC-005/Q19/D14/O12 dispositions stay open and unchanged.
 
+### Implemented query interface and constant acquisition
+
+`STFSpec/Hash/KeccakQuery.lean` discharges the prescribed R6 interface slice:
+`KeccakQuery` is in `STFSpec.Hash`, and `HashConsts.query` extends the public Base
+record's namespace while its implementation is owned by EthHash. Acquisition is
+four sequential queries in field order, using the supplied instance even when
+its answers differ from concrete digests. The interface imposes no oracle laws.
+Existing reference digests and Base literals remain unchanged.
+
+| Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests / status |
+|---|---|---|---|---|---|
+| D5/R6; EELS `crypto/hash.py:62` | `KeccakQuery (m : Type → Type)`; `KeccakQuery.keccak : ByteArray → m Hash32` | All preimages; answers/effects supplied by the instance | Underlying monad owns failures; no handler is added | `keccak_id` | Arbitrary recording oracle; **discharged interface**, no generic interpretation coupling |
+| D5/R6; concrete EELS hash | `KeccakQuery Id` instance | Definitionally `keccak256` for every preimage | None | `keccak_id` (`rfl`) | Four concrete observations; primary empty KAT from the accepted sponge suite |
+| R6 transformer forwarding | `KeccakQuery (ExceptT ε m)` instance, given `[Monad m] [KeccakQuery m]` | One underlying query, result wrapped in `.ok` | Underlying effects/failures forward; no catch | `keccak_exceptT`, `run_keccak_exceptT` | Both transformer orders, arbitrary answers; **discharged** |
+| R6 transformer forwarding | `KeccakQuery (StateT σ m)` instance, given `[Monad m] [KeccakQuery m]` | One underlying query, added state unchanged | Underlying failure forwards; no returned state on an underlying error | `keccak_stateT`, `run_keccak_stateT` | Both transformer orders, state 91 unchanged; **discharged** |
+| EELS `state.py:36`, `merkle_patricia_trie.py:71`, `forks/amsterdam/fork.py:116`, `forks/amsterdam/vm/__init__.py:40`; F20 acquisition design | `HashConsts.query {m} [Monad m] [KeccakQuery m] : m HashConsts` | Queries `[]`, `[0x80]`, `[0xc0]`, then ASCII `Transfer(address,address,uint256)`; preserves four arbitrary answers as code/trie/ommer/topic fields | Monadic sequence propagates the first error, with no later query; caller owns acquisition and subsequent handling, no guest O-row is implemented here | `query_eq`, `query_id`; `query_of_pure_answers` additionally requires `[LawfulMonad m]` | Recording trace has exactly four explicit preimages and distinct arbitrary answers; failures at positions 0–3; **discharged acquisition interface** |
+| R6 lifted acquisition | `(HashConsts.query (m := ExceptT ε m)).run`, `(HashConsts.query (m := StateT σ m)).run s` | Preserve underlying acquisition; success wrapping or unchanged added state; laws require `[LawfulMonad m]` | Underlying failure forwards; arbitrary transformer oracle's second-query failure returns its exact error and skips both remaining queries | `run_query_exceptT`, `run_query_stateT`, `run_query_error_emptyTrie` | Retained trace for ExceptT over StateT, lost result state for StateT over Except; public stacked clients; **discharged** |
+| Four actual pinned globals above | `HashConsts.query (m := Id)` versus `HashConsts.literals` | All four 32-byte fields equal under concrete evaluation | None | `query_id` gives concrete calls; equality to literals is **guarded, not a universal theorem** | Four byte-field guards plus numeric-field observation; authenticated driver supplies 12 further guards; **evaluated** |
+
+[`KeccakQueryGuards.lean`](../../Conformance/Hash/KeccakQueryGuards.lean) records
+exact query sequence, field preservation, successes in both transformer orders,
+and all four failing positions. ExceptT over the recording StateT retains the
+prefix including the failing query; StateT over Except returns the exact error
+without a state. An extra StateT above the failing recording oracle loses its
+result state while the underlying trace remains observable. These are test
+oracles, not production backends. [`KeccakQueryCallerProofs.lean`](../../Conformance/Hash/KeccakQueryCallerProofs.lean)
+composes public run equations and Base record laws without unfolding private
+provider containers.
+
+[`keccak_query_differential.py`](../../Conformance/Hash/keccak_query_differential.py)
+reads the four actual pinned globals, checks each against actual EELS
+`keccak256` on its exact preimage, and compares all 32 bytes with acquired fields,
+Base literals and the Id query. It authenticates pinned source/lock bytes through
+the shared driver and checks frozen ethereum-types/ethereum-rlp/pycryptodome
+versions. The environment, selected backend, vectors, hashes and 12 generated
+observations are recorded outside the checkout. The accepted sponge suite owns
+the published empty-message KAT; the other constant facts here are primary pinned
+EELS globals, not independent published algorithm KATs.
+
+Generated-C inspection shows four sequential oracle calls in generic acquisition,
+concrete Id dispatch to the accepted `keccak256`, and forwarding lift closures.
+This is structural cost evidence, not a specialization speed claim or a discharge
+of C1–C4. D5's generic interpretation coupling (X7), production F20 guest/block/
+backend entry seams, consumer coherence and S2 remain open.
+
 ## 4. Tests
+
+The implemented query tests and finite constant observations are owned by §3.
 
 - **EEST fixture areas.**
   - Keccak is exercised by every block: header hash, state/storage trie keys and nodes, code hashes. `frontier/opcodes` and `ported_static/vmTests` cover the `KECCAK256` opcode (no `stSHA3` area exists in this corpus); `constantinople/eip1014_create2` and `ported_static/stCreate2` cover the CREATE2 preimage.
@@ -483,8 +530,8 @@ must establish their corresponding standard relations and these laws.
   unrolled permutation needs a round-by-round simulation against `keccakF1600`;
   no fast path is implemented (§10).
 - [R] (bridge module outside the core) `keccakF1600 ≡` the ZisK accelerator's `keccakF` (`ZiskAccel.lean:113`; §10) under the lane-order correspondence.
-- [C] `HashConsts.query (m := Id) = HashConsts.literals` (`EthBase`), as a `#guard` or theorem; by F16 this is evaluable only once `keccak256` has no `sorry` leaf. A compiled prototype of the interfaces checked the same values at `Id`.
-- [C] The lift instances forward: `keccak (m := ExceptT ε m) b = ExceptT.lift (keccak b)` and likewise for `StateT` (definitional).
+- [C] `HashConsts.query (m := Id) = HashConsts.literals` (`EthBase`), as a `#guard` or theorem; by F16 this is evaluable only once `keccak256` has no `sorry` leaf. The core guards check all four fields at `Id`; the actual-pin driver additionally compares each field with its authenticated pinned global (§3). No equality-to-literals theorem is supplied.
+- [C] The lift instances forward (discharged in `KeccakQuery.lean`): `keccak (m := ExceptT ε m) b = ExceptT.lift (keccak b)` and likewise for `StateT` (definitional).
 - [S] `KeccakQuery Id` is definitionally `keccak256` (`rfl`). In `EthSecurity`, kernels are run under `simulateQ` with a random oracle, and collision/ROM bounds are stated there, never assumed here. `sha256` is used under a separate collision-resistance assumption for SSZ request binding (CONTRACT §7). The two oracles must not be conflated (D5).
 
 ### Informal correctness argument
@@ -531,9 +578,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
-  deterministic/differential evidence are owned by §3–§4. The query interface
-  and RIPEMD-160 digest/padding/serialization remain unimplemented. Their remaining
-  vectors need transcription from primary sources, including the RIPEMD-160 paper.
+  deterministic/differential evidence are owned by §3–§4. RIPEMD-160
+  digest/padding/serialization remains unimplemented. Its remaining vectors need
+  transcription from primary sources, including the RIPEMD-160 paper.
   Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.

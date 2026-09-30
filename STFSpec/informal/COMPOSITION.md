@@ -54,13 +54,19 @@ those effect/order obligations are not produced by the pure hash function.
 
 The concrete fixed-rate Keccak provider supplies total byte-level model
 correspondence and fixed widths ([EthHash §3](modules/EthHash.md#3-eels-source-map)).
-These laws do not supply the query instance, acquisition or oracle coupling.
+Query dispatch, acquisition and oracle coupling have separate premises below.
 
 ### Hash constants and oracle premises
 
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,
 EthConformance R4); a `consts` parameter alone does not establish coherence, and
 generic interpretation coupling remains open (D5, X7).
+The query interface additionally supplies definitionally concrete Id dispatch,
+forwarding ExceptT/StateT instances and ordered four-query `HashConsts.query`
+acquisition, with public run equations and arbitrary-answer/error observations
+(EthHash §3). Concrete equality to Base literals is evaluated through guards and
+authenticated pinned globals; it is not an equality theorem. Production F20 entry
+seams, consumer coherence and generic oracle coupling remain open.
 
 ### Checked error channels
 
