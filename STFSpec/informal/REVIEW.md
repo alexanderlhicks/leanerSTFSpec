@@ -1,8 +1,8 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-09-29.*
+*Status: live implementation gates; dated findings retained. Date: 2026-09-30.*
 
-**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-09-29); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
+**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-09-30); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
 Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
 
@@ -107,17 +107,33 @@ X1 is coordinated by EthConformance tooling; each module owns its explicit and i
 
 The highest-risk uncompleted items are closing the failure ledger's unresolved sites (X1), the complete CALL/CREATE gas proof (the fuel-adequacy investigation, §7 G2–G7), code-authenticity/oracle coupling, lenient witness root agreement (the witness/full-state agreement prototype, §7 S2), and the open interface items (X15). Until these are resolved, the repository is suitable for targeted validation and scaffolding, not an unconditional claim of end-to-end soundness.
 
-## 6. Implementation-readiness assessment (2026-09-29)
+## 6. Implementation-readiness assessment (2026-09-30)
 
-**Inventory and composition.** The intended 19 core libraries and four proof libraries each have a ten-section informal spec (§3 above). `check_spec.py` claims every nonexternal item in the pinned inventory exactly once, but a whole-file or grouped claim does not provide an exact Lean declaration, case split or proof. [COMPOSITION](COMPOSITION.md) owns the conditional end-to-end argument and shared adapters. A compiled interface prototype covered a path through those adapters; the core roots remain placeholders, so no implemented operation or end-to-end theorem has passed that path yet. The deliberate source exclusions and their reasons are in [EXCLUDED](EXCLUDED.md).
+**Implemented scope.** [EthBase §3](modules/EthBase.md#3-eels-source-map) owns the
+implemented declarations, source correspondence, public proofs and operation-value
+regressions. Its §10 owns missing APIs and derived laws. Other semantic components
+remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
+shared integer/helper premise; no end-to-end theorem is discharged.
 
-**Where work can start.** The lower-layer definitions and their local model laws can be implemented against the module §2/§5/§7 contracts and this review's §3 gates. The runner, block and guest completion gates still depend on the fuel-adequacy investigation (§7 G2–G7), the witness/full-state agreement prototype (§7 S2), X1, X6, X7 and X15. This is a boundary on completion claims, not a reason to stop isolated definitions, regression cases or research. A module with an unresolved input domain, error priority, schema field or caller premise must expose that as an open obligation in its change rather than fill it by convention.
+**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
+The differential drivers compare public operation values with the pinned source.
+They establish local evidence, without implementing Lean opcode effects. Guest,
+full-state and engine runners remain absent; no EEST guest records execute in Lean.
+The exact pin and dependencies are in `reference.toml`; the generated inventory,
+record catalogue and failure ledger support further implementation.
 
-**Evaluation status.** Every module §4 identifies EEST areas and the applicable pinned Python tests or vectors, together with deterministic cases to add. EthConformance §2 specifies the decisive byte-for-byte guest runner, full-state runner, engine runner, replay record and the `core`/`ci`/`local` tiers. None of these runners or semantic `#guard` suites exists in the core yet; the current CI checks archive integrity, documentation, builds and declaration checks, not guest conformance. X5 records thin or missing guest fixture coverage and the transition-fixture limitation. Implementation reviews therefore need the exact source-to-test row above, generated malformed/dual-failure cases for error order, and a report of **executed** records; a fixture-area name alone is not a coverage claim.
+**Completion gates.** Lower-layer work can proceed against each module's contracts
+and §3 gates. Runner, block and guest completion still require fuel adequacy (G2–G7),
+witness/full-state agreement (S2), and X1, X6, X7 and X15. Unresolved domains, error
+priority, schemas and caller premises must remain explicit. X5 records fixture
+coverage limits; passing document checks or a prototype does not close these gates.
 
-**Performance status.** D22–D25 select persistent ordered overlays, observations outside snapshots, strict log ropes and model-based replacement contracts. D1, D2, D4, D6, D11 and D13 retain provisional representation or execution choices; D7 supplies the initial coordinate choice, and F6/F7 affect witness replay. [§7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) C1–C4 supply the workload and measurement gates, checking ownership, hash distributions, log traversal and bulk operations, under the rule: no checksum inside the timed loop; include allocation, conversions and composition. Historical first-pass numbers are provisional (orders of magnitude at best; the first-pass word timings must not be cited); there is no measured whole-guest native-baseline comparison or target-zkVM cost result. These choices justify beginning with appropriate asymptotic shapes, not claiming that the speed target is met.
-
-**Reference support.** The exact EELS pin, locked dependencies, source maps, generated record catalogue, fixture index, counterexamples and failure ledger provide strong implementation navigation. Okasaki (*Purely Functional Data Structures*, 1998), Nipkow et al. (*Functional Data Structures and Algorithms*) and a source cross-check of the workload costs support the persistence and cost choices. They do not supply an Ethereum MPT refinement theorem, Lean pairing/group-order proofs, a verified imported crypto runtime, or a proof of whole-guest resource bounds (X7, X9, X12). Use the pinned source for uncovered behaviour and keep each literature-derived argument's assumptions explicit; background notes cannot settle a protocol or decision question.
+**Performance and proof limits.** The C1–C4 workload and measurement gates and R4
+representation exercise remain open. No whole-guest native-baseline comparison or
+target-zkVM cost result supports a speed claim. The specification arguments and
+literature references do not supply concrete MPT, pairing, imported-crypto or
+whole-guest resource proofs (X7, X9, X12). Decision statuses are owned by DECISIONS;
+implementation debt is owned by DEBT.
 
 ## 7. Acceptance criteria: proof gates, composition cases, replacement and cost checks
 
