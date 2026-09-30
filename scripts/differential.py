@@ -82,10 +82,19 @@ class FreshSourceFinder(importlib.abc.MetaPathFinder):
             spec.submodule_search_locations = locations
             return spec
         if not isinstance(spec.loader, importlib.machinery.SourceFileLoader):
-            if oracle:
+            # Added checkout packages can shadow installed dependencies even when
+            # their names are not oracle namespaces. Check the path before resolving
+            # aliases, so a src bytecode symlink cannot escape this rejection.
+            checkout_origin = spec.origin is not None and (
+                Path(spec.origin).absolute().is_relative_to(self.driver.eels / "src") or
+                Path(spec.origin).resolve().is_relative_to(self.driver.eels / "src"))
+            if oracle or checkout_origin:
                 raise ImportError(f"oracle module is not Python source: {fullname}")
             return None
-        source = Path(spec.origin).resolve()
+        origin = Path(spec.origin).absolute()
+        source = origin.resolve()
+        if origin.is_relative_to(self.driver.eels / "src") and source != origin:
+            raise ImportError(f"oracle source alias is outside the pin: {fullname}")
         within = (source.is_relative_to(self.driver.eels / "src") or
                   source.is_relative_to(self.driver.eels / ".venv"))
         if oracle and (not within or

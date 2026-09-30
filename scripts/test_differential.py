@@ -7,10 +7,12 @@ import hashlib
 from contextlib import redirect_stderr
 import importlib.machinery
 import importlib.metadata
+import importlib
 import io
 import os
 from pathlib import Path
 import py_compile
+import shutil
 import subprocess
 import sys
 from types import ModuleType
@@ -240,6 +242,81 @@ class DifferentialTests(unittest.TestCase):
         self.source.unlink()
         with self.assertRaisesRegex(ImportError, "not Python source"):
             FreshSourceFinder(self.driver).find_spec("ethereum", [str(self.root / "src")])
+
+    def import_package(self, fullname, finder):
+        with patch.dict(sys.modules), \
+                patch.object(sys, "path", [str(self.root / "src"), *sys.path]), \
+                patch.object(sys, "meta_path", [finder, *sys.meta_path]):
+            sys.modules.pop(fullname, None)
+            return importlib.import_module(fullname)
+
+    def checkout_package(self, fullname):
+        package = self.root / "src" / fullname
+        package.mkdir()
+        with (self.root / ".git/info/exclude").open("a") as stream:
+            stream.write(f"\nsrc/{fullname}/\n")
+        marker = package / "executed"
+        source = package / "__init__.py"
+        source.write_text(f"from pathlib import Path\nPath({str(marker)!r}).touch()\nVALUE = 0\n")
+        return package, source, marker
+
+    def test_non_oracle_sourceless_checkout_package(self):
+        fullname = "wi010_checkout_bytecode"
+        package, source, marker = self.checkout_package(fullname)
+        py_compile.compile(str(source), cfile=str(package / "__init__.pyc"), doraise=True)
+        source.unlink()
+        # Real import machinery executes the unexpected package, despite clean Git.
+        self.driver.check_clean()
+        control = self.import_package(fullname, importlib.machinery.PathFinder)
+        self.assertEqual(control.VALUE, 0)
+        self.assertTrue(marker.exists())
+        marker.unlink()
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "not Python source"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_sourceless_checkout_alias(self):
+        fullname = "wi010_checkout_alias"
+        package, source, marker = self.checkout_package(fullname)
+        external = self.root / ".venv/package.pyc"
+        external.parent.mkdir()
+        py_compile.compile(str(source), cfile=str(external), doraise=True)
+        source.unlink()
+        (package / "__init__.pyc").symlink_to(external)
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "not Python source"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_nested_git_package(self):
+        fullname = "wi010_checkout_source"
+        package, _, marker = self.checkout_package(fullname)
+        subprocess.check_call(["git", "init", "--quiet", str(package)])
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "import bytes differ from the pin"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_checkout_source_alias(self):
+        fullname = "wi010_checkout_source_alias"
+        _, source, marker = self.checkout_package(fullname)
+        external = self.root / ".venv/package.py"
+        external.parent.mkdir()
+        source.rename(external)
+        source.symlink_to(external)
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "source alias"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_installed_native_dependency_preserved(self):
+        spec = importlib.machinery.PathFinder.find_spec("_json")
+        self.assertIsInstance(spec.loader, importlib.machinery.ExtensionFileLoader)
+        installed = self.root / ".venv/lib"
+        installed.mkdir(parents=True)
+        shutil.copy2(spec.origin, installed / Path(spec.origin).name)
+        self.assertIsNone(FreshSourceFinder(self.driver).find_spec("_json", [str(installed)]))
 
 
 if __name__ == "__main__":
