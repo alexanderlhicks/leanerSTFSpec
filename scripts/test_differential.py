@@ -2,15 +2,21 @@
 """Offline regressions for frozen-source differential imports and Git safeguards."""
 
 import argparse
+import base64
+import hashlib
 from contextlib import redirect_stderr
 import importlib.machinery
+import importlib.metadata
 import io
 import os
 from pathlib import Path
 import py_compile
 import subprocess
+import sys
+from types import ModuleType
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from differential import Driver, FreshSourceFinder, FreshSourceLoader
 
@@ -81,6 +87,116 @@ class DifferentialTests(unittest.TestCase):
         self.git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
                  "commit", "--allow-empty", "--quiet", "-m", "different head")
         self.assert_dirty()
+
+    def test_pinned_forks_namespace(self):
+        # EELS has ethereum/__init__.py but no ethereum/forks/__init__.py.
+        fork = self.source.parent / "forks/amsterdam/__init__.py"
+        fork.parent.mkdir(parents=True)
+        fork.write_text("VALUE = 1\n")
+        self.git("add", ".")
+        self.git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                 "commit", "--quiet", "-m", "pinned namespace")
+        self.driver.head = self.git("rev-parse", "HEAD").strip()
+        self.driver.check_clean()
+        package = ModuleType("ethereum")
+        package.__path__ = [str(self.source.parent)]
+        with patch.dict(sys.modules, {"ethereum": package}):
+            spec = FreshSourceFinder(self.driver).find_spec(
+                "ethereum.forks", package.__path__)
+            self.assertIsNone(spec.loader)
+            self.assertEqual(list(spec.submodule_search_locations),
+                             [str(self.source.parent / "forks")])
+
+    def test_namespace_rejects_foreign_search_location(self):
+        for root in (self.source.parent, self.root / "foreign/ethereum"):
+            (root / "forks").mkdir(parents=True)
+        package = ModuleType("ethereum")
+        package.__path__ = [str(self.source.parent), str(self.root / "foreign/ethereum")]
+        with patch.dict(sys.modules, {"ethereum": package}), \
+                self.assertRaisesRegex(ImportError, "namespace search"):
+            FreshSourceFinder(self.driver).find_spec("ethereum.forks", package.__path__)
+
+    def test_replace_refs_do_not_replace_pin(self):
+        pinned = self.driver.head
+        self.source.write_text("VALUE = 9\n")
+        self.git("add", ".")
+        self.git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                 "commit", "--quiet", "-m", "replacement oracle")
+        replacement = self.git("rev-parse", "HEAD").strip()
+        self.git("replace", pinned, replacement)
+        self.git("reset", "--hard", pinned)
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assert_dirty()
+
+    def test_inherited_git_environment_is_ignored(self):
+        foreign = self.root / ".venv/foreign"
+        foreign.mkdir(parents=True)
+        subprocess.check_call(["git", "init", "--quiet", str(foreign)])
+        with patch.dict(os.environ, {"GIT_DIR": str(foreign / ".git"),
+                                    "GIT_INDEX_FILE": str(foreign / "index"),
+                                    "GIT_OBJECT_DIRECTORY": str(foreign / ".git/objects"),
+                                    "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.bare",
+                                    "GIT_CONFIG_VALUE_0": "true"}):
+            self.driver.check_clean()
+
+    def test_dependency_record_rejects_changed_source(self):
+        source, _ = self.install_dependency_fixture()
+        source.write_text("VALUE = 9\n")
+        with self.assertRaisesRegex(ImportError, "dependency source bytes"):
+            FreshSourceLoader("ethereum_types.numeric", str(source), self.driver).get_code(
+                "ethereum_types.numeric")
+
+    def install_dependency_fixture(self):
+        package = self.root / ".venv/lib/site-packages/ethereum_types"
+        package.mkdir(parents=True)
+        source = package / "numeric.py"
+        source.write_text("VALUE = 1\n")
+        metadata = package.parent / "types.dist-info"
+        metadata.mkdir()
+        digest = base64.urlsafe_b64encode(hashlib.sha256(source.read_bytes()).digest()).decode().rstrip("=")
+        (metadata / "RECORD").write_text(
+            f"ethereum_types/numeric.py,sha256={digest},{source.stat().st_size}\n"
+            "types.dist-info/RECORD,,\n")
+        distribution = importlib.metadata.PathDistribution(metadata)
+        self.driver.load_dependency_hashes(distribution)
+        return source, distribution
+
+    def test_dependency_unloaded_source_revalidated(self):
+        source, _ = self.install_dependency_fixture()
+        source.write_text("VALUE = 9\n")
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.driver.check_dependency()
+
+    def test_dependency_unlisted_source_rejected(self):
+        source, _ = self.install_dependency_fixture()
+        extra = source.parent / "extra.py"
+        extra.write_text("VALUE = 1\n")
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.driver.check_dependency()
+        with self.assertRaisesRegex(ImportError, "dependency source bytes"):
+            FreshSourceLoader("ethereum_types.extra", str(extra), self.driver).get_code(
+                "ethereum_types.extra")
+
+    def test_dependency_record_change_rejected(self):
+        _, distribution = self.install_dependency_fixture()
+        (distribution._path / "RECORD").write_text("changed\n")
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.driver.check_dependency()
+
+    def test_dependency_missing_hash_rejected(self):
+        _, distribution = self.install_dependency_fixture()
+        (distribution._path / "RECORD").write_text(
+            "ethereum_types/numeric.py,,10\n" + "types.dist-info/RECORD,,\n")
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.driver.load_dependency_hashes(distribution)
+
+    def test_dependency_symlink_rejected(self):
+        source, _ = self.install_dependency_fixture()
+        copy = source.parent / "numeric-copy"
+        source.rename(copy)
+        source.symlink_to(copy)
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.driver.check_dependency()
 
     def cache_control(self, source, fullname):
         # A timestamp-valid cache containing different, same-length code.

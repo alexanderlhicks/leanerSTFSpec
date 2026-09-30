@@ -3,15 +3,21 @@
 
 Create a fresh reference clone, check out reference.toml's release.commit, and run
 `uv sync --frozen --no-dev` there. Invoke each driver with EELS/.venv/bin/python,
---eels EELS and --output pointing outside both repositories. Drivers execute actual
-Python sources and emit ordinary Lean guards; observations are bug-finding evidence.
+--eels EELS and --output pointing outside both repositories. Drivers compile current
+source bytes without cached code. EELS bytes are compared with the unreplaced pin;
+ethereum-types Python bytes are compared with the installed distribution RECORD.
+The interpreter, frozen installation and its RECORD remain trusted inputs (this
+is not an authentication of a hostile host). Observations are bug-finding evidence.
 """
 
 import argparse
+import base64
+import hashlib
 import importlib.abc
 import importlib.machinery
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -35,13 +41,15 @@ class FreshSourceLoader(importlib.machinery.SourceFileLoader):
         source = self.get_filename(fullname)
         data = self.get_data(source)
         relative = Path(source).resolve().relative_to(self.driver.eels)
-        if relative.parts[0] == "src":
+        if fullname.split(".", 1)[0] == "ethereum" or relative.parts[0] == "src":
             expected = self.driver.oracle_blobs.get(relative.as_posix())
-            observed = subprocess.check_output(
-                ["git", "hash-object", "--stdin", "--no-filters"],
-                input=data, cwd=self.driver.eels).decode().strip()
+            observed = self.driver.git("hash-object", "--stdin", "--no-filters",
+                                       input=data).decode().strip()
             if expected is None or observed != expected:
                 raise ImportError(f"oracle import bytes differ from the pin: {relative}")
+        if fullname.split(".", 1)[0] == "ethereum_types":
+            if not self.driver.dependency_bytes_match(Path(source), data):
+                raise ImportError(f"dependency source bytes differ from installed RECORD: {source}")
         return self.source_to_code(data, source)
 
 
@@ -56,6 +64,23 @@ class FreshSourceFinder(importlib.abc.MetaPathFinder):
         oracle = fullname.split(".", 1)[0] in ("ethereum", "ethereum_types")
         if spec is None:
             return None
+        if spec.loader is None and spec.submodule_search_locations is not None:
+            if not oracle:
+                return None
+            expected = self.driver.eels / "src" / Path(*fullname.split("."))
+            locations = list(spec.submodule_search_locations)
+            # A namespace contains no code. Admit only directories whose tracked
+            # descendants belong to this exact pinned ethereum package path.
+            prefix = expected.relative_to(self.driver.eels).as_posix() + "/"
+            if (fullname.split(".", 1)[0] != "ethereum" or not locations or
+                    any(Path(location).resolve() != expected for location in locations) or
+                    not expected.is_relative_to(self.driver.eels / "src/ethereum") or
+                    not any(name.startswith(prefix) for name in self.driver.oracle_blobs)):
+                raise ImportError(f"oracle namespace search is outside the pin: {fullname}")
+            # Freeze the validated paths: _NamespacePath can otherwise recalculate
+            # from a subsequently changed parent package search path.
+            spec.submodule_search_locations = locations
+            return spec
         if not isinstance(spec.loader, importlib.machinery.SourceFileLoader):
             if oracle:
                 raise ImportError(f"oracle module is not Python source: {fullname}")
@@ -63,7 +88,9 @@ class FreshSourceFinder(importlib.abc.MetaPathFinder):
         source = Path(spec.origin).resolve()
         within = (source.is_relative_to(self.driver.eels / "src") or
                   source.is_relative_to(self.driver.eels / ".venv"))
-        if oracle and not within:
+        if oracle and (not within or
+                       (fullname.split(".", 1)[0] == "ethereum" and
+                        not source.is_relative_to(self.driver.eels / "src/ethereum"))):
             raise ImportError(f"oracle module is outside the frozen environment: {fullname}")
         if not within:
             return None
@@ -86,16 +113,17 @@ class Driver:
         self.eels = args.eels.resolve()
         self.output = args.output.resolve()
         pin = tomllib.loads((self.root / "reference.toml").read_text())["release"]
-        self.head = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=self.eels, text=True).strip()
+        self.head = self.git("rev-parse", "HEAD", text=True).strip()
         if self.head != pin["commit"]:
             self.parser.error("EELS checkout does not match reference.toml")
         self.check_clean()
         if Path(sys.prefix).resolve() != self.eels / ".venv":
             self.parser.error("run with the EELS .venv interpreter (uv sync --frozen --no-dev)")
-        self.version = importlib.metadata.version("ethereum-types")
+        distribution = importlib.metadata.distribution("ethereum-types")
+        self.version = distribution.version
         if self.version != pin["python_dependencies"]["ethereum-types"]:
             self.parser.error("ethereum-types version does not match reference.toml")
+        self.load_dependency_hashes(distribution)
         if self.output.is_relative_to(self.root) or self.output.is_relative_to(self.eels):
             self.parser.error("generated evidence must be outside both repositories")
         if any(name.split(".", 1)[0] in ("ethereum", "ethereum_types")
@@ -106,21 +134,62 @@ class Driver:
         from ethereum_types import numeric
         self.dependency = self.check_source(numeric, "ethereum_types/numeric.py", dependency=True)
 
+    def git(self, *args, input=None, text=False):
+        """Read this checkout without inherited Git overrides or replacement objects."""
+        env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        return subprocess.check_output(
+            ["git", "--no-replace-objects", "--no-optional-locks", *args],
+            cwd=self.eels, env=env, input=input, text=text)
+
+    def load_dependency_hashes(self, distribution):
+        """Snapshot installed RECORD hashes; the frozen installation is a trust input."""
+        self.dependency_hashes = {}
+        records = []
+        for file in distribution.files or []:
+            path = Path(file)
+            source = Path(distribution.locate_file(file)).absolute()
+            if path.name == "RECORD" and path.parent.name.endswith(".dist-info"):
+                records.append(source)
+            if not path.parts or path.parts[0] != "ethereum_types" or path.suffix != ".py":
+                continue
+            if (source.resolve() != source or not source.is_relative_to(self.eels / ".venv") or
+                    not source.is_file() or file.hash is None or file.hash.mode != "sha256" or
+                    file.size is None):
+                self.parser.error(f"dependency source lacks a valid installed RECORD entry: {path}")
+            self.dependency_hashes[source] = (file.hash.value, file.size)
+        if (len(records) != 1 or records[0].resolve() != records[0] or
+                not records[0].is_relative_to(self.eels / ".venv") or
+                not self.dependency_hashes):
+            self.parser.error("ethereum-types installed RECORD is missing or outside the venv")
+        self.dependency_record = records[0]
+        self.dependency_record_bytes = records[0].read_bytes()
+        self.dependency_package = Path(distribution.locate_file("ethereum_types")).absolute()
+        self.check_dependency()
+
+    def dependency_bytes_match(self, source, data):
+        expected = self.dependency_hashes.get(source)
+        digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip("=")
+        return (source.resolve() == source and expected == (digest, len(data)))
+
+    def check_dependency(self):
+        """Recheck all installed package Python files, including modules not imported."""
+        if (self.dependency_record.read_bytes() != self.dependency_record_bytes or
+                set(self.dependency_package.rglob("*.py")) != set(self.dependency_hashes)):
+            self.parser.error("dependency RECORD or Python source inventory changed")
+        for source in self.dependency_hashes:
+            if not source.is_file() or not self.dependency_bytes_match(source, source.read_bytes()):
+                self.parser.error(f"dependency source bytes differ from installed RECORD: {source}")
+
     def check_clean(self):
-        """Reject tracked changes and untracked files in the reference source tree."""
-        head = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=self.eels, text=True).strip()
+        """Require a clean checkout and actual source/lock bytes at the unreplaced pin."""
+        head = self.git("rev-parse", "HEAD", text=True).strip()
         if head != self.head:
             self.parser.error("EELS checkout HEAD changed during the driver run")
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain", "--untracked-files=all"],
-            cwd=self.eels, text=True)
+        status = self.git("status", "--porcelain", "--untracked-files=all", text=True)
         if status:
             self.parser.error("EELS checkout must be clean")
         # Git's index flags/stat cache can hide changed oracle bytes from status.
-        tree = subprocess.check_output(
-            ["git", "ls-tree", "-rz", self.head, "--", "src/ethereum", "uv.lock"],
-            cwd=self.eels)
+        tree = self.git("ls-tree", "-rz", self.head, "--", "src/ethereum", "uv.lock")
         expected, paths = [], []
         for entry in tree.split(b"\0"):
             if not entry:
@@ -137,9 +206,7 @@ class Driver:
             paths.append(path)
         if not paths:
             self.parser.error("pinned oracle source inventory is empty")
-        observed = subprocess.check_output(
-            ["git", "hash-object", "--no-filters", "--", *paths],
-            cwd=self.eels, text=True).splitlines()
+        observed = self.git("hash-object", "--no-filters", "--", *paths, text=True).splitlines()
         if observed != expected:
             self.parser.error("oracle source or lock bytes differ from the pin")
         self.oracle_blobs = dict(zip(paths, expected))
@@ -188,6 +255,7 @@ class Driver:
             "-- Generated differential evidence; do not commit.\n" + "\n".join(guards) + "\n")
         result = subprocess.run(["lake", "env", "lean", str(self.output)], cwd=self.root)
         self.check_clean()
+        self.check_dependency()
         print(json.dumps({**metadata, "eels_commit": self.head,
                           "ethereum_types": self.version, "dependency": str(self.dependency),
                           "seed": self.seed, "guards": len(guards) - 2,
