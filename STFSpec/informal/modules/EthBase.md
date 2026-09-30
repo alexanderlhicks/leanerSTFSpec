@@ -468,6 +468,26 @@ Fixed-32 overflow and bounded input-length rejection still precede conversion.
 No stored fields are available to this file or the caller proofs, and these local
 cost properties do not discharge the full C1–C4 target measurements.
 
+The local complete-output diagnostic in [`scripts/FixedEndianBench.lean`](../../../scripts/FixedEndianBench.lean)
+retains 200,000 outputs from runtime-loaded boundary, asymmetric and seeded inputs.
+On 2026-09-30, source `aa713bb74e39720a4028b47cb6f8c18ada1e44c6`, Lean 4.34.0,
+clang 22.1.4 (`-O3`), Linux x86-64 and an Intel Core Ultra 7 165U, five paired
+samples gave the following construction times; the shared host was not isolated:
+
+| Complete packed output | Numeric reversal then byte observation | Direct packed shift generation |
+|---|---|---|
+| `U256.toLeBytes32` (517 input values) | 3,500–8,056 ms | 1,002–1,781 ms |
+| `U64.toLeBytes8` (325 input values) | 350–793 ms | 125–364 ms |
+
+Both paths passed full-byte, width and decode checks before timing, with matching
+checksums afterward. Input loading, correctness checks, checksum and output cleanup
+are outside the timed batch. The artifact includes exact input-generation, build
+and run commands. These bounded 32/8-byte measurements identify the extra pass's
+local cost; they establish no universal ratio, opcode cost or guest resource bound.
+Pinned EELS `forks/amsterdam/execution_engine/requests.py:123,125,133,149` uses
+`U64` little-endian output in request serialization. Reassess the implementation
+against representative consumer and target measurements under C1–C4.
+
 Regression evidence is in `STFSpec/Conformance/Base/IntegerBytesGuards.lean`,
 `IntegerBytesCallerProofs.lean` and `integer_bytes_differential.py`. The driver
 compares actual locked dependency methods and `to_address_masked` for boundary
