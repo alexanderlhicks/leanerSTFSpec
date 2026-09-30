@@ -190,6 +190,26 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(fixtures.FixtureError, "hash/format/fork mismatch"):
             self.verify(meta=meta)
 
+    def test_metadata_direct_hash_width_and_relative_path(self):
+        for length in (0, 31, 33):
+            with self.subTest(length=length):
+                value = index()
+                value["test_cases"][0]["fixture_hash"] = "0x" + "11" * length
+                with self.assertRaisesRegex(fixtures.FixtureError,
+                                            "metadata fixture_hash must be 32 bytes"):
+                    fixtures.metadata(value)
+        value = index("fixtures/" + FILE)
+        with self.assertRaisesRegex(fixtures.FixtureError, "metadata path must be archive-relative"):
+            fixtures.metadata(value)
+
+    def test_guest_records_direct_hash_width(self):
+        for length in (0, 31, 33):
+            with self.subTest(length=length):
+                value = case([])
+                value["test"]["_info"]["hash"] = "0x" + "11" * length
+                with self.assertRaisesRegex(fixtures.FixtureError, "_info.hash must be 32 bytes"):
+                    fixtures.guest_records(FILE, value)
+
     def test_metadata_format_and_fork_mismatch(self):
         for field, value in (("format", "blockchain_test_engine"), ("fork", "BPO2")):
             with self.subTest(field=field):
@@ -370,6 +390,12 @@ class ArchiveTests(unittest.TestCase):
         path = pathlib.Path(self.temporary.name) / "parser"
         path.write_text("#!/usr/bin/env python3\nimport sys\nfor line in sys.stdin:\n"
                         f"    print({reply!r}, flush=True)\n")
+        path.chmod(0o700)
+        return path
+
+    def parser_script(self, body):
+        path = pathlib.Path(self.temporary.name) / "custom-parser"
+        path.write_text("#!/usr/bin/env python3\nimport sys\n" + body)
         path.chmod(0o700)
         return path
 
@@ -568,6 +594,58 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(fixtures.FixtureError, "Lean extraction"):
             fixtures.check_lean(self.path, pin, self.parser("ok 0"), {FILE: 1}, None)
 
+    def test_lean_batch_rejects_extra_reply(self):
+        second = FILE.replace("test.json", "second.json")
+        pin = archive(self.path, [(FILE, case([block()])), (second, case([block(), block()]))])
+        parser = self.parser_script("for _ in sys.stdin:\n"
+                                    "    print('ok 1\\nok 2', flush=True)\n")
+        with self.assertRaisesRegex(fixtures.FixtureError, "trailing output"):
+            fixtures.check_lean(self.path, pin, parser, {FILE: 1, second: 2}, None)
+
+    def test_lean_batch_rejects_trailing_output(self):
+        pin = archive(self.path, [(FILE, case([block()]))])
+        for tail in ("extra reply\n", "unterminated tail"):
+            with self.subTest(tail=tail):
+                parser = self.parser_script("for _ in sys.stdin:\n"
+                    "    print('ok 1', flush=True)\n" + f"sys.stdout.write({tail!r})\n")
+                with self.assertRaisesRegex(fixtures.FixtureError, "trailing output"):
+                    fixtures.check_lean(self.path, pin, parser, {FILE: 1}, None)
+
+    def test_lean_batch_rejects_unterminated_reply(self):
+        pin = archive(self.path, [(FILE, case([block()]))])
+        for reply in ("ok 1", "ok 1\r"):
+            with self.subTest(reply=reply):
+                parser = self.parser_script("sys.stdin.readline()\n" +
+                                            f"sys.stdout.write({reply!r})\n")
+                with self.assertRaisesRegex(fixtures.FixtureError, "unterminated reply"):
+                    fixtures.check_lean(self.path, pin, parser, {FILE: 1}, None)
+
+    def test_lean_batch_rejects_failure_after_correct_reply(self):
+        pin = archive(self.path, [(FILE, case([block()]))])
+        parser = self.parser_script("for _ in sys.stdin:\n"
+                                    "    print('ok 1', flush=True)\n"
+                                    "sys.exit(1)\n")
+        with self.assertRaisesRegex(fixtures.FixtureError, "process failed"):
+            fixtures.check_lean(self.path, pin, parser, {FILE: 1}, None)
+
+    def test_lean_content_error_retains_file_and_diagnostic(self):
+        pin = archive(self.path, [(FILE, case([block()]))])
+        parser = self.parser('error "fixture diagnostic"')
+        with self.assertRaises(fixtures.FixtureError) as caught:
+            fixtures.check_lean(self.path, pin, parser, {FILE: 1}, None, [FILE])
+        self.assertEqual(str(caught.exception), f'Lean extraction {FILE}: error "fixture diagnostic"')
+
+    def test_lean_content_preserves_unicode_line_separators(self):
+        for separator in ("\u0085", "\u2028", "\u2029"):
+            with self.subTest(separator=separator):
+                value = {"test" + separator: case([block()])["test"]}
+                pin = archive(self.path, [(FILE, value)])
+                reply = self.content_reply()
+                reply["records"][0]["id"]["testId"] = "test" + separator
+                result = fixtures.check_lean(self.path, pin,
+                    self.parser(json.dumps(reply, ensure_ascii=False)), {FILE: 1}, None, [FILE])
+                self.assertEqual(result["lean_guest_records_content_compared"], 1)
+
     def test_lean_reauthenticates_archive_before_reading(self):
         pin = archive(self.path, [(FILE, case([block()]))])
         self.path.write_bytes(b"changed archive")
@@ -592,7 +670,8 @@ class ArchiveTests(unittest.TestCase):
                 run = subprocess.run([str(executable)], input=commands,
                                      capture_output=True, text=True)
                 self.assertEqual(run.returncode, 1)
-                replies = run.stdout.splitlines()
+                self.assertTrue(run.stdout.endswith("\n"))
+                replies = run.stdout[:-1].split("\n")
                 self.assertEqual(len(replies), len(requests))
                 for request, reply in zip(requests, replies):
                     if request == path:
@@ -616,7 +695,8 @@ class ArchiveTests(unittest.TestCase):
                 run = subprocess.run([str(executable)], input=commands,
                                      capture_output=True, text=True)
                 self.assertEqual(run.returncode, 1)
-                replies = run.stdout.splitlines()
+                self.assertTrue(run.stdout.endswith("\n"))
+                replies = run.stdout[:-1].split("\n")
                 self.assertEqual(len(replies), 2)
                 self.assertTrue(replies[0].startswith("error "), replies)
                 self.assertEqual(replies[1], "ok 1")

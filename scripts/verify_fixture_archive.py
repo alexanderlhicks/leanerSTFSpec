@@ -228,10 +228,15 @@ def expected_content(name: str, raw: bytes, pin: dict[str, Any]) -> list[dict[st
 def lean_session(executable: pathlib.Path):
     """Keep one parser alive, closing it on success and reaping it on every failure."""
     with subprocess.Popen([str(executable)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                          text=True) as process:
+                          text=True, encoding="utf-8") as process:
+        # LF is the sole wire delimiter; preserve CR and Unicode separators as data.
+        process.stdin.reconfigure(newline="\n")
+        process.stdout.reconfigure(newline="\n")
         try:
             yield process
             process.stdin.close()
+            if process.stdout.read(1):
+                raise FixtureError("Lean extraction produced trailing output")
             if process.wait() != 0:
                 raise FixtureError("Lean extraction process failed")
         finally:
@@ -260,7 +265,12 @@ def check_lean(path: pathlib.Path, fixtures: dict[str, Any], executable: pathlib
             command = [name, str(temporary)] + (["content"] if content else [])
             process.stdin.write(json.dumps(command) + "\n")
             process.stdin.flush()
-            reply = process.stdout.readline().strip()
+            reply = process.stdout.readline()
+            if not reply.endswith("\n"):
+                raise FixtureError(f"Lean extraction {name}: unterminated reply {reply!r}")
+            reply = reply[:-1]
+            if reply.startswith("error "):
+                raise FixtureError(f"Lean extraction {name}: {reply}")
             if content:
                 expected = {"count": counts[name],
                             "records": expected_content(name, raw, fixtures)}
