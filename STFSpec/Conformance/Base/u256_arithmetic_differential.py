@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare unsigned U256 arithmetic with pinned EELS handlers and ethereum-types.
 
-Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python -I STFSpec/Conformance/Base/u256_arithmetic_differential.py \
-    --eels EELS --output /tmp/u256-arithmetic-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_arithmetic_differential.py \
+    --eels /tmp/eels --output /tmp/u256-arithmetic-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. The seven EVM handlers
 are imported unchanged from the pinned arithmetic.py. A minimal frame adapter supplies

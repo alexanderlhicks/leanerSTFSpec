@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Generate and run Uint.sub?/ceil32 guards against the pinned Python source.
 
-Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python -I STFSpec/Conformance/Base/numeric_differential.py \
-    --eels EELS --output /tmp/numeric-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/numeric_differential.py \
+    --eels /tmp/eels --output /tmp/numeric-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. Sources are EELS
 src/ethereum/utils/numeric.py:43 and locked ethereum_types/numeric.py:103,517,539.

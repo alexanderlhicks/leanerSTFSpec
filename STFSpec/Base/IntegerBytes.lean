@@ -17,37 +17,38 @@ Reference: locked `ethereum-types` 0.4.1; complete source mappings are in the sp
 
 namespace STFSpec.Base
 
-private def decodeReference : List UInt8 → Nat
-  | [] => 0
-  | b :: bs => b.toNat * 256 ^ bs.length + decodeReference bs
+namespace Uint
 
-private theorem decode_lt (bs : List UInt8) : decodeReference bs < 256 ^ bs.length := by
-  induction bs with
-  | nil => decide
-  | cons b bs ih =>
-    simp only [decodeReference, List.length_cons, Nat.pow_succ]
-    have hb : b.toNat < 256 := b.toNat_lt
-    have hp : 0 < 256 ^ bs.length := Nat.pow_pos (by decide)
-    have := Nat.mul_le_mul_right (256 ^ bs.length) (show b.toNat + 1 ≤ 256 by omega)
-    simp only [Nat.add_mul, Nat.one_mul] at this
-    omega
+/-- Unbounded big-endian decoding; `ethereum_types/numeric.py:523`.
+Every byte length is accepted, including leading zero bytes. -/
+def ofBeBytes (b : Bytes) : Nat := b.foldl (fun acc byte ↦ 256 * acc + byte.toNat) 0
 
--- The Horner decoder traverses each input byte once.
-private def decodeFast (bs : List UInt8) : Nat :=
-  bs.foldl (fun acc b ↦ 256 * acc + b.toNat) 0
+/-- Unbounded little-endian decoding; `ethereum_types/numeric.py:531`. -/
+def ofLeBytes (b : Bytes) : Nat := b.foldr (fun byte acc ↦ 256 * acc + byte.toNat) 0
 
-private theorem decode_fold (bs : List UInt8) (acc : Nat) :
+/-- Big-endian decoding is the positional Horner fold over the public byte model. -/
+theorem ofBeBytes_eq_fold (b : Bytes) :
+    ofBeBytes b = (Bytes.toList b).foldl (fun acc b ↦ 256 * acc + b.toNat) 0 :=
+  Bytes.foldl_eq _ _ _
+
+/-- Little-endian decoding is big-endian decoding of reversed byte observations. -/
+theorem ofLeBytes_eq_reverse (b : Bytes) :
+    ofLeBytes b = ofBeBytes (Bytes.ofList (Bytes.toList b).reverse) := by
+  rw [ofLeBytes, Bytes.foldr_eq, ofBeBytes_eq_fold, Bytes.toList_ofList,
+    List.foldl_reverse]
+
+end Uint
+
+private theorem fold_acc (bs : List UInt8) (acc : Nat) :
     bs.foldl (fun acc b ↦ 256 * acc + b.toNat) acc =
-      acc * 256 ^ bs.length + decodeReference bs := by
+      acc * 256 ^ bs.length + bs.foldl (fun acc b ↦ 256 * acc + b.toNat) 0 := by
   induction bs generalizing acc with
-  | nil => simp [decodeReference]
+  | nil => simp
   | cons b bs ih =>
-    simp only [List.foldl_cons, ih, List.length_cons, decodeReference, Nat.pow_succ]
+    simp only [List.foldl_cons, List.length_cons, Nat.pow_succ, Nat.mul_zero, Nat.zero_add]
+    rw [ih (256 * acc + b.toNat), ih b.toNat]
     simp only [Nat.add_mul]
     simp only [Nat.mul_assoc, Nat.mul_comm, Nat.add_assoc]
-
-private theorem decodeFast_eq (bs : List UInt8) : decodeFast bs = decodeReference bs := by
-  simp [decodeFast, decode_fold]
 
 private theorem radix_eq (n : Nat) : 256 ^ n = 2 ^ (8 * n) := by
   rw [Nat.pow_mul]
@@ -57,23 +58,24 @@ private def decodeLeReference : List UInt8 → Nat
   | b :: bs => b.toNat + 256 * decodeLeReference bs
 
 private theorem decode_append (xs ys : List UInt8) :
-    decodeReference (xs ++ ys) =
-      decodeReference xs * 256 ^ ys.length + decodeReference ys := by
-  induction xs with
-  | nil => simp [decodeReference]
-  | cons b bs ih =>
-    simp only [List.cons_append, decodeReference, List.length_append, ih,
-      Nat.pow_add, Nat.add_mul, Nat.add_assoc, Nat.mul_assoc]
+    Uint.ofBeBytes (Bytes.ofList (xs ++ ys)) =
+      Uint.ofBeBytes (Bytes.ofList xs) * 256 ^ ys.length +
+        Uint.ofBeBytes (Bytes.ofList ys) := by
+  simp only [Uint.ofBeBytes_eq_fold, Bytes.toList_ofList]
+  rw [List.foldl_append, fold_acc]
 
 private theorem decode_reverse (bs : List UInt8) :
-    decodeReference bs.reverse = decodeLeReference bs := by
-  induction bs with
-  | nil => rfl
-  | cons b bs ih =>
-    simp only [List.reverse_cons, decode_append, List.length_singleton,
-      Nat.pow_one, decodeReference, List.length_nil, Nat.pow_zero, Nat.mul_one,
-      Nat.add_zero, ih, decodeLeReference]
-    omega
+    Uint.ofBeBytes (Bytes.ofList bs.reverse) = decodeLeReference bs := by
+  have hr : bs.foldr (fun byte acc ↦ 256 * acc + byte.toNat) 0 =
+      decodeLeReference bs := by
+    induction bs with
+    | nil => rfl
+    | cons b bs ih =>
+      simp only [List.foldr_cons, decodeLeReference, ih]
+      exact Nat.add_comm _ _
+  have h := Uint.ofLeBytes_eq_reverse (Bytes.ofList bs)
+  rw [Bytes.toList_ofList] at h
+  rw [← h, Uint.ofLeBytes, Bytes.foldr_eq, Bytes.toList_ofList, hr]
 
 private def minimalLe (n : Nat) : List UInt8 :=
   if n = 0 then [] else UInt8.ofNat (n % 256) :: minimalLe (n / 256)
@@ -161,13 +163,6 @@ private theorem length_minimalLe (n : Nat) : (minimalLe n).length = byteLength n
 
 namespace Uint
 
-/-- Unbounded big-endian decoding; `ethereum_types/numeric.py:523`.
-Every byte length is accepted, including leading zero bytes. -/
-def ofBeBytes (b : Bytes) : Nat := b.foldl (fun acc byte ↦ 256 * acc + byte.toNat) 0
-
-/-- Unbounded little-endian decoding; `ethereum_types/numeric.py:531`. -/
-def ofLeBytes (b : Bytes) : Nat := b.foldr (fun byte acc ↦ 256 * acc + byte.toNat) 0
-
 /-- Legible minimal-digit reference; `ethereum_types/numeric.py:477–484`.
 This proof model divides by 256 and reverses the digit list; zero is empty. -/
 def toBeBytesReference (n : Nat) : Bytes := Bytes.ofList (minimalLe n).reverse
@@ -183,41 +178,30 @@ theorem toBeBytes_eq_reference (n : Nat) : toBeBytes n = toBeBytesReference n :=
   have hb : b.size = byteLength n := by
     change (toBeBytesReference n).size = byteLength n
     rw [toBeBytesReference, Bytes.size_ofList, List.length_reverse, length_minimalLe]
-  let z : FixedBytes (byteLength n) := (FixedBytes.ofBytes? b).get (by
-    apply Option.isSome_iff_ne_none.mpr
-    intro hn
-    exact FixedBytes.ofBytes?_eq_none_iff.mp hn hb)
-  have hz : z.toBytes = b := by
-    apply (FixedBytes.ofBytes?_eq_some_iff.mp ?_).2
-    exact (Option.some_get _).symm
-  have hn : z.toNat = n := by
-    rw [FixedBytes.toNat_eq_fold, hz]
-    change decodeFast (Bytes.toList (toBeBytesReference n)) = n
-    rw [toBeBytesReference, Bytes.toList_ofList, decodeFast_eq,
-      decode_reverse, decode_minimalLe]
-  have he : (FixedBytes.ofNat n : FixedBytes (byteLength n)) = z := by
-    apply FixedBytes.toNat_inj.mp
-    rw [FixedBytes.toNat_ofNat, hn,
-      Nat.mod_eq_of_lt ((byteLength_le_iff _ _).mp (Nat.le_refl _))]
-  rw [toBeBytes, he, hz]
-
-/-- Big-endian decoding is the positional Horner fold over the public byte model. -/
-theorem ofBeBytes_eq_fold (b : Bytes) :
-    ofBeBytes b = (Bytes.toList b).foldl (fun acc b ↦ 256 * acc + b.toNat) 0 :=
-  Bytes.foldl_eq _ _ _
-
-/-- Little-endian decoding is big-endian decoding of reversed byte observations. -/
-theorem ofLeBytes_eq_reverse (b : Bytes) :
-    ofLeBytes b = ofBeBytes (Bytes.ofList (Bytes.toList b).reverse) := by
-  rw [ofLeBytes, Bytes.foldr_eq, ofBeBytes_eq_fold, Bytes.toList_ofList,
-    List.foldl_reverse]
+  cases hc : FixedBytes.ofBytes? (n := byteLength n) b with
+  | none => exact False.elim (FixedBytes.ofBytes?_eq_none_iff.mp hc hb)
+  | some z =>
+    have hz : z.toBytes = b := (FixedBytes.ofBytes?_eq_some_iff.mp hc).2
+    have hn : z.toNat = n := by
+      rw [FixedBytes.toNat_eq_fold, hz, ← ofBeBytes_eq_fold]
+      change ofBeBytes (toBeBytesReference n) = n
+      rw [toBeBytesReference, decode_reverse, decode_minimalLe]
+    have he : (FixedBytes.ofNat n : FixedBytes (byteLength n)) = z := by
+      apply FixedBytes.toNat_inj.mp
+      rw [FixedBytes.toNat_ofNat, hn,
+        Nat.mod_eq_of_lt ((byteLength_le_iff _ _).mp (Nat.le_refl _))]
+    rw [toBeBytes, he, hz]
 
 /-- The complete decoded value fits the input's byte length. -/
 theorem ofBeBytes_lt (b : Bytes) : ofBeBytes b < 2 ^ (8 * b.size) := by
-  rw [ofBeBytes_eq_fold]
-  change decodeFast (Bytes.toList b) < 2 ^ (8 * b.size)
-  rw [decodeFast_eq, ← radix_eq, ← Bytes.length_toList]
-  exact decode_lt _
+  cases hc : FixedBytes.ofBytes? (n := b.size) b with
+  | none => exact False.elim (FixedBytes.ofBytes?_eq_none_iff.mp hc rfl)
+  | some z =>
+    have hz := (FixedBytes.ofBytes?_eq_some_iff.mp hc).2
+    have hn : ofBeBytes b = z.toNat := by
+      rw [ofBeBytes_eq_fold, FixedBytes.toNat_eq_fold, hz]
+    rw [hn]
+    exact FixedBytes.toNat_lt z
 
 /-- The complete little-endian value fits the input's byte length. -/
 theorem ofLeBytes_lt (b : Bytes) : ofLeBytes b < 2 ^ (8 * b.size) := by
@@ -227,9 +211,7 @@ theorem ofLeBytes_lt (b : Bytes) : ofLeBytes b < 2 ^ (8 * b.size) := by
 
 /-- Minimal output reconstructs every unbounded input without any width limit. -/
 theorem ofBeBytes_toBeBytes (n : Nat) : ofBeBytes (toBeBytes n) = n := by
-  rw [ofBeBytes_eq_fold, toBeBytes_eq_reference, toBeBytesReference, Bytes.toList_ofList]
-  change decodeFast (minimalLe n).reverse = n
-  rw [decodeFast_eq, decode_reverse, decode_minimalLe]
+  rw [toBeBytes_eq_reference, toBeBytesReference, decode_reverse, decode_minimalLe]
 
 /-- Minimal output uses at most `k` bytes exactly when the value fits those bytes. -/
 theorem size_toBeBytes_le_iff (n k : Nat) :
@@ -582,20 +564,18 @@ private theorem toNat_maskedAddressReference (x : U256) :
   let bs := Bytes.toList (U256.toBeBytes32 x).toBytes
   have hl : bs.length = 32 := by rw [Bytes.length_toList, U256.size_toBeBytes32]
   have hs : (bs.drop 12).length = 20 := by rw [List.length_drop, hl]
-  have hd : decodeReference bs = x.toNat := by
-    rw [← decodeFast_eq]
-    have h := U256.ofBeBytes_toBeBytes32 x
-    rw [Uint.ofBeBytes_eq_fold] at h
-    exact h
+  have hd : Uint.ofBeBytes (Bytes.ofList bs) = x.toNat := by
+    rw [Bytes.ofList_toList]
+    exact U256.ofBeBytes_toBeBytes32 x
   have he := decode_append (bs.take 12) (bs.drop 12)
   rw [List.take_append_drop, hd, hs] at he
-  have hr : decodeReference (bs.drop 12) < 256 ^ 20 := by
-    simpa only [hs] using decode_lt (bs.drop 12)
-  have hm : x.toNat % 256 ^ 20 = decodeReference (bs.drop 12) := by
+  have hr : Uint.ofBeBytes (Bytes.ofList (bs.drop 12)) < 256 ^ 20 := by
+    have h := Uint.ofBeBytes_lt (Bytes.ofList (bs.drop 12))
+    simpa only [Bytes.size_ofList, hs, radix_eq] using h
+  have hm : x.toNat % 256 ^ 20 = Uint.ofBeBytes (Bytes.ofList (bs.drop 12)) := by
     simp only [he, Nat.add_mod, Nat.mul_mod_left, Nat.zero_add, Nat.mod_eq_of_lt hr]
-  rw [toNat_eq_fold, toBytes_maskedAddressReference, Bytes.toList_ofList]
-  change decodeFast (bs.drop 12) = x.toNat % 2 ^ 160
-  rw [decodeFast_eq, ← hm, radix_eq]
+  rw [toNat_eq_fold, toBytes_maskedAddressReference, ← Uint.ofBeBytes_eq_fold]
+  rw [← hm, radix_eq]
 
 /-- Masking is exactly reduction modulo 2^160 of the complete word value. -/
 theorem toNat_ofU256Masked (x : U256) : (ofU256Masked x).toNat = x.toNat % 2 ^ 160 :=

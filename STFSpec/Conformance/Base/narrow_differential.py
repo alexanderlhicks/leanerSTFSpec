@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare narrow unsigned values with locked ethereum-types 0.4.1.
 
-Run with the pinned EELS virtual environment's Python:
-  EELS/.venv/bin/python -I STFSpec/Conformance/Base/narrow_differential.py \
-    --eels EELS --output /tmp/narrow-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/narrow_differential.py \
+    --eels /tmp/eels --output /tmp/narrow-differential.lean
 
 Sources: ethereum_types/numeric.py:44,91,103,131,321,325,357,364,611,614,625,636;
 width classes/constants at :716,738–739,743,765–766,770,792–793,797,819–820. Invoke actual checked

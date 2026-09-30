@@ -4,7 +4,7 @@
 
 Run with the pinned EELS checkout at /tmp/eels:
   /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/integer_bytes_differential.py \
-    --eels /tmp/eels --output /tmp/integer-bytes.lean
+    --eels /tmp/eels --output /tmp/integer-bytes-differential.lean
 Generated evidence must be outside both repositories. Reference caches are bypassed.
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4.
 """

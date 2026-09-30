@@ -452,8 +452,8 @@ its consumer under D14/B14. These rows do not close global X1 or guest outcomes.
 | `forks/amsterdam/vm/instructions/environment.py:52,107,130` | `Address.toU256 : Address → U256` | Word with the complete address numeric value; source `U256.from_be_bytes(address)` | None; address range proves word fits | `Address.toNat_toU256`, `Address.ofU256Masked_toU256`, `Address.toNat_toU256_ofU256Masked` | public caller roundtrip and low-160-bit proofs |
 
 Big- and little-endian decoding use the public packed `Bytes.foldl` and `foldr`,
-respectively, with ordinary equations to legible positional models. Neither decoder
-materializes a list. Minimal output computes its byte width from `Nat.log2` (zero
+respectively, with public equations to the corresponding byte-list folds. Neither
+decoder materializes a list. Minimal output computes its byte width from `Nat.log2` (zero
 uses width zero), then observes `FixedBytes.ofNat` as packed bytes. The public
 `Uint.toBeBytesReference` retains the divide-by-256 digit-list implementation;
 `Uint.toBeBytes_eq_reference` proves equality on every natural input.

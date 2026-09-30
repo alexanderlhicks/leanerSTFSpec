@@ -107,7 +107,6 @@ example (x : U256) : U256.toBeBytes x = Bytes.empty ↔ x = U256.zero :=
 example (x : U64) : U64.toBeBytes x = Bytes.empty ↔ x = U64.zero :=
   U64.toBeBytes_eq_empty_iff x
 
-
 example {α : Type} (f : UInt8 → α → α) (b : Bytes) (init : α) :
     b.foldr f init = b.toList.foldr f init := Bytes.foldr_eq f init b
 
