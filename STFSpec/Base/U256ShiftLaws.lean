@@ -9,7 +9,8 @@ import STFSpec.Base.U256Bitwise
 # U256 shift composition laws
 
 Library `EthBase`: nested shifts compose when the natural sum of their unsigned
-amounts is below `2^256`. Saturation is compatible with composition. The proofs use public model equations, not stored fields.
+amounts is below `2^256`. Saturation is compatible with composition. The proofs use
+public model equations, not stored fields.
 Spec guidance: `STFSpec/informal/modules/EthBase.md` §7.
 -/
 

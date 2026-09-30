@@ -2,7 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import STFSpec.Base
+import STFSpec.Base.Bytes
 
 /-!
 # Byte-sequence client proof tests
@@ -12,13 +12,15 @@ laws, without unfolding a padding/read definition or inspecting stored array dat
 Spec guidance: `STFSpec/informal/modules/EthBase.md` §7.
 -/
 
+universe u
+
 open STFSpec.Base
 
 example (a b : Bytes) (h : Bytes.toList a = Bytes.toList b) : a = b := Bytes.ext h
 
-example (b : Bytes) : (Bytes.toList b).toByteArray = b := Bytes.toByteArray_toList b
+example (b : Bytes) : Bytes.ofList (Bytes.toList b) = b := Bytes.ofList_toList b
 
-example (xs : List UInt8) : Bytes.toList xs.toByteArray = xs := Bytes.toList_toByteArray xs
+example (xs : List UInt8) : Bytes.toList (Bytes.ofList xs) = xs := Bytes.toList_ofList xs
 
 example (b : Bytes) (n : Nat) : b.size ≤ (Bytes.leftPadZero b n).size := by
   rw [Bytes.size_leftPadZero]
@@ -47,7 +49,7 @@ example (b : Bytes) (start len : Nat) :
     (Bytes.toList (Bytes.extractPadded b start len)).length = len := by
   rw [Bytes.length_toList, Bytes.size_extractPadded]
 
-example (b : Bytes) (start : Nat) : Bytes.extractPadded b start 0 = ByteArray.empty :=
+example (b : Bytes) (start : Nat) : Bytes.extractPadded b start 0 = Bytes.empty :=
   Bytes.extractPadded_zero b start
 
 example (b : Bytes) (start len : Nat) (h : b.size ≤ start) :
@@ -67,3 +69,23 @@ example (b : Bytes) (start len i : Nat) (hi : i < len) (hb : ¬ start + i < b.si
 example (b : Bytes) (n start len : Nat) (h : start + len ≤ max b.size n) :
     Bytes.extractPadded (Bytes.rightPadZero b n) start len = Bytes.extractPadded b start len :=
   Bytes.extractPadded_rightPadZero b n start len h
+
+example (xs : List UInt8) : (Bytes.ofList xs).size = xs.length := Bytes.size_ofList xs
+
+example (b : Bytes) (value : UInt8) : (b.push value).toList = b.toList ++ [value] :=
+  Bytes.toList_push b value
+
+example (a b : Bytes) : (a ++ b).toList = a.toList ++ b.toList := Bytes.toList_append a b
+
+example (b : Bytes) (start stop : Nat) :
+    (b.extract start stop).toList = (b.toList.drop start).take (stop - start) :=
+  Bytes.toList_extract b start stop
+
+example (n : Nat) (f : Nat → UInt8) : (Bytes.generate n f).size = n :=
+  Bytes.size_generate n f
+
+example (n : Nat) (f : Nat → UInt8) :
+    (Bytes.generate n f).toList = (List.range n).map f := Bytes.toList_generate n f
+
+example {α : Type u} (f : α → UInt8 → α) (init : α) (b : Bytes) :
+    b.foldl f init = b.toList.foldl f init := Bytes.foldl_eq f init b

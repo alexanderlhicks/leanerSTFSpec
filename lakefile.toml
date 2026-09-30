@@ -90,6 +90,12 @@ name = "CheckDecls"
 srcDir = "scripts"
 roots = ["CheckDecls"]
 
+# Compiled packed-byte regressions; build explicitly in CI, outside the public library.
+[[lean_exe]]
+name = "bytes-native-tests"
+srcDir = "scripts"
+root = "BytesNativeTests"
+
 [[lean_exe]]
 name = "check-decls"
 srcDir = "scripts"

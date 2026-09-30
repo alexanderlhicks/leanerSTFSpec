@@ -3,17 +3,13 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Base.Bytes
-import Init.Data.BitVec.Lemmas
-import Init.Data.UInt.Lemmas
-import Init.Data.Order.Ord
-import Init.Omega
 
 /-!
 # Fixed-width byte values
 
 Library `EthBase`: exact-length byte construction, big-endian numeric observers,
 and lawful lexicographic ordering at every width, including zero.
-Private radix helpers relate linear byte loops to legible positional models.
+A packed shift encoder and Horner decoder equal legible positional models.
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 Reference: locked `ethereum-types` 0.4.1, `ethereum_types/bytes.py:29`.
@@ -31,12 +27,12 @@ private def encodeReference : Nat → Nat → List UInt8
   | 0, _ => []
   | n + 1, v => UInt8.ofNat (v / 256 ^ n) :: encodeReference n (v % 256 ^ n)
 
-private theorem encode_length (n v : Nat) : (encodeReference n v).length = n := by
+private theorem length_encodeReference (n v : Nat) : (encodeReference n v).length = n := by
   induction n generalizing v with
   | zero => rfl
   | succ n ih => simp only [encodeReference, List.length_cons, ih]
 
-private theorem decode_lt (bs : List UInt8) : decodeReference bs < 256 ^ bs.length := by
+private theorem decodeReference_lt (bs : List UInt8) : decodeReference bs < 256 ^ bs.length := by
   induction bs with
   | nil => decide
   | cons b bs ih =>
@@ -47,14 +43,14 @@ private theorem decode_lt (bs : List UInt8) : decodeReference bs < 256 ^ bs.leng
     simp only [Nat.add_mul, Nat.one_mul] at this
     omega
 
-private theorem decode_encode (n v : Nat) (h : v < 256 ^ n) :
+private theorem decodeReference_encodeReference (n v : Nat) (h : v < 256 ^ n) :
     decodeReference (encodeReference n v) = v := by
   induction n generalizing v with
   | zero =>
     have hv : v = 0 := by simpa using h
     simp [encodeReference, decodeReference, hv]
   | succ n ih =>
-    simp only [encodeReference, decodeReference, encode_length]
+    simp only [encodeReference, decodeReference, length_encodeReference]
     have hp : 0 < 256 ^ n := Nat.pow_pos (by decide)
     have hd : v / 256 ^ n < 256 := by
       apply (Nat.div_lt_iff_lt_mul hp).2
@@ -62,14 +58,14 @@ private theorem decode_encode (n v : Nat) (h : v < 256 ^ n) :
     rw [UInt8.toNat_ofNat_of_lt' hd, ih _ (Nat.mod_lt _ hp)]
     simpa only [Nat.mul_comm] using Nat.div_add_mod v (256 ^ n)
 
-private theorem encode_decode (bs : List UInt8) :
+private theorem encodeReference_decodeReference (bs : List UInt8) :
     encodeReference bs.length (decodeReference bs) = bs := by
   induction bs with
   | nil => rfl
   | cons b bs ih =>
     simp only [List.length_cons, decodeReference, encodeReference]
     have hp : 0 < 256 ^ bs.length := Nat.pow_pos (by decide)
-    have ht := decode_lt bs
+    have ht := decodeReference_lt bs
     have hd : (b.toNat * 256 ^ bs.length + decodeReference bs) / 256 ^ bs.length = b.toNat := by
       rw [Nat.add_comm, Nat.add_mul_div_right _ _ hp, Nat.div_eq_of_lt ht]
       omega
@@ -78,7 +74,7 @@ private theorem encode_decode (bs : List UInt8) :
       simp [Nat.add_mod, Nat.mod_eq_of_lt ht]
     rw [hd, hm, ih, UInt8.ofNat_toNat]
 
-private theorem compare_digit (a b r s p : Nat) (hr : r < p) (hs : s < p) :
+private theorem compare_mul_add_of_lt (a b r s p : Nat) (hr : r < p) (hs : s < p) :
     compare (a * p + r) (b * p + s) = (compare a b).then (compare r s) := by
   rcases Nat.lt_trichotomy a b with hab | hab | hab
   · have hm := Nat.mul_le_mul_right p (show a + 1 ≤ b by omega)
@@ -96,7 +92,7 @@ private theorem compare_digit (a b r s p : Nat) (hr : r < p) (hs : s < p) :
     rw [Nat.compare_eq_gt.mpr h, Nat.compare_eq_gt.mpr hab]
     rfl
 
-private theorem compare_decode (xs ys : List UInt8) (h : xs.length = ys.length) :
+private theorem compare_decodeReference (xs ys : List UInt8) (h : xs.length = ys.length) :
     compare (decodeReference xs) (decodeReference ys) = compare xs ys := by
   induction xs generalizing ys with
   | nil => cases ys <;> simp_all [decodeReference]
@@ -106,7 +102,8 @@ private theorem compare_decode (xs ys : List UInt8) (h : xs.length = ys.length) 
     | cons b ys =>
       have hl : xs.length = ys.length := by simpa using h
       simp only [decodeReference, ← hl]
-      rw [compare_digit _ _ _ _ _ (decode_lt xs) (by simpa [hl] using decode_lt ys)]
+      rw [compare_mul_add_of_lt _ _ _ _ _ (decodeReference_lt xs)
+        (by simpa [hl] using decodeReference_lt ys)]
       rw [ih _ hl]
       change _ = List.compareLex compare (a :: xs) (b :: ys)
       rw [List.compareLex_cons_cons]
@@ -117,10 +114,10 @@ private theorem compare_decode (xs ys : List UInt8) (h : xs.length = ys.length) 
       rfl
 
 -- The Horner decoder traverses each input byte once.
-private def decodeFast (bs : List UInt8) : Nat :=
-  bs.foldl (fun acc b ↦ 256 * acc + b.toNat) 0
+private def decodeFast (b : Bytes) : Nat :=
+  b.foldl (fun acc byte ↦ 256 * acc + byte.toNat) 0
 
-private theorem decode_fold (bs : List UInt8) (acc : Nat) :
+private theorem foldl_decodeReference (bs : List UInt8) (acc : Nat) :
     bs.foldl (fun acc b ↦ 256 * acc + b.toNat) acc =
       acc * 256 ^ bs.length + decodeReference bs := by
   induction bs generalizing acc with
@@ -130,38 +127,54 @@ private theorem decode_fold (bs : List UInt8) (acc : Nat) :
     simp only [Nat.add_mul]
     simp only [Nat.mul_assoc, Nat.mul_comm, Nat.add_assoc]
 
-private theorem decodeFast_eq (bs : List UInt8) : decodeFast bs = decodeReference bs := by
-  simp [decodeFast, decode_fold]
+private theorem decodeFast_eq_decodeReference (b : Bytes) :
+    decodeFast b = decodeReference (Bytes.toList b) := by
+  rw [decodeFast, Bytes.foldl_eq, foldl_decodeReference]
+  simp
 
--- The encoder reuses one decreasing positional power across its output bytes.
-private def encodeAux : Nat → Nat → Nat → List UInt8
-  | 0, _, _ => []
-  | n + 1, v, p => UInt8.ofNat (v / p) :: encodeAux n (v % p) (p / 256)
+private theorem digit_mod_pow (v n k : Nat) (h : k < n) :
+    UInt8.ofNat (v % 256 ^ n / 256 ^ k) = UInt8.ofNat (v / 256 ^ k) := by
+  apply UInt8.toNat_inj.mp
+  simp only [UInt8.toNat_ofNat']
+  change (_ % 256) = (_ % 256)
+  rw [show 256 ^ n = 256 ^ k * 256 ^ (n - k) from by
+    rw [← Nat.pow_add]; congr 1; omega, Nat.mod_mul_right_div_self]
+  apply Nat.mod_mod_of_dvd
+  simpa only [Nat.pow_one] using Nat.pow_dvd_pow 256 (show 1 ≤ n - k by omega)
 
-private theorem encodeAux_eq (n v : Nat) :
-    encodeAux (n + 1) v (256 ^ n) = encodeReference (n + 1) v := by
-  induction n generalizing v with
-  | zero => rfl
+private theorem getElem_encodeReference (n v i : Nat) (hi : i < n) :
+    (encodeReference n v)[i]'(by rw [length_encodeReference]; exact hi) =
+      UInt8.ofNat (v / 256 ^ (n - 1 - i)) := by
+  induction n generalizing v i with
+  | zero => omega
   | succ n ih =>
-    simp only [encodeAux, encodeReference]
-    have hp : 256 ^ (n + 1) / 256 = 256 ^ n := by
-      rw [Nat.pow_succ, Nat.mul_div_left _ (by decide)]
-    rw [hp]
-    exact congrArg (List.cons _) (ih _)
+    cases i with
+    | zero => simp [encodeReference]
+    | succ i =>
+      simp only [encodeReference, List.getElem_cons_succ]
+      rw [ih _ i (by omega)]
+      rw [show n + 1 - 1 - (i + 1) = n - 1 - i by omega]
+      exact digit_mod_pow v n (n - 1 - i) (by omega)
 
-private def encodeFast (n v : Nat) : List UInt8 :=
-  match n with
-  | 0 => []
-  | n + 1 => encodeAux (n + 1) v (256 ^ n)
+-- Generate bytes directly in packed storage, selecting each big-endian digit by shift.
+private def encodeFast (n v : Nat) : Bytes :=
+  Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * (n - 1 - i))))
 
-private theorem encodeFast_eq (n v : Nat) : encodeFast n v = encodeReference n v := by
-  cases n with
-  | zero => rfl
-  | succ n => exact encodeAux_eq n v
+private theorem toList_encodeFast (n v : Nat) :
+    Bytes.toList (encodeFast n v) = encodeReference n v := by
+  rw [encodeFast, Bytes.toList_generate]
+  apply List.ext_getElem
+  · simp [length_encodeReference]
+  · intro i hi hj
+    simp only [List.getElem_map, List.getElem_range]
+    rw [getElem_encodeReference n v i (by simpa only [length_encodeReference] using hj),
+      Nat.shiftRight_eq_div_pow]
+    congr 2
+    rw [Nat.pow_mul]
 
 /-! ### Fixed-width values and their public laws -/
 
-private theorem radix_eq (n : Nat) : 256 ^ n = 2 ^ (8 * n) := by
+private theorem pow_256_eq_two_pow (n : Nat) : 256 ^ n = 2 ^ (8 * n) := by
   rw [Nat.pow_mul]
 
 /-- Exact-width bytes; `ethereum_types/bytes.py:16,29`. Width zero is allowed. -/
@@ -171,23 +184,25 @@ structure FixedBytes (n : Nat) where
 
 namespace FixedBytes
 
+variable {n : Nat}
+
 /-- The big-endian numeric value of the exact-width byte sequence. -/
-def toNat {n : Nat} (x : FixedBytes n) : Nat := x.val.toNat
+def toNat (x : FixedBytes n) : Nat := x.val.toNat
 
 /-- Exact-width big-endian bytes; preserves leading zero bytes. -/
-def toBytes {n : Nat} (x : FixedBytes n) : Bytes := (encodeFast n x.toNat).toByteArray
+def toBytes (x : FixedBytes n) : Bytes := encodeFast n x.toNat
 
 /-- Exact-length checked constructor; `ethereum_types/bytes.py:29–37`.
 Rejects a wrong length before decoding any byte value, including leading zero bytes. -/
-def ofBytes? {n : Nat} (b : Bytes) : Option (FixedBytes n) :=
-  if b.size = n then some (ofBitVecRaw (BitVec.ofNat (8 * n) (decodeFast (Bytes.toList b))))
+def ofBytes? (b : Bytes) : Option (FixedBytes n) :=
+  if b.size = n then some (ofBitVecRaw (BitVec.ofNat (8 * n) (decodeFast b)))
   else none
 
 /-- Every numeric observation fits the entire fixed width. -/
-theorem toNat_lt {n : Nat} (x : FixedBytes n) : x.toNat < 2 ^ (8 * n) := x.val.isLt
+theorem toNat_lt (x : FixedBytes n) : x.toNat < 2 ^ (8 * n) := x.val.isLt
 
 /-- Equal numeric observations determine equal fixed-width values. -/
-theorem toNat_inj {n : Nat} {x y : FixedBytes n} : x.toNat = y.toNat ↔ x = y := by
+theorem toNat_inj {x y : FixedBytes n} : x.toNat = y.toNat ↔ x = y := by
   constructor
   · intro h
     have hv : x.val = y.val := BitVec.eq_of_toNat_eq h
@@ -198,67 +213,66 @@ theorem toNat_inj {n : Nat} {x y : FixedBytes n} : x.toNat = y.toNat ↔ x = y :
   · exact congrArg toNat
 
 /-- Decidable equality observes the big-endian numeric value. -/
-instance {n : Nat} : DecidableEq (FixedBytes n) := fun x y ↦
+instance : DecidableEq (FixedBytes n) := fun x y ↦
   decidable_of_iff (x.toNat = y.toNat) toNat_inj
 
 /-- Numeric big-endian ordering, equal to lexical byte ordering by `compare_toBytes`. -/
-instance {n : Nat} : Ord (FixedBytes n) where
+instance : Ord (FixedBytes n) where
   compare := compareOn toNat
 
 /-- Numeric comparison is reflexive. -/
-instance {n : Nat} : Std.ReflOrd (FixedBytes n) :=
+instance : Std.ReflOrd (FixedBytes n) :=
   inferInstanceAs (Std.ReflCmp (compareOn toNat))
 
 /-- Numeric comparison has the correct orientation. -/
-instance {n : Nat} : Std.OrientedOrd (FixedBytes n) :=
+instance : Std.OrientedOrd (FixedBytes n) :=
   inferInstanceAs (Std.OrientedCmp (compareOn toNat))
 
 /-- Numeric comparison is transitive. -/
-instance {n : Nat} : Std.TransOrd (FixedBytes n) :=
+instance : Std.TransOrd (FixedBytes n) :=
   inferInstanceAs (Std.TransCmp (compareOn toNat))
 
 /-- Comparison equality coincides with value equality. -/
-instance {n : Nat} : Std.LawfulEqOrd (FixedBytes n) where
+instance : Std.LawfulEqOrd (FixedBytes n) where
   eq_of_compare h := toNat_inj.mp (Nat.compare_eq_eq.mp h)
 
 /-- Exact output length, including the empty output at width zero. -/
-theorem size_toBytes {n : Nat} (x : FixedBytes n) : x.toBytes.size = n := by
-  rw [← Bytes.length_toList, toBytes, Bytes.toList_toByteArray,
-    encodeFast_eq, encode_length]
+theorem size_toBytes (x : FixedBytes n) : x.toBytes.size = n := by
+  rw [← Bytes.length_toList, toBytes, toList_encodeFast, length_encodeReference]
 
-private theorem decode_toBytes {n : Nat} (x : FixedBytes n) :
-    decodeFast (Bytes.toList x.toBytes) = x.toNat := by
-  rw [toBytes, Bytes.toList_toByteArray, decodeFast_eq, encodeFast_eq,
-    decode_encode _ _ (by simpa only [radix_eq] using toNat_lt x)]
+private theorem decode_toBytes (x : FixedBytes n) :
+    decodeFast x.toBytes = x.toNat := by
+  rw [toBytes, decodeFast_eq_decodeReference, toList_encodeFast,
+    decodeReference_encodeReference _ _ (by simpa only [pow_256_eq_two_pow] using toNat_lt x)]
 
 /-- Numeric observation is the big-endian radix-256 fold of the output bytes. -/
-theorem toNat_eq_fold {n : Nat} (x : FixedBytes n) :
+theorem toNat_eq_fold (x : FixedBytes n) :
     x.toNat = (Bytes.toList x.toBytes).foldl (fun acc b ↦ 256 * acc + b.toNat) 0 :=
-  (decode_toBytes x).symm
+  (decode_toBytes x).symm.trans (by rw [decodeFast, Bytes.foldl_eq])
 
 /-- Reconstructing from the exact byte observer returns the value. -/
-theorem ofBytes?_toBytes {n : Nat} (x : FixedBytes n) : ofBytes? x.toBytes = some x := by
+theorem ofBytes?_toBytes (x : FixedBytes n) : ofBytes? x.toBytes = some x := by
   simp only [ofBytes?, size_toBytes, ite_true, decode_toBytes]
   congr 1
   apply toNat_inj.mp
   exact Nat.mod_eq_of_lt (toNat_lt x)
 
-private theorem bytes_of_size {n : Nat} (b : Bytes) (h : b.size = n) :
-    (ofBitVecRaw (BitVec.ofNat (8 * n) (decodeFast (Bytes.toList b))) :
+private theorem bytes_of_size (b : Bytes) (h : b.size = n) :
+    (ofBitVecRaw (BitVec.ofNat (8 * n) (decodeFast b)) :
       FixedBytes n).toBytes = b := by
   have hl : (Bytes.toList b).length = n := by rw [Bytes.length_toList, h]
-  have hr : decodeFast (Bytes.toList b) < 2 ^ (8 * n) := by
-    rw [decodeFast_eq, ← radix_eq, ← hl]
-    exact decode_lt _
+  have hr : decodeFast b < 2 ^ (8 * n) := by
+    rw [decodeFast_eq_decodeReference, ← pow_256_eq_two_pow, ← hl]
+    exact decodeReference_lt _
   have hr' : decodeReference (Bytes.toList b) < 2 ^ (8 * n) := by
-    simpa only [decodeFast_eq] using hr
+    simpa only [decodeFast_eq_decodeReference] using hr
   apply Bytes.ext
-  simp only [toBytes, Bytes.toList_toByteArray, encodeFast_eq,
-    toNat, BitVec.toNat_ofNat, decodeFast_eq, Nat.mod_eq_of_lt hr']
-  rw [← hl, encode_decode]
+  simp only [toBytes, toList_encodeFast,
+    toNat, BitVec.toNat_ofNat, decodeFast_eq_decodeReference, Nat.mod_eq_of_lt hr']
+  rw [← hl, encodeReference_decodeReference]
 
 /-- Constructor success is precisely exact length and equality of byte contents. -/
-theorem ofBytes?_eq_some_iff {n : Nat} {b : Bytes} {x : FixedBytes n} :
+theorem ofBytes?_eq_some_iff {b : Bytes} {x : FixedBytes n} :
     ofBytes? b = some x ↔ b.size = n ∧ x.toBytes = b := by
   constructor
   · intro h
@@ -272,13 +286,13 @@ theorem ofBytes?_eq_some_iff {n : Nat} {b : Bytes} {x : FixedBytes n} :
     rw [← h, ofBytes?_toBytes]
 
 /-- A wrong byte length is the only constructor rejection. -/
-theorem ofBytes?_eq_none_iff {n : Nat} {b : Bytes} :
+theorem ofBytes?_eq_none_iff {b : Bytes} :
     (ofBytes? b : Option (FixedBytes n)) = none ↔ b.size ≠ n := by
   simp only [ofBytes?]
   split <;> simp_all
 
 /-- Byte observers are injective. -/
-theorem toBytes_inj {n : Nat} {x y : FixedBytes n} : x.toBytes = y.toBytes ↔ x = y := by
+theorem toBytes_inj {x y : FixedBytes n} : x.toBytes = y.toBytes ↔ x = y := by
   constructor
   · intro h
     have := congrArg (ofBytes? (n := n)) h
@@ -286,14 +300,15 @@ theorem toBytes_inj {n : Nat} {x y : FixedBytes n} : x.toBytes = y.toBytes ↔ x
   · exact congrArg toBytes
 
 /-- The executable order observes big-endian numeric values. -/
-theorem compare_toNat {n : Nat} (x y : FixedBytes n) :
+theorem compare_toNat (x y : FixedBytes n) :
     compare x y = compare x.toNat y.toNat := rfl
 
 /-- Equal-width numeric order is exactly EELS lexical byte order. -/
-theorem compare_toBytes {n : Nat} (x y : FixedBytes n) :
+theorem compare_toBytes (x y : FixedBytes n) :
     compare x y = compare (Bytes.toList x.toBytes) (Bytes.toList y.toBytes) := by
-  rw [compare_toNat, ← decode_toBytes x, ← decode_toBytes y, decodeFast_eq, decodeFast_eq]
-  exact compare_decode _ _ (by rw [Bytes.length_toList, Bytes.length_toList, size_toBytes,
+  rw [compare_toNat, ← decode_toBytes x, ← decode_toBytes y,
+    decodeFast_eq_decodeReference, decodeFast_eq_decodeReference]
+  exact compare_decodeReference _ _ (by rw [Bytes.length_toList, Bytes.length_toList, size_toBytes,
     size_toBytes])
 
 end FixedBytes
@@ -313,8 +328,8 @@ abbrev Bloom := FixedBytes 256
 /-- Sixty-four-byte hash content; EELS `src/ethereum/crypto/hash.py:20` (`Hash64`). -/
 abbrev Hash64 := FixedBytes 64
 
-/-- Distinct address domain type over 20 bytes; EELS `src/ethereum/state.py:33`.
-The type distinction preserves the same byte-content equality model. -/
+/-- A 20-byte value kept distinct from `FixedBytes 20`; EELS `src/ethereum/state.py:33`.
+Byte contents give EELS equality across the distinct Lean types. -/
 structure Address where
   private ofBitVecRaw ::
   private val : BitVec 160
@@ -324,8 +339,6 @@ namespace Address
 private def toFixed (x : Address) : FixedBytes 20 := FixedBytes.ofBitVecRaw x.val
 
 private def ofFixed (x : FixedBytes 20) : Address := ofBitVecRaw x.val
-
-private theorem toFixed_ofFixed (x : FixedBytes 20) : (ofFixed x).toFixed = x := rfl
 
 private theorem ofFixed_toFixed (x : Address) : ofFixed x.toFixed = x := rfl
 
@@ -339,7 +352,7 @@ def toBytes (x : Address) : Bytes := x.toFixed.toBytes
 locked `ethereum_types/bytes.py:29`. Wrong length fails before value decoding. -/
 def ofBytes? (b : Bytes) : Option Address := (FixedBytes.ofBytes? b).map ofFixed
 
-/-- Numeric values are in the complete 160-bit range. -/
+/-- The numeric value is below `2^160`. -/
 theorem toNat_lt (x : Address) : x.toNat < 2 ^ 160 := FixedBytes.toNat_lt x.toFixed
 
 /-- Numeric observations determine domain values. -/
@@ -417,8 +430,8 @@ theorem compare_toBytes (x y : Address) :
 
 end Address
 
-/-- Distinct hash32 domain type over 32 bytes; EELS `src/ethereum/crypto/hash.py:19`.
-The type distinction preserves the same byte-content equality model. -/
+/-- A 32-byte value kept distinct from `FixedBytes 32`; EELS `src/ethereum/crypto/hash.py:19`.
+Byte contents give EELS equality across the distinct Lean types. -/
 structure Hash32 where
   private ofBitVecRaw ::
   private val : BitVec 256
@@ -428,8 +441,6 @@ namespace Hash32
 private def toFixed (x : Hash32) : FixedBytes 32 := FixedBytes.ofBitVecRaw x.val
 
 private def ofFixed (x : FixedBytes 32) : Hash32 := ofBitVecRaw x.val
-
-private theorem toFixed_ofFixed (x : FixedBytes 32) : (ofFixed x).toFixed = x := rfl
 
 private theorem ofFixed_toFixed (x : Hash32) : ofFixed x.toFixed = x := rfl
 
@@ -443,7 +454,7 @@ def toBytes (x : Hash32) : Bytes := x.toFixed.toBytes
 locked `ethereum_types/bytes.py:29`. Wrong length fails before value decoding. -/
 def ofBytes? (b : Bytes) : Option Hash32 := (FixedBytes.ofBytes? b).map ofFixed
 
-/-- Numeric values are in the complete 256-bit range. -/
+/-- The numeric value is below `2^256`. -/
 theorem toNat_lt (x : Hash32) : x.toNat < 2 ^ 256 := FixedBytes.toNat_lt x.toFixed
 
 /-- Numeric observations determine domain values. -/
@@ -550,12 +561,11 @@ abbrev Root := Hash32
 /-- Versioned hash domain; EELS `src/ethereum/forks/amsterdam/fork_types.py:32`. -/
 abbrev VersionedHash := Hash32
 
-/-- Slot-key pair order is lexical: address first, then slot bytes (F19).
-Lean supplies `lexOrd` and its lawful instances but no global pair `Ord` instance. -/
+/-- Lexicographic order on slot keys: address first, then slot (F19). -/
 instance : Ord (Address × Bytes32) := lexOrd
 
 /-- Slot-key comparison is lexical in its component orders. -/
-theorem compare_address_slot (x y : Address × Bytes32) :
+theorem compare_address_slot_eq_then (x y : Address × Bytes32) :
     compare x y = (compare x.1 y.1).then (compare x.2 y.2) := rfl
 
 /-- Slot-key comparison observes lexical address and slot byte contents. -/
@@ -563,6 +573,6 @@ theorem compare_address_slot_toBytes (x y : Address × Bytes32) :
     compare x y =
       (compare (Bytes.toList x.1.toBytes) (Bytes.toList y.1.toBytes)).then
         (compare (Bytes.toList x.2.toBytes) (Bytes.toList y.2.toBytes)) := by
-  rw [compare_address_slot, Address.compare_toBytes, FixedBytes.compare_toBytes]
+  rw [compare_address_slot_eq_then, Address.compare_toBytes, FixedBytes.compare_toBytes]
 
 end STFSpec.Base

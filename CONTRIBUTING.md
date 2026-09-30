@@ -134,6 +134,8 @@ Run before opening a pull request (CI runs the same):
 
 ```sh
 lake build --wfail
+lake build bytes-native-tests --wfail
+lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
 python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh

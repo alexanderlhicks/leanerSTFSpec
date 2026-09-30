@@ -9,7 +9,7 @@ import STFSpec.Base.FixedBytes
 
 Library `EthConformance`: exact/short/long lengths, including zero, leading zeros,
 endian markers, ordering boundaries, distinct domain conversions and slot-key pairs.
-These guards execute actual `ByteArray` construction and observations.
+These guards use explicit byte construction and public observations.
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 -/
@@ -18,11 +18,11 @@ namespace STFSpec.Conformance.Base.FixedBytesGuards
 
 open STFSpec.Base
 
-private def zeros (n : Nat) : Bytes := (List.replicate n (0 : UInt8)).toByteArray
-private def filled (n : Nat) (b : UInt8) : Bytes := (List.replicate n b).toByteArray
-private def indexed (n : Nat) : Bytes := ((List.range n).map UInt8.ofNat).toByteArray
+private def zeros (n : Nat) : Bytes := Bytes.ofList (List.replicate n (0 : UInt8))
+private def filled (n : Nat) (b : UInt8) : Bytes := Bytes.ofList (List.replicate n b)
+private def indexed (n : Nat) : Bytes := Bytes.ofList ((List.range n).map UInt8.ofNat)
 private def marker (n : Nat) (b : UInt8) : Bytes :=
-  ((List.replicate (n-1) (0 : UInt8)) ++ [b]).toByteArray
+  Bytes.ofList (List.replicate (n - 1) (0 : UInt8) ++ [b])
 private def order? (n : Nat) (a b : Bytes) : Option Ordering := do
   let x ← FixedBytes.ofBytes? (n := n) a
   let y ← FixedBytes.ofBytes? (n := n) b
@@ -66,120 +66,48 @@ private def pairOrder? (a b c d : Bytes) : Option Ordering := do
 #check_failure (inferInstance : Coe Bytes32 Hash32)
 
 -- Wrong length rejects before computing a radix or decoding contents.
-#guard (FixedBytes.ofBytes? (n := 2 ^ 4096) ByteArray.empty) = none
+#guard (FixedBytes.ofBytes? (n := 2 ^ 4096) Bytes.empty) = none
+
+private def widthGuards (n : Nat) : Bool :=
+  decide ((FixedBytes.ofBytes? (n := n) (zeros n)).map FixedBytes.toBytes = some (zeros n)) &&
+  decide ((FixedBytes.ofBytes? (n := n) (filled n 255)).map FixedBytes.toBytes =
+    some (filled n 255)) &&
+  decide ((FixedBytes.ofBytes? (n := n) (indexed n)).map FixedBytes.toBytes =
+    some (indexed n)) &&
+  decide ((FixedBytes.ofBytes? (n := n) (zeros n)).map FixedBytes.toNat = some 0) &&
+  decide (FixedBytes.ofBytes? (n := n) (zeros (n + 1)) = none) &&
+  decide (order? n (indexed n) (indexed n) = some .eq) &&
+  if n = 0 then true else
+    decide (FixedBytes.ofBytes? (n := n) (zeros (n - 1)) = none) &&
+    decide ((FixedBytes.ofBytes? (n := n) (marker n 1)).map FixedBytes.toNat = some 1) &&
+    decide (order? n (zeros n) (filled n 255) = some .lt) &&
+    decide (order? n (filled n 255) (zeros n) = some .gt)
 
 /-! Every declared width plus generic widths zero, one and two. -/
-#guard (FixedBytes.ofBytes? (n := 0) (zeros 0)).map FixedBytes.toBytes = some (zeros 0)
-#guard (FixedBytes.ofBytes? (n := 0) (filled 0 255)).map FixedBytes.toBytes = some (filled 0 255)
-#guard (FixedBytes.ofBytes? (n := 0) (indexed 0)).map FixedBytes.toBytes = some (indexed 0)
-#guard (FixedBytes.ofBytes? (n := 0) (zeros 0)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 0) (zeros 1)) = none
-#guard order? 0 (indexed 0) (indexed 0) = some .eq
-#guard (FixedBytes.ofBytes? (n := 1) (zeros 1)).map FixedBytes.toBytes = some (zeros 1)
-#guard (FixedBytes.ofBytes? (n := 1) (filled 1 255)).map FixedBytes.toBytes = some (filled 1 255)
-#guard (FixedBytes.ofBytes? (n := 1) (indexed 1)).map FixedBytes.toBytes = some (indexed 1)
-#guard (FixedBytes.ofBytes? (n := 1) (zeros 1)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 1) (zeros 0)) = none
-#guard (FixedBytes.ofBytes? (n := 1) (marker 1 1)).map FixedBytes.toNat = some 1
-#guard order? 1 (zeros 1) (filled 1 255) = some .lt
-#guard order? 1 (filled 1 255) (zeros 1) = some .gt
-#guard (FixedBytes.ofBytes? (n := 1) (zeros 2)) = none
-#guard order? 1 (indexed 1) (indexed 1) = some .eq
-#guard (FixedBytes.ofBytes? (n := 2) (zeros 2)).map FixedBytes.toBytes = some (zeros 2)
-#guard (FixedBytes.ofBytes? (n := 2) (filled 2 255)).map FixedBytes.toBytes = some (filled 2 255)
-#guard (FixedBytes.ofBytes? (n := 2) (indexed 2)).map FixedBytes.toBytes = some (indexed 2)
-#guard (FixedBytes.ofBytes? (n := 2) (zeros 2)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 2) (zeros 1)) = none
-#guard (FixedBytes.ofBytes? (n := 2) (marker 2 1)).map FixedBytes.toNat = some 1
-#guard order? 2 (zeros 2) (filled 2 255) = some .lt
-#guard order? 2 (filled 2 255) (zeros 2) = some .gt
-#guard (FixedBytes.ofBytes? (n := 2) (zeros 3)) = none
-#guard order? 2 (indexed 2) (indexed 2) = some .eq
-#guard (FixedBytes.ofBytes? (n := 8) (zeros 8)).map FixedBytes.toBytes = some (zeros 8)
-#guard (FixedBytes.ofBytes? (n := 8) (filled 8 255)).map FixedBytes.toBytes = some (filled 8 255)
-#guard (FixedBytes.ofBytes? (n := 8) (indexed 8)).map FixedBytes.toBytes = some (indexed 8)
-#guard (FixedBytes.ofBytes? (n := 8) (zeros 8)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 8) (zeros 7)) = none
-#guard (FixedBytes.ofBytes? (n := 8) (marker 8 1)).map FixedBytes.toNat = some 1
-#guard order? 8 (zeros 8) (filled 8 255) = some .lt
-#guard order? 8 (filled 8 255) (zeros 8) = some .gt
-#guard (FixedBytes.ofBytes? (n := 8) (zeros 9)) = none
-#guard order? 8 (indexed 8) (indexed 8) = some .eq
-#guard (FixedBytes.ofBytes? (n := 20) (zeros 20)).map FixedBytes.toBytes = some (zeros 20)
-#guard (FixedBytes.ofBytes? (n := 20) (filled 20 255)).map FixedBytes.toBytes = some (filled 20 255)
-#guard (FixedBytes.ofBytes? (n := 20) (indexed 20)).map FixedBytes.toBytes = some (indexed 20)
-#guard (FixedBytes.ofBytes? (n := 20) (zeros 20)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 20) (zeros 19)) = none
-#guard (FixedBytes.ofBytes? (n := 20) (marker 20 1)).map FixedBytes.toNat = some 1
-#guard order? 20 (zeros 20) (filled 20 255) = some .lt
-#guard order? 20 (filled 20 255) (zeros 20) = some .gt
-#guard (FixedBytes.ofBytes? (n := 20) (zeros 21)) = none
-#guard order? 20 (indexed 20) (indexed 20) = some .eq
-#guard (FixedBytes.ofBytes? (n := 32) (zeros 32)).map FixedBytes.toBytes = some (zeros 32)
-#guard (FixedBytes.ofBytes? (n := 32) (filled 32 255)).map FixedBytes.toBytes = some (filled 32 255)
-#guard (FixedBytes.ofBytes? (n := 32) (indexed 32)).map FixedBytes.toBytes = some (indexed 32)
-#guard (FixedBytes.ofBytes? (n := 32) (zeros 32)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 32) (zeros 31)) = none
-#guard (FixedBytes.ofBytes? (n := 32) (marker 32 1)).map FixedBytes.toNat = some 1
-#guard order? 32 (zeros 32) (filled 32 255) = some .lt
-#guard order? 32 (filled 32 255) (zeros 32) = some .gt
-#guard (FixedBytes.ofBytes? (n := 32) (zeros 33)) = none
-#guard order? 32 (indexed 32) (indexed 32) = some .eq
-#guard (FixedBytes.ofBytes? (n := 48) (zeros 48)).map FixedBytes.toBytes = some (zeros 48)
-#guard (FixedBytes.ofBytes? (n := 48) (filled 48 255)).map FixedBytes.toBytes = some (filled 48 255)
-#guard (FixedBytes.ofBytes? (n := 48) (indexed 48)).map FixedBytes.toBytes = some (indexed 48)
-#guard (FixedBytes.ofBytes? (n := 48) (zeros 48)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 48) (zeros 47)) = none
-#guard (FixedBytes.ofBytes? (n := 48) (marker 48 1)).map FixedBytes.toNat = some 1
-#guard order? 48 (zeros 48) (filled 48 255) = some .lt
-#guard order? 48 (filled 48 255) (zeros 48) = some .gt
-#guard (FixedBytes.ofBytes? (n := 48) (zeros 49)) = none
-#guard order? 48 (indexed 48) (indexed 48) = some .eq
-#guard (FixedBytes.ofBytes? (n := 64) (zeros 64)).map FixedBytes.toBytes = some (zeros 64)
-#guard (FixedBytes.ofBytes? (n := 64) (filled 64 255)).map FixedBytes.toBytes = some (filled 64 255)
-#guard (FixedBytes.ofBytes? (n := 64) (indexed 64)).map FixedBytes.toBytes = some (indexed 64)
-#guard (FixedBytes.ofBytes? (n := 64) (zeros 64)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 64) (zeros 63)) = none
-#guard (FixedBytes.ofBytes? (n := 64) (marker 64 1)).map FixedBytes.toNat = some 1
-#guard order? 64 (zeros 64) (filled 64 255) = some .lt
-#guard order? 64 (filled 64 255) (zeros 64) = some .gt
-#guard (FixedBytes.ofBytes? (n := 64) (zeros 65)) = none
-#guard order? 64 (indexed 64) (indexed 64) = some .eq
-#guard (FixedBytes.ofBytes? (n := 96) (zeros 96)).map FixedBytes.toBytes = some (zeros 96)
-#guard (FixedBytes.ofBytes? (n := 96) (filled 96 255)).map FixedBytes.toBytes = some (filled 96 255)
-#guard (FixedBytes.ofBytes? (n := 96) (indexed 96)).map FixedBytes.toBytes = some (indexed 96)
-#guard (FixedBytes.ofBytes? (n := 96) (zeros 96)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 96) (zeros 95)) = none
-#guard (FixedBytes.ofBytes? (n := 96) (marker 96 1)).map FixedBytes.toNat = some 1
-#guard order? 96 (zeros 96) (filled 96 255) = some .lt
-#guard order? 96 (filled 96 255) (zeros 96) = some .gt
-#guard (FixedBytes.ofBytes? (n := 96) (zeros 97)) = none
-#guard order? 96 (indexed 96) (indexed 96) = some .eq
-#guard (FixedBytes.ofBytes? (n := 256) (zeros 256)).map FixedBytes.toBytes = some (zeros 256)
-#guard (FixedBytes.ofBytes? (n := 256) (filled 256 255)).map FixedBytes.toBytes =
-  some (filled 256 255)
-#guard (FixedBytes.ofBytes? (n := 256) (indexed 256)).map FixedBytes.toBytes = some (indexed 256)
-#guard (FixedBytes.ofBytes? (n := 256) (zeros 256)).map FixedBytes.toNat = some 0
-#guard (FixedBytes.ofBytes? (n := 256) (zeros 255)) = none
-#guard (FixedBytes.ofBytes? (n := 256) (marker 256 1)).map FixedBytes.toNat = some 1
-#guard order? 256 (zeros 256) (filled 256 255) = some .lt
-#guard order? 256 (filled 256 255) (zeros 256) = some .gt
-#guard (FixedBytes.ofBytes? (n := 256) (zeros 257)) = none
-#guard order? 256 (indexed 256) (indexed 256) = some .eq
+#guard widthGuards 0
+#guard widthGuards 1
+#guard widthGuards 2
+#guard widthGuards 8
+#guard widthGuards 20
+#guard widthGuards 32
+#guard widthGuards 48
+#guard widthGuards 64
+#guard widthGuards 96
+#guard widthGuards 256
 
 /-! Byte order markers that would reverse under little-endian interpretation. -/
-#guard (FixedBytes.ofBytes? (n := 2) ([1, 0] : List UInt8).toByteArray).map
+#guard (FixedBytes.ofBytes? (n := 2) (Bytes.ofList [1, 0])).map
   FixedBytes.toNat = some 256
-#guard (FixedBytes.ofBytes? (n := 2) ([0, 255] : List UInt8).toByteArray).map
+#guard (FixedBytes.ofBytes? (n := 2) (Bytes.ofList [0, 255])).map
   FixedBytes.toNat = some 255
-#guard order? 2 ([1, 0] : List UInt8).toByteArray ([0, 255] : List UInt8).toByteArray =
+#guard order? 2 (Bytes.ofList [1, 0]) (Bytes.ofList [0, 255]) =
   some .gt
-#guard order? 2 ([0, 255] : List UInt8).toByteArray ([1, 0] : List UInt8).toByteArray =
+#guard order? 2 (Bytes.ofList [0, 255]) (Bytes.ofList [1, 0]) =
   some .lt
 #guard order? 2 (zeros 1) (zeros 2) = none
-#guard (FixedBytes.ofBytes? (n := 0) ByteArray.empty).map FixedBytes.toBytes =
-  some ByteArray.empty
-#guard (FixedBytes.ofBytes? (n := 0) ([1] : List UInt8).toByteArray) = none
+#guard (FixedBytes.ofBytes? (n := 0) Bytes.empty).map FixedBytes.toBytes =
+  some Bytes.empty
+#guard (FixedBytes.ofBytes? (n := 0) (Bytes.ofList [1])) = none
 
 /-! Aliases elaborate to their specified widths and share the fixed-byte contract. -/
 #guard ((FixedBytes.ofBytes? (zeros 8) : Option Bytes8).map FixedBytes.toBytes) = some (zeros 8)
@@ -197,7 +125,7 @@ private def pairOrder? (a b c d : Bytes) : Option Ordering := do
 #guard Address.ofBytes? (zeros 19) = none
 #guard Address.ofBytes? (zeros 21) = none
 #guard (Address.ofBytes? (marker 20 1)).map Address.toNat = some 1
-#guard (Address.ofBytes? (filled 20 255)).map Address.toNat = some (2^160-1)
+#guard (Address.ofBytes? (filled 20 255)).map Address.toNat = some (2 ^ 160 - 1)
 #guard addressOrder? (marker 20 1) (marker 20 255) = some .lt
 #guard addressOrder? (filled 20 255) (zeros 20) = some .gt
 #guard addressOrder? (indexed 20) (indexed 20) = some .eq
@@ -206,7 +134,7 @@ private def pairOrder? (a b c d : Bytes) : Option Ordering := do
 #guard Hash32.ofBytes? (zeros 31) = none
 #guard Hash32.ofBytes? (zeros 33) = none
 #guard (Hash32.ofBytes? (marker 32 1)).map Hash32.toNat = some 1
-#guard (Hash32.ofBytes? (filled 32 255)).map Hash32.toNat = some (2^256-1)
+#guard (Hash32.ofBytes? (filled 32 255)).map Hash32.toNat = some (2 ^ 256 - 1)
 #guard hashOrder? (marker 32 1) (marker 32 255) = some .lt
 #guard hashOrder? (filled 32 255) (zeros 32) = some .gt
 #guard hashOrder? (indexed 32) (indexed 32) = some .eq

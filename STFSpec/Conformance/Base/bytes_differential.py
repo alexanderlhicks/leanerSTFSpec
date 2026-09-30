@@ -24,7 +24,7 @@ from differential import setup_driver
 
 
 def lean_bytes(value: bytes) -> str:
-    return "([" + ", ".join(str(x) for x in value) + "] : List UInt8).toByteArray"
+    return "Bytes.ofList [" + ", ".join(str(x) for x in value) + "]"
 
 
 def main():
@@ -40,7 +40,7 @@ def main():
     values = [b"", b"\x00", b"\xff", b"\x01\x80\xff", bytes(range(21)),
               bytes(range(32)), bytes(range(256))]
     values += [rng.randbytes(rng.randrange(65)) for _ in range(32)]
-    guards = ["import STFSpec.Base", "open STFSpec.Base"]
+    guards = ["import STFSpec.Base.Bytes", "open STFSpec.Base"]
     counts = {"leftPadZero": 0, "rightPadZero": 0, "extractPadded": 0}
     in_bounds_memory = 0
     partial_memory_distinctions = 0

@@ -22,7 +22,7 @@ example {n : Nat} (x : FixedBytes n) : FixedBytes.ofBytes? x.toBytes = some x :=
 
 example {n : Nat} (x : FixedBytes n) : x.toBytes.size = n := FixedBytes.size_toBytes x
 
-example {n : Nat} (x : FixedBytes n) : x.toNat < 2^(8*n) := FixedBytes.toNat_lt x
+example {n : Nat} (x : FixedBytes n) : x.toNat < 2 ^ (8 * n) := FixedBytes.toNat_lt x
 
 example {n : Nat} {x y : FixedBytes n} (h : x.toBytes = y.toBytes) : x = y :=
   FixedBytes.toBytes_inj.mp h
@@ -45,7 +45,7 @@ example {n : Nat} (x y : FixedBytes n) :
   FixedBytes.compare_toBytes x y
 
 example {n : Nat} (x : FixedBytes n) :
-    x.toNat = (Bytes.toList x.toBytes).foldl (fun acc b ↦ 256*acc+b.toNat) 0 :=
+    x.toNat = (Bytes.toList x.toBytes).foldl (fun acc b ↦ 256 * acc + b.toNat) 0 :=
   FixedBytes.toNat_eq_fold x
 
 example (x : FixedBytes 0) : x.toNat = 0 := by
@@ -62,7 +62,7 @@ example (x y : FixedBytes 0) : x = y := by
 
 example (x : Address) : Address.ofBytes? x.toBytes = some x := Address.ofBytes?_toBytes x
 example (x : Address) : x.toBytes.size = 20 := Address.size_toBytes x
-example (x : Address) : x.toNat < 2^160 := Address.toNat_lt x
+example (x : Address) : x.toNat < 2 ^ 160 := Address.toNat_lt x
 example {x y : Address} (h : x.toBytes = y.toBytes) : x = y := Address.toBytes_inj.mp h
 example {x y : Address} (h : x.toNat = y.toNat) : x = y := Address.toNat_inj.mp h
 example {b : Bytes} (h : b.size ≠ 20) : Address.ofBytes? b = none :=
@@ -75,7 +75,7 @@ example (x y : Address) :
 
 example (x : Hash32) : Hash32.ofBytes? x.toBytes = some x := Hash32.ofBytes?_toBytes x
 example (x : Hash32) : x.toBytes.size = 32 := Hash32.size_toBytes x
-example (x : Hash32) : x.toNat < 2^256 := Hash32.toNat_lt x
+example (x : Hash32) : x.toNat < 2 ^ 256 := Hash32.toNat_lt x
 example {x y : Hash32} (h : x.toBytes = y.toBytes) : x = y := Hash32.toBytes_inj.mp h
 example {x y : Hash32} (h : x.toNat = y.toNat) : x = y := Hash32.toNat_inj.mp h
 example {b : Bytes} (h : b.size ≠ 32) : Hash32.ofBytes? b = none :=
@@ -96,7 +96,7 @@ example {x y : Hash32} (h : x.toBytes32.toBytes = y.toBytes) : x = y := by
   simpa only [Hash32.toBytes_toBytes32] using h
 
 example (x y : Address × Bytes32) :
-    compare x y = (compare x.1 y.1).then (compare x.2 y.2) := compare_address_slot x y
+    compare x y = (compare x.1 y.1).then (compare x.2 y.2) := compare_address_slot_eq_then x y
 
 example (x y : Address × Bytes32) :
     compare x y =

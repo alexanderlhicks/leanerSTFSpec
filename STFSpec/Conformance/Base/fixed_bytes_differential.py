@@ -11,6 +11,7 @@ Bloom/Hash64 are loaded from actual pinned EELS declarations. Numeric observatio
 are checked against the explicit big-endian int.from_bytes model, not a new EELS
 integer API. Generated observations are uncommitted bug-finding evidence. No guest
 records, codecs, masked addresses, integer encodings or hash acquisition are run.
+Tuple comparisons test F19 ordered keys, not a BAL pair sort.
 """
 
 from pathlib import Path
@@ -22,7 +23,7 @@ from differential import setup_driver
 
 
 def lean_bytes(value: bytes) -> str:
-    return "([" + ", ".join(str(x) for x in value) + "] : List UInt8).toByteArray"
+    return "(Bytes.ofList [" + ", ".join(str(x) for x in value) + "])"
 
 
 def ordering(a, b) -> str:

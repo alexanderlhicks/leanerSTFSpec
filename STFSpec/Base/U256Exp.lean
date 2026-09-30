@@ -16,7 +16,8 @@ Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 
 namespace STFSpec.Base.U256
 
-/-- Legible modular reference: zero exponent is one; each successor multiplies and reduces. -/
+/-- Proof reference with one multiplication/reduction per exponent unit (linear cost).
+Zero exponent is one. Use `exp` for executable callers. -/
 def expReferenceNat (a : U256) : Nat → U256
   | 0 => one
   | n + 1 => mul (expReferenceNat a n) a
@@ -35,7 +36,8 @@ EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:297,326`;
 `ethereum_types/numeric.py:223` supplies modular power. In particular, `0^0 = 1`. -/
 def exp (a b : U256) : U256 := expNat a b.toNat
 
-/-- Legible reference for EXP, with reduction after each multiplication. -/
+/-- Proof reference for EXP, linear in the full unsigned exponent (up to `2^256 - 1`
+steps). Use the logarithmic `exp` operation for execution. -/
 def expReference (a b : U256) : U256 := expReferenceNat a b.toNat
 
 private theorem toNat_expReferenceNat (a : U256) (n : Nat) :
