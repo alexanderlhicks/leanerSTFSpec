@@ -125,18 +125,16 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 ### [`EthHash`](modules/EthHash.md)
 
-- **SHA-256 remaining work.** Fixed-word compression and its model laws are implemented in §3; the production `sha256` digest, padding, big-endian byte parsing/serialization, block iteration and digest boundary KATs remain unimplemented. Q46 governs the total trailer and qualified FIPS correspondence; no enormous-input host equivalence is claimed. The finite differential’s test-only composition is not production digest coverage.
-
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
 coordinate-model laws and primary zero-state permutation KAT, the SHA-256
-fixed-word compression reference/model laws and primary KATs, and the raw BLAKE2F
-parameter codec and both round trips are implemented (§3). The parser guards
-include primary EIP-152 examples 3–8, all raw flags, high-bit counters and rounds
-0/1/2^31/2^32−1, with maximum rounds parsed only. The sponge, Keccak digests,
-query interface, SHA-256 digest, RIPEMD-160 and BLAKE2F compression remain unimplemented.
-Their §4 vectors still need transcription from primary sources
+fixed-word compression and message-digest reference/model laws and primary KATs,
+and the raw BLAKE2F parameter codec and both round trips are implemented (§3).
+The parser guards include primary EIP-152 examples 3–8, all raw flags, high-bit
+counters and rounds 0/1/2^31/2^32−1, with maximum rounds parsed only.
+The sponge, Keccak digests, query interface, RIPEMD-160 and BLAKE2F compression remain
+unimplemented. Their §4 vectors still need transcription from primary sources
 (Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
 Historical prototypes are evidence only, not promoted core code.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. A differential run over random lengths would at least provide evidence.

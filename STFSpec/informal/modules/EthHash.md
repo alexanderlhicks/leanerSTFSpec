@@ -133,7 +133,7 @@ sponge, digest, byte-packing and query APIs are **unimplemented**.
 
 The native/model laws reuse the literal rho, iota and SHA constant tables. They prove representation correspondence, not independent derivation of those constants from the standards. Constant fidelity is supported by primary KATs, source inspection and the independent generators in the permutation driver; SHA's finite digest compositions additionally compare with hashlib through authenticated pinned source.
 
-**Implemented SHA-256 fixed-word compression.** Compression is pure and has no failure channel or caller premise beyond the fixed vector sizes. Its helper laws retain their stated bounds: rotations require `0 < r < 32`, schedule prefixes `n ≤ 48`, and round prefixes `n ≤ 64`. Native words observe as `BitVec 32` using `Sha256.wordsModel`; additions wrap modulo 2^32. `sha256`, padding, byte parsing and serialization remain unimplemented. Compression equations do not depend on Q46.
+**Implemented SHA-256 fixed-word compression.** Compression is pure and has no failure channel or caller premise beyond the fixed vector sizes. Its helper laws retain their stated bounds: rotations require `0 < r < 32`, schedule prefixes `n ≤ 48`, and round prefixes `n ≤ 64`. Native words observe as `BitVec 32` using `Sha256.wordsModel`; additions wrap modulo 2^32. The message-digest operations are described separately below. Compression equations do not depend on Q46.
 
 | Source / operation | Lean declaration and domain/effects | Public law / model | Deterministic evidence / status |
 |---|---|---|---|
@@ -170,6 +170,49 @@ for the pin, source and installed dependency checks before and after observation
 Generated oracle observations stay outside both repositories and are finite evidence.
 No compression, gas ordering, whole-hash refinement or EEST guest result is claimed.
 
+### Discharged SHA-256 message-digest slice
+
+`STFSpec/Hash/Sha256Digest.lean` implements the production `sha256` API using the
+accepted compression laws. All operations below are pure and total: their only
+effect is the returned value, with no failure channel or consuming error handler.
+Q46 owns the length-domain policy. Mathematical totality does not establish host
+memory availability or above-domain pinned-host agreement. EELS
+`forks/amsterdam/vm/precompiled_contracts/sha256.py:42–51` charges gas before its
+`hashlib.sha256(data).digest()` call; that gas/effect wrapper remains outside this
+slice. FIPS 180-4 supplies the external algorithm behind that host call.
+
+| Source / operation | Lean declaration and domain/effects | Public law / model | Deterministic evidence / status |
+|---|---|---|---|
+| FIPS 180-4 §5.1.1; Q46 length trailer | `Sha256.bitLength : Nat → Nat`, `lengthTrailer : Nat → Bytes`; any conceptual original byte length, eight big-endian bytes of the bit length modulo 2^64 | `bitLength_mod/lt/of_fipsDomain`, `size_lengthTrailer`, `getElem_lengthTrailer`, `lengthTrailer_value` (public Base big-endian numeric decode); original length retained when `8*n < 2^64` | asymmetric trailer digits, conceptual 2^61−1/2^61/2^61+1 and 2^64+0x10203, allocating only eight bytes; **discharged** |
+| FIPS 180-4 §5.1.1 padding | `Sha256.zeroCount/paddedLength : Nat → Nat`, `paddingSuffix : Nat → Bytes`, `pad : ByteArray → Bytes`; marker 0x80, at most 63 zeros, eight trailer bytes; one packed suffix and append | `toList_paddingSuffix`, `toList_pad`, `pad_prefix`, `size_pad`, `pad_multiple64`, `padding_boundary`, `blockCount`, `paddedLength_ge`, `pad_model`, `pad_fipsDomain` | exact suffix, empty/55/56/63/64-byte boundaries, finite differential padding observations; **discharged** |
+| FIPS 180-4 §5.2.1 block/word parsing | `Sha256.parseWord : UInt8 → UInt8 → UInt8 → UInt8 → UInt32`, `parseBlock : Bytes → Nat → Vector UInt32 16`; big-endian four-byte words, ascending word order; helper zero-extends unavailable bytes after Nat bounds checks | `toNat_parseWord`, `parseWord_wordByte`, `toBitVec_parseWord`, `wordsModel_parseBlock`, `parseBlock_get` (caller supplies a complete 64-byte window), `getElem?_toByteArray/of_lt` | asymmetric high/low bytes, all sixteen ascending words and offset 64, huge unavailable offset; **discharged** |
+| FIPS 180-4 §6.2.2 ascending chaining | `Sha256.blocks : Bytes → Nat → Nat → Vector UInt32 8 → Vector UInt32 8`; structural remaining-block recursion, one accepted compression at each offset | `blocks_model`, `blocks_add`, `Model.blocks_chain`, `Model.Chain.eq_blocks`; separate BitVec32 serial fold and inductive chaining trace | public-law three-block split/composition client and asymmetric multiblock host inputs; **discharged** |
+| FIPS 180-4 §§6.2.1–6.2.2 output | `Sha256.wordByte : UInt32 → Nat → UInt8`, `serialize : Vector UInt32 8 → Bytes`, `digestValue : Vector UInt32 8 → Bytes32`; each of eight words serialized big-endian, leading zeros retained; public checked Base fixed-byte construction proved successful | `serialize_get/model`, `size_serialize`, `toBytes_digestValue` | eight distinct word positions, leading zeros and high-bit probes; **discharged** |
+| EELS `forks/amsterdam/vm/precompiled_contracts/sha256.py:51`; external `hashlib.sha256` / FIPS 180-4 §§5.1.1, 5.2.1, 6.2 | `STFSpec.Hash.sha256 : ByteArray → Bytes32`; standard IV, pad, ascending compression fold and ordered digest bytes; total extension on all sizes, standard-domain equivalence requires caller premise `8*msg.size < 2^64`; no gas/effect changes | `size_sha256`, `sha256_model`, `sha256_digest` against `Model.Digest`, `sha256_fipsDigest` against unwrapped `Model.fipsPad` under the explicit domain | five primary production KATs: empty/abc and NIST CAVP 55/56/64-byte messages; finite authenticated pinned-host differential; **discharged for this domain/slice** |
+
+`STFSpec/Conformance/Hash/Sha256DigestGuards.lean` owns the five primary KATs
+and deterministic padding, byte-order and conceptual-length probes;
+`Sha256DigestCallerProofs.lean` composes only public Hash/Base laws.
+The NIST CAVP byte-oriented archive's `SHA256ShortMsg.rsp` entries at bit lengths
+0, 440, 448 and 512 supply the exact messages and digests; the NIST SHA256
+worked example supplies abc. Links and selectors are recorded in the test module.
+`sha256_differential.py`, run with the frozen EELS interpreter using `-I -B`,
+compares actual production digest bytes with `source.hashlib.sha256` observed
+through authenticated pinned source, plus independently generated finite padding.
+Seed 16016 covers 168 messages (128 random lengths in 0..4096 and deterministic
+boundary/zero/all-one/asymmetric inputs), with one digest and one padding observation
+per message. The finite tests assume the FIPS byte domain and a working host SHA-256;
+no gigantic input, precompile gas/effect, guest, collision-resistance or ROM theorem
+is established.
+
+The executable path has one packed append, constant-width word parsing/output,
+and a tail-recursive forward loop over the padded buffer. Its O(n) byte work and
+O(⌈(n+9)/64⌉) compressions avoid per-block copies or traversals of the full message.
+Generated C inspection confirms the loop and packed accesses; native vectors retain
+boxed words and fixed-size schedule allocations. This is a bounded code-shape check,
+not a throughput, allocation-volume, target-zkVM or C1–C4 measurement claim.
+
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -183,7 +226,7 @@ No compression, gas ordering, whole-hash refinement or EEST guest result is clai
   - Inputs of 135, 136 and 137 bytes: the rate boundary and the padding of `0x01` and `0x80` into the same byte at length 135.
   - A 1 MiB input, for performance only.
   - `keccak512 ""`.
-  - Implemented fixed-block SHA-256 compression KATs: explicitly supplied padded empty/abc words, and NIST abc states after rounds 0,1,16,63. Digest/padding KATs for the production `sha256` API, including 55/56/64-byte boundaries, remain pending.
+  - Implemented fixed-block SHA-256 compression KATs: explicitly supplied padded empty/abc words, and NIST abc states after rounds 0,1,16,63. Production `sha256` KATs cover empty/abc and the exact NIST CAVP 55/56/64-byte messages (§3), with deterministic padding/trailer and endian probes.
   - RIPEMD-160 vectors from the original paper: empty = `9c1185a5c5e9fc54612808977ee8f548b2258d31`, `"abc"`, and the million-`a` test.
   - BLAKE2F: the EIP-152 vectors 4–8, including `rounds = 0`, `f = 0`, and `rounds = 2^32 − 1` as a *parse-only* guard (the compression is not run).
   - `keccakF1600` on the all-zero state (the published permutation KAT), implemented in the guard module linked in §3.
@@ -259,7 +302,7 @@ The contract is functional correctness against the published algorithms, plus th
 
 - [C] `(keccak256 b).toBytes.size = 32`, `(sha256 b).toBytes.size = 32`, `(ripemd160 b).toBytes.size = 20`, and `(Blake2b.compress …).size = 64`. The first three hold by type; the last must be proved.
 - [C] Sponge decomposition: `keccak256 b = squeeze (absorb (pad b))`, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
-- [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Digest/padding/byte correspondence remains open; standard correspondence for a future `sha256` theorem requires the Q46 domain.
+- [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Message padding, byte correspondence, serial block composition and the inductive full-digest relation are discharged in §3; FIPS-domain correspondence retains the explicit Q46 hypothesis.
 - [C] KATs as `#guard` (compile-time), not `native_decide` (CONTRIBUTING §4).
 - [C] BLAKE2b raw parameters: `getParameters_serialize` and `serialize_getParameters` prove the two-way bijection between all raw `Params` and 213-byte inputs; `serialize_size` proves its exact size. `getParameters_rounds/h/m/t0/t1/f` expose the field windows; `wordByte_leWord`, `leWord_wordByte`, `leWord_succ_toNat` and `wordByte_toNat` connect bytes, bits and numeric radix-256 digits. These parameter laws are discharged by the slice in §3.
 - [C] BLAKE2b compression: `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
@@ -281,9 +324,10 @@ The contract is functional correctness against the published algorithms, plus th
 **Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence,
 SHA-256 fixed-word schedule/round/feed-forward correspondence and BLAKE2F raw
 parameter byte-layout correspondence with both round trips are discharged
-for the slices in §3. Sponge padding/byte packing, digest correspondence, RIPEMD-160
-and BLAKE2F compression rounds and their complete boundary vectors remain unwritten.
-Q46 supplies the SHA-256 domain policy. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
+for the slices in §3. SHA-256 message padding, byte packing, serial composition and
+the full-digest relation are discharged for the §3 slice. Keccak sponge/digest
+correspondence, RIPEMD-160 and BLAKE2F compression rounds and their complete boundary
+vectors remain unwritten. Q46 supplies the SHA-256 domain policy. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -306,18 +350,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **SHA-256 remaining work.** Fixed-word compression and its model laws are implemented in §3; the production `sha256` digest, padding, big-endian byte parsing/serialization, block iteration and digest boundary KATs remain unimplemented. Q46 governs the total trailer and qualified FIPS correspondence; no enormous-input host equivalence is claimed. The finite differential’s test-only composition is not production digest coverage.
-
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
 coordinate-model laws and primary zero-state permutation KAT, the SHA-256
-fixed-word compression reference/model laws and primary KATs, and the raw BLAKE2F
-parameter codec and both round trips are implemented (§3). The parser guards
-include primary EIP-152 examples 3–8, all raw flags, high-bit counters and rounds
-0/1/2^31/2^32−1, with maximum rounds parsed only. The sponge, Keccak digests,
-query interface, SHA-256 digest, RIPEMD-160 and BLAKE2F compression remain unimplemented.
-Their §4 vectors still need transcription from primary sources
+fixed-word compression and message-digest reference/model laws and primary KATs,
+and the raw BLAKE2F parameter codec and both round trips are implemented (§3).
+The parser guards include primary EIP-152 examples 3–8, all raw flags, high-bit
+counters and rounds 0/1/2^31/2^32−1, with maximum rounds parsed only.
+The sponge, Keccak digests, query interface, RIPEMD-160 and BLAKE2F compression remain
+unimplemented. Their §4 vectors still need transcription from primary sources
 (Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
 Historical prototypes are evidence only, not promoted core code.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. A differential run over random lengths would at least provide evidence.
