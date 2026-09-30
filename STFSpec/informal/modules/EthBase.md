@@ -279,6 +279,7 @@ host machine's index range. Negative Python `int` widths are outside the typed
 | Same byte-value model; public interface | `Bytes.extract : Bytes → (start stop : Nat) → Bytes` | Unpadded window, clipped to source size; empty for unavailable or reversed windows | None in pure byte semantics | `toList_extract`, `size_extract` | Partial/absent slice guards; public model caller |
 | Lean packed builder; not a separate EELS callable | `Bytes.generate : Nat → (Nat → UInt8) → Bytes` | Exactly `n` bytes from function values at indices `0…n−1`; result indices only | None in the pure model; host allocation limits remain open | `toList_generate`, `size_generate`, `getElem_generate` | Empty/nonzero packed generation; generic model/size callers |
 | Lean packed observer; not a separate EELS callable | `Bytes.foldl : (α → UInt8 → α) → α → Bytes → α` | Left fold over the complete byte sequence; no intermediate list in executable code | No additional primitive failure | `foldl_eq` | Big-endian Horner fold guard; generic model-only caller |
+| Lean packed observer; not a separate EELS callable | `Bytes.foldr : (UInt8 → α → α) → α → Bytes → α` | Right fold over every byte; decreasing packed indices, without an intermediate list | No additional primitive failure | `foldr_eq` | Little-endian guards and public model-only caller |
 | `utils/byte.py:18,37` (`left_pad_zero_bytes`) | `Bytes.leftPadZero : Bytes → Nat → Bytes` | Every sequence and natural width; prepend `n - b.size` zero bytes, retain oversize input, size `max b.size n` | None in the pure value model; source host size/allocation faults remain open as above; consumers own D14/B14 mapping | `toList_leftPadZero`, `size_leftPadZero`, `leftPadZero_of_le`, `leftPadZero_idempotent`, `getElem?_toList_leftPadZero` | `BytesGuards.lean`: empty, zero, equal/short/long target, 21-byte input to 20, idempotence, prefix bytes; actual pinned helper differential |
 | `utils/byte.py:40,59` (`right_pad_zero_bytes`) | `Bytes.rightPadZero : Bytes → Nat → Bytes` | Every sequence and natural width; append `n - b.size` zero bytes, retain oversize input, size `max b.size n` | As left padding; no state effects | `toList_rightPadZero`, `size_rightPadZero`, `rightPadZero_of_le`, `rightPadZero_idempotent`, `getElem?_toList_rightPadZero`, `getElem_rightPadZero` | `BytesGuards.lean`: empty, zero, equal/short/long target, retained 21-byte input, suffix bytes; public-law callers; actual pinned helper differential |
 | Helper model of `forks/amsterdam/vm/memory.py:63,82–83` (`buffer_read`); consumed by `vm/instructions/environment.py:177,239` | `Bytes.extractPadded : Bytes → (start len : Nat) → Bytes` (public Base helper) | Every finite sequence/natural start/length; exactly `len` bytes, source byte at `start+i` when available and zero otherwise | None in the pure model; source helper has U256 start/length, so differential correspondence uses that domain. Source host padding failures remain open. No memory expansion, gas, stack or PC effect claimed; those belong to VM owners | `size_extractPadded`, `getElem_extractPadded`, `toList_extractPadded`, `toList_extractPadded_window`, `extractPadded_zero`, `toList_extractPadded_of_size_le`, `extractPadded_eq_rightPadZero_extract`, `extractPadded_rightPadZero` | `BytesGuards.lean`: full/partial/absent windows, zero length, offsets `2^256−1` and `2^4096`; actual pinned `buffer_read` differential; `BytesCallerProofs.lean`: public model/zero/read-extension callers |
@@ -313,9 +314,10 @@ to the zero builder. The ordinary equation
 unpadded-window-plus-padding model. Huge unavailable offsets are not traversed or
 narrowed to machine indices. Packed result/copy work is O(len) bytes; natural-number
 costs depend on index bit length. `generate` separately uses a preallocated packed
-push loop, with a list-range model theorem, and `foldl` visits packed bytes with a
-list-fold model theorem. Executable builders/folds do not materialize the list
-observer. The compiled `bytes-native-tests` CI target checks native operations
+push loop, with a list-range model theorem. `foldl` and `foldr` visit packed bytes
+in forward and reverse order respectively, with ordinary list-fold model theorems.
+Executable builders/folds do not materialize the list observer. The compiled
+`bytes-native-tests` CI target checks native operations
 against finite list models, including huge slice offsets and clipped endpoints;
 ordinary model theorems prove the Lean equations, while `#guard` supplies evaluated
 regression tests. The standalone executable adds end-to-end compiled coverage.
@@ -339,8 +341,10 @@ and the remaining byte/conversion API open (§10).
 The listed declarations and laws are implemented for every natural width, including zero.
 `FixedBytes n`, `Address` and `Hash32` have private BitVec representations and distinct
 types. Byte contents, rather than those type distinctions, model EELS cross-type byte
-equality. Constructors accept a `Bytes` input; other Python constructor parameter
-forms are outside this typed interface. Values are immutable and have no state effects.
+equality. Checked source constructors accept a `Bytes` input; other Python constructor
+parameter forms are outside this typed interface. The total numeric constructors below
+are Lean model adapters (D25), not additional Python constructor forms. Values are
+immutable and have no state effects.
 Every `none` is an exact-length `ValueError` at `ethereum_types/bytes.py:29–37`;
 its first consuming handler/outcome belongs to the consumer under D14/B14.
 No primitive fault constructor or global X1 classification is added.
@@ -349,11 +353,14 @@ No primitive fault constructor or global X1 classification is added.
 |---|---|---|---|---|
 | `ethereum_types/bytes.py:16,29` (`FixedBytes`) | `structure FixedBytes (n : Nat)` | All natural widths; model is exactly `n` bytes, including empty at `n=0` | `size_toBytes`, `toNat_lt`, `toBytes_inj`, `toNat_inj` | `FixedBytesGuards.lean`: zero, one, two and all specified alias widths; `FixedBytesCallerProofs.lean`: generic all-width clients; private storage/coercion rejection guards |
 | `ethereum_types/bytes.py:29` (`FixedBytes.__new__`) | `FixedBytes.ofBytes? : Bytes → Option (FixedBytes n)` | Check `b.size=n` before any value decoding. Success retains all bytes; wrong length fails even for all-zero input | `ofBytes?_eq_some_iff`, `ofBytes?_eq_none_iff`, `ofBytes?_toBytes` | Exact/short/long lengths, leading zeros, width zero, wrong-length input at width `2^4096`; actual dependency constructors |
+| Lean numeric model adapter (D25) | `FixedBytes.ofNat : Nat → FixedBytes n` | All natural values and widths; big-endian value reduced modulo `2^(8*n)`, including zero width | `toNat_ofNat`, `toNat_ofNat_of_lt`, `ofNat_toNat`, `toBytes_ofNat` | Integer conversion guards and generic public-law callers |
+| Lean little-endian model adapter (D25) | `FixedBytes.ofLeNat : Nat → FixedBytes n` | All natural values and widths; byte i is the low byte of `v >>> (8*i)`; zero width is empty | `toBytes_ofLeNat`, `toBytes_ofLeNat_eq_reverse` | Fixed little-endian guards and public-law callers |
 | `ethereum_types/bytes.py:16` (inherited bytes content) | `FixedBytes.toBytes : FixedBytes n → Bytes` | Exact big-endian bytes; no trimming, padding or truncation | `size_toBytes`, `toBytes_inj`, `ofBytes?_toBytes`, `ofBytes?_eq_some_iff` | All-zero/all-255/indexed patterns and leading-zero markers |
 | `ethereum_types/bytes.py:16` (positional model of content; Lean observer) | `FixedBytes.toNat : FixedBytes n → Nat` | Big-endian radix-256 fold; result below `2^(8*n)` | `toNat_eq_fold`, `toNat_lt`, `toNat_inj` | MSB/LSB markers, `01 00` versus `00 ff`, big-endian model differential |
 | `ethereum_types/bytes.py:16` (inherited bytes comparison) | `Ord (FixedBytes n)`, `DecidableEq (FixedBytes n)` | Numeric big-endian order equals lexical bytes; comparison equality is actual equality | `compare_toNat`, `compare_toBytes`; `ReflOrd`, `OrientedOrd`, `TransOrd`, `LawfulEqOrd` | Equal/reversed/mixed byte patterns; boundary and random lexical differential |
 | EELS `state.py:33` (`Address = Bytes20`) | `structure Address` | Distinct type; 20-byte content model | `Address.size_toBytes`, `toNat_lt`, `toBytes_inj`, `toNat_inj` | Domain guards and public-law clients |
 | EELS `state.py:33`; `ethereum_types/bytes.py:29` | `Address.ofBytes? : Bytes → Option Address` | Exact size 20 before decoding; mismatch returns `none` | `Address.ofBytes?_eq_some_iff`, `ofBytes?_eq_none_iff`, `ofBytes?_toBytes` | 19/20/21 bytes, including all zeros |
+| Lean numeric model adapter (D25) | `Address.ofNat : Nat → Address` | All natural values; retain the low 160 bits | `Address.toNat_ofNat`, `toNat_ofNat_of_lt`, `ofNat_toNat` | Masked-address guards and public-law callers |
 | EELS `state.py:33`; `ethereum_types/bytes.py:16` | `Address.toBytes : Address → Bytes` | Preserve exactly 20 bytes | `Address.size_toBytes`, `toBytes_inj`, `ofBytes?_toBytes` | Indexed, all-zero and all-255 contents |
 | EELS `state.py:33` (Lean observer of byte content) | `Address.toNat : Address → Nat` | Big-endian fold below `2^160` | `Address.toNat_eq_fold`, `toNat_lt`, `toNat_inj` | Zero/one/max and model differential |
 | EELS `state.py:33`; `forks/amsterdam/block_access_lists.py:685`; `ethereum_types/bytes.py:16` | `Ord Address`, `DecidableEq Address` | Lexical byte order and actual equality | `Address.compare_toNat`, `compare_toBytes`; lawful order instances | Address lexical matrix; pair clients |
@@ -429,7 +436,7 @@ its consumer under D14/B14. These rows do not close global X1 or guest outcomes.
 |---|---|---|---|---|---|
 | `ethereum_types/numeric.py:523–528` | `Uint.ofBeBytes : Bytes → Nat` | Big-endian radix-256 positional value; leading zeros accepted | None | `Uint.ofBeBytes_eq_fold`, `Uint.ofBeBytes_lt` | empty, 33 zeros, 65-byte leading zeros, 512-byte inputs |
 | `ethereum_types/numeric.py:531–536` | `Uint.ofLeBytes : Bytes → Nat` | Big-endian value of reversed bytes; leading zeros accepted | None | `Uint.ofLeBytes_eq_reverse`, `Uint.ofLeBytes_lt` | asymmetric [1,0]/[0,1], 512-byte inputs |
-| `ethereum_types/numeric.py:477–484` | `Uint.toBeBytes : Nat → Bytes` | Minimal big-endian; zero ↦ empty; size ≤ k iff value < 2^(8k) | None; no width bound | `Uint.ofBeBytes_toBeBytes`, `Uint.size_toBeBytes_le_iff`, `Uint.toBeBytes_eq_empty_iff`, `Uint.toList_toBeBytes_head_ne_zero` | 0/255/256, above 2^256, 4097-bit values |
+| `ethereum_types/numeric.py:477–484` | `Uint.toBeBytes : Nat → Bytes` | Minimal big-endian; zero ↦ empty; size ≤ k iff value < 2^(8k) | None; no width bound | `Uint.ofBeBytes_toBeBytes`, `Uint.size_toBeBytes_le_iff`, `Uint.toBeBytes_eq_empty_iff`, `Uint.toList_toBeBytes_head_ne_zero`, `Uint.toBeBytes_eq_reference` | 0/255/256, above 2^256, 4097-bit values |
 | `ethereum_types/numeric.py:424–429` | `Uint.toBeBytes32? : Nat → Option Bytes32` | Exactly 32 bytes with complete input value | OverflowError ↦ none iff n ≥ 2^256; checked before output | `Uint.toBeBytes32?_eq_some_iff`, `Uint.toBeBytes32?_eq_none_iff` | 2^256−1 succeeds; 2^256 and 2^4096 reject |
 | `ethereum_types/numeric.py:424–429` | `U256.toBeBytes32 : U256 → Bytes32` | Exactly 32 bytes, complete unsigned value | None; typed range discharges source OverflowError | `U256.toNat_toBeBytes32`, `U256.size_toBeBytes32`, `U256.ofBeBytes_toBeBytes32` | zero/max and ascending endian markers |
 | `ethereum_types/numeric.py:566–577` | `U256.ofBeBytes32 : Bytes32 → U256` | Complete fixed-byte numeric value | None; type discharges length/range checks | `U256.toNat_ofBeBytes32`, `U256.ofBeBytes32_toBeBytes32`, `U256.toBeBytes32_ofBeBytes32` | fixed zero/max and caller inverse proofs |
@@ -444,13 +451,22 @@ its consumer under D14/B14. These rows do not close global X1 or guest outcomes.
 | `forks/amsterdam/utils/address.py:24,39` | `Address.ofU256Masked : U256 → Address` | Last 20 fixed-32 bytes; numeric value x.toNat % 2^160 | None; typed U256 input discharges to_be_bytes32 overflow, exact tail length discharges Address construction | `Address.toBytes_ofU256Masked`, `Address.toNat_ofU256Masked` | 2^160/2^160+1, high-bit markers, max |
 | `forks/amsterdam/vm/instructions/environment.py:52,107,130` | `Address.toU256 : Address → U256` | Word with the complete address numeric value; source `U256.from_be_bytes(address)` | None; address range proves word fits | `Address.toNat_toU256`, `Address.ofU256Masked_toU256`, `Address.toNat_toU256_ofU256Masked` | public caller roundtrip and low-160-bit proofs |
 
-The implementation keeps private legible positional models beside its Horner
-fold and decreasing-power fixed encoder, with ordinary equality theorems. Minimal
-output recursively divides by 256, then reverses the digit list once. Fixed loops
-visit only the output width. Big-endian decoding uses the public packed
-`Bytes.foldl` with its list-model law; little-endian decoding reverses the input
-list before its Horner fold. Fixed and Address outputs use only their public checked constructors, observers and laws;
-no stored fields are available to this file or the caller proofs.
+Big- and little-endian decoding use the public packed `Bytes.foldl` and `foldr`,
+respectively, with ordinary equations to legible positional models. Neither decoder
+materializes a list. Minimal output computes its byte width from `Nat.log2` (zero
+uses width zero), then observes `FixedBytes.ofNat` as packed bytes. The public
+`Uint.toBeBytesReference` retains the divide-by-256 digit-list implementation;
+`Uint.toBeBytes_eq_reference` proves equality on every natural input.
+
+Fixed big-endian output and masked addresses use the providers' numeric model
+constructors directly. Fixed little-endian output builds its numeric model by
+visiting low-to-high digits, without an intermediate byte buffer; its ordinary
+equality theorem relates it to checked construction of packed digits. Observing
+that result as bytes is a separate pass. Every byte loop visits only the input or
+output width; natural-number arithmetic costs depend on operand bit length.
+Fixed-32 overflow and bounded input-length rejection still precede conversion.
+No stored fields are available to this file or the caller proofs, and these local
+cost properties do not discharge the full C1–C4 target measurements.
 
 Regression evidence is in `STFSpec/Conformance/Base/IntegerBytesGuards.lean`,
 `IntegerBytesCallerProofs.lean` and `integer_bytes_differential.py`. The driver
@@ -584,6 +600,7 @@ structure U64 where private val : UInt64
 abbrev Uint := Nat                                  -- public model = Nat itself
 def Uint.sub? : Nat → Nat → Option Nat              -- Python OverflowError on underflow
 def Uint.toBeBytes : Nat → Bytes                    -- minimal big-endian; 0 ↦ empty
+def Uint.toBeBytesReference : Nat → Bytes           -- legible digit-list reference
 def Uint.ofBeBytes Uint.ofLeBytes : Bytes → Nat
 def Uint.toBeBytes32? : Nat → Option Bytes32        -- none iff ≥ 2^256
 
@@ -599,6 +616,7 @@ def Bytes.append : Bytes → Bytes → Bytes
 def Bytes.extract : Bytes → (start stop : Nat) → Bytes
 def Bytes.generate : Nat → (Nat → UInt8) → Bytes
 def Bytes.foldl : (α → UInt8 → α) → α → Bytes → α
+def Bytes.foldr : (UInt8 → α → α) → α → Bytes → α
 -- GetElem Bytes Nat UInt8 requires index < size
 def Bytes.toList : Bytes → List UInt8               -- stable observer (model)
 def Bytes.leftPadZero Bytes.rightPadZero : Bytes → Nat → Bytes
@@ -615,6 +633,9 @@ abbrev Bytes96 := FixedBytes 96;  abbrev Bloom := FixedBytes 256
 abbrev Root := Hash32;  abbrev VersionedHash := Hash32;  abbrev Hash64 := FixedBytes 64
 -- each: toBytes : _ → Bytes, ofBytes? : Bytes → Option _, toNat : _ → Nat,
 --       DecidableEq, a hand-written lawful `compare` (lexicographic = numeric big-endian)
+def FixedBytes.ofNat : Nat → FixedBytes n           -- wrapping big-endian model
+def FixedBytes.ofLeNat : Nat → FixedBytes n         -- low-to-high byte digits
+def Address.ofNat : Nat → Address                  -- wrapping low 160 bits
 def Hash32.toBytes32 : Hash32 → Bytes32; def Hash32.ofBytes32 : Bytes32 → Hash32
 def Address.ofU256Masked : U256 → Address           -- to_address_masked
 def Address.toU256 : Address → U256
@@ -721,11 +742,14 @@ F19 separately governs EthState's ordered address/byte-slot keys; the BAL does n
 **Byte sequences** [R/C]:
 
 - `Bytes.toList` is injective, has length `b.size`, and is inverse to `Bytes.ofList` construction. Explicit `ofByteArray`/`toByteArray` adapters are inverse and preserve the list model and size; consumers typed over `ByteArray` use that packed boundary.
+- `Bytes.foldl` and `Bytes.foldr` equal the corresponding folds over `toList`; their executable loops traverse the packed buffer.
 - Padding prepends/appends exactly `n - b.size` zeros; its size is `max b.size n`, it retains sufficient inputs and is idempotent at a fixed width. The per-byte observations specify the original bytes and zero prefix/suffix.
 - `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in `Bytes.lean`; VM memory/gas effects are separate.
 
 **Fixed bytes** [C]:
 - `ofBytes? b = some x ↔ b.size = n ∧ x.toBytes = b`;
+- `(FixedBytes.ofNat v : FixedBytes n).toNat = v % 2^(8*n)` and `FixedBytes.ofNat x.toNat = x`. Its byte observer selects big-endian digits; `ofLeNat` selects their reversal, including empty output at width zero. These total model adapters do not replace checked source-constructor guards.
+- `Address.ofNat v` observes `v % 2^160`, and `Address.ofNat a.toNat = a`.
 - `compare` is a lawful total order (`Std.TransOrd`, `Std.LawfulEqOrd`), and `compare x y = compare x.toBytes.toList y.toBytes.toList` (lexicographic); the implemented instances and equations are listed in §3.
 - The pair order on `(Address × Bytes32)` is lexicographic in the component orders, with `Std.TransOrd` and `Std.LawfulEqOrd` instances (F19). Its public byte-order equation is listed in §3; consumer sorting proofs remain open.
 

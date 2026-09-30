@@ -106,3 +106,27 @@ example (x : U256) : U256.toBeBytes x = Bytes.empty ↔ x = U256.zero :=
 
 example (x : U64) : U64.toBeBytes x = Bytes.empty ↔ x = U64.zero :=
   U64.toBeBytes_eq_empty_iff x
+
+
+example {α : Type} (f : UInt8 → α → α) (b : Bytes) (init : α) :
+    b.foldr f init = b.toList.foldr f init := Bytes.foldr_eq f init b
+
+example {n : Nat} (v : Nat) :
+    (FixedBytes.ofNat v : FixedBytes n).toNat = v % 2 ^ (8 * n) :=
+  FixedBytes.toNat_ofNat v
+
+example {n : Nat} (x : FixedBytes n) : FixedBytes.ofNat x.toNat = x :=
+  FixedBytes.ofNat_toNat x
+
+example {n : Nat} (v : Nat) :
+    (FixedBytes.ofLeNat v : FixedBytes n).toBytes =
+      Bytes.ofList (FixedBytes.ofNat v : FixedBytes n).toBytes.toList.reverse :=
+  FixedBytes.toBytes_ofLeNat_eq_reverse v
+
+example (v : Nat) : (Address.ofNat v).toNat = v % 2 ^ 160 :=
+  Address.toNat_ofNat v
+
+example (a : Address) : Address.ofNat a.toNat = a := Address.ofNat_toNat a
+
+example (v : Nat) : Uint.toBeBytes v = Uint.toBeBytesReference v :=
+  Uint.toBeBytes_eq_reference v

@@ -14,87 +14,115 @@ Spec guidance: `STFSpec/informal/modules/EthBase.md` §4.
 
 open STFSpec.Base
 
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 0)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 0)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 0)).toBytes = (List.replicate 32 0)
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 0)).toBytes = (List.replicate 32 0)
 #guard Bytes.toList (U256.toBeBytes (U256.ofNat 0)) = []
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 1)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 1)).toBytes = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 1)).toBytes = (List.replicate 31 0 ++ [1])
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 1)).toBytes = ([1] ++ List.replicate 31 0)
 #guard Bytes.toList (U256.toBeBytes (U256.ofNat 1)) = [1]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 255)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 255)).toBytes = [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 255)).toBytes = (List.replicate 31 0 ++ [255])
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 255)).toBytes = ([255] ++ List.replicate 31 0)
 #guard Bytes.toList (U256.toBeBytes (U256.ofNat 255)) = [255]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 256)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 256)).toBytes = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 256)).toBytes =
+  (List.replicate 30 0 ++ [1, 0])
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 256)).toBytes =
+  ([0, 1] ++ List.replicate 30 0)
 #guard Bytes.toList (U256.toBeBytes (U256.ofNat 256)) = [1, 0]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 257)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 257)).toBytes = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 257)).toBytes =
+  (List.replicate 30 0 ++ [1, 1])
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 257)).toBytes =
+  ([1, 1] ++ List.replicate 30 0)
 #guard Bytes.toList (U256.toBeBytes (U256.ofNat 257)) = [1, 1]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 57896044618658097711785492504343953926634992332820282019728792003956564819968)).toBytes = [128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 57896044618658097711785492504343953926634992332820282019728792003956564819968)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128]
-#guard Bytes.toList (U256.toBeBytes (U256.ofNat 57896044618658097711785492504343953926634992332820282019728792003956564819968)) = [128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U256.toBeBytes (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)) = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat 455867356320691211509944977504407603390036387149619137164185182714736811808)).toBytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
-#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat 455867356320691211509944977504407603390036387149619137164185182714736811808)).toBytes = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-#guard Bytes.toList (U256.toBeBytes (U256.ofNat 455867356320691211509944977504407603390036387149619137164185182714736811808)) = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat (2 ^ 255))).toBytes =
+  ([128] ++ List.replicate 31 0)
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat (2 ^ 255))).toBytes =
+  (List.replicate 31 0 ++ [128])
+#guard Bytes.toList (U256.toBeBytes (U256.ofNat (2 ^ 255))) = ([128] ++ List.replicate 31 0)
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat (2 ^ 256 - 1))).toBytes =
+  (List.replicate 32 255)
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat (2 ^ 256 - 1))).toBytes =
+  (List.replicate 32 255)
+#guard Bytes.toList (U256.toBeBytes (U256.ofNat (2 ^ 256 - 1))) = (List.replicate 32 255)
+#guard Bytes.toList (U256.toBeBytes32 (U256.ofNat
+  0x102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20)).toBytes =
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+  26, 27, 28, 29, 30, 31, 32]
+#guard Bytes.toList (U256.toLeBytes32 (U256.ofNat
+  0x102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20)).toBytes =
+  [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,
+  9, 8, 7, 6, 5, 4, 3, 2, 1]
+#guard Bytes.toList (U256.toBeBytes (U256.ofNat
+  0x102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20)) =
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+  26, 27, 28, 29, 30, 31, 32]
 #guard U256.ofBeBytes? (Bytes.ofList ([] : List UInt8)) = some U256.zero
 #guard U256.ofBeBytes? (Bytes.ofList ([0] : List UInt8)) = some U256.zero
-#guard U256.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U256.zero
-#guard U256.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U256.zero
-#guard U256.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
-#guard U256.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 31 0) : List UInt8)) = some U256.zero
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 32 0) : List UInt8)) = some U256.zero
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 33 0) : List UInt8)) = none
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 52 0) : List UInt8)) = none
 #guard U256.ofBeBytes? (Bytes.ofList ([1] : List UInt8)) = some (U256.ofNat 1)
 #guard U256.ofBeBytes? (Bytes.ofList ([0, 1] : List UInt8)) = some (U256.ofNat 1)
 #guard U256.ofBeBytes? (Bytes.ofList ([1, 0] : List UInt8)) = some (U256.ofNat 256)
-#guard U256.ofBeBytes? (Bytes.ofList ([255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255] : List UInt8)) = some (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)
-#guard U256.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] : List UInt8)) = some (U256.ofNat 1)
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 0)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 0)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0]
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 32 255) : List UInt8)) =
+  some (U256.ofNat (2 ^ 256 - 1))
+#guard U256.ofBeBytes? (Bytes.ofList ((List.replicate 31 0 ++ [1]) : List UInt8)) =
+  some (U256.ofNat 1)
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 0)).toBytes = (List.replicate 8 0)
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 0)).toBytes = (List.replicate 8 0)
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 0)) = []
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 1)).toBytes = [0, 0, 0, 0, 0, 0, 0, 1]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 1)).toBytes = [1, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 1)).toBytes = (List.replicate 7 0 ++ [1])
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 1)).toBytes = ([1] ++ List.replicate 7 0)
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 1)) = [1]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 255)).toBytes = [0, 0, 0, 0, 0, 0, 0, 255]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 255)).toBytes = [255, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 255)).toBytes = (List.replicate 7 0 ++ [255])
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 255)).toBytes = ([255] ++ List.replicate 7 0)
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 255)) = [255]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 256)).toBytes = [0, 0, 0, 0, 0, 0, 1, 0]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 256)).toBytes = [0, 1, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 256)).toBytes = (List.replicate 6 0 ++ [1, 0])
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 256)).toBytes = ([0, 1] ++ List.replicate 6 0)
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 256)) = [1, 0]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 257)).toBytes = [0, 0, 0, 0, 0, 0, 1, 1]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 257)).toBytes = [1, 1, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 257)).toBytes = (List.replicate 6 0 ++ [1, 1])
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 257)).toBytes = ([1, 1] ++ List.replicate 6 0)
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 257)) = [1, 1]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 9223372036854775808)).toBytes = [128, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 9223372036854775808)).toBytes = [0, 0, 0, 0, 0, 0, 0, 128]
-#guard Bytes.toList (U64.toBeBytes (U64.ofNat 9223372036854775808)) = [128, 0, 0, 0, 0, 0, 0, 0]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 18446744073709551615)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 18446744073709551615)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U64.toBeBytes (U64.ofNat 18446744073709551615)) = [255, 255, 255, 255, 255, 255, 255, 255]
-#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 72623859790382856)).toBytes = [1, 2, 3, 4, 5, 6, 7, 8]
-#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 72623859790382856)).toBytes = [8, 7, 6, 5, 4, 3, 2, 1]
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 9223372036854775808)).toBytes =
+  ([128] ++ List.replicate 7 0)
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 9223372036854775808)).toBytes =
+  (List.replicate 7 0 ++ [128])
+#guard Bytes.toList (U64.toBeBytes (U64.ofNat 9223372036854775808)) =
+  ([128] ++ List.replicate 7 0)
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat (2 ^ 64 - 1))).toBytes = (List.replicate 8 255)
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat (2 ^ 64 - 1))).toBytes = (List.replicate 8 255)
+#guard Bytes.toList (U64.toBeBytes (U64.ofNat (2 ^ 64 - 1))) = (List.replicate 8 255)
+#guard Bytes.toList (U64.toBeBytes8 (U64.ofNat 72623859790382856)).toBytes =
+  [1, 2, 3, 4, 5, 6, 7, 8]
+#guard Bytes.toList (U64.toLeBytes8 (U64.ofNat 72623859790382856)).toBytes =
+  [8, 7, 6, 5, 4, 3, 2, 1]
 #guard Bytes.toList (U64.toBeBytes (U64.ofNat 72623859790382856)) = [1, 2, 3, 4, 5, 6, 7, 8]
 #guard U64.ofBeBytes? (Bytes.ofList ([] : List UInt8)) = some U64.zero
 #guard U64.ofLeBytes? (Bytes.ofList ([] : List UInt8)) = some U64.zero
 #guard U64.ofBeBytes? (Bytes.ofList ([0] : List UInt8)) = some U64.zero
 #guard U64.ofLeBytes? (Bytes.ofList ([0] : List UInt8)) = some U64.zero
-#guard U64.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U64.zero
-#guard U64.ofLeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U64.zero
-#guard U64.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U64.zero
-#guard U64.ofLeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = some U64.zero
-#guard U64.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
-#guard U64.ofLeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
-#guard U64.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
-#guard U64.ofLeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = none
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 7 0) : List UInt8)) = some U64.zero
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 7 0) : List UInt8)) = some U64.zero
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 8 0) : List UInt8)) = some U64.zero
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 8 0) : List UInt8)) = some U64.zero
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 9 0) : List UInt8)) = none
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 9 0) : List UInt8)) = none
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 28 0) : List UInt8)) = none
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 28 0) : List UInt8)) = none
 #guard U64.ofBeBytes? (Bytes.ofList ([1] : List UInt8)) = some (U64.ofNat 1)
 #guard U64.ofLeBytes? (Bytes.ofList ([1] : List UInt8)) = some (U64.ofNat 1)
 #guard U64.ofBeBytes? (Bytes.ofList ([0, 1] : List UInt8)) = some (U64.ofNat 1)
 #guard U64.ofLeBytes? (Bytes.ofList ([0, 1] : List UInt8)) = some (U64.ofNat 256)
 #guard U64.ofBeBytes? (Bytes.ofList ([1, 0] : List UInt8)) = some (U64.ofNat 256)
 #guard U64.ofLeBytes? (Bytes.ofList ([1, 0] : List UInt8)) = some (U64.ofNat 1)
-#guard U64.ofBeBytes? (Bytes.ofList ([255, 255, 255, 255, 255, 255, 255, 255] : List UInt8)) = some (U64.ofNat 18446744073709551615)
-#guard U64.ofLeBytes? (Bytes.ofList ([255, 255, 255, 255, 255, 255, 255, 255] : List UInt8)) = some (U64.ofNat 18446744073709551615)
-#guard U64.ofBeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 1] : List UInt8)) = some (U64.ofNat 1)
-#guard U64.ofLeBytes? (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 1] : List UInt8)) = some (U64.ofNat 72057594037927936)
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 8 255) : List UInt8)) =
+  some (U64.ofNat (2 ^ 64 - 1))
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 8 255) : List UInt8)) =
+  some (U64.ofNat (2 ^ 64 - 1))
+#guard U64.ofBeBytes? (Bytes.ofList ((List.replicate 7 0 ++ [1]) : List UInt8)) =
+  some (U64.ofNat 1)
+#guard U64.ofLeBytes? (Bytes.ofList ((List.replicate 7 0 ++ [1]) : List UInt8)) =
+  some (U64.ofNat 72057594037927936)
 #guard Bytes.toList (Uint.toBeBytes 0) = []
 #guard Uint.ofBeBytes (Uint.toBeBytes 0) = 0
 #guard Uint.toBeBytes32? 0 = some (U256.toBeBytes32 (U256.ofNat 0))
@@ -110,48 +138,63 @@ open STFSpec.Base
 #guard Bytes.toList (Uint.toBeBytes 257) = [1, 1]
 #guard Uint.ofBeBytes (Uint.toBeBytes 257) = 257
 #guard Uint.toBeBytes32? 257 = some (U256.toBeBytes32 (U256.ofNat 257))
-#guard Bytes.toList (Uint.toBeBytes 18446744073709551615) = [255, 255, 255, 255, 255, 255, 255, 255]
-#guard Uint.ofBeBytes (Uint.toBeBytes 18446744073709551615) = 18446744073709551615
-#guard Uint.toBeBytes32? 18446744073709551615 = some (U256.toBeBytes32 (U256.ofNat 18446744073709551615))
-#guard Bytes.toList (Uint.toBeBytes 18446744073709551616) = [1, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard Uint.ofBeBytes (Uint.toBeBytes 18446744073709551616) = 18446744073709551616
-#guard Uint.toBeBytes32? 18446744073709551616 = some (U256.toBeBytes32 (U256.ofNat 18446744073709551616))
-#guard Bytes.toList (Uint.toBeBytes 115792089237316195423570985008687907853269984665640564039457584007913129639935) = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard Uint.ofBeBytes (Uint.toBeBytes 115792089237316195423570985008687907853269984665640564039457584007913129639935) = 115792089237316195423570985008687907853269984665640564039457584007913129639935
-#guard Uint.toBeBytes32? 115792089237316195423570985008687907853269984665640564039457584007913129639935 = some (U256.toBeBytes32 (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935))
-#guard Bytes.toList (Uint.toBeBytes 115792089237316195423570985008687907853269984665640564039457584007913129639936) = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard Uint.ofBeBytes (Uint.toBeBytes 115792089237316195423570985008687907853269984665640564039457584007913129639936) = 115792089237316195423570985008687907853269984665640564039457584007913129639936
-#guard Uint.toBeBytes32? 115792089237316195423570985008687907853269984665640564039457584007913129639936 = none
-#guard Bytes.toList (Uint.toBeBytes 1044388881413152506691752710716624382579964249047383780384233483283953907971557456848826811934997558340890106714439262837987573438185793607263236087851365277945956976543709998340361590134383718314428070011855946226376318839397712745672334684344586617496807908705803704071284048740118609114467977783598029006686938976881787785946905630190260940599579453432823469303026696443059025015972399867714215541693835559885291486318237914434496734087811872639496475100189041349008417061675093668333850551032972088269550769983616369411933015213796825837188091833656751221318492846368125550225998300412344784862595674492194617023806505913245610825731835380087608622102834270197698202313169017678006675195485079921636419370285375124784014907159135459982790513399611551794271106831134090584272884279791554849782954323534517065223269061394905987693002122963395687782878948440616007412945674919823050571642377154816321380631045902916136926708342856440730447899971901781465763473223850267253059899795996090799469201774624817718449867455659250178329070473119433165550807568221846571746373296884912819520317457002440926616910874148385078411929804522981857338977648103126085903001302413467189726673216491511131602920781738033436090243804708340403154190591) = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255]
-#guard Uint.ofBeBytes (Uint.toBeBytes 1044388881413152506691752710716624382579964249047383780384233483283953907971557456848826811934997558340890106714439262837987573438185793607263236087851365277945956976543709998340361590134383718314428070011855946226376318839397712745672334684344586617496807908705803704071284048740118609114467977783598029006686938976881787785946905630190260940599579453432823469303026696443059025015972399867714215541693835559885291486318237914434496734087811872639496475100189041349008417061675093668333850551032972088269550769983616369411933015213796825837188091833656751221318492846368125550225998300412344784862595674492194617023806505913245610825731835380087608622102834270197698202313169017678006675195485079921636419370285375124784014907159135459982790513399611551794271106831134090584272884279791554849782954323534517065223269061394905987693002122963395687782878948440616007412945674919823050571642377154816321380631045902916136926708342856440730447899971901781465763473223850267253059899795996090799469201774624817718449867455659250178329070473119433165550807568221846571746373296884912819520317457002440926616910874148385078411929804522981857338977648103126085903001302413467189726673216491511131602920781738033436090243804708340403154190591) = 1044388881413152506691752710716624382579964249047383780384233483283953907971557456848826811934997558340890106714439262837987573438185793607263236087851365277945956976543709998340361590134383718314428070011855946226376318839397712745672334684344586617496807908705803704071284048740118609114467977783598029006686938976881787785946905630190260940599579453432823469303026696443059025015972399867714215541693835559885291486318237914434496734087811872639496475100189041349008417061675093668333850551032972088269550769983616369411933015213796825837188091833656751221318492846368125550225998300412344784862595674492194617023806505913245610825731835380087608622102834270197698202313169017678006675195485079921636419370285375124784014907159135459982790513399611551794271106831134090584272884279791554849782954323534517065223269061394905987693002122963395687782878948440616007412945674919823050571642377154816321380631045902916136926708342856440730447899971901781465763473223850267253059899795996090799469201774624817718449867455659250178329070473119433165550807568221846571746373296884912819520317457002440926616910874148385078411929804522981857338977648103126085903001302413467189726673216491511131602920781738033436090243804708340403154190591
-#guard Uint.toBeBytes32? 1044388881413152506691752710716624382579964249047383780384233483283953907971557456848826811934997558340890106714439262837987573438185793607263236087851365277945956976543709998340361590134383718314428070011855946226376318839397712745672334684344586617496807908705803704071284048740118609114467977783598029006686938976881787785946905630190260940599579453432823469303026696443059025015972399867714215541693835559885291486318237914434496734087811872639496475100189041349008417061675093668333850551032972088269550769983616369411933015213796825837188091833656751221318492846368125550225998300412344784862595674492194617023806505913245610825731835380087608622102834270197698202313169017678006675195485079921636419370285375124784014907159135459982790513399611551794271106831134090584272884279791554849782954323534517065223269061394905987693002122963395687782878948440616007412945674919823050571642377154816321380631045902916136926708342856440730447899971901781465763473223850267253059899795996090799469201774624817718449867455659250178329070473119433165550807568221846571746373296884912819520317457002440926616910874148385078411929804522981857338977648103126085903001302413467189726673216491511131602920781738033436090243804708340403154190591 = none
+#guard Bytes.toList (Uint.toBeBytes (2 ^ 64 - 1)) = (List.replicate 8 255)
+#guard Uint.ofBeBytes (Uint.toBeBytes (2 ^ 64 - 1)) = (2 ^ 64 - 1)
+#guard Uint.toBeBytes32? (2 ^ 64 - 1) = some (U256.toBeBytes32 (U256.ofNat (2 ^ 64 - 1)))
+#guard Bytes.toList (Uint.toBeBytes (2 ^ 64)) = ([1] ++ List.replicate 8 0)
+#guard Uint.ofBeBytes (Uint.toBeBytes (2 ^ 64)) = (2 ^ 64)
+#guard Uint.toBeBytes32? (2 ^ 64) = some (U256.toBeBytes32 (U256.ofNat (2 ^ 64)))
+#guard Bytes.toList (Uint.toBeBytes (2 ^ 256 - 1)) = (List.replicate 32 255)
+#guard Uint.ofBeBytes (Uint.toBeBytes (2 ^ 256 - 1)) = (2 ^ 256 - 1)
+#guard Uint.toBeBytes32? (2 ^ 256 - 1) = some (U256.toBeBytes32 (U256.ofNat (2 ^ 256 - 1)))
+#guard Bytes.toList (Uint.toBeBytes (2 ^ 256)) = ([1] ++ List.replicate 32 0)
+#guard Uint.ofBeBytes (Uint.toBeBytes (2 ^ 256)) = (2 ^ 256)
+#guard Uint.toBeBytes32? (2 ^ 256) = none
+#guard Bytes.toList (Uint.toBeBytes (2 ^ 4096 + 255)) = ([1] ++ List.replicate 511 0 ++ [255])
+#guard Uint.ofBeBytes (Uint.toBeBytes (2 ^ 4096 + 255)) = (2 ^ 4096 + 255)
+#guard Uint.toBeBytes32? (2 ^ 4096 + 255) = none
 #guard Uint.ofBeBytes (Bytes.ofList ([] : List UInt8)) = 0
 #guard Uint.ofLeBytes (Bytes.ofList ([] : List UInt8)) = 0
 #guard Uint.ofBeBytes (Bytes.ofList ([0] : List UInt8)) = 0
 #guard Uint.ofLeBytes (Bytes.ofList ([0] : List UInt8)) = 0
-#guard Uint.ofBeBytes (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = 0
-#guard Uint.ofLeBytes (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : List UInt8)) = 0
-#guard Uint.ofBeBytes (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] : List UInt8)) = 1
-#guard Uint.ofLeBytes (Bytes.ofList ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] : List UInt8)) = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096
+#guard Uint.ofBeBytes (Bytes.ofList ((List.replicate 33 0) : List UInt8)) = 0
+#guard Uint.ofLeBytes (Bytes.ofList ((List.replicate 33 0) : List UInt8)) = 0
+#guard Uint.ofBeBytes (Bytes.ofList ((List.replicate 64 0 ++ [1]) : List UInt8)) = 1
+#guard Uint.ofLeBytes (Bytes.ofList ((List.replicate 64 0 ++ [1]) : List UInt8)) = (2 ^ 512)
 #guard Uint.ofBeBytes (Bytes.ofList ([1, 0] : List UInt8)) = 256
 #guard Uint.ofLeBytes (Bytes.ofList ([1, 0] : List UInt8)) = 1
 #guard Uint.ofBeBytes (Bytes.ofList ([0, 1] : List UInt8)) = 1
 #guard Uint.ofLeBytes (Bytes.ofList ([0, 1] : List UInt8)) = 256
-#guard Uint.ofBeBytes (Bytes.ofList ([255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255] : List UInt8)) = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095
-#guard Uint.ofLeBytes (Bytes.ofList ([255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255] : List UInt8)) = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095
+#guard Uint.ofBeBytes (Bytes.ofList ((List.replicate 64 255) : List UInt8)) = (2 ^ 512 - 1)
+#guard Uint.ofLeBytes (Bytes.ofList ((List.replicate 64 255) : List UInt8)) = (2 ^ 512 - 1)
 #guard (Address.ofU256Masked (U256.ofNat 0)).toNat = 0
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 0)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 0)).toBytes = (List.replicate 20 0)
 #guard (Address.ofU256Masked (U256.ofNat 1)).toNat = 1
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-#guard (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542975)).toNat = 1461501637330902918203684832716283019655932542975
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542975)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542976)).toNat = 0
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542976)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#guard (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542977)).toNat = 1
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1461501637330902918203684832716283019655932542977)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-#guard (Address.ofU256Masked (U256.ofNat 57896044618658097711785492504343953926634992332820282019728792003956564819985)).toNat = 17
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 57896044618658097711785492504343953926634992332820282019728792003956564819985)).toBytes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17]
-#guard (Address.ofU256Masked (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)).toNat = 1461501637330902918203684832716283019655932542975
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 115792089237316195423570985008687907853269984665640564039457584007913129639935)).toBytes = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
-#guard (Address.ofU256Masked (U256.ofNat 1780731860627700044960722568376592200742329637303199754547598369979440671)).toNat = 68799023635061804423244587050281312159428058655
-#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1780731860627700044960722568376592200742329637303199754547598369979440671)).toBytes = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat 1)).toBytes = (List.replicate 19 0 ++ [1])
+#guard (Address.ofU256Masked (U256.ofNat (2 ^ 160 - 1))).toNat = (2 ^ 160 - 1)
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat (2 ^ 160 - 1))).toBytes =
+  (List.replicate 20 255)
+#guard (Address.ofU256Masked (U256.ofNat (2 ^ 160))).toNat = 0
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat (2 ^ 160))).toBytes =
+  (List.replicate 20 0)
+#guard (Address.ofU256Masked (U256.ofNat (2 ^ 160 + 1))).toNat = 1
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat (2 ^ 160 + 1))).toBytes =
+  (List.replicate 19 0 ++ [1])
+#guard (Address.ofU256Masked (U256.ofNat (2 ^ 255 + 17))).toNat = 17
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat (2 ^ 255 + 17))).toBytes =
+  (List.replicate 19 0 ++ [17])
+#guard (Address.ofU256Masked (U256.ofNat (2 ^ 256 - 1))).toNat = (2 ^ 160 - 1)
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat (2 ^ 256 - 1))).toBytes =
+  (List.replicate 20 255)
+#guard (Address.ofU256Masked (U256.ofNat
+  0x102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f)).toNat =
+  0xc0d0e0f101112131415161718191a1b1c1d1e1f
+#guard Bytes.toList (Address.ofU256Masked (U256.ofNat
+  0x102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f)).toBytes =
+  [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+
+#guard (FixedBytes.ofNat 0 : FixedBytes 0).toNat = 0
+#guard (FixedBytes.ofNat 256 : FixedBytes 1).toBytes.toList = [0]
+#guard (FixedBytes.ofLeNat 256 : FixedBytes 0).toBytes.toList = []
+#guard (FixedBytes.ofLeNat 0x0102 : FixedBytes 2).toBytes.toList = [2, 1]
+#guard (Address.ofNat (2 ^ 160 + 1)).toNat = 1

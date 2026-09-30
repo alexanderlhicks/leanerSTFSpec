@@ -49,7 +49,7 @@ def size (b : Bytes) : Nat := b.raw.size
 def toList (b : Bytes) : List UInt8 := b.raw.data.toList
 
 /-- Fold bytes from left to right through the packed buffer, without allocating a list. -/
-def foldl {α : Type u} (f : α → UInt8 → α) (init : α) (b : Bytes) : α :=
+@[inline] def foldl {α : Type u} (f : α → UInt8 → α) (init : α) (b : Bytes) : α :=
   b.raw.foldl f init
 
 /-- Append one byte to the packed sequence. -/
@@ -73,6 +73,15 @@ def extract (b : Bytes) (start stop : Nat) : Bytes :=
 /-- Bounds-checked byte access through the stable sequence API. -/
 instance : GetElem Bytes Nat UInt8 (fun b i ↦ i < b.size) where
   getElem b i h := b.raw[i]'h
+
+@[specialize] private def foldrAux {α : Type u} (f : UInt8 → α → α) (b : Bytes) :
+    (i : Nat) → i ≤ b.size → α → α
+  | 0, _, acc => acc
+  | i + 1, h, acc => foldrAux f b i (by omega) (f (b[i]'(by omega)) acc)
+
+/-- Fold packed bytes from right to left without constructing a list. -/
+@[inline] def foldr {α : Type u} (f : UInt8 → α → α) (init : α) (b : Bytes) : α :=
+  foldrAux f b b.size (Nat.le_refl _) init
 
 /-- Explicit packed construction preserves the input size. -/
 theorem size_ofByteArray (b : ByteArray) : (ofByteArray b).size = b.size := rfl
@@ -234,8 +243,24 @@ theorem foldl_eq {α : Type u} (f : α → UInt8 → α) (init : α) (b : Bytes)
   rw [byteFold_model _ _ _ _ _ (Nat.add_zero _)]
   simp [toList]
 
+private theorem foldrAux_eq {α : Type u} (f : UInt8 → α → α) (b : Bytes)
+    (i : Nat) (h : i ≤ b.size) (acc : α) :
+    foldrAux f b i h acc = (b.toList.take i).foldr f acc := by
+  induction i generalizing acc with
+  | zero => simp [foldrAux]
+  | succ i ih =>
+    rw [foldrAux, ih]
+    rw [List.take_succ_eq_append_getElem (by rw [length_toList]; omega)]
+    simp only [List.foldr_append, List.foldr_cons, List.foldr_nil]
+    rw [getElem_toList b i (by omega)]
+
+/-- The packed right fold agrees with the stable list-model fold. -/
+theorem foldr_eq {α : Type u} (f : UInt8 → α → α) (init : α) (b : Bytes) :
+    b.foldr f init = b.toList.foldr f init := by
+  rw [foldr, foldrAux_eq, ← length_toList, List.take_length]
+
 -- The tail-recursive loop owns a single packed buffer. Its model is a list window.
-private def generateAux (f : Nat → UInt8) : Nat → Nat → ByteArray → ByteArray
+@[specialize] private def generateAux (f : Nat → UInt8) : Nat → Nat → ByteArray → ByteArray
   | 0, _, acc => acc
   | remaining + 1, index, acc => generateAux f remaining (index + 1) (acc.push (f index))
 
@@ -249,7 +274,7 @@ private theorem generateAux_model (f : Nat → UInt8) (remaining index : Nat) (a
 
 /-- Build exactly `n` bytes by visiting indices `0` through `n-1` in a packed buffer.
 The function is evaluated only at result indices; no boxed array is allocated. -/
-def generate (n : Nat) (f : Nat → UInt8) : Bytes :=
+@[inline] def generate (n : Nat) (f : Nat → UInt8) : Bytes :=
   ofByteArray (generateAux f n 0 (ByteArray.emptyWithCapacity n))
 
 /-- The packed generator equals the legible list-range model. -/
