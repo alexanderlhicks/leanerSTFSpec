@@ -10,6 +10,8 @@ import STFSpec.Conformance.Base.U256Bitwise
 import STFSpec.Conformance.Base.U256BitwiseClient
 import STFSpec.Conformance.Base.Numeric
 import STFSpec.Conformance.Base.NumericClient
+import STFSpec.Conformance.Base.U256Signed
+import STFSpec.Conformance.Base.U256SignedClient
 
 /-!
 # STFSpec.Conformance
@@ -17,8 +19,8 @@ import STFSpec.Conformance.Base.NumericClient
 Conformance: EEST fixture runners and `core` `#guard` suites.
 
 Library `EthConformance`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). The U256 constructor/arithmetic/bitwise guards
-and independent numeric-helper guards and client proof tests are implemented;
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The U256 constructor/arithmetic/bitwise/signed
+guards and independent numeric-helper guards and client proof tests are implemented;
 guest runners remain absent.
 Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 -/

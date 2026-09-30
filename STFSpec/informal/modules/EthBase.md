@@ -108,7 +108,7 @@ Each is specified as follows:
 The following declarations are in `STFSpec/Base/U256.lean`, namespace
 `STFSpec.Base.U256` (the structure is `STFSpec.Base.U256`). All rows are
 **discharged for this slice**: total, pure and without state effects. The source is the
-locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic, comparison/bitwise and independent numeric-helper slices below are also implemented;
+locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic, comparison/bitwise, signed division/remainder and independent numeric-helper slices below are also implemented;
 all other APIs remain **unimplemented** and the module's draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
 are the stable Lean observer/checked-result names for Python `__int__`/`to_signed`
 and `U256(...)`/`from_signed`; `ofNat` is an additional wrapping model helper.
@@ -150,8 +150,8 @@ EELS handlers: stack admission/pop/push, gas charging, PC updates and frame erro
 priority remain owned by `EthVmInstructions` and are not claimed implemented here.
 Checked failures return `none`; their named fault and first-handler projection belong
 to each consumer under D14/B14. Same-type operands make Python `TypeError` cases
-unreachable at this seam. Signed division/remainder and exponentiation remain
-**unimplemented**, as do the APIs outside the discharged slices.
+unreachable at this seam. Signed division/remainder are implemented in their own slice below; exponentiation
+remains **unimplemented**, as do the APIs outside the discharged slices.
 
 | Source at the pin (dependencies: `ethereum-types` 0.4.1) | Lean declaration and public type | Success/model observation | Ordered failures / consumer | Public laws | Regression evidence |
 |---|---|---|---|---|---|
@@ -175,7 +175,7 @@ instances to `U256`: `add_comm`, `add_assoc`, `add_zero`, `zero_add`, `mul_comm`
 Together these provide the addition/multiplication identities, associativity,
 commutativity, distributivity and additive inverse (`sub zero a`) required by §7.
 `div_mod_decomposition` uses an unbounded product/sum; `div_mod_eq` proves the word-level
-reconstruction too. Signed arithmetic remains unimplemented; the shift model and saturation laws are in the comparison/bitwise slice below. Derived small-shift composition remains open (§10).
+reconstruction too. Signed division/remainder and the shift model/saturation laws are in their own slices below. Derived small-shift composition remains open (§10).
 
 Regression paths are under `STFSpec/Conformance/Base/`; `U256ArithmeticClient.lean`
 contains fixed caller proofs using only public observers and operation laws, imported
@@ -289,6 +289,46 @@ locked `Uint` subtraction directly, with no handler abstraction. Seed 4001 suppl
 at six scales and huge inputs; all 516 generated guards run outside the worktree.
 Oracle observations are uncommitted bug-finding evidence, not normative fixtures.
 No EEST guest records are executed.
+
+### Implemented signed division and remainder slice
+
+`STFSpec/Base/U256Signed.lean` implements `sdiv` and `smod` in `STFSpec.Base.U256`.
+Both rows below are **discharged for operation values** on all word pairs, in EELS's
+first-popped argument order, with no state effects. The definitions expose the source's
+zero-divisor guards; SDIV also exposes the signed minimum/−1 case before truncated
+division. The ordinary quotient and every truncated remainder are proved to lie in
+`[−2^255, 2^255)`, and the checked signed constructor succeeds for each complete guarded
+model. No failure branch or unchecked fallback is assumed dead. The Lean primitive names
+follow §5 and the EELS handler names. Stack admission/pop/push, gas charging, PC updates
+and frame-error precedence remain owned by EthVmInstructions; their O8 behavior is not
+claimed implemented here. The locked dependency is `ethereum-types` 0.4.1.
+
+| Source at the pin | Lean declaration and public type | Accepted domain / success observation and ordered guards | Ordered failures / consumer | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:142` (`sdiv`); `ethereum_types/numeric.py:675,594` (`to_signed`, `from_signed`) | `sdiv : U256 → U256 → U256` | All word pairs. First, signed divisor zero returns 0; second, signed dividend `−2^255` and divisor −1 return `−2^255`; otherwise `Int.tdiv` truncates toward zero | No failures at the value seam: `tdiv_in_signed_range` proves ordinary-branch range, and `ofInt?_sdiv` proves checked construction succeeds for the full guarded model. Opcode stack/gas failures and first consuming frame handler are owned by EthVmInstructions (O8); no new primitive fault constructor is introduced (D14/B14) | `toInt_sdiv`, `tdiv_in_signed_range`, `ofInt?_tdiv`, `ofInt?_sdiv`, `sdiv_eq_zero_of_toInt_eq_zero`, `sdiv_zero`, `sdiv_eq_left_of_min_neg_one` | `U256Signed.lean`: all sign combinations, zero divisors, signed min/−1, min/1, min/min, signed max/−1, odd divisors; actual-handler differential |
+| EELS `forks/amsterdam/vm/instructions/arithmetic.py:205` (`smod`); `ethereum_types/numeric.py:675,594` (`to_signed`, `from_signed`) | `smod : U256 → U256 → U256` | All word pairs. Signed divisor zero returns 0 before remainder; otherwise `Int.tmod`, whose nonzero result has the dividend's sign | No failures at the value seam: `tmod_in_signed_range` proves remainder range, and `ofInt?_smod` proves checked construction succeeds for the full guarded model. Opcode stack/gas failures and first consuming frame handler are owned by EthVmInstructions (O8); no new primitive fault constructor is introduced (D14/B14) | `toInt_smod`, `tmod_in_signed_range`, `ofInt?_tmod`, `ofInt?_smod`, `smod_eq_zero_of_toInt_eq_zero`, `smod_zero` | `U256Signed.lean`: all sign combinations, zero divisors, min/±1, min/min, max/−1, negative odd remainders; actual-handler differential |
+
+The two core range proofs cover positive and negative observers and use bounds on
+natural quotient/remainder magnitudes. For SDIV, the only possible positive endpoint
+is excluded by its explicit minimum/−1 guard. The operation model laws then justify
+encoding with `BitVec.ofInt`; `ofInt?_tdiv` and `ofInt?_tmod` establish ordinary-branch
+checked-constructor success, while `ofInt?_sdiv` and `ofInt?_smod` cover every source
+branch, including zero and SDIV's special case. These proofs discharge these local
+conversion sites, without closing the global X1 failure ledger.
+
+The Conformance root imports 52 deterministic guards in
+`STFSpec/Conformance/Base/U256Signed.lean` and nine fixed caller proofs in
+`U256SignedClient.lean`, using only public laws and constructors. The driver
+`STFSpec/Conformance/Base/u256_signed_differential.py` verifies the pin, unchanged tracked
+EELS source/lock and dependency version, then invokes the two actual handlers through a
+minimal funded frame supplying stack, PC and a real EELS `GasMeter`, with the discard
+tracer. It compares only unsigned/signed word values and their checked signed construction;
+it claims no Lean gas, stack, PC, tracing or guest fidelity. Seed 2563 supplies all 196
+pairs of 14 signed boundaries, 128 random word pairs and 64 random dividends with small
+signed/zero divisors: 388 cases per operation, generating 2,328 guards. Invoke the frozen
+EELS venv's Python with `--eels <checkout> --output <ignored-evidence-file.lean>`.
+Generated observations are executed in Lean outside the worktree and EELS checkout;
+no oracle expected values are committed and no EEST guest records are executed.
 
 ## 4. Tests
 
@@ -527,7 +567,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **U256 value, unsigned arithmetic and comparison/bitwise slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod, checkedAdd/Sub/Mul/Div/Mod, comparisons, Boolean comparison helpers, bit logic, BYTE, SIGNEXTEND, shifts, bit length and CLZ laws are discharged for operation values in §3. `Uint := Nat`, checked `Uint.sub?` and `ceil32` are also discharged in §3. Signed division/remainder, exponentiation, byte conversions, narrow integer APIs, other unbounded integer helpers and remaining records are unimplemented. `U256Client.lean`, `U256ArithmeticClient.lean` and `U256BitwiseClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **U256 value, unsigned arithmetic, comparison/bitwise and signed division/remainder slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod, checkedAdd/Sub/Mul/Div/Mod, comparisons, Boolean comparison helpers, bit logic, BYTE, SIGNEXTEND, shifts, bit length, CLZ, signed division/remainder and checked signed-result construction laws are discharged for operation values in §3. `Uint := Nat`, checked `Uint.sub?` and `ceil32` are also discharged in §3. Exponentiation, byte conversions, narrow integer APIs, other unbounded integer helpers and remaining records are unimplemented. `U256Client.lean`, `U256ArithmeticClient.lean`, `U256BitwiseClient.lean` and `U256SignedClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Derived small-shift composition laws.** EthBase owns the §7 composition equations for SHL, SHR and SAR when the sum of the unsigned shift amounts is below 256. The comparison/bitwise slice discharges only the named model, guard and saturation laws in §3; no named Lean theorem or caller proof for these derived composition equations is implemented. They remain a separate law work item, with public observer-based proofs and boundary cases required.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -540,4 +580,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, checked unsigned arithmetic with dependency operators, and comparisons/bitwise/shifts with actual pinned handlers. The numeric-helper driver also compares checked `Uint` subtraction and actual EELS `ceil32`. Signed arithmetic, exponentiation and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
+- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, checked unsigned arithmetic with dependency operators, comparisons/bitwise/shifts with actual pinned handlers, and signed division/remainder with actual pinned handlers. The numeric-helper driver also compares checked `Uint` subtraction and actual EELS `ceil32`. Exponentiation and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
