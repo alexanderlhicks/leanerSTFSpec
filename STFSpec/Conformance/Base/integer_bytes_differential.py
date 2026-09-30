@@ -2,8 +2,10 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare integer byte APIs with locked ethereum-types and actual EELS masking.
 
-Run with EELS/.venv/bin/python and --eels EELS --output SCRATCH/observations.lean.
-Generated evidence must be outside both repositories. No reference bytecode is written.
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/integer_bytes_differential.py \
+    --eels /tmp/eels --output /tmp/integer-bytes.lean
+Generated evidence must be outside both repositories. Reference caches are bypassed.
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4.
 """
 
@@ -38,7 +40,8 @@ def main():
             x = cls(n)
             for endian in ["be", "le"]:
                 result = getattr(x, f"to_{endian}_bytes{width}")()
-                guards.append(f"#guard Bytes.toList ({cls.__name__}.to{endian.title()}Bytes{width} "
+                operation = f"{cls.__name__}.to{endian.title()}Bytes{width}"
+                guards.append(f"#guard Bytes.toList ({operation} "
                               f"({cls.__name__}.ofNat {n})).toBytes = {list(result)}")
                 counts["fixed_outputs"] += 1
             guards.append(f"#guard Bytes.toList ({cls.__name__}.toBeBytes "
@@ -80,7 +83,7 @@ def main():
         else:
             expected = f"some {list(result)}"
         guards.append(f"#guard (Uint.toBeBytes32? {n}).map "
-                      f"(fun x => Bytes.toList x.toBytes) = {expected}")
+                      f"(fun x ↦ Bytes.toList x.toBytes) = {expected}")
         counts["uint_fixed32_outputs"] += 1
     for length in [0, 1, 7, 8, 9, 31, 32, 33, 64, 65, 256, 512]:
         for data in [bytes(length), bytes([255])*length,
@@ -90,12 +93,8 @@ def main():
                 guards.append(f"#guard Uint.of{endian.title()}Bytes "
                               f"{lean_bytes(data)} = {int(result)}")
                 counts["unbounded_decodes"] += 1
-    dependency_sources = {
-        str(path): {"sha256_urlsafe": digest, "size": size}
-        for path, (digest, size) in context.dependency_hashes.items()
-    }
     return context.run(guards, counts=counts, oracle_sources=context.oracle_blobs,
-                       dependency_sources=dependency_sources,
+                       dependency_sources=context.dependency_sources(),
                        dependency_record=str(context.dependency_record))
 
 

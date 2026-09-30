@@ -2,7 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare primitive records and four concrete constants with the pinned EELS.
 
-Run with the frozen EELS venv's Python, --eels EELS --output SCRATCH/records.lean.
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/value_records_differential.py \
+    --eels /tmp/eels --output /tmp/value-records.lean
 Sources: ethereum/state.py:36, merkle_patricia_trie.py:71, amsterdam/fork.py:116,
 amsterdam/vm/__init__.py:40, and amsterdam/fork_types.py:45,58,62,87.
 Generated observations are uncommitted evidence, not normative fixtures.
@@ -39,11 +41,12 @@ def main():
     for module in (merkle_patricia_trie, state, hash_module, fork, fork_types, vm):
         relative = Path(module.__file__).resolve().relative_to(context.eels / "src").as_posix()
         path = context.check_source(module, relative)
-        sources[path.relative_to(context.eels).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        relative = path.relative_to(context.eels).as_posix()
+        sources[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
     dependencies = {}
     for module in (bytes_module, numeric):
-        path = context.check_source(module, f"ethereum_types/{module.__name__.rsplit('.', 1)[1]}.py",
-                                    dependency=True)
+        relative = f"ethereum_types/{module.__name__.rsplit('.', 1)[1]}.py"
+        path = context.check_source(module, relative, dependency=True)
         dependencies[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     tree = ast.parse(Path(fork_types.__file__).read_bytes())
     classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
@@ -103,16 +106,13 @@ def main():
                   f"U8.ofNat {int(a.y_parity)}, U256.ofNat {int(a.r)}, U256.ofNat {int(a.s)}⟩; ")
         for lean_name, source_name in (("chainId", "chain_id"), ("nonce", "nonce"),
                                       ("yParity", "y_parity"), ("r", "r"), ("s", "s")):
-            guards.append(f"#guard {record}auth.{lean_name}.toNat = {int(getattr(a, source_name))}")
+            value = int(getattr(a, source_name))
+            guards.append(f"#guard {record}auth.{lean_name}.toNat = {value}")
         guards.append(f"#guard {record}auth.address.toBytes = {byte_expr}")
-    dependency_sources = {
-        str(path): {"sha256_urlsafe": digest, "size": size}
-        for path, (digest, size) in context.dependency_hashes.items()
-    }
     return context.run(guards, versions=versions, sources=sources, dependencies=dependencies,
                        fields=expected_fields, vectors=vectors, charge_pairs=len(pairs),
                        authorization_cases=len(cases), oracle_sources=context.oracle_blobs,
-                       dependency_sources=dependency_sources,
+                       dependency_sources=context.dependency_sources(),
                        dependency_record=str(context.dependency_record))
 
 

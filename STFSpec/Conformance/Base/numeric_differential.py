@@ -3,8 +3,8 @@
 """Generate and run Uint.sub?/ceil32 guards against the pinned Python source.
 
 Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/numeric_differential.py \
-    --eels EELS --output SCRATCH/numeric-differential.lean
+  EELS/.venv/bin/python -I STFSpec/Conformance/Base/numeric_differential.py \
+    --eels EELS --output /tmp/numeric-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. Sources are EELS
 src/ethereum/utils/numeric.py:43 and locked ethereum_types/numeric.py:103,517,539.

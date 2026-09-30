@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare nested and combined shifts with actual pinned EELS handlers.
 
-Run with EELS/.venv/bin/python and --eels EELS --output SCRATCH.lean.
+Run with EELS/.venv/bin/python -I and --eels EELS --output /tmp/u256-shift.lean.
 Only operation values are compared; no Lean opcode effects or guest conformance
 are claimed. Generated observations must stay outside both repositories.
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4.

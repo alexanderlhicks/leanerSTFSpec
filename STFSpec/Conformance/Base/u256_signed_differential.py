@@ -3,7 +3,7 @@
 """Compare signed U256 operation values with the actual pinned EELS handlers.
 
 Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/u256_signed_differential.py \
+  EELS/.venv/bin/python -I STFSpec/Conformance/Base/u256_signed_differential.py \
     --eels EELS --output /tmp/signed-differential.lean
 
 Sources: EELS src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:142,205;

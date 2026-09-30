@@ -4,10 +4,9 @@
 import argparse
 import base64
 import hashlib
-from contextlib import redirect_stderr
+from contextlib import contextmanager, redirect_stderr
 import importlib.machinery
 import importlib.metadata
-import importlib
 import io
 import os
 from pathlib import Path
@@ -15,11 +14,12 @@ import py_compile
 import shutil
 import subprocess
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from differential import Driver, FreshSourceFinder, FreshSourceLoader
 
 
@@ -49,6 +49,87 @@ class DifferentialTests(unittest.TestCase):
     def assert_dirty(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
             self.driver.check_clean()
+        self.assertEqual(raised.exception.code, 2)
+
+    def prepare_initializer(self):
+        source, distribution = self.install_dependency_fixture()
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.spec = Path(temp.name) / "spec"
+        self.spec.mkdir()
+        self.script = self.spec / "STFSpec/Conformance/Base/example.py"
+        (self.spec / "reference.toml").write_text(
+            f'[release]\ncommit = "{self.driver.head}"\n'
+            '[release.python_dependencies]\nethereum-types = "1.0"\n')
+        self.argv = [str(self.script), "--eels", str(self.root),
+                     "--output", str(self.spec.parent / "evidence.lean")]
+        return source, distribution
+
+    @contextmanager
+    def initializer_environment(self, distribution):
+        flags = SimpleNamespace(**{name: getattr(sys.flags, name)
+                                   for name in dir(sys.flags) if not name.startswith("_")})
+        flags.isolated = 1
+        package_path = distribution.locate_file("")
+        with patch.dict(sys.modules), patch.object(sys, "flags", flags), \
+                patch.object(sys, "path", [str(package_path)]), \
+                patch.object(sys, "meta_path", list(sys.meta_path)), \
+                patch.object(sys, "prefix", str(self.root / ".venv")), \
+                patch.object(sys, "argv", self.argv):
+            for name in list(sys.modules):
+                if name.split(".", 1)[0] in ("ethereum", "ethereum_types"):
+                    sys.modules.pop(name)
+            yield
+
+    def test_initializer_installs_finder_before_reference_import(self):
+        source, distribution = self.prepare_initializer()
+        # A successful real initializer must install the loader before importing
+        # numeric, not merely return a finder object that a test invokes directly.
+        self.driver.load_dependency_hashes(distribution)
+        self.cache_control(source, "ethereum_types.numeric")
+        with self.initializer_environment(distribution):
+            driver = Driver("test", self.script, 7)
+            self.assertIsInstance(sys.meta_path[0], FreshSourceFinder)
+            self.assertIs(sys.meta_path[0].driver, driver)
+            numeric = sys.modules["ethereum_types.numeric"]
+            self.assertEqual(numeric.VALUE, 1)
+            self.assertIsInstance(numeric.__loader__, FreshSourceLoader)
+            self.assertEqual(driver.dependency, source)
+            self.assertEqual(driver.seed, 7)
+
+    def test_initializer_rejects_wrong_prefix(self):
+        _, distribution = self.prepare_initializer()
+        with self.initializer_environment(distribution), \
+                patch.object(sys, "prefix", str(self.spec)), \
+                redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_initializer_rejects_internal_output(self):
+        _, distribution = self.prepare_initializer()
+        for output in (self.spec / "evidence.lean", self.root / ".venv/evidence.lean"):
+            with self.subTest(output=output), self.initializer_environment(distribution), \
+                    patch.object(sys, "argv", self.argv[:-1] + [str(output)]), \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                Driver("test", self.script, 7)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
+
+    def test_initializer_rejects_preloaded_reference(self):
+        _, distribution = self.prepare_initializer()
+        for name in ("ethereum", "ethereum_types.numeric"):
+            with self.subTest(name=name), self.initializer_environment(distribution), \
+                    patch.dict(sys.modules, {name: ModuleType(name)}), \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                Driver("test", self.script, 7)
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_initializer_rejects_unisolated_interpreter(self):
+        _, distribution = self.prepare_initializer()
+        with self.initializer_environment(distribution), \
+                patch.object(sys.flags, "isolated", 0), redirect_stderr(io.StringIO()), \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
         self.assertEqual(raised.exception.code, 2)
 
     def test_hidden_source_edits(self):
@@ -153,12 +234,17 @@ class DifferentialTests(unittest.TestCase):
         package.mkdir(parents=True)
         source = package / "numeric.py"
         source.write_text("VALUE = 1\n")
-        metadata = package.parent / "types.dist-info"
+        metadata = package.parent / "ethereum_types-1.0.dist-info"
         metadata.mkdir()
-        digest = base64.urlsafe_b64encode(hashlib.sha256(source.read_bytes()).digest()).decode().rstrip("=")
+        digest = base64.urlsafe_b64encode(
+            hashlib.sha256(source.read_bytes()).digest()).decode().rstrip("=")
+        (package / "__init__.py").write_text("")
+        empty_digest = base64.urlsafe_b64encode(hashlib.sha256(b"").digest()).decode().rstrip("=")
+        (metadata / "METADATA").write_text("Name: ethereum-types\nVersion: 1.0\n")
         (metadata / "RECORD").write_text(
             f"ethereum_types/numeric.py,sha256={digest},{source.stat().st_size}\n"
-            "types.dist-info/RECORD,,\n")
+            f"ethereum_types/__init__.py,sha256={empty_digest},0\n"
+            "ethereum_types-1.0.dist-info/RECORD,,\n")
         distribution = importlib.metadata.PathDistribution(metadata)
         self.driver.load_dependency_hashes(distribution)
         return source, distribution
@@ -188,7 +274,7 @@ class DifferentialTests(unittest.TestCase):
     def test_dependency_missing_hash_rejected(self):
         _, distribution = self.install_dependency_fixture()
         (distribution._path / "RECORD").write_text(
-            "ethereum_types/numeric.py,,10\n" + "types.dist-info/RECORD,,\n")
+            "ethereum_types/numeric.py,,10\n" + "ethereum_types-1.0.dist-info/RECORD,,\n")
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             self.driver.load_dependency_hashes(distribution)
 
@@ -261,7 +347,7 @@ class DifferentialTests(unittest.TestCase):
         return package, source, marker
 
     def test_non_oracle_sourceless_checkout_package(self):
-        fullname = "wi010_checkout_bytecode"
+        fullname = "checkout_bytecode"
         package, source, marker = self.checkout_package(fullname)
         py_compile.compile(str(source), cfile=str(package / "__init__.pyc"), doraise=True)
         source.unlink()
@@ -277,7 +363,7 @@ class DifferentialTests(unittest.TestCase):
         self.assertFalse(marker.exists())
 
     def test_non_oracle_sourceless_checkout_alias(self):
-        fullname = "wi010_checkout_alias"
+        fullname = "checkout_alias"
         package, source, marker = self.checkout_package(fullname)
         external = self.root / ".venv/package.pyc"
         external.parent.mkdir()
@@ -290,7 +376,7 @@ class DifferentialTests(unittest.TestCase):
         self.assertFalse(marker.exists())
 
     def test_non_oracle_nested_git_package(self):
-        fullname = "wi010_checkout_source"
+        fullname = "checkout_source"
         package, _, marker = self.checkout_package(fullname)
         subprocess.check_call(["git", "init", "--quiet", str(package)])
         self.driver.check_clean()
@@ -299,7 +385,7 @@ class DifferentialTests(unittest.TestCase):
         self.assertFalse(marker.exists())
 
     def test_non_oracle_checkout_source_alias(self):
-        fullname = "wi010_checkout_source_alias"
+        fullname = "checkout_source_alias"
         _, source, marker = self.checkout_package(fullname)
         external = self.root / ".venv/package.py"
         external.parent.mkdir()
@@ -308,6 +394,50 @@ class DifferentialTests(unittest.TestCase):
         self.driver.check_clean()
         with self.assertRaisesRegex(ImportError, "source alias"):
             self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_sourceless_external_path_resolves_into_checkout(self):
+        fullname = "checkout_resolved_bytecode"
+        package, source, marker = self.checkout_package(fullname)
+        py_compile.compile(str(source), cfile=str(package / "__init__.pyc"), doraise=True)
+        source.unlink()
+        external = self.root / ".venv/checkout-alias"
+        external.parent.mkdir()
+        external.symlink_to(self.root / "src", target_is_directory=True)
+        with patch.dict(sys.modules), patch.object(sys, "path", [str(external), *sys.path]), \
+                patch.object(sys, "meta_path", [FreshSourceFinder(self.driver), *sys.meta_path]), \
+                self.assertRaisesRegex(ImportError, "not Python source"):
+            sys.modules.pop(fullname, None)
+            importlib.import_module(fullname)
+        self.assertFalse(marker.exists())
+        # Removing the resolve() arm admits this same package and runs its code.
+        with patch.dict(sys.modules), patch.object(sys, "path", [str(external), *sys.path]):
+            sys.modules.pop(fullname, None)
+            control = importlib.import_module(fullname)
+        self.assertEqual(control.VALUE, 0)
+        self.assertTrue(marker.exists())
+
+    def test_isolated_startup_ignores_python_environment(self):
+        startup = self.root / ".venv/startup"
+        startup.mkdir(parents=True)
+        marker = self.root / ".venv/startup-executed"
+        (startup / "sitecustomize.py").write_text(
+            f"from pathlib import Path\nPath({str(marker)!r}).touch()\n")
+        env = dict(os.environ, PYTHONPATH=str(startup))
+        control = subprocess.run([sys.executable, "-c", "pass"], env=env,
+                                 capture_output=True, text=True)
+        self.assertEqual(control.returncode, 0, control.stderr)
+        self.assertTrue(marker.exists(), "unisolated startup must execute the control")
+        marker.unlink()
+        isolated = subprocess.run([sys.executable, "-I", "-c", "pass"], env=env,
+                                  capture_output=True, text=True)
+        self.assertEqual(isolated.returncode, 0, isolated.stderr)
+        self.assertFalse(marker.exists())
+        # -I also ignores a bad PYTHONHOME before any driver or site code runs.
+        env["PYTHONHOME"] = str(startup / "missing-python-home")
+        isolated = subprocess.run([sys.executable, "-I", "-c", "pass"], env=env,
+                                  capture_output=True, text=True)
+        self.assertEqual(isolated.returncode, 0, isolated.stderr)
         self.assertFalse(marker.exists())
 
     def test_installed_native_dependency_preserved(self):

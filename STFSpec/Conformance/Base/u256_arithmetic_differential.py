@@ -3,7 +3,7 @@
 """Compare unsigned U256 arithmetic with pinned EELS handlers and ethereum-types.
 
 Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/u256_arithmetic_differential.py \
+  EELS/.venv/bin/python -I STFSpec/Conformance/Base/u256_arithmetic_differential.py \
     --eels EELS --output /tmp/u256-arithmetic-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. The seven EVM handlers

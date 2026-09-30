@@ -2,8 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare exact byte construction and lexical ordering with the pinned dependency.
 
-Run with PYTHONDONTWRITEBYTECODE=1 using EELS/.venv/bin/python and:
-  --eels <checkout> --output <outside-worktree>/fixed-bytes-differential.lean
+Run with the pinned EELS virtual environment's Python:
+  EELS/.venv/bin/python -I STFSpec/Conformance/Base/fixed_bytes_differential.py \
+    --eels EELS --output /tmp/fixed-bytes-differential.lean
 
 The unchanged locked ethereum-types 0.4.1 FixedBytes constructor at bytes.py:29
 and Python bytes comparison are the oracle. Address/Hash32/Root/VersionedHash/

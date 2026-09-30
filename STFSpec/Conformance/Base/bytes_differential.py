@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare padding and padded reads with actual pinned EELS functions.
 
-Run with the pinned EELS venv's Python, with PYTHONDONTWRITEBYTECODE=1:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/bytes_differential.py \
-    --eels EELS --output <outside-worktree>/bytes-differential.lean
+Run with the pinned EELS virtual environment's Python:
+  EELS/.venv/bin/python -I STFSpec/Conformance/Base/bytes_differential.py \
+    --eels EELS --output /tmp/bytes-differential.lean
 
 Sources: utils/byte.py:18,40; forks/amsterdam/vm/memory.py:63,82–83
 (buffer_read). CALLDATALOAD/CALLDATACOPY consume this exact helper at
