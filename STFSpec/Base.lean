@@ -2,6 +2,8 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Base.Bytes
+import STFSpec.Base.FixedBytes
 import STFSpec.Base.Numeric
 import STFSpec.Base.U16
 import STFSpec.Base.U256
