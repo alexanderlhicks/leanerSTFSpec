@@ -106,3 +106,9 @@ supportInterpreter = true
 name = "CheckDeclsTest"
 srcDir = "scripts"
 roots = ["CheckDeclsTest.Bad", "CheckDeclsTest.Good", "CheckDeclsTest.ProvedCsimp", "CheckDeclsTest.Superseded"]
+
+# Internal authenticated-host extraction driver; no guest invocation.
+[[lean_exe]]
+name = "fixture-records"
+srcDir = "scripts"
+root = "FixtureRecordsMain"
