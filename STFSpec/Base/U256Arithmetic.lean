@@ -55,7 +55,8 @@ def mulmod (a b n : U256) : U256 :=
   if n.toNat = 0 then zero else ofNat ((a.toNat * b.toNat) % n.toNat)
 
 /-- Checked Python addition; `ethereum_types/numeric.py:91,44,611`.
-Unsigned overflow returns `none`; the caller maps it to its enclosing EELS handler's error (D14). -/
+Unsigned overflow returns `none`; the caller maps it to its enclosing EELS handler's
+error (D14). -/
 def checkedAdd (a b : U256) : Option U256 := ofNat? (a.toNat + b.toNat)
 
 /-- Checked Python subtraction; `ethereum_types/numeric.py:103`.
