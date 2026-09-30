@@ -9,7 +9,7 @@ Library `EthBase`: the stable word observers, constructors and unsigned ordering
 The stored representation is internal by convention; callers use the laws below.
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
-Citations follow the source/dependency convention in EthBase §3.
+Citations follow the source/dependency convention in the EthBase preamble.
 -/
 
 namespace STFSpec.Base

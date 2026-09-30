@@ -8,6 +8,8 @@ Python sources and emit ordinary Lean guards; observations are bug-finding evide
 """
 
 import argparse
+import importlib.abc
+import importlib.machinery
 import importlib.metadata
 import json
 from pathlib import Path
@@ -22,12 +24,58 @@ sys.dont_write_bytecode = True
 FRAME_GAS = 1_000_000
 
 
+class FreshSourceLoader(importlib.machinery.SourceFileLoader):
+    """Compile source bytes directly; Python's -B still permits reading cached code."""
+
+    def __init__(self, fullname, path, driver):
+        super().__init__(fullname, path)
+        self.driver = driver
+
+    def get_code(self, fullname):
+        source = self.get_filename(fullname)
+        data = self.get_data(source)
+        relative = Path(source).resolve().relative_to(self.driver.eels)
+        if relative.parts[0] == "src":
+            expected = self.driver.oracle_blobs.get(relative.as_posix())
+            observed = subprocess.check_output(
+                ["git", "hash-object", "--stdin", "--no-filters"],
+                input=data, cwd=self.driver.eels).decode().strip()
+            if expected is None or observed != expected:
+                raise ImportError(f"oracle import bytes differ from the pin: {relative}")
+        return self.source_to_code(data, source)
+
+
+class FreshSourceFinder(importlib.abc.MetaPathFinder):
+    """Bypass .pyc files for reference and frozen-venv Python source imports."""
+
+    def __init__(self, driver):
+        self.driver = driver
+
+    def find_spec(self, fullname, path=None, target=None):
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+        oracle = fullname.split(".", 1)[0] in ("ethereum", "ethereum_types")
+        if spec is None:
+            return None
+        if not isinstance(spec.loader, importlib.machinery.SourceFileLoader):
+            if oracle:
+                raise ImportError(f"oracle module is not Python source: {fullname}")
+            return None
+        source = Path(spec.origin).resolve()
+        within = (source.is_relative_to(self.driver.eels / "src") or
+                  source.is_relative_to(self.driver.eels / ".venv"))
+        if oracle and not within:
+            raise ImportError(f"oracle module is outside the frozen environment: {fullname}")
+        if not within:
+            return None
+        spec.loader = FreshSourceLoader(fullname, str(source), self.driver)
+        return spec
+
+
 class Driver:
     """A validated reference environment and external Lean evidence destination."""
 
     def __init__(self, description, script, seed):
         self.root = Path(script).resolve().parents[3]
-        self.seed = seed
         self.parser = argparse.ArgumentParser(description=description)
         self.parser.add_argument("--eels", required=True, type=Path)
         self.parser.add_argument("--output", required=True, type=Path)
@@ -50,7 +98,11 @@ class Driver:
             self.parser.error("ethereum-types version does not match reference.toml")
         if self.output.is_relative_to(self.root) or self.output.is_relative_to(self.eels):
             self.parser.error("generated evidence must be outside both repositories")
+        if any(name.split(".", 1)[0] in ("ethereum", "ethereum_types")
+               for name in sys.modules):
+            self.parser.error("reference modules must not be imported before driver setup")
         sys.path.insert(0, str(self.eels / "src"))
+        sys.meta_path.insert(0, FreshSourceFinder(self))
         from ethereum_types import numeric
         self.dependency = self.check_source(numeric, "ethereum_types/numeric.py", dependency=True)
 
@@ -90,6 +142,7 @@ class Driver:
             cwd=self.eels, text=True).splitlines()
         if observed != expected:
             self.parser.error("oracle source or lock bytes differ from the pin")
+        self.oracle_blobs = dict(zip(paths, expected))
 
     def check_source(self, module, relative_path, *, dependency=False):
         """Require the exact pinned source path, or the locked dependency's venv path."""

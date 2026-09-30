@@ -22,4 +22,6 @@ Library `EthConformance`. Its allowed dependencies are listed in `scripts/bounda
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Implementation status is owned by the
 spec guidance document.
 Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
+Base guards, public-law callers and differential drivers are owned by
+`STFSpec/informal/modules/EthBase.md` §3.
 -/

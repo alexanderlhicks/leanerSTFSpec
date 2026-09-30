@@ -10,11 +10,12 @@ import STFSpec.Base.U256
 Library `EthBase`: wrapping EVM arithmetic, unsigned division/remainder, modular
 arithmetic with unbounded intermediates, and checked Python-operator arithmetic.
 Inputs follow EELS pop order. These primitives have no stack, gas or frame effects;
-`EthVmInstructions` owns those effects and consumers own checked-failure projection.
+`EthVmInstructions` owns those effects; callers handle `none` according to their
+component's error contract (D14).
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 EELS citations are at the commit in `reference.toml`.
-Dependency citations follow the convention in EthBase §3.
+Dependency citations follow the convention in the EthBase preamble.
 Signed division/remainder are defined in `STFSpec.Base.U256Signed`.
 -/
 
@@ -55,8 +56,8 @@ def mulmod (a b n : U256) : U256 :=
   if n.toNat = 0 then zero else ofNat ((a.toNat * b.toNat) % n.toNat)
 
 /-- Checked Python addition; `ethereum_types/numeric.py:91,44,611`.
-Unsigned overflow returns `none`; the caller maps it to its enclosing EELS handler's
-error (D14). -/
+Unsigned overflow returns `none`; callers handle it through their component's error
+contract (D14). -/
 def checkedAdd (a b : U256) : Option U256 := ofNat? (a.toNat + b.toNat)
 
 /-- Checked Python subtraction; `ethereum_types/numeric.py:103`.

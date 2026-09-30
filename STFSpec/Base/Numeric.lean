@@ -23,7 +23,7 @@ namespace Uint
 
 /-- Checked unbounded subtraction; `ethereum_types/numeric.py:103` (`__sub__`).
 Check underflow before subtracting; `none` represents the source's `OverflowError`.
-The caller maps `none` to its enclosing EELS handler's error (D14/B14). -/
+Callers handle `none` through their component's error contract (D14/B14). -/
 def sub? (n m : Nat) : Option Nat := if n < m then none else some (n - m)
 
 /-- Checked subtraction succeeds exactly without underflow, with the exact difference. -/

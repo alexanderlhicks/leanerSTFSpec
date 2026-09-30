@@ -42,6 +42,8 @@ jobs:
         run: |
           lake build CheckDeclsTest
           scripts/test_checks.sh
+      - name: Differential oracle safeguard regressions
+        run: python3 scripts/test_differential.py
       - name: Pinned reference consistency
         run: |
           python3 scripts/check_reference.py
