@@ -38,6 +38,8 @@ import STFSpec.Conformance.Hash.KeccakSpongeGuards
 import STFSpec.Conformance.Hash.KeccakSpongeCallerProofs
 import STFSpec.Conformance.Hash.Ripemd160CompressionCallerProofs
 import STFSpec.Conformance.Hash.Ripemd160CompressionGuards
+import STFSpec.Conformance.Hash.Blake2CompressionGuards
+import STFSpec.Conformance.Hash.Blake2CompressionCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

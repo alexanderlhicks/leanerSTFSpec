@@ -128,14 +128,14 @@ None: every inventory item is claimed by a module or excluded with a reason.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
-  deterministic/differential evidence are owned by §3–§4. The query interface,
-  RIPEMD-160 digest/padding/serialization and BLAKE2F compression remain
-  unimplemented. Their vectors need transcription from primary sources
-  (the RIPEMD-160 paper and EIP-152). Historical prototypes are evidence only.
+  deterministic/differential evidence are owned by §3–§4. The query interface
+  and RIPEMD-160 digest/padding/serialization remain unimplemented. Their remaining
+  vectors need transcription from primary sources, including the RIPEMD-160 paper.
+  Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
-- **BLAKE2F coverage** in EEST is 5 files per format. The parameter-only tests in §3 do not execute these guest fixtures or compression. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
+- **BLAKE2F coverage** in EEST is 5 files per format. The parameter/compression tests in §3 do not execute these guest fixtures. The finite compression driver covers both flags, high-bit counters and sigma wrap; fixture coverage of `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set remains unassessed.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
 - **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
