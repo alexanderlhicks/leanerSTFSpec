@@ -256,6 +256,58 @@ EEST execution, query composition or cryptographic security. The separate native
 1 MiB performance case checks its expected digest outside the timed loop; bounded
 cost evidence does not discharge a throughput target or accelerator replacement.
 
+### Implemented RIPEMD-160 fixed-word compression slice
+
+`STFSpec/Hash/Ripemd160Compression.lean` owns this **discharged** bounded slice.
+The public compression domain is literally `Vector UInt32 5` × `Vector UInt32 16`;
+there is no length or host-capability premise. Words are already parsed. Both
+working branches store A,B,C,D,E in that order. Ascending rounds use f(j) on the
+left and f(79−j) on the right, with separate order/rotation/constant tables; updates
+are simultaneous. Feedforward reads all five original chaining words.
+
+EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–54`, notably `:52`,
+invokes `hashlib.new("ripemd160", data)`, without exposing raw compression.
+The algorithm rows therefore cite Dobbertin–Bosselaers–Preneel, *RIPEMD-160:
+A Strengthened Version of RIPEMD*, FSE 1996, pp. 71–82, and
+[the corrected author pseudocode](https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt).
+No publication copy is retained. The independent model shares standard literal
+table data but uses only BitVec arithmetic; separate integer-model tests audit all
+entries against independently transcribed primary mathematical data.
+
+| Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
+|---|---|---|---|---|---|
+| Author word convention | `Ripemd160Model n := Vector (BitVec 32) n`; `ripemd160ToModel : Vector UInt32 n → Ripemd160Model n` | Every word vector; exact unsigned words and low bit order | None; fixed sizes | `ripemd160ToModel_word`, `_bit`, `_inj` | Public observers and six composition clients |
+| Author cyclic left shift | `ripemd160Rotl : UInt32 → Nat → UInt32` | Every word/amount, rotation modulo 32 | None | `toBitVec_ripemd160Rotl`, `ripemd160Rotl_bit` | 0/31/32/33/64 and independent rotation probes |
+| Author f(j) | `ripemd160F : Fin 80 → UInt32 → UInt32 → UInt32 → UInt32`; `Ripemd160Model.f` | Five 16-round Boolean groups | None | `toBitVec_ripemd160F` | Every j, all group boundaries |
+| Author initial value | `ripemd160IV : Vector UInt32 5` | Original five chaining words | None | Used by primary KATs | All five IV words; empty/abc compression KATs |
+| Author r,r′,s,s′,K,K′ | `ripemd160LeftOrder`, `ripemd160RightOrder : Vector (Fin 16) 80`; `ripemd160LeftRotations`, `ripemd160RightRotations : Vector Nat 80`; `ripemd160LeftConstants`, `ripemd160RightConstants : Vector UInt32 5` | Exact branch/group tables | None; indexes bounded by types | Used by round law | All 320 order/rotation entries and ten constants |
+| Author round selection | `ripemd160Group : Fin 80 → Fin 5`; `ripemd160Reverse : Fin 80 → Fin 80` | j/16 and 79−j | None | Used by round law | Every j, boundaries |
+| Author simultaneous update | `ripemd160Step : Vector UInt32 5 → Fin 80 → UInt32 → UInt32 → Nat → Vector UInt32 5`; `Ripemd160Model.step` | A=E,B=T,C=B,D=rotl10(C),E=D, original operands | None | `ripemd160ToModel_step` | Explicit simultaneous update and asymmetric branch cases |
+| Author dual loop body | `Ripemd160Work` (two five-word branches); `ripemd160WorkToModel`; `ripemd160Round : Ripemd160Work → Vector UInt32 16 → Fin 80 → Ripemd160Work`; `Ripemd160Model.round` | Independent left/right updates on every working state | None | `ripemd160WorkToModel_inj`, `_round` | Distinct arbitrary initial branches and every round group |
+| Author ascending j loop | `ripemd160Rounds : Ripemd160Work → Vector UInt32 16 → (n : Nat) → n ≤ 80 → Ripemd160Work`; `Ripemd160Model.rounds` | Prefix 0 through n−1, structural recursion | None; n≤80 supplied by caller | `ripemd160WorkToModel_rounds` | All prefixes 0–80 on eight states |
+| Author cross-branch combine | `ripemd160Feedforward : Vector UInt32 5 → Ripemd160Work → Vector UInt32 5`; `Ripemd160Model.feedforward` | Original h1+C+D′,h2+D+E′,h3+E+A′,h4+A+B′,h0+B+C′ | None | `ripemd160ToModel_feedforward` | Unequal original/left/right words; wraparound; arbitrary states |
+| Author complete compression | `ripemd160Compress : Vector UInt32 5 → Vector UInt32 16 → Vector UInt32 5`; `Ripemd160Model.compress` | Initialize both branches from h, exactly 80 rounds, original-state feedforward | None | `ripemd160ToModel_compress` | Primary compression KATs, integer-model comparison, finite test-only EELS composition |
+
+`Ripemd160CompressionGuards.lean` has 36 deterministic guards, including primary
+empty/abc compression KATs for explicitly supplied MD4-padded little-endian blocks.
+These are not production digest tests. `Ripemd160CompressionCallerProofs.lean`
+has six clients using public laws, including two consecutive compressions and
+prefix-feedforward composition without unfolding native word/storage arithmetic.
+
+`ripemd160_compression_differential.py` uses an independently written integer model
+with cyclic feedforward indexing, seed 170160, 41 arbitrary original chaining states,
+unequal working branches, all table entries, every group boundary and prefixes
+0–80: 2827 generated guards. Its finite test-only MD4 padding and serial compression
+on 92 messages are compared against
+actual authenticated pinned `ripemd160.py` precompile execution and its supported
+host `hashlib` backend. Nine primary author digest facts, including million-a, are
+checked separately; random/boundary message observations remain bug-finding evidence.
+The interpreter is the frozen EELS venv with `-I -B`; the shared Driver authenticates
+current source/lock bytes against the unreplaced pin and ethereum-types against its
+installed RECORD. Pre/post identities include sources, interpreter and shared driver.
+These tests establish no all-host, all-resource, guest/EEST or cryptographic claim.
+DISC-005/Q19/D14/O12 dispositions stay open and unchanged.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -301,6 +353,7 @@ def keccak512 (msg : ByteArray) : Hash64        -- rate 72, out 64 (unreachable)
 def sha256    (msg : ByteArray) : Bytes32
 def sha256Compress : Vector UInt32 8 → Vector UInt32 16 → Vector UInt32 8   -- internal
 def ripemd160 (msg : ByteArray) : FixedBytes 20
+def ripemd160Compress : Vector UInt32 5 → Vector UInt32 16 → Vector UInt32 5 -- fixed-word reference
 
 -- BLAKE2b F (EIP-152)
 namespace Blake2b
@@ -396,8 +449,10 @@ must establish their corresponding standard relations and these laws.
 fixed-rate Keccak padding, byte packing, ordered absorption, squeezing and digest
 correspondence, SHA-256 fixed-word and message-digest correspondence, and BLAKE2F
 raw parameter byte-layout correspondence with both round trips are discharged
-for the implementations in §3. RIPEMD-160 and BLAKE2F compression rounds and their complete
-boundary vectors remain unwritten. Q46 supplies the SHA-256 domain policy.
+for the slices in §3. RIPEMD-160 Boolean/rotation/step/dual-round, bounded-prefix
+and complete fixed-word compression correspondence are also discharged on every
+parsed-word input. RIPEMD digest/padding/serialization and BLAKE2F compression
+rounds and their complete boundary laws remain unwritten. Q46 supplies the SHA-256 domain policy.
 The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
@@ -425,9 +480,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining core hash implementations.** The implemented providers, laws and
   deterministic/differential evidence are owned by §3–§4. The query interface,
-  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
-  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
-  Historical prototypes are evidence only.
+  RIPEMD-160 digest/padding/serialization and BLAKE2F compression remain
+  unimplemented. Their vectors need transcription from primary sources
+  (the RIPEMD-160 paper and EIP-152). Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
@@ -443,6 +498,11 @@ the retained historical native diagnostic provide local cost evidence; their
 source basis and limitations are recorded in
 [DEBT-KECCAK-DIGEST](../DEBT.md#debt-keccak-digest--reference-sponge-cost).
 D4’s status is unchanged.
+RIPEMD-160 uses array-backed fixed-word vectors and native UInt32 arithmetic,
+with no executable per-round List or bignum lane arithmetic. Its generated C is
+inspected and compiled with strict checks; static boxing/index sites are code
+shape observations, not measured allocation totals. No RIPEMD performance or
+whole-hash cost gate is discharged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains
 host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).

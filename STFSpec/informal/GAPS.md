@@ -129,9 +129,9 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
   deterministic/differential evidence are owned by §3–§4. The query interface,
-  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
-  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
-  Historical prototypes are evidence only.
+  RIPEMD-160 digest/padding/serialization and BLAKE2F compression remain
+  unimplemented. Their vectors need transcription from primary sources
+  (the RIPEMD-160 paper and EIP-152). Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
@@ -147,6 +147,11 @@ the retained historical native diagnostic provide local cost evidence; their
 source basis and limitations are recorded in
 [DEBT-KECCAK-DIGEST](DEBT.md#debt-keccak-digest--reference-sponge-cost).
 D4’s status is unchanged.
+RIPEMD-160 uses array-backed fixed-word vectors and native UInt32 arithmetic,
+with no executable per-round List or bignum lane arithmetic. Its generated C is
+inspected and compiled with strict checks; static boxing/index sites are code
+shape observations, not measured allocation totals. No RIPEMD performance or
+whole-hash cost gate is discharged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains
 host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).

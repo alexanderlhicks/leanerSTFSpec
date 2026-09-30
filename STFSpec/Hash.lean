@@ -7,6 +7,7 @@ import STFSpec.Hash.Sha256Compression
 import STFSpec.Hash.Blake2Parameters
 import STFSpec.Hash.Sha256Digest
 import STFSpec.Hash.KeccakSponge
+import STFSpec.Hash.Ripemd160Compression
 
 /-!
 # STFSpec.Hash
