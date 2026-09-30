@@ -17,7 +17,7 @@ A pure, total, executable Lean 4 specification of the Ethereum execution-layer z
 When documents disagree, the higher one wins, and the lower one is a bug to fix:
 
 1. The pin, [`reference.toml`](reference.toml), and the guest contract, [`STFSpec/informal/CONTRACT.md`](STFSpec/informal/CONTRACT.md) (outcomes O1–O13, authority and discrepancy policy).
-2. [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md): decision **statuses** and question **dispositions** (Q1–Q45, B1–B15, and the interface items F1–F20 in §3).
+2. [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md): decision **statuses** and question **dispositions** (Q1–Q46, B1–B15, and the interface items F1–F20 in §3).
 3. [`CONTRIBUTING.md`](CONTRIBUTING.md).
 4. [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md): component contracts; the dependency rules are enforced from [`scripts/boundaries.toml`](scripts/boundaries.toml). [`STFSpec/informal/REVIEW.md` §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks): the proof gates (G, S, W), replacement gates and cost checks (C) an implementation must meet.
 5. [`STFSpec/informal/modules/Eth*.md`](STFSpec/informal/README.md): per-library behaviour; ownership is in [`STFSpec/informal/contracts.toml`](STFSpec/informal/contracts.toml).

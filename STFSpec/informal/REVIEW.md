@@ -111,14 +111,21 @@ The highest-risk uncompleted items are closing the failure ledger's unresolved s
 
 **Implemented scope.** [EthBase §3](modules/EthBase.md#3-eels-source-map) owns the
 implemented declarations, source correspondence, public proofs and operation-value
-regressions. Its §10 owns missing APIs and derived laws. Other semantic components
-remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
+regressions. Its §10 owns missing APIs and derived laws.
+[EthHash §3](modules/EthHash.md#3-eels-source-map) owns the reference Keccak-f[1600]
+permutation and fixed-word SHA-256 compression, their model laws, primary KATs and
+finite differential evidence; its §10 owns remaining hash APIs and correspondence.
+Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
 extraction and authentication tooling.
 
 **Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
-The differential drivers compare public operation values with the pinned source.
+Base differential drivers compare public operation values with the pinned source.
+[EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation and
+compression drivers and their evidence limits. EELS exposes no raw permutation or
+compression surface. The model laws are proved; sponge/digest and query composition
+remain open.
 Extraction guards, host regressions and authenticated content comparison validate
 fixture tooling as specified by EthConformance §3–§4.
 They establish local evidence, without implementing Lean opcode effects. Guest,

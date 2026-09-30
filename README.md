@@ -4,7 +4,7 @@ A formal, executable Lean 4 specification of the Ethereum execution-layer state 
 
 It will replace the spec currently in evm-asm (`EvmAsm/Stateless/SpecRef`). It is written from scratch rather than moved, and equivalence with SpecRef is not a goal (decision P6). The consumers retarget in their own repositories; this repository never edits them.
 
-**Status (2026-09-30):** lower-layer implementation is in progress; see the [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-09-30) and [EthBase implementation status](STFSpec/informal/modules/EthBase.md#3-eels-source-map) and [fixture extraction status](STFSpec/informal/modules/EthConformance.md#3-eels-source-map). The semantic guest conformance runner is absent; no EEST guest execution is implemented.
+**Status (2026-09-30):** lower-layer implementation is in progress; see the [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-09-30), [EthBase implementation status](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash implementation status](STFSpec/informal/modules/EthHash.md#3-eels-source-map) and [fixture extraction status](STFSpec/informal/modules/EthConformance.md#3-eels-source-map). The semantic guest conformance runner is absent; no EEST guest execution is implemented.
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
