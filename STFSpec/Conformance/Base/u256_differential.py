@@ -12,13 +12,13 @@ conversion sources are ethereum_types/numeric.py:44,594,611,675 (locked dependen
 The output contains only public U256 API calls and is checked by ordinary Lean guards.
 """
 
-import argparse
-import importlib.metadata
-import json
 from pathlib import Path
 import random
-import subprocess
-import tomllib
+import sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from differential import setup_driver
 
 
 def lean_int(value):
@@ -27,28 +27,9 @@ def lean_int(value):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--eels", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path)
-    args = parser.parse_args()
-    root = Path(__file__).resolve().parents[3]
-    pin = tomllib.loads((root / "reference.toml").read_text())["release"]
-    eels = args.eels.resolve()
-    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=eels, text=True).strip()
-    if head != pin["commit"]:
-        parser.error("EELS checkout does not match reference.toml")
-    version = importlib.metadata.version("ethereum-types")
-    if version != pin["python_dependencies"]["ethereum-types"]:
-        parser.error("ethereum-types version does not match reference.toml")
-    from ethereum_types import numeric
+    context = setup_driver(__doc__, __file__, 256)
     from ethereum_types.numeric import U256
-    dependency = Path(numeric.__file__).resolve()
-    if not dependency.is_relative_to(eels / ".venv"):
-        parser.error("ethereum-types must be loaded from the frozen EELS venv")
-    output = args.output.resolve()
-    if output.is_relative_to(root) or output.is_relative_to(eels):
-        parser.error("generated evidence must be outside the repository and EELS checkout")
-    rng = random.Random(256)
+    rng = random.Random(context.seed)
     modulus, half = 2**256, 2**255
     unsigned = [0, 1, half - 1, half, half + 1, modulus - 1, modulus, modulus + 1]
     unsigned += [rng.getrandbits(257) for _ in range(64)]
@@ -95,16 +76,8 @@ def main():
         guards.append(f"#guard (U256.ofBool {str(b).lower()}).toNat = {int(U256(b))}")
     guards.append(f"#guard U256.max.toNat = {int(U256.MAX_VALUE)}")
     guards.append(f"#guard U256.max.toInt = {lean_int(U256.MAX_VALUE.to_signed())}")
-    output.write_text(
-        "-- Generated differential evidence; do not commit.\n" + "\n".join(guards) + "\n"
-    )
-    result = subprocess.run(["lake", "env", "lean", str(output)], cwd=root)
-    print(json.dumps({"eels_commit": head, "ethereum_types": version,
-                      "dependency": str(dependency), "unsigned_cases": len(unsigned),
-                      "signed_cases": len(signed), "comparison_cases": len(pairs),
-                      "rejected": failures, "guards": len(guards) - 2,
-                      "lean_exit": result.returncode, "generated": str(output)}, sort_keys=True))
-    return result.returncode
+    return context.run(guards, unsigned_cases=len(unsigned), signed_cases=len(signed),
+                       comparison_cases=len(pairs), rejected=failures)
 
 
 if __name__ == "__main__":

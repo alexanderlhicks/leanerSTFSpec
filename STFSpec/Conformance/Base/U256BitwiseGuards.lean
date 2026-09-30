@@ -7,7 +7,8 @@ import STFSpec.Base
 /-!
 # U256 comparison and bitwise regression guards
 
-Library `EthConformance`: deterministic public-API checks for the WI-003 slice.
+Library `EthConformance`: deterministic public-API checks for comparisons, bitwise
+operations and shifts.
 The guards cover operand order, signed boundaries, most-significant byte indexing,
 least-significant sign extension, full-word shift guards and CLZ endpoints.
 Spec guidance: `STFSpec/informal/modules/EthBase.md` §4.

@@ -10,7 +10,7 @@ import STFSpec.Base.U256
 Library `EthBase`: total EVM operation values in first-popped argument order.
 Stack, gas and program-counter effects belong to `EthVmInstructions`.
 The equations use the stable public observers, so callers do not depend on storage.
-Spec guidance: `STFSpec/informal/modules/EthBase.md` §§2–8.
+Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 All EELS citations are at the commit in `reference.toml`.
 -/
 
@@ -94,16 +94,16 @@ def clz (x : U256) : U256 := ofNat (256 - bitLength x)
 /-! ### Comparison and logic contract -/
 
 /-- `ult` is comparison of the public numeric models. -/
-theorem ult_eq (a b : U256) : ult a b = decide (a.toNat < b.toNat) := rfl
+theorem ult_def (a b : U256) : ult a b = decide (a.toNat < b.toNat) := rfl
 
 /-- `ule` is comparison of the public numeric models. -/
-theorem ule_eq (a b : U256) : ule a b = decide (a.toNat ≤ b.toNat) := rfl
+theorem ule_def (a b : U256) : ule a b = decide (a.toNat ≤ b.toNat) := rfl
 
 /-- `slt'` is comparison of the public numeric models. -/
-theorem slt'_eq (a b : U256) : slt' a b = decide (a.toInt < b.toInt) := rfl
+theorem slt'_def (a b : U256) : slt' a b = decide (a.toInt < b.toInt) := rfl
 
 /-- The LT word is exactly 0 or 1 according to its numeric model. -/
-theorem toNat_lt_word (a b : U256) :
+theorem toNat_lt_result (a b : U256) :
     (lt a b).toNat = if a.toNat < b.toNat then 1 else 0 := by
   simp only [lt, ult, toNat_ofBool, decide_eq_true_eq]
 
@@ -123,7 +123,7 @@ theorem toNat_sgt (a b : U256) :
   simp only [sgt, slt', toNat_ofBool, decide_eq_true_eq]
 
 /-- The EQ word is exactly 0 or 1 according to its numeric model. -/
-theorem toNat_eq_word (a b : U256) :
+theorem toNat_eq_result (a b : U256) :
     (eq a b).toNat = if a.toNat = b.toNat then 1 else 0 := by
   simp only [eq, toNat_ofBool, decide_eq_true_eq]
 
@@ -200,7 +200,7 @@ theorem toNat_signextend (k x : U256) :
       x.toNat % 2 ^ (8 * (k.toNat + 1)) +
         if x.toBitVec.getLsbD (8 * (k.toNat + 1) - 1) then
           2 ^ 256 - 2 ^ (8 * (k.toNat + 1)) else 0 := by
-  rw [toNat_eq, toBitVec_signextend]
+  rw [toNat_def, toBitVec_signextend]
   split
   · rfl
   next h =>
@@ -209,7 +209,7 @@ theorem toNat_signextend (k x : U256) :
       Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le (Nat.mod_lt _ (Nat.two_pow_pos _))
         (Nat.pow_le_pow_right Nat.two_pos hw)),
       BitVec.msb_eq_getLsbD_last, BitVec.getLsbD_setWidth]
-    simp only [← toNat_eq]
+    simp only [← toNat_def]
     simp only [show 8 * (k.toNat + 1) - 1 < 8 * (k.toNat + 1) by omega,
       decide_true, Bool.true_and]
 
@@ -233,26 +233,26 @@ theorem toBitVec_shr (shift value : U256) :
 theorem toNat_shl (shift value : U256) :
     (shl shift value).toNat = if 256 ≤ shift.toNat then 0 else
       (value.toNat * 2 ^ shift.toNat) % 2 ^ 256 := by
-  rw [toNat_eq, toBitVec_shl]
+  rw [toNat_def, toBitVec_shl]
   split
   · rfl
-  · simp only [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, toNat_eq]
+  · simp only [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, toNat_def]
 
 /-- SHR is natural division by a power of two below its saturation guard. -/
 theorem toNat_shr (shift value : U256) :
     (shr shift value).toNat = if 256 ≤ shift.toNat then 0 else
       value.toNat / 2 ^ shift.toNat := by
-  rw [toNat_eq, toBitVec_shr]
+  rw [toNat_def, toBitVec_shr]
   split
   · rfl
-  · simp only [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow, toNat_eq]
+  · simp only [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow, toNat_def]
 
-/-- A saturated SHL returns zero without performing the enormous shift. -/
+/-- A saturated SHL returns zero for shift amounts at least 256. -/
 theorem shl_eq_zero_of_le (shift value : U256) (h : 256 ≤ shift.toNat) :
     shl shift value = zero := by
   simp only [shl, h, ite_true]
 
-/-- A saturated SHR returns zero without performing the enormous shift. -/
+/-- A saturated SHR returns zero for shift amounts at least 256. -/
 theorem shr_eq_zero_of_le (shift value : U256) (h : 256 ≤ shift.toNat) :
     shr shift value = zero := by
   simp only [shr, h, ite_true]
@@ -268,11 +268,12 @@ theorem toInt_sar (shift value : U256) :
     · exact toInt_max
   · exact BitVec.toInt_sshiftRight
 
-/-- EELS's checked `from_signed` succeeds on every below-256 SAR result. -/
-theorem ofInt?_sar_shift (shift value : U256) :
+/-- EELS's checked `from_signed` succeeds on every arithmetic right shift
+of a signed word, for every shift amount. -/
+theorem ofInt?_toInt_sshiftRight (shift value : U256) :
     ofInt? (value.toInt >>> shift.toNat) =
       some (ofBitVec (value.toBitVec.sshiftRight shift.toNat)) := by
-  apply ofInt?_eq_some_iff.mpr
+  apply (ofInt?_eq_some_iff _ _).mpr
   exact ⟨BitVec.le_toInt_shiftRight, BitVec.toInt_shiftRight_lt,
     BitVec.toInt_sshiftRight⟩
 
@@ -298,7 +299,7 @@ theorem toBitVec_sar (shift value : U256) :
       have hm : value.toBitVec.msb = false := by simpa [show ¬ value.toInt < 0 by omega] using hs
       apply BitVec.eq_of_getLsbD_eq
       intro i hi
-      change (0 : BitVec 256).getLsbD i = _
+      rw [toBitVec_zero]
       rw [BitVec.getLsbD_sshiftRight, hm]
       simp [show ¬ shift.toNat + i < 256 by omega]
     next hv =>
@@ -306,7 +307,7 @@ theorem toBitVec_sar (shift value : U256) :
         simpa [show value.toInt < 0 by omega] using hs
       apply BitVec.eq_of_getLsbD_eq
       intro i hi
-      change (BitVec.ofNat 256 (2 ^ 256 - 1)).getLsbD i = _
+      rw [toBitVec_max]
       rw [BitVec.getLsbD_sshiftRight, hm, BitVec.getLsbD_ofNat,
         Nat.testBit_two_pow_sub_one]
       simp only [hi, decide_true, Bool.and_true,
@@ -317,12 +318,25 @@ theorem toBitVec_sar (shift value : U256) :
 /-! ### Bit length and leading-zero contract -/
 
 /-- Bit length is zero at zero and one more than floor(log₂) otherwise. -/
-theorem bitLength_eq (x : U256) :
+theorem bitLength_def (x : U256) :
     bitLength x = if x.toNat = 0 then 0 else x.toNat.log2 + 1 := rfl
+
+/-- The unsigned value is strictly below the power of two determined by its bit length. -/
+theorem toNat_lt_two_pow_bitLength (x : U256) : x.toNat < 2 ^ bitLength x := by
+  rw [bitLength_def]
+  split
+  next h => simp only [h, Nat.pow_zero]; omega
+  next h => exact (Nat.log2_lt h).mp (Nat.lt_succ_self _)
+
+/-- A nonzero word needs at least its highest set-bit position. -/
+theorem two_pow_bitLength_sub_one_le_toNat (x : U256) (h : x.toNat ≠ 0) :
+    2 ^ (bitLength x - 1) ≤ x.toNat := by
+  rw [bitLength_def, ite_eq_right h, Nat.add_sub_cancel]
+  exact Nat.log2_self_le h
 
 /-- Word bit length cannot exceed the width, discharging CLZ subtraction's range. -/
 theorem bitLength_le (x : U256) : bitLength x ≤ 256 := by
-  rw [bitLength_eq]
+  rw [bitLength_def]
   split
   · omega
   next h =>
@@ -337,16 +351,16 @@ theorem toNat_clz (x : U256) : (clz x).toNat = 256 - bitLength x := by
 /-- CLZ's numeric model handles zero separately. -/
 theorem toNat_clz_eq (x : U256) :
     (clz x).toNat = if x.toNat = 0 then 256 else 256 - x.toNat.log2 - 1 := by
-  rw [toNat_clz, bitLength_eq]
+  rw [toNat_clz, bitLength_def]
   split <;> omega
 
 /-- CLZ at zero is the word width. -/
-theorem clz_zero : (clz zero).toNat = 256 := by
+theorem toNat_clz_zero : (clz zero).toNat = 256 := by
   rw [toNat_clz_eq, toNat_zero]
   rfl
 
 /-- CLZ at the all-ones word is zero. -/
-theorem clz_max : (clz max).toNat = 0 := by
+theorem toNat_clz_max : (clz max).toNat = 0 := by
   rw [toNat_clz_eq, toNat_max]
   have hl : (2 ^ 256 - 1 : Nat).log2 = 255 := by
     apply (Nat.log2_eq_iff (by omega)).mpr

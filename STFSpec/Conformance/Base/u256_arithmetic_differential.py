@@ -10,54 +10,29 @@ Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. The seven EVM hand
 are imported unchanged from the pinned arithmetic.py. A minimal frame adapter supplies
 only stack, pc and the actual GasMeter, with sufficient gas and default discarded tracing;
 real stack pop/push and charge_gas execute. Frame construction and gas/stack failure paths
-are outside this value-slice comparison. Checked operations invoke the actual locked
+are outside this value comparison. Checked operations invoke the actual locked
 ethereum-types Python operators. Generated observations are uncommitted bug-finding
 evidence, never normative fixtures or a whole-guest conformance claim.
 """
 
-import argparse
-import importlib.metadata
-import itertools
-import json
-import operator
 from pathlib import Path
 import random
-import subprocess
 import sys
-import tomllib
-from types import SimpleNamespace
+import itertools
+import operator
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from differential import setup_driver
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--eels", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path)
-    args = parser.parse_args()
-    root = Path(__file__).resolve().parents[3]
-    pin = tomllib.loads((root / "reference.toml").read_text())["release"]
-    eels = args.eels.resolve()
-    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=eels, text=True).strip()
-    if head != pin["commit"]:
-        parser.error("EELS checkout does not match reference.toml")
-    version = importlib.metadata.version("ethereum-types")
-    if version != pin["python_dependencies"]["ethereum-types"]:
-        parser.error("ethereum-types version does not match reference.toml")
-    sys.path.insert(0, str(eels / "src"))
-    from ethereum_types import numeric
-    from ethereum_types.numeric import U256, Uint
-    from ethereum.forks.amsterdam.fork_types import ExecutionGas, StateGas
-    from ethereum.forks.amsterdam.vm.gas import GasCosts, GasMeter
+    context = setup_driver(__doc__, __file__, 2562)
+    from ethereum_types.numeric import U256
+    from ethereum.forks.amsterdam.vm.gas import GasCosts
     from ethereum.forks.amsterdam.vm.instructions import arithmetic
-    dependency = Path(numeric.__file__).resolve()
-    if not dependency.is_relative_to(eels / ".venv"):
-        parser.error("ethereum-types must be loaded from the frozen EELS venv")
-    source = Path(arithmetic.__file__).resolve()
-    if source != eels / "src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py":
-        parser.error("opcode handlers must be loaded from the pinned EELS checkout")
-    output = args.output.resolve()
-    if output.is_relative_to(root) or output.is_relative_to(eels):
-        parser.error("generated evidence must be outside the repository and EELS checkout")
-    rng = random.Random(2562)
+    source = context.check_source(arithmetic, "ethereum/forks/amsterdam/vm/instructions/arithmetic.py")
+    rng = random.Random(context.seed)
     modulus, half = 2**256, 2**255
     boundaries = [0, 1, 2, 12, half - 1, half, half + 1, modulus - 1]
     pairs = list(itertools.product(boundaries, repeat=2))
@@ -77,18 +52,10 @@ def main():
     for name in evm_ops:
         cases = triples if name in {"addmod", "mulmod"} else pairs
         for values in cases:
-            gas_before = 100000
-            frame = SimpleNamespace(
-                stack=[U256(n) for n in reversed(values)], pc=Uint(0),
-                gas_meter=GasMeter(ExecutionGas(Uint(gas_before)),
-                                   StateGas(Uint(0)), StateGas(Uint(0)))
-            )
-            getattr(arithmetic, name)(frame)
             cost = int(getattr(GasCosts, "OPCODE_" + name.upper()))
-            assert len(frame.stack) == 1 and frame.pc == Uint(1)
-            assert int(frame.gas_meter.gas_left) == gas_before - cost
+            value = context.run_opcode(getattr(arithmetic, name), values, cost=cost)
             args_lean = " ".join(f"(U256.ofNat {n})" for n in values)
-            guards.append(f"#guard (U256.{name} {args_lean}).toNat = {int(frame.stack[0])}")
+            guards.append(f"#guard (U256.{name} {args_lean}).toNat = {int(value)}")
             counts[name] += 1
     for name, operation in checked_ops.items():
         for a, b in pairs:
@@ -104,15 +71,7 @@ def main():
                     f"#guard (U256.{name} {args_lean}).map U256.toNat = some {int(value)}"
                 )
             counts[name] += 1
-    output.write_text(
-        "-- Generated differential evidence; do not commit.\n" + "\n".join(guards) + "\n"
-    )
-    result = subprocess.run(["lake", "env", "lean", str(output)], cwd=root)
-    print(json.dumps({"eels_commit": head, "ethereum_types": version,
-                      "source": str(source), "dependency": str(dependency), "seed": 2562,
-                      "executed": counts, "rejected": failures, "guards": len(guards) - 2,
-                      "lean_exit": result.returncode, "generated": str(output)}, sort_keys=True))
-    return result.returncode
+    return context.run(guards, source=str(source), executed=counts, rejected=failures)
 
 
 if __name__ == "__main__":

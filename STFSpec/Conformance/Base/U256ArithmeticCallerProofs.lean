@@ -30,7 +30,7 @@ example (a b c : U256) :
   U256.mul_add a b c
 
 example (a b : U256) (h : b.toNat ≠ 0) :
-    U256.add (U256.mul b (U256.div a b)) (U256.mod a b) = a := U256.div_mod_eq a b h
+    U256.add (U256.mul b (U256.div a b)) (U256.mod a b) = a := U256.div_add_mod a b h
 
 example (a b : U256) (h : b.toNat ≠ 0) : (U256.mod a b).toNat < b.toNat :=
   U256.mod_lt a b h
@@ -62,3 +62,6 @@ example (a b c : U256) (h : U256.checkedDiv a b = some c) : b.toNat ≠ 0 :=
 
 example (a b c : U256) (h : U256.checkedMod a b = some c) : c.toNat = a.toNat % b.toNat :=
   ((U256.checkedMod_eq_some_iff a b c).mp h).2
+
+example (a b : U256) (h : a.toNat + b.toNat < 2 ^ 256) :
+    (U256.add a b).toNat = a.toNat + b.toNat := U256.toNat_add_of_lt a b h

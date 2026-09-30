@@ -13,8 +13,9 @@ Inputs follow EELS pop order. These primitives have no stack, gas or frame effec
 `EthVmInstructions` owns those effects and consumers own checked-failure projection.
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
-EELS citations are at the commit in `reference.toml`; dependency citations refer to
-locked `ethereum-types` 0.4.1. Signed division/remainder and exponentiation are separate.
+EELS citations are at the commit in `reference.toml`.
+Dependency citations follow the convention in EthBase §3.
+Signed division/remainder are defined in `STFSpec.Base.U256Signed`.
 -/
 
 namespace STFSpec.Base.U256
@@ -54,11 +55,11 @@ def mulmod (a b n : U256) : U256 :=
   if n.toNat = 0 then zero else ofNat ((a.toNat * b.toNat) % n.toNat)
 
 /-- Checked Python addition; `ethereum_types/numeric.py:91,44,611`.
-Unsigned overflow returns `none`; consumers own its named fault and first handler. -/
+Unsigned overflow returns `none`; the caller maps it to its enclosing EELS handler's error (D14). -/
 def checkedAdd (a b : U256) : Option U256 := ofNat? (a.toNat + b.toNat)
 
 /-- Checked Python subtraction; `ethereum_types/numeric.py:103`.
-Underflow returns `none`, without using truncated subtraction on that path. -/
+Returns `none` exactly when the second unsigned value exceeds the first. -/
 def checkedSub (a b : U256) : Option U256 :=
   if b.toNat ≤ a.toNat then some (ofNat (a.toNat - b.toNat)) else none
 
@@ -92,18 +93,23 @@ theorem toBitVec_mul (a b : U256) : (mul a b).toBitVec = a.toBitVec * b.toBitVec
 
 /-- Unsigned addition reduces its unbounded sum modulo 2²⁵⁶. -/
 theorem toNat_add (a b : U256) : (add a b).toNat = (a.toNat + b.toNat) % 2 ^ 256 := by
-  rw [toNat_eq, toBitVec_add, BitVec.toNat_add]
+  rw [toNat_def, toBitVec_add, BitVec.toNat_add]
   rfl
 
-/-- Unsigned subtraction reduces the modular difference modulo 2²⁵⁶. -/
+/-- Word addition retains the sum when it is below the word modulus. -/
+theorem toNat_add_of_lt (a b : U256) (h : a.toNat + b.toNat < 2 ^ 256) :
+    (add a b).toNat = a.toNat + b.toNat := by
+  rw [toNat_add, Nat.mod_eq_of_lt h]
+
+/-- Unsigned subtraction is `(2²⁵⁶ − b.toNat + a.toNat) mod 2²⁵⁶`. -/
 theorem toNat_sub (a b : U256) :
     (sub a b).toNat = (2 ^ 256 - b.toNat + a.toNat) % 2 ^ 256 := by
-  rw [toNat_eq, toBitVec_sub, BitVec.toNat_sub]
+  rw [toNat_def, toBitVec_sub, BitVec.toNat_sub]
   rfl
 
 /-- Unsigned multiplication reduces its unbounded product modulo 2²⁵⁶. -/
 theorem toNat_mul (a b : U256) : (mul a b).toNat = (a.toNat * b.toNat) % 2 ^ 256 := by
-  rw [toNat_eq, toBitVec_mul, BitVec.toNat_mul]
+  rw [toNat_def, toBitVec_mul, BitVec.toNat_mul]
   rfl
 
 /-- EVM unsigned division has the explicit zero-divisor branch. -/
@@ -152,7 +158,7 @@ theorem toNat_mulmod (a b n : U256) :
 /-- Checked addition succeeds exactly when the unreduced sum fits. -/
 theorem checkedAdd_eq_some_iff (a b c : U256) :
     checkedAdd a b = some c ↔ a.toNat + b.toNat < 2 ^ 256 ∧
-      c.toNat = a.toNat + b.toNat := ofNat?_eq_some_iff
+      c.toNat = a.toNat + b.toNat := ofNat?_eq_some_iff _ _
 
 /-- Checked addition fails exactly on unsigned overflow. -/
 theorem checkedAdd_eq_none_iff (a b : U256) :
@@ -161,7 +167,7 @@ theorem checkedAdd_eq_none_iff (a b : U256) :
 /-- Checked multiplication succeeds exactly when the unreduced product fits. -/
 theorem checkedMul_eq_some_iff (a b c : U256) :
     checkedMul a b = some c ↔ a.toNat * b.toNat < 2 ^ 256 ∧
-      c.toNat = a.toNat * b.toNat := ofNat?_eq_some_iff
+      c.toNat = a.toNat * b.toNat := ofNat?_eq_some_iff _ _
 
 /-- Checked multiplication fails exactly on unsigned overflow. -/
 theorem checkedMul_eq_none_iff (a b : U256) :
@@ -175,14 +181,8 @@ theorem checkedSub_eq_some_iff (a b c : U256) :
   next h =>
     have hr : a.toNat - b.toNat < 2 ^ 256 :=
       Nat.lt_of_le_of_lt (Nat.sub_le _ _) (toNat_lt a)
-    simp only [Option.some.injEq]
-    constructor
-    · intro hc
-      subst c
-      exact ⟨h, toNat_ofNat_of_lt hr⟩
-    · intro hc
-      apply toNat_inj.mp
-      rw [toNat_ofNat_of_lt hr, hc.2]
+    simp only [Option.some.injEq, ← toNat_inj, toNat_ofNat_of_lt hr, h, true_and,
+      eq_comm]
   next h => simp [h]
 
 /-- Checked subtraction fails exactly on underflow. -/
@@ -199,14 +199,7 @@ theorem checkedDiv_eq_some_iff (a b c : U256) :
   next h =>
     have hm : (div a b).toNat = a.toNat / b.toNat := by
       simp only [toNat_div, h, ite_false]
-    simp only [Option.some.injEq]
-    constructor
-    · intro hc
-      subst c
-      exact ⟨h, hm⟩
-    · intro hc
-      apply toNat_inj.mp
-      rw [hm, hc.2]
+    simp only [Option.some.injEq, ← toNat_inj, hm, ne_eq, h, not_false_eq_true, true_and, eq_comm]
 
 /-- Checked division fails exactly on zero division, never on quotient overflow. -/
 theorem checkedDiv_eq_none_iff (a b : U256) : checkedDiv a b = none ↔ b.toNat = 0 := by
@@ -221,28 +214,13 @@ theorem checkedMod_eq_some_iff (a b c : U256) :
   next h =>
     have hm : (mod a b).toNat = a.toNat % b.toNat := by
       simp only [toNat_mod, h, ite_false]
-    simp only [Option.some.injEq]
-    constructor
-    · intro hc
-      subst c
-      exact ⟨h, hm⟩
-    · intro hc
-      apply toNat_inj.mp
-      rw [hm, hc.2]
+    simp only [Option.some.injEq, ← toNat_inj, hm, ne_eq, h, not_false_eq_true, true_and, eq_comm]
 
 /-- Checked remainder fails exactly on zero division, never on remainder overflow. -/
 theorem checkedMod_eq_none_iff (a b : U256) : checkedMod a b = none ↔ b.toNat = 0 := by
   simp [checkedMod]
 
 /-! ### Derived modular algebra -/
-
-private theorem toBitVec_zero : zero.toBitVec = 0#256 := by
-  apply BitVec.eq_of_toNat_eq
-  exact toNat_zero
-
-private theorem toBitVec_one : one.toBitVec = 1#256 := by
-  apply BitVec.eq_of_toNat_eq
-  exact toNat_one
 
 /-- Word addition is commutative. -/
 theorem add_comm (a b : U256) : add a b = add b a := by
@@ -338,17 +316,17 @@ theorem sub_add_cancel (a b : U256) : add (sub a b) b = a := by
 
 /-- With a nonzero divisor, quotient and remainder decompose the unsigned value exactly,
 using an unbounded product and sum. -/
-theorem div_mod_decomposition (a b : U256) (h : b.toNat ≠ 0) :
+theorem toNat_div_add_toNat_mod (a b : U256) (h : b.toNat ≠ 0) :
     b.toNat * (div a b).toNat + (mod a b).toNat = a.toNat := by
   simp only [toNat_div, toNat_mod, h, ite_false]
   exact Nat.div_add_mod _ _
 
 /-- Quotient and remainder also reconstruct the word through its wrapping operations;
 the natural decomposition ensures no reduction changes the final result. -/
-theorem div_mod_eq (a b : U256) (h : b.toNat ≠ 0) :
+theorem div_add_mod (a b : U256) (h : b.toNat ≠ 0) :
     add (mul b (div a b)) (mod a b) = a := by
   apply toNat_inj.mp
-  have hd := div_mod_decomposition a b h
+  have hd := toNat_div_add_toNat_mod a b h
   have hp : b.toNat * (div a b).toNat < 2 ^ 256 := by
     have hr := toNat_lt a
     omega

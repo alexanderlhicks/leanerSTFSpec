@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-09-29):** current register under D18. No implementation debt is recorded yet: core modules contain no spec definitions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
+**Status (2026-09-30):** current register under D18. No implementation debt is recorded yet. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 

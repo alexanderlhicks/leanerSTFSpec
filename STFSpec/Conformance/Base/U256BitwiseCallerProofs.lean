@@ -16,7 +16,7 @@ Spec guidance: `STFSpec/informal/modules/EthBase.md` §7.
 open STFSpec.Base
 
 example (a b : U256) (h : a.toNat < b.toNat) : (U256.lt a b).toNat = 1 := by
-  rw [U256.toNat_lt_word, ite_eq_left h]
+  rw [U256.toNat_lt_result, ite_eq_left h]
 
 example (a b : U256) (h : a.toInt < b.toInt) : (U256.slt a b).toNat = 1 := by
   rw [U256.toNat_slt, ite_eq_left h]
@@ -34,7 +34,7 @@ example (x : U256) : U256.or x x = x := by
   rw [U256.toBitVec_or, BitVec.or_self]
 
 example (x : U256) : (U256.xor x x).toNat = 0 := by
-  rw [U256.toNat_eq, U256.toBitVec_xor, BitVec.xor_self]
+  rw [U256.toNat_def, U256.toBitVec_xor, BitVec.xor_self]
   rfl
 
 example (i x : U256) (h : 32 ≤ i.toNat) : (U256.byte i x).toNat = 0 := by
@@ -58,3 +58,9 @@ example (s v : U256) (hs : 256 ≤ s.toNat) : U256.shr s v = U256.zero :=
 example (x : U256) : (U256.clz x).toNat + U256.bitLength x = 256 := by
   rw [U256.toNat_clz]
   exact Nat.sub_add_cancel (U256.bitLength_le x)
+
+example (x : U256) : x.toNat < 2 ^ U256.bitLength x :=
+  U256.toNat_lt_two_pow_bitLength x
+
+example (x : U256) (h : x.toNat ≠ 0) : 2 ^ (U256.bitLength x - 1) ≤ x.toNat :=
+  U256.two_pow_bitLength_sub_one_le_toNat x h

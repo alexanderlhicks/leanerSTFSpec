@@ -2,19 +2,14 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import Init.Data.BitVec.Lemmas
-import Init.Data.Order.Ord
-
 /-!
 # U256 values and constructors
 
 Library `EthBase`: the stable word observers, constructors and unsigned ordering.
 The stored representation is internal by convention; callers use the laws below.
-Arithmetic and byte conversions are separate work items.
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
-The reference is `ethereum-types` 0.4.1, locked by EELS `uv.lock` at the commit in
-`reference.toml`; citations below are paths within that installed dependency.
+Citations follow the source/dependency convention in EthBase §3.
 -/
 
 namespace STFSpec.Base
@@ -77,7 +72,7 @@ instance : Ord U256 where
 /-! ### Observer contract -/
 
 /-- Equal bit-vector observations determine equal words. -/
-theorem ext {x y : U256} (h : x.toBitVec = y.toBitVec) : x = y := by
+@[ext] theorem ext {x y : U256} (h : x.toBitVec = y.toBitVec) : x = y := by
   cases x
   cases y
   cases h
@@ -99,6 +94,14 @@ theorem toNat_inj {x y : U256} : x.toNat = y.toNat ↔ x = y := by
     exact ext (BitVec.eq_of_toNat_eq h)
   · exact congrArg toNat
 
+/-- The default word is zero. -/
+instance : Inhabited U256 where
+  default := zero
+
+/-- Display a word by its unsigned observation. -/
+instance : Repr U256 where
+  reprPrec x prec := reprPrec x.toNat prec
+
 /-- The signed observer is injective. -/
 theorem toInt_inj {x y : U256} : x.toInt = y.toInt ↔ x = y := by
   constructor
@@ -110,10 +113,10 @@ theorem toInt_inj {x y : U256} : x.toInt = y.toInt ↔ x = y := by
 theorem toNat_lt (x : U256) : x.toNat < 2 ^ 256 := x.toBitVec.isLt
 
 /-- The unsigned observer agrees with the bit-vector model. -/
-theorem toNat_eq (x : U256) : x.toNat = x.toBitVec.toNat := rfl
+theorem toNat_def (x : U256) : x.toNat = x.toBitVec.toNat := rfl
 
 /-- The signed observer agrees with the bit-vector model. -/
-theorem toInt_eq (x : U256) : x.toInt = x.toBitVec.toInt := rfl
+theorem toInt_def (x : U256) : x.toInt = x.toBitVec.toInt := rfl
 
 /-- Two's-complement interpretation agrees with EELS's sign-bit case split. -/
 theorem toInt_eq_toNat_cond (x : U256) :
@@ -157,19 +160,13 @@ theorem toNat_ofNat_of_lt {n : Nat} (h : n < 2 ^ 256) : (ofNat n).toNat = n := b
   rw [toNat_ofNat, Nat.mod_eq_of_lt h]
 
 /-- Checked natural construction succeeds exactly with the original unsigned value. -/
-theorem ofNat?_eq_some_iff {n : Nat} {x : U256} :
+theorem ofNat?_eq_some_iff (n : Nat) (x : U256) :
     ofNat? n = some x ↔ n < 2 ^ 256 ∧ x.toNat = n := by
   unfold ofNat?
   split
   next h =>
-    simp only [Option.some.injEq]
-    constructor
-    · intro hx
-      subst x
-      exact ⟨h, toNat_ofNat_of_lt h⟩
-    · intro hx
-      apply toNat_inj.mp
-      rw [toNat_ofNat_of_lt h, hx.2]
+    simp only [Option.some.injEq, ← toNat_inj, toNat_ofNat_of_lt h, h, true_and,
+      eq_comm]
   next h => simp [h]
 
 /-- Checked natural construction fails exactly on unsigned overflow. -/
@@ -178,10 +175,10 @@ theorem ofNat?_eq_none_iff (n : Nat) : ofNat? n = none ↔ 2 ^ 256 ≤ n := by
 
 /-- Checked reconstruction from every unsigned observation succeeds. -/
 theorem ofNat?_toNat (x : U256) : ofNat? x.toNat = some x :=
-  ofNat?_eq_some_iff.mpr ⟨toNat_lt x, rfl⟩
+  (ofNat?_eq_some_iff _ _).mpr ⟨toNat_lt x, rfl⟩
 
 /-- Checked signed construction succeeds exactly with the original signed value. -/
-theorem ofInt?_eq_some_iff {i : Int} {x : U256} :
+theorem ofInt?_eq_some_iff (i : Int) (x : U256) :
     ofInt? i = some x ↔ -(2 : Int) ^ 255 ≤ i ∧ i < (2 : Int) ^ 255 ∧ x.toInt = i := by
   unfold ofInt?
   split
@@ -190,46 +187,46 @@ theorem ofInt?_eq_some_iff {i : Int} {x : U256} :
     next hlo =>
       have hm : (ofBitVec (BitVec.ofInt 256 i)).toInt = i :=
         BitVec.toInt_ofInt_eq_self (by decide) hlo hi
-      simp only [Option.some.injEq]
-      constructor
-      · intro hx
-        subst x
-        exact ⟨hlo, hi, hm⟩
-      · intro hx
-        apply toInt_inj.mp
-        rw [hm, hx.2.2]
+      simp only [Option.some.injEq, ← toInt_inj, hm, hlo, hi, true_and, eq_comm]
     next hlo =>
-      constructor
-      · intro h
-        cases h
-      · intro h
-        exact False.elim (hlo h.1)
+      simp only [hlo, false_and, iff_false]
+      exact fun h ↦ Option.some_ne_none _ h.symm
   next hi =>
-    constructor
-    · intro h
-      cases h
-    · intro h
-      exact False.elim (hi h.2.1)
+    simp only [hi, false_and, and_false, iff_false]
+    exact fun h ↦ Option.some_ne_none _ h.symm
 
 /-- Checked signed construction fails exactly outside the two's-complement range. -/
 theorem ofInt?_eq_none_iff (i : Int) :
     ofInt? i = none ↔ i < -(2 : Int) ^ 255 ∨ (2 : Int) ^ 255 ≤ i := by
-  unfold ofInt?
-  split
-  · split <;> simp_all <;> omega
-  · simp_all
+  by_cases hi : i < (2 : Int) ^ 255
+  · by_cases hlo : -(2 : Int) ^ 255 ≤ i
+    · simp only [ofInt?, hi, hlo, ite_true, Option.some_ne_none, false_iff]
+      omega
+    · simp only [ofInt?, hi, hlo, ite_true, ite_false, true_iff]
+      omega
+  · simp only [ofInt?, hi, ite_false, true_iff]
+    omega
 
 /-- Checked reconstruction from every signed observation succeeds. -/
 theorem ofInt?_toInt (x : U256) : ofInt? x.toInt = some x :=
-  ofInt?_eq_some_iff.mpr ⟨le_toInt x, toInt_lt x, rfl⟩
+  (ofInt?_eq_some_iff _ _).mpr ⟨le_toInt x, toInt_lt x, rfl⟩
 
 /-- Accepted signed construction has the expected unsigned two's-complement encoding. -/
 theorem toNat_ofInt? {i : Int} {x : U256} (h : ofInt? i = some x) :
     x.toNat = if 0 ≤ i then i.toNat else (i + (2 ^ 256 : Nat)).toNat := by
-  have hs := (ofInt?_eq_some_iff.mp h).2.2
+  have hs := ((ofInt?_eq_some_iff _ _).mp h).2.2
   have hr := toNat_lt x
   rw [toInt_eq_toNat_cond] at hs
   split at hs <;> split <;> omega
+
+/-- Zero observes as the zero bit vector. -/
+theorem toBitVec_zero : zero.toBitVec = 0#256 := rfl
+
+/-- One observes as the unit bit vector. -/
+theorem toBitVec_one : one.toBitVec = 1#256 := rfl
+
+/-- The maximum word observes as the all-ones bit vector. -/
+theorem toBitVec_max : max.toBitVec = BitVec.ofNat 256 (2 ^ 256 - 1) := rfl
 
 /-- The unsigned value of zero. -/
 theorem toNat_zero : zero.toNat = 0 := rfl
@@ -274,11 +271,11 @@ theorem ofBool_eq_ofNat (b : Bool) : ofBool b = ofNat (if b then 1 else 0) := by
 /-! ### Unsigned order contract -/
 
 /-- Word comparison is exactly comparison of unsigned observations. -/
-theorem compare_eq (x y : U256) : compare x y = compare x.toNat y.toNat := rfl
+theorem compare_def (x y : U256) : compare x y = compare x.toNat y.toNat := rfl
 
 /-- A comparison is equal exactly when the words are equal. -/
 theorem compare_eq_eq_iff (x y : U256) : compare x y = .eq ↔ x = y := by
-  rw [compare_eq, Nat.compare_eq_eq, toNat_inj]
+  rw [compare_def, Nat.compare_eq_eq, toNat_inj]
 
 /-- A less comparison is exactly unsigned strict order. -/
 theorem compare_eq_lt_iff (x y : U256) : compare x y = .lt ↔ x.toNat < y.toNat :=

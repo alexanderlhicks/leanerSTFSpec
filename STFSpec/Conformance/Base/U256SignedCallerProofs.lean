@@ -36,10 +36,10 @@ example (a b : U256) :
       some (U256.smod a b) := U256.ofInt?_smod a b
 
 example (a b : U256) (h : ¬ (a.toInt = -(2 : Int) ^ 255 ∧ b.toInt = -1)) :
-    -(2 : Int) ^ 255 ≤ a.toInt.tdiv b.toInt := (U256.tdiv_in_signed_range a b h).1
+    -(2 : Int) ^ 255 ≤ a.toInt.tdiv b.toInt := (U256.tdiv_signed_bounds a b h).1
 
 example (a b : U256) : a.toInt.tmod b.toInt < (2 : Int) ^ 255 :=
-  (U256.tmod_in_signed_range a b).2
+  (U256.tmod_signed_bounds a b).2
 
 example (a b : U256) :
     U256.ofInt? (if b.toInt = 0 then 0 else
