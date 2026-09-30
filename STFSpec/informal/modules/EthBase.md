@@ -193,6 +193,58 @@ driver reports its seed, executed guards, reference versions and Lean exit statu
 These are operation-value comparisons. Guest EEST records require the absent
 `EthConformance` guest runner (§10).
 
+### Shift composition laws
+
+`STFSpec/Base/U256ShiftLaws.lean` proves composition of the existing SHL, SHR and SAR values when the natural sum of the shift amounts does not wrap. Saturation at 256 is compatible with composition. These laws are pure; callers supply the sum premise and no failure channel is added.
+
+| Existing pinned source | Public law and premise | Equation | Evidence |
+|---|---|---|---|
+| `forks/amsterdam/vm/instructions/bitwise.py:159` | `shl_shl_of_add_lt (s t v : U256) (h : s.toNat + t.toNat < 2^256)` | `shl t (shl s v) = shl (add s t) v` | `U256ShiftGuards.lean`, `U256ShiftCallerProofs.lean`, `u256_shift_differential.py` |
+| `forks/amsterdam/vm/instructions/bitwise.py:189` | `shr_shr_of_add_lt`, same domain and premise | `shr t (shr s v) = shr (add s t) v` | Same suites, unsigned saturation boundaries |
+| `forks/amsterdam/vm/instructions/bitwise.py:219` | `sar_sar_of_add_lt`, same domain and premise | `sar t (sar s v) = sar (add s t) v` | Same suites, both signs and sign fill |
+
+The sequence driver compares actual pinned handlers applied twice with one handler using the wrapping sum. Nonwrapping sums, including saturated shifts, compose; wrapping sums provide counterexamples to an unrestricted law.
+
+### Modular exponentiation
+
+`STFSpec/Base/U256Exp.lean` implements EXP by square-and-multiply with at most 256 recursive calls with a nonzero exponent. Reduced-word products have at most 512-bit intermediates; the full natural power appears only in model propositions. The public `expReferenceNat` and `expReference` multiply and reduce once per exponent unit, with ordinary equality `exp_eq_reference`.
+
+| Pinned source | Declaration and domain | Success and guards | Public laws | Evidence |
+|---|---|---|---|---|
+| `forks/amsterdam/vm/instructions/arithmetic.py:297,326`; `ethereum_types/numeric.py:223` | `exp : U256 → U256 → U256`; base first, unsigned exponent second | All word pairs; `a^b mod 2^256`, including `0^0 = 1`; no value failures | `toNat_exp`, `exp_eq_reference`, `exp_zero`, `exp_one`, `one_exp`, `zero_exp` | `U256ExpGuards.lean`, `U256ExpCallerProofs.lean`, `u256_exp_differential.py` |
+
+### Narrow unsigned values
+
+For each `n ∈ {8,16,32,64}`, `STFSpec/Base/Un.lean` defines a separate `Un` structure with private `UIntn` storage. The table below specifies each width's implemented operations. They are total and pure over the stated domains; negative constructor inputs and cross-type operator cases are excluded by the typed inputs. Checked failures return `none`; consumer fault projection follows D14/B14. Arithmetic, literal and coercion instances do not leak from storage.
+
+| Width | Structure source (`ethereum_types/numeric.py`) | `MAX_VALUE` source | Executable storage |
+|---|---|---|---|
+| 8 | 716 | 738–739 | `UInt8` |
+| 16 | 743 | 765–766 | `UInt16` |
+| 32 | 770 | 792–793 | `UInt32` |
+| 64 | 797 | 819–820 | `UInt64` |
+
+| Dependency/source at the pin | Public declaration and type | Domain / success observation | Ordered failures / first-handler ownership | Public laws | Tests |
+|---|---|---|---|---|---|
+| Width table above (`Un`) | `structure Un` over private `UIntn` | All n-bit unsigned values | None | `ext`, `toNat_inj`, `toBitVec_inj` | Observer client proofs; private-storage/instance rejection checks |
+| `ethereum_types/numeric.py:321` (`__int__`) | `toNat : Un → Nat` | All values; unsigned observation < `2^n` | None | `toNat_lt`, `toNat_def`, `toNat_inj` | Zero/one/max; constructor differential |
+| Lean reference observer | `toBitVec : Un → BitVec n` | All values; reference model with same unsigned observation | None | `toNat_def`, `toBitVec_inj`, `toBitVec_ofNat_toNat` | Boundary observer guards; public model client proofs |
+| Lean wrapping model helper | `ofNat : Nat → Un` | All natural inputs reduced mod `2^n` | None | `toBitVec_ofNat`, `toNat_ofNat`, `toNat_ofNat_of_lt`, `ofNat_toNat` | Width overflow and `2^4096+17`; masked dependency constructor differential |
+| `ethereum_types/numeric.py:44,611` (`Un(n)`) | `ofNat? : (value : Nat) → Option Un` | Success iff `value < 2^n`; observation `value` | Overflow ↦ `none`; caller maps `none` under D14/B14 | `ofNat?_eq_some_iff`, `ofNat?_eq_none_iff`, `ofNat?_toNat` | Zero/one/max/width overflow/huge input; dependency constructor success and rejection |
+| `ethereum_types/numeric.py:44` on 0 | `zero : Un` | Unsigned value 0 | None | `toNat_zero` | Zero guards/differential |
+| `ethereum_types/numeric.py:44` on 1 | `one : Un` | Unsigned value 1 | None | `toNat_one` | One guards/differential |
+| Width table above (`MAX_VALUE`) | `max : Un` | Unsigned value `2^n−1` | None | `toNat_max` | Max guards; actual dependency constant differential |
+| `ethereum_types/numeric.py:325` (`__eq__`) | `DecidableEq Un` | All same-width value pairs; numeric equality | None | `toNat_inj`, `toBitVec_inj` | Equal/wrapped/unequal differential pairs |
+| `ethereum_types/numeric.py:343–369` | `Ord Un`, `Std.TransOrd Un`, `Std.LawfulEqOrd Un` | All pairs; unsigned numeric comparison | None | `compare_def`, `compare_eq_eq_iff`, `compare_eq_lt_iff`, `compare_eq_gt_iff` | Unsigned upper-half order; equality/order client proofs; dependency pair comparison |
+| `ethereum_types/numeric.py:614` (`wrapping_add`) | `wrappingAdd : Un → Un → Un` | All pairs; sum mod `2^n` | None | `toBitVec_wrappingAdd`, `toNat_wrappingAdd` | Max+1, max+max; commutativity client; dependency differential |
+| `ethereum_types/numeric.py:625` (`wrapping_sub`) | `wrappingSub : Un → Un → Un` | All pairs; difference mod `2^n` | None | `toBitVec_wrappingSub`, `toNat_wrappingSub` | 0−1, 1−1; cancellation client; dependency differential |
+| `ethereum_types/numeric.py:636` (`wrapping_mul`) | `wrappingMul : Un → Un → Un` | All pairs; product mod `2^n` | None | `toBitVec_wrappingMul`, `toNat_wrappingMul` | Max·max and max·0; dependency differential |
+| `ethereum_types/numeric.py:91,44,611` (`__add__`) | `checkedAdd : Un → Un → Option Un` | Success iff unreduced sum < `2^n`; exact unsigned sum | Overflow ↦ `none`; caller maps `none` under D14/B14 | `checkedAdd_eq_some_iff`, `checkedAdd_eq_none_iff` | Sum immediately below/at width bound; zero-identity and failure clients; actual operator differential |
+| `ethereum_types/numeric.py:103` (`__sub__`) | `checkedSub : Un → Un → Option Un` | Success iff second value ≤ first; exact unsigned difference | Underflow checked before result construction ↦ `none`; caller maps `none` under D14/B14 | `checkedSub_eq_some_iff`, `checkedSub_eq_none_iff` | 0−1, max−max, max−1, 0−0; public failure client; actual operator differential |
+| `ethereum_types/numeric.py:131,44,611` (`__mul__`) | `checkedMul : Un → Un → Option Un` | Success iff unreduced product < `2^n`; exact unsigned product | Overflow ↦ `none`; caller maps `none` under D14/B14 | `checkedMul_eq_some_iff`, `checkedMul_eq_none_iff` | Products immediately below/at width bound, max·max/1/0; public identity client; actual operator differential |
+
+All rows are implemented for each width. Regression evidence is in `STFSpec/Conformance/Base/NarrowGuards.lean`, `NarrowCallerProofs.lean` and `narrow_differential.py`; the driver owns its invocation, seed and case counts. Remaining operators and consumer sites are listed in §10.
+
 ## 4. Tests
 
 - **EEST fixture areas:**
@@ -389,7 +441,7 @@ structure Envelope where
 - `compare` is a lawful total order (`Std.TransCmp`, `Std.LawfulEqCmp`), and `compare x y = compare x.toBytes.toList y.toBytes.toList` (lexicographic).
 - The pair order on `(Address × Bytes32)` is lexicographic in the component orders and is `Std.TransCmp` (F19); `Std.LawfulEqCmp` holds for `Address` (shown in a compiled prototype of the interfaces, via `Address.toNat_inj`).
 
-**Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for small shifts; `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
+**Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for nonwrapping natural amount sums (the §3 shift laws); `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
 
 **Totality** [T]: `taylorExponential` terminates for a positive denominator by a finite prefix followed by bit-length descent (§7 argument below). Use a lexicographic measure: first the iterations remaining until `i + 1 ≥ max(1, ceil(2·numerator/denominator))`, then the bit length of the accumulated numerator. The latter decreases once the prefix is exhausted. The iterated-floor recurrence must be preserved; the unfloored factorial expression is only an upper bound, not the recurrence or a globally decreasing measure. Formalisation remains open (§10).
 
@@ -430,17 +482,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Remaining API.** Implemented declarations and their local proofs are owned by §3. Exponentiation, byte conversions, narrow integer APIs, other unbounded integer helpers and remaining records are unimplemented. Full R4 alternative-representation and opcode-loop cost evidence remains open.
-- **Derived small-shift composition laws.** The SHL/SHR/SAR equations from §7, when the sum of unsigned shift amounts is below 256, are not yet proved. Public observer-based proofs and boundary cases are required.
+- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. Byte conversions, other unbounded integer helpers and remaining records are unimplemented. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
 - **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
-- **`exp` performance.** Square-and-multiply mod 2^256 over `BitVec` is not benchmarked. A naive `BitVec` power would be catastrophic.
-- **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); `U64` is `UInt64`-backed and needs no such benchmark.
+- **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
+- **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); `U64` has native storage, but its checked overflow tests use `Nat` observations and may allocate for high operands; native storage alone does not discharge aggregate cost checks.
 - **Lexicographic `compare` = EELS `bytes` order.** This is stated but not yet tied to the specific EELS sort sites (BAL, storage keys). The consumers should cite this law.
 - **`Envelope` has no fields yet.** By DECISIONS B6 each field must name the consumer theorem that needs it; none has been named.
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage.** Coverage beyond the implemented §3 declarations, including exponentiation and byte conversions, is unimplemented; the guest conformance runner remains absent.
+- **Differential coverage.** The drivers named in §3 compare implemented operation values with pinned EELS or dependency source. Coverage for remaining primitive APIs, opcode effects and guest behavior is unimplemented.

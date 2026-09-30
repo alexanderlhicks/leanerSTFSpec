@@ -3,10 +3,16 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Base.Numeric
+import STFSpec.Base.U16
 import STFSpec.Base.U256
 import STFSpec.Base.U256Arithmetic
 import STFSpec.Base.U256Bitwise
+import STFSpec.Base.U256Exp
+import STFSpec.Base.U256ShiftLaws
 import STFSpec.Base.U256Signed
+import STFSpec.Base.U32
+import STFSpec.Base.U64
+import STFSpec.Base.U8
 
 /-!
 # STFSpec.Base
