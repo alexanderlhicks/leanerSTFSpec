@@ -30,6 +30,8 @@ import STFSpec.Conformance.Hash.KeccakPermutationCallerProofs
 import STFSpec.Conformance.Hash.KeccakPermutationGuards
 import STFSpec.Conformance.Hash.Sha256CompressionCallerProofs
 import STFSpec.Conformance.Hash.Sha256CompressionGuards
+import STFSpec.Conformance.Hash.Blake2ParametersGuards
+import STFSpec.Conformance.Hash.Blake2ParametersCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

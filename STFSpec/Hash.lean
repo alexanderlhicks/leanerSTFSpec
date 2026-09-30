@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Hash.KeccakPermutation
 import STFSpec.Hash.Sha256Compression
+import STFSpec.Hash.Blake2Parameters
 
 /-!
 # STFSpec.Hash

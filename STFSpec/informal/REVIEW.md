@@ -113,8 +113,9 @@ The highest-risk uncompleted items are closing the failure ledger's unresolved s
 implemented declarations, source correspondence, public proofs and operation-value
 regressions. Its §10 owns missing APIs and derived laws.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the reference Keccak-f[1600]
-permutation and fixed-word SHA-256 compression, their model laws, primary KATs and
-finite differential evidence; its §10 owns remaining hash APIs and correspondence.
+permutation, fixed-word SHA-256 compression and raw BLAKE2F parameter codec,
+their public model/byte laws, primary KATs and finite differential evidence;
+its §10 owns remaining hash APIs and correspondence.
 Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture

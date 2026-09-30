@@ -153,6 +153,22 @@ hashlib alias observed through the authenticated pinned precompile source. This
 supports compression composition; it does not implement or validate production
 padding, digest code, precompile gas/effects or guest behavior.
 
+### Implemented raw BLAKE2F parameter slice
+
+The operations below are **discharged** for the stated domains. Remaining hash,
+compression and precompile operations retain their open obligations in §10.
+
+| Pinned EELS source / dependency | Lean declaration and public type | Domain, effects and failure owner | Public law | Deterministic evidence |
+|---|---|---|---|---|
+| `crypto/blake2.py:10–32,133–150`; `ethereum-types` 0.4.1 `Uint.from_le_bytes` / `Uint.from_be_bytes` | `Blake2b.getParameters (data : ByteArray) (h : data.size = 213) : Params`; `Params` fields as §5 | Every 213-byte input; all `UInt32` rounds and all `UInt8` flags retained; pure. `EthPrecompiles` establishes the size premise after its size check, then owns gas charging and flag rejection (`vm/precompiled_contracts/blake2f.py:30–42`, O9/O8). No parser failure on this domain. The bounded 8/16/2 little-endian windows use `leWord`; generic arbitrary-window `leWords` remains unimplemented. | `getParameters_rounds`, `getParameters_h`, `getParameters_m`, `getParameters_t0`, `getParameters_t1`, `getParameters_f`; `leWord_succ_toNat`, `wordByte_toNat`, `wordByte_leWord`, `leWord_wordByte` | `STFSpec/Conformance/Hash/Blake2ParametersGuards.lean`: primary [EIP-152](https://eips.ethereum.org/EIPS/eip-152#test-cases) examples 3–8, every raw flag, high round bit and asymmetric lane/counter bytes. `blake2_parameters_differential.py` calls the actual authenticated pinned parser; maximum rounds are parse-only. |
+| Contract witness, using the same raw layout | `Blake2b.serialize : Params → ByteArray` and `parameterByte : Params → Fin 213 → UInt8` | Every raw `Params`; pure and no failures; preserves fixed widths and unvalidated flag | `serialize_size`, `inputByte_serialize`, `getParameters_serialize`, `serialize_getParameters`, `parameterByte_getParameters` | `Blake2ParametersCallerProofs.lean`: both genuine round trips, codec injectivity and all six field observations using public laws; guards and differential serialize the observed fields back to the original bytes. |
+
+The parser differential driver checks scalar `Uint` types and exact vector shapes
+before emitting Lean values; its result-domain regressions reject Boolean/int
+coercions, wrong lengths and out-of-range fields. It uses `scripts/differential.py`
+for the pin, source and installed dependency checks before and after observation.
+Generated oracle observations stay outside both repositories and are finite evidence.
+No compression, gas ordering, whole-hash refinement or EEST guest result is claimed.
 
 ## 4. Tests
 
@@ -245,7 +261,8 @@ The contract is functional correctness against the published algorithms, plus th
 - [C] Sponge decomposition: `keccak256 b = squeeze (absorb (pad b))`, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
 - [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Digest/padding/byte correspondence remains open; standard correspondence for a future `sha256` theorem requires the Q46 domain.
 - [C] KATs as `#guard` (compile-time), not `native_decide` (CONTRIBUTING §4).
-- [C] BLAKE2b: `getParameters` round-trips with the obvious serializer. `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
+- [C] BLAKE2b raw parameters: `getParameters_serialize` and `serialize_getParameters` prove the two-way bijection between all raw `Params` and 213-byte inputs; `serialize_size` proves its exact size. `getParameters_rounds/h/m/t0/t1/f` expose the field windows; `wordByte_leWord`, `leWord_wordByte`, `leWord_succ_toNat` and `wordByte_toNat` connect bytes, bits and numeric radix-256 digits. These parameter laws are discharged by the slice in §3.
+- [C] BLAKE2b compression: `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
 - [T] Every function is structurally recursive over the input blocks or over `rounds : UInt32` (via `Nat` fuel = `rounds.toNat`).
 - [F] (D4) the executable `keccak256` equals the legible reference `keccak256Reference`, as an ordinary theorem (no `@[csimp]`, D21), and likewise for SHA-256. The proof strategy is a round-by-round simulation of the unrolled permutation against `keccakF1600` (not yet done; §10).
 - [R] (bridge module outside the core) `keccakF1600 ≡` the ZisK accelerator's `keccakF` (`ZiskAccel.lean:113`; §10) under the lane-order correspondence.
@@ -259,13 +276,14 @@ The contract is functional correctness against the published algorithms, plus th
 
 **Premises.** EthBase byte and word laws; exact padding, constants and endian conventions; the reference host supports the requested algorithm when reference equivalence is claimed.
 
-**Argument.** Relate each implementation state to the standard's chaining state after the same number of blocks. The initialisation establishes the relation; one compression/permutation round preserves it by the word equations; induction over rounds and blocks gives the final digest. Padding requires separate cases at the final-block boundary, including the empty message and a full block. BLAKE2F additionally checks its fixed input layout and final flag before executing exactly the encoded round count. For the query abstraction, induction over the query computation replaces each query by concrete Keccak, preserving returned values and error order. This is functional correctness. Collision resistance is a separate assumption in EthSecurity and cannot follow from matching test vectors.
+**Argument.** Relate each implementation state to the standard's chaining state after the same number of blocks. The initialisation establishes the relation; one compression/permutation round preserves it by the word equations; induction over rounds and blocks gives the final digest. Padding requires separate cases at the final-block boundary, including the empty message and a full block. BLAKE2F parsing has the two-way raw-layout laws in §3; the precompile checks size, parses, charges gas, then validates the final flag before compression (R5). For the query abstraction, induction over the query computation replaces each query by concrete Keccak, preserving returned values and error order. This is functional correctness. Collision resistance is a separate assumption in EthSecurity and cannot follow from matching test vectors.
 
-**Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence
-and SHA-256 fixed-word schedule/round/feed-forward correspondence are discharged
+**Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence,
+SHA-256 fixed-word schedule/round/feed-forward correspondence and BLAKE2F raw
+parameter byte-layout correspondence with both round trips are discharged
 for the slices in §3. Sponge padding/byte packing, digest correspondence, RIPEMD-160
-and BLAKE2F rounds and their complete boundary vectors remain unwritten. Q46 supplies
-the SHA-256 domain policy. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
+and BLAKE2F compression rounds and their complete boundary vectors remain unwritten.
+Q46 supplies the SHA-256 domain policy. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -293,15 +311,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT, and the SHA-256
-fixed-word compression reference/model laws and primary KATs, are implemented (§3).
-The sponge, Keccak digests, query interface, SHA-256 digest, RIPEMD-160 and BLAKE2F remain
-unimplemented. Their §4 vectors still need transcription from primary sources
+coordinate-model laws and primary zero-state permutation KAT, the SHA-256
+fixed-word compression reference/model laws and primary KATs, and the raw BLAKE2F
+parameter codec and both round trips are implemented (§3). The parser guards
+include primary EIP-152 examples 3–8, all raw flags, high-bit counters and rounds
+0/1/2^31/2^32−1, with maximum rounds parsed only. The sponge, Keccak digests,
+query interface, SHA-256 digest, RIPEMD-160 and BLAKE2F compression remain unimplemented.
+Their §4 vectors still need transcription from primary sources
 (Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
 Historical prototypes are evidence only, not promoted core code.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. A differential run over random lengths would at least provide evidence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
-- **BLAKE2F coverage** in EEST is 5 files per format. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
+- **BLAKE2F coverage** in EEST is 5 files per format. The parameter-only tests in §3 do not execute these guest fixtures or compression. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
 - **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
