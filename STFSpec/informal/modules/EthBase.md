@@ -40,6 +40,13 @@ The EVM opcodes use wrapping ops or explicit `Uint` intermediates (`forks/amster
 
 **R6. Signed conversions.** `to_signed` (`ethereum_types/numeric.py:675–686`) is two's complement at 256 bits. `from_signed` (`:594–608`) **raises** for values outside `[−2^255, 2^255)`: `from_signed(−2^255)` succeeds, `from_signed(2^255)` raises (checked). The spec provides a checked `ofInt?` and proves that every EVM use is in range.
 
+**Byte-sequence representation boundary.** `Bytes` is a structure over private packed
+storage (CONTRIBUTING §7.4), with the `List UInt8` model observed by `toList`.
+Callers construct values explicitly and use the public size/access/operation laws;
+raw fields, container instances and implicit representation conversions are unavailable.
+Padding and padded-read builders use packed buffers (D18), with ordinary model
+proofs; a boxed per-byte temporary array is not an implementation exception.
+
 **R7. Byte conversions.**
 - `to_be_bytes()` is minimal big-endian, and `Uint(0).to_be_bytes() = b""` (`:477–484`). This is load-bearing for RLP integer encoding.
 - `to_be_bytes32()` raises `OverflowError` for values ≥ 2^256 (`:424`); this is only reachable for `Uint`.
@@ -186,12 +193,216 @@ for every shift amount, passes `from_signed`; `bitLength_le` discharges CLZ's
 checked subtraction. The signed division/remainder rows discharge their local
 conversion sites. The global X1 ledger remains open.
 
-The five `*_differential.py` drivers in `STFSpec/Conformance/Base/` compare the
+The `*_differential.py` drivers in `STFSpec/Conformance/Base/` compare the
 public API with actual pinned EELS handlers and dependency methods. Shared
 validation and invocation instructions are in `scripts/differential.py`; each
 driver reports its seed, executed guards, reference versions and Lean exit status.
 These are operation-value comparisons. Guest EEST records require the absent
 `EthConformance` guest runner (§10).
+
+### Shift composition laws
+
+`STFSpec/Base/U256ShiftLaws.lean` proves composition of the existing SHL, SHR and SAR values when the natural sum of the shift amounts does not wrap. Saturation at 256 is compatible with composition. These laws are pure; callers supply the sum premise and no failure channel is added.
+
+| Existing pinned source | Public law and premise | Equation | Evidence |
+|---|---|---|---|
+| `forks/amsterdam/vm/instructions/bitwise.py:159` | `shl_shl_of_add_lt (s t v : U256) (h : s.toNat + t.toNat < 2^256)` | `shl t (shl s v) = shl (add s t) v` | `U256ShiftGuards.lean`, `U256ShiftCallerProofs.lean`, `u256_shift_differential.py` |
+| `forks/amsterdam/vm/instructions/bitwise.py:189` | `shr_shr_of_add_lt`, same domain and premise | `shr t (shr s v) = shr (add s t) v` | Same suites, unsigned saturation boundaries |
+| `forks/amsterdam/vm/instructions/bitwise.py:219` | `sar_sar_of_add_lt`, same domain and premise | `sar t (sar s v) = sar (add s t) v` | Same suites, both signs and sign fill |
+
+The sequence driver compares actual pinned handlers applied twice with one handler using the wrapping sum. Nonwrapping sums, including saturated shifts, compose; wrapping sums provide counterexamples to an unrestricted law.
+
+### Modular exponentiation
+
+`STFSpec/Base/U256Exp.lean` implements EXP by square-and-multiply with at most 256 recursive calls with a nonzero exponent. Reduced-word products have at most 512-bit intermediates; the full natural power appears only in model propositions. The public `expReferenceNat` and `expReference` multiply and reduce once per exponent unit, with ordinary equality `exp_eq_reference`.
+
+| Pinned source | Declaration and domain | Success and guards | Public laws | Evidence |
+|---|---|---|---|---|
+| `forks/amsterdam/vm/instructions/arithmetic.py:297,326`; `ethereum_types/numeric.py:223` | `exp : U256 → U256 → U256`; base first, unsigned exponent second | All word pairs; `a^b mod 2^256`, including `0^0 = 1`; no value failures | `toNat_exp`, `exp_eq_reference`, `exp_zero`, `exp_one`, `one_exp`, `zero_exp` | `U256ExpGuards.lean`, `U256ExpCallerProofs.lean`, `u256_exp_differential.py` |
+
+### Narrow unsigned values
+
+For each `n ∈ {8,16,32,64}`, `STFSpec/Base/Un.lean` defines a separate `Un` structure with private `UIntn` storage. The table below specifies each width's implemented operations. They are total and pure over the stated domains; negative constructor inputs and cross-type operator cases are excluded by the typed inputs. Checked failures return `none`; consumer fault projection follows D14/B14. Arithmetic, literal and coercion instances do not leak from storage.
+
+| Width | Structure source (`ethereum_types/numeric.py`) | `MAX_VALUE` source | Executable storage |
+|---|---|---|---|
+| 8 | 716 | 738–739 | `UInt8` |
+| 16 | 743 | 765–766 | `UInt16` |
+| 32 | 770 | 792–793 | `UInt32` |
+| 64 | 797 | 819–820 | `UInt64` |
+
+| Dependency/source at the pin | Public declaration and type | Domain / success observation | Ordered failures / first-handler ownership | Public laws | Tests |
+|---|---|---|---|---|---|
+| Width table above (`Un`) | `structure Un` over private `UIntn` | All n-bit unsigned values | None | `ext`, `toNat_inj`, `toBitVec_inj` | Observer client proofs; private-storage/instance rejection checks |
+| `ethereum_types/numeric.py:321` (`__int__`) | `toNat : Un → Nat` | All values; unsigned observation < `2^n` | None | `toNat_lt`, `toNat_def`, `toNat_inj` | Zero/one/max; constructor differential |
+| Lean reference observer | `toBitVec : Un → BitVec n` | All values; reference model with same unsigned observation | None | `toNat_def`, `toBitVec_inj`, `toBitVec_ofNat_toNat` | Boundary observer guards; public model client proofs |
+| Lean wrapping model helper | `ofNat : Nat → Un` | All natural inputs reduced mod `2^n` | None | `toBitVec_ofNat`, `toNat_ofNat`, `toNat_ofNat_of_lt`, `ofNat_toNat` | Width overflow and `2^4096+17`; masked dependency constructor differential |
+| `ethereum_types/numeric.py:44,611` (`Un(n)`) | `ofNat? : (value : Nat) → Option Un` | Success iff `value < 2^n`; observation `value` | Overflow ↦ `none`; caller maps `none` under D14/B14 | `ofNat?_eq_some_iff`, `ofNat?_eq_none_iff`, `ofNat?_toNat` | Zero/one/max/width overflow/huge input; dependency constructor success and rejection |
+| `ethereum_types/numeric.py:44` on 0 | `zero : Un` | Unsigned value 0 | None | `toNat_zero` | Zero guards/differential |
+| `ethereum_types/numeric.py:44` on 1 | `one : Un` | Unsigned value 1 | None | `toNat_one` | One guards/differential |
+| Width table above (`MAX_VALUE`) | `max : Un` | Unsigned value `2^n−1` | None | `toNat_max` | Max guards; actual dependency constant differential |
+| `ethereum_types/numeric.py:325` (`__eq__`) | `DecidableEq Un` | All same-width value pairs; numeric equality | None | `toNat_inj`, `toBitVec_inj` | Equal/wrapped/unequal differential pairs |
+| `ethereum_types/numeric.py:343–369` | `Ord Un`, `Std.TransOrd Un`, `Std.LawfulEqOrd Un` | All pairs; unsigned numeric comparison | None | `compare_def`, `compare_eq_eq_iff`, `compare_eq_lt_iff`, `compare_eq_gt_iff` | Unsigned upper-half order; equality/order client proofs; dependency pair comparison |
+| `ethereum_types/numeric.py:614` (`wrapping_add`) | `wrappingAdd : Un → Un → Un` | All pairs; sum mod `2^n` | None | `toBitVec_wrappingAdd`, `toNat_wrappingAdd` | Max+1, max+max; commutativity client; dependency differential |
+| `ethereum_types/numeric.py:625` (`wrapping_sub`) | `wrappingSub : Un → Un → Un` | All pairs; difference mod `2^n` | None | `toBitVec_wrappingSub`, `toNat_wrappingSub` | 0−1, 1−1; cancellation client; dependency differential |
+| `ethereum_types/numeric.py:636` (`wrapping_mul`) | `wrappingMul : Un → Un → Un` | All pairs; product mod `2^n` | None | `toBitVec_wrappingMul`, `toNat_wrappingMul` | Max·max and max·0; dependency differential |
+| `ethereum_types/numeric.py:91,44,611` (`__add__`) | `checkedAdd : Un → Un → Option Un` | Success iff unreduced sum < `2^n`; exact unsigned sum | Overflow ↦ `none`; caller maps `none` under D14/B14 | `checkedAdd_eq_some_iff`, `checkedAdd_eq_none_iff` | Sum immediately below/at width bound; zero-identity and failure clients; actual operator differential |
+| `ethereum_types/numeric.py:103` (`__sub__`) | `checkedSub : Un → Un → Option Un` | Success iff second value ≤ first; exact unsigned difference | Underflow checked before result construction ↦ `none`; caller maps `none` under D14/B14 | `checkedSub_eq_some_iff`, `checkedSub_eq_none_iff` | 0−1, max−max, max−1, 0−0; public failure client; actual operator differential |
+| `ethereum_types/numeric.py:131,44,611` (`__mul__`) | `checkedMul : Un → Un → Option Un` | Success iff unreduced product < `2^n`; exact unsigned product | Overflow ↦ `none`; caller maps `none` under D14/B14 | `checkedMul_eq_some_iff`, `checkedMul_eq_none_iff` | Products immediately below/at width bound, max·max/1/0; public identity client; actual operator differential |
+
+All rows are implemented for each width. Regression evidence is in `STFSpec/Conformance/Base/NarrowGuards.lean`, `NarrowCallerProofs.lean` and `narrow_differential.py`; the driver owns its invocation, seed and case counts. Remaining operators and consumer sites are listed in §10.
+
+### Implemented byte sequences
+
+`STFSpec/Base/Bytes.lean` implements `Bytes` with private packed `ByteArray` storage,
+stable list observation, explicit constructors and bounds-checked byte access,
+nontruncating zero padding and the public `extractPadded` Base helper. The rows are
+**implemented for byte-value semantics** on all finite byte sequences and natural
+parameters. They introduce no state effects or rejection limits. Correspondence to
+Python is its successful byte-value semantics. On the probed 64-bit CPython 3.13
+host, both padding helpers (`utils/byte.py:37,59`) raise the size-conversion
+`OverflowError` at every requested size ≥ `2^63`, and "byte string is too large"
+for sizes in `[2^63−33, 2^63−1]`. Lower sizes can still raise `MemoryError`;
+these are observations of that Python host, not portable limits. Their reachability/first
+handler (X1) and treatment under O12 remain open; the observed host bounds are not
+a new rejection rule. In particular, the total `Nat` domain is not narrowed to a
+host machine's index range. Negative Python `int` widths are outside the typed
+`Nat` interface; the EELS consumers supply unsigned parameters.
+
+| Dependency/source at the pin | Lean declaration and public type | Domain and success observation | Ordered failures / consumer | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| `ethereum_types/bytes.py:165` (`Bytes = bytes`), locked 0.4.1 | `structure Bytes` with private storage; `Bytes.toList : Bytes → List UInt8` | Every finite sequence; stable byte-list observation with its exact length | None in the pure value model; no state effects | `length_toList`, `ext`, `toList_inj`, `toList_ofList`, `ofList_toList`, `getElem_toList` | `BytesGuards.lean`: empty/mixed-byte observation and inverse; `BytesCallerProofs.lean`: observer-only equality/inverse callers |
+| Lean model interface for `ethereum_types/bytes.py:165` byte values (CONTRIBUTING §7.4) | `Bytes.ofList : List UInt8 → Bytes`; `ofByteArray : ByteArray → Bytes`; `empty : Bytes` | Explicit construction retains all input bytes; no implicit representation conversion | None in the pure model; host allocation limits remain open | `toList_ofList`, `ofList_toList`, `size_ofList`, `toList_ofByteArray`, `size_ofByteArray`, `toList_empty`, `size_empty`, `size_eq_zero_iff` | Empty/mixed explicit construction, inverse callers and private-field/constructor/coercion rejection guards |
+| Explicit packed adapter for `ByteArray` consumers | `Bytes.toByteArray : Bytes → ByteArray` | Same bytes and size; shares the packed buffer without a boxed-list conversion | None; explicit adapter, no coercion | `toList_toByteArray`, `size_toByteArray`, `ofByteArray_toByteArray`, `toByteArray_ofByteArray` | Packed export guards, observer-only callers and compiled roundtrip checks |
+| Same byte-value model; public interface | `Bytes.size : Bytes → Nat`; `GetElem Bytes Nat UInt8 (fun b i => i < b.size)` | Exact length; byte access requires an in-bounds proof | Bounds supplied in the type; no unchecked accessor | `length_toList`, `getElem_toList` | Size, MSB/high-byte access and out-of-bounds optional lookup guards |
+| Same byte-value model; public interface | `Bytes.push : Bytes → UInt8 → Bytes`; `append : Bytes → Bytes → Bytes` (`Append Bytes`) | Append one byte or concatenate sequences; empty operands preserve the other sequence | No primitive rejection; host allocation limits remain open | `toList_push`, `size_push`, `toList_append`, `size_append` | Packed push/append guards and model-only callers |
+| Same byte-value model; public interface | `Bytes.extract : Bytes → (start stop : Nat) → Bytes` | Unpadded window, clipped to source size; empty for unavailable or reversed windows | None in pure byte semantics | `toList_extract`, `size_extract` | Partial/absent slice guards; public model caller |
+| Lean packed builder; not a separate EELS callable | `Bytes.generate : Nat → (Nat → UInt8) → Bytes` | Exactly `n` bytes from function values at indices `0…n−1`; result indices only | None in the pure model; host allocation limits remain open | `toList_generate`, `size_generate`, `getElem_generate` | Empty/nonzero packed generation; generic model/size callers |
+| Lean packed observer; not a separate EELS callable | `Bytes.foldl : (α → UInt8 → α) → α → Bytes → α` | Left fold over the complete byte sequence; no intermediate list in executable code | No additional primitive failure | `foldl_eq` | Big-endian Horner fold guard; generic model-only caller |
+| `utils/byte.py:18,37` (`left_pad_zero_bytes`) | `Bytes.leftPadZero : Bytes → Nat → Bytes` | Every sequence and natural width; prepend `n - b.size` zero bytes, retain oversize input, size `max b.size n` | None in the pure value model; source host size/allocation faults remain open as above; consumers own D14/B14 mapping | `toList_leftPadZero`, `size_leftPadZero`, `leftPadZero_of_le`, `leftPadZero_idempotent`, `getElem?_toList_leftPadZero` | `BytesGuards.lean`: empty, zero, equal/short/long target, 21-byte input to 20, idempotence, prefix bytes; actual pinned helper differential |
+| `utils/byte.py:40,59` (`right_pad_zero_bytes`) | `Bytes.rightPadZero : Bytes → Nat → Bytes` | Every sequence and natural width; append `n - b.size` zero bytes, retain oversize input, size `max b.size n` | As left padding; no state effects | `toList_rightPadZero`, `size_rightPadZero`, `rightPadZero_of_le`, `rightPadZero_idempotent`, `getElem?_toList_rightPadZero`, `getElem_rightPadZero` | `BytesGuards.lean`: empty, zero, equal/short/long target, retained 21-byte input, suffix bytes; public-law callers; actual pinned helper differential |
+| Helper model of `forks/amsterdam/vm/memory.py:63,82–83` (`buffer_read`); consumed by `vm/instructions/environment.py:177,239` | `Bytes.extractPadded : Bytes → (start len : Nat) → Bytes` (public Base helper) | Every finite sequence/natural start/length; exactly `len` bytes, source byte at `start+i` when available and zero otherwise | None in the pure model; source helper has U256 start/length, so differential correspondence uses that domain. Source host padding failures remain open. No memory expansion, gas, stack or PC effect claimed; those belong to VM owners | `size_extractPadded`, `getElem_extractPadded`, `toList_extractPadded`, `toList_extractPadded_window`, `extractPadded_zero`, `toList_extractPadded_of_size_le`, `extractPadded_eq_rightPadZero_extract`, `extractPadded_rightPadZero` | `BytesGuards.lean`: full/partial/absent windows, zero length, offsets `2^256−1` and `2^4096`; actual pinned `buffer_read` differential; `BytesCallerProofs.lean`: public model/zero/read-extension callers |
+
+`memory_read_bytes` at `forks/amsterdam/vm/memory.py:39,60` is an **unpadded**
+slice, so it agrees with this helper only on in-bounds windows; no broad source
+refinement to that function is claimed. Source ownership of `memory.py` and the
+calldata instruction handlers remains with their VM components. This row specifies
+the Base helper model used by those consumers, not a second instruction/memory
+implementation. Further `buffer_read` consumers are code/external-code copying
+(`vm/instructions/environment.py:300,404`), PUSH/immediate stack instructions
+(`vm/instructions/stack.py:77,236,268,304`) and precompiles including
+`modexp.py:32–65`, `ecrecover.py:43–47`, `alt_bn128.py:63–224`,
+`p256verify.py:50–58` and `bls12_381/__init__.py:421` (paths beneath
+`forks/amsterdam/vm/precompiled_contracts/`). Their instruction effects and failure
+mapping remain with `EthVmInstructions`/`EthPrecompiles`; the public Base helper
+does not duplicate EthVmCore's memory ownership.
+
+Padding builds missing zeros by recursively doubling packed halves and appending
+one zero for an odd length. Its ordinary list-model theorem proves the exact
+replicated-zero sequence; the measure decreases as `n / 2 < n`. This uses
+geometrically sized packed copies, without a boxed array or a per-byte `Nat` loop.
+Append returns the other operand when either operand is empty, avoiding a copy.
+Already sufficient padding inputs are returned unchanged. The bounded extra
+copying and peak-memory tradeoff are recorded under D18 in DEBT-BYTES-ZEROS.
+
+Padded reads first compare `start` with source size in `Nat`. For an available
+window they copy only `min len (b.size - start)` bytes, with both slice endpoints
+within the source, then right-pad to `len`; an unavailable window goes directly
+to the zero builder. The ordinary equation
+`extractPadded_eq_rightPadZero_extract` relates this implementation to the legible
+unpadded-window-plus-padding model. Huge unavailable offsets are not traversed or
+narrowed to machine indices. Packed result/copy work is O(len) bytes; natural-number
+costs depend on index bit length. `generate` separately uses a preallocated packed
+push loop, with a list-range model theorem, and `foldl` visits packed bytes with a
+list-fold model theorem. Executable builders/folds do not materialize the list
+observer. The compiled `bytes-native-tests` CI target checks native operations
+against finite list models, including huge slice offsets and clipped endpoints;
+ordinary model theorems prove the Lean equations, while `#guard` supplies evaluated
+regression tests. The standalone executable adds end-to-end compiled coverage.
+These structural bounds and regressions do not discharge full C1–C4 target
+measurements.
+
+Regression evidence is in `STFSpec/Conformance/Base/BytesGuards.lean`,
+`BytesCallerProofs.lean` and `bytes_differential.py`. The driver uses
+`scripts/differential.py` for the validated reference environment, CLI, evidence
+output and provenance; its invocation, seed and observed case counts live there.
+It invokes unchanged pinned padding helpers and `buffer_read` on boundary/random
+sequences, target sizes, in-/out-of-bounds windows and huge U256 offsets. It checks
+padding parameters of types `int`/`Uint`/`U256`, compares in-bounds
+`memory_read_bytes`, and verifies its out-of-bounds unpadded distinction.
+These comparisons leave host-resource policy, opcode effects, guest executions
+and the remaining byte/conversion API open (§10).
+
+### Implemented fixed bytes and domain keys
+
+`STFSpec/Base/FixedBytes.lean` implements the following API in `STFSpec.Base`.
+The listed declarations and laws are implemented for every natural width, including zero.
+`FixedBytes n`, `Address` and `Hash32` have private BitVec representations and distinct
+types. Byte contents, rather than those type distinctions, model EELS cross-type byte
+equality. Constructors accept a `Bytes` input; other Python constructor parameter
+forms are outside this typed interface. Values are immutable and have no state effects.
+Every `none` is an exact-length `ValueError` at `ethereum_types/bytes.py:29–37`;
+its first consuming handler/outcome belongs to the consumer under D14/B14.
+No primitive fault constructor or global X1 classification is added.
+
+| Source at the pin (dependency: `ethereum-types` 0.4.1) | Lean declaration and public type | Domain / success observation / ordered failures | Public laws | Regression evidence |
+|---|---|---|---|---|
+| `ethereum_types/bytes.py:16,29` (`FixedBytes`) | `structure FixedBytes (n : Nat)` | All natural widths; model is exactly `n` bytes, including empty at `n=0` | `size_toBytes`, `toNat_lt`, `toBytes_inj`, `toNat_inj` | `FixedBytesGuards.lean`: zero, one, two and all specified alias widths; `FixedBytesCallerProofs.lean`: generic all-width clients; private storage/coercion rejection guards |
+| `ethereum_types/bytes.py:29` (`FixedBytes.__new__`) | `FixedBytes.ofBytes? : Bytes → Option (FixedBytes n)` | Check `b.size=n` before any value decoding. Success retains all bytes; wrong length fails even for all-zero input | `ofBytes?_eq_some_iff`, `ofBytes?_eq_none_iff`, `ofBytes?_toBytes` | Exact/short/long lengths, leading zeros, width zero, wrong-length input at width `2^4096`; actual dependency constructors |
+| `ethereum_types/bytes.py:16` (inherited bytes content) | `FixedBytes.toBytes : FixedBytes n → Bytes` | Exact big-endian bytes; no trimming, padding or truncation | `size_toBytes`, `toBytes_inj`, `ofBytes?_toBytes`, `ofBytes?_eq_some_iff` | All-zero/all-255/indexed patterns and leading-zero markers |
+| `ethereum_types/bytes.py:16` (positional model of content; Lean observer) | `FixedBytes.toNat : FixedBytes n → Nat` | Big-endian radix-256 fold; result below `2^(8*n)` | `toNat_eq_fold`, `toNat_lt`, `toNat_inj` | MSB/LSB markers, `01 00` versus `00 ff`, big-endian model differential |
+| `ethereum_types/bytes.py:16` (inherited bytes comparison) | `Ord (FixedBytes n)`, `DecidableEq (FixedBytes n)` | Numeric big-endian order equals lexical bytes; comparison equality is actual equality | `compare_toNat`, `compare_toBytes`; `ReflOrd`, `OrientedOrd`, `TransOrd`, `LawfulEqOrd` | Equal/reversed/mixed byte patterns; boundary and random lexical differential |
+| EELS `state.py:33` (`Address = Bytes20`) | `structure Address` | Distinct type; 20-byte content model | `Address.size_toBytes`, `toNat_lt`, `toBytes_inj`, `toNat_inj` | Domain guards and public-law clients |
+| EELS `state.py:33`; `ethereum_types/bytes.py:29` | `Address.ofBytes? : Bytes → Option Address` | Exact size 20 before decoding; mismatch returns `none` | `Address.ofBytes?_eq_some_iff`, `ofBytes?_eq_none_iff`, `ofBytes?_toBytes` | 19/20/21 bytes, including all zeros |
+| EELS `state.py:33`; `ethereum_types/bytes.py:16` | `Address.toBytes : Address → Bytes` | Preserve exactly 20 bytes | `Address.size_toBytes`, `toBytes_inj`, `ofBytes?_toBytes` | Indexed, all-zero and all-255 contents |
+| EELS `state.py:33` (Lean observer of byte content) | `Address.toNat : Address → Nat` | Big-endian fold below `2^160` | `Address.toNat_eq_fold`, `toNat_lt`, `toNat_inj` | Zero/one/max and model differential |
+| EELS `state.py:33`; `forks/amsterdam/block_access_lists.py:685`; `ethereum_types/bytes.py:16` | `Ord Address`, `DecidableEq Address` | Lexical byte order and actual equality | `Address.compare_toNat`, `compare_toBytes`; lawful order instances | Address lexical matrix; pair clients |
+| EELS `crypto/hash.py:19` (`Hash32 = Bytes32`) | `structure Hash32` | Distinct type only; 32-byte content model | `Hash32.size_toBytes`, `toNat_lt`, `toBytes_inj`, `toNat_inj` | Domain guards and clients |
+| EELS `crypto/hash.py:19`; `ethereum_types/bytes.py:29` | `Hash32.ofBytes? : Bytes → Option Hash32` | Exact size 32 before decoding; mismatch returns `none` | `Hash32.ofBytes?_eq_some_iff`, `ofBytes?_eq_none_iff`, `ofBytes?_toBytes` | 31/32/33 bytes, including all zeros |
+| EELS `crypto/hash.py:19`; `ethereum_types/bytes.py:16` | `Hash32.toBytes : Hash32 → Bytes` | Preserve exactly 32 bytes | `Hash32.size_toBytes`, `toBytes_inj`, `ofBytes?_toBytes` | Indexed, all-zero and all-255 contents |
+| EELS `crypto/hash.py:19` (Lean observer of byte content) | `Hash32.toNat : Hash32 → Nat` | Big-endian fold below `2^256` | `Hash32.toNat_eq_fold`, `toNat_lt`, `toNat_inj` | Zero/one/max and model differential |
+| EELS `crypto/hash.py:19`; `ethereum_types/bytes.py:16` | `Ord Hash32`, `DecidableEq Hash32` | Lexical byte order and actual equality | `Hash32.compare_toNat`, `compare_toBytes`; lawful order instances | Hash lexical matrix and clients |
+| EELS `crypto/hash.py:19`; D2 type adapter | `Hash32.toBytes32 : Hash32 → Bytes32` | Forget only the domain distinction | `toBytes32_ofBytes32`, `ofBytes32_toBytes32`, `toBytes_toBytes32`, `toNat_toBytes32` | Cross-type byte equality, inverse/content clients and differential |
+| EELS `crypto/hash.py:19`; D2 type adapter | `Hash32.ofBytes32 : Bytes32 → Hash32` | Introduce only the domain distinction | `ofBytes32_toBytes32`, `toBytes32_ofBytes32`, `toBytes_ofBytes32`, `toNat_ofBytes32` | Inverse/content clients and differential |
+| `ethereum_types/bytes.py:85` (`Bytes8`) | `abbrev Bytes8 := FixedBytes 8` | Exact 8 bytes | Generic fixed-byte laws | Alias elaboration and exact/short/long width guards |
+| `ethereum_types/bytes.py:109` (`Bytes32`) | `abbrev Bytes32 := FixedBytes 32` | Exact 32 bytes; distinct from Hash32 | Generic fixed-byte laws; Hash32 adapters | Alias elaboration, domain conversion and width guards |
+| `ethereum_types/bytes.py:121` (`Bytes48`) | `abbrev Bytes48 := FixedBytes 48` | Exact 48 bytes | Generic fixed-byte laws | Alias elaboration and width guards |
+| `ethereum_types/bytes.py:130` (`Bytes64`) | `abbrev Bytes64 := FixedBytes 64` | Exact 64 bytes | Generic fixed-byte laws | Alias elaboration and width guards |
+| `ethereum_types/bytes.py:142` (`Bytes96`) | `abbrev Bytes96 := FixedBytes 96` | Exact 96 bytes | Generic fixed-byte laws | Alias elaboration and width guards |
+| EELS `forks/amsterdam/fork_types.py:34`; `ethereum_types/bytes.py:154` | `abbrev Bloom := FixedBytes 256` | Exact 256 bytes | Generic fixed-byte laws | Alias elaboration and width guards |
+| EELS `crypto/hash.py:20` | `abbrev Hash64 := FixedBytes 64` | Same byte type as Bytes64 | Generic fixed-byte laws | Alias/content guard; actual source alias assertion |
+| EELS `state.py:34` | `abbrev Root := Hash32` | Same hash domain | Hash32 laws | Alias elaboration and source assertion |
+| EELS `forks/amsterdam/fork_types.py:32` | `abbrev VersionedHash := Hash32` | Same hash domain | Hash32 laws | Alias elaboration and source assertion |
+| F19; `EthState` §5 ordered transient-storage keys | `Ord (Address × Bytes32)` | Lexical address first, then slot; address comparison dominates | `compare_address_slot_eq_then`, `compare_address_slot_toBytes`; Lean-supplied `TransOrd` and `LawfulEqOrd` | Reversed-slot/address cases, equal-address slot cases, pair equality/transitivity clients and actual Python tuple differential |
+
+The private positional references decode a head byte times `256^tailLength`
+and encode quotient/remainder digits at each position. The executable decoder
+folds directly over packed bytes; the encoder selects each big-endian digit by
+shifting and writes it directly into packed storage. Ordinary equality theorems
+connect both paths to the legible references. Neither conversion allocates an
+intermediate byte list. Inverse/range and equal-width lexical-order proofs include
+width zero. Growing generic widths still incur bignum work; representation and
+composition cost gates remain open under D2/C1–C4. The compiled
+`bytes-native-tests` gate exercises conversion correctness, not guest performance.
+
+The pair law implements F19's ordered-key contract, including `EthState`'s
+transient-storage map. Its differential compares Python tuples; it executes no
+BAL pair sort. At the pin, BAL `block_access_lists.py:671,672` sorts `U256` slots,
+while `:685` sorts addresses alone. The Bytes32-to-U256 conversion/order bridge
+and actual BAL sorting refinement remain consumer obligations owned by `EthBlock`.
+
+Regression evidence is in `STFSpec/Conformance/Base/FixedBytesGuards.lean`,
+`FixedBytesCallerProofs.lean` and `fixed_bytes_differential.py`, including generic
+width-zero and lawful lexical pair clients. The driver reuses
+`scripts/differential.py` and owns its invocation, seed and observed case counts.
+It loads actual EELS aliases and calls unchanged dependency constructors and
+inherited Python byte ordering; the numeric observer is checked against the
+explicit big-endian `int.from_bytes` model. Coverage includes widths
+0/1/4/8/20/32/48/64/96/256, exact/short/long and zero-length construction,
+boundary/indexed/random contents, domain conversion, cross-type content equality
+and address/slot tuple order. Generated evidence is executed outside both
+repositories and remains uncommitted. Integer endian/minimal encodings, masked
+addresses, records, hashing and consumer BAL sorting remain separate work (§10).
 
 ## 4. Tests
 
@@ -217,6 +428,7 @@ These are operation-value comparisons. Guest EEST records require the absent
   - Checked arithmetic: `checkedAdd max 1 = none`, `checkedSub 0 1 = none`, `ofNat? 2^256 = none`, `ofInt? 2^255 = none`, `ofInt? (−2^255) = some 2^255`.
   - Bytes: `Uint.toBeBytes 0 = empty`, `U256.ofBeBytes? (33 zero bytes) = none`, `ceil32 0 = 0`, `ceil32 33 = 64`, `leftPadZero` of a 21-byte value to 20 returns it unchanged.
   - `taylorExponential 1 0 1 = 1`, plus the blob base fee values from EIP-4844's table.
+  - Byte sequences: empty input and zero width; equal/short/long target widths; no truncation of oversize inputs; left/right padding idempotence and per-byte prefix/suffix observations; in-bounds, partially and fully unavailable windows; exact padded-read length; zero-length and small reads at huge natural offsets (`2^256−1`, `2^4096`). The byte-sequence and fixed/domain byte suites are implemented; integer endian/minimal encoding cases remain open.
   - Adversarial: `exp` with a 256-bit exponent completes in bounded time.
 - **Property / differential tests.**
   - Public universal model laws (§7), plus the external differential drivers for random and boundary inputs (0, 1, 2^255±1, 2^256−1).
@@ -280,10 +492,21 @@ def Uint.ofBeBytes Uint.ofLeBytes : ByteArray → Nat
 def Uint.toBeBytes32? : Nat → Option Bytes32         -- none iff ≥ 2^256
 
 -- Bytes
-abbrev Bytes := ByteArray
+structure Bytes where private raw : ByteArray
+-- raw field/constructor and representation coercions are unavailable
+def Bytes.ofList : List UInt8 → Bytes
+def Bytes.ofByteArray : ByteArray → Bytes           -- explicit packed ingress
+def Bytes.empty : Bytes
+def Bytes.size : Bytes → Nat
+def Bytes.push : Bytes → UInt8 → Bytes
+def Bytes.append : Bytes → Bytes → Bytes
+def Bytes.extract : Bytes → (start stop : Nat) → Bytes
+def Bytes.generate : Nat → (Nat → UInt8) → Bytes
+def Bytes.foldl : (α → UInt8 → α) → α → Bytes → α
+-- GetElem Bytes Nat UInt8 requires index < size
 def Bytes.toList : Bytes → List UInt8               -- stable observer (model)
 def Bytes.leftPadZero Bytes.rightPadZero : Bytes → Nat → Bytes
-def Bytes.extractPadded : Bytes → (start len : Nat) → Bytes  -- zero-extended read (internal helper for memory/calldata users)
+def Bytes.extractPadded : Bytes → (start len : Nat) → Bytes  -- public Base model for memory/calldata users
 
 -- Fixed width (D2: BitVec n initially); each a distinct structure
 structure FixedBytes (n : Nat) where private val : BitVec (8*n)
@@ -293,7 +516,7 @@ abbrev Bytes32 := FixedBytes 32;  abbrev Bytes8 := FixedBytes 8
 abbrev Bytes48 := FixedBytes 48;  abbrev Bytes64 := FixedBytes 64
 abbrev Bytes96 := FixedBytes 96;  abbrev Bloom := FixedBytes 256
 abbrev Root := Hash32;  abbrev VersionedHash := Hash32;  abbrev Hash64 := FixedBytes 64
--- each: toBytes : _ → ByteArray, ofBytes? : ByteArray → Option _, toNat,
+-- each: toBytes : _ → Bytes, ofBytes? : Bytes → Option _, toNat : _ → Nat,
 --       DecidableEq, a hand-written lawful `compare` (lexicographic = numeric big-endian)
 def Hash32.toBytes32 : Hash32 → Bytes32; def Hash32.ofBytes32 : Bytes32 → Hash32
 def Address.ofU256Masked : U256 → Address           -- to_address_masked
@@ -350,14 +573,21 @@ structure Envelope where
 | Type | Representation | Model / abstraction | Invariant | Persistence class | Complexity |
 |---|---|---|---|---|---|
 | `U256` | `structure` over `BitVec 256` (D1(a)) | `BitVec 256`, α = `toBitVec`; also `toNat` (< 2^256) and `toInt` | none beyond the type | immutable value: snapshot-safe | add/sub/logic O(1) words, but `BitVec` is `Nat`-backed (bignum boxed); mul O(1) bignum; `exp` O(log b) mulmods; `addmod`/`mulmod` use a 512-bit `Nat` intermediate. **Costs are measured, not proved** ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4) |
-| `U8`…`U64` | **executable:** `structure` over `UInt8`…`UInt64` (unboxed). *Reference:* `BitVec n` semantics | `Nat < 2^n`; `toNat`, `toBitVec` (executable → reference) | none beyond the width | immutable | O(1), unboxed |
+| `U8`…`U64` | **executable:** `structure` over `UInt8`…`UInt64` (unboxed). *Reference:* `BitVec n` semantics | `Nat < 2^n`; `toNat`, `toBitVec` (executable → reference) | none beyond the width | immutable | O(1) native storage/wrapping; checked bounds use `Nat` intermediates ([DEBT-U64-CHECKED](../DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds)) |
 | `Uint` | `Nat` | itself | none | immutable | GMP-backed |
-| `Bytes` | `ByteArray` | `List UInt8` via `toList` | none | **linear-only when updated** (in-place only if unshared; ARCHITECTURE §5.0). Read-only payloads (code, calldata, witness nodes) may be shared from snapshots freely | `extract`/`append` O(n); `get` O(1) |
-| `FixedBytes n`, `Address`, `Hash32` | `structure` over `BitVec (8n)` (D2) | `Vector UInt8 n` (byte list of length `n`), via `toBytes` | size fixed by type | immutable: snapshot-safe; used as `Std.TreeMap` keys | `compare` O(n); conversion to/from bytes O(n) |
+| `Bytes` | structure over private packed `ByteArray` | `List UInt8` via `toList` | none | **linear-only when updated** (in-place only if unshared; ARCHITECTURE §5.0). Read-only payloads (code, calldata, witness nodes) may be shared from snapshots freely | `extract`/`append` O(n); `get` O(1) |
+| `FixedBytes n`, `Address`, `Hash32` | `structure` over `BitVec (8n)` (D2) | `Vector UInt8 n` (byte list of length `n`), via `toBytes` | size fixed by type | immutable: snapshot-safe; used as `Std.TreeMap` keys | `compare` uses numeric model; conversions O(n) byte steps (bignum/allocation costs open) |
 | `Authorization`, `StateGasPerByte`, `HashConsts` | records | themselves | none (`HashConsts`: equals `HashConsts.literals` at `Id`, checked in `EthHash`) | immutable | O(1) |
 | `Envelope` | record of `Nat` | itself | none | immutable | — |
 
-**Representation note (D2).** `BitVec` gives cheap equality and numeric `compare`, but `toBytes`/`ofBytes?` cost a byte loop per conversion. `Vector UInt8 n` makes byte access cheap but comparison slower. The chosen representation must keep `compare` equal to the lexicographic order on big-endian bytes (EELS sorts addresses and slots as `bytes`, for example in the BAL). That equality is a law, not a coincidence of representation.
+**Representation note (D2).** `BitVec` provides numeric comparison; conversions
+still need cost measurements at the consumed widths. The representation must keep
+fixed-byte order equal to lexicographic order on big-endian bytes (§3).
+The BAL sorts addresses directly (`block_access_lists.py:685`), but its slot sorts
+use `U256` (`:671–672`), obtained from byte slots through `U256.from_be_bytes`
+(`:824,845`). Applying byte-order laws there needs the pending big-endian
+conversion/order bridge. F19 separately governs EthState's ordered address/byte-slot
+keys; the BAL does not sort those pairs.
 
 ## 7. Contract and laws
 
@@ -384,12 +614,18 @@ structure Envelope where
 - `ofBeBytes? (toBeBytes x) = some x`, and `toBeBytes x` has no leading zero byte (feeds RLP canonicality);
 - `Uint.ofBeBytes (Uint.toBeBytes n) = n`.
 
+**Byte sequences** [R/C]:
+
+- `Bytes.toList` is injective, has length `b.size`, and is inverse to `Bytes.ofList` construction. Explicit `ofByteArray`/`toByteArray` adapters are inverse and preserve the list model and size; consumers typed over `ByteArray` use that packed boundary.
+- Padding prepends/appends exactly `n - b.size` zeros; its size is `max b.size n`, it retains sufficient inputs and is idempotent at a fixed width. The per-byte observations specify the original bytes and zero prefix/suffix.
+- `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in `Bytes.lean`; VM memory/gas effects are separate.
+
 **Fixed bytes** [C]:
 - `ofBytes? b = some x ↔ b.size = n ∧ x.toBytes = b`;
-- `compare` is a lawful total order (`Std.TransCmp`, `Std.LawfulEqCmp`), and `compare x y = compare x.toBytes.toList y.toBytes.toList` (lexicographic).
-- The pair order on `(Address × Bytes32)` is lexicographic in the component orders and is `Std.TransCmp` (F19); `Std.LawfulEqCmp` holds for `Address` (shown in a compiled prototype of the interfaces, via `Address.toNat_inj`).
+- `compare` is a lawful total order (`Std.TransOrd`, `Std.LawfulEqOrd`), and `compare x y = compare x.toBytes.toList y.toBytes.toList` (lexicographic); the implemented instances and equations are listed in §3.
+- The pair order on `(Address × Bytes32)` is lexicographic in the component orders, with `Std.TransOrd` and `Std.LawfulEqOrd` instances (F19). Its public byte-order equation is listed in §3; consumer sorting proofs remain open.
 
-**Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for small shifts; `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
+**Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for nonwrapping natural amount sums (the §3 shift laws); `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
 
 **Totality** [T]: `taylorExponential` terminates for a positive denominator by a finite prefix followed by bit-length descent (§7 argument below). Use a lexicographic measure: first the iterations remaining until `i + 1 ≥ max(1, ceil(2·numerator/denominator))`, then the bit length of the accumulated numerator. The latter decreases once the prefix is exhausted. The iterated-floor recurrence must be preserved; the unfloored factorial expression is only an upper bound, not the recurrence or a globally decreasing measure. Formalisation remains open (§10).
 
@@ -399,9 +635,9 @@ structure Envelope where
 
 **Claim.** The public observers refine the pinned integer and byte operations, distinguishing EVM wrapping arithmetic from Python checked arithmetic; the numeric helpers terminate on their stated domains.
 
-**Premises.** Widths are positive, checked conversions report overflow, byte order is explicit, and the Taylor denominator is positive. These are local premises; neither gas bounds nor hash assumptions are needed.
+**Premises.** Integer widths are positive; generic fixed-byte widths are arbitrary natural numbers, including zero. Checked conversions report overflow, byte order is explicit, and the Taylor denominator is positive. These are local premises; neither gas bounds nor hash assumptions are needed.
 
-**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Byte conversion is positional evaluation, so induction on the byte sequence proves the endian equations and fixed-width inverse laws. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
+**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal encoding equations remain open. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
 
 **Open obligations.** Complete the enumeration of checked-operation failure sites and their errors, the actual Taylor measure and its practical cost analysis (DISC-002), and the Envelope domain. The recurrence argument proves mathematical termination, not a usable zkVM cycle bound.
 
@@ -411,7 +647,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** none (Lean core only).
 - **Used by:** directly `EthHash`, `EthField`, `EthState`; transitively every core library.
-- **Seams provided.** The word API (observer laws) consumed by `EthVmInstructions`. Checked arithmetic, whose `none` results consumers must map to the enclosing EELS handler: typically block-invalid at `stateless.py:303`, never an EVM halt. Fixed-width key types with a lawful `compare`, consumed by `EthState` maps and the BAL builder. `Envelope` as the hypothesis type of refinement theorems (`EthConformance`, consumers). The `HashConsts` record type, filled by `EthHash.HashConsts.query` and read by `EthState`, `EthCommit`, `EthVmCore` and `EthBlock`.
+- **Seams provided.** The word API (observer laws) consumed by `EthVmInstructions`. Checked arithmetic, whose `none` results consumers must map to the enclosing EELS handler: typically block-invalid at `stateless.py:303`, never an EVM halt. Fixed-width key types with lawful byte orders, consumed by `EthState` maps (F19) and the BAL address sort. BAL numeric slot order additionally needs the pending byte-to-U256 conversion bridge. `Envelope` as the hypothesis type of refinement theorems (`EthConformance`, consumers). The `HashConsts` record type, filled by `EthHash.HashConsts.query` and read by `EthState`, `EthCommit`, `EthVmCore` and `EthBlock`.
 - **Guarantees.** All operations are total and deterministic. No `@[extern]`/`@[implemented_by]`, and no `@[csimp]` (D21).
 - **Relies on.** Nothing, except Lean core `BitVec`/`Nat` lemmas at v4.34.0 (P3).
 
@@ -430,17 +666,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Remaining API.** Implemented declarations and their local proofs are owned by §3. Exponentiation, byte conversions, narrow integer APIs, other unbounded integer helpers and remaining records are unimplemented. Full R4 alternative-representation and opcode-loop cost evidence remains open.
-- **Derived small-shift composition laws.** The SHL/SHR/SAR equations from §7, when the sum of unsigned shift amounts is below 256, are not yet proved. Public observer-based proofs and boundary cases are required.
+- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. Integer endian/minimal conversions (including narrow byte APIs), masked address construction, other unbounded integer helpers and remaining records are unimplemented. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
 - **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
-- **`exp` performance.** Square-and-multiply mod 2^256 over `BitVec` is not benchmarked. A naive `BitVec` power would be catastrophic.
-- **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); `U64` is `UInt64`-backed and needs no such benchmark.
-- **Lexicographic `compare` = EELS `bytes` order.** This is stated but not yet tied to the specific EELS sort sites (BAL, storage keys). The consumers should cite this law.
+- **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
+- **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); the local `U64` checked-bounds allocation exception is recorded in [DEBT-U64-CHECKED](../DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds). Native storage and that local diagnostic do not discharge aggregate cost checks.
+- **Consumer sorting proofs.** The lexical byte-order laws and F19 address/slot pair order are implemented in §3. EthState map consumers still need their own ordered-key proofs. The BAL address sort uses `Address.compare_toBytes`; its slot sorts use U256 numeric order and still need the big-endian Bytes32→U256 conversion/order bridge and EthBlock's sorting refinement (`block_access_lists.py:671–672,685,824,845`).
 - **`Envelope` has no fields yet.** By DECISIONS B6 each field must name the consumer theorem that needs it; none has been named.
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage.** Coverage beyond the implemented §3 declarations, including exponentiation and byte conversions, is unimplemented; the guest conformance runner remains absent.
+- **Differential coverage.** The drivers named in §3 compare implemented operation values with pinned EELS or dependency source. Coverage for remaining primitive APIs, opcode effects and guest behavior is unimplemented.

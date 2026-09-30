@@ -34,6 +34,11 @@ jobs:
           restore-keys: core-lake-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}-
       - name: Build (warnings are errors)
         run: lake build --wfail
+      - name: Compiled packed-byte regressions
+        run: |
+          lake build bytes-native-tests --wfail
+          lake exe check-decls BytesNativeTests
+          lake exe bytes-native-tests
       - name: Dependency and hygiene boundaries (source level)
         run: python3 scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)

@@ -135,7 +135,7 @@ This is a proof dependency graph, not the core import graph; in particular State
 
 | Premise | Producer | Consumer | Current discharge |
 |---|---|---|---|
-| Integer/byte/model equations | Base | all layers | partial discharge: implemented integer/helper model laws in [EthBase §3](modules/EthBase.md#3-eels-source-map); remaining APIs and byte equations open (EthBase §10) |
+| Integer/byte/model equations | Base | all layers | partial discharge: implemented primitive model laws in [EthBase §3](modules/EthBase.md#3-eels-source-map); remaining premises in EthBase §10 |
 | Canonical codecs and actual schema domains | Codec + record owners | Guest, Commit, Block | schemas/layout catalogued; inverses/domain proof open |
 | Valid curve/pairing and exact adapters | Field/Curve/Pairing + bridges | Precompiles/Runner/Block | conditional arguments; concrete proofs open |
 | Reachability, ordered diff and rollback | State + Block/Instructions/Runner | Witness/BAL/block simulation | API revised; caller induction open |
