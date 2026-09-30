@@ -26,6 +26,8 @@ import STFSpec.Conformance.Base.U256SignedCallerProofs
 import STFSpec.Conformance.Base.U256SignedGuards
 import STFSpec.Conformance.Base.ValueRecordsCallerProofs
 import STFSpec.Conformance.Base.ValueRecordsGuards
+import STFSpec.Conformance.Hash.KeccakPermutationCallerProofs
+import STFSpec.Conformance.Hash.KeccakPermutationGuards
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

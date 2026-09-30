@@ -97,6 +97,54 @@ The generic `Blake2` dataclass (`:35–247`) is instantiated only as `Blake2b` (
 
 Each is specified as the published algorithm, with known-answer tests. Host variability (R1, R4) is recorded, not modelled.
 
+### Implemented reference permutation slice
+
+`STFSpec/Hash/KeccakPermutation.lean` owns the reference permutation and coordinate
+model. The rows below are **discharged for this permutation slice**: total and pure,
+with no state effects outside the returned state and no failures or consuming error
+handler. EELS `crypto/hash.py:62–77` delegates to its backend; it has no raw permutation
+surface. Accordingly these rows cite the published algorithm underlying the pinned
+pycryptodome 3.23.0 dependency rather than claim Python round execution. All remaining
+hash, sponge, byte-packing and query APIs are **unimplemented**.
+
+| Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
+|---|---|---|---|---|---|
+| FIPS 202 §3.1.2 | `KeccakState := Vector UInt64 25`; `KeccakModel := Fin 5 × Fin 5 → BitVec 64`; `keccakLaneIndex : Fin 5 → Fin 5 → Fin 25` | All 25-lane states; x+5*y indexing | None; bounded by types | `keccakLane_ofLanes`, `keccakToModel_inj` | Asymmetric lane positions 0,4,5,24 |
+| FIPS 202 §3.1.2 | `keccakLane : KeccakState → Fin 5 → Fin 5 → UInt64`; `keccakToModel : KeccakState → KeccakModel` | All states/coordinates; numeric bit z is lane bit z | None | `keccakLane_bit`, `keccakToModel_inj` | Asymmetric low-bit probes; model-law clients |
+| Coordinate constructor | `keccakOfLanes : (Fin 5 → Fin 5 → UInt64) → KeccakState` | Every coordinate function; exact lane preservation, array-backed construction | None | `keccakLane_ofLanes` | Asymmetric and constant lane construction |
+| FIPS 202 §3.2 | `keccakCoord : Fin 5 → Nat → Fin 5` | Coordinate addition modulo five | None | `keccakLane_pi_forward` | All 25 pi coordinate pairs proved with ordinary `decide` |
+| FIPS 202 §§3.2.1–3.2.2 | `keccakRotl : UInt64 → Nat → UInt64` | Every lane and rotation amount; modulo-64 left rotation, zero preserved | None | `toBitVec_keccakRotl`, `keccakRotl_bit` | Zero/63/64/65/128 rotation probes; differential boundary rotations |
+| FIPS 202 Table 2 | `keccakRhoOffsets : Vector Nat 25` | All offsets in x+5*y order | None | Used by `keccakToModel_rho` | All 25 entries compared with independent coordinate-walk generation |
+| FIPS 202 Algorithms 5–6 | `keccakRoundConstants : Vector UInt64 24` | Constants for rounds 0 through 23 | None | Used by `keccakToModel_iota` | All 24 compared with independent LFSR generation; first/last probes |
+| FIPS 202 §3.2.1 | `keccakTheta : KeccakState → KeccakState`; `KeccakModel.column`, `KeccakModel.theta` | Every state; five cached column parities/corrections | None | `keccakToModel_theta` | Asymmetric lane 0; per-step differential |
+| FIPS 202 §3.2.2 | `keccakRho : KeccakState → KeccakState`; `KeccakModel.rho` | Every state; per-lane left rotation | None | `keccakToModel_rho` | Asymmetric lane 1; per-step differential |
+| FIPS 202 §3.2.3 | `keccakPi : KeccakState → KeccakState`; `KeccakModel.pi` | Every state; output (x,y) takes input (x+3*y,x), modulo five | None | `keccakToModel_pi`, `keccakLane_pi_forward` | Asymmetric coordinates; forward-placement client |
+| FIPS 202 §3.2.4 | `keccakChi : KeccakState → KeccakState`; `KeccakModel.chi` | Every state; reads all operands from the original row | None | `keccakToModel_chi` | Asymmetric lane 1; per-step differential |
+| FIPS 202 §3.2.5 | `keccakIota : KeccakState → Fin 24 → KeccakState`; `KeccakModel.iota` | Every state/round; XOR constant into (0,0) only | None | `keccakToModel_iota` | First/last constants and unchanged lane 24 |
+| FIPS 202 §3.3 | `keccakRound : KeccakState → Fin 24 → KeccakState`; `KeccakModel.round` | Every state/round; theta, rho, pi, chi, iota in order | None | `keccakToModel_round` | Zero first round; per-round differential; composition clients |
+| FIPS 202 §§3.3–3.4 | `keccakRounds : KeccakState → (n : Nat) → n ≤ 24 → KeccakState`; `KeccakModel.rounds` | Every state and bounded prefix; rounds 0 through n−1 in ascending order | None; caller supplies n≤24 | `keccakToModel_rounds` | Prefixes 0/1; differential prefixes 0 through 24; public-law client |
+| FIPS 202 §§3.3–3.4 | `keccakF1600 : KeccakState → KeccakState` | Every state; exactly 24 rounds | None | `keccakToModel_f1600` | Published all-zero 25-lane KAT; full-state differential; model-extensional client |
+
+`STFSpec/Conformance/Hash/KeccakPermutationGuards.lean` owns 25 deterministic
+guards, including the full published zero-state permutation KAT. Its provenance is
+[the Keccak team's round-3 archive](https://keccak.team/obsolete/KeccakKAT-3.zip),
+member `KeccakKAT/KeccakPermutationIntermediateValues.txt`, first all-zero example,
+"State after permutation". Serialized bytes are decoded little endian. The test
+module records the archive/member SHA-256 and exact selection; expected lanes are
+transcribed from the primary source, not generated by a host hash backend.
+`KeccakPermutationCallerProofs.lean` contains six public-law composition clients.
+
+`keccak_permutation_differential.py` is a self-written independent coordinate model
+of FIPS 202, not EELS execution or a pinned pycryptodome oracle. It uses forward pi
+placement, coordinate-walk rho generation and LFSR round-constant generation,
+independent of Lean's inverse pi expression and literal tables. Seed 1101600 covers
+60 full states (zero, all ones, ascending lanes, 25 single-lane bit probes and 32
+random states), 240 cases per step and per round at rounds 0,1,11,23, 200 prefix
+cases, 65 rotation probes, all 25 offsets and all 24 constants: 1814 generated
+guards. Generated observations and identity/count reports are written outside the
+implementation checkout and remain finite bug-finding evidence. No digest, guest/EEST, accelerator,
+performance refinement or cryptographic security claim follows from these tests.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -203,7 +251,9 @@ The representation here *is* the model, because these are pure functions. The co
 
 **Argument.** Relate each implementation state to the standard's chaining state after the same number of blocks. The initialisation establishes the relation; one compression/permutation round preserves it by the word equations; induction over rounds and blocks gives the final digest. Padding requires separate cases at the final-block boundary, including the empty message and a full block. BLAKE2F additionally checks its fixed input layout and final flag before executing exactly the encoded round count. For the query abstraction, induction over the query computation replaces each query by concrete Keccak, preserving returned values and error order. This is functional correctness. Collision resistance is a separate assumption in EthSecurity and cannot follow from matching test vectors.
 
-**Open obligations.** Round-level correspondence and complete boundary vectors remain unwritten. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
+**Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence
+are discharged for the slice in §3. Sponge padding/byte packing, digest correspondence,
+other hash rounds and their complete boundary vectors remain unwritten. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -227,7 +277,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **No core reference implementation yet**, and no KAT file is checked in. A prototype outside the core has an executable Keccak-f[1600] and sponge matching reference vectors (empty input, `0x80`, 135 and 200 bytes). It is **not promoted**: it is the executable side of D4 only, with no legible reference or equality proof. The `#guard` vectors listed in §4 must be transcribed from the primary sources (FIPS 202 / Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
+- **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
+coordinate-model laws and primary zero-state permutation KAT are implemented (§3).
+The sponge, Keccak digests, query seam, SHA-256, RIPEMD-160 and BLAKE2F remain
+unimplemented. Their §4 vectors still need transcription from primary sources
+(Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
+Historical prototypes are evidence only, not promoted core code.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. A differential run over random lengths would at least provide evidence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
 - **BLAKE2F coverage** in EEST is 5 files per format. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
@@ -235,5 +290,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
 - **`sha256` for SSZ versus request hashing**: whether both uses must be modelled by one collision-resistance assumption in `EthSecurity` has no owner.
-- **Performance:** no measurement yet of the legible reference against the "code-shape gate" (no `List` allocation per round).
+- **Performance:** the permutation uses array-backed `Vector.ofFn` and cached
+column vectors, with no `List` construction in the executable round path. Its
+generated C is inspected for this bounded code-shape gate. No throughput target,
+allocation benchmark, fast-path equivalence or whole-hash cost gate is discharged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB`** are specified only nominally. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
