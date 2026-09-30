@@ -56,11 +56,40 @@ class Driver:
 
     def check_clean(self):
         """Reject tracked changes and untracked files in the reference source tree."""
+        head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=self.eels, text=True).strip()
+        if head != self.head:
+            self.parser.error("EELS checkout HEAD changed during the driver run")
         status = subprocess.check_output(
             ["git", "status", "--porcelain", "--untracked-files=all"],
             cwd=self.eels, text=True)
         if status:
             self.parser.error("EELS checkout must be clean")
+        # Git's index flags/stat cache can hide changed oracle bytes from status.
+        tree = subprocess.check_output(
+            ["git", "ls-tree", "-rz", self.head, "--", "src/ethereum", "uv.lock"],
+            cwd=self.eels)
+        expected, paths = [], []
+        for entry in tree.split(b"\0"):
+            if not entry:
+                continue
+            header, raw_path = entry.split(b"\t", 1)
+            mode, kind, blob = header.split()
+            path = raw_path.decode()
+            source = self.eels / path
+            if (kind != b"blob" or mode not in (b"100644", b"100755") or
+                    source.is_symlink() or not source.is_file() or
+                    bool(source.stat().st_mode & 0o111) != (mode == b"100755")):
+                self.parser.error(f"oracle file kind/mode differs from the pin: {path}")
+            expected.append(blob.decode())
+            paths.append(path)
+        if not paths:
+            self.parser.error("pinned oracle source inventory is empty")
+        observed = subprocess.check_output(
+            ["git", "hash-object", "--no-filters", "--", *paths],
+            cwd=self.eels, text=True).splitlines()
+        if observed != expected:
+            self.parser.error("oracle source or lock bytes differ from the pin")
 
     def check_source(self, module, relative_path, *, dependency=False):
         """Require the exact pinned source path, or the locked dependency's venv path."""
