@@ -34,6 +34,8 @@ import STFSpec.Conformance.Hash.Blake2ParametersGuards
 import STFSpec.Conformance.Hash.Blake2ParametersCallerProofs
 import STFSpec.Conformance.Hash.Sha256DigestGuards
 import STFSpec.Conformance.Hash.Sha256DigestCallerProofs
+import STFSpec.Conformance.Hash.KeccakSpongeGuards
+import STFSpec.Conformance.Hash.KeccakSpongeCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

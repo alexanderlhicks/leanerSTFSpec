@@ -42,6 +42,9 @@ owners' obligations.
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,
 EthConformance R4); a `consts` parameter alone does not establish coherence, and
 generic interpretation coupling remains open (D5, X7).
+The concrete fixed-rate Keccak provider supplies total byte-level standard-model
+correspondence and fixed widths ([EthHash §3](modules/EthHash.md#3-eels-source-map)).
+These laws do not supply the query instance, acquisition or oracle coupling.
 
 ### Checked error channels
 

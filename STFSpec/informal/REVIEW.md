@@ -113,9 +113,9 @@ The highest-risk uncompleted items are closing the failure ledger's unresolved s
 implemented declarations, source correspondence, public proofs and operation-value
 regressions. Its §10 owns missing APIs and derived laws.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the reference Keccak-f[1600]
-permutation, SHA-256 compression and message digest, and raw BLAKE2F parameter codec,
-their public model/byte laws, primary KATs and finite differential evidence;
-its §10 owns remaining hash APIs and correspondence.
+permutation and fixed-rate Keccak digests, SHA-256 compression and message digest,
+and raw BLAKE2F parameter codec, their public model/byte laws, primary KATs and
+finite differential evidence; its §10 owns remaining hash APIs and correspondence.
 Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
@@ -127,8 +127,8 @@ Base differential drivers compare public operation values with the pinned source
 compression and digest drivers and their evidence limits. EELS exposes no raw
 permutation or compression surface. SHA-256 padding, byte parsing/serialization
 and ordered block chaining supply its total full-digest model relation; FIPS
-correspondence retains Q46’s standard-domain hypothesis. Keccak sponge/digest
-and query composition remain open.
+correspondence retains Q46’s standard-domain hypothesis. Fixed-rate Keccak sponge/digest correspondence is proved against the byte model;
+actual pinned EELS digest comparisons are finite. Query composition remains open.
 Extraction guards, host regressions and authenticated content comparison validate
 fixture tooling as specified by EthConformance §3–§4.
 They establish local evidence, without implementing Lean opcode effects. Guest,
