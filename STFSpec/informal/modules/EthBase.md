@@ -403,8 +403,9 @@ explicit big-endian `int.from_bytes` model. Coverage includes widths
 boundary/indexed/random contents, domain conversion, cross-type content equality
 and address/slot tuple order. Generated evidence is executed outside both
 repositories and remains uncommitted. Integer endian/minimal encodings and masked
-addresses are discharged in the conversion rows below; records, hashing and consumer BAL sorting remain separate
-work (§10).
+addresses are discharged in the conversion rows below; primitive records are
+discharged by their own rows, while hashing and consumer BAL sorting remain
+separate work (§10).
 
 ### Integer byte conversions
 
@@ -472,6 +473,45 @@ value evidence, with no guest execution or performance-target claim.
 The U8/U16/U32 byte APIs remain unspecified and unimplemented; this slice adds
 only the exact U64 byte interface listed in §5. Provider byte/fixed-byte slices
 have their own acceptance gates; these conversion rows do not accept a provider.
+
+### Implemented primitive record slice
+
+`STFSpec/Base/ValueRecords.lean` hosts the exact public record constructors and projections
+in namespace `STFSpec.Base`. The rows below are **discharged for this value slice**:
+total, immutable and with no state effects. No hashing, acquisition, codec, transaction
+validation or fork rate is implemented by these records. The byte/domain interfaces
+specified in §5 are providers; this slice does not close their broader implementation gates.
+Regression paths below are under `STFSpec/Conformance/Base/`.
+
+| Source at the pin | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
+|---|---|---|---|---|---|
+| `state.py:36`, `merkle_patricia_trie.py:71`, `forks/amsterdam/fork.py:116`, `forks/amsterdam/vm/__init__.py:40` (D5 value carrier) | `structure HashConsts`; `mk : Hash32 → Hash32 → Hash32 → Hash32 → HashConsts`; projections `emptyCodeHash`, `emptyTrieRoot`, `emptyOmmerHash`, `transferTopic : HashConsts → Hash32` | All four-field records; each field retained exactly, with no equality-to-literals invariant | None; EthHash owns acquisition, F20 owns threading; generic consumers use their supplied record | Each named `*_mk` projection equation, `ext`, `mk_projections` | `ValueRecordsGuards.lean`: permuted arbitrary record and field update; `ValueRecordsCallerProofs.lean`: projection-only reconstruction/extensionality |
+| `state.py:36`, `merkle_patricia_trie.py:71`, `forks/amsterdam/fork.py:116`, `forks/amsterdam/vm/__init__.py:40` | `HashConsts.literals : HashConsts` | Concrete `Id` vectors: `c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`, `56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421`, `1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347`, `ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef`, in field order | None; checked `Hash32.ofBytes?` construction has a proof of exact length before extraction. EthHash's query-to-literals equality remains unimplemented | `toBytes_literals_emptyCodeHash`, `toBytes_literals_emptyTrieRoot`, `toBytes_literals_emptyOmmerHash`, `toBytes_literals_transferTopic` | `ValueRecordsGuards.lean`: full numeric vectors and widths; source driver reads the four actual pinned globals and compares all 32 bytes |
+| `forks/amsterdam/fork_types.py:87` | `structure Authorization`; `mk : U256 → Address → U64 → U8 → U256 → U256 → Authorization`; projections `chainId : Authorization → U256`, `address : Authorization → Address`, `nonce : Authorization → U64`, `yParity : Authorization → U8`, `r s : Authorization → U256` | All well-typed six-field records; exact source fields and widths, without signature-validity restrictions | None; EthVmCore/EthBlock consume values; RLP codec and authorization validity belong to their consumers | Each named `*_mk` projection equation, `ext`, `mk_projections` | `ValueRecordsGuards.lean`: zero/max fields and functional updates; clients: model-observer extensionality; source driver: actual source dataclass field order/types and 35 record observations |
+| `forks/amsterdam/fork_types.py:45` | `structure StateGasPerByte`; `mk : Nat → StateGasPerByte`; `rate : StateGasPerByte → Nat` | Every unbounded natural rate; exact rate projection | None; Amsterdam rate value belongs to EthFork | `rate_mk`, `ext`, `mk_projections` | `ValueRecordsGuards.lean`: zero and `2^4096` rate roundtrips; public client proofs |
+| `forks/amsterdam/fork_types.py:58` (`__mul__`) | `StateGasPerByte.charge : StateGasPerByte → Nat → Nat` | All rates and byte counts; exact unbounded `rate * numBytes` | None; consumers use the resulting state-gas amount, with no primitive overflow | `charge_eq`, `charge_zero`, `zero_rate_charge` | Zero, one, width boundaries and charges through `2^8192`; source driver: actual multiplication on 128 pairs |
+| `forks/amsterdam/fork_types.py:62` (`__rmul__`) | `StateGasPerByte.charge : StateGasPerByte → Nat → Nat` | Same domain and observation; source reverse operand order agrees | None; Python operand-order plumbing becomes the same typed function | `charge_eq_mul_rate` | Source driver invokes the actual reverse operand order on the same 128 pairs |
+
+The Conformance root imports 41 deterministic guards and 16 fixed public client proofs.
+The `value_records_differential.py` driver reuses `scripts/differential.py` and owns
+its seed and observed case counts. Seed 5004 supplies 35 Authorization objects and
+128 charge pairs in both source operand orders, including zero, width boundaries
+and unbounded rates/counts. It checks the three locked dependency versions
+(`ethereum-types`, `ethereum-rlp`, `pycryptodome`), imported source paths, actual
+source AST names/order/types, dataclass fields and the four hash globals. Its 474
+Lean guards compare source observations through public APIs, with local record
+bindings contained inside each guard.
+
+The shared driver checks pinned source bytes before executing reference Python
+source, bypasses cached bytecode, checks the exact EELS `.venv` prefix and installed
+`ethereum-types` RECORD entries, and rechecks pinned checkout and dependency source
+bytes after execution. The driver reports source identities and installed dependency
+source hashes. The interpreter, frozen installation and its RECORD remain trusted
+inputs; these checks do not authenticate arbitrary installed packages or a hostile
+host. Generated observations are written outside both repositories and remain
+bug-finding evidence, never committed oracle expectations. No EEST guest records
+are executed; runtime F20 acquisition and EthHash equality remain separate work.
+This slice adds no failure constructor or closure claim for X1 or R4.
 
 ## 4. Tests
 
@@ -649,7 +689,7 @@ structure Envelope where
 | `Uint` | `Nat` | itself | none | immutable | GMP-backed |
 | `Bytes` | structure over private packed `ByteArray` | `List UInt8` via `toList` | none | **linear-only when updated** (in-place only if unshared; ARCHITECTURE §5.0). Read-only payloads (code, calldata, witness nodes) may be shared from snapshots freely | `extract`/`append` O(n); `get` O(1) |
 | `FixedBytes n`, `Address`, `Hash32` | `structure` over `BitVec (8n)` (D2) | `Vector UInt8 n` (byte list of length `n`), via `toBytes` | size fixed by type | immutable: snapshot-safe; used as `Std.TreeMap` keys | `compare` uses numeric model; conversions O(n) byte steps (bignum/allocation costs open) |
-| `Authorization`, `StateGasPerByte`, `HashConsts` | records | themselves | none (`HashConsts`: equals `HashConsts.literals` at `Id`, checked in `EthHash`) | immutable | O(1) |
+| `Authorization`, `StateGasPerByte`, `HashConsts` | records | themselves | none (the future EthHash theorem relates its concrete `Id` acquisition to `HashConsts.literals`) | immutable | O(1) field access; charge uses unbounded `Nat` multiplication |
 | `Envelope` | record of `Nat` | itself | none | immutable | — |
 
 **Representation note (D2).** `BitVec` provides numeric comparison; conversions
@@ -699,6 +739,14 @@ F19 separately governs EthState's ordered address/byte-slot keys; the BAL does n
 - `compare` is a lawful total order (`Std.TransOrd`, `Std.LawfulEqOrd`), and `compare x y = compare x.toBytes.toList y.toBytes.toList` (lexicographic); the implemented instances and equations are listed in §3.
 - The pair order on `(Address × Bytes32)` is lexicographic in the component orders, with `Std.TransOrd` and `Std.LawfulEqOrd` instances (F19). Its public byte-order equation is listed in §3; consumer sorting proofs remain open.
 
+**Primitive records** [C]: each public `mk` preserves every declared field, and
+`mk_projections` reconstructs each record. `ext` determines equality from field equality.
+The four `HashConsts.literals` byte-projection laws state the concrete source vectors;
+arbitrary `HashConsts` values have no invariant equating them to literals. EthHash owns
+the future `Id` query equality. `StateGasPerByte.charge_eq` gives unbounded
+`g.rate * numBytes`, `charge_eq_mul_rate` the reverse operand observation, and zero
+rate/count laws give zero charge. These laws are discharged for the §3 record slice.
+
 **Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for nonwrapping natural amount sums (the §3 shift laws); `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
 
 **Totality** [T]: `taylorExponential` terminates for a positive denominator by a finite prefix followed by bit-length descent (§7 argument below). Use a lexicographic measure: first the iterations remaining until `i + 1 ≥ max(1, ceil(2·numerator/denominator))`, then the bit length of the accumulated numerator. The latter decreases once the prefix is exhausted. The iterated-floor recurrence must be preserved; the unfloored factorial expression is only an upper bound, not the recurrence or a globally decreasing measure. Formalisation remains open (§10).
@@ -740,7 +788,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. The scoped Uint/U256/U64 endian/minimal conversions and masked-address construction are discharged in §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; other unbounded integer helpers and remaining records are unimplemented. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. The scoped Uint/U256/U64 endian/minimal conversions and masked-address construction are discharged in §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; Authorization, StateGasPerByte/charge and HashConsts/literals are discharged for their value slice in §3. Other unbounded integer helpers and Envelope remain unimplemented; runtime hash acquisition/query equality remains owned by EthHash and F20. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
