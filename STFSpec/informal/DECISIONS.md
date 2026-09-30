@@ -117,6 +117,7 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 | Q39 | NEW-CRYPTO-2: fast field plan | Width settled by measurement: a carry-preserving CIOS backend needs only `p < R`, so `Wide8` (8×32-bit limbs) covers every pinned modulus below 2^256 and `W12` covers BLS12-381 q. Measured: the `Nat` reference is 3–6.5× slower than `Wide8`, and `Wide8` is 20–35× slower than native ecrecover. The source (vendor or upstream) remains with D6, which tracks CompPoly PR #389. |
 | Q44 | NEW-CRYPTO-7: owner of D12 (iii) security statements | `EthSecurity`, when it starts. |
 | Q45 | NEW-CRYPTO-8: conditions for reusing cryptography-specs | With D15. At `09deaff` it is not reusable as-is (Lean v4.29.1, `partial def`, `get!`, `native_decide`). |
+| Q46 | SHA-256 total input domain | **Approved, 2026-09-30.** Preserve `sha256 : ByteArray → Bytes32` and totality. Its trailer encodes `(8 * msg.size) mod 2^64` as eight big-endian bytes. FIPS 180-4 correspondence requires `8 * msg.size < 2^64`; beyond that domain this selects a total extension, without FIPS or pinned-host equivalence. No rejection, error-result or gas change. Fixed-word compression has no length premise. |
 
 ## 5. Adding or changing a decision
 

@@ -1,7 +1,7 @@
 # `EthHash`: Keccak, SHA-256, RIPEMD-160, BLAKE2b F and the `KeccakQuery` seam
 
 *Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1–F4, F15, F16, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, F1–F4, F15, F18.*
+*Navigation: interface findings F1–F4, F15, F16, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, Q46, F1–F4, F15, F18.*
 
 Paths are relative to `src/ethereum/` at the pin unless prefixed. Host-library behaviour was first checked in a scratch venv (Python 3.12, OpenSSL 3.0.13, pycryptodome 3.23.0) and re-observed in a lock-exact environment (CPython 3.13.7, OpenSSL 3.0.16, pycryptodome 3.23.0) used for the full-corpus EELS run. Both hosts lack OpenSSL keccak-256 and provide RIPEMD-160.
 
@@ -26,6 +26,8 @@ It also defines the tiny `KeccakQuery` monad class, its `Id` and transformer-lif
 - `crypto/kzg.py:73`: versioned hash = `0x01 ‖ sha256(commitment)[1:]`;
 - `vm/precompiled_contracts/sha256.py:51`;
 - remerkleable's `merkle_hash` (`remerkleable/settings.py:16–17`), used by `EthCodec`.
+
+The total SHA-256 input-domain policy is Q46: the padding trailer contains the low 64 bits of the original bit length, encoded big-endian. FIPS 180-4 correspondence requires `8 * msg.size < 2^64`. Beyond that domain the total extension claims neither FIPS nor pinned-host equivalence. Fixed-word compression is independent of this bound.
 
 **R4. `ripemd160`** is RIPEMD-160 via `hashlib.new("ripemd160", data)` (`vm/precompiled_contracts/ripemd160.py:52`). The precompile left-pads the 20-byte digest to 32 bytes.
 
@@ -65,7 +67,7 @@ The generic `Blake2` dataclass (`:35–247`) is instantiated only as `Blake2b` (
 - **Lifts.** `KeccakQuery` has instances for `ExceptT ε m` and `StateT σ m` that forward to the underlying oracle, so the spec's transformer stacks inherit it and add no hashing.
 - A narrower scope must be justified by the witness/full-state agreement prototype. The executable instance at `m := Id` must be definitionally `keccak256`, so that no proof is needed to run the spec.
 
-**R7. Totality and resources.** All functions are total on all inputs. `compress` runs in `O(rounds)` time. `rounds ≤ 2^32 − 1` is bounded only by the gas the precompile charges first (`blake2f.py:37`), so a caller must not evaluate `compress` before that charge succeeds. This ordering obligation belongs to `EthPrecompiles`.
+**R7. Totality and resources.** All functions are total on all inputs; SHA-256 standard correspondence uses the Q46 domain. `compress` runs in `O(rounds)` time. `rounds ≤ 2^32 − 1` is bounded only by the gas the precompile charges first (`blake2f.py:37`), so a caller must not evaluate `compress` before that charge succeeds. This ordering obligation belongs to `EthPrecompiles`.
 
 **R8. No `hashlib`/OpenSSL at runtime.** The Lean definitions are self-contained. There is no `@[extern]` (CONTRIBUTING §4). A fast path is an executable definition with a legible reference beside it and an ordinary equality proof (D4, D21); `@[csimp]` is banned.
 
@@ -104,8 +106,8 @@ model. The rows below are **discharged for this permutation slice**: total and p
 with no state effects outside the returned state and no failures or consuming error
 handler. EELS `crypto/hash.py:62–77` delegates to its backend; it has no raw permutation
 surface. Accordingly these rows cite the published algorithm underlying the pinned
-pycryptodome 3.23.0 dependency rather than claim Python round execution. All remaining
-hash, sponge, byte-packing and query APIs are **unimplemented**.
+pycryptodome 3.23.0 dependency rather than claim Python round execution. The Keccak
+sponge, digest, byte-packing and query APIs are **unimplemented**.
 
 | Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
 |---|---|---|---|---|---|
@@ -145,6 +147,31 @@ guards. Generated observations and identity/count reports are written outside th
 implementation checkout and remain finite bug-finding evidence. No digest, guest/EEST, accelerator,
 performance refinement or cryptographic security claim follows from these tests.
 
+**Discharged SHA-256 fixed-word compression slice.** All operations below are pure,
+with no failure channel or caller premise beyond the fixed vector sizes. Native
+words observe as `BitVec 32` using `Sha256.wordsModel`; all additions wrap modulo
+2^32. `sha256`, padding, byte parsing and serialization remain unimplemented.
+Compression equations do not depend on the Q46 message-length domain.
+
+| Source / operation | Lean declaration and domain/effects | Public law / model | Deterministic evidence / status |
+|---|---|---|---|
+| FIPS 180-4 §4.1.2 rotations, Ch, Maj and four sigma functions (external `hashlib.sha256` semantics) | `Sha256.rotr`, `ch`, `maj`, `bigSigma0/1`, `smallSigma0/1`; native UInt32 inputs, rotation law for `0 < r < 32` | `toBitVec_rotr`, `toBitVec_ch/maj/bigSigma0/bigSigma1/smallSigma0/smallSigma1`, corresponding `Sha256.Model` word definitions | arithmetic/rotation guards and NIST abc intermediate-state KATs; **discharged** |
+| FIPS 180-4 §§4.2.2, 5.3.3 constants and initial chaining value | `Sha256.roundConstants : Vector UInt32 64`, `initialState : Vector UInt32 8`, ascending round and a,b,c,d,e,f,g,h order | constants used explicitly by native/model rounds; `wordsModel_get` observes each word | NIST empty/abc fixed-block compression and four abc round prefixes; **discharged** |
+| FIPS 180-4 §6.2.2 schedule | `Sha256.scheduleInit`, `scheduleStep`, `scheduleIter`, `schedule : Vector UInt32 16 → Vector UInt32 64`; 48 structural updates following the sixteen inputs | `wordsModel_scheduleInit/scheduleStep/scheduleIter/schedule`; `schedule_get_input`, `schedule_get_expanded`, `scheduleIter_stable` | asymmetric input/first expansion guards; finite independent-model differential of all 64 words; **discharged** |
+| FIPS 180-4 §6.2.2 rounds | `Sha256.round`, `rounds`; simultaneous eight-word update, first `n ≤ 64` rounds | `wordsModel_round`, `wordsModel_rounds`, `rounds_zero`, `rounds_succ` | NIST abc after rounds 0,1,16,63 (prefixes 1,2,17,64); independent-model prefixes 0,1,2,17,64; **discharged** |
+| FIPS 180-4 §6.2.2 feed-forward/compression | `Sha256.feedForward`, `sha256Compress : Vector UInt32 8 → Vector UInt32 16 → Vector UInt32 8`; add original chaining words after round 63 | `wordsModel_feedForward`, `feedForward_get`, `sha256Compress_model`, `sha256Compress_eq`, `wordsModel_injective` | carry/feed-forward guard; NIST empty/abc fixed blocks; two-block public-law composition client; **discharged** |
+
+Tests: `STFSpec/Conformance/Hash/Sha256CompressionGuards.lean` and
+`Sha256CompressionCallerProofs.lean`. The bounded seeded driver
+`STFSpec/Conformance/Hash/sha256_compression_differential.py` compares compression
+with an independent integer model of FIPS 180-4, **not pinned EELS compression**
+(EELS exposes only hashlib digests). It also uses test-only Python padding/parsing
+and serial compression composition to compare selected finite messages with the
+hashlib alias observed through the authenticated pinned precompile source. This
+supports compression composition; it does not implement or validate production
+padding, digest code, precompile gas/effects or guest behavior.
+
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -158,7 +185,7 @@ performance refinement or cryptographic security claim follows from these tests.
   - Inputs of 135, 136 and 137 bytes: the rate boundary and the padding of `0x01` and `0x80` into the same byte at length 135.
   - A 1 MiB input, for performance only.
   - `keccak512 ""`.
-  - SHA-256 NIST vectors: empty, `"abc"`, 55/56/64-byte boundaries.
+  - Implemented fixed-block SHA-256 compression KATs: explicitly supplied padded empty/abc words, and NIST abc states after rounds 0,1,16,63. Digest/padding KATs for the production `sha256` API, including 55/56/64-byte boundaries, remain pending.
   - RIPEMD-160 vectors from the original paper: empty = `9c1185a5c5e9fc54612808977ee8f548b2258d31`, `"abc"`, and the million-`a` test.
   - BLAKE2F: the EIP-152 vectors 4–8, including `rounds = 0`, `f = 0`, and `rounds = 2^32 − 1` as a *parse-only* guard (the compression is not run).
   - `keccakF1600` on the all-zero state (the published permutation KAT).
@@ -230,10 +257,11 @@ None of these structures is snapshot-reachable; they live only within one call. 
 
 ## 7. Contract and laws
 
-The representation here *is* the model, because these are pure functions. The contract is therefore functional correctness against the published algorithms, plus these laws.
+The contract is functional correctness against the published algorithms, plus these laws. The SHA-256 compression slice observes native UInt32 vectors through `Sha256.wordsModel` into its explicit `BitVec 32` model; its discharged equations are listed in §3.
 
 - [C] `(keccak256 b).toBytes.size = 32`, `(sha256 b).toBytes.size = 32`, `(ripemd160 b).toBytes.size = 20`, and `(Blake2b.compress …).size = 64`. The first three hold by type; the last must be proved.
 - [C] Sponge decomposition: `keccak256 b = squeeze (absorb (pad b))`, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
+- [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Digest/padding/byte correspondence remains open; standard correspondence for a future `sha256` theorem requires the Q46 domain.
 - [C] KATs as `#guard` (compile-time), not `native_decide` (CONTRIBUTING §4).
 - [C] BLAKE2b: `getParameters` round-trips with the obvious serializer. `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
 - [T] Every function is structurally recursive over the input blocks or over `rounds : UInt32` (via `Nat` fuel = `rounds.toNat`).
@@ -252,8 +280,10 @@ The representation here *is* the model, because these are pure functions. The co
 **Argument.** Relate each implementation state to the standard's chaining state after the same number of blocks. The initialisation establishes the relation; one compression/permutation round preserves it by the word equations; induction over rounds and blocks gives the final digest. Padding requires separate cases at the final-block boundary, including the empty message and a full block. BLAKE2F additionally checks its fixed input layout and final flag before executing exactly the encoded round count. For the query abstraction, induction over the query computation replaces each query by concrete Keccak, preserving returned values and error order. This is functional correctness. Collision resistance is a separate assumption in EthSecurity and cannot follow from matching test vectors.
 
 **Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence
-are discharged for the slice in §3. Sponge padding/byte packing, digest correspondence,
-other hash rounds and their complete boundary vectors remain unwritten. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
+and SHA-256 fixed-word schedule/round/feed-forward correspondence are discharged
+for the slices in §3. Sponge padding/byte packing, digest correspondence, RIPEMD-160
+and BLAKE2F rounds and their complete boundary vectors remain unwritten. Q46 supplies
+the SHA-256 domain policy. The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -275,11 +305,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **SHA-256 remaining work.** The fixed-word compression slice is discharged in §3; the production `sha256` digest, padding, big-endian byte parsing/serialization, block iteration and digest boundary KATs remain unimplemented. Q46 governs the total trailer and qualified FIPS correspondence; no enormous-input host equivalence is claimed. The finite differential’s test-only composition is not production digest coverage.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT are implemented (§3).
-The sponge, Keccak digests, query seam, SHA-256, RIPEMD-160 and BLAKE2F remain
+coordinate-model laws and primary zero-state permutation KAT, and the SHA-256
+fixed-word compression reference/model laws and primary KATs, are implemented (§3).
+The sponge, Keccak digests, query seam, SHA-256 digest, RIPEMD-160 and BLAKE2F remain
 unimplemented. Their §4 vectors still need transcription from primary sources
 (Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
 Historical prototypes are evidence only, not promoted core code.

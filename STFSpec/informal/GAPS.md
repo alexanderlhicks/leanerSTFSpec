@@ -125,11 +125,14 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 ### [`EthHash`](modules/EthHash.md)
 
+- **SHA-256 remaining work.** The fixed-word compression slice is discharged in §3; the production `sha256` digest, padding, big-endian byte parsing/serialization, block iteration and digest boundary KATs remain unimplemented. Q46 governs the total trailer and qualified FIPS correspondence; no enormous-input host equivalence is claimed. The finite differential’s test-only composition is not production digest coverage.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT are implemented (§3).
-The sponge, Keccak digests, query seam, SHA-256, RIPEMD-160 and BLAKE2F remain
+coordinate-model laws and primary zero-state permutation KAT, and the SHA-256
+fixed-word compression reference/model laws and primary KATs, are implemented (§3).
+The sponge, Keccak digests, query seam, SHA-256 digest, RIPEMD-160 and BLAKE2F remain
 unimplemented. Their §4 vectors still need transcription from primary sources
 (Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
 Historical prototypes are evidence only, not promoted core code.
