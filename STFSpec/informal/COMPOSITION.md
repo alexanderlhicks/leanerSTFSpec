@@ -28,6 +28,29 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
+### SHA-256 digest premise
+
+[EthHash §3](modules/EthHash.md#3-eels-source-map) supplies the pure total
+`sha256 : ByteArray → Bytes32` API and its padding, byte-order, ordered chaining
+and full-digest model laws. Standard-domain correspondence retains Q46's caller
+hypothesis. This supplies the digest operation for future SSZ/request consumers;
+record encoding, request-root composition and collision assumptions remain their
+owners' obligations.
+
+### BLAKE2F parameter premise
+
+`EthPrecompiles` establishes `data.size = 213` after its size check before calling
+`Blake2b.getParameters`. The raw codec preserves every round count and flag;
+its public byte laws and two inverse laws are owned by
+[EthHash §3](modules/EthHash.md#3-eels-source-map). The precompile then owns gas
+charging and flag rejection in R5 order before invoking compression.
+
+### Keccak digest premise
+
+The concrete fixed-rate Keccak provider supplies total byte-level model
+correspondence and fixed widths ([EthHash §3](modules/EthHash.md#3-eels-source-map)).
+These laws do not supply the query instance, acquisition or oracle coupling.
+
 ### Hash constants and oracle premises
 
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,

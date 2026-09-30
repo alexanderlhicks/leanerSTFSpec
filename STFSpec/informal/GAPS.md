@@ -125,26 +125,31 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 ### [`EthHash`](modules/EthHash.md)
 
-- **SHA-256 remaining work.** Fixed-word compression and its model laws are implemented in §3; the production `sha256` digest, padding, big-endian byte parsing/serialization, block iteration and digest boundary KATs remain unimplemented. Q46 governs the total trailer and qualified FIPS correspondence; no enormous-input host equivalence is claimed. The finite differential’s test-only composition is not production digest coverage.
-
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT, and the SHA-256
-fixed-word compression reference/model laws and primary KATs, are implemented (§3).
-The sponge, Keccak digests, query interface, SHA-256 digest, RIPEMD-160 and BLAKE2F remain
-unimplemented. Their §4 vectors still need transcription from primary sources
-(Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
-Historical prototypes are evidence only, not promoted core code.
-- **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. A differential run over random lengths would at least provide evidence.
+- **Remaining core hash implementations.** The implemented providers, laws and
+  deterministic/differential evidence are owned by §3–§4. The query interface,
+  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
+  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
+  Historical prototypes are evidence only.
+- **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
+pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
-- **BLAKE2F coverage** in EEST is 5 files per format. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
+- **BLAKE2F coverage** in EEST is 5 files per format. The parameter-only tests in §3 do not execute these guest fixtures or compression. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
 - **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
 - **`sha256` for SSZ versus request hashing**: whether both uses must be modelled by one collision-resistance assumption in `EthSecurity` has no owner.
 - **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total, fast-path equivalence or whole-hash cost gate is discharged.
-- **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB`** are specified only nominally. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
+The fixed-rate sponge uses packed bytes and native lanes, copying the padded
+message once and processing blocks with a tail-recursive loop. Generated C and
+the retained historical native diagnostic provide local cost evidence; their
+source basis and limitations are recorded in
+[DEBT-KECCAK-DIGEST](DEBT.md#debt-keccak-digest--reference-sponge-cost).
+D4’s status is unchanged.
+- **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
+implemented and proved against the fixed-rate model. The backend probe remains
+host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
 
 ### [`EthField`](modules/EthField.md)
 

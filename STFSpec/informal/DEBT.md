@@ -104,7 +104,7 @@ is adopted by this exception.
 The legible `keccakF1600` and `sha256Compress` references preserve their coordinate
 and word-model contracts through `keccakToModel_f1600` and `sha256Compress_model`.
 The exception is local to fixed-size rounds: Keccak executes 24 rounds and SHA
-compression 64; future digest work multiplies this cost by the message block count.
+compression 64; the digest providers multiply this cost by the message block count.
 Expected consumers are witness/trie and code hashing, SSZ/request roots and the
 SHA precompile. No digest or guest cost is established by this reference work.
 
@@ -138,3 +138,71 @@ Preserve all coordinate/word-model laws and failure-free domains; rerun primary
 KATs, public callers and independent differentials. Measure with correctness outside
 timing and report allocation, conversions and composed costs before closing this
 entry. No digest readiness or whole-guest performance claim is authorized.
+
+## DEBT-KECCAK-DIGEST — reference sponge cost
+
+**Status:** open, 2026-09-30. **Owner:** EthHash maintainers. **Authority:** D4/D18.
+
+`keccak256` and `keccak512` preserve their pure, total byte/model contracts on
+all finite inputs ([EthHash §3](modules/EthHash.md#3-eels-source-map)). This entry
+owns digest-level padding, block traversal and conversion costs;
+[DEBT-HASH-REFERENCE](#debt-hash-reference--boxed-reference-rounds) owns the
+permutation's boxed rounds and allocation exception. No input limit, rejection,
+host-error policy or hash/oracle semantics changes.
+
+Expected workloads include short trie keys/nodes and `HashConsts` preimages,
+bounded differential messages, and large messages such as the 1 MiB diagnostic
+below. Padding adds between one byte and a full rate block, copies the message
+once and performs `n / rateBytes + 1` permutations. Padding byte work and ordered
+block traversal are O(n). The executable path uses packed Base bytes and a
+forward tail-recursive block loop. Native lane arithmetic does not establish
+unboxed state storage; consult DEBT-HASH-REFERENCE for that cost. No dynamic
+allocation volume or whole-guest measurement is established here.
+
+The retained local diagnostic used Lean 4.34.0, x86_64 release compiler commit
+`293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`, private-state reference basis
+`47d46bbd29dd2ff7b8bc815e06d15b13c989d40e`, sponge source SHA-256
+`651fb1a07145e1759a6eec339b7bb2e682cfe631acb784cba3ef4b1073d63509`, and
+permutation source SHA-256
+`8bd477bfa1cf3207f3a031db767c201d7685b89d8c5a5556fd6212b7aa36f75b`.
+Three complete 1 MiB digest samples passed full-output correctness gates at
+2236/2224/2209 ms for Keccak-256 and 4788/4354/4297 ms for Keccak-512.
+The native executable SHA-256 was
+`8ba6853d14e3a92a97eca3e92c8ff50be84358c497c21bda2a8405924491198f`.
+These are historical measurements of the named source bytes, preceding the
+present formatting pass. Shared-host samples establish neither a target ceiling,
+a native-client speed ratio nor dynamic allocation totals.
+
+To reproduce the procedure, build a temporary native Lean executable importing
+`STFSpec.Hash` through a local package dependency. Build with
+`lake build <executable> --wfail` and run its native binary. Construct the input
+outside timing as
+`(Bytes.generate 1048576 (fun i ↦ UInt8.ofNat (17 * i + 131))).toByteArray`.
+The measured functions return `(keccak256 b).toBytes.toByteArray` and
+`(keccak512 b).toBytes.toByteArray`. First compare each complete result against
+these supplemental actual pinned-EELS values (not published KATs):
+
+- Keccak-256: `02d11aa48fdf35d794c7771e19c119787d9f812d35def9af7c4a2107f24599c2`.
+- Keccak-512: `f2e3c0be262aedc200ec7d099e50f37d0d845b4a4d34bdbf824a2a066e21e4d443226ac9703a323d557452b686d1abbf1493408c1658071daea694bfa372b2ee`.
+
+For each of three samples per function, read `IO.monoMsNow`, evaluate a complete
+digest and store its full ByteArray in an `IO.Ref`, then read `IO.monoMsNow` again.
+Compare the stored full bytes and print after the second clock read. Input and
+expected-value construction and comparisons stay outside timing; padding,
+permutation composition, squeeze, public conversions and the result store stay
+inside. No checksum is timed. Inspect the executable's generated C to verify
+the digest call lies between clock reads. Reproduce digest code shape with
+`lake build EthHash --wfail` and inspect `pad`, `decodeAux`, `xorBlock`, `absorb`
+and `squeeze` in `.lake/build/ir/STFSpec/Hash/KeccakSponge.c`; inspect the
+permutation separately using DEBT-HASH-REFERENCE's procedure.
+
+This exception keeps the legible reference and ordinary model proofs required
+by D4. Trie/code/header, opcode, address and constant-acquisition consumers
+inherit this provider cost; their semantics and query obligations remain unchanged.
+Review before trie/block integration, release or a toolchain/pin update. Replace
+only with an ordinary all-input equality or model refinement preserving the
+reference contract and public caller proofs. Measure complete digests, including
+conversions, padding and allocations, representative short and large consumers,
+C1 retention/cleanup costs and the CONTRIBUTING §3 native-client baseline before
+closing this entry. No narrower domain or semantic shortcut is permitted.
+Query/security/accelerator and composed C1–C4 obligations remain open.
