@@ -62,7 +62,9 @@ jobs:
       - name: Gap register is up to date
         run: python3 scripts/gen_gaps.py --check
       - name: Deterministic conformance checks (core profile)
-        run: lake build EthConformance --wfail
+        run: |
+          lake build EthConformance fixture-records --wfail
+          python3 scripts/test_fixture_archive.py
       # The bounded EEST fixture slice runs here once the fixture runner exists
       # (STFSpec.Conformance); until then this job verifies only the pin (see `fixtures`).
 
@@ -102,8 +104,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build the fixture extractor
+        run: lake build fixture-records --wfail
       - name: Download and verify the pinned fixture archive
         run: |
           python3 scripts/check_reference.py --fetch "$RUNNER_TEMP/fixtures"
           python3 scripts/gen_fixture_index.py "$RUNNER_TEMP/fixtures/fixtures_zkevm.tar.gz" --check
-      # The full-corpus conformance run is added here with the fixture runner.
+      - name: Authenticate metadata and compare full-corpus extracted bytes
+        run: |
+          python3 scripts/verify_fixture_archive.py "$RUNNER_TEMP/fixtures/fixtures_zkevm.tar.gz" \
+            --lean-parser .lake/build/bin/fixture-records --lean-content-all \
+            --report "$RUNNER_TEMP/fixture-extraction.json"
+      # Guest execution is added here once the semantic fixture runner exists.

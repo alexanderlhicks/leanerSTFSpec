@@ -11,6 +11,7 @@ import hashlib
 import json
 import pathlib
 import re
+from fixture_archive import archive_json, authenticated_source, paired_bytes
 import sys
 import tarfile
 import tempfile
@@ -28,36 +29,19 @@ def fixture_stats(path, fx):
     """Return file/record/distinct counts and area index; reject malformed guest records."""
     files = records = 0
     inputs, areas = set(), Counter()
-    with tarfile.open(path, "r:gz") as archive:
-        for member in archive:
-            if not member.isfile() or not member.name.endswith(".json"):
-                continue
-            name = member.name.removeprefix("./").removeprefix("fixtures/")
+    with authenticated_source(path, fx) as (source, _):
+        for name, value in archive_json(source):
             files += 1
             areas["/".join(name.split("/")[:4])] += 1
-            stream = archive.extractfile(member)
-            with stream:
-                value = json.load(stream)
             todo = [value]
             while todo:
                 node = todo.pop()
                 if isinstance(node, list):
                     todo.extend(node)
                 elif isinstance(node, dict):
-                    has_in, has_out = fx["input_field"] in node, fx["output_field"] in node
-                    if has_in != has_out:
-                        raise ValueError(f"{name}: unpaired guest fields")
-                    if has_in:
-                        decoded = []
-                        for field in (fx["input_field"], fx["output_field"]):
-                            text = node[field]
-                            if not isinstance(text, str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{2})*", text):
-                                raise ValueError(f"{name}: {field} is not a hex byte string")
-                            decoded.append(bytes.fromhex(text[2:]))
-                        if len(decoded[1]) != 43:
-                            raise ValueError(f"{name}: guest output must be 43 bytes")
-                        # Retain fixed-size fingerprints, rather than every large input.
-                        inputs.add(hashlib.sha256(decoded[0]).digest())
+                    pair = paired_bytes(node, fx, name)
+                    if pair is not None:
+                        inputs.add(hashlib.sha256(pair[0]).digest())
                         records += 1
                     todo.extend(node.values())
     return files, records, len(inputs), areas

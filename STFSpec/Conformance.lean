@@ -22,6 +22,9 @@ import STFSpec.Conformance.Base.U256ShiftCallerProofs
 import STFSpec.Conformance.Base.U256ShiftGuards
 import STFSpec.Conformance.Base.U256SignedCallerProofs
 import STFSpec.Conformance.Base.U256SignedGuards
+import STFSpec.Conformance.Fixtures.Extract
+import STFSpec.Conformance.Fixtures.Index
+import STFSpec.Conformance.Fixtures.Tests
 
 /-!
 # STFSpec.Conformance

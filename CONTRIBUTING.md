@@ -144,7 +144,8 @@ python3 scripts/check_reference.py && python3 scripts/test_reference_checks.py
 python3 scripts/gen_arch_diagram.py --check
 python3 scripts/check_spec.py && python3 scripts/test_spec_checks.py
 python3 scripts/gen_gaps.py --check
-lake build EthConformance --wfail
+lake build EthConformance fixture-records --wfail
+python3 scripts/test_fixture_archive.py
 ```
 
 Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there and `scripts/check_decls.sh mathlib` or `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.

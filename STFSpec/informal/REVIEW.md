@@ -114,9 +114,13 @@ implemented declarations, source correspondence, public proofs and operation-val
 regressions. Its §10 owns missing APIs and derived laws. Other semantic components
 remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
+[EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
+extraction and authentication tooling.
 
 **Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
 The differential drivers compare public operation values with the pinned source.
+Extraction guards, host regressions and authenticated content comparison validate
+fixture tooling as specified by EthConformance §3–§4.
 They establish local evidence, without implementing Lean opcode effects. Guest,
 full-state and engine runners remain absent; no EEST guest records execute in Lean.
 The exact pin and dependencies are in `reference.toml`; the generated inventory,
