@@ -5,9 +5,9 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Hash
 
 /-!
-# Keccak sponge composition clients
+# Keccak sponge composition proofs
 
-Library `EthConformance`. These clients use only the public byte/model laws and
+Library `EthConformance`. These proofs use only the public byte/model laws and
 accepted permutation seam; no provider container definition is unfolded.
 Spec guidance: `STFSpec/informal/modules/EthHash.md` §7.
 -/

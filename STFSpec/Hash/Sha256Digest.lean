@@ -7,60 +7,111 @@ import STFSpec.Hash.Sha256Compression
 /-!
 # SHA-256 message digest
 
-Library `EthHash`. FIPS 180-4 §§5.1.1, 5.2.1, 6.2.1–6.2.2,
-https://doi.org/10.6028/NIST.FIPS.180-4. Q46 defines the total extension:
+Library `EthHash`. Pinned EELS
+`src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:51` delegates to
+`hashlib.sha256`; this module supplies that digest algorithm, without the precompile's gas effects.
+Q46 defines the total extension:
 the length trailer wraps modulo 2^64; standard correspondence requires
 `8 * msg.size < 2^64`. Blocks and words are processed in ascending order.
 Spec guidance: `STFSpec/informal/modules/EthHash.md` §§3, 7.
+
+## References
+
+* NIST, *Secure Hash Standard (SHS)*, FIPS 180-4, 2015,
+  §§5.1.1, 5.2.1, 6.2.1–6.2.2, https://doi.org/10.6028/NIST.FIPS.180-4.
 -/
 
-namespace STFSpec.Hash.Sha256
+namespace STFSpec.Hash
 
 open STFSpec.Base
+
+namespace Sha256
+
+/-! ### Padding and length trailer -/
 
 /-- Low 64 bits of the original bit length, for any conceptual byte count. -/
 def bitLength (byteLength : Nat) : Nat := (8 * byteLength) % 2 ^ 64
 
 /-- The eight big-endian trailer bytes, without allocating a conceptual message. -/
 def lengthTrailer (byteLength : Nat) : Bytes :=
-  Bytes.generate 8 (fun i => UInt8.ofNat (bitLength byteLength / 256 ^ (7 - i)))
+  Bytes.generate 8 (fun i ↦ UInt8.ofNat (bitLength byteLength / 256 ^ (7 - i)))
 
-/-- Number of zeros after 0x80 and before the length trailer. -/
+/-- Number of zero bytes after 0x80 and before the length trailer.
+The target remainder is 55 = 64 - 1 - 8. Using 119 = 55 + 64 avoids natural
+subtraction truncation for message remainders above 55, before reduction modulo 64. -/
 def zeroCount (byteLength : Nat) : Nat := (119 - byteLength % 64) % 64
 
+/-- Original byte count plus marker, zero bytes and eight-byte length trailer. -/
 def paddedLength (byteLength : Nat) : Nat := byteLength + 1 + zeroCount byteLength + 8
 
 /-- A bounded suffix: marker, at most 63 zeros, then the original length. -/
 def paddingSuffix (byteLength : Nat) : Bytes :=
-  Bytes.generate (1 + zeroCount byteLength + 8) fun i =>
+  Bytes.generate (1 + zeroCount byteLength + 8) fun i ↦
     if i = 0 then 0x80 else if i ≤ zeroCount byteLength then 0
     else UInt8.ofNat (bitLength byteLength / 256 ^ (7 - (i - (1 + zeroCount byteLength))))
 
 /-- One append; the original message is never traversed once per block. -/
 def pad (msg : ByteArray) : Bytes := Bytes.ofByteArray msg ++ paddingSuffix msg.size
 
+/-- The total extension retains exactly the low 64 bits of the original bit length. -/
 theorem bitLength_mod (n : Nat) : bitLength n = (8 * n) % 2 ^ 64 := rfl
 
+/-- The conceptual length helper always fits the eight-byte trailer. -/
 theorem bitLength_lt (n : Nat) : bitLength n < 2 ^ 64 := Nat.mod_lt _ (by decide)
 
 /-- Qualified FIPS-domain equivalence; outside this domain Q46 is an extension. -/
 theorem bitLength_of_fipsDomain (n : Nat) (h : 8 * n < 2 ^ 64) : bitLength n = 8 * n :=
   Nat.mod_eq_of_lt h
 
+/-- The length trailer always contains eight bytes, including leading zeros. -/
 theorem size_lengthTrailer (n : Nat) : (lengthTrailer n).size = 8 := Bytes.size_generate _ _
 
+/-- Trailer byte `i` is the corresponding big-endian digit of the bit length. -/
 theorem getElem_lengthTrailer (n i : Nat) (hi : i < 8) :
     (lengthTrailer n)[i]'(by rw [size_lengthTrailer]; exact hi) =
       UInt8.ofNat (bitLength n / 256 ^ (7 - i)) := Bytes.getElem_generate _ _ _ hi
 
+/-- At most 63 zero bytes are needed between the marker and length trailer. -/
 theorem zeroCount_lt (n : Nat) : zeroCount n < 64 := Nat.mod_lt _ (by decide)
 
+/-- The padded byte length is a multiple of the 64-byte block width. -/
 theorem paddedLength_mod (n : Nat) : paddedLength n % 64 = 0 := by
   have hn := Nat.mod_lt n (by decide : 0 < 64)
   unfold paddedLength zeroCount
   omega
 
-theorem padding_boundary (n : Nat) :
+/-- The chosen zero-byte count puts the marker before byte remainder 56,
+leaving exactly eight bytes for the trailer (FIPS 180-4 §5.1.1). -/
+theorem zeroCount_congr (n : Nat) : (n + 1 + zeroCount n) % 64 = 56 := by
+  have hn := Nat.mod_lt n (by decide : 0 < 64)
+  unfold zeroCount
+  omega
+
+/-- The chosen count is the least number of zero bytes reaching trailer remainder 56. -/
+theorem zeroCount_le_of_congr (n z : Nat) (h : (n + 1 + z) % 64 = 56) :
+    zeroCount n ≤ z := by
+  have hn := Nat.mod_lt n (by decide : 0 < 64)
+  unfold zeroCount
+  omega
+
+/-- FIPS 180-4 §5.1.1's zero-bit count is `7 + 8 * zeroCount n`: the seven zeros
+in the marker byte followed by the zero bytes. It reaches bit remainder 448. -/
+theorem zeroCount_bit_congr (n : Nat) :
+    (8 * n + 1 + (7 + 8 * zeroCount n)) % 512 = 448 := by
+  have hn := Nat.mod_lt n (by decide : 0 < 64)
+  unfold zeroCount
+  omega
+
+/-- The FIPS zero-bit count is minimal among all natural `k` satisfying
+`(8 * n + 1 + k) % 512 = 448`, including non-byte-aligned candidates. -/
+theorem zeroCount_bit_le_of_congr (n k : Nat) (h : (8 * n + 1 + k) % 512 = 448) :
+    7 + 8 * zeroCount n ≤ k := by
+  have hn := Nat.mod_lt n (by decide : 0 < 64)
+  unfold zeroCount
+  omega
+
+/-- Exact zero-byte counts at the one-block/two-block padding boundaries. -/
+theorem zeroCount_boundaries (n : Nat) :
     (n % 64 = 55 → zeroCount n = 0) ∧
     (n % 64 = 56 → zeroCount n = 63) ∧
     (n % 64 = 63 → zeroCount n = 56) ∧
@@ -72,6 +123,7 @@ theorem padding_boundary (n : Nat) :
   · intro h; rw [h]
   constructor <;> intro h <;> rw [h] <;> decide
 
+/-- The suffix contains the marker, the chosen zeros and all eight trailer bytes. -/
 theorem size_paddingSuffix (n : Nat) :
     (paddingSuffix n).size = 1 + zeroCount n + 8 := Bytes.size_generate _ _
 
@@ -99,10 +151,12 @@ theorem toList_paddingSuffix (n : Nat) :
         rw [Bytes.getElem_toList, getElem_lengthTrailer]
         all_goals first | omega | (rw [size_lengthTrailer]; omega)
 
+/-- Padding never shortens the message. -/
 theorem paddedLength_ge (n : Nat) : n ≤ paddedLength n := by
   unfold paddedLength
   omega
 
+/-- The executable padded buffer has the specified padded byte length. -/
 theorem size_pad (msg : ByteArray) : (pad msg).size = paddedLength msg.size := by
   rw [pad, Bytes.size_append, Bytes.size_ofByteArray, size_paddingSuffix]
   unfold paddedLength
@@ -115,18 +169,23 @@ theorem toList_pad (msg : ByteArray) :
   rw [pad, Bytes.toList_append, Bytes.toList_ofByteArray, toList_paddingSuffix]
   simp only [List.append_assoc]
 
+/-- Padding preserves every original message byte as its prefix. -/
 theorem pad_prefix (msg : ByteArray) : (pad msg).toList.take msg.size = msg.data.toList := by
   rw [toList_pad, List.append_assoc, List.append_assoc]
   simpa only [Array.length_toList, ByteArray.size, List.append_assoc] using
-    (List.take_left (l₁ := msg.data.toList) (l₂ := [0x80] ++ (List.replicate (zeroCount msg.size) 0 ++
-      (lengthTrailer msg.size).toList)))
+    (List.take_left (l₁ := msg.data.toList)
+      (l₂ := [0x80] ++ (List.replicate (zeroCount msg.size) 0 ++
+        (lengthTrailer msg.size).toList)))
 
-theorem pad_multiple64 (msg : ByteArray) : (pad msg).size % 64 = 0 := by
+/-- The executable padded buffer consists of complete 64-byte blocks. -/
+theorem size_pad_mod64 (msg : ByteArray) : (pad msg).size % 64 = 0 := by
   rw [size_pad, paddedLength_mod]
+
+/-! ### Ordered word parsing and block execution -/
 
 /-- Positional big-endian decoding of exactly four bytes. -/
 def parseWord (a b c d : UInt8) : UInt32 :=
-  UInt32.ofNat (16777216 * a.toNat + 65536 * b.toNat + 256 * c.toNat + d.toNat)
+  UInt32.ofNat (2 ^ 24 * a.toNat + 2 ^ 16 * b.toNat + 256 * c.toNat + d.toNat)
 
 /-- Constant-width serialization keeps leading zeros. -/
 def wordByte (word : UInt32) (i : Nat) : UInt8 :=
@@ -135,7 +194,7 @@ def wordByte (word : UInt32) (i : Nat) : UInt8 :=
 /-- All accesses are checked before the runtime byte primitive. The digest calls
 this only at complete 64-byte block offsets; the helper is total at other offsets. -/
 def parseBlock (bytes : Bytes) (offset : Nat) : Vector UInt32 16 :=
-  Vector.ofFn fun i =>
+  Vector.ofFn fun i ↦
     let pos := offset + 4 * i.val
     parseWord (bytes.toByteArray[pos]?.getD 0) (bytes.toByteArray[pos + 1]?.getD 0)
       (bytes.toByteArray[pos + 2]?.getD 0) (bytes.toByteArray[pos + 3]?.getD 0)
@@ -146,8 +205,9 @@ def blocks (bytes : Bytes) : Nat → Nat → Vector UInt32 8 → Vector UInt32 8
   | remaining + 1, offset, state =>
     blocks bytes remaining (offset + 64) (sha256Compress state (parseBlock bytes offset))
 
+/-- Serialize all eight native words in order as four big-endian bytes each. -/
 def serialize (state : Vector UInt32 8) : Bytes :=
-  Bytes.generate 32 fun i => wordByte state[i / 4 % 8] (i % 4)
+  Bytes.generate 32 fun i ↦ wordByte state[i / 4 % 8] (i % 4)
 
 /-- Build a fixed digest using only the checked public Base constructor. -/
 def digestValue (state : Vector UInt32 8) : Bytes32 :=
@@ -161,46 +221,76 @@ namespace Model
 
 /-- Explicit byte model uses positional values and standard BitVec32 words. -/
 def parseWord (a b c d : UInt8) : BitVec 32 :=
-  BitVec.ofNat 32 (16777216 * a.toNat + 65536 * b.toNat + 256 * c.toNat + d.toNat)
+  BitVec.ofNat 32 (2 ^ 24 * a.toNat + 2 ^ 16 * b.toNat + 256 * c.toNat + d.toNat)
 
+/-- Sixteen ascending four-byte words, with zeros for unavailable source bytes. -/
 def parseBlock (bytes : List UInt8) (offset : Nat) : Vector (BitVec 32) 16 :=
-  Vector.ofFn fun i =>
+  Vector.ofFn fun i ↦
     let pos := offset + 4 * i.val
     parseWord (bytes[pos]?.getD 0) (bytes[pos + 1]?.getD 0)
       (bytes[pos + 2]?.getD 0) (bytes[pos + 3]?.getD 0)
 
+/-- Ordered big-endian bytes for all eight mathematical state words. -/
 def serialize (state : Vector (BitVec 32) 8) : List UInt8 :=
-  (List.range 32).map fun i => UInt8.ofNat (state[i / 4 % 8].toNat / 256 ^ (3 - i % 4))
+  (List.range 32).map fun i ↦ UInt8.ofNat (state[i / 4 % 8].toNat / 256 ^ (3 - i % 4))
 
-/-- Serial composition model: standard compression folded over ascending offsets. -/
+/-- Serial composition model: standard compression folded over ascending,
+zero-extended byte windows. -/
 def blocks (bytes : List UInt8) (offset count : Nat) (state : Vector (BitVec 32) 8) :
     Vector (BitVec 32) 8 :=
-  (List.range count).foldl (fun s i => compress s (parseBlock bytes (offset + 64 * i))) state
+  (List.range count).foldl (fun s i ↦ compress s (parseBlock bytes (offset + 64 * i))) state
+
+/-- Padding observed purely as a byte list; Q46's modular extension is explicit. -/
+def pad (message : List UInt8) : List UInt8 :=
+  message ++ [0x80] ++ List.replicate ((119 - message.length % 64) % 64) 0 ++
+    (List.range 8).map (fun i ↦ UInt8.ofNat
+      (((8 * message.length) % 2 ^ 64) / 256 ^ (7 - i)))
+
+/-- Padding model with the original, unwrapped bit length. The model is total;
+FIPS correspondence requires `8 * message.length < 2^64` (Q46). -/
+def fipsPad (message : List UInt8) : List UInt8 :=
+  message ++ [0x80] ++ List.replicate ((119 - message.length % 64) % 64) 0 ++
+    (List.range 8).map (fun i ↦ UInt8.ofNat ((8 * message.length) / 256 ^ (7 - i)))
+
+/-- A chaining trace visits 64-byte windows in ascending offset order.
+Parsing zero-extends unavailable source bytes; no window-availability premise is
+built into this relation. Digest padding supplies complete windows separately. -/
+inductive Chain (bytes : List UInt8) : Nat → Nat → Vector (BitVec 32) 8 →
+    Vector (BitVec 32) 8 → Prop
+  | done (offset : Nat) (state : Vector (BitVec 32) 8) : Chain bytes offset 0 state state
+  | step (offset count : Nat) (state final : Vector (BitVec 32) 8)
+      (next : Chain bytes (offset + 64) count (compress state (parseBlock bytes offset)) final) :
+      Chain bytes offset (count + 1) state final
+
+/-- A full digest is a chaining trace from the standard IV followed by all eight
+big-endian output words. This relation mentions no executable digest definition. -/
+def DigestOnPad (bytes digest : List UInt8) : Prop :=
+  ∃ state, Chain bytes 0 (bytes.length / 64) (wordsModel initialState) state ∧
+    digest = serialize state
+
+/-- Total digest relation using Q46's modular length trailer.
+`fipsPad` supplies the standard-domain alternative with an unwrapped bit length. -/
+def Digest (message digest : List UInt8) : Prop := DigestOnPad (pad message) digest
 
 end Model
 
-end STFSpec.Hash.Sha256
-
-namespace STFSpec.Hash
-
-open STFSpec.Base
+end Sha256
 
 /-- Pure total SHA-256. Q46 wraps the eight-byte bit-length trailer for all sizes;
-FIPS 180-4 correspondence has the explicit `8 * msg.size < 2^64` domain. -/
+FIPS 180-4 correspondence has the explicit `8 * msg.size < 2^64` domain.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:51`. -/
 def sha256 (msg : ByteArray) : Bytes32 :=
   let bytes := Sha256.pad msg
   Sha256.digestValue (Sha256.blocks bytes (bytes.size / 64) 0 Sha256.initialState)
 
-end STFSpec.Hash
+namespace Sha256
 
-namespace STFSpec.Hash.Sha256
-
-open STFSpec.Base
+/-! ### Public refinement and composition laws -/
 
 /-- Parsing observes the four ordered radix-256 digits. -/
 theorem toNat_parseWord (a b c d : UInt8) :
     (parseWord a b c d).toNat =
-      16777216 * a.toNat + 65536 * b.toNat + 256 * c.toNat + d.toNat := by
+      2 ^ 24 * a.toNat + 2 ^ 16 * b.toNat + 256 * c.toNat + d.toNat := by
   rw [parseWord, UInt32.toNat_ofNat']
   apply Nat.mod_eq_of_lt
   have ha := a.toNat_lt
@@ -216,13 +306,14 @@ theorem parseWord_wordByte (word : UInt32) :
   apply UInt32.toNat_inj.mp
   rw [toNat_parseWord]
   simp only [wordByte, UInt8.toNat_ofNat', Nat.reduceSub, Nat.reducePow, Nat.div_one]
-  change 16777216 * (word.toNat / 16777216 % 256) +
-    65536 * (word.toNat / 65536 % 256) + 256 * (word.toNat / 256 % 256) +
+  change 2 ^ 24 * (word.toNat / 2 ^ 24 % 256) +
+    2 ^ 16 * (word.toNat / 2 ^ 16 % 256) + 256 * (word.toNat / 256 % 256) +
     word.toNat % 256 = word.toNat
   have h := word.toNat_lt
   change word.toNat < 4294967296 at h
   omega
 
+/-- Native four-byte parsing refines positional BitVec32 parsing. -/
 theorem toBitVec_parseWord (a b c d : UInt8) :
     (parseWord a b c d).toBitVec = Model.parseWord a b c d := rfl
 
@@ -233,6 +324,7 @@ theorem getElem?_toByteArray (bytes : Bytes) (i : Nat) :
   change bytes.toByteArray.data[i]? = bytes.toByteArray.data.toList[i]?
   simp only [Array.getElem?_toList]
 
+/-- Every native parsed word agrees with the ordered byte-list model. -/
 theorem wordsModel_parseBlock (bytes : Bytes) (offset : Nat) :
     wordsModel (parseBlock bytes offset) = Model.parseBlock bytes.toList offset := by
   apply Vector.ext
@@ -240,12 +332,14 @@ theorem wordsModel_parseBlock (bytes : Bytes) (offset : Nat) :
   simp only [wordsModel_get, parseBlock, Model.parseBlock, Vector.getElem_ofFn,
     getElem?_toByteArray, toBitVec_parseWord]
 
+/-- Native state serialization agrees with the ordered BitVec32 byte-list model. -/
 theorem serialize_model (state : Vector UInt32 8) :
     (serialize state).toList = Model.serialize (wordsModel state) := by
   simp only [serialize, Bytes.toList_generate, Model.serialize, wordByte,
     wordsModel_get]
   rfl
 
+/-- Eight words serialize to exactly 32 bytes. -/
 theorem size_serialize (state : Vector UInt32 8) : (serialize state).size = 32 :=
   Bytes.size_generate _ _
 
@@ -260,11 +354,12 @@ theorem toBytes_digestValue (state : Vector UInt32 8) :
 theorem Model.blocks_succ (bytes : List UInt8) (offset count : Nat)
     (state : Vector (BitVec 32) 8) :
     Model.blocks bytes offset (count + 1) state =
-      Model.blocks bytes (offset + 64) count (Model.compress state (Model.parseBlock bytes offset)) := by
+      Model.blocks bytes (offset + 64) count
+        (Model.compress state (Model.parseBlock bytes offset)) := by
   unfold Model.blocks
   rw [List.range_succ_eq_map, List.foldl_cons, List.foldl_map]
   simp only [Nat.mul_zero, Nat.add_zero]
-  apply congrArg (fun f => (List.range count).foldl f
+  apply congrArg (fun f ↦ (List.range count).foldl f
     (Model.compress state (Model.parseBlock bytes offset)))
   funext s i
   rw [show offset + 64 * Nat.succ i = offset + 64 + 64 * i by omega]
@@ -300,26 +395,12 @@ theorem sha256_model (msg : ByteArray) :
 
 /-- Standard-domain digest correspondence additionally uses the nonwrapping
 bit-length equation, so no above-domain host or FIPS claim is implicit. -/
-theorem sha256_fipsDomain (msg : ByteArray) (h : 8 * msg.size < 2 ^ 64) :
+theorem sha256_model_of_fipsDomain (msg : ByteArray) (h : 8 * msg.size < 2 ^ 64) :
     bitLength msg.size = 8 * msg.size ∧
     (sha256 msg).toBytes.toList =
       Model.serialize (Model.blocks (pad msg).toList 0 ((pad msg).size / 64)
         (wordsModel initialState)) :=
   ⟨bitLength_of_fipsDomain _ h, sha256_model msg⟩
-
-end STFSpec.Hash.Sha256
-
-namespace STFSpec.Hash
-
-/-- The public digest has exactly 32 bytes at every input size. -/
-theorem size_sha256 (msg : ByteArray) : (sha256 msg).toBytes.size = 32 :=
-  STFSpec.Base.FixedBytes.size_toBytes _
-
-end STFSpec.Hash
-
-namespace STFSpec.Hash.Sha256
-
-open STFSpec.Base
 
 /-- The trailer denotes the exact low-64-bit value in the public Base endian model. -/
 theorem lengthTrailer_value (n : Nat) : Uint.ofBeBytes (lengthTrailer n) = bitLength n := by
@@ -332,33 +413,6 @@ theorem lengthTrailer_value (n : Nat) : Uint.ofBeBytes (lengthTrailer n) = bitLe
   omega
 
 namespace Model
-
-/-- Padding observed purely as a byte list; Q46's modular extension is explicit. -/
-def pad (message : List UInt8) : List UInt8 :=
-  message ++ [0x80] ++ List.replicate ((119 - message.length % 64) % 64) 0 ++
-    (List.range 8).map (fun i => UInt8.ofNat
-      (((8 * message.length) % 2 ^ 64) / 256 ^ (7 - i)))
-
-/-- Standard byte-domain padding uses the original, unwrapped bit length. -/
-def fipsPad (message : List UInt8) : List UInt8 :=
-  message ++ [0x80] ++ List.replicate ((119 - message.length % 64) % 64) 0 ++
-    (List.range 8).map (fun i => UInt8.ofNat ((8 * message.length) / 256 ^ (7 - i)))
-
-/-- A standard chaining trace consumes complete blocks in increasing byte order. -/
-inductive Chain (bytes : List UInt8) : Nat → Nat → Vector (BitVec 32) 8 →
-    Vector (BitVec 32) 8 → Prop
-  | done (offset : Nat) (state : Vector (BitVec 32) 8) : Chain bytes offset 0 state state
-  | step (offset count : Nat) (state final : Vector (BitVec 32) 8)
-      (next : Chain bytes (offset + 64) count (compress state (parseBlock bytes offset)) final) :
-      Chain bytes offset (count + 1) state final
-
-/-- A full digest is a chaining trace from the standard IV followed by all eight
-big-endian output words. This relation mentions no executable digest definition. -/
-def DigestOnPad (bytes digest : List UInt8) : Prop :=
-  ∃ state, Chain bytes 0 (bytes.length / 64) (wordsModel initialState) state ∧
-    digest = serialize state
-
-def Digest (message digest : List UInt8) : Prop := DigestOnPad (pad message) digest
 
 /-- The readable serial fold constructs the corresponding inductive trace. -/
 theorem blocks_chain (bytes : List UInt8) (count offset : Nat) (state : Vector (BitVec 32) 8) :
@@ -379,6 +433,7 @@ theorem Chain.eq_blocks {bytes : List UInt8} {offset count : Nat}
 
 end Model
 
+/-- Executable padding agrees with the byte-list model at every input size. -/
 theorem pad_model (msg : ByteArray) : (pad msg).toList = Model.pad msg.data.toList := by
   rw [toList_pad, lengthTrailer, Bytes.toList_generate]
   simp only [Model.pad, Array.length_toList, ByteArray.size, zeroCount, bitLength]
@@ -390,7 +445,8 @@ theorem pad_fipsDomain (msg : ByteArray) (h : 8 * msg.size < 2 ^ 64) :
   simp only [Model.fipsPad, Array.length_toList, ByteArray.size, zeroCount]
 
 /-- Full digest correctness against the inductive byte/chaining model. -/
-theorem sha256_digest (msg : ByteArray) : Model.Digest msg.data.toList (sha256 msg).toBytes.toList := by
+theorem sha256_digest (msg : ByteArray) :
+    Model.Digest msg.data.toList (sha256 msg).toBytes.toList := by
   unfold Model.Digest
   rw [← pad_model]
   refine ⟨Model.blocks (pad msg).toList 0 ((pad msg).size / 64) (wordsModel initialState), ?_,
@@ -408,18 +464,13 @@ theorem sha256_fipsDigest (msg : ByteArray) (h : 8 * msg.size < 2 ^ 64) :
   rw [Bytes.length_toList]
   exact Model.blocks_chain _ _ _ _
 
-end STFSpec.Hash.Sha256
-
-namespace STFSpec.Hash.Sha256
-
-open STFSpec.Base
-
 /-- Padding produces the ceiling of (original bytes + nine suffix bytes)/64 blocks. -/
-theorem blockCount (n : Nat) : paddedLength n / 64 = (n + 72) / 64 := by
+theorem paddedLength_div64 (n : Nat) : paddedLength n / 64 = (n + 72) / 64 := by
   have hn := Nat.mod_lt n (by decide : 0 < 64)
   unfold paddedLength zeroCount
   omega
 
+/-- An available packed byte is the same byte exposed by the public Bytes observer. -/
 theorem getElem?_toByteArray_of_lt (bytes : Bytes) (i : Nat) (hi : i < bytes.size) :
     bytes.toByteArray[i]? = some bytes[i] := by
   rw [getElem?_toByteArray, List.getElem?_eq_getElem (by rw [Bytes.length_toList]; exact hi),
@@ -450,4 +501,10 @@ theorem serialize_get (state : Vector UInt32 8) (word : Fin 8) (byte : Fin 4) :
   have hb : (4 * word.val + byte.val) % 4 = byte.val := by omega
   simp only [hw, hb]
 
-end STFSpec.Hash.Sha256
+end Sha256
+
+/-- The public digest has exactly 32 bytes at every input size. -/
+theorem size_sha256 (msg : ByteArray) : (sha256 msg).toBytes.size = 32 :=
+  STFSpec.Base.FixedBytes.size_toBytes _
+
+end STFSpec.Hash

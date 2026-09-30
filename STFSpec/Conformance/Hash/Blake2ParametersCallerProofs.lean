@@ -67,3 +67,11 @@ example (p : Params) : (getParameters (serialize p) (serialize_size p)).f = p.f 
 example (word : UInt64) (j : Fin 8) :
     (wordByte (n := 8) word.toBitVec j).toNat = word.toNat / 256 ^ j.val % 256 :=
   wordByte_toNat word.toBitVec j
+
+-- Parsed state lanes use the existing EthBase little-endian numeric interface.
+example (data : ByteArray) (h : data.size = 213) (i : Fin 8) :
+    ((getParameters data h).h.get i).toNat =
+      STFSpec.Base.Uint.ofLeBytes (STFSpec.Base.Bytes.ofList
+        (List.ofFn (fun j : Fin 8 ↦ inputByte data h ⟨4 + 8 * i.val + j.val, by omega⟩))) := by
+  change ((getParameters data h).h.get i).toBitVec.toNat = _
+  rw [getParameters_h, toNat_leWord_eq_ofLeBytes]

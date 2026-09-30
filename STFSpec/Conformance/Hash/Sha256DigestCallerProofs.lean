@@ -9,6 +9,8 @@ import STFSpec.Hash
 
 Clients use only the Hash and Base public equations. No compression, digest,
 padding or private byte-container representation is unfolded.
+Library `EthConformance`.
+Spec guidance: `STFSpec/informal/modules/EthHash.md` §§3, 7.
 -/
 
 open STFSpec.Base STFSpec.Hash STFSpec.Hash.Sha256
@@ -28,6 +30,21 @@ example (n : Nat) (h : 8 * n < 2 ^ 64) : Uint.ofBeBytes (lengthTrailer n) = 8 * 
 -- This theorem exercises the approved total extension at a conceptual length.
 example : Uint.ofBeBytes (lengthTrailer (2 ^ 61)) = 0 := by
   rw [lengthTrailer_value, bitLength_mod]
+
+-- The public least-count law rules out every shorter bit-padding candidate.
+example (n k : Nat) (hk : k < 7 + 8 * zeroCount n) :
+    (8 * n + 1 + k) % 512 ≠ 448 := by
+  intro h
+  have := zeroCount_bit_le_of_congr n k h
+  omega
+
+-- Two bounded candidates satisfying FIPS padding must be identical.
+example (n k : Nat) (hk : k < 512) (h : (8 * n + 1 + k) % 512 = 448) :
+    k = 7 + 8 * zeroCount n := by
+  have hmin := zeroCount_bit_le_of_congr n k h
+  have hcongr := zeroCount_bit_congr n
+  have hbound := zeroCount_lt n
+  omega
 
 example (word : UInt32) :
     parseWord (wordByte word 0) (wordByte word 1) (wordByte word 2) (wordByte word 3) = word :=

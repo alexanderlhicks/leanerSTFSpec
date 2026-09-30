@@ -53,7 +53,7 @@ def byteAt (b : Bytes) (i : Nat) : UInt8 := (b[i]?).getD 0
 
 /-- Legacy byte-aligned pad10*1: suffix 0x01 and final bit 0x80, combined if needed. -/
 def pad (r : Rate) (b : Bytes) : Bytes :=
-  Bytes.generate (paddedSize r b.size) fun i =>
+  Bytes.generate (paddedSize r b.size) fun i ↦
     if i < b.size then byteAt b i
     else (if i = b.size then 1 else 0) ||| (if i + 1 = paddedSize r b.size then 128 else 0)
 
@@ -71,10 +71,10 @@ def encodeLaneByte (x : UInt64) (i : Fin 8) : UInt8 :=
 
 /-- XOR one rate block into the leading lanes, leaving capacity lanes unchanged. -/
 def xorBlock (r : Rate) (b : Bytes) (offset : Nat) (s : KeccakState) : KeccakState :=
-  keccakOfLanes fun x y =>
+  keccakOfLanes fun x y ↦
     let lane := (keccakLaneIndex x y).val
     keccakLane s x y ^^^
-      if 8 * lane < r.bytes then decodeLane (fun j => byteAt b (offset + 8 * lane + j)) else 0
+      if 8 * lane < r.bytes then decodeLane (fun j ↦ byteAt b (offset + 8 * lane + j)) else 0
 
 /-- Absorb one ordered rate block and apply the accepted permutation. -/
 def absorbBlock (r : Rate) (b : Bytes) (offset : Nat) (s : KeccakState) : KeccakState :=
@@ -86,11 +86,11 @@ def absorb (r : Rate) (b : Bytes) : Nat → Nat → KeccakState → KeccakState
   | n + 1, offset, s => absorb r b n (offset + r.bytes) (absorbBlock r b offset s)
 
 /-- All-zero initial state. -/
-def zeroState : KeccakState := keccakOfLanes fun _ _ => 0
+def zeroState : KeccakState := keccakOfLanes fun _ _ ↦ 0
 
 /-- Squeeze at most one state's bytes, low byte first in x+5*y lane order. -/
 def squeeze (s : KeccakState) (n : Nat) (hn : n ≤ 200) : Bytes :=
-  Bytes.generate n fun i =>
+  Bytes.generate n fun i ↦
     if h : i < n then
       encodeLaneByte (keccakLane s ⟨i / 8 % 5, Nat.mod_lt _ (by decide)⟩
         ⟨i / 40, by omega⟩) ⟨i % 8, Nat.mod_lt _ (by decide)⟩
@@ -114,16 +114,16 @@ def decodeLane (f : Nat → UInt8) : BitVec 64 := decodeAux f 8
 
 /-- Byte-array observation is a list, including exact legacy padding positions. -/
 def pad (r : Rate) (bs : List UInt8) : List UInt8 :=
-  bs ++ (List.range (paddingCount r bs.length)).map fun j =>
+  bs ++ (List.range (paddingCount r bs.length)).map fun j ↦
     (if j = 0 then 1 else 0) ||| (if j + 1 = paddingCount r bs.length then 128 else 0)
 
 /-- Absorption XOR in standard coordinates, with zero capacity contribution. -/
 def xorBlock (r : Rate) (bs : List UInt8) (offset : Nat) (s : KeccakModel) : KeccakModel :=
-  fun (x,y) =>
+  fun (x,y) ↦
     let lane := (keccakLaneIndex x y).val
     s (x,y) ^^^
       if 8 * lane < r.bytes then
-        decodeLane (fun j => (bs[offset + 8 * lane + j]?).getD 0) else 0
+        decodeLane (fun j ↦ (bs[offset + 8 * lane + j]?).getD 0) else 0
 
 /-- Standard permutation after XORing one rate block. -/
 def absorbBlock (r : Rate) (bs : List UInt8) (offset : Nat) (s : KeccakModel) : KeccakModel :=
@@ -136,7 +136,7 @@ def absorb (r : Rate) (bs : List UInt8) : Nat → Nat → KeccakModel → Keccak
 
 /-- Standard lane serialization, with byte zero at lane bit zero. -/
 def squeeze (s : KeccakModel) (n : Nat) (hn : n ≤ 200) : List UInt8 :=
-  (List.range n).map fun i =>
+  (List.range n).map fun i ↦
     if h : i < n then
       UInt8.ofBitVec ((s (⟨i / 8 % 5, Nat.mod_lt _ (by decide)⟩,
         ⟨i / 40, by omega⟩) >>> (8 * (i % 8))).setWidth 8)
@@ -145,16 +145,10 @@ def squeeze (s : KeccakModel) (n : Nat) (hn : n ≤ 200) : List UInt8 :=
 /-- Byte-level fixed-rate sponge model. -/
 def digest (r : Rate) (bs : List UInt8) : List UInt8 :=
   let padded := pad r bs
-  let final := absorb r padded (padded.length / r.bytes) 0 (fun _ => 0)
+  let final := absorb r padded (padded.length / r.bytes) 0 (fun _ ↦ 0)
   squeeze final r.output (by have := r.bounds; omega)
 
 end Model
-
-end STFSpec.Hash.KeccakSponge
-
-namespace STFSpec.Hash.KeccakSponge
-
-open STFSpec.Base
 
 /-- The padding count is positive and at most one full rate. -/
 theorem paddingCount_bounds (r : Rate) (n : Nat) :
@@ -198,17 +192,22 @@ theorem byteAt_model (b : Bytes) (i : Nat) : byteAt b i = (b.toList[i]?).getD 0 
       List.getElem?_eq_getElem (by rw [Bytes.length_toList]; exact hi), Option.getD_some]
     exact (Bytes.getElem_toList b i hi).symm
   · have hl : ¬ i < b.toList.length := by rw [Bytes.length_toList]; exact hi
-    simp only [byteAt, getElem?_neg b i hi, List.getElem?_eq_none (by omega : b.toList.length ≤ i), Option.getD_none]
+    simp only [byteAt, getElem?_neg b i hi,
+      List.getElem?_eq_none (by omega : b.toList.length ≤ i), Option.getD_none]
+
+private theorem lt_paddedSize_of_lt (r : Rate) (b : Bytes) (i : Nat) (hi : i < b.size) :
+    i < paddedSize r b.size := Nat.lt_trans hi (paddedSize_gt r b.size)
 
 /-- Every original input byte is preserved. -/
 theorem getElem_pad_prefix (r : Rate) (b : Bytes) (i : Nat) (hi : i < b.size) :
-    (pad r b)[i]'(by rw [size_pad]; have := paddingCount_bounds r b.size; unfold paddedSize; omega) = b[i] := by
+    (pad r b)[i]'(by rw [size_pad]; exact lt_paddedSize_of_lt r b i hi) = b[i] := by
   have hpad : i < (pad r b).size := by
-    rw [size_pad]; have := paddingCount_bounds r b.size; unfold paddedSize; omega
+    rw [size_pad]
+    exact lt_paddedSize_of_lt r b i hi
   calc
     (pad r b)[i] = (if i < b.size then byteAt b i else
       (if i = b.size then 1 else 0) ||| (if i + 1 = paddedSize r b.size then 128 else 0)) :=
-        Bytes.getElem_generate _ _ i (by have := paddingCount_bounds r b.size; unfold paddedSize; omega)
+        Bytes.getElem_generate _ _ i (lt_paddedSize_of_lt r b i hi)
     _ = b[i] := by simp only [hi, ite_true, byteAt, getElem?_pos b i hi, Option.getD_some]
 
 /-- The entire suffix has exactly the two pad10*1 boundary bits. -/
@@ -231,7 +230,8 @@ theorem getElem_pad_suffix (r : Rate) (b : Bytes) (j : Nat)
 /-- The one-byte padding case combines 0x01 and 0x80 into 0x81. -/
 theorem getElem_pad_single (r : Rate) (b : Bytes) (h : paddingCount r b.size = 1) :
     (pad r b)[b.size]'(by rw [size_pad]; unfold paddedSize; omega) = 129 := by
-  simpa only [Nat.add_zero, h, ite_true, show (1 : UInt8) ||| 128 = 129 from rfl] using getElem_pad_suffix r b 0 (by omega)
+  simpa only [Nat.add_zero, h, ite_true, show (1 : UInt8) ||| 128 = 129 from rfl] using
+    getElem_pad_suffix r b 0 (by omega)
 
 /-- With two or more suffix bytes, the first is 0x01. -/
 theorem getElem_pad_first (r : Rate) (b : Bytes) (h : 1 < paddingCount r b.size) :
@@ -264,7 +264,8 @@ theorem pad_model (r : Rate) (b : Bytes) : (pad r b).toList = Model.pad r b.toLi
       rw [List.getElem_append_left (by rw [Bytes.length_toList]; exact hb)]
       calc
         (pad r b).toList[i] = (pad r b)[i] := Bytes.getElem_toList _ _ (by
-          rw [size_pad]; have := paddingCount_bounds r b.size; unfold paddedSize; omega)
+          rw [size_pad]
+          exact lt_paddedSize_of_lt r b i hb)
         _ = b[i] := getElem_pad_prefix r b i hb
         _ = b.toList[i] := (Bytes.getElem_toList b i hb).symm
     · have hs : i - b.size < paddingCount r b.size := by
@@ -305,7 +306,8 @@ theorem encodeLaneByte_model (x : UInt64) (i : Fin 8) :
 
 /-- Absorption XOR commutes with the accepted coordinate observer. -/
 theorem xorBlock_model (r : Rate) (b : Bytes) (offset : Nat) (s : KeccakState) :
-    keccakToModel (xorBlock r b offset s) = Model.xorBlock r b.toList offset (keccakToModel s) := by
+    keccakToModel (xorBlock r b offset s) =
+      Model.xorBlock r b.toList offset (keccakToModel s) := by
   funext p
   rcases p with ⟨x,y⟩
   simp only [keccakToModel, xorBlock, keccakLane_ofLanes, UInt64.toBitVec_xor,
@@ -326,7 +328,8 @@ theorem absorbBlock_model (r : Rate) (b : Bytes) (offset : Nat) (s : KeccakState
 
 /-- Block induction relates the native and coordinate sponges at arbitrary offsets/states. -/
 theorem absorb_model (r : Rate) (b : Bytes) (n offset : Nat) (s : KeccakState) :
-    keccakToModel (absorb r b n offset s) = Model.absorb r b.toList n offset (keccakToModel s) := by
+    keccakToModel (absorb r b n offset s) =
+      Model.absorb r b.toList n offset (keccakToModel s) := by
   induction n generalizing offset s with
   | zero => rfl
   | succ n ih =>
@@ -365,7 +368,7 @@ theorem squeeze_model (s : KeccakState) (n : Nat) (hn : n ≤ 200) :
   · rfl
 
 /-- The sponge begins with a zero bit at every coordinate. -/
-theorem zeroState_model : keccakToModel zeroState = fun _ => 0 := by
+theorem zeroState_model : keccakToModel zeroState = fun _ ↦ 0 := by
   funext p
   rcases p with ⟨x,y⟩
   simp only [zeroState, keccakToModel, keccakLane_ofLanes]
@@ -408,7 +411,7 @@ def keccak256 (msg : ByteArray) : Hash32 :=
       KeccakSponge.size_digestBytes .keccak256 (Bytes.ofByteArray msg)))
 
 /-- Legacy Keccak-512; pinned EELS `src/ethereum/crypto/hash.py:80–95`.
-Rate 72 bytes; retained until the Q18 exclusion is adopted. -/
+The pure concrete function uses rate 72 bytes and returns 64 bytes. -/
 def keccak512 (msg : ByteArray) : Hash64 :=
   spongeFixedOutput 64 (KeccakSponge.digestBytes .keccak512 (Bytes.ofByteArray msg))
     (by simpa only [KeccakSponge.Rate.output] using

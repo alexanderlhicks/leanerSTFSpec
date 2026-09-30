@@ -100,24 +100,24 @@ private def msg512_0 : ByteArray := ⟨#[]⟩
 
 #guard (pad .keccak256 Bytes.empty).size = 136
 #guard (pad .keccak512 Bytes.empty).size = 72
-#guard (pad .keccak256 (Bytes.generate 135 (fun _ => 0))).toList =
+#guard (pad .keccak256 (Bytes.generate 135 (fun _ ↦ 0))).toList =
   List.replicate 135 0 ++ [129]
-#guard (pad .keccak256 (Bytes.generate 136 (fun _ => 0))).toList =
+#guard (pad .keccak256 (Bytes.generate 136 (fun _ ↦ 0))).toList =
   List.replicate 136 0 ++ [1] ++ List.replicate 134 0 ++ [128]
-#guard (pad .keccak512 (Bytes.generate 71 (fun _ => 0))).toList =
+#guard (pad .keccak512 (Bytes.generate 71 (fun _ ↦ 0))).toList =
   List.replicate 71 0 ++ [129]
-#guard (pad .keccak512 (Bytes.generate 72 (fun _ => 0))).size = 144
-#guard decodeLane (fun i => UInt8.ofNat (i + 1)) = 0x0807060504030201
+#guard (pad .keccak512 (Bytes.generate 72 (fun _ ↦ 0))).size = 144
+#guard decodeLane (fun i ↦ UInt8.ofNat (i + 1)) = 0x0807060504030201
 #guard encodeLaneByte 0x0807060504030201 ⟨0, by decide⟩ = 1
 #guard encodeLaneByte 0x0807060504030201 ⟨7, by decide⟩ = 8
-#guard decodeLane (fun _ => 255) = 0xffffffffffffffff
-#guard keccakLane (xorBlock .keccak256 (Bytes.generate 136 (fun _ => 255)) 0 zeroState)
+#guard decodeLane (fun _ ↦ 255) = 0xffffffffffffffff
+#guard keccakLane (xorBlock .keccak256 (Bytes.generate 136 (fun _ ↦ 255)) 0 zeroState)
   ⟨1, by decide⟩ ⟨3, by decide⟩ = 0xffffffffffffffff
-#guard keccakLane (xorBlock .keccak256 (Bytes.generate 200 (fun _ => 255)) 0 zeroState)
+#guard keccakLane (xorBlock .keccak256 (Bytes.generate 200 (fun _ ↦ 255)) 0 zeroState)
   ⟨2, by decide⟩ ⟨3, by decide⟩ = 0
-#guard keccakLane (xorBlock .keccak512 (Bytes.generate 200 (fun _ => 255)) 0 zeroState)
+#guard keccakLane (xorBlock .keccak512 (Bytes.generate 200 (fun _ ↦ 255)) 0 zeroState)
   ⟨4, by decide⟩ ⟨1, by decide⟩ = 0
-#guard (squeeze (keccakOfLanes (fun _ _ => 0x0807060504030201)) 16 (by decide)).toList =
+#guard (squeeze (keccakOfLanes (fun _ _ ↦ 0x0807060504030201)) 16 (by decide)).toList =
   [1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8]
 
 end STFSpec.Conformance.Hash.KeccakSponge

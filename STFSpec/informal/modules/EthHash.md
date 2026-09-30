@@ -67,7 +67,7 @@ The generic `Blake2` dataclass (`:35–247`) is instantiated only as `Blake2b` (
 - **Lifts.** `KeccakQuery` has instances for `ExceptT ε m` and `StateT σ m` that forward to the underlying oracle, so the spec's transformer stacks inherit it and add no hashing.
 - A narrower scope must be justified by the witness/full-state agreement prototype. The executable instance at `m := Id` must be definitionally `keccak256`, so that no proof is needed to run the spec.
 
-**R7. Totality and resources.** All functions are total on all inputs; SHA-256 standard correspondence uses the Q46 domain. `compress` runs in `O(rounds)` time. `rounds ≤ 2^32 − 1` is bounded only by the gas the precompile charges first (`blake2f.py:37`), so a caller must not evaluate `compress` before that charge succeeds. This ordering obligation belongs to `EthPrecompiles`.
+**R7. Totality and resources.** All functions are total on all inputs; SHA-256 standard correspondence uses the Q46 domain. `compress` runs in `O(rounds)` time. `rounds ≤ 2^32 − 1` is bounded only by the gas the precompile charges first (`blake2f.py:38`), so a caller must not evaluate `compress` before that charge succeeds. This ordering obligation belongs to `EthPrecompiles`.
 
 **R8. No `hashlib`/OpenSSL at runtime.** The Lean definitions are self-contained. There is no `@[extern]` (CONTRIBUTING §4). A fast path is an executable definition with a legible reference beside it and an ordinary equality proof (D4, D21); `@[csimp]` is banned.
 
@@ -79,7 +79,7 @@ The generic `Blake2` dataclass (`:35–247`) is instantiated only as `Blake2b` (
 | `crypto/hash.py::_USE_HASHLIB` | 39 | none | as above; recorded as a host dependency |
 | `crypto/hash.py::keccak256` | 62 | `STFSpec.Hash.keccak256 : ByteArray → Hash32` | public |
 | `crypto/hash.py::keccak512` | 80 | `STFSpec.Hash.keccak512 : ByteArray → Hash64` | unreachable from the guest; exclusion candidate |
-| `crypto/blake2.py::spit_le_to_uint` | 10 | `Blake2b.leWords` (internal) | name typo (`spit`) is EELS's |
+| `crypto/blake2.py::spit_le_to_uint` | 10 | `Blake2b.leWord` (bounded word model) | public numeric bridge to EthBase; generic arbitrary-window `leWords` remains unimplemented; name typo (`spit`) is EELS's |
 | `crypto/blake2.py::Blake2` | 35 | `STFSpec.Hash.Blake2b` namespace | specialised to 64-bit words |
 | `crypto/blake2.py::Blake2.max_word` | 53 | implicit in `UInt64` wrap-around | `2^64` |
 | `crypto/blake2.py::Blake2.w_R1` | 60 | constant `64 − 32` | folded into `rotr` |
@@ -107,7 +107,7 @@ with no state effects outside the returned state and no failures or consuming er
 handler. EELS `crypto/hash.py:62–77` delegates to its backend; it has no raw permutation
 surface. Accordingly these rows cite the published algorithm underlying the pinned
 pycryptodome 3.23.0 dependency rather than claim Python round execution. The
-fixed-rate sponge slice below is also discharged; remaining hash and query APIs
+fixed-rate sponge below is also implemented and proved; remaining hash and query APIs
 are listed in §10.
 
 | Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
@@ -151,18 +151,18 @@ with an independent integer model of FIPS 180-4, **not pinned EELS compression**
 (EELS exposes only hashlib digests). It also uses test-only Python padding/parsing
 and serial compression composition to compare selected finite messages with the
 hashlib alias observed through the authenticated pinned precompile source. This
-supports compression composition; it does not implement or validate production
-padding, digest code, precompile gas/effects or guest behavior.
+supports compression composition; production padding and digests have separate
+evidence below. It does not validate precompile gas/effects or guest behavior.
 
-### Implemented raw BLAKE2F parameter slice
+### Raw BLAKE2F parameters
 
-The operations below are **discharged** for the stated domains. Remaining hash,
+The operations below are implemented and proved for the stated domains. Remaining hash,
 compression and precompile operations retain their open obligations in §10.
 
 | Pinned EELS source / dependency | Lean declaration and public type | Domain, effects and failure owner | Public law | Deterministic evidence |
 |---|---|---|---|---|
-| `crypto/blake2.py:10–32,133–150`; `ethereum-types` 0.4.1 `Uint.from_le_bytes` / `Uint.from_be_bytes` | `Blake2b.getParameters (data : ByteArray) (h : data.size = 213) : Params`; `Params` fields as §5 | Every 213-byte input; all `UInt32` rounds and all `UInt8` flags retained; pure. `EthPrecompiles` establishes the size premise after its size check, then owns gas charging and flag rejection (`vm/precompiled_contracts/blake2f.py:30–42`, O9/O8). No parser failure on this domain. The bounded 8/16/2 little-endian windows use `leWord`; generic arbitrary-window `leWords` remains unimplemented. | `getParameters_rounds`, `getParameters_h`, `getParameters_m`, `getParameters_t0`, `getParameters_t1`, `getParameters_f`; `leWord_succ_toNat`, `wordByte_toNat`, `wordByte_leWord`, `leWord_wordByte` | `STFSpec/Conformance/Hash/Blake2ParametersGuards.lean`: primary [EIP-152](https://eips.ethereum.org/EIPS/eip-152#test-cases) examples 3–8, every raw flag, high round bit and asymmetric lane/counter bytes. `blake2_parameters_differential.py` calls the actual authenticated pinned parser; maximum rounds are parse-only. |
-| Contract witness, using the same raw layout | `Blake2b.serialize : Params → ByteArray` and `parameterByte : Params → Fin 213 → UInt8` | Every raw `Params`; pure and no failures; preserves fixed widths and unvalidated flag | `serialize_size`, `inputByte_serialize`, `getParameters_serialize`, `serialize_getParameters`, `parameterByte_getParameters` | `Blake2ParametersCallerProofs.lean`: both genuine round trips, codec injectivity and all six field observations using public laws; guards and differential serialize the observed fields back to the original bytes. |
+| `crypto/blake2.py:10–32,133–150`; `ethereum-types` 0.4.1 `Uint.from_le_bytes` / `Uint.from_be_bytes` | `Blake2b.getParameters (data : ByteArray) (h : data.size = 213) : Params`; `Params` fields as §5 | Every 213-byte input; all `UInt32` rounds and all `UInt8` flags retained; pure. `EthPrecompiles` establishes the size premise after its size check, then owns gas charging and flag rejection (`vm/precompiled_contracts/blake2f.py:30–42`, O9/O8). No parser failure on this domain. The bounded 8/16/2 little-endian windows use `leWord`; generic arbitrary-window `leWords` remains unimplemented. | `getParameters_rounds`, `getParameters_h`, `getParameters_m`, `getParameters_t0`, `getParameters_t1`, `getParameters_f`; `toNat_leWord_succ`, `toNat_leWord_eq_ofLeBytes` (EthBase endian bridge), `wordByte_toNat`, `wordByte_leWord`, `leWord_wordByte` | `STFSpec/Conformance/Hash/Blake2ParametersGuards.lean`: primary [EIP-152](https://eips.ethereum.org/EIPS/eip-152#test-cases) examples 3–8, every raw flag, high round bit and asymmetric lane/counter bytes. `blake2_parameters_differential.py` calls the actual authenticated pinned parser; maximum rounds are parse-only. |
+| Contract witness, using the same raw layout | `Blake2b.serialize : Params → ByteArray` and `parameterByte : Params → Fin 213 → UInt8` | Every raw `Params`; pure and no failures; preserves fixed widths and unvalidated flag | `serialize_size`, `inputByte_serialize`, `getParameters_serialize`, `serialize_getParameters`, `parameterByte_getParameters` | `Blake2ParametersCallerProofs.lean`: both round trips, codec injectivity, field observations and an EthBase endian bridge using public laws; guards and differential serialize the observed fields back to the original bytes. |
 
 The parser differential driver checks scalar `Uint` types and exact vector shapes
 before emitting Lean values; its result-domain regressions reject Boolean/int
@@ -171,38 +171,43 @@ for the pin, source and installed dependency checks before and after observation
 Generated oracle observations stay outside both repositories and are finite evidence.
 No compression, gas ordering, whole-hash refinement or EEST guest result is claimed.
 
-### Discharged SHA-256 message-digest slice
+### SHA-256 message digest
 
 `STFSpec/Hash/Sha256Digest.lean` implements the production `sha256` API using the
 accepted compression laws. All operations below are pure and total: their only
 effect is the returned value, with no failure channel or consuming error handler.
-Q46 owns the length-domain policy. Mathematical totality does not establish host
+Q46 owns the length-domain policy. `zeroCount_bit_congr` and
+`zeroCount_bit_le_of_congr` state the FIPS congruence and minimality directly,
+including comparison with arbitrary natural bit counts. The list padding model
+shares the zero-count formula; its equality alone does not establish minimality. Mathematical totality does not establish host
 memory availability or above-domain pinned-host agreement. EELS
 `forks/amsterdam/vm/precompiled_contracts/sha256.py:42–51` charges gas before its
 `hashlib.sha256(data).digest()` call; that gas/effect wrapper remains outside this
-slice. FIPS 180-4 supplies the external algorithm behind that host call.
+implementation. FIPS 180-4 supplies the external algorithm behind that host call.
 
 | Source / operation | Lean declaration and domain/effects | Public law / model | Deterministic evidence / status |
 |---|---|---|---|
 | FIPS 180-4 §5.1.1; Q46 length trailer | `Sha256.bitLength : Nat → Nat`, `lengthTrailer : Nat → Bytes`; any conceptual original byte length, eight big-endian bytes of the bit length modulo 2^64 | `bitLength_mod/lt/of_fipsDomain`, `size_lengthTrailer`, `getElem_lengthTrailer`, `lengthTrailer_value` (public Base big-endian numeric decode); original length retained when `8*n < 2^64` | asymmetric trailer digits, conceptual 2^61−1/2^61/2^61+1 and 2^64+0x10203, allocating only eight bytes; **discharged** |
-| FIPS 180-4 §5.1.1 padding | `Sha256.zeroCount/paddedLength : Nat → Nat`, `paddingSuffix : Nat → Bytes`, `pad : ByteArray → Bytes`; marker 0x80, at most 63 zeros, eight trailer bytes; one packed suffix and append | `toList_paddingSuffix`, `toList_pad`, `pad_prefix`, `size_pad`, `pad_multiple64`, `padding_boundary`, `blockCount`, `paddedLength_ge`, `pad_model`, `pad_fipsDomain` | exact suffix, empty/55/56/63/64-byte boundaries, finite differential padding observations; **discharged** |
+| FIPS 180-4 §5.1.1 padding | `Sha256.zeroCount/paddedLength : Nat → Nat`, `paddingSuffix : Nat → Bytes`, `pad : ByteArray → Bytes`; marker 0x80, at most 63 zeros, eight trailer bytes; one packed suffix and append | `zeroCount_congr`, `zeroCount_le_of_congr`, `zeroCount_bit_congr`, `zeroCount_bit_le_of_congr` (least FIPS-compatible zero padding), `toList_paddingSuffix`, `toList_pad`, `pad_prefix`, `size_pad`, `size_pad_mod64`, `zeroCount_boundaries`, `paddedLength_div64`, `paddedLength_ge`, `pad_model`, `pad_fipsDomain` | exact suffix, empty/55/56/63/64-byte boundaries, finite differential padding observations; **discharged** |
 | FIPS 180-4 §5.2.1 block/word parsing | `Sha256.parseWord : UInt8 → UInt8 → UInt8 → UInt8 → UInt32`, `parseBlock : Bytes → Nat → Vector UInt32 16`; big-endian four-byte words, ascending word order; helper zero-extends unavailable bytes after Nat bounds checks | `toNat_parseWord`, `parseWord_wordByte`, `toBitVec_parseWord`, `wordsModel_parseBlock`, `parseBlock_get` (caller supplies a complete 64-byte window), `getElem?_toByteArray/of_lt` | asymmetric high/low bytes, all sixteen ascending words and offset 64, huge unavailable offset; **discharged** |
 | FIPS 180-4 §6.2.2 ascending chaining | `Sha256.blocks : Bytes → Nat → Nat → Vector UInt32 8 → Vector UInt32 8`; structural remaining-block recursion, one accepted compression at each offset | `blocks_model`, `blocks_add`, `Model.blocks_chain`, `Model.Chain.eq_blocks`; separate BitVec32 serial fold and inductive chaining trace | public-law three-block split/composition client and asymmetric multiblock host inputs; **discharged** |
 | FIPS 180-4 §§6.2.1–6.2.2 output | `Sha256.wordByte : UInt32 → Nat → UInt8`, `serialize : Vector UInt32 8 → Bytes`, `digestValue : Vector UInt32 8 → Bytes32`; each of eight words serialized big-endian, leading zeros retained; public checked Base fixed-byte construction proved successful | `serialize_get/model`, `size_serialize`, `toBytes_digestValue` | eight distinct word positions, leading zeros and high-bit probes; **discharged** |
-| EELS `forks/amsterdam/vm/precompiled_contracts/sha256.py:51`; external `hashlib.sha256` / FIPS 180-4 §§5.1.1, 5.2.1, 6.2 | `STFSpec.Hash.sha256 : ByteArray → Bytes32`; standard IV, pad, ascending compression fold and ordered digest bytes; total extension on all sizes, standard-domain equivalence requires caller premise `8*msg.size < 2^64`; no gas/effect changes | `size_sha256`, `sha256_model`, `sha256_digest` against `Model.Digest`, `sha256_fipsDigest` against unwrapped `Model.fipsPad` under the explicit domain | five primary production KATs: empty/abc and NIST CAVP 55/56/64-byte messages; finite authenticated pinned-host differential; **discharged for this domain/slice** |
+| EELS `forks/amsterdam/vm/precompiled_contracts/sha256.py:51`; external `hashlib.sha256` / FIPS 180-4 §§5.1.1, 5.2.1, 6.2 | `STFSpec.Hash.sha256 : ByteArray → Bytes32`; standard IV, pad, ascending compression fold and ordered digest bytes; total extension on all sizes, standard-domain equivalence requires caller premise `8*msg.size < 2^64`; no gas/effect changes | `size_sha256`, `sha256_model`, `sha256_digest` against `Model.Digest`, `sha256_fipsDigest` against unwrapped `Model.fipsPad` under the explicit domain | primary production KATs: empty/abc and NIST CAVP 55/56/64-byte messages; finite authenticated pinned-host differential; **proved for the stated model/domain** |
 
-`STFSpec/Conformance/Hash/Sha256DigestGuards.lean` owns the five primary KATs
+`STFSpec/Conformance/Hash/Sha256DigestGuards.lean` owns the primary KATs
 and deterministic padding, byte-order and conceptual-length probes;
-`Sha256DigestCallerProofs.lean` composes only public Hash/Base laws.
+`Sha256DigestCallerProofs.lean` composes only public Hash/Base laws, including
+shorter-padding impossibility and uniqueness of the bounded congruent zero count.
 The NIST CAVP byte-oriented archive's `SHA256ShortMsg.rsp` entries at bit lengths
 0, 440, 448 and 512 supply the exact messages and digests; the NIST SHA256
 worked example supplies abc. Links and selectors are recorded in the test module.
-`sha256_differential.py`, run with the frozen EELS interpreter using `-I -B`,
+`STFSpec/Conformance/Hash/sha256_differential.py`, run with the lock-exact EELS
+interpreter using `-I -B`,
 compares actual production digest bytes with `source.hashlib.sha256` observed
 through authenticated pinned source, plus independently generated finite padding.
-Seed 16016 covers 168 messages (128 random lengths in 0..4096 and deterministic
-boundary/zero/all-one/asymmetric inputs), with one digest and one padding observation
-per message. The finite tests assume the FIPS byte domain and a working host SHA-256;
+The driver owns the seed and case inventory: bounded random messages plus
+deterministic boundary, zero, all-one and asymmetric inputs, with a digest and
+padding observation per message. The finite tests assume the FIPS byte domain and a working host SHA-256;
 no gigantic input, precompile gas/effect, guest, collision-resistance or ROM theorem
 is established.
 
@@ -214,7 +219,7 @@ boxed words and fixed-size schedule allocations. This is a bounded code-shape ch
 not a throughput, allocation-volume, target-zkVM or C1–C4 measurement claim.
 
 
-### Implemented fixed-rate digest slice
+### Fixed-rate Keccak digests
 
 `STFSpec/Hash/KeccakSponge.lean` implements byte-aligned legacy Keccak-256 and
 Keccak-512. These rows are **discharged against the explicit standard sponge
@@ -234,17 +239,18 @@ semantics are adopted.
 | EELS `crypto/hash.py:62–77`; pinned pycryptodome 3.23.0 | `STFSpec.Hash.keccak256 : ByteArray → Hash32` | Every finite message; rate136/output32, no SHA-3 domain suffix | None | `keccak256_bytes`, `keccak256_model`, `size_keccak256` | Four published primary KATs, supplemental abc; actual pinned EELS differential |
 | EELS `crypto/hash.py:80–95`; pinned pycryptodome 3.23.0 | `STFSpec.Hash.keccak512 : ByteArray → Hash64` | Every finite message; rate72/output64. Retained pending Q18 disposition | None | `keccak512_bytes`, `keccak512_model`, `size_keccak512` | Published empty KAT; actual pinned EELS differential |
 
-`KeccakSpongeGuards.lean` has 20 deterministic guards. Five published KATs come
-from the [Keccak team round-3 archive](https://keccak.team/obsolete/KeccakKAT-3.zip),
+`STFSpec/Conformance/Hash/KeccakSpongeGuards.lean` owns the deterministic guards.
+Published KATs come from the [Keccak team round-3 archive](https://keccak.team/obsolete/KeccakKAT-3.zip),
 `ShortMsgKAT_256.txt` at Len=0/1080/1088/1096 and `ShortMsgKAT_512.txt` at Len=0;
 the test records archive/member hashes and exact selected messages. The abc value
 is supplemental, generated by the primary XKCP reference, not a published KAT.
-`KeccakSpongeCallerProofs.lean` supplies eight public-law clients.
+`KeccakSpongeCallerProofs.lean` supplies public composition and replacement proofs.
 
 `keccak_differential.py` calls authenticated actual pinned EELS functions using the
-frozen lock-exact interpreter (`.venv/bin/python -I -B`), its shared source/dependency
-integrity driver and pycryptodome 3.23.0 version check. Seed 1401600 selects 92
-messages (64 random) with lengths 0..4096, yielding 184 digest guards at both rates.
+lock-exact interpreter (`.venv/bin/python -I -B`), its shared source/dependency
+integrity driver and pycryptodome 3.23.0 version check. The driver owns the seed
+and case inventory: bounded random messages plus rate/boundary, zero, all-one
+and asymmetric messages, observing both fixed digest outputs.
 This is finite value evidence for the selected backend, not OpenSSL equivalence,
 EEST execution, query composition or cryptographic security. The separate native
 1 MiB performance case checks its expected digest outside the timed loop; bounded
@@ -281,7 +287,12 @@ The namespace is `STFSpec.Hash`. All items are public unless marked internal.
 -- Keccak
 structure KeccakState                        -- private lane storage; coordinate API
 def keccakF1600 : KeccakState → KeccakState     -- 24 rounds θ ρ π χ ι
--- Internal fixed-rate construction: KeccakSponge.digestBytes : KeccakSponge.Rate → Bytes → Bytes
+namespace KeccakSponge
+  inductive Rate where | keccak256 | keccak512
+  def Rate.bytes : Rate → Nat
+  def Rate.output : Rate → Nat
+  def digestBytes : Rate → Bytes → Bytes
+end KeccakSponge
 -- Arbitrary-rate/output sponge behaviour remains unspecified.
 def keccak256 (msg : ByteArray) : Hash32        -- rate 136, out 32
 def keccak512 (msg : ByteArray) : Hash64        -- rate 72, out 64 (unreachable)
@@ -300,6 +311,10 @@ namespace Blake2b
     t0 t1 : UInt64
     f : UInt8                                   -- raw byte; the precompile checks f ∈ {0,1}
   def getParameters (data : ByteArray) (h : data.size = 213) : Params
+  def serialize : Params → ByteArray
+  def parameterByte : Params → Fin 213 → UInt8
+  def leWord : (n : Nat) → (Fin n → UInt8) → BitVec (8 * n)  -- Base bridge in §3
+  def wordByte {n : Nat} : BitVec (8 * n) → Fin n → UInt8
   def G : Vector UInt64 16 → (a b c d : Fin 16) → (x y : UInt64) → Vector UInt64 16  -- internal
   def compress (rounds : UInt32) (h : Vector UInt64 8) (m : Vector UInt64 16)
       (t0 t1 : UInt64) (f : Bool) : ByteArray   -- 64 bytes
@@ -309,9 +324,9 @@ end Blake2b
 -- Oracle seam (D5)
 class KeccakQuery (m : Type → Type) where
   keccak : ByteArray → m Hash32
-instance : KeccakQuery Id := ⟨fun b => keccak256 b⟩
-instance [Monad m] [KeccakQuery m] : KeccakQuery (ExceptT ε m) := ⟨fun b => ExceptT.lift (keccak b)⟩
-instance [Monad m] [KeccakQuery m] : KeccakQuery (StateT σ m)  := ⟨fun b => StateT.lift (keccak b)⟩
+instance : KeccakQuery Id := ⟨fun b ↦ keccak256 b⟩
+instance [Monad m] [KeccakQuery m] : KeccakQuery (ExceptT ε m) := ⟨fun b ↦ ExceptT.lift (keccak b)⟩
+instance [Monad m] [KeccakQuery m] : KeccakQuery (StateT σ m)  := ⟨fun b ↦ StateT.lift (keccak b)⟩
 -- (EthSecurity, outside the core:  instance [HasQuery keccakSpec m] : KeccakQuery m)
 
 -- Keccak-derived constants (EthBase.HashConsts), one query each; acquisition scope is F20
@@ -332,26 +347,38 @@ The `sha256` digest type is `Bytes32`; `EthCodec` and requests use it as SSZ `Ro
 | BLAKE2b work vector | `Vector UInt64 16` | RFC 7693 `v` | by type | linear, local | O(rounds) |
 | `Params` | record | the parsed fields | `getParameters` is a bijection on 213-byte inputs | immutable | O(1) |
 
-None of these structures is snapshot-reachable; they live only within one call. A first-pass measurement shows that allocation dominates: a boxed `Array` keccak takes 200–300 µs per 64-byte hash, against 1.0–1.4× C for an unboxed struct. So the reference must avoid `List`-building rounds even before any fast path is added; for each hot path, inspect the generated C/IR and count boxing, allocation and bignum calls.
+None of these structures is snapshot-reachable; they live only within one call.
+[DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds)
+owns round allocation evidence and its replacement criterion;
+[DEBT-KECCAK-DIGEST](../DEBT.md#debt-keccak-digest--reference-sponge-cost)
+owns digest-level padding and traversal costs. Inspect generated C/IR on each
+hot path, separating static code shape from dynamic allocation measurements.
 
 ## 7. Contract and laws
 
-The contract is functional correctness against the published algorithms, plus these laws. The SHA-256 compression slice observes native UInt32 vectors through `Sha256.wordsModel` into its explicit `BitVec 32` model; its discharged equations are listed in §3.
+The contract is functional correctness against the published algorithms, plus these laws. The SHA-256 compression implementation observes native UInt32 vectors through `Sha256.wordsModel` into its explicit `BitVec 32` model; its discharged equations are listed in §3.
 
-The Keccak implementation is related to a separate BitVec-coordinate and byte-list
-model by the permutation laws (§3) and `KeccakSponge.digestBytes_model`. Induction
-over ordered blocks lifts the accepted permutation relation through padding, lane
+The Keccak implementation is related to a BitVec-coordinate and byte-list model
+by the permutation laws (§3) and `KeccakSponge.digestBytes_model`. The model
+shares `Rate.bytes`, `paddingCount` and `keccakLaneIndex` with the implementation;
+model correspondence alone does not independently certify those formulas.
+Per-byte padding laws, primary KATs and authenticated finite differentials provide
+additional evidence for standard fidelity. Induction over ordered blocks lifts the accepted permutation relation through padding, lane
 packing and squeezing to both public digest observers. The remaining operations
 must establish their corresponding standard relations and these laws.
 
 - [C] `(keccak256 b).toBytes.size = 32`, `(sha256 b).toBytes.size = 32`, `(ripemd160 b).toBytes.size = 20`, and `(Blake2b.compress …).size = 64`. The first three hold by type; the last must be proved.
-- [C] Sponge decomposition: `keccak256 b = squeeze (absorb (pad b))`, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
+- [C] Sponge decomposition is implemented by `KeccakSponge.digestBytes` and
+  exposed by `keccak256_bytes`/`keccak512_bytes`: pad, ordered absorb, then squeeze, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
 - [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Message padding, byte correspondence, serial block composition and the inductive full-digest relation are discharged in §3; FIPS-domain correspondence retains the explicit Q46 hypothesis.
 - [C] KATs as `#guard` (compile-time), not `native_decide` (CONTRIBUTING §4).
-- [C] BLAKE2b raw parameters: `getParameters_serialize` and `serialize_getParameters` prove the two-way bijection between all raw `Params` and 213-byte inputs; `serialize_size` proves its exact size. `getParameters_rounds/h/m/t0/t1/f` expose the field windows; `wordByte_leWord`, `leWord_wordByte`, `leWord_succ_toNat` and `wordByte_toNat` connect bytes, bits and numeric radix-256 digits. These parameter laws are discharged by the slice in §3.
+- [C] BLAKE2b raw parameters: `getParameters_serialize` and `serialize_getParameters` prove the two-way bijection between all raw `Params` and 213-byte inputs; `serialize_size` proves its exact size. `getParameters_rounds/h/m/t0/t1/f` expose the field windows; `wordByte_leWord`, `leWord_wordByte`, `toNat_leWord_succ`, `toNat_leWord_eq_ofLeBytes` and `wordByte_toNat` connect bytes, bits and numeric radix-256 digits. These parameter laws are proved in §3.
 - [C] BLAKE2b compression: `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
 - [T] Every function is structurally recursive over the input blocks or over `rounds : UInt32` (via `Nat` fuel = `rounds.toNat`).
-- [F] (D4) the executable `keccak256` equals the legible reference `keccak256Reference`, as an ordinary theorem (no `@[csimp]`, D21), and likewise for SHA-256. The proof strategy is a round-by-round simulation of the unrolled permutation against `keccakF1600` (not yet done; §10).
+- [F] (D4) a future faster digest must equal the present legible reference through
+  an ordinary equality or model refinement (no `@[csimp]`, D21). A candidate
+  unrolled permutation needs a round-by-round simulation against `keccakF1600`;
+  no fast path is implemented (§10).
 - [R] (bridge module outside the core) `keccakF1600 ≡` the ZisK accelerator's `keccakF` (`ZiskAccel.lean:113`; §10) under the lane-order correspondence.
 - [C] `HashConsts.query (m := Id) = HashConsts.literals` (`EthBase`), as a `#guard` or theorem; by F16 this is evaluable only once `keccak256` has no `sorry` leaf. A compiled prototype of the interfaces checked the same values at `Id`.
 - [C] The lift instances forward: `keccak (m := ExceptT ε m) b = ExceptT.lift (keccak b)` and likewise for `StateT` (definitional).
@@ -369,7 +396,7 @@ must establish their corresponding standard relations and these laws.
 fixed-rate Keccak padding, byte packing, ordered absorption, squeezing and digest
 correspondence, SHA-256 fixed-word and message-digest correspondence, and BLAKE2F
 raw parameter byte-layout correspondence with both round trips are discharged
-for the slices in §3. RIPEMD-160 and BLAKE2F compression rounds and their complete
+for the implementations in §3. RIPEMD-160 and BLAKE2F compression rounds and their complete
 boundary vectors remain unwritten. Q46 supplies the SHA-256 domain policy.
 The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
@@ -396,17 +423,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT, the fixed-rate
-Keccak sponges/digest laws and primary boundary KATs, the SHA-256 compression and
-message-digest reference/model laws and primary KATs, and the raw BLAKE2F parameter
-codec and both round trips are implemented (§3). The parser guards include primary
-EIP-152 examples 3–8, all raw flags, high-bit counters and rounds
-0/1/2^31/2^32−1, with maximum rounds parsed only. The query interface, RIPEMD-160 and
-BLAKE2F compression remain
-unimplemented. Their §4 vectors still need transcription from primary sources
-(Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
-Historical prototypes are evidence only, not promoted core code.
+- **Remaining core hash implementations.** The implemented providers, laws and
+  deterministic/differential evidence are owned by §3–§4. The query interface,
+  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
+  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
+  Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
@@ -418,9 +439,9 @@ pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total, fast-path equivalence or whole-hash cost gate is discharged.
 The fixed-rate sponge uses packed bytes and native lanes, copying the padded
 message once and processing blocks with a tail-recursive loop. Generated C and
-historical native 1 MiB diagnostics provide local cost evidence; their source
-bases and limitations are recorded in
-[DEBT-KECCAK-REFERENCE](../DEBT.md#debt-keccak-reference--boxed-reference-permutation-cost).
+the retained historical native diagnostic provide local cost evidence; their
+source basis and limitations are recorded in
+[DEBT-KECCAK-DIGEST](../DEBT.md#debt-keccak-digest--reference-sponge-cost).
 D4’s status is unchanged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains

@@ -127,17 +127,11 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Remaining core hash implementations.** The legible Keccak-f[1600] reference,
-coordinate-model laws and primary zero-state permutation KAT, the fixed-rate
-Keccak sponges/digest laws and primary boundary KATs, the SHA-256 compression and
-message-digest reference/model laws and primary KATs, and the raw BLAKE2F parameter
-codec and both round trips are implemented (§3). The parser guards include primary
-EIP-152 examples 3–8, all raw flags, high-bit counters and rounds
-0/1/2^31/2^32−1, with maximum rounds parsed only. The query interface, RIPEMD-160 and
-BLAKE2F compression remain
-unimplemented. Their §4 vectors still need transcription from primary sources
-(Keccak team, FIPS 180-4, the RIPEMD-160 paper, EIP-152), not from the host.
-Historical prototypes are evidence only, not promoted core code.
+- **Remaining core hash implementations.** The implemented providers, laws and
+  deterministic/differential evidence are owned by §3–§4. The query interface,
+  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
+  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
+  Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
@@ -149,9 +143,9 @@ pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total, fast-path equivalence or whole-hash cost gate is discharged.
 The fixed-rate sponge uses packed bytes and native lanes, copying the padded
 message once and processing blocks with a tail-recursive loop. Generated C and
-historical native 1 MiB diagnostics provide local cost evidence; their source
-bases and limitations are recorded in
-[DEBT-KECCAK-REFERENCE](DEBT.md#debt-keccak-reference--boxed-reference-permutation-cost).
+the retained historical native diagnostic provide local cost evidence; their
+source basis and limitations are recorded in
+[DEBT-KECCAK-DIGEST](DEBT.md#debt-keccak-digest--reference-sponge-cost).
 D4’s status is unchanged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains

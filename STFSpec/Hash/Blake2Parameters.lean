@@ -2,13 +2,14 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import STFSpec.Base.Bytes
+import STFSpec.Base.IntegerBytes
 
 /-!
 # BLAKE2F raw parameters
 
-Library `EthHash`. EELS `crypto/blake2.py:10–32,133–150` at the pin in
-`reference.toml`; layout and contract: `STFSpec/informal/modules/EthHash.md` R5.
+Library `EthHash`. EELS `src/ethereum/crypto/blake2.py:10–32,133–150` at the pin in
+`reference.toml`.
+Spec guidance: `STFSpec/informal/modules/EthHash.md` R5.
 The size premise belongs to the caller. All round counts and flag bytes are retained.
 -/
 
@@ -32,11 +33,12 @@ structure Params where
   cases q
   simp_all
 
-/-- Little-endian byte concatenation: the first byte occupies the low eight bits. -/
+/-- Little-endian byte concatenation: the first byte occupies the low eight bits.
+Models each word in pinned EELS `src/ethereum/crypto/blake2.py:10`. -/
 def leWord : (n : Nat) → (Fin n → UInt8) → BitVec (8 * n)
   | 0, _ => 0#0
   | n + 1, bytes =>
-    ((leWord n (fun i => bytes i.succ)) ++ (bytes ⟨0, by omega⟩).toBitVec).cast (by omega)
+    ((leWord n (fun i ↦ bytes i.succ)) ++ (bytes ⟨0, by omega⟩).toBitVec).cast (by omega)
 
 /-- The low-to-high byte at a word position. -/
 def wordByte {n : Nat} (word : BitVec (8 * n)) (i : Fin n) : UInt8 :=
@@ -94,17 +96,17 @@ theorem leWord_wordByte {n : Nat} (word : BitVec (8 * n)) :
 def inputByte (data : ByteArray) (h : data.size = 213) (i : Fin 213) : UInt8 :=
   data[i.val]'(by omega)
 
-/-- EELS `get_blake2_parameters`: four big-endian round bytes, then 26
-little-endian 64-bit words and one raw flag byte. -/
+/-- Pinned EELS `src/ethereum/crypto/blake2.py:133` (`get_blake2_parameters`):
+four big-endian round bytes, then 26 little-endian 64-bit words and one raw flag byte. -/
 def getParameters (data : ByteArray) (h : data.size = 213) : Params :=
   let b := inputByte data h
-  { rounds := UInt32.ofBitVec (leWord 4 (fun i => b ⟨3 - i.val, by omega⟩))
-    h := Vector.ofFn (fun i => UInt64.ofBitVec
-      (leWord 8 (fun j => b ⟨4 + 8 * i.val + j.val, by omega⟩)))
-    m := Vector.ofFn (fun i => UInt64.ofBitVec
-      (leWord 8 (fun j => b ⟨68 + 8 * i.val + j.val, by omega⟩)))
-    t0 := UInt64.ofBitVec (leWord 8 (fun j => b ⟨196 + j.val, by omega⟩))
-    t1 := UInt64.ofBitVec (leWord 8 (fun j => b ⟨204 + j.val, by omega⟩))
+  { rounds := UInt32.ofBitVec (leWord 4 (fun i ↦ b ⟨3 - i.val, by omega⟩))
+    h := Vector.ofFn (fun i ↦ UInt64.ofBitVec
+      (leWord 8 (fun j ↦ b ⟨4 + 8 * i.val + j.val, by omega⟩)))
+    m := Vector.ofFn (fun i ↦ UInt64.ofBitVec
+      (leWord 8 (fun j ↦ b ⟨68 + 8 * i.val + j.val, by omega⟩)))
+    t0 := UInt64.ofBitVec (leWord 8 (fun j ↦ b ⟨196 + j.val, by omega⟩))
+    t1 := UInt64.ofBitVec (leWord 8 (fun j ↦ b ⟨204 + j.val, by omega⟩))
     f := b ⟨212, by omega⟩ }
 
 /-- Parsing is independent of the proof of input size and respects input equality. -/
@@ -118,9 +120,11 @@ def parameterByte (p : Params) (i : Fin 213) : UInt8 :=
   if h0 : i.val < 4 then
     wordByte (n := 4) p.rounds.toBitVec ⟨3 - i.val, by omega⟩
   else if h1 : i.val < 68 then
-    wordByte (n := 8) (p.h.get ⟨(i.val - 4) / 8, by omega⟩).toBitVec ⟨(i.val - 4) % 8, by omega⟩
+    wordByte (n := 8) (p.h.get ⟨(i.val - 4) / 8, by omega⟩).toBitVec
+      ⟨(i.val - 4) % 8, by omega⟩
   else if h2 : i.val < 196 then
-    wordByte (n := 8) (p.m.get ⟨(i.val - 68) / 8, by omega⟩).toBitVec ⟨(i.val - 68) % 8, by omega⟩
+    wordByte (n := 8) (p.m.get ⟨(i.val - 68) / 8, by omega⟩).toBitVec
+      ⟨(i.val - 68) % 8, by omega⟩
   else if h3 : i.val < 204 then
     wordByte (n := 8) p.t0.toBitVec ⟨i.val - 196, by omega⟩
   else if h4 : i.val < 212 then
@@ -143,36 +147,35 @@ theorem inputByte_serialize (p : Params) (i : Fin 213) :
 /-- Parsed round bits are the big-endian reversal of bytes 0 through 3. -/
 theorem getParameters_rounds (data : ByteArray) (h : data.size = 213) :
     (getParameters data h).rounds.toBitVec =
-      leWord 4 (fun i => inputByte data h ⟨3 - i.val, by omega⟩) := rfl
+      leWord 4 (fun i ↦ inputByte data h ⟨3 - i.val, by omega⟩) := rfl
 
 /-- Every parsed chaining-state lane has its own eight-byte little-endian window. -/
 theorem getParameters_h (data : ByteArray) (h : data.size = 213) (i : Fin 8) :
     ((getParameters data h).h.get i).toBitVec =
-      leWord 8 (fun j => inputByte data h ⟨4 + 8 * i.val + j.val, by omega⟩) := by
+      leWord 8 (fun j ↦ inputByte data h ⟨4 + 8 * i.val + j.val, by omega⟩) := by
   simp [getParameters, Vector.get]
   rfl
 
 /-- Every parsed message lane has its own eight-byte little-endian window. -/
 theorem getParameters_m (data : ByteArray) (h : data.size = 213) (i : Fin 16) :
     ((getParameters data h).m.get i).toBitVec =
-      leWord 8 (fun j => inputByte data h ⟨68 + 8 * i.val + j.val, by omega⟩) := by
+      leWord 8 (fun j ↦ inputByte data h ⟨68 + 8 * i.val + j.val, by omega⟩) := by
   simp [getParameters, Vector.get]
   rfl
 
 /-- The low counter word observes bytes 196 through 203. -/
 theorem getParameters_t0 (data : ByteArray) (h : data.size = 213) :
     (getParameters data h).t0.toBitVec =
-      leWord 8 (fun j => inputByte data h ⟨196 + j.val, by omega⟩) := rfl
+      leWord 8 (fun j ↦ inputByte data h ⟨196 + j.val, by omega⟩) := rfl
 
 /-- The high counter word observes bytes 204 through 211. -/
 theorem getParameters_t1 (data : ByteArray) (h : data.size = 213) :
     (getParameters data h).t1.toBitVec =
-      leWord 8 (fun j => inputByte data h ⟨204 + j.val, by omega⟩) := rfl
+      leWord 8 (fun j ↦ inputByte data h ⟨204 + j.val, by omega⟩) := rfl
 
 /-- Parsing retains all possible flag values, without a Boolean coercion. -/
 theorem getParameters_f (data : ByteArray) (h : data.size = 213) :
     (getParameters data h).f = inputByte data h ⟨212, by omega⟩ := rfl
-
 
 private theorem parameterByte_rounds (p : Params) (i : Fin 4) :
     parameterByte p ⟨3 - i.val, by omega⟩ = wordByte (n := 4) p.rounds.toBitVec i := by
@@ -251,16 +254,30 @@ theorem getParameters_serialize (p : Params) :
     simp [parameterByte]
   exact Params.ext hr hh hm ht0 ht1 hf
 
-
 /-- Numeric radix-256 equation for the little-endian model. -/
-theorem leWord_succ_toNat (n : Nat) (bytes : Fin (n + 1) → UInt8) :
+theorem toNat_leWord_succ (n : Nat) (bytes : Fin (n + 1) → UInt8) :
     (leWord (n + 1) bytes).toNat =
-      256 * (leWord n (fun i => bytes i.succ)).toNat + (bytes ⟨0, by omega⟩).toNat := by
+      256 * (leWord n (fun i ↦ bytes i.succ)).toNat + (bytes ⟨0, by omega⟩).toNat := by
   simp only [leWord, BitVec.toNat_cast, BitVec.toNat_append]
-  change (leWord n (fun i => bytes i.succ)).toNat <<< 8 ||| (bytes ⟨0, by omega⟩).toNat = _
+  change (leWord n (fun i ↦ bytes i.succ)).toNat <<< 8 ||| (bytes ⟨0, by omega⟩).toNat = _
   rw [← Nat.shiftLeft_add_eq_or_of_lt (bytes ⟨0, by omega⟩).toNat_lt]
   simp only [Nat.shiftLeft_eq]
   rw [Nat.mul_comm]
+
+/-- The fixed-width bit model agrees with EthBase's unbounded little-endian decoder.
+The byte-list observation is low-to-high and retains leading zero bytes. -/
+theorem toNat_leWord_eq_ofLeBytes (n : Nat) (bytes : Fin n → UInt8) :
+    (leWord n bytes).toNat =
+      STFSpec.Base.Uint.ofLeBytes (STFSpec.Base.Bytes.ofList (List.ofFn bytes)) := by
+  induction n with
+  | zero =>
+    simp [leWord, STFSpec.Base.Uint.ofLeBytes, STFSpec.Base.Bytes.foldr_eq,
+      STFSpec.Base.Bytes.toList_ofList]
+  | succ n ih =>
+    rw [toNat_leWord_succ, ih]
+    simp only [STFSpec.Base.Uint.ofLeBytes, STFSpec.Base.Bytes.foldr_eq,
+      STFSpec.Base.Bytes.toList_ofList, List.ofFn_succ, List.foldr_cons]
+    rfl
 
 /-- The numeric observation of a word byte is its radix-256 digit. -/
 theorem wordByte_toNat {n : Nat} (word : BitVec (8 * n)) (i : Fin n) :
