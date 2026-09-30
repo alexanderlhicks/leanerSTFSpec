@@ -81,6 +81,28 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).
 - **Implementer guidance (F16).** Implement every dependency before running a guard or executable check. Core definitions may not contain `sorry`; evaluate only complete definitions. Prototype observations about proof-hole evaluation do not authorize executable stubs in the specification.
 - **`core` cases.** Runner self-tests: a synthetic fixture file with one passing, one mismatching and one malformed record, checking the verdicts and the R6 record fields; hex decoding edge cases; `decodeExecutionRequests` on empty blob, duplicate type, descending types, unknown type `0x05`, a body one byte short, and each type's size multiple; `encode ∘ decode` and `decode ∘ encode` on all five types.
+- **F20 engine cases to implement (R4, L-engine-constants).**
+  - Fail chain-context formation, including the empty-chain parent lookup: no constants
+    record is acquired. This failure precedes the engine's `InvalidBlock` handler
+    (`new_payload.py:146–150,152`); it must not become a validation `false`.
+  - Use a synthetic oracle whose four constant values differ from the literals. After
+    context formation, acquire once before constructing the full-state provider or
+    running a payload guard. The provider's empty-code and empty-root observations,
+    both payload-header constructions and the block kernel use that same record.
+  - Trace the actual `executeNewPayloadRequest` and shared block kernel: neither
+    acquires another record. A substituted payload callback checks only the engine
+    caller, not those kernels. Repeating an ordinary constant-preimage query during
+    validation does not constitute another record acquisition.
+  - Fail the empty-transaction, block-hash and versioned-hash guards separately:
+    acquisition queries precede each failure and the first failing guard determines
+    the error. An `InvalidBlock` result becomes `false` without applying a diff or
+    appending a block; other faults such as `InvalidTransaction` propagate, and an
+    `InternalError` is reported as a spec bug, never as `false` (§10).
+  - Run two engine requests, including one after an `InvalidBlock` failure: each
+    acquires independently. On success, apply the diff, append the block and retain
+    the last 255 blocks in source order (`new_payload.py:164–169`).
+  These trace and failure cases remain open until the engine implementation and
+  its checked result/error adapter are available; documentation checks do not run them.
 - **Property checks.** `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for generated well-formed `x`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`; `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`.
 - **Differential.** R7 oracles on the `ci` slice and on fuzzed inputs; the stateful-vs-stateless cross-check on engine fixtures (build an input from `params` + `executionWitness` + recovered keys, compare `successful_validation` with `¬ validationError`), reported as bug-finding only because R2 shows guest records and block validity can legitimately differ.
 
@@ -158,6 +180,29 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 - [C] **L-host-inverse**: `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for `x.WF`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`.
 - [C] **L-requests-roundtrip**: `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`. For accepted wire forms, `decodeExecutionRequests w = .ok rq → encodeExecutionRequests rq = normalizeRequests w`, where normalization removes type-only blobs. Equality with `w` requires non-empty bodies. The counterexample `w = #[00]` is accepted and re-encodes as `#[]`; the decoder must retain that acceptance.
 - [C] **L-build**: `buildStatelessInput` sets `blockHash := keccak256 (rlp blk.header)`, lists transaction bytes in block order (legacy transactions re-encoded), collects public keys only for transactions whose signature recovers, and collects versioned hashes only from those. So for blocks with an unrecoverable signature, the key count differs from the transaction count, and the guest fails with O5 by design (`stateless_host.py:81–92` [V]).
+- [R] **L-engine-constants** (F20, pending implementation and proof): after R4's
+  chain-context formation succeeds with `ctx`, its protected payload-validation action
+  must satisfy this monadic equation, with `fullState` the chain's current state:
+
+  ```lean
+  validationBody fullState req ctx = do
+    let consts ← HashConsts.query
+    let pre := fullState.toPreState consts
+    executeNewPayloadRequest consts req pre ctx none
+  ```
+
+  `validationBody` denotes that action within the engine's `InvalidBlock` handler;
+  context formation precedes the handler. The equation includes the query trace,
+  not only the returned value: one record acquisition, followed by provider
+  construction and the supplied-record payload kernel, without kernel reacquisition.
+  The record and its observations are preserved through the provider, both payload
+  headers, block validation and existing contexts. Context failures make no
+  acquisition; later failures retain preceding queries. Only `InvalidBlock` becomes
+  `false`; other faults propagate and `InternalError` stays a spec bug. Runs acquire
+  independently, and successful state application follows R4. The §4 cases must
+  execute these laws with a synthetic oracle. The engine implementation, ordinary
+  equations and checked result/error adapter (§10) remain open; this sketch does not
+  fix the adapter's type or claim a compiled theorem. Generic coherence remains D5/X7.
 - [C] **L-slice-deterministic**: `selectSlice t idx` depends only on `t` and `idx`.
 - [C] **L-replay**: `replay r` recomputes the verdict from `r` alone and equals the original for deterministic runners.
 - [T] every runner function in the library is total; IO drivers may fail only on IO errors, reported separately from verdicts.
@@ -170,7 +215,7 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 
 **Argument.** Guest records are evaluated independently from their containing block's expected validity: the raw input and expected 43 bytes define the comparison. A checked InternalError is a failing verdict even if an unchecked fallback matches the expected bytes. FailureRecord retains the raw input, expected/actual bytes and checked outcome; replay reruns the same pure comparison. For stateful tests, induction over blocks maintains the full-state invariant after successful transitions. A skipped pre-fork block breaks that induction, so dependent Amsterdam blocks must be skipped too unless their authenticated pre-state is independently reconstructed. Request conversion has asymmetric inverse laws: decode(encode rq) = rq, while encode(decode wire) removes accepted type-only blobs. Its wire round trip is identity only on that canonical subset.
 
-**Open obligations.** Implement the corpus/exception-label adapters, fixture slice, transition policy and malformed-input cases. Passing fixtures provides differential evidence; it is not a proof of module laws or a substitute for adversarial cases absent from the corpus.
+**Open obligations.** Implement and prove L-engine-constants with its §4 trace and failure cases and the checked engine result/error adapter (§10). Implement the corpus/exception-label adapters, fixture slice, transition policy and malformed-input cases. Passing fixtures provides differential evidence; it is not a proof of module laws or a substitute for adversarial cases absent from the corpus.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -196,6 +241,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Engine result/error adapter.** R4 catches only EELS `InvalidBlock` (`execution_engine/new_payload.py:161–162`); `InvalidTransaction` has a separate base class (`src/ethereum/exceptions.py:13,25`). The informal `Bool × FullChain` result in §5 cannot yet express all propagated payload faults or `InternalError`. Expand its checked adapter and exception mapping before implementation; internal failures must be spec-bug verdicts, and other faults must retain the pinned handler behaviour rather than all becoming `false`.
+
+- **F20 engine acquisition.** Implement and prove L-engine-constants, including the §4 synthetic-oracle, failure-trace and repeated-run cases against the actual payload and block kernels. The acquisition equation and cases are pending independently of the result/error adapter above; documentation checks establish neither.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

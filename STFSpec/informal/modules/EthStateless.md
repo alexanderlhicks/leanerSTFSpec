@@ -119,7 +119,7 @@ Corpus facts relevant here [V]: 27,822 records succeed, 1,199 fail with schema `
 - Adversarial: every O1 variant above; 257 headers (O1, not O3); a header decodable only as the previous fork in the middle of the chain; decode failure at j and contiguity break at i < j (decode wins); an empty transaction together with a wrong block hash (empty tx wins); an unknown tx type byte `0x05` (reported as `invalidVersionedHashes`); tx byte `0xFF`; one key too few/too many (O5); wrong key with right count (O5 at that tx).
 - Structural: `(serializeStatelessOutput r).size = 43` for all `r`; `zeroSentinel` bytes are 43 zeros.
 - F20 composition cases to implement, using the R5 query order:
-  - Decode, header-decode, empty-header and contiguity failures acquire no record. A contiguity failure still has its preceding raw-header hashes.
+  - Decode, header-decode, empty-header and contiguity failures acquire no record. A contiguity failure has hashed every raw header before checking contiguity.
   - Pass successful nonempty headers; acquisition precedes witness construction and payload guards.
   - Use a synthetic record differing from literals; the witness backend, both payload-header constructions, block validation and context consumers receive or observe that record.
   - Repeat an ordinary constant preimage query; it is not a second record acquisition.

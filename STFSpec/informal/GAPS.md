@@ -451,6 +451,8 @@ None: every inventory item is claimed by a module or excluded with a reason.
 
 - **Engine result/error adapter.** R4 catches only EELS `InvalidBlock` (`execution_engine/new_payload.py:161–162`); `InvalidTransaction` has a separate base class (`src/ethereum/exceptions.py:13,25`). The informal `Bool × FullChain` result in §5 cannot yet express all propagated payload faults or `InternalError`. Expand its checked adapter and exception mapping before implementation; internal failures must be spec-bug verdicts, and other faults must retain the pinned handler behaviour rather than all becoming `false`.
 
+- **F20 engine acquisition.** Implement and prove L-engine-constants, including the §4 synthetic-oracle, failure-trace and repeated-run cases against the actual payload and block kernels. The acquisition equation and cases are pending independently of the result/error adapter above; documentation checks establish neither.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Engine fixtures carry no guest records.** Only `blockchain_tests` exercises the guest; `blockchain_tests_engine` duplicates the test cases for the stateful payload path. `reference.toml` already records this distinction.
