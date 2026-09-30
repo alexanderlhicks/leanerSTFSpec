@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -21,7 +21,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 ### 2.2 Frame exit
 
 - **R-INC-1** `incorporateChild parent child` (`__init__.py:194–250`) must add the child's `gas_left`, `state_gas_left`, `state_gas_spilled` and `refund_counter` to the parent's **unconditionally**, then, only if the child succeeded, call `repay_state_gas_spill` on the parent meter, append the child's logs, and union `accounts_to_delete`, `accessed_addresses` and `accessed_storage_keys`. It must be total: the three EELS `assert`s (`:227`, `:232–234`) become preconditions discharged by the runner's settlement lemmas (§7, `L-SETTLE`), never runtime checks. Because a child starts with a copy of the parent's access sets (`instructions/system.py:171–172, 440–441`) and only adds to them, the union equals the child's sets [I]; the implementation may use that (`L-WARM-MONO`).
-- **R-LOG-1** `emitTransferLog` (`__init__.py:253–289`, EIP-7708) must be a no-op for amount 0, and otherwise append `Log(SYSTEM_ADDRESS, [TRANSFER_TOPIC, pad32 sender, pad32 recipient], be32 amount)` to the frame's logs. `SYSTEM_ADDRESS = 0xff…fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:40`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), queried once per block by `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller passes it to `emitTransferLog`. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
+- **R-LOG-1** `emitTransferLog` (`__init__.py:253–289`, EIP-7708) must be a no-op for amount 0, and otherwise append `Log(SYSTEM_ADDRESS, [TRANSFER_TOPIC, pad32 sender, pad32 recipient], be32 amount)` to the frame's logs. `SYSTEM_ADDRESS = 0xff…fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:40`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), acquired at the caller-owned F20 boundary through `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller projects that existing context field, with local notation `TRANSFER_TOPIC`, and passes the topic to the pure `emitTransferLog` helper. World-consuming operations read the record from that context. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
 
 ### 2.3 Stack
 
@@ -333,7 +333,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 
 **Jumpdests** [C]: `(validJumpDestinations c).contains i ↔ i ∈ getValidJumpDestinations c` (the EELS set, defined as the model by structural recursion on remaining length); [C] cache consistency if a code-hash cache is added (Nipkow Ch. 18 invariant).
 
-**Transfer log** [C]: `emitTransferLog f s r 0 = f`; otherwise `α f'.logs = α f.logs ++ [transferLog s r a]`.
+**Transfer log** [C]: `emitTransferLog f topic s r 0 = f`; otherwise, for `f' := emitTransferLog f topic s r a`, `α f'.logs = α f.logs ++ [Log(SYSTEM_ADDRESS, [topic, pad32 s, pad32 r], be32 a)]`.
 
 ### Informal correctness argument
 

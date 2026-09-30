@@ -1,7 +1,7 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30).*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30).*
 
 Requirement IDs are `FS1`–`FS7`; findings `F1`–`F19` are those recorded in DECISIONS §3.
 
@@ -53,20 +53,22 @@ structure FullState where
   wf : MathState.WF σ
   codeAuthentic : CodeAuthentic σ       -- EthStateCommit; not implied by structural WF
 variable {m : Type → Type} [Monad m] [KeccakQuery m]      -- D5; public uses take m := Id
-def FullState.toPreState (s : FullState) (k : HashConsts) : PreState m   -- lookups are `pure`; stateRoot hashes
+def FullState.toPreState (s : FullState) (consts : HashConsts) : PreState m   -- lookups are `pure`; stateRoot hashes
 def FullState.applyChanges (s : FullState) (d : BlockDiff) (h : BlockDiff.WF s.σ d)
     (hc : CodeChangesAuthentic d) : FullState
 def FullState.storeCode (s : FullState) (code : ByteArray) : m (Hash32 × FullState)
 def FullState.setAccount (s : FullState) (a : Address) (acc : Option Account)
     (h : MathState.WF (s.σ.setAccount a acc)) : FullState -- raw deletion alone does not clear storage
 def FullState.setStorage (s : FullState) (a : Address) (k : Bytes32) (v : U256) : Except StateError FullState
-def FullState.stateRoot (s : FullState) (k : HashConsts) : m Hash32
+def FullState.stateRoot (s : FullState) (consts : HashConsts) : m Hash32
 def CodeComplete (σ : MathState) : Prop -- every account-referenced nonempty code hash is available
 def FullState.ofMath (σ : MathState) (hwf : MathState.WF σ) (hc : CodeAuthentic σ) : FullState
--- stated at m := Id with k := Id.run HashConsts.query (Models is at PreState Id, D5)
-theorem FullState.models (s : FullState) : Models (s.toPreState k) s.σ
+-- stated at m := Id with consts := Id.run HashConsts.query (Models is at PreState Id, D5)
+theorem FullState.models (s : FullState) : Models (s.toPreState consts) s.σ
 theorem FullState.progress (s : FullState) : ∀ a key d, BlockDiff.WF s.σ d → (getAccount?, getStorage, stateRoot succeed)
 ```
+
+The provider factory (F20) closes over `s` and receives the caller's `consts`, returning `s.toPreState consts` in `m`. It performs no acquisition. The resulting `PreState` closures retain that same record for empty-code and root observations; their operations need no parallel constants input. `FullState` itself contains no constants field, so `toPreState` and the separate `stateRoot` helper retain their necessary data parameter.
 
 ## 6. Data structures
 

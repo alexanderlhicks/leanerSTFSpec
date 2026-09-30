@@ -1,7 +1,7 @@
 # `EthStateWitness`: the witness-state backend
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F4, F6, F7 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7; DISC-001, DISC-004.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7; DISC-001, DISC-004.*
 
 `ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only.
 
@@ -11,7 +11,7 @@
 
 ## 2. Requirements
 
-- W1. **Construction** (`stateless.py:290–294`): node DB = `EthCommit.NodeDB.build witness.state`, code DB = `CodeDB.build witness.codes` (keyed by keccak, `ws:45–50`), state root = the last witness header's `state_root`. Both builds hash through the oracle (monadic, D5/F4); their authenticity is the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic`, established at `m := Id`. The backend also carries the block's `HashConsts` (`emptyTrieRoot`, `emptyCodeHash`). Construction decodes nothing (W11).
+- W1. **Construction** (`stateless.py:290–294`): node DB = `EthCommit.NodeDB.build witness.state`, code DB = `CodeDB.build witness.codes` (keyed by keccak, `ws:45–50`), state root = the last witness header's `state_root`. Both builds hash through the oracle (monadic, D5/F4); their authenticity is the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic`, established at `m := Id`. The backend also carries the caller's `HashConsts` (`emptyTrieRoot`, `emptyCodeHash`), supplied according to EthStateless R5 (F20). Construction decodes nothing (W11).
 - W2. **Decode trigger points** (O4; `ws:148–160`): the account trie at the first account access; a storage trie at the first `get_storage` of an account whose storage root is not `EMPTY_TRIE_ROOT`; in root computation, a **fresh** decode of every changed, uncleared storage trie (`ws:254–259`) and of the account trie (`ws:270–277`). Decoded read-only roots are cached by root hash (`ws:152–160`), so two accounts with equal storage roots share one decoding; that cache is not semantic (W10), and how the Lean backend shares storage-trie decodings is open (F6). Every decode is eager over everything reachable (`EthCommit` C13–C17). Decoding itself is pure (F4); lookups hash their keys through the oracle.
 - W3. `get_account_optional a` (`ws:162–177`): look up `keccak256 a` in the decoded account trie (`EthCommit.lookup`; a stub on the path is O4(c): the `AssertionError` at `ws:73`, witnessed on 234 corpus inputs by running the pinned EELS over the full fixture corpus); absent → `none`; present → `EthStateCommit.decodeAccountLeaf`. Side effect: `storageRootCache[a] :=` the leaf's storage root, or `EMPTY_TRIE_ROOT` when absent.
 - W4. `get_storage a k` (`ws:179–203`): if `a` is not in the cache, call `get_account_optional a` first (so an account-trie failure can surface here); an `EMPTY_TRIE_ROOT` storage root gives `0` **without decoding**; otherwise decode (cached) and look up `keccak256 k`; absent → `0`; present → `EthStateCommit.decodeStorageLeaf`.
@@ -70,12 +70,12 @@ structure WitnessBackend where
   consts : HashConsts
   accountTrie : Thunk (Except WitnessError Ref)   -- prototype form: pure decodeRoot, decoded once on first access (W11)
   -- storage tries: decoded per query (pure decodeRoot); a per-root memo is open (F6)
-def WitnessBackend.build (nodes : NodeDB) (codes : CodeDB) (root : Hash32) (k : HashConsts) : WitnessBackend
+def WitnessBackend.build (nodes : NodeDB) (codes : CodeDB) (root : Hash32) (consts : HashConsts) : WitnessBackend
 def WitnessBackend.WF (w : WitnessBackend) : Prop :=       -- at Id
   NodeDB.Authentic keccak256 w.nodes ∧ CodeDB.Authentic keccak256 w.codes ∧
   w.consts = Id.run HashConsts.query ∧
   w.accountTrie.get = decodeRoot w.consts.emptyTrieRoot w.nodes w.stateRoot
--- build establishes WF when its DBs are authentic and k = Id.run HashConsts.query.
+-- build establishes WF when its DBs are authentic and consts = Id.run HashConsts.query.
 def WitnessBackend.toPreState (w : WitnessBackend) : PreState m
 def computeStateRootAndTrieChanges (w : WitnessBackend) (d : BlockDiff) : m (Except WitnessError (Hash32 × List InternalNode))
 
@@ -87,6 +87,8 @@ theorem WitnessBackend.progress_lookup (w) (a) (hwb : WitnessBackend.WF w) : Loo
 theorem WitnessBackend.progress_root (w) (d) (hwb : WitnessBackend.WF w) : UpdatesAvailable w d → ∃ r, w.toPreState.stateRoot d = .ok r
 theorem WitnessBackend.refines_eels : ...   -- under AccountWritesLookedUp, same results as WitnessState on the same call sequence
 ```
+
+The provider factory receives `consts` from its caller (F20); it does not acquire it. `WitnessBackend.build` stores that record, and `toPreState`/root/lookup consumers read `w.consts` through their existing backend argument, with local EELS notation rather than an additional constants argument. Establishing DB authenticity and constants/oracle coherence is still W1, not a consequence of the factory parameter alone.
 
 ## 6. Data structures
 

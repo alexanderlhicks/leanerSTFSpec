@@ -1,7 +1,7 @@
 # `EthSecurity`: witness soundness, header-chain and request binding, and the Keccak ROM bound
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F4, F15, F18 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44.*
 
 `EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). It defines no executable behaviour. **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal.
 
@@ -26,7 +26,7 @@ No theorem may assume collision resistance for **totality**: `runStatelessGuest`
 - the payload header RLP hashed by the block-hash check (`is_valid_block_hash`), the key/value encodings of the transactions and withdrawals tries (payload side) and of the transactions, receipts and withdrawals tries (block side), the raw BAL bytes and the built BAL's RLP;
 - transaction encodings and signing-hash preimages, the recovered public keys hashed into sender and authority addresses, and ECRECOVER's recovered keys;
 - the KECCAK256 opcode inputs, CREATE/CREATE2 address preimages, newly deposited code and installed delegation code (their code hashes), and bloom entries (log addresses and topics);
-- the `HashConsts` preimages (`b""`, `rlp(b"")`, `rlp([])` and the EIP-7708 transfer-event signature), queried once per block;
+- the `HashConsts` preimages (`b""`, `rlp(b"")`, `rlp([])` and the EIP-7708 transfer-event signature), acquired at the F20 boundary for each run reaching it;
 - σ’s stored code byte strings and authentic code changes in σ.apply d;
 - the canonical node encodings of every trie of `σ` (account trie and each storage trie) and of `σ.apply d`, as queried by `mathStateRoot`;
 - secure-trie keys `address` and `slot` whose `keccak` paths are walked (`merkle_patricia_trie.py`, secured tries);
@@ -38,7 +38,7 @@ No theorem may assume collision resistance for **totality**: `runStatelessGuest`
 - header-chain hashing (`EthStateless.validateHeaders`), the parent-hash check in `validate_header` (`EthBlock`), the payload block-hash check `is_valid_block_hash` and the payload transactions/withdrawals roots (`EthStateless`);
 - transaction and signing hashes, sender and authority address derivation, transactions/receipts/withdrawals roots, the bloom and the BAL hash (`EthBlock`);
 - the KECCAK256 opcode, CREATE/CREATE2 addresses, newly installed code hashes on code-deposit and delegation paths (`EthVmInstructions`, `EthVmRunner`), and ECRECOVER (`EthPrecompiles`, as `PrecompileFn m`);
-- the keccak-derived constants, a `HashConsts` record (`emptyCodeHash`, `emptyTrieRoot`, `emptyOmmerHash`, `transferTopic`; `EthBase`) queried once per block by `HashConsts.query` (`EthHash`).
+- the keccak-derived constants, a `HashConsts` record (`emptyCodeHash`, `emptyTrieRoot`, `emptyOmmerHash`, `transferTopic`; `EthBase`) acquired through `HashConsts.query` (`EthHash`) under F20.
 
 A narrower scope must be justified by the agreement prototype. Closure of the agreement argument over this scope is not yet established, and the oracle coupling for `Models` at generic `m` is open (`Models` is stated at `PreState Id`).
 
@@ -95,8 +95,9 @@ theorem keccakQuery_ofFn (f) (k : KeccakKernel α) :
 -- Proposed hash-relative theorem templates, not compiled concrete APIs.
 -- Notation: for a kernel k : KeccakKernel α, `k h` is k run with every query answered by h
 -- (simulateQ (QueryImpl.ofFn h)); at h = keccak256 it is the executable m := Id instance.
--- `PreState` below means the core's `PreState m` at that run; Models/Progress are stated at
--- `PreState Id`, and stating them for arbitrary h is the open oracle coupling (D5).
+-- `PreState` below means the core's `PreState m` at that run. ModelsQ/ProgressQ below
+-- name proposed hash-relative premises; their definitions and concrete bridges are
+-- the open oracle coupling (D5, X7). The core Models/Progress remain at `PreState Id`.
 -- CodeAuthenticQ requires D5 closure; Id specialisations must match COMPOSITION and the
 -- module §5 signatures.
 -- (1) deterministic trie agreement
@@ -113,26 +114,36 @@ theorem witness_root_update_agreement (h db r ops r' M) (ha : NodeDB.Authentic h
   mathRoot h (M.applyOps ops) = r' ∨ ∃ c, extractTrieCollision h db M = some c
 
 -- state level (from EthStateCommit/EthStateWitness contracts)
--- witnessPreState is built by authenticated DB builders with constants from the same h;
+-- consts = HashConsts.query h names the record under the hash interpretation above (F20).
+-- witnessPreState h consts x is built by authenticated DB builders using that record;
 -- its hash-relative WitnessBackend.WF must be established, not inferred from root equality.
+def ProviderCoherent (h) (consts : HashConsts) (ps : PreState) : Prop -- proposed proof premise
+def ModelsQ (h) (consts : HashConsts) (ps : PreState) (σ : MathState) : Prop -- proposed hash-relative Models
+def ProgressQ (h) (consts : HashConsts) (ps : PreState) : Prop -- proposed hash-relative Progress
 def stateQueries (h) (x : StatelessInput) (σ : MathState) : Finset ByteArray      -- R3
 def extractStateCollision (h) (x) (σ) : Option (Collision h)
-theorem witness_models (h x σ) (hwf : MathState.WF σ) (hauth : CodeAuthenticQ h σ) (hroot : mathStateRoot h σ = (parentOf x).stateRoot) :
-  ModelsUpToCollision (witnessPreState h x) σ (extractStateCollision h x σ)
+theorem witness_models (h x σ) (consts : HashConsts)
+    (hconsts : consts = HashConsts.query h) (hwf : MathState.WF σ)
+    (hauth : CodeAuthenticQ h σ)
+    (hroot : mathStateRoot h consts σ = (parentOf x).stateRoot) :
+  ModelsUpToCollision (witnessPreState h consts x) σ (extractStateCollision h x σ)
 
 -- (2) block-level agreement
 theorem stateless_implies_stateful (h) (x : StatelessInput) (σ : MathState)
-    (ps : PreState) (hm : Models ps σ) (hp : Progress ps)
+    (consts : HashConsts) (hconsts : consts = HashConsts.query h)
+    (ps : PreState) (hprovider : ProviderCoherent h consts ps)
+    (hm : ModelsQ h consts ps σ) (hp : ProgressQ h consts ps)
     (hv : classify h (schemaIdBytes ++ encode x) = .ok (.valid root cid))
-    (hroot : mathStateRoot h σ = (parentOf x).stateRoot) :
-    (∃ d blk, executeNewPayloadRequest h x.newPayloadRequest ps (ctxOf x) none = .ok (.ok (d, blk))
-        ∧ executeNewPayloadRequest h x.newPayloadRequest (witnessPreState h x) (ctxOf x)
+    (hroot : mathStateRoot h consts σ = (parentOf x).stateRoot) :
+    (∃ d blk, executeNewPayloadRequest h consts x.newPayloadRequest ps (ctxOf x) none = .ok (.ok (d, blk))
+        ∧ executeNewPayloadRequest h consts x.newPayloadRequest (witnessPreState h consts x) (ctxOf x)
             (some x.publicKeys) = .ok (.ok (d, blk))
-        ∧ mathStateRoot h (σ.apply d) = x.newPayloadRequest.executionPayload.stateRoot)
+        ∧ mathStateRoot h consts (σ.apply d) = x.newPayloadRequest.executionPayload.stateRoot)
     ∨ ∃ c, extractStateCollision h x σ = some c
-corollary stateless_implies_full (h x σ) (hwf) (hauth) (hcomplete) : …
+corollary stateless_implies_full (h x σ) (consts : HashConsts)
+    (hconsts : consts = HashConsts.query h) (hwf) (hauth) (hcomplete) : …
   -- use the hash-relative full backend with explicit WF/authenticity/progress;
-  -- the concrete specialisation is FullState.ofMath σ hwf hauth
+  -- at h = keccak256, bridge to (FullState.ofMath σ hwf hauth).toPreState consts
 
 -- (3a) header-chain binding
 def headerQueries (hs : Array ByteArray) (chain : List Header) : Finset ByteArray
@@ -160,7 +171,17 @@ theorem rom_disagreement_bound (A : DisagreementAdversary t) (Q : ℕ)
     𝒟[disagreementExperiment A] {true} ≤ (((t + Q + 2) * (t + Q + 1) : ℕ) : ℝ≥0∞) / (2 * 2^256)
 ```
 
-`ModelsUpToCollision ps σ c` is `EthStateWitness`'s collision-indexed form of `Models` (each *successful* operation agrees with `σ`, or `c = some _`); `Progress` is `EthStateFull`'s. `AcceptedTip` is a hypothesis-only predicate naming the external anchor.
+`ModelsUpToCollision ps σ c` names the required hash-relative extension of `EthStateWitness`'s collision-indexed form of `Models` (each *successful* operation agrees with `σ`, or `c = some _`); `Progress` is `EthStateFull`'s. `AcceptedTip` is a hypothesis-only predicate naming the external anchor.
+
+For F20, `HashConsts.query h` denotes the record produced by interpreting the existing four constant queries under `h`, using the notation above and the core Hash32/Digest adapter; it does not add acquisition inside either payload kernel. The `hconsts` premise identifies one record with those oracle answers. `witnessPreState h consts x` uses that supplied record in authenticated witness construction, and both displayed payload runs receive it explicitly. Successful `classify h` must be connected to that same witness construction and acquired record by the production F20 composition law, which remains open.
+
+The proposed generic premises require the following proofs:
+
+- `ProviderCoherent h consts ps`: the provider's empty-code, empty-root and default observations use the supplied fields, and its hashing operations use the same `h`. Its closures hold that record; `PreState` has no public constants field. Neither a factory's type nor root equality implies coherence.
+- `ModelsQ h consts ps σ` and `ProgressQ h consts ps`: hash-relative forms of the concrete `Models` and `Progress` contracts. Their definitions and bridges at `h = keccak256` are open (D5, X7). Combining concrete `Models` (EthStateCommit SC7, using keccak literals) with generic provider coherence can make the premises inconsistent when `h` differs on constant preimages. Those concrete premises therefore cannot stand in for these hash-relative forms.
+- The full-backend corollary must construct a hash-relative provider and establish all three premises. A concrete `(FullState.ofMath σ hwf hauth).toPreState consts` instantiates it only after the concrete bridge is proved.
+
+Formalising these relations and the Hash32/Digest adapter remains X7. Until that coupling and hypothesis satisfiability are established, the generic templates carry no security content; they prove no production coherence or instantiated theorem.
 
 ## 6. Data structures
 
@@ -191,11 +212,11 @@ All [S]; each lists the core obligations it consumes (the ids are the owning mod
 
 **Claim.** Subject to authentic/available full state, root agreement, the resolved oracle model and an external chain anchor, successful stateless verification implies the corresponding full-state result or an extractable hash collision; a ROM bound requires a separate complete query budget.
 
-**Premises.** Models plus progress, CodeAuthentic/CodeComplete where used, successful witness operations, reachable read-before-write, backend trace refinement, header/schema binding and the four runner guarantees. The keccak-derived constants are `HashConsts`, answered by the same oracle (F2), and newly produced code hashes are oracle answers (D5).
+**Premises.** Models plus progress, CodeAuthentic/CodeComplete where used, successful witness operations, reachable read-before-write, backend trace refinement, header/schema binding and the four runner guarantees. The keccak-derived constants are `HashConsts`, answered by the same oracle and threaded under F20 (F2); backend/oracle coherence and generic coupling remain explicit premises, and newly produced code hashes are oracle answers (D5).
 
 **Argument.** Compare authenticated witness nodes with the mathematical trie: equal preimages permit descent, whereas unequal preimages with equal hashes supply a genuine collision. Include secure keys and both code stores in this comparison. Simulate the successful execution trace query by query; full-state progress ensures it can follow the witness's successful answers. Preserve frame observations, diffs and error order using the component contracts, then apply the root-update law. Verified sender hints give the same sender as recovery. Header binding descends from the externally accepted tip; request binding uses the separate SHA-256/schema argument. Finally, run the deterministic extractor inside the oracle experiment and count adversary, guest, full-state and extractor queries before applying a collision bound.
 
-**Open obligations.** Define and prove the simulation, extractor and budgets; prove that `HashConsts` and newly produced code hashes are authentic relative to `h`, fold secure-key collisions, and state `Models` at generic `m` (the open oracle coupling). Always-error backends must not make the theorem vacuous. No numeric security conclusion follows until the VCV-io theorem, oracle coupling and all domains are fixed.
+**Open obligations.** Define and prove the simulation, extractor and budgets; prove that `HashConsts` and newly produced code hashes are authentic relative to `h`, fold secure-key collisions, and state `Models` at generic `m` (the open oracle coupling). Resolve X7 with hash-relative Models/Progress premises and exhibit compatible providers; always-error backends must not make the theorem vacuous. No numeric security conclusion follows until the VCV-io theorem, oracle coupling and all domains are fixed.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 

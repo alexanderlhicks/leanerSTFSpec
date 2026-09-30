@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35); DISC-001, DISC-003, DISC-004.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35); DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -20,7 +20,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.2 The mathematical root
 
-- C5. `EMPTY_TRIE_ROOT = keccak256(rlp(b""))` = `0x56e8…b421` (`mpt:71–75`). In Lean it is `HashConsts.emptyTrieRoot` (`EthBase`; D5), queried once per block through the oracle and passed to the operations that need it (`decodeRoot`, `rootHash`, `mathRoot`). The literal is its value at `m := Id` only (`HashConsts.literals`, `EthBase`), and `EthHash` checks that `HashConsts.query` at `Id` yields it (`EthHash` §7).
+- C5. `EMPTY_TRIE_ROOT = keccak256(rlp(b""))` = `0x56e8…b421` (`mpt:71–75`). In Lean it is `HashConsts.emptyTrieRoot` (`EthBase`; D5), acquired through the oracle at the caller-owned F20 boundary and passed to the operations that need it (`decodeRoot`, `rootHash`, `mathRoot`). The literal is its value at `m := Id` only (`HashConsts.literals`, `EthBase`), and `EthHash` checks that `HashConsts.query` at `Id` yields it (`EthHash` §7).
 - C6. `encode_internal_node` (`mpt:213–249`): `none ↦ b""`; leaf `↦ (HP(rest, true), value)`; extension `↦ (HP(seg, false), subnode)`; branch `↦ 16 subnodes ++ [value]`; if `len(rlp(·)) < 32` the **unencoded structure** is returned (inlined in the parent), else `keccak256(rlp(·))`.
 - C7. `patricialize obj level` (`mpt:507–581`): empty → `none`; one key → leaf with `key[level:]` (possibly **empty**: valid, e.g. below a branch at level 63 of a 64-nibble key); if all keys share a non-empty prefix from `level` → extension over the longest common prefix; else a branch whose value is the key ending at `level` (if any) and whose children are the recursive results at `level + 1`. EELS picks an arbitrary first key (`next(iter(obj))`); the result is independent of the choice (§7.3). The Lean definition takes an `ExtTreeMap Nibbles ByteArray`.
 - C8. `root` (`mpt:478–504`): `r = encode_internal_node (patricialize (prepare t) 0)`; if `len(rlp r) < 32` return `keccak256(rlp r)` else `r` (already the hash). The empty trie gives C5.
@@ -111,7 +111,8 @@ def compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)     -- l
 def commonPrefixLength : Nibbles → Nibbles → Nat
 
 -- D5: everything that hashes is generic in the oracle monad; public uses take m := Id.
--- The empty-trie root is HashConsts.emptyTrieRoot (EthBase), passed in where needed (C5).
+-- The empty-trie root is HashConsts.emptyTrieRoot (EthBase), projected by callers
+-- from their existing constants context and passed in where needed (C5, F20).
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
 
 -- public: mathematical root

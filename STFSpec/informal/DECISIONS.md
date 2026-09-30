@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-09-29. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-09-30. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -26,7 +26,7 @@ A documented proposal or an implemented guard does not by itself make a decision
 | D2 | Address/hash representation | provisional | distinct fixed-width `structure`s (`Address`, `Hash32`, `FixedBytes n`; `Bytes32 := FixedBytes 32`), each wrapping `BitVec (8n)` behind byte observers; `compare` is hand-written, lawful, and equals big-endian lexicographic byte order (EthBase §5–§6) | map-key `compare` cost and byte-conversion cost at codec boundaries |
 | D3 | Forks | **accepted** | parameter records near their semantics, named fork modules for changed behaviour, an explicit composition module (`EthFork`); Amsterdam only | executing pre-Amsterdam (BPO2) blocks, for example the transition fixtures (Q8) |
 | D4 | Hash implementations | provisional | a legible reference plus a proved unrolled fast path | re-measurement under the corrected benchmark methodology (no checksum inside the timed loop; include allocation, conversions and composition); a proof that fast ≡ reference |
-| D5 | Keccak abstraction scope | **provisional** (B10) | **every** keccak goes through `KeccakQuery`, including: the trie and witness DB, the code DB, the header chain, the block-hash check, the transaction/withdrawal roots, `validate_header`'s parent hash, code preimages and newly installed code hashes, the KECCAK256 opcode, CREATE/CREATE2 addresses, ECRECOVER, the EIP-7708 transfer topic, and the keccak-derived constants. **Interfaces:** everything that hashes is parametric in `{m} [Monad m] [KeccakQuery m]`. Types that only carry a hashing pre-state or precompile (`PreState m`, `StateM m`, `VmWorld m`/`VmM m`, `PrecompileFn m := Bytes → GasMeter → m PrecompileResult`) take `{m} [Monad m]` and never mention the class; `BlockM m := CheckedT BlockError m` (EthBlock). Public entry points specialise to `m := Id`, where the `KeccakQuery Id` instance is concrete keccak256. The keccak-derived constants are a `HashConsts` record (`EthBase`), queried once per block by `HashConsts.query` (`EthHash`). `NodeDB.Authentic`/`CodeDB.Authentic` are separate predicates; `KeccakQuery` has `ExceptT`/`StateT` lift instances. `KeccakQuery` itself stays in `EthHash`. `Models` is stated at `PreState Id`. Evidence: F1–F4, F15, F18 (§3) | a narrower scope only if the witness/full-state agreement prototype shows it is closed; the oracle coupling for `Models` at generic `m` is open; request-root binding separately uses SSZ/SHA-256 |
+| D5 | Keccak abstraction scope | **provisional** (B10) | **every** keccak goes through `KeccakQuery`, including: the trie and witness DB, the code DB, the header chain, the block-hash check, the transaction/withdrawal roots, `validate_header`'s parent hash, code preimages and newly installed code hashes, the KECCAK256 opcode, CREATE/CREATE2 addresses, ECRECOVER, the EIP-7708 transfer topic, and the keccak-derived constants. **Interfaces:** everything that hashes is parametric in `{m} [Monad m] [KeccakQuery m]`. Types that only carry a hashing pre-state or precompile (`PreState m`, `StateM m`, `VmWorld m`/`VmM m`, `PrecompileFn m := Bytes → GasMeter → m PrecompileResult`) take `{m} [Monad m]` and never mention the class; `BlockM m := CheckedT BlockError m` (EthBlock). Public entry points specialise to `m := Id`, where the `KeccakQuery Id` instance is concrete keccak256. The keccak-derived constants are a `HashConsts` record (`EthBase`), queried by `HashConsts.query` (`EthHash`) at the caller-owned boundary specified by F20 (§3). `NodeDB.Authentic`/`CodeDB.Authentic` are separate predicates; `KeccakQuery` has `ExceptT`/`StateT` lift instances. `KeccakQuery` itself stays in `EthHash`. `Models` is stated at `PreState Id`. Evidence: F1–F4, F15, F18 (§3) | a narrower scope only if the witness/full-state agreement prototype shows it is closed; the oracle coupling for `Models` at generic `m` is open; request-root binding separately uses SSZ/SHA-256 |
 | D6 | Field arithmetic source | provisional | our own carry-preserving CIOS Montgomery backend, derived from CompPoly's zero-import `…Defs` and vendored with attribution (needs only `p < R`; `Wide8` for every pinned modulus below 2^256, `W12` for BLS12-381 q), or the same fix upstreamed to CompPoly. Width is settled by measurement (the `Nat` reference is 3–6.5× slower than `Wide8`; `Wide8` is 20–35× slower than native ecrecover); the source is not | **tracked upstream (2026-09-29):** CompPoly PR [#389](https://github.com/Verified-zkEVM/CompPoly/pull/389) (draft) makes the same carry fix for the eight-limb stack, covering `add`, CIOS `condSubWide`, the divstep inverse and the `modulus_lt` class field, and adds secp256k1 instances. Still to upstream after #389: P-256 instances and the 12-limb `W12` variant for BLS12-381 q. Also open: whether the core vendors the Defs or uses a Mathlib-free CompPoly runtime package (D26); the `sub`/`neg` and `W12` laws, observers and inversion |
 | D7 | Curve coordinates | provisional | homogeneous projective initially (as `py_ecc`); Jacobian only as a later representation replacement (D25) | pairing and MSM benchmarks |
 | D8 | Missing witness data | **accepted** | `Except WitnessError (Option α)`, kept separate from authenticated absence | — |
@@ -78,7 +78,7 @@ A compiled prototype of the interfaces tested how the spec guidance composes. It
 
 | ID | Finding | Disposition |
 |---|---|---|
-| F1, F2, F3, F4, F15, F18 | The broad keccak scope needs monad-parametric interfaces; keccak-derived constants; ECRECOVER; authentication predicates; lift instances; the block-hash check and the tx/withdrawal roots | **Adopted** as D5. Precompiles are monadic (`PrecompileFn m`), including ECRECOVER; F3's pure-precompile form is not adopted. `HashConsts` = {`emptyCodeHash`, `emptyTrieRoot`, `emptyOmmerHash`, `transferTopic`} lives in `EthBase` and is queried once per block. `KeccakQuery` stays in `EthHash`. |
+| F1, F2, F3, F4, F15, F18 | The broad keccak scope needs monad-parametric interfaces; keccak-derived constants; ECRECOVER; authentication predicates; lift instances; the block-hash check and the tx/withdrawal roots | **Adopted** as D5. Precompiles are monadic (`PrecompileFn m`), including ECRECOVER; F3's pure-precompile form is not adopted. `HashConsts` = {`emptyCodeHash`, `emptyTrieRoot`, `emptyOmmerHash`, `transferTopic`} lives in `EthBase`; its acquisition/threading is F20. `KeccakQuery` stays in `EthHash`. |
 | F5 | `Vector (Option Node) 16` in a nested inductive is rejected by the kernel | **Adopted:** `Array (Option Node)` with a separately stated size-16 invariant. |
 | F6 | Storage-trie decoding memo | **Open** (owner: EthStateWitness). Specify memo ownership, lifetime and decode triggers; cache mechanics stay outside semantic state; preserve B4 triggers and B15 precedence. It is a [DEBT](DEBT.md) candidate until then. |
 | F7 | Iteration order of storage clears in the witness root replay | **Open** (owners: EthState, EthStateWitness). The prototype's traversal is not adopted until agreement covers failures and observations as well as roots. A first-clear order alone does not reproduce Python set iteration. |
@@ -91,7 +91,7 @@ A compiled prototype of the interfaces tested how the spec guidance composes. It
 | F14 | Checked results in the monad | **Adopted:** `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, owned by `EthVmRunner`; `runVmChecked` returns `m (CheckedResult …)`. |
 | F16, F17 | `sorry` leaves block evaluation; `deriving` on nested inductives generates `partial` constants | **Adopted as guidance** (EthConformance §4, EthCodec §6, [CONTRIBUTING](../../CONTRIBUTING.md) §4). |
 | F19 | `Nibbles` range field; orderings for `(Address × Bytes32)` keys | **Adopted:** the orderings are in `EthBase`; the range field is optional. |
-| F20 | HashConsts lifetime across guest, witness and standalone block execution | **Open** (owners: EthBlock, EthStateless). R-EB previously queried constants after validateHeader already consumed emptyOmmerHash, and the guest separately queried them for the witness. Specify one acquisition/threading boundary per run, with a standalone wrapper if needed; constants must be available before validation and coherent with the backend and oracle. Close with a compiled interface case and an oracle trace covering payload checks, witness construction and block execution. |
+| F20 | HashConsts lifetime across guest, witness and standalone block execution | **Adopted** (2026-09-30; owners: EthBlock, EthStateless). Caller-owned acquisition and supplied-record kernels follow EthStateless R5 and EthBlock §2.7; consumers read existing context fields. Notation: CONTRIBUTING §7.2. Rationale, scope and open obligations: §6. |
 | O2 | Request-root failure | **Open** (owner: EthStateless): prove it unreachable on decoded values (EthStateless L-root), and add a constructor only if that proof fails. |
 | O13 | Unrowed deterministic reference faults | **Adopted** (2026-09-29): CONTRACT O13 is a documentation category for explicitly enumerated deterministic reference faults. The output is unchanged, `(root, false, …)`, and each fault has a named constructor, enumerated by its owner (EthBlock §2.12, EthVmCore R-EXC-2, EthState R29); there is no generic catch-all. O12 remains unresolved. |
 
@@ -133,3 +133,56 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
   - revisit criterion (the evidence that would change it; links to debt or discrepancy entries).
 - **A performance exception** goes in [`DEBT.md`](DEBT.md), naming the expected workload, complexity, measured limitation, reason and replacement criterion (D18).
 - **A protocol deviation** needs a [`DISCREPANCIES.md`](DISCREPANCIES.md) entry (reproducer, upstream issue and response) and an accepted decision here naming it.
+
+## 6. F20: caller-owned hash constants
+
+**Status and authorization.** Adopted on 2026-09-30 in §3. This record documents that
+existing disposition; D5 remains provisional. Implementation and its proof obligations
+are separate from adoption of the interface.
+
+**Problem and scope.** Witness construction and payload/header checks need keccak-derived
+constants before `BlockState` exists. The guest and standalone block driver must provide
+one coherent record to their backends and kernels. EthStateless and EthBlock own these
+boundaries; EthHash provides acquisition, EthBase the value record, and state, commitment,
+VM and conformance consumers use it. D5 governs hashing; D14 governs failure channels.
+
+**Sources.** The release and dependency commits are pinned in `reference.toml`:
+`tests-zkevm@v21.0.0`, execution-specs `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`.
+Relevant EELS sites are `src/ethereum/forks/amsterdam/stateless.py:250,281–294`,
+`execution_engine/new_payload.py:112–136,147–157`,
+`execution_engine/validation_helpers.py:61,108`, and `fork.py:265,309–325,498`
+(the latter paths are under the same Amsterdam directory). EELS uses module-level
+constants; F20 specifies their Lean acquisition boundary rather than an EELS operation.
+
+**Options and rationale.** Acquiring inside the block kernel is too late for witness and
+payload construction. Using literals there would bypass the generic oracle. Caller-owned
+acquisition makes the same record available to each consumer without reacquisition.
+Existing contexts hold the record once constructed; helpers called before those contexts
+exist take it explicitly. The notation convention belongs to CONTRIBUTING §7.2.
+
+**Contract.** Acquisition and effect order are owned by EthStateless R5 and EthBlock §2.7,
+with required equations in their §7 laws. The supplied-record kernels are
+`executeNewPayloadRequest` and `executeBlock`; `executeBlockStandalone` accepts a
+`mkPre : HashConsts → m (PreState m)` provider factory. EthConformance R4 specifies
+acquisition for the engine driver. Consumer/provider coherence is a proof premise,
+not a consequence of the factory's type. Exception precedence and the checked error
+channels retain their owning contracts.
+
+**Validation and limits.** This is an informal interface contract, with no production
+implementation or theorem. Implementation must cover the synthetic-oracle, failure-order
+and repeated-run cases in EthStateless and EthBlock §4 and prove their §7 laws. Documentation
+checks cannot establish those results. Backend coherence, D5's generic interpretation
+coupling (X7), REVIEW §7 S2, EthStateWitness W1, fuel gates G2–G7, guest conformance and
+security remain open; F20 establishes no performance or specialisation result.
+
+**Change procedure.** Update the two kernel contracts, provider factories and their
+consumers together; migrate direct payload callers as specified by EthConformance R4.
+Keep the supplied record in existing state/backend contexts and use their fields.
+Review any incompatible change through §5 and update ARCHITECTURE §11 and affected
+guidance in the same work item. A rollback must preserve D5's oracle scope and the
+reference's failure precedence.
+
+**Revisit criterion.** Reconsider the acquisition boundary if production composition
+shows it cannot preserve reference failure order or support a coherent generic oracle
+interpretation. Such evidence belongs with X7 and the affected component laws; a
+performance claim requires its own measurement and decision under CONTRIBUTING §3.

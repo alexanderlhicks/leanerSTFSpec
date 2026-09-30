@@ -1,7 +1,7 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
 *Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F2, F19 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19.*
+*Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
 
@@ -323,8 +323,8 @@ namespace Hex
 end Hex
 
 -- Keccak-derived constants (D5; DECISIONS §3, F2). Values only: EthBase does no hashing.
--- Queried once per block by `EthHash.HashConsts.query` and carried in the block state;
--- consumers take them from there, never from a literal.
+-- Acquired through `EthHash.HashConsts.query` at the caller-owned boundary (F20).
+-- Consumers take the record explicitly until their state or backend holds it.
 structure HashConsts where
   emptyCodeHash  : Hash32   -- keccak256 b""                  (state.py:36)
   emptyTrieRoot  : Hash32   -- keccak256 (rlp b"") = keccak256 0x80 (merkle_patricia_trie.py:71)

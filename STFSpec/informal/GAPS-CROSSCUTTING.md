@@ -1,6 +1,6 @@
 ## Cross-cutting gaps and coordinated owners
 
-*Status: live cross-cutting gap register. Date: 2026-09-29.*
+*Status: live cross-cutting gap register. Date: 2026-09-30.*
 
 Maintained by hand. Each item says what is missing, the evidence, and who should own it.
 
@@ -50,7 +50,7 @@ See ARCHITECTURE §5.5 and [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-ga
 ### X7. Security proof has an unknown core step
 Proving directional simulation of a successful witness trace by a progressive full backend is the largest unknown. Models alone does not establish availability and must include full-state code authenticity. Also:
 - VCV-io has no MPT or RLP support, and is not yet a Lake dependency;
-- keccak-derived constants go through the same oracle (`HashConsts`, D5); still open are the oracle coupling for `Models` at generic `m`, secure-key collision folding, and the complete code preimage sets.
+- keccak-derived constants go through the same oracle (`HashConsts`, D5); still open are the oracle coupling for `Models` and `Progress` at generic `m`, secure-key collision folding, and the complete code preimage sets. Generic provider coherence must use hash-relative forms of those premises: combining keccak-literal `Models` with an oracle that differs on constant preimages can make them inconsistent. Prove the concrete bridges and exhibit providers satisfying all premises before claiming nonvacuous generic agreement (EthSecurity §5).
 - Direct proof imports are now registered in contracts.toml; the actual proof implementations are absent.
 
 ### X8. Consumer migration cost is unmeasured

@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` at e1a316a0 unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference.
@@ -35,8 +35,9 @@ An **empty** header list passes `validate_headers`, and EELS then fails on `deco
 **R5. Guest composition (`verify_stateless_new_payload`, `stateless.py:263–311`).** After R3, and all inside the inner phase:
 - `parent_header := decoded_headers[-1]`;
 - `ChainContext{chain_id := input.chain_id, block_hashes := all witness header hashes, oldest first, parent_header}` (`fork.py:152–164`). `block_hashes` has between 1 and 256 entries; `BLOCKHASH` indexes it from the end (`vm/instructions/block.py:56–64` [V]), and an ancestor missing from the witness is a Python `IndexError` (`vm/instructions/block.py:58`) consumed by the inner handler → failure (fixture `validation_headers_missing_oldest_blockhash_ancestor` [V]). It is a **CONTRACT O13** fault, not a witness error: the constructor is `VmFault.ancestorHashUnavailable` (`EthVmCore`), reaching this module as `.block (.vmFault (.ancestorHashUnavailable _))`;
-- the pre-state is `WitnessState(node_db = build_node_db(witness.state), state_root = parent_header.state_root, code_db = build_code_db(witness.codes))` (`witness_state.py:37–50`; `build_node_db` is specified by `EthCommit` as `NodeDB.build`, the rest by `EthStateWitness`). In the spec, `NodeDB.build` (`EthCommit`) and `CodeDB.build` (`EthStateWitness`) hash through the oracle and are monadic (D5, F4), and `HashConsts.query` supplies the keccak-derived constants to the backend. Identical duplicate preimages collapse. Distinct preimages with the same hash use last-wins dictionary insertion, so order independence requires excluding such collisions (EthCommit C12);
-- call `executeNewPayloadRequest req preState ctx (some input.public_keys)`. The hint is **always** supplied in the guest, so the count check (`fork.py:312–317`) and per-transaction key check (`transactions.py:916–934`) are always active (O5);
+- acquire `consts ← HashConsts.query` once after R4 succeeds and the nonempty parent is selected, before either witness DB is built (F20; Lean seam, no EELS step). Earlier failures make no acquisition; a run that fails after acquisition has still made the constant queries. Each run acquires independently, without caching the record;
+- the pre-state is `WitnessState(node_db = build_node_db(witness.state), state_root = parent_header.state_root, code_db = build_code_db(witness.codes))` (`witness_state.py:37–50`; `build_node_db` is specified by `EthCommit` as `NodeDB.build`, the rest by `EthStateWitness`). In the spec, `NodeDB.build` (`EthCommit`) and `CodeDB.build` (`EthStateWitness`) hash through the oracle and are monadic (D5, F4), and the already-acquired `consts` is stored in the backend. Identical duplicate preimages collapse. Distinct preimages with the same hash use last-wins dictionary insertion, so order independence requires excluding such collisions (EthCommit C12);
+- call `executeNewPayloadRequest consts req preState ctx (some input.public_keys)`. The hint is **always** supplied in the guest, so the count check (`fork.py:312–317`) and per-transaction key check (`transactions.py:916–934`) are always active (O5);
 - success → `(root, true, chain_id, 0x1501)` (O10); any failure → `(root, false, chain_id, 0x1501)` (O3–O7, O13).
 
 **R6. No fork-activation check.** The spec must **not** check the payload timestamp against fork activation, following `stateless.py:275–277` ("A real implementation MUST do these checks!"). This is recorded as an explicit exclusion (CONTRACT §5; Gaps).
@@ -117,6 +118,15 @@ Corpus facts relevant here [V]: 27,822 records succeed, 1,199 fail with schema `
 - Edge: header list of length 0 (O3a), 1, 256; a BPO5-shape parent header; `public_keys` empty with empty block; payload with zero requests (all lists empty → `encodeExecutionRequests = #[]`); `extra_data` of 32 bytes.
 - Adversarial: every O1 variant above; 257 headers (O1, not O3); a header decodable only as the previous fork in the middle of the chain; decode failure at j and contiguity break at i < j (decode wins); an empty transaction together with a wrong block hash (empty tx wins); an unknown tx type byte `0x05` (reported as `invalidVersionedHashes`); tx byte `0xFF`; one key too few/too many (O5); wrong key with right count (O5 at that tx).
 - Structural: `(serializeStatelessOutput r).size = 43` for all `r`; `zeroSentinel` bytes are 43 zeros.
+- F20 composition cases to implement, using the R5 query order:
+  - Decode, header-decode, empty-header and contiguity failures acquire no record. A contiguity failure still has its preceding raw-header hashes.
+  - Pass successful nonempty headers; acquisition precedes witness construction and payload guards.
+  - Use a synthetic record differing from literals; the witness backend, both payload-header constructions, block validation and context consumers receive or observe that record.
+  - Repeat an ordinary constant preimage query; it is not a second record acquisition.
+  - Fail the empty-transaction, payload-hash and versioned-hash guards separately; prior queries remain in the trace and the first guard determines the error.
+  - Raise a provider or fuel error; prior queries remain in the trace and the error stays in its inner or outer checked channel, respectively.
+  - Run twice; each run acquires independently.
+  - Exercise the actual shared payload and block kernels with test codec and body callbacks; their traces contain no reacquisition. Replacing an entire kernel with a test callback would not check this property.
 
 **Properties and differential checks.** Round trip `deserialize (serializeStatelessInput x) = .ok x` for generated well-formed `x` (serializer from `EthConformance`); `validateHeaders` against a model on generated chains; differential against EELS `run_stateless_guest` on mutated inputs (bug-finding only; `EthConformance`).
 
@@ -199,19 +209,19 @@ def computeNewPayloadRequestRoot : StatelessInput → Hash32                    
 def decodeHeader : ByteArray → Except (RlpError × RlpError) AnyHeader                   -- internal
 def validateHeaders : Array ByteArray → m (Except HeaderError (Array AnyHeader × Array Hash32)) -- public; hashes queried
 def encodeExecutionRequests : ExecutionRequests → Array ByteArray                       -- public
-def payloadHeader : ExecutionPayload → Hash32 → ExecutionRequests → m Header            -- internal, total; trie roots queried
+def payloadHeader (consts : HashConsts) : ExecutionPayload → Hash32 → ExecutionRequests → m Header            -- internal, total; trie roots queried
 def payloadTransactionToBlockTransaction : ByteArray → Except TxDecodeError BlockTx     -- internal
-def payloadBlock : ExecutionPayload → Hash32 → ExecutionRequests → m (Except PayloadError Block) -- internal
-def isValidBlockHash : ExecutionPayload → Hash32 → ExecutionRequests → m Bool           -- public; block hash queried
+def payloadBlock (consts : HashConsts) : ExecutionPayload → Hash32 → ExecutionRequests → m (Except PayloadError Block) -- internal
+def isValidBlockHash (consts : HashConsts) : ExecutionPayload → Hash32 → ExecutionRequests → m Bool           -- public; block hash queried
 def isValidVersionedHashes : NewPayloadRequest → Bool                                   -- public
-def executeNewPayloadRequest (req : NewPayloadRequest) (pre : PreState m)
+def executeNewPayloadRequest (consts : HashConsts) (req : NewPayloadRequest) (pre : PreState m)
     (ctx : ChainContext) (keys : Option (Array PublicKey)) :
     m (CheckedResult StatelessError (BlockDiff × Block))                               -- public (both backends)
 structure GuestLeaves (m) where                                                         -- testing seam
   decodeInput : ByteArray → Except SszError StatelessInput
   requestRoot : NewPayloadRequest → Hash32
   decodeHeader : ByteArray → Except (RlpError × RlpError) AnyHeader
-  executePayload : NewPayloadRequest → PreState m → ChainContext → Option (Array PublicKey)
+  executePayload : HashConsts → NewPayloadRequest → PreState m → ChainContext → Option (Array PublicKey)
     → m (CheckedResult StatelessError (BlockDiff × Block))
 def amsterdamLeaves : GuestLeaves m                                                    -- the real phases
 def classifyWith (L : GuestLeaves m) : ByteArray → m (Except InternalError GuestOutcome)
@@ -229,6 +239,8 @@ def runStatelessGuest (input : ByteArray) : ByteArray :=
   | .ok out => out | .error _ => serializeStatelessOutput zeroSentinel
 theorem runStatelessGuest_eq : runStatelessGuest = runStatelessGuestWith (m := Id) amsterdamLeaves
 ```
+
+The payload entry and helpers take `consts : HashConsts` with local EELS notation (CONTRIBUTING §7.2, F20). `isValidBlockHash` and `payloadBlock` each build `payloadHeader`, so both take the record explicitly. `executeNewPayloadRequest` forwards that record through these helpers and `Amsterdam.executeBlock`; none of those kernels acquires it. `classifyWith` follows R5 and supplies the record to the witness backend and `L.executePayload`. Consumers whose state or backend already holds the record read its fields.
 
 Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above is an alias for that type. `ChainContext`, `Block`, `BlockTx`, `BlockError`, transaction-decode diagnostics and `executeBlock` come from `EthBlock`/`EthFork`; `PreState`/`BlockDiff` from `EthState`; `WitnessBackend.build` and `CodeDB.build` from `EthStateWitness`, `NodeDB.build` from `EthCommit` (both monadic, F4); `HashConsts` from `EthBase` and `HashConsts.query`/`KeccakQuery` from `EthHash`. The executable seam uses `CheckedResult` (from `CheckedT`, `EthVmRunner`, F14): validation errors are the inner `Except`, and internal failures, including fuel exhaustion, the outer `InternalError`. There is no separate `FuelM`. `classifyWith` is the leaf-parametric composition; the real composition code runs unchanged under test leaves, and `runStatelessGuest_eq` ties the public function to it at `Id`.
 
@@ -277,9 +289,10 @@ Widths: `blockNumber`, `gasLimit`, `gasUsed` are `Uint` in EELS but SSZ `uint64`
 - [C] **L-output-codec**: `serializeStatelessOutput` is injective, and the host-side decoder (`EthConformance`) is its left inverse.
 - [C] **L-headers**: `validateHeaders hs = .ok (ds, bh) → ds.size = hs.size ∧ bh = hs.map keccak256 ∧ ∀ i, 0 < i → ds[i].parentHash = bh[i-1]`, and conversely on success of every decode; error precedence as in R4.
 - [C] **L-requests**: `encodeExecutionRequests` emits one blob per non-empty list, strictly ascending type bytes `0x00…0x04` (`forks/amsterdam/requests.py:71–100`, owned by `EthBlock` [V]), each body a concatenation of fixed-size items; `decodeExecutionRequests ∘ encodeExecutionRequests = .ok` (`EthConformance`).
-- [C] **L-payload-header**: `isValidBlockHash p pbr rq = (keccak256 (rlp (payloadHeader p pbr rq)) == p.blockHash)`.
+- [C] **L-payload-header**: `isValidBlockHash consts p pbr rq = (keccak256 (rlp (payloadHeader consts p pbr rq)) == p.blockHash)`.
 - [C] **L-versioned**: `isValidVersionedHashes req = true ↔` every tx decodes and the concatenated blob hashes equal `req.versionedHashes`.
-- [R] **L-backend-generic**: `executeNewPayloadRequest` uses `pre` only through the `PreState m` operations (it is `executeBlock` after pure checks). This is what `EthSecurity` needs to move from the witness backend to the full-state backend.
+- [R] **L-constants** (F20): prove the acquisition and effect order in R5 as implementation equations, and prove preservation of one supplied record through witness construction, both payload-header constructions, block entry and context consumers. Check these equations with a synthetic oracle whose constants differ from literals (§4). Generic interpretation coupling remains D5/X7.
+- [R] **L-backend-generic**: `executeNewPayloadRequest` uses `pre` only through the `PreState m` operations (it forwards the same `consts` to `executeBlock` after ordered payload checks). This is what `EthSecurity` needs to move from the witness backend to the full-state backend.
 - [R] **L-hint-equivalence** (from `EthBlock`): with `keys = some ks` accepted, the result equals the result with `keys = none`. This bridges the guest (hint always present) and the stateful path (no hint).
 - [S] consumed by `EthSecurity`: the three §7 CONTRACT obligations. Nothing here is stated under a collision assumption.
 
@@ -330,6 +343,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Order of `legacyDecode`.** `_payload_transaction_to_block_transaction` asserts the decoded type is legacy; after `is_valid_versioned_hashes` succeeds this is believed dead [I]; unproved.
 - **Hint equivalence** (L-hint-equivalence) depends on `EthBlock` proving that the reference key check (`transactions.py:931–932`) accepts exactly the recovered key; the cheaper checks CONTRACT §2 permits are not specified.
 - **Error-constructor fidelity is untestable by fixtures** (R8); only reading and `core` cases check it.
-- **HashConsts acquisition/threading:** F20 owns the outstanding guest/block boundary. Witness construction, payload-header checks and block validation must use coherent constants from the same oracle, acquired before their first use.
+- **F20 implementation/refinement:** implement L-constants and establish witness, provider and context coherence at the R5 boundary. DECISIONS §6 records the design; production refinement and generic oracle coupling remain open.
 - **Consumer seams.** The exact `Faithful` statement evm-asm and pancaketh want (bytes-level equality versus `classify`-level) is not agreed with them; toolchain skew (they are on v4.33.x) is not addressed here.
 - **Upstream churn.** `ExecutionPayloadHeader`/`NewPayloadRequestHeader` are TODO scaffolding (`stateless.py:78–100`) and EIP-7709 may empty `headers`; either change alters this module's wire types.

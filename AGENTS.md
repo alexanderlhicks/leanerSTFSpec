@@ -63,7 +63,7 @@ recommendation as a merge blocker.
 Do not restate these elsewhere; each has an owner.
 - The informal-spec blockers: [`STFSpec/informal/GAPS.md`](STFSpec/informal/GAPS.md) (generated), with the cross-cutting items X1–X15 in `STFSpec/informal/GAPS-CROSSCUTTING.md`.
 - Pending investigations: fuel adequacy (`STFSpec/informal/REVIEW.md` §7 G2–G7) and witness/full-state agreement (S2); REVIEW §6.
-- Open interface items F6, F7, F11, F20 and O2: `STFSpec/informal/DECISIONS.md` §3.
+- Open interface items F6, F7, F11 and O2: `STFSpec/informal/DECISIONS.md` §3.
 - O12, host resources: `STFSpec/informal/DISCREPANCIES.md` DISC-001 and DISC-006.
 
 ## Documentation conventions

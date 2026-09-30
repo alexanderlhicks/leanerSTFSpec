@@ -228,7 +228,18 @@ We follow the [Lean community's style and naming conventions](https://leanprover
 - **Otherwise the community rules:** types, structures and classes `UpperCamelCase`; functions and terms `lowerCamelCase`; theorems and proofs `snake_case`; acronyms treated as words (`RlpItem`, not `RLPItem`); Prop-valued adjective classes with `Is` (`IsCanonical`).
 - **Theorem names describe the statement**, using the community conventions (`_of_` for hypotheses, `ext`, `iff`, `inj`, `mono`, `left`/`right`; `le`/`lt` rather than `ge`/`gt`). Law names follow the operation they describe: `getStorage_setStorage_same`, `toBitVec_add`.
 - **No provenance in names.** Name a declaration for what it says, never for where it came from: no EELS line numbers, paper or section numbers, or decision, question or gate IDs (`d5_...`, `g2_progress`). Cite those in docstrings instead (§8).
-- **Variable conventions** (in addition to the community's `α`, `h`, `n`…): `m` is the hash-query monad (`{m} [Monad m] [KeccakQuery m]`); `σ` a mathematical state; `ps` a `PreState m`; `d` a `BlockDiff`; `cfg` a configuration record; `k` the `HashConsts` record; `f` a frame; `w` a world. Use descriptive names where a single letter would be ambiguous.
+- **Variable conventions** (in addition to the community's `α`, `h`, `n`…): `m` is the hash-query monad (`{m} [Monad m] [KeccakQuery m]`); `σ` a mathematical state; `ps` a `PreState m`; `d` a `BlockDiff`; `cfg` a configuration record; `consts` the `HashConsts` record; `f` a frame; `w` a world. Use descriptive names where a single letter would be ambiguous.
+- **Constants notation (F20).** At constants-consuming seams use `variable (consts : HashConsts)` and local notation with EELS names:
+
+  ```lean
+  variable (consts : HashConsts)
+  local notation "EMPTY_CODE_HASH" => consts.emptyCodeHash
+  local notation "EMPTY_TRIE_ROOT" => consts.emptyTrieRoot
+  local notation "EMPTY_OMMER_HASH" => consts.emptyOmmerHash
+  local notation "TRANSFER_TOPIC" => consts.transferTopic
+  ```
+
+  Where the record already lives in a state or backend, read its constants field. Functions called before that context exists, such as `validateHeader`, take `consts` explicitly; the notation names its fields. Bind context notation in its own section so it projects the stored record rather than capturing an outer `consts`.
 
 ### 7.3 Formatting
 

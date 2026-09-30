@@ -1,7 +1,7 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F4, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16.*
 
 ## 1. Purpose
 
@@ -15,7 +15,7 @@
 - SC4. **`mathStateRoot σ`** = `mathRoot` of `{keccak256 a ↦ encodeAccount (σ.accounts a) (storageRoot σ a)}` where `storageRoot σ a = mathRoot {keccak256 k ↦ rlp v | σ.storageAt a k = v ≠ 0}`, which is `EMPTY_TRIE_ROOT` for no storage (`state_mpt.py:113–118`; `merkle_patricia_trie.py:429–433`). Storage of absent accounts does not contribute. Every hash here (secure keys, node references, the root) goes through `KeccakQuery` (D5), and the empty constants come from `HashConsts` (`EthBase`); the model definitions are stated at `m := Id` (§5).
 - SC5. **Account leaf decoding** (`witness_state.py:103–127`), lenient [executed against pinned `ethereum_rlp`]: the leaf must RLP-decode to a list of exactly 4 items (else malformed); each field that is falsy (the empty string **or the empty list**) takes its default (`0`, `0`, `EMPTY_TRIE_ROOT`, `EMPTY_CODE_HASH`, i.e. the `HashConsts` fields, which the decoder therefore takes as a parameter); otherwise nonce and balance are big-endian with **leading zeros accepted**, nonce unbounded, balance ≥ 2²⁵⁶ fails (`OverflowError`); a non-empty storage root or code hash of length ≠ 32 fails (`ValueError`); a non-empty list in any field fails (`TypeError`). An empty leaf value fails (`rlp.decode(b"")`). All failures are witness failures (O4).
 - SC6. **Storage leaf decoding** (`witness_state.py:198–203`): RLP-decode; a string → its big-endian value (leading zeros accepted; > 32 significant bytes fails with `OverflowError`); the empty string → `0`; **a list → `0`** silently. RLP failure → witness failure.
-- SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:36`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:45–50`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode k.emptyCodeHash = .ok ByteArray.empty` (with `k = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
+- SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:36`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:45–50`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
 - SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = mathStateRoot (σ.apply d)`. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:129–135`).
 - SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified decode thunk (WitnessBackend.WF), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
 - SC10. The encodings are canonical: `decodeAccountLeaf (encodeAccount a r) = .ok (a, r)` and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
@@ -36,7 +36,7 @@ Also specified here without their own inventory items: the storage-leaf decoding
 
 - **EEST fixture areas:** every blockchain fixture's post-state root exercises `mathStateRoot` (through `EthStateFull`) and its witness variant; `amsterdam/eip8025_optional_proofs` for leaves read from witnesses; `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` `TestGetAccountOptional`, `TestGetStorage`, `TestComputeStateRoot` (leaf decoding and roots through the backend).
-- **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount k) k.emptyTrieRoot` bytes, with `k = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient cases of SC5/SC6 (all-empty-string and all-empty-list leaves decode to the defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails (a longer encoding with leading zeros can still fit); list-valued storage leaf decodes to `0`; empty leaf value fails).
+- **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount consts) consts.emptyTrieRoot` bytes, with `consts = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient cases of SC5/SC6 (all-empty-string and all-empty-list leaves decode to the defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails (a longer encoding with leading zeros can still fit); list-valued storage leaf decodes to `0`; empty leaf value fails).
 - **Property tests:** round trips on random accounts and values; `mathStateRoot` invariant under insertion order; `mathStateRoot σ` unchanged by adding storage for an absent account.
 
 ## 5. Interface
@@ -48,12 +48,12 @@ Also specified here without their own inventory items: the storage-leaf decoding
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
 def encodeAccount (acc : Account) (storageRoot : Hash32) : ByteArray
 def encodeStorage (v : U256) : ByteArray                      -- v ≠ 0
-def decodeAccountLeaf (k : HashConsts) (leaf : ByteArray) : Except WitnessError (Account × Hash32)  -- SC5 defaults from k
+def decodeAccountLeaf (consts : HashConsts) (leaf : ByteArray) : Except WitnessError (Account × Hash32)  -- SC5 defaults from consts
 def decodeStorageLeaf (leaf : ByteArray) : Except WitnessError U256                 -- SC6
 def storageTrieMap (σ : MathState) (a : Address) : m (Std.ExtTreeMap Nibbles ByteArray)   -- secure keys
-def storageRoot (k : HashConsts) (σ : MathState) (a : Address) : m Hash32
-def accountTrieMap (k : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Nibbles ByteArray)
-def mathStateRoot (k : HashConsts) (σ : MathState) : m Hash32
+def storageRoot (consts : HashConsts) (σ : MathState) (a : Address) : m Hash32
+def accountTrieMap (consts : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Nibbles ByteArray)
+def mathStateRoot (consts : HashConsts) (σ : MathState) : m Hash32
 def CodeAuthentic (σ : MathState) : Prop -- every stored (h,c) has keccak256 c = h; no availability claim
 def CodeChangesAuthentic (d : BlockDiff) : Prop -- same property for codeChanges
 def ModelsCode (ps : PreState Id) : Prop                        -- SC7
@@ -66,6 +66,8 @@ def StateCollision (db : NodeDB) (codes : List (Hash32 × ByteArray)) (σ : Math
     : Option (ByteArray × ByteArray) -- include node, secure-key AND code preimages
 instance : TrieValue U256                                      -- EthCommit class, storage values
 ```
+
+These decoding and model-root helpers receive the caller's record (F20), using `variable (consts : HashConsts)` and local EELS notation for defaults. Backend callers with an existing constants field project that field; the helpers never acquire constants or substitute `HashConsts.literals` in generic execution. The Id laws here keep their concrete interpretation premise; F20 does not discharge generic oracle coupling.
 
 ## 6. Data structures
 
@@ -87,8 +89,8 @@ No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles Byt
 
 ### 7.3 Code [C]
 
-- **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This module's laws use `k = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
-- `setCode` agreement: if every `EthState.setCode` call passes `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` has `keccak256 c = h` and `h ≠ k.emptyCodeHash`.
+- **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This module's laws use `consts = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
+- `setCode` agreement: if every `EthState.setCode` call passes `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` has `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
 
 ### Informal correctness argument
 
