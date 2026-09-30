@@ -1,6 +1,6 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F2, F19 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), read from the scratch venv at `site-packages/ethereum_types/`.
@@ -72,7 +72,7 @@ The EVM opcodes use wrapping ops or explicit `Uint` intermediates (`forks/amster
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `utils/numeric.py::get_sign` | 19 | `Int.sign` (reuse) / `STFSpec.Base.getSign` | used only by `sdiv`/`smod`, whose laws subsume it |
-| `utils/numeric.py::ceil32` | 43 | `STFSpec.Base.ceil32 : Nat → Nat` | gas and memory sizing |
+| `utils/numeric.py::ceil32` | 43 | `STFSpec.Base.ceil32 : Nat → Nat` | **discharged helper slice** below; gas and memory sizing |
 | `utils/numeric.py::is_prime` | 68 | `STFSpec.Base.isPrime : Nat → Bool` (internal) | **not reachable from the guest** (no in-scope caller); candidate for `EXCLUDED.md` |
 | `utils/numeric.py::le_bytes_to_uint32_sequence` | 96 | `STFSpec.Base.leBytesToU32s` (internal) | only `ethash.py` uses it: unreachable; exclusion candidate |
 | `utils/numeric.py::le_uint32_sequence_to_bytes` | 122 | `STFSpec.Base.leU32sToBytes` (internal) | as above |
@@ -108,7 +108,7 @@ Each is specified as follows:
 The following declarations are in `STFSpec/Base/U256.lean`, namespace
 `STFSpec.Base.U256` (the structure is `STFSpec.Base.U256`). All rows are
 **discharged for this slice**: total, pure and without state effects. The source is the
-locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic and comparison/bitwise slices below are also implemented;
+locked `ethereum-types` 0.4.1 at the EELS pin. The unsigned arithmetic, comparison/bitwise and independent numeric-helper slices below are also implemented;
 all other APIs remain **unimplemented** and the module's draft status is unchanged. `toNat`/`toInt` and `ofNat?`/`ofInt?`
 are the stable Lean observer/checked-result names for Python `__int__`/`to_signed`
 and `U256(...)`/`from_signed`; `ofNat` is an additional wrapping model helper.
@@ -254,6 +254,41 @@ Cases include every byte index and byte sign boundary, mixed indexed words, shif
 `--eels <checkout> --output <scratch-file.lean>`; generated observations are run by
 Lean and kept outside both repositories. No oracle expected values are committed,
 and no EEST guest records are executed by this slice.
+
+### Implemented independent numeric helpers
+
+`STFSpec/Base/Numeric.lean` provides only the following unbounded numeric helpers,
+all **discharged for this slice**. Values are natural numbers with no upper limit;
+these operations are pure and have no state effects. `Uint` is the public `Nat` model,
+not a new replaceable word representation. Checked subtraction's `none` belongs to
+its consumer's named fault/first-handler projection under D14/B14. Narrow words,
+integer byte encodings, other helpers and records remain **unimplemented** here.
+
+| Source at the pin (dependency: `ethereum-types` 0.4.1) | Lean declaration and public type | Domain/success observation | Ordered failures / consumer | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| `ethereum_types/numeric.py:517,539` (`Uint`) | `abbrev Uint := Nat` | All natural numbers, unbounded | Negative inputs and Python cross-type cases are excluded by the `Nat` input type | Public model is `Nat` itself | `NumericClient.lean`: clients use `Uint` as `Nat`; huge input guards |
+| `ethereum_types/numeric.py:103,44,539` (`Uint.__sub__`, construction/range) | `Uint.sub? : Nat → Nat → Option Nat` | Succeeds iff `m ≤ n`, returning exactly `n−m`; equivalently result `r` satisfies `m+r=n` | Check `n < m` first; OverflowError becomes `none` without truncating underflow to zero. No result upper bound; consumer owns first handler/outcome | `Uint.sub?_eq_some_iff`, `Uint.sub?_eq_none_iff`, `Uint.sub?_eq_some_iff_add`, `Uint.sub?_zero`, `Uint.sub?_self`, `Uint.sub?_add_cancel` | `Numeric.lean`: zero/equality/underflow, 31/32/33, `2^256` and `2^4096` cases; actual dependency differential |
+| EELS `utils/numeric.py:43` (`ceil32`) | `STFSpec.Base.ceil32 : Nat → Nat` | Least multiple of 32 at least `n`; result is below `n+32`, including inputs/results above any fixed word width | Source divisor is constant 32 and remainder is below 32. Zero remainder returns input before subtraction; otherwise checked `Uint.sub? (n+32) (n%32)` always succeeds. No caller precondition beyond `Nat` | `ceil32_mod`, `le_ceil32`, `ceil32_lt_add`, `ceil32_le_of_mod_eq_zero`, `ceil32_eq_self_of_mod_eq_zero`, `ceil32_eq_cond`, `ceil32_sub?_remainder`, `ceil32_zero`, `ceil32_idempotent` | `Numeric.lean`: 0/1/31/32/33, 63/64/65, `2^64−1`, `2^256` and `2^4096` boundaries; actual EELS helper differential |
+
+`ceil32` uses the standard quotient formula `((n+31)/32)*32`. Beside it, the private
+`ceil32Reference` follows the pinned remainder branch and calls `Uint.sub?` at the
+source's checked subtraction site. Its ordinary equality theorem
+`ceil32Reference_eq_some` proves it returns `some (ceil32 n)` for every input.
+The public `ceil32_eq_cond` gives the source arithmetic model and
+`ceil32_sub?_remainder` proves the checked subtraction cannot fail. This discharges
+both the constant-divisor and underflow obligations at `utils/numeric.py:61,65` for
+all `Uint`/`Nat` inputs, without a fallback or a new input bound.
+
+Regression paths in this table are under `STFSpec/Conformance/Base/`. The Conformance
+root imports `Numeric.lean` and `NumericClient.lean`; the latter uses only public laws.
+The host driver `numeric_differential.py`, run with the frozen EELS venv's Python and
+`--eels <checkout> --output <scratch-file.lean>`, validates the checkout pin, dependency
+version and imported module paths. It invokes unchanged EELS `ceil32` and actual
+locked `Uint` subtraction directly, with no handler abstraction. Seed 4001 supplies
+249 subtraction cases and 267 rounding cases, including every remainder modulo 32
+at six scales and huge inputs; all 516 generated guards run outside the worktree.
+Oracle observations are uncommitted bug-finding evidence, not normative fixtures.
+No EEST guest records are executed.
 
 ## 4. Tests
 
@@ -492,11 +527,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **U256 value, unsigned arithmetic and comparison/bitwise slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod, checkedAdd/Sub/Mul/Div/Mod, comparisons, Boolean comparison helpers, bit logic, BYTE, SIGNEXTEND, shifts, bit length and CLZ laws are discharged for operation values in §3. Signed division/remainder, exponentiation, byte conversions, narrow/unbounded integer helpers and remaining records are unimplemented. `U256Client.lean`, `U256ArithmeticClient.lean` and `U256BitwiseClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **U256 value, unsigned arithmetic and comparison/bitwise slices complete; remaining API unimplemented.** The structure, observers, constructors, constants, unsigned equality/order, add/sub/mul/div/mod/addmod/mulmod, checkedAdd/Sub/Mul/Div/Mod, comparisons, Boolean comparison helpers, bit logic, BYTE, SIGNEXTEND, shifts, bit length and CLZ laws are discharged for operation values in §3. `Uint := Nat`, checked `Uint.sub?` and `ceil32` are also discharged in §3. Signed division/remainder, exponentiation, byte conversions, narrow integer APIs, other unbounded integer helpers and remaining records are unimplemented. `U256Client.lean`, `U256ArithmeticClient.lean` and `U256BitwiseClient.lean` preserve baseline client scripts using only public observers/laws; full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Derived small-shift composition laws.** EthBase owns the §7 composition equations for SHL, SHR and SAR when the sum of the unsigned shift amounts is below 256. The comparison/bitwise slice discharges only the named model, guard and saturation laws in §3; no named Lean theorem or caller proof for these derived composition equations is implemented. They remain a separate law work item, with public observer-based proofs and boundary cases required.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:61,65,204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. This is the largest semantic risk in this module.
+- **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
 - **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
 - **`exp` performance.** Square-and-multiply mod 2^256 over `BitVec` is not benchmarked. A naive `BitVec` power would be catastrophic.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); `U64` is `UInt64`-backed and needs no such benchmark.
@@ -505,4 +540,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Hex quirks.** Python `fromhex`/`int(…,16)` leniency is deliberately not reproduced. This is justified only because all in-scope uses are constants. If a future path parses hex from input, this becomes a semantic gap.
 - **EEST coverage is thin for checked-arithmetic failures.** The fixture areas exercise EVM wrapping arithmetic well. They do not exercise, for example, `U256` overflow in fee computation or `Uint` underflow, which cannot be reached in valid blocks. Some are reachable from guest input (argued from the pinned source; see the implicit-exception bullet above), so they need probe or constructed tests rather than EEST coverage.
 - **`to_signed` width rule.** The rule (`8·⌈bits/8⌉`, `numeric.py:679–680`) is irrelevant for the standard widths. I infer that no non-byte-aligned `FixedUnsigned` is used; this is not verified by a grep.
-- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, checked unsigned arithmetic with dependency operators, and comparisons/bitwise/shifts with actual pinned handlers. Signed arithmetic, exponentiation and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
+- **Differential coverage beyond the implemented slices.** The §3 drivers compare the value slice with pinned `ethereum-types`, unsigned EVM arithmetic with actual pinned handlers through a minimal frame adapter, checked unsigned arithmetic with dependency operators, and comparisons/bitwise/shifts with actual pinned handlers. The numeric-helper driver also compares checked `Uint` subtraction and actual EELS `ceil32`. Signed arithmetic, exponentiation and byte conversion differential coverage remains unimplemented; the guest conformance runner remains absent.
