@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare U256 EXP values with the actual pinned EELS EXP handler.
 
-Run with the pinned EELS virtual environment's Python:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/u256_exp_differential.py \
-    --eels EELS --output <ignored-evidence>/exp-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_exp_differential.py \
+    --eels /tmp/eels --output /tmp/u256-exp-differential.lean
 
 Source: src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:297,326;
 locked ethereum-types 0.4.1 supplies unsigned conversions. The unchanged handler

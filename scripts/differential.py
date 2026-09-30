@@ -2,12 +2,16 @@
 """Shared safeguards for value differential drivers against the pinned EELS.
 
 Create a fresh reference clone, check out reference.toml's release.commit, and run
-`uv sync --frozen --no-dev` there. Invoke each driver with EELS/.venv/bin/python,
+`uv sync --frozen --no-dev` there. Invoke each driver with EELS/.venv/bin/python -I,
 --eels EELS and --output pointing outside both repositories. Drivers compile current
 source bytes without cached code. EELS bytes are compared with the unreplaced pin;
 ethereum-types Python bytes are compared with the installed distribution RECORD.
-The interpreter, frozen installation and its RECORD remain trusted inputs (this
-is not an authentication of a hostile host). Observations are bug-finding evidence.
+Isolated startup ignores Python environment overrides and the user site. The
+interpreter and frozen installation, including its installed startup hooks and
+RECORD, remain trusted inputs; this does not authenticate a hostile host. Drivers
+check the isolation requirement within that trusted interpreter; they cannot undo
+pre-startup execution or detect a hostile startup hook that spoofs interpreter flags.
+Observations are bug-finding evidence.
 """
 
 import argparse
@@ -49,7 +53,8 @@ class FreshSourceLoader(importlib.machinery.SourceFileLoader):
                 raise ImportError(f"oracle import bytes differ from the pin: {relative}")
         if fullname.split(".", 1)[0] == "ethereum_types":
             if not self.driver.dependency_bytes_match(Path(source), data):
-                raise ImportError(f"dependency source bytes differ from installed RECORD: {source}")
+                raise ImportError(
+                    f"dependency source bytes differ from installed RECORD: {source}")
         return self.source_to_code(data, source)
 
 
@@ -82,10 +87,19 @@ class FreshSourceFinder(importlib.abc.MetaPathFinder):
             spec.submodule_search_locations = locations
             return spec
         if not isinstance(spec.loader, importlib.machinery.SourceFileLoader):
-            if oracle:
+            # Added checkout packages can shadow installed dependencies even when
+            # their names are not oracle namespaces. Check the path before resolving
+            # aliases, so a src bytecode symlink cannot escape this rejection.
+            checkout_origin = spec.origin is not None and (
+                Path(spec.origin).absolute().is_relative_to(self.driver.eels / "src") or
+                Path(spec.origin).resolve().is_relative_to(self.driver.eels / "src"))
+            if oracle or checkout_origin:
                 raise ImportError(f"oracle module is not Python source: {fullname}")
             return None
-        source = Path(spec.origin).resolve()
+        origin = Path(spec.origin).absolute()
+        source = origin.resolve()
+        if origin.is_relative_to(self.driver.eels / "src") and source != origin:
+            raise ImportError(f"oracle source alias is outside the pin: {fullname}")
         within = (source.is_relative_to(self.driver.eels / "src") or
                   source.is_relative_to(self.driver.eels / ".venv"))
         if oracle and (not within or
@@ -109,6 +123,8 @@ class Driver:
         self.parser.add_argument("--seed", type=int, default=seed,
                                  help="deterministic input seed (default: %(default)s)")
         args = self.parser.parse_args()
+        if not sys.flags.isolated:
+            self.parser.error("run with the EELS .venv interpreter and -I (isolated mode)")
         self.seed = args.seed
         self.eels = args.eels.resolve()
         self.output = args.output.resolve()
@@ -155,7 +171,8 @@ class Driver:
             if (source.resolve() != source or not source.is_relative_to(self.eels / ".venv") or
                     not source.is_file() or file.hash is None or file.hash.mode != "sha256" or
                     file.size is None):
-                self.parser.error(f"dependency source lacks a valid installed RECORD entry: {path}")
+                self.parser.error(
+                    f"dependency source lacks a valid installed RECORD entry: {path}")
             self.dependency_hashes[source] = (file.hash.value, file.size)
         if (len(records) != 1 or records[0].resolve() != records[0] or
                 not records[0].is_relative_to(self.eels / ".venv") or
@@ -171,14 +188,23 @@ class Driver:
         digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip("=")
         return (source.resolve() == source and expected == (digest, len(data)))
 
+    def dependency_sources(self):
+        """Report the installed Python source hashes validated against RECORD."""
+        return {
+            str(path): {"sha256_urlsafe": digest, "size": size}
+            for path, (digest, size) in self.dependency_hashes.items()
+        }
+
     def check_dependency(self):
         """Recheck all installed package Python files, including modules not imported."""
         if (self.dependency_record.read_bytes() != self.dependency_record_bytes or
                 set(self.dependency_package.rglob("*.py")) != set(self.dependency_hashes)):
             self.parser.error("dependency RECORD or Python source inventory changed")
         for source in self.dependency_hashes:
-            if not source.is_file() or not self.dependency_bytes_match(source, source.read_bytes()):
-                self.parser.error(f"dependency source bytes differ from installed RECORD: {source}")
+            if (not source.is_file() or
+                    not self.dependency_bytes_match(source, source.read_bytes())):
+                self.parser.error(
+                    f"dependency source bytes differ from installed RECORD: {source}")
 
     def check_clean(self):
         """Require a clean checkout and actual source/lock bytes at the unreplaced pin."""

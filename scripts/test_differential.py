@@ -4,20 +4,22 @@
 import argparse
 import base64
 import hashlib
-from contextlib import redirect_stderr
+from contextlib import contextmanager, redirect_stderr
 import importlib.machinery
 import importlib.metadata
 import io
 import os
 from pathlib import Path
 import py_compile
+import shutil
 import subprocess
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from differential import Driver, FreshSourceFinder, FreshSourceLoader
 
 
@@ -47,6 +49,132 @@ class DifferentialTests(unittest.TestCase):
     def assert_dirty(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
             self.driver.check_clean()
+        self.assertEqual(raised.exception.code, 2)
+
+    def prepare_initializer(self):
+        source, distribution = self.install_dependency_fixture()
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.spec = Path(temp.name) / "spec"
+        self.spec.mkdir()
+        self.script = self.spec / "STFSpec/Conformance/Base/example.py"
+        (self.spec / "reference.toml").write_text(
+            f'[release]\ncommit = "{self.driver.head}"\n'
+            '[release.python_dependencies]\nethereum-types = "1.0"\n')
+        self.argv = [str(self.script), "--eels", str(self.root),
+                     "--output", str(self.spec.parent / "evidence.lean")]
+        return source, distribution
+
+    @contextmanager
+    def initializer_environment(self, distribution):
+        flags = SimpleNamespace(**{name: getattr(sys.flags, name)
+                                   for name in dir(sys.flags) if not name.startswith("_")})
+        flags.isolated = 1
+        package_path = distribution.locate_file("")
+        with patch.dict(sys.modules), patch.object(sys, "flags", flags), \
+                patch.object(sys, "path", [str(package_path)]), \
+                patch.object(sys, "meta_path", list(sys.meta_path)), \
+                patch.object(sys, "prefix", str(self.root / ".venv")), \
+                patch.object(sys, "argv", self.argv):
+            for name in list(sys.modules):
+                if name.split(".", 1)[0] in ("ethereum", "ethereum_types"):
+                    sys.modules.pop(name)
+            yield
+
+    def test_initializer_installs_finder_before_reference_import(self):
+        source, distribution = self.prepare_initializer()
+        # A successful real initializer must install the loader before importing
+        # numeric, not merely return a finder object that a test invokes directly.
+        self.driver.load_dependency_hashes(distribution)
+        self.cache_control(source, "ethereum_types.numeric")
+        with self.initializer_environment(distribution):
+            driver = Driver("test", self.script, 7)
+            self.assertIsInstance(sys.meta_path[0], FreshSourceFinder)
+            self.assertIs(sys.meta_path[0].driver, driver)
+            numeric = sys.modules["ethereum_types.numeric"]
+            self.assertEqual(numeric.VALUE, 1)
+            self.assertIsInstance(numeric.__loader__, FreshSourceLoader)
+            self.assertEqual(driver.dependency, source)
+            self.assertEqual(driver.seed, 7)
+
+    def test_initializer_rejects_wrong_prefix(self):
+        _, distribution = self.prepare_initializer()
+        with self.initializer_environment(distribution), \
+                patch.object(sys, "prefix", str(self.spec)), \
+                redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_initializer_rejects_wrong_pin(self):
+        _, distribution = self.prepare_initializer()
+        pin = self.spec / "reference.toml"
+        pin.write_text(pin.read_text().replace(self.driver.head, "0" * 40))
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("EELS checkout does not match reference.toml", errors.getvalue())
+
+    def test_initializer_rejects_wrong_dependency_version(self):
+        _, distribution = self.prepare_initializer()
+        Path(distribution.locate_file("ethereum_types-1.0.dist-info/METADATA")).write_text(
+            "Name: ethereum-types\nVersion: 2.0\n")
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("ethereum-types version does not match reference.toml", errors.getvalue())
+
+    def test_initializer_rejects_dependency_export_from_wrong_source(self):
+        source, distribution = self.prepare_initializer()
+        # Every installed byte has a valid RECORD hash. Importing the requested
+        # attribute still yields another source file, so RECORD checking alone
+        # cannot establish the source-to-observation mapping.
+        alternative = source.with_name("alternative.py")
+        alternative.write_text("VALUE = 9\n")
+        source.with_name("__init__.py").write_text("from . import alternative as numeric\n")
+        records = []
+        for file in sorted(source.parent.glob("*.py")):
+            data = file.read_bytes()
+            digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip("=")
+            records.append(f"ethereum_types/{file.name},sha256={digest},{len(data)}")
+        records.append("ethereum_types-1.0.dist-info/RECORD,,")
+        Path(distribution.locate_file("ethereum_types-1.0.dist-info/RECORD")).write_text(
+            "\n".join(records) + "\n")
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("ethereum_types/numeric.py was imported outside", errors.getvalue())
+
+    def test_initializer_rejects_internal_output(self):
+        _, distribution = self.prepare_initializer()
+        for output in (self.spec / "evidence.lean", self.root / ".venv/evidence.lean"):
+            with self.subTest(output=output), self.initializer_environment(distribution), \
+                    patch.object(sys, "argv", self.argv[:-1] + [str(output)]), \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                Driver("test", self.script, 7)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
+
+    def test_initializer_rejects_preloaded_reference(self):
+        _, distribution = self.prepare_initializer()
+        for name in ("ethereum", "ethereum_types.numeric"):
+            with self.subTest(name=name), self.initializer_environment(distribution), \
+                    patch.dict(sys.modules, {name: ModuleType(name)}), \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                Driver("test", self.script, 7)
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_initializer_rejects_unisolated_interpreter(self):
+        _, distribution = self.prepare_initializer()
+        with self.initializer_environment(distribution), \
+                patch.object(sys.flags, "isolated", 0), redirect_stderr(io.StringIO()), \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
         self.assertEqual(raised.exception.code, 2)
 
     def test_hidden_source_edits(self):
@@ -151,12 +279,17 @@ class DifferentialTests(unittest.TestCase):
         package.mkdir(parents=True)
         source = package / "numeric.py"
         source.write_text("VALUE = 1\n")
-        metadata = package.parent / "types.dist-info"
+        metadata = package.parent / "ethereum_types-1.0.dist-info"
         metadata.mkdir()
-        digest = base64.urlsafe_b64encode(hashlib.sha256(source.read_bytes()).digest()).decode().rstrip("=")
+        digest = base64.urlsafe_b64encode(
+            hashlib.sha256(source.read_bytes()).digest()).decode().rstrip("=")
+        (package / "__init__.py").write_text("")
+        empty_digest = base64.urlsafe_b64encode(hashlib.sha256(b"").digest()).decode().rstrip("=")
+        (metadata / "METADATA").write_text("Name: ethereum-types\nVersion: 1.0\n")
         (metadata / "RECORD").write_text(
             f"ethereum_types/numeric.py,sha256={digest},{source.stat().st_size}\n"
-            "types.dist-info/RECORD,,\n")
+            f"ethereum_types/__init__.py,sha256={empty_digest},0\n"
+            "ethereum_types-1.0.dist-info/RECORD,,\n")
         distribution = importlib.metadata.PathDistribution(metadata)
         self.driver.load_dependency_hashes(distribution)
         return source, distribution
@@ -186,7 +319,7 @@ class DifferentialTests(unittest.TestCase):
     def test_dependency_missing_hash_rejected(self):
         _, distribution = self.install_dependency_fixture()
         (distribution._path / "RECORD").write_text(
-            "ethereum_types/numeric.py,,10\n" + "types.dist-info/RECORD,,\n")
+            "ethereum_types/numeric.py,,10\n" + "ethereum_types-1.0.dist-info/RECORD,,\n")
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             self.driver.load_dependency_hashes(distribution)
 
@@ -234,12 +367,173 @@ class DifferentialTests(unittest.TestCase):
         spec = FreshSourceFinder(self.driver).find_spec("ethereum", [str(self.root / "src")])
         self.assertIsInstance(spec.loader, FreshSourceLoader)
 
+    def test_finder_rejects_oracle_package_in_dependency_directory(self):
+        finder = FreshSourceFinder(self.driver)
+        pinned = finder.find_spec("ethereum", [str(self.root / "src")])
+        namespace = {}
+        exec(pinned.loader.get_code("ethereum"), namespace)
+        self.assertEqual(namespace["VALUE"], 1)
+        installed = self.root / ".venv/lib/site-packages"
+        counterfeit = installed / "ethereum/__init__.py"
+        counterfeit.parent.mkdir(parents=True)
+        counterfeit.write_text("VALUE = 9\n")
+        control = importlib.machinery.PathFinder.find_spec("ethereum", [str(installed)])
+        self.assertEqual(Path(control.origin), counterfeit)
+        # A Python source file inside the frozen venv is not thereby the pinned
+        # ethereum package. The finder rejects the path before loading its code.
+        with self.assertRaisesRegex(ImportError, "outside the frozen environment"):
+            finder.find_spec("ethereum", [str(installed)])
+
     def test_finder_rejects_sourceless_oracle(self):
         py_compile.compile(str(self.source), cfile=str(self.source.parent / "__init__.pyc"),
                            doraise=True)
         self.source.unlink()
         with self.assertRaisesRegex(ImportError, "not Python source"):
             FreshSourceFinder(self.driver).find_spec("ethereum", [str(self.root / "src")])
+
+    def import_package(self, fullname, finder):
+        with patch.dict(sys.modules), \
+                patch.object(sys, "path", [str(self.root / "src"), *sys.path]), \
+                patch.object(sys, "meta_path", [finder, *sys.meta_path]):
+            sys.modules.pop(fullname, None)
+            return importlib.import_module(fullname)
+
+    def checkout_package(self, fullname):
+        package = self.root / "src" / fullname
+        package.mkdir()
+        with (self.root / ".git/info/exclude").open("a") as stream:
+            stream.write(f"\nsrc/{fullname}/\n")
+        marker = package / "executed"
+        source = package / "__init__.py"
+        source.write_text(f"from pathlib import Path\nPath({str(marker)!r}).touch()\nVALUE = 0\n")
+        return package, source, marker
+
+    def test_non_oracle_sourceless_checkout_package(self):
+        fullname = "checkout_bytecode"
+        package, source, marker = self.checkout_package(fullname)
+        py_compile.compile(str(source), cfile=str(package / "__init__.pyc"), doraise=True)
+        source.unlink()
+        # Real import machinery executes the unexpected package, despite clean Git.
+        self.driver.check_clean()
+        control = self.import_package(fullname, importlib.machinery.PathFinder)
+        self.assertEqual(control.VALUE, 0)
+        self.assertTrue(marker.exists())
+        marker.unlink()
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "not Python source"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_sourceless_checkout_alias(self):
+        fullname = "checkout_alias"
+        package, source, marker = self.checkout_package(fullname)
+        external = self.root / ".venv/package.pyc"
+        external.parent.mkdir()
+        py_compile.compile(str(source), cfile=str(external), doraise=True)
+        source.unlink()
+        (package / "__init__.pyc").symlink_to(external)
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "not Python source"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_nested_git_package(self):
+        fullname = "checkout_source"
+        package, _, marker = self.checkout_package(fullname)
+        subprocess.check_call(["git", "init", "--quiet", str(package)])
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "import bytes differ from the pin"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_non_oracle_checkout_source_alias(self):
+        fullname = "checkout_source_alias"
+        _, source, marker = self.checkout_package(fullname)
+        external = self.root / ".venv/package.py"
+        external.parent.mkdir()
+        source.rename(external)
+        source.symlink_to(external)
+        self.driver.check_clean()
+        with self.assertRaisesRegex(ImportError, "source alias"):
+            self.import_package(fullname, FreshSourceFinder(self.driver))
+        self.assertFalse(marker.exists())
+
+    def test_sourceless_external_path_resolves_into_checkout(self):
+        fullname = "checkout_resolved_bytecode"
+        package, source, marker = self.checkout_package(fullname)
+        py_compile.compile(str(source), cfile=str(package / "__init__.pyc"), doraise=True)
+        source.unlink()
+        external = self.root / ".venv/checkout-alias"
+        external.parent.mkdir()
+        external.symlink_to(self.root / "src", target_is_directory=True)
+        with patch.dict(sys.modules), patch.object(sys, "path", [str(external), *sys.path]), \
+                patch.object(sys, "meta_path", [FreshSourceFinder(self.driver), *sys.meta_path]), \
+                self.assertRaisesRegex(ImportError, "not Python source"):
+            sys.modules.pop(fullname, None)
+            importlib.import_module(fullname)
+        self.assertFalse(marker.exists())
+        # Removing the resolve() arm admits this same package and runs its code.
+        with patch.dict(sys.modules), patch.object(sys, "path", [str(external), *sys.path]):
+            sys.modules.pop(fullname, None)
+            control = importlib.import_module(fullname)
+        self.assertEqual(control.VALUE, 0)
+        self.assertTrue(marker.exists())
+
+    def test_isolated_startup_ignores_python_environment(self):
+        startup = self.root / ".venv/startup"
+        startup.mkdir(parents=True)
+        marker = self.root / ".venv/startup-executed"
+        (startup / "sitecustomize.py").write_text(
+            f"from pathlib import Path\nPath({str(marker)!r}).touch()\n")
+        env = dict(os.environ, PYTHONPATH=str(startup))
+        control = subprocess.run([sys.executable, "-c", "pass"], env=env,
+                                 capture_output=True, text=True)
+        self.assertEqual(control.returncode, 0, control.stderr)
+        self.assertTrue(marker.exists(), "unisolated startup must execute the control")
+        marker.unlink()
+        isolated = subprocess.run([sys.executable, "-I", "-c", "pass"], env=env,
+                                  capture_output=True, text=True)
+        self.assertEqual(isolated.returncode, 0, isolated.stderr)
+        self.assertFalse(marker.exists())
+        # -I also ignores a bad PYTHONHOME before any driver or site code runs.
+        env["PYTHONHOME"] = str(startup / "missing-python-home")
+        isolated = subprocess.run([sys.executable, "-I", "-c", "pass"], env=env,
+                                  capture_output=True, text=True)
+        self.assertEqual(isolated.returncode, 0, isolated.stderr)
+        self.assertFalse(marker.exists())
+
+    def test_harness_disables_ordinary_import_cache_writes(self):
+        source = self.root / ".venv/review_cache_control.py"
+        source.parent.mkdir()
+        source.write_text("VALUE = 1\n")
+        scripts = Path(__file__).resolve().parent
+        probe = (
+            "import importlib,sys\n"
+            "sys.path.insert(0,sys.argv[1])\n"
+            "if sys.argv[3] == 'harness':\n"
+            "    import differential\n"
+            "sys.path.insert(0,sys.argv[2])\n"
+            "module=importlib.import_module('review_cache_control')\n"
+            "if module.VALUE != 1: raise RuntimeError('wrong import result')\n"
+            "print(module.__cached__)\n"
+        )
+        for mode in ("ordinary", "harness"):
+            with self.subTest(mode=mode):
+                result = subprocess.run(
+                    [sys.executable, "-I", "-c", probe, str(scripts), str(source.parent), mode],
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                cache = Path(result.stdout.strip())
+                self.assertEqual(cache.exists(), mode == "ordinary")
+                cache.unlink(missing_ok=True)
+
+    def test_installed_native_dependency_preserved(self):
+        spec = importlib.machinery.PathFinder.find_spec("_json")
+        self.assertIsInstance(spec.loader, importlib.machinery.ExtensionFileLoader)
+        installed = self.root / ".venv/lib"
+        installed.mkdir(parents=True)
+        shutil.copy2(spec.origin, installed / Path(spec.origin).name)
+        self.assertIsNone(FreshSourceFinder(self.driver).find_spec("_json", [str(installed)]))
 
 
 if __name__ == "__main__":

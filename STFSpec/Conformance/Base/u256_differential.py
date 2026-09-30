@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Generate and run U256 guards against the pinned ethereum-types implementation.
 
-Run with the frozen EELS venv's Python, for example:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/u256_differential.py \
-    --eels EELS --output /tmp/u256-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_differential.py \
+    --eels /tmp/eels --output /tmp/u256-differential.lean
 
 Generated observations are bug-finding evidence, never committed normative fixtures.
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. The constructor and signed

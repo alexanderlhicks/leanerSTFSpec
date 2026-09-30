@@ -2,9 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare signed U256 operation values with the actual pinned EELS handlers.
 
-Run with the frozen EELS venv's Python:
-  EELS/.venv/bin/python STFSpec/Conformance/Base/u256_signed_differential.py \
-    --eels EELS --output /tmp/signed-differential.lean
+Run with the pinned EELS checkout at /tmp/eels:
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_signed_differential.py \
+    --eels /tmp/eels --output /tmp/u256-signed-differential.lean
 
 Sources: EELS src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:142,205;
 locked ethereum-types 0.4.1 numeric.py:594,675. A minimal funded frame supplies a

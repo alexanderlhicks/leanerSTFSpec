@@ -189,6 +189,17 @@ variable {n : Nat}
 /-- The big-endian numeric value of the exact-width byte sequence. -/
 def toNat (x : FixedBytes n) : Nat := x.val.toNat
 
+/-- Construct from the numeric model, reducing modulo the exact byte width.
+This Lean model adapter is distinct from the checked Python byte constructor. -/
+def ofNat (v : Nat) : FixedBytes n := ofBitVecRaw (BitVec.ofNat (8 * n) v)
+
+/-- Numeric construction retains exactly the low `8 * n` bits, including width zero. -/
+theorem toNat_ofNat (v : Nat) : (ofNat v : FixedBytes n).toNat = v % 2 ^ (8 * n) := rfl
+
+/-- An in-range numeric model is retained without reduction. -/
+theorem toNat_ofNat_of_lt (v : Nat) (h : v < 2 ^ (8 * n)) :
+    (ofNat v : FixedBytes n).toNat = v := Nat.mod_eq_of_lt h
+
 /-- Exact-width big-endian bytes; preserves leading zero bytes. -/
 def toBytes (x : FixedBytes n) : Bytes := encodeFast n x.toNat
 
@@ -211,6 +222,11 @@ theorem toNat_inj {x y : FixedBytes n} : x.toNat = y.toNat ↔ x = y := by
     cases hv
     rfl
   · exact congrArg toNat
+
+/-- Numeric construction reconstructs every fixed-byte value from its model. -/
+theorem ofNat_toNat (x : FixedBytes n) : ofNat x.toNat = x := by
+  apply toNat_inj.mp
+  exact Nat.mod_eq_of_lt (toNat_lt x)
 
 /-- Decidable equality observes the big-endian numeric value. -/
 instance : DecidableEq (FixedBytes n) := fun x y ↦
@@ -299,6 +315,93 @@ theorem toBytes_inj {x y : FixedBytes n} : x.toBytes = y.toBytes ↔ x = y := by
     exact Option.some.inj (by simpa only [ofBytes?_toBytes] using this)
   · exact congrArg toBytes
 
+private def ofLeNatReference (v : Nat) : FixedBytes n :=
+  (ofBytes? (Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i))))).get (by
+    apply Option.isSome_iff_ne_none.mpr
+    intro h
+    exact ofBytes?_eq_none_iff.mp h (Bytes.size_generate _ _))
+
+private theorem toBytes_ofLeNatReference (v : Nat) :
+    (ofLeNatReference v : FixedBytes n).toBytes =
+      Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i))) := by
+  apply (ofBytes?_eq_some_iff.mp ?_).2
+  exact (Option.some_get _).symm
+
+-- Build the numeric observer of low-to-high digits without an intermediate byte buffer.
+private def reverseDigitsAux (v : Nat) : Nat → Nat → Nat → Nat
+  | 0, _, acc => acc
+  | remaining + 1, i, acc => reverseDigitsAux v remaining (i + 1)
+      (256 * acc + (UInt8.ofNat (v >>> (8 * i))).toNat)
+
+private theorem reverseDigitsAux_eq (v remaining i acc : Nat) :
+    reverseDigitsAux v remaining i acc =
+      ((List.range' i remaining).map (fun j ↦ UInt8.ofNat (v >>> (8 * j)))).foldl
+        (fun acc byte ↦ 256 * acc + byte.toNat) acc := by
+  induction remaining generalizing i acc with
+  | zero => simp [reverseDigitsAux]
+  | succ remaining ih =>
+    simp only [reverseDigitsAux, ih, List.range'_succ, List.map_cons, List.foldl_cons]
+
+/-- Exact-width little-endian construction from the numeric model.
+Only the low `8 * n` bits are observed; no intermediate byte sequence is allocated. -/
+def ofLeNat (v : Nat) : FixedBytes n := ofNat (reverseDigitsAux v n 0 0)
+
+private theorem ofLeNat_eq_reference (v : Nat) :
+    (ofLeNat v : FixedBytes n) = ofLeNatReference v := by
+  apply toNat_inj.mp
+  have he : reverseDigitsAux v n 0 0 =
+      decodeFast (Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i)))) := by
+    rw [reverseDigitsAux_eq, ← List.range_eq_range', decodeFast,
+      Bytes.foldl_eq, Bytes.toList_generate]
+  have hr : decodeFast (Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i)))) <
+      2 ^ (8 * n) := by
+    rw [decodeFast_eq_decodeReference, ← pow_256_eq_two_pow]
+    have h := decodeReference_lt
+      (Bytes.toList (Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i)))))
+    simpa only [Bytes.length_toList, Bytes.size_generate] using h
+  rw [ofLeNat, toNat_ofNat, he, Nat.mod_eq_of_lt hr,
+    toNat_eq_fold, toBytes_ofLeNatReference]
+  exact Bytes.foldl_eq _ _ _
+
+/-- Little-endian numeric construction exposes exactly the low-to-high byte digits. -/
+theorem toBytes_ofLeNat (v : Nat) :
+    (ofLeNat v : FixedBytes n).toBytes =
+      Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * i))) := by
+  rw [ofLeNat_eq_reference, toBytes_ofLeNatReference]
+
+/-- Numeric construction's byte observer selects the exact big-endian digits. -/
+theorem toBytes_ofNat (v : Nat) :
+    (ofNat v : FixedBytes n).toBytes =
+      Bytes.generate n (fun i ↦ UInt8.ofNat (v >>> (8 * (n - 1 - i)))) := by
+  apply Bytes.ext
+  rw [toBytes, toList_encodeFast, Bytes.toList_generate]
+  apply List.ext_getElem
+  · simp [length_encodeReference]
+  · intro i hi hj
+    have hi' : i < n := by simpa only [length_encodeReference] using hi
+    rw [getElem_encodeReference n _ i hi']
+    simp only [List.getElem_map, List.getElem_range, toNat_ofNat]
+    rw [← pow_256_eq_two_pow]
+    rw [digit_mod_pow v n (n - 1 - i) (by omega), Nat.shiftRight_eq_div_pow]
+    congr 2
+    rw [Nat.pow_mul]
+
+/-- Exact-width little-endian bytes reverse the big-endian numeric construction. -/
+theorem toBytes_ofLeNat_eq_reverse (v : Nat) :
+    (ofLeNat v : FixedBytes n).toBytes =
+      Bytes.ofList (ofNat v : FixedBytes n).toBytes.toList.reverse := by
+  rw [toBytes_ofLeNat, toBytes_ofNat]
+  apply Bytes.ext
+  rw [Bytes.toList_ofList, Bytes.toList_generate, Bytes.toList_generate]
+  apply List.ext_getElem
+  · simp
+  · intro i hi hj
+    have hi' : i < n := by simpa only [List.length_map, List.length_range] using hi
+    simp only [List.getElem_map, List.getElem_range, List.getElem_reverse]
+    congr 2
+    simp only [List.length_map, List.length_range]
+    omega
+
 /-- The executable order observes big-endian numeric values. -/
 theorem compare_toNat (x y : FixedBytes n) :
     compare x y = compare x.toNat y.toNat := rfl
@@ -348,6 +451,17 @@ def toNat (x : Address) : Nat := x.toFixed.toNat
 /-- Exact 20-byte observer, including leading zeros. -/
 def toBytes (x : Address) : Bytes := x.toFixed.toBytes
 
+/-- Construct an address from the numeric model, retaining exactly its low 160 bits.
+This is a Lean model adapter, not an additional Python byte constructor. -/
+def ofNat (v : Nat) : Address := ofFixed (FixedBytes.ofNat v)
+
+/-- Numeric address construction retains exactly the low 160 bits. -/
+theorem toNat_ofNat (v : Nat) : (ofNat v).toNat = v % 2 ^ 160 := rfl
+
+/-- An in-range address model is retained without reduction. -/
+theorem toNat_ofNat_of_lt (v : Nat) (h : v < 2 ^ 160) :
+    (ofNat v).toNat = v := Nat.mod_eq_of_lt h
+
 /-- Exact-length checked constructor; EELS `src/ethereum/state.py:33` and
 locked `ethereum_types/bytes.py:29`. Wrong length fails before value decoding. -/
 def ofBytes? (b : Bytes) : Option Address := (FixedBytes.ofBytes? b).map ofFixed
@@ -362,6 +476,11 @@ theorem toNat_inj {x y : Address} : x.toNat = y.toNat ↔ x = y := by
     have hf := FixedBytes.toNat_inj.mp h
     exact congrArg ofFixed hf
   · exact congrArg toNat
+
+/-- Numeric construction reconstructs an address from its complete public model. -/
+theorem ofNat_toNat (x : Address) : ofNat x.toNat = x := by
+  apply toNat_inj.mp
+  exact Nat.mod_eq_of_lt (toNat_lt x)
 
 /-- Domain equality is decidable through its stable numeric model. -/
 instance : DecidableEq Address := fun x y ↦
