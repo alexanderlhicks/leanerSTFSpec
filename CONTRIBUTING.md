@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-09-29.*
+*Status: current contributor guidance. Date: 2026-09-30.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -78,6 +78,33 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern.
    - Lean-like signatures convey names, inputs, outputs, error channels and ownership. Fixing exact Lean types, resolving placeholders and compiling the interfaces is implementation work.
    - The informal correctness arguments are *sketches*: the claim, the premises, why it should hold, and what remains open. They tell the implementer what to prove and suggest how; the proofs themselves are the implementer's.
    - Precision is judged by one question: can an implementer act on it without guessing?
+5. **Blocking findings require a material reason.** Review the stated work item and
+   the contracts and evidence it relies on. A blocker identifies the governing
+   requirement, the affected behavior or claim, and supporting evidence: a
+   counterexample, a failed required check, a source discrepancy, or a missing
+   required proof or test case. Passing Lean proofs alone does not establish
+   reference fidelity or compiled behavior, but a request for more testing alone
+   does not establish a defect either.
+   - **Blockers:** incorrect semantics or failure order; a violated public contract,
+     trust boundary or applicable resource requirement; missing required validation;
+     or documentation/evidence that materially misstates what was implemented or
+     verified. A Python or shell defect qualifies when it changes required behavior
+     or makes evidence used by the work item unreliable—for example, executing the
+     wrong oracle code, authenticating different bytes, or losing CLI reply framing.
+   - **Non-blocking improvements:** formatting, naming preferences, unused imports,
+     equivalent helper organization, cosmetic documentation edits and speculative
+     harness hardening, absent an identified material consequence. These remain
+     recommendations even when a style convention supports them. They may be fixed
+     now or in a separate polishing change; no waiver, new issue or proof that the
+     observation is wrong is required to defer them.
+   - **Scope:** unrelated or pre-existing tooling cleanup belongs in a tooling work
+     item. If a tooling defect prevents required validation, fix that prerequisite
+     separately or as a focused dependency; do not expand the Lean contribution into
+     a general harness rewrite. A failed required check still needs resolution.
+     Propose additional general checks separately, with regression evidence; do not
+     make an unrelated new gate a condition of the current contribution. Open
+     repository obligations block only the work or readiness claim they affect.
+     Cosmetic script lint may be advisory; it is not a required merge gate.
 
 ## 6. Workflow and pull requests
 
@@ -124,7 +151,11 @@ Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail`
 Every change is a **work item**: a self-contained change that one reviewer can hold in full (for example one type with its operations and laws). A work item is committed only when all of these hold for the exact tree being committed:
 
 - every check in §6.3 passes, together with the item's own tests: the deterministic and failure-order cases its spec guidance lists (§4 of each guidance document), and differential comparison against EELS where the guidance calls for it;
-- an **independent adversarial review** of that exact diff (§6.6, *adversarial reviewer*) found it **clean**. Any change made after the review is reviewed again. A finding may be set aside only with written evidence that it is wrong, recorded in the pull request;
+- an **independent adversarial review** of that exact diff (§6.6, *adversarial reviewer*)
+  found it **clean**: required checks were run and no blocking finding under §5.5
+  remains unresolved. Non-blocking recommendations may remain. A blocker must be
+  fixed or rebutted with written evidence in the pull request; deferring a nit does
+  not require a rebuttal. Any change made after review is reviewed again;
 - the documentation is current (§6.5);
 - the commit message follows §6.2's conventions and summarises the change, the evidence and the review verdicts.
 
@@ -159,7 +190,15 @@ Work may be carried out by agents in any harness. An **orchestrator** plans work
   - the data structures against the guidance or DEBT;
   - documentation drift.
 
-  It re-runs the checks itself. It returns **clean** or **not clean**, with findings by severity (blocking / should fix / nit), each with file:line and evidence (an EELS citation, a counterexample or command output), and lists what it could not verify. It never reports clean on unrun checks. Load-bearing items (shared types, seams, laws other modules rely on) get two independent reviewers.
+  It re-runs the checks itself. It returns **clean** or **not clean** as defined in
+  §6.4, with findings classified under §5.5: **blocking**, **should fix**
+  (non-blocking recommendation), or **nit** (non-blocking polish). A blocker names
+  its governing requirement, affected behavior or claim, file:line and evidence.
+  The report lists what could not be verified and keeps tooling findings distinct
+  from Lean semantic findings. A correctly classified script nit cannot turn a
+  clean Lean work item into a **not clean** verdict. It never reports clean on
+  unrun required checks. Load-bearing items (shared types, seams, laws other modules
+  rely on) get two independent reviewers.
 - **Polisher.** Improves accepted work for legibility and style (§2, §7) without changing behaviour, public signatures or stated laws: naming, structure, moving duplicated helpers to their owner, proof clarity, docstrings, stale documentation. One theme per pass; the result goes back through review.
 
 Harness-specific configuration (for example agent definition files) is local to each contributor, is not committed, and only points to this section.
