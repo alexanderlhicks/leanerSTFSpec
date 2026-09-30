@@ -6,6 +6,8 @@ import STFSpec.Conformance.Base.BytesGuards
 import STFSpec.Conformance.Base.BytesCallerProofs
 import STFSpec.Conformance.Base.FixedBytesGuards
 import STFSpec.Conformance.Base.FixedBytesCallerProofs
+import STFSpec.Conformance.Base.IntegerBytesCallerProofs
+import STFSpec.Conformance.Base.IntegerBytesGuards
 import STFSpec.Conformance.Base.NarrowCallerProofs
 import STFSpec.Conformance.Base.NarrowGuards
 import STFSpec.Conformance.Base.NumericCallerProofs

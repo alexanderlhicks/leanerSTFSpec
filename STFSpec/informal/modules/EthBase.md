@@ -388,8 +388,9 @@ composition cost gates remain open under D2/C1–C4. The compiled
 The pair law implements F19's ordered-key contract, including `EthState`'s
 transient-storage map. Its differential compares Python tuples; it executes no
 BAL pair sort. At the pin, BAL `block_access_lists.py:671,672` sorts `U256` slots,
-while `:685` sorts addresses alone. The Bytes32-to-U256 conversion/order bridge
-and actual BAL sorting refinement remain consumer obligations owned by `EthBlock`.
+while `:685` sorts addresses alone. The conversion rows below provide the
+Bytes32-to-U256 value bridge. Applying its observer equations to actual BAL slot sorting remains a consumer obligation
+owned by `EthBlock`.
 
 Regression evidence is in `STFSpec/Conformance/Base/FixedBytesGuards.lean`,
 `FixedBytesCallerProofs.lean` and `fixed_bytes_differential.py`, including generic
@@ -401,8 +402,76 @@ explicit big-endian `int.from_bytes` model. Coverage includes widths
 0/1/4/8/20/32/48/64/96/256, exact/short/long and zero-length construction,
 boundary/indexed/random contents, domain conversion, cross-type content equality
 and address/slot tuple order. Generated evidence is executed outside both
-repositories and remains uncommitted. Integer endian/minimal encodings, masked
-addresses, records, hashing and consumer BAL sorting remain separate work (§10).
+repositories and remains uncommitted. Integer endian/minimal encodings and masked
+addresses are discharged in the conversion rows below; records, hashing and consumer BAL sorting remain separate
+work (§10).
+
+### Integer byte conversions
+
+`STFSpec/Base/IntegerBytes.lean` implements the following **discharged value-slice**
+rows, under namespaces `STFSpec.Base.Uint`, `U256`, `U64` and `Address`.
+All operations are pure, total and have no state effects. Inputs are typed natural
+numbers, words or immutable bytes; negative Python integers and other Python
+object types are outside these domains. The rows correspond to locked
+`ethereum-types` 0.4.1 and the pinned EELS address helper. `toBeBytes` is the minimal
+big-endian family, while suffixes `32` and `8` denote exact-size output. The
+`ofBeBytes32` input type already guarantees the fixed-width source length check.
+
+`FixedUnsigned.from_be_bytes` and `from_le_bytes` check the byte length before
+numeric interpretation, rejecting an over-width string even when every byte is
+zero. Accepted strings may be empty or have leading zero bytes. Their positional
+value fits the word width, so the subsequent checked Python constructor cannot
+raise `OverflowError`. `Uint` decoding accepts every byte length; fixed-32 output
+checks its complete value before encoding. Each checked primitive returns `none`
+for its stated failure, leaving the named fault and first consuming handler to
+its consumer under D14/B14. These rows do not close global X1 or guest outcomes.
+
+| Source at the pin | Lean declaration and public type | Domain and success observation / ordered guards | Ordered failures | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| `ethereum_types/numeric.py:523–528` | `Uint.ofBeBytes : Bytes → Nat` | Big-endian radix-256 positional value; leading zeros accepted | None | `Uint.ofBeBytes_eq_fold`, `Uint.ofBeBytes_lt` | empty, 33 zeros, 65-byte leading zeros, 512-byte inputs |
+| `ethereum_types/numeric.py:531–536` | `Uint.ofLeBytes : Bytes → Nat` | Big-endian value of reversed bytes; leading zeros accepted | None | `Uint.ofLeBytes_eq_reverse`, `Uint.ofLeBytes_lt` | asymmetric [1,0]/[0,1], 512-byte inputs |
+| `ethereum_types/numeric.py:477–484` | `Uint.toBeBytes : Nat → Bytes` | Minimal big-endian; zero ↦ empty; size ≤ k iff value < 2^(8k) | None; no width bound | `Uint.ofBeBytes_toBeBytes`, `Uint.size_toBeBytes_le_iff`, `Uint.toBeBytes_eq_empty_iff`, `Uint.toList_toBeBytes_head_ne_zero` | 0/255/256, above 2^256, 4097-bit values |
+| `ethereum_types/numeric.py:424–429` | `Uint.toBeBytes32? : Nat → Option Bytes32` | Exactly 32 bytes with complete input value | OverflowError ↦ none iff n ≥ 2^256; checked before output | `Uint.toBeBytes32?_eq_some_iff`, `Uint.toBeBytes32?_eq_none_iff` | 2^256−1 succeeds; 2^256 and 2^4096 reject |
+| `ethereum_types/numeric.py:424–429` | `U256.toBeBytes32 : U256 → Bytes32` | Exactly 32 bytes, complete unsigned value | None; typed range discharges source OverflowError | `U256.toNat_toBeBytes32`, `U256.size_toBeBytes32`, `U256.ofBeBytes_toBeBytes32` | zero/max and ascending endian markers |
+| `ethereum_types/numeric.py:566–577` | `U256.ofBeBytes32 : Bytes32 → U256` | Complete fixed-byte numeric value | None; type discharges length/range checks | `U256.toNat_ofBeBytes32`, `U256.ofBeBytes32_toBeBytes32`, `U256.toBeBytes32_ofBeBytes32` | fixed zero/max and caller inverse proofs |
+| `ethereum_types/numeric.py:566–577` | `U256.ofBeBytes? : Bytes → Option U256` | Complete big-endian value when size ≤ 32 | ValueError ↦ none iff size > 32, before decoding; later numeric overflow proved unreachable | `U256.ofBeBytes?_eq_some_iff`, `U256.ofBeBytes?_eq_none_iff` | empty, [0,1], 32 zeros accepted; 33 zeros rejected |
+| `ethereum_types/numeric.py:477–484` | `U256.toBeBytes : U256 → Bytes` | Minimal big-endian, zero ↦ empty, at most 32 bytes | None | `U256.ofBeBytes?_toBeBytes`, `U256.size_toBeBytes_le`, `U256.toList_toBeBytes_head_ne_zero`, `U256.toBeBytes_zero` | 0/255/256/max; every byte-boundary differential |
+| `ethereum_types/numeric.py:495–500` | `U256.toLeBytes32 : U256 → Bytes32` | Exactly 32 bytes; reverse of big-endian output | None; typed range discharges source OverflowError | `U256.toBytes_toLeBytes32`, `U256.size_toLeBytes32`, `U256.ofLeBytes_toLeBytes32` | zero/max and asymmetric endian markers |
+| `ethereum_types/numeric.py:459–464` | `U64.toBeBytes8 : U64 → Bytes8` | Exactly 8 bytes, complete unsigned value | None; typed range discharges source OverflowError | `U64.toNat_toBeBytes8`, `U64.size_toBeBytes8`, `U64.ofBeBytes?_toBeBytes8` | zero/max and ascending endian markers |
+| `ethereum_types/numeric.py:452–457` | `U64.toLeBytes8 : U64 → Bytes8` | Exactly 8 bytes; reverse of big-endian output | None; typed range discharges source OverflowError | `U64.toBytes_toLeBytes8`, `U64.size_toLeBytes8`, `U64.ofLeBytes?_toLeBytes8` | zero/max and asymmetric endian markers |
+| `ethereum_types/numeric.py:566–577` | `U64.ofBeBytes? : Bytes → Option U64` | Complete big-endian value when size ≤ 8 | ValueError ↦ none iff size > 8, before decoding; later numeric overflow proved unreachable | `U64.ofBeBytes?_eq_some_iff`, `U64.ofBeBytes?_eq_none_iff` | empty, [0,1], 8 zeros accepted; 9 zeros rejected |
+| `ethereum_types/numeric.py:580–591` | `U64.ofLeBytes? : Bytes → Option U64` | Complete little-endian value when size ≤ 8 | ValueError ↦ none iff size > 8, before decoding; later numeric overflow proved unreachable | `U64.ofLeBytes?_eq_some_iff`, `U64.ofLeBytes?_eq_none_iff` | empty, [1,0], 8 zeros accepted; 9 zeros rejected |
+| `ethereum_types/numeric.py:477–484` | `U64.toBeBytes : U64 → Bytes` | Minimal big-endian, zero ↦ empty, at most 8 bytes | None | `U64.ofBeBytes?_toBeBytes`, `U64.size_toBeBytes_le`, `U64.toList_toBeBytes_head_ne_zero`, `U64.toBeBytes_zero` | 0/255/256/max; every byte-boundary differential |
+| EELS `forks/amsterdam/utils/address.py:24,39` | `Address.ofU256Masked : U256 → Address` | Last 20 fixed-32 bytes; numeric value x.toNat % 2^160 | None; typed U256 input discharges to_be_bytes32 overflow, exact tail length discharges Address construction | `Address.toBytes_ofU256Masked`, `Address.toNat_ofU256Masked` | 2^160/2^160+1, high-bit markers, max |
+| EELS `forks/amsterdam/utils/address.py:24,39` (model embedding) | `Address.toU256 : Address → U256` | Word with the complete address numeric value; not a separate Python operation | None; address range proves word fits | `Address.toNat_toU256`, `Address.ofU256Masked_toU256`, `Address.toNat_toU256_ofU256Masked` | public caller roundtrip and low-160-bit proofs |
+
+The implementation keeps private legible positional models beside its Horner
+fold and decreasing-power fixed encoder, with ordinary equality theorems. Minimal
+output recursively divides by 256, then reverses the digit list once. Fixed loops
+visit only the output width. Big-endian decoding uses the public packed
+`Bytes.foldl` with its list-model law; little-endian decoding reverses the input
+list before its Horner fold. Fixed and Address outputs use only their public checked constructors, observers and laws;
+no stored fields are available to this file or the caller proofs.
+
+`STFSpec/Conformance/Base/IntegerBytesGuards.lean` supplies 141 deterministic guards;
+`IntegerBytesCallerProofs.lean` supplies 32 caller proofs using only public laws. The
+`integer_bytes_differential.py` driver reuses `scripts/differential.py` and owns its
+seed and observed case counts. It compares the actual locked methods and
+`to_address_masked` with 1,081 generated observations (seed 5003), including 48
+length rejections and 19 fixed-output overflows. The shared driver verifies the
+pinned source bytes before executing reference Python source, bypasses cached
+bytecode, checks the exact EELS `.venv` prefix and installed `ethereum-types`
+RECORD entries, and rechecks pinned checkout and dependency source bytes after
+execution.
+The driver reports the pinned Git blob identities and installed dependency source
+hashes. The interpreter, frozen installation and its RECORD remain trusted inputs;
+these checks do not authenticate installed wheels or a hostile host. Generated
+observations are written outside both repositories. This is local primitive
+value evidence, with no guest execution or performance-target claim.
+
+The U8/U16/U32 byte APIs remain unspecified and unimplemented; this slice adds
+only the exact U64 byte interface listed in §5. Provider byte/fixed-byte slices
+have their own acceptance gates; these conversion rows do not accept a provider.
 
 ## 4. Tests
 
@@ -428,7 +497,7 @@ addresses, records, hashing and consumer BAL sorting remain separate work (§10)
   - Checked arithmetic: `checkedAdd max 1 = none`, `checkedSub 0 1 = none`, `ofNat? 2^256 = none`, `ofInt? 2^255 = none`, `ofInt? (−2^255) = some 2^255`.
   - Bytes: `Uint.toBeBytes 0 = empty`, `U256.ofBeBytes? (33 zero bytes) = none`, `ceil32 0 = 0`, `ceil32 33 = 64`, `leftPadZero` of a 21-byte value to 20 returns it unchanged.
   - `taylorExponential 1 0 1 = 1`, plus the blob base fee values from EIP-4844's table.
-  - Byte sequences: empty input and zero width; equal/short/long target widths; no truncation of oversize inputs; left/right padding idempotence and per-byte prefix/suffix observations; in-bounds, partially and fully unavailable windows; exact padded-read length; zero-length and small reads at huge natural offsets (`2^256−1`, `2^4096`). The byte-sequence and fixed/domain byte suites are implemented; integer endian/minimal encoding cases remain open.
+  - Byte sequences: empty input and zero width; equal/short/long target widths; no truncation of oversize inputs; left/right padding idempotence and per-byte prefix/suffix observations; in-bounds, partially and fully unavailable windows; exact padded-read length; zero-length and small reads at huge natural offsets (`2^256−1`, `2^4096`). The byte-sequence, fixed/domain and scoped Uint/U256/U64 integer endian/minimal suites are implemented; unspecified U8/U16/U32 byte cases remain open.
   - Adversarial: `exp` with a 256-bit exponent completes in bounded time.
 - **Property / differential tests.**
   - Public universal model laws (§7), plus the external differential drivers for random and boundary inputs (0, 1, 2^255±1, 2^256−1).
@@ -472,8 +541,8 @@ namespace U256
   -- Conversions
   def toBeBytes32 : U256 → Bytes32
   def ofBeBytes32 : Bytes32 → U256
-  def ofBeBytes?  : ByteArray → Option U256          -- none iff size > 32
-  def toBeBytes   : U256 → ByteArray                 -- minimal; 0 ↦ empty
+  def ofBeBytes?  : Bytes → Option U256          -- none iff size > 32
+  def toBeBytes   : U256 → Bytes                 -- minimal; 0 ↦ empty
   def toLeBytes32 : U256 → Bytes32
   def bitLength   : U256 → Nat
 end U256
@@ -482,13 +551,16 @@ end U256
 structure U64 where private val : UInt64            -- executable (unboxed); and U8/U16/U32 over UInt8/16/32
 -- model: Nat < 2^64 via toNat; reference semantics via toBitVec : U64 → BitVec 64 (the abstraction)
 -- U64.toNat, ofNat?, ofNat (wrapping), checkedAdd/Sub/Mul, wrappingAdd/Sub/Mul,
--- toBeBytes8, toLeBytes8, ofBeBytes?, ofLeBytes?, toBeBytes (minimal)
+-- conversions in namespace U64:
+-- toBeBytes8, toLeBytes8 : U64 → Bytes8
+-- ofBeBytes?, ofLeBytes? : Bytes → Option U64 (none iff size > 8)
+-- toBeBytes : U64 → Bytes (minimal; 0 ↦ empty)
 
 -- Unbounded
 abbrev Uint := Nat                                   -- public model = Nat itself
 def Uint.sub? : Nat → Nat → Option Nat               -- Python OverflowError on underflow
-def Uint.toBeBytes : Nat → ByteArray                 -- minimal big-endian; 0 ↦ empty
-def Uint.ofBeBytes Uint.ofLeBytes : ByteArray → Nat
+def Uint.toBeBytes : Nat → Bytes                 -- minimal big-endian; 0 ↦ empty
+def Uint.ofBeBytes Uint.ofLeBytes : Bytes → Nat
 def Uint.toBeBytes32? : Nat → Option Bytes32         -- none iff ≥ 2^256
 
 -- Bytes
@@ -585,9 +657,9 @@ still need cost measurements at the consumed widths. The representation must kee
 fixed-byte order equal to lexicographic order on big-endian bytes (§3).
 The BAL sorts addresses directly (`block_access_lists.py:685`), but its slot sorts
 use `U256` (`:671–672`), obtained from byte slots through `U256.from_be_bytes`
-(`:824,845`). Applying byte-order laws there needs the pending big-endian
-conversion/order bridge. F19 separately governs EthState's ordered address/byte-slot
-keys; the BAL does not sort those pairs.
+(`:824,845`). The big-endian conversion value bridge is implemented in §3;
+applying its observer equations to BAL sorting remains a consumer obligation.
+F19 separately governs EthState's ordered address/byte-slot keys; the BAL does not sort those pairs.
 
 ## 7. Contract and laws
 
@@ -612,7 +684,9 @@ keys; the BAL does not sort those pairs.
 - `toInt` is in `[−2^255, 2^255)`, and `ofInt? x.toInt = some x`;
 - `ofBeBytes32 (toBeBytes32 x) = x`;
 - `ofBeBytes? (toBeBytes x) = some x`, and `toBeBytes x` has no leading zero byte (feeds RLP canonicality);
-- `Uint.ofBeBytes (Uint.toBeBytes n) = n`.
+- `Uint.ofBeBytes (Uint.toBeBytes n) = n`; `(Uint.toBeBytes n).size ≤ k ↔ n < 2^(8k)`; zero is the only empty minimal output.
+- U64 fixed/minimal endian inverses and exact-width length checks are discharged in §3; bounded decode rejects over-width bytes before interpreting their numeric value.
+- `(Address.ofU256Masked x).toNat = x.toNat % 2^160`; its bytes are the final 20 fixed-32 bytes, and `Address.ofU256Masked a.toU256 = a`.
 
 **Byte sequences** [R/C]:
 
@@ -637,7 +711,7 @@ keys; the BAL does not sort those pairs.
 
 **Premises.** Integer widths are positive; generic fixed-byte widths are arbitrary natural numbers, including zero. Checked conversions report overflow, byte order is explicit, and the Taylor denominator is positive. These are local premises; neither gas bounds nor hash assumptions are needed.
 
-**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal encoding equations remain open. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
+**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal inverse, length, canonicality and ordered width-rejection equations are discharged for the scoped §3 conversion rows; masked-address construction preserves exactly the low 160 bits. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
 
 **Open obligations.** Complete the enumeration of checked-operation failure sites and their errors, the actual Taylor measure and its practical cost analysis (DISC-002), and the Envelope domain. The recurrence argument proves mathematical termination, not a usable zkVM cycle bound.
 
@@ -647,7 +721,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** none (Lean core only).
 - **Used by:** directly `EthHash`, `EthField`, `EthState`; transitively every core library.
-- **Seams provided.** The word API (observer laws) consumed by `EthVmInstructions`. Checked arithmetic, whose `none` results consumers must map to the enclosing EELS handler: typically block-invalid at `stateless.py:303`, never an EVM halt. Fixed-width key types with lawful byte orders, consumed by `EthState` maps (F19) and the BAL address sort. BAL numeric slot order additionally needs the pending byte-to-U256 conversion bridge. `Envelope` as the hypothesis type of refinement theorems (`EthConformance`, consumers). The `HashConsts` record type, filled by `EthHash.HashConsts.query` and read by `EthState`, `EthCommit`, `EthVmCore` and `EthBlock`.
+- **Seams provided.** The word API (observer laws) consumed by `EthVmInstructions`. Checked arithmetic, whose `none` results consumers must map to the enclosing EELS handler: typically block-invalid at `stateless.py:303`, never an EVM halt. Fixed-width key types with lawful byte orders, consumed by `EthState` maps (F19) and the BAL address sort. The byte-to-U256 value bridge is provided in §3; BAL numeric slot sorting refinement remains a consumer obligation. `Envelope` as the hypothesis type of refinement theorems (`EthConformance`, consumers). The `HashConsts` record type, filled by `EthHash.HashConsts.query` and read by `EthState`, `EthCommit`, `EthVmCore` and `EthBlock`.
 - **Guarantees.** All operations are total and deterministic. No `@[extern]`/`@[implemented_by]`, and no `@[csimp]` (D21).
 - **Relies on.** Nothing, except Lean core `BitVec`/`Nat` lemmas at v4.34.0 (P3).
 
@@ -666,7 +740,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. Integer endian/minimal conversions (including narrow byte APIs), masked address construction, other unbounded integer helpers and remaining records are unimplemented. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. The scoped Uint/U256/U64 endian/minimal conversions and masked-address construction are discharged in §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; other unbounded integer helpers and remaining records are unimplemented. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`vm/gas.py:931,944,945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
