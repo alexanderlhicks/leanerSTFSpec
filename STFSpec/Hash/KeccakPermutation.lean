@@ -23,8 +23,11 @@ Spec guidance: `STFSpec/informal/modules/EthHash.md`.
 
 namespace STFSpec.Hash
 
-/-- Reference storage: lane `(x,y)` is at `x + 5*y` (FIPS 202 §3.1.2). -/
-abbrev KeccakState := Vector UInt64 25
+/-- Reference state with private storage; use coordinate construction and observation. -/
+structure KeccakState where
+  private ofVectorRaw ::
+  private lanes : Vector UInt64 25
+  deriving DecidableEq
 
 /-- Standard coordinate state, with bit zero the least significant lane bit. -/
 abbrev KeccakModel := Fin 5 × Fin 5 → BitVec 64
@@ -33,7 +36,7 @@ abbrev KeccakModel := Fin 5 × Fin 5 → BitVec 64
 def keccakLaneIndex (x y : Fin 5) : Fin 25 := ⟨x.val + 5 * y.val, by omega⟩
 
 /-- Read a lane through the stable coordinate interface. -/
-def keccakLane (a : KeccakState) (x y : Fin 5) : UInt64 := a[keccakLaneIndex x y]
+def keccakLane (a : KeccakState) (x y : Fin 5) : UInt64 := a.lanes[keccakLaneIndex x y]
 
 /-- Bit-vector observation of every coordinate lane. -/
 def keccakToModel (a : KeccakState) : KeccakModel :=
@@ -41,7 +44,8 @@ def keccakToModel (a : KeccakState) : KeccakModel :=
 
 /-- Construct reference storage from coordinate lanes without a list intermediary. -/
 def keccakOfLanes (f : Fin 5 → Fin 5 → UInt64) : KeccakState :=
-  Vector.ofFn fun i ↦ f ⟨i.val % 5, Nat.mod_lt _ (by decide)⟩ ⟨i.val / 5, by omega⟩
+  KeccakState.ofVectorRaw <|
+    Vector.ofFn fun i ↦ f ⟨i.val % 5, Nat.mod_lt _ (by decide)⟩ ⟨i.val / 5, by omega⟩
 
 /-- Construction retains exactly the lane at each coordinate. -/
 theorem keccakLane_ofLanes (f : Fin 5 → Fin 5 → UInt64) (x y : Fin 5) :
@@ -57,6 +61,11 @@ theorem keccakLane_ofLanes (f : Fin 5 → Fin 5 → UInt64) (x y : Fin 5) :
 /-- Equal coordinate-model observations determine equal reference states. -/
 theorem keccakToModel_inj {a b : KeccakState}
     (h : keccakToModel a = keccakToModel b) : a = b := by
+  suffices hlanes : a.lanes = b.lanes by
+    cases a
+    cases b
+    cases hlanes
+    rfl
   apply Vector.ext
   intro i hi
   let x : Fin 5 := ⟨i % 5, Nat.mod_lt _ (by decide)⟩
@@ -66,8 +75,8 @@ theorem keccakToModel_inj {a b : KeccakState}
     simp only [keccakLaneIndex, x, y]
     omega
   apply UInt64.toBitVec_inj.mp
-  change a[(keccakLaneIndex x y).val].toBitVec =
-    b[(keccakLaneIndex x y).val].toBitVec at hp
+  change a.lanes[(keccakLaneIndex x y).val].toBitVec =
+    b.lanes[(keccakLaneIndex x y).val].toBitVec at hp
   simpa only [hindex] using hp
 
 /-- Lane observation assigns bit `z` to the natural value's bit `z`.

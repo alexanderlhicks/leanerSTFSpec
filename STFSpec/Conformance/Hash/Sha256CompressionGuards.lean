@@ -58,7 +58,7 @@ private def abcBlock : Vector UInt32 16 := #v[
   (#v[1, 0xffffffff, 1, 0x80000000, 0, 0, 0, 5]) = #v[0, 0, 1, 0, 0, 0, 0, 8]
 
 private def asymmetricBlock : Vector UInt32 16 :=
-  Vector.ofFn fun i => UInt32.ofNat (i.val * 0x1020304 + 0x80000001)
+  Vector.ofFn fun i ↦ UInt32.ofNat (i.val * 0x1020304 + 0x80000001)
 private def asymmetricState : Vector UInt32 8 :=
   #v[0, 0xffffffff, 0x80000000, 1, 0x12345678, 0x87654321, 0xa5a5a5a5, 0x5a5a5a5a]
 

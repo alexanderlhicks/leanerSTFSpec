@@ -122,9 +122,10 @@ extraction and authentication tooling.
 
 **Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
 Base differential drivers compare public operation values with the pinned source.
-The bounded permutation driver compares an independent FIPS 202 coordinate model;
-EELS exposes no raw permutation surface. Its step/round/prefix and lane-bit laws
-are proved, while sponge/digest and query composition remain open.
+[EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation and
+compression drivers and their evidence limits. EELS exposes no raw permutation or
+compression surface. The model laws are proved; sponge/digest and query composition
+remain open.
 Extraction guards, host regressions and authenticated content comparison validate
 fixture tooling as specified by EthConformance §3–§4.
 They establish local evidence, without implementing Lean opcode effects. Guest,

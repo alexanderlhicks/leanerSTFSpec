@@ -96,3 +96,45 @@ profiles or C1–C4 make peak storage material; preserve the ordinary model laws
 check native huge-offset/zero-length behavior, and measure both small reads and
 large results before closing this entry. No input restriction or host-error rule
 is adopted by this exception.
+
+## DEBT-HASH-REFERENCE — boxed reference rounds
+
+**Status:** open, 2026-09-30. **Owner:** EthHash maintainers. **Authority:** D4/D18.
+
+The legible `keccakF1600` and `sha256Compress` references preserve their coordinate
+and word-model contracts through `keccakToModel_f1600` and `sha256Compress_model`.
+The exception is local to fixed-size rounds: Keccak executes 24 rounds and SHA
+compression 64; future digest work multiplies this cost by the message block count.
+Expected consumers are witness/trie and code hashing, SSZ/request roots and the
+SHA precompile. No digest or guest cost is established by this reference work.
+
+Reproduce the code-shape evidence on the pinned Lean 4.34.0 with
+`lake build EthHash --wfail`, then inspect `keccakOfLanes`, the five step functions
+and `keccakRounds` in `.lake/build/ir/STFSpec/Hash/KeccakPermutation.c`, and
+`scheduleStep`, `round`, `rounds` and `feedForward` in
+`.lake/build/ir/STFSpec/Hash/Sha256Compression.c`. Native word arithmetic does not
+imply unboxed storage: Keccak's `Array.ofFn` callbacks box UInt64 results and
+coordinate construction uses closure dispatch; theta builds two five-lane arrays
+and each of the five steps builds a 25-lane result. SHA rounds build eight-word
+arrays and schedule updates use array-set operations. Nat calls implement bounded
+indices/rotation amounts; executable word arithmetic uses UInt64/UInt32 operations.
+The separately executable bit-vector models contain Nat arithmetic too and must
+not be included when inspecting the native call path. There is no List builder
+in either executable round path. These are static observations, not dynamic
+allocation totals.
+
+The [independent review of `deded43`](https://github.com/alexanderlhicks/leanerSTFSpec/pull/8#pullrequestreview-5369643733)
+reported 270–385 µs per permutation, approximately 6,000 allocations per permutation,
+and 13–19 µs per SHA compression on its local host. These are historical reviewer
+diagnostics of the original reference tree, not reproduced measurements of the
+wrapped state or evidence satisfying C1–C4; the review supplies no committed timed
+reproducer. The generated-C procedure above is the reproducible evidence here.
+
+The exception keeps the reference steps and ordinary proofs readable under D4.
+Review before integrating the digest consumers, at release and on toolchain/pin
+updates. Attach a proved faster definition or replace private storage under D25
+when representative digest/composition measurements make the allocation material.
+Preserve all coordinate/word-model laws and failure-free domains; rerun primary
+KATs, public callers and independent differentials. Measure with correctness outside
+timing and report allocation, conversions and composed costs before closing this
+entry. No digest readiness or whole-guest performance claim is authorized.

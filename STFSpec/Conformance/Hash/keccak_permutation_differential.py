@@ -99,7 +99,8 @@ def steps(a, round_index):
 
 
 def vector(a):
-    return "#v[" + ", ".join(f"0x{lane:016x}" for lane in a) + "]"
+    words = "#v[" + ", ".join(f"0x{lane:016x}" for lane in a) + "]"
+    return f"(keccakOfLanes fun x y ↦ ({words} : Vector UInt64 25)[keccakLaneIndex x y])"
 
 
 def main():

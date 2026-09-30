@@ -22,12 +22,25 @@ Spec guidance: `STFSpec/informal/modules/EthHash.md` §4.
 
 open STFSpec.Hash
 
-private def zeroState : KeccakState := Vector.replicate 25 0
-private def asymmetricState : KeccakState := Vector.ofFn fun i ↦ UInt64.ofNat i.val
+-- Storage and its instances stay outside the public state interface.
+#check_failure KeccakState.lanes
+#check_failure KeccakState.ofVectorRaw
+#check_failure fun (a : KeccakState) ↦ a.1
+#check_failure fun (a : KeccakState) ↦ (a : Vector UInt64 25)
+#check_failure fun (a : KeccakState) ↦ a.toArray
+#check_failure (⟨Vector.replicate 25 0⟩ : KeccakState)
+#check_failure ({ lanes := Vector.replicate 25 0 } : KeccakState)
+
+private def ofWords (words : Vector UInt64 25) : KeccakState :=
+  keccakOfLanes fun x y ↦ words[keccakLaneIndex x y]
+
+private def zeroState : KeccakState := keccakOfLanes fun _ _ ↦ 0
+private def asymmetricState : KeccakState :=
+  keccakOfLanes fun x y ↦ UInt64.ofNat (x.val + 5 * y.val)
 
 -- All 25 primary permutation lanes, rather than a truncated digest.
 #guard keccakF1600 zeroState =
-  #v[0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee,
+  ofWords #v[0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee,
      0xbd1547306f80494d, 0x8b284e056253d057, 0xff97a42d7f8e6fd4,
      0x90fee5a0a44647c4, 0x8c5bda0cd6192e76, 0xad30a6f71b19059c,
      0x30935ab7d08ffc64, 0xeb5aa93f2317d635, 0xa9a6e6260d712103,
