@@ -57,6 +57,10 @@ See ARCHITECTURE §5.5 and [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-ga
 Proving directional simulation of a successful witness trace by a progressive full backend is the largest unknown. Models alone does not establish availability and must include full-state code authenticity. Also:
 - VCV-io has no MPT or RLP support, and is not yet a Lake dependency;
 - keccak-derived constants go through the same oracle (`HashConsts`, D5); still open are the oracle coupling for `Models` and `Progress` at generic `m`, secure-key collision folding, and the complete code preimage sets. Generic provider coherence must use hash-relative forms of those premises: combining keccak-literal `Models` with an oracle that differs on constant preimages can make them inconsistent. Prove the concrete bridges and exhibit providers satisfying all premises before claiming nonvacuous generic agreement (EthSecurity §5).
+- The core `Hash32`/security `Digest` adapter needed to interpret `HashConsts.query`
+  and compare oracle answers is not implemented. `EthSecurity` owns its definition,
+  byte-content equations and concrete bridge, coordinating with `EthHash` and
+  `EthBase`; it belongs to X7 alongside the hash-relative provider contracts.
 - Direct proof imports are now registered in contracts.toml; the actual proof implementations are absent.
 
 ### X8. Consumer migration cost is unmeasured

@@ -3,7 +3,7 @@
 *Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30).*
 
-Requirement IDs are `FS1`–`FS7`; findings `F1`–`F19` are those recorded in DECISIONS §3.
+Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3.
 
 ## 1. Purpose
 

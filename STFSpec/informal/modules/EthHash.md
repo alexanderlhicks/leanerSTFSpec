@@ -210,7 +210,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 8. Composition
 
 - **Depends on:** `EthBase`.
-- **Used by:** `EthCodec` (SSZ merkleization, address derivation), `EthVmInstructions` (`KECCAK256`, `EXTCODEHASH`, CREATE/CREATE2), `EthPrecompiles` (SHA-256, RIPEMD-160, BLAKE2F, and ECRECOVER's address hash through `KeccakQuery`), `EthBlock` (standalone acquisition wrapper, F20), `EthStateless` (guest acquisition, F20), and transitively `EthCommit`, `EthStateWitness` and `EthVmRunner` (via `KeccakQuery`).
+- **Used by:** `EthCodec` (SSZ merkleization, address derivation), `EthVmInstructions` (`KECCAK256`, `EXTCODEHASH`, CREATE/CREATE2), `EthPrecompiles` (SHA-256, RIPEMD-160, BLAKE2F, and ECRECOVER's address hash through `KeccakQuery`), `EthBlock` (standalone acquisition wrapper, F20), `EthStateless` (guest acquisition, F20), `EthConformance` (engine acquisition, R4/F20), and transitively `EthCommit`, `EthStateWitness` and `EthVmRunner` (via `KeccakQuery`).
 - **Seams provided.** `keccak256`/`sha256` as plain functions. `KeccakQuery m`, with its `Id`, `ExceptT` and `StateT` instances, for kernels that `EthSecurity` must reinterpret. `HashConsts.query` for the keccak-derived constants. `Blake2b.getParameters` and `compress` for the precompile, which must charge gas *before* calling `compress`.
 - **Guarantees.** Totality, determinism and independence from the host.
 - **Relies on.** `Hash32`, `Bytes32` and `FixedBytes` from `EthBase`, and Lean core `UInt64`/`UInt32` rotations.

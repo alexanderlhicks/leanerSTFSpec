@@ -126,7 +126,12 @@ Corpus facts relevant here [V]: 27,822 records succeed, 1,199 fail with schema `
   - Fail the empty-transaction, payload-hash and versioned-hash guards separately; prior queries remain in the trace and the first guard determines the error.
   - Raise a provider or fuel error; prior queries remain in the trace and the error stays in its inner or outer checked channel, respectively.
   - Run twice; each run acquires independently.
-  - Exercise the actual shared payload and block kernels with test codec and body callbacks; their traces contain no reacquisition. Replacing an entire kernel with a test callback would not check this property.
+  - Use the existing `GuestLeaves.decodeInput`, `requestRoot` and `decodeHeader` hooks
+    to drive the cases, with `GuestLeaves.executePayload` bound to the actual
+    `executeNewPayloadRequest` and its shared block kernel. Their traces contain no
+    reacquisition. Replacing `executePayload` with a test callback checks the caller
+    only; it does not establish that the actual kernels avoid reacquisition. Until
+    those kernels are implemented, this composition case remains an open obligation.
 
 **Properties and differential checks.** Round trip `deserialize (serializeStatelessInput x) = .ok x` for generated well-formed `x` (serializer from `EthConformance`); `validateHeaders` against a model on generated chains; differential against EELS `run_stateless_guest` on mutated inputs (bug-finding only; `EthConformance`).
 

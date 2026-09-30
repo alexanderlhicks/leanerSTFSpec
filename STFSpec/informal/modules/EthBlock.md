@@ -371,12 +371,16 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
   - a BAL-hash-only mismatch; `gasUsed` equal to the execution total when the state total is larger;
   - 0 transactions with withdrawals only; a block exactly at `maxRlpBlockSize`.
 - **Property and differential checks.** Codec round-trips; `rlp (rlp⁻¹ b) = b` for canonical transaction bytes; BAL output sorted and deduplicated for random builder traces; replaying the EELS order of `add/remove` on random traces against the Python builder (bug-finding only, CONTRIBUTING §1).
-- **F20 composition cases to implement.** Use a synthetic oracle whose constants differ from literals:
+- **F20 composition cases to implement.** Use a synthetic oracle whose four constant
+  answers each differ from the literals:
   - Run the standalone wrapper with both full-state and witness provider factories; its query trace follows §2.7 and each factory receives the acquired record.
   - Fail the size, key-count and header checks separately; the trace still contains acquisition and factory effects, in R-EB order.
   - Run the kernel directly; it makes no acquisition and stores the supplied record at step 5.
   - Change the stored fields; body and state consumers observe the corresponding empty-root, empty-code and transfer-topic values.
-  - Use a provider factory that ignores the record, or a kernel that substitutes literals; the coherence check fails.
+  - Use a provider factory or kernel that substitutes literals for the acquired record;
+    its empty-root or empty-code observations differ from the synthetic oracle-derived
+    record. The required coherence premise cannot be established; no runtime coherence
+    check or new rejection is introduced.
   - Run the wrapper twice; each run acquires independently. Ordinary later queries of a constant preimage remain ordinary queries, not record acquisitions.
   - Raise a provider fault or internal/fuel error; it stays in the inner or outer checked channel, respectively.
 

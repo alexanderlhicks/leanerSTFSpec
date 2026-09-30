@@ -91,7 +91,7 @@ A compiled prototype of the interfaces tested how the spec guidance composes. It
 | F14 | Checked results in the monad | **Adopted:** `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, owned by `EthVmRunner`; `runVmChecked` returns `m (CheckedResult …)`. |
 | F16, F17 | `sorry` leaves block evaluation; `deriving` on nested inductives generates `partial` constants | **Adopted as guidance** (EthConformance §4, EthCodec §6, [CONTRIBUTING](../../CONTRIBUTING.md) §4). |
 | F19 | `Nibbles` range field; orderings for `(Address × Bytes32)` keys | **Adopted:** the orderings are in `EthBase`; the range field is optional. |
-| F20 | HashConsts lifetime across guest, witness and standalone block execution | **Adopted** (2026-09-30; owners: EthBlock, EthStateless). Caller-owned acquisition and supplied-record kernels follow EthStateless R5 and EthBlock §2.7; consumers read existing context fields. Notation: CONTRIBUTING §7.2. Rationale, scope and open obligations: §6. |
+| F20 | HashConsts lifetime across guest, witness and standalone block execution | **Adopted** (2026-09-30; owners: EthBlock, EthStateless). Caller-owned acquisition and supplied-record kernels follow EthStateless R5, EthBlock §2.7 and EthConformance R4; consumers read existing context fields. Notation: CONTRIBUTING §7.2. Rationale, scope and open obligations: §6. |
 | O2 | Request-root failure | **Open** (owner: EthStateless): prove it unreachable on decoded values (EthStateless L-root), and add a constructor only if that proof fails. |
 | O13 | Unrowed deterministic reference faults | **Adopted** (2026-09-29): CONTRACT O13 is a documentation category for explicitly enumerated deterministic reference faults. The output is unchanged, `(root, false, …)`, and each fault has a named constructor, enumerated by its owner (EthBlock §2.12, EthVmCore R-EXC-2, EthState R29); there is no generic catch-all. O12 remains unresolved. |
 
@@ -136,14 +136,18 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 
 ## 6. F20: caller-owned hash constants
 
-**Status and authorization.** Adopted on 2026-09-30 in §3. This record documents that
-existing disposition; D5 remains provisional. Implementation and its proof obligations
-are separate from adoption of the interface.
+**Status and authorization.** The disposition is owned by §3. On 2026-09-30,
+the task requester explicitly approved the acquisition contract in this
+merge-readiness session: “I approve F20’s caller-owned acquisition”. That session
+instruction is the approval evidence; [PR #2](https://github.com/alexanderlhicks/leanerSTFSpec/pull/2)
+provides the proposal and review context. Approval of the interface leaves the
+compiled-case, oracle-trace and proof obligations below open. D5 retains its status
+in §2.
 
 **Problem and scope.** Witness construction and payload/header checks need keccak-derived
-constants before `BlockState` exists. The guest and standalone block driver must provide
-one coherent record to their backends and kernels. EthStateless and EthBlock own these
-boundaries; EthHash provides acquisition, EthBase the value record, and state, commitment,
+constants before `BlockState` exists. The guest, standalone block wrapper and engine
+driver must provide one coherent record to their backends and kernels. EthStateless,
+EthBlock and EthConformance own their respective acquisition boundaries; EthHash provides acquisition, EthBase the value record, and state, commitment,
 VM and conformance consumers use it. D5 governs hashing; D14 governs failure channels.
 
 **Sources.** The release and dependency commits are pinned in `reference.toml`:
@@ -160,8 +164,8 @@ acquisition makes the same record available to each consumer without reacquisiti
 Existing contexts hold the record once constructed; helpers called before those contexts
 exist take it explicitly. The notation convention belongs to CONTRIBUTING §7.2.
 
-**Contract.** Acquisition and effect order are owned by EthStateless R5 and EthBlock §2.7,
-with required equations in their §7 laws. The supplied-record kernels are
+**Contract.** Acquisition and effect order are owned by EthStateless R5, EthBlock §2.7
+and EthConformance R4, with required equations in their §7 laws. The supplied-record kernels are
 `executeNewPayloadRequest` and `executeBlock`; `executeBlockStandalone` accepts a
 `mkPre : HashConsts → m (PreState m)` provider factory. EthConformance R4 specifies
 acquisition for the engine driver. Consumer/provider coherence is a proof premise,
@@ -169,8 +173,10 @@ not a consequence of the factory's type. Exception precedence and the checked er
 channels retain their owning contracts.
 
 **Validation and limits.** This is an informal interface contract, with no production
-implementation or theorem. Implementation must cover the synthetic-oracle, failure-order
-and repeated-run cases in EthStateless and EthBlock §4 and prove their §7 laws. Documentation
+implementation or theorem. The prior closure criterion, a compiled interface case
+and an oracle trace, is retained as the required synthetic-oracle, failure-order and
+repeated-run cases in EthStateless and EthBlock §4, together with their §7 laws.
+Implementation must compile and execute those cases and prove those laws; documentation
 checks cannot establish those results. Backend coherence, D5's generic interpretation
 coupling (X7), REVIEW §7 S2, EthStateWitness W1, fuel gates G2–G7, guest conformance and
 security remain open; F20 establishes no performance or specialisation result.

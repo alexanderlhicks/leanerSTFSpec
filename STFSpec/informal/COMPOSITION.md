@@ -28,6 +28,12 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
+### Hash constants and oracle premises
+
+Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,
+EthConformance R4); a `consts` parameter alone does not establish coherence, and
+generic interpretation coupling remains open (D5, X7).
+
 ### Checked error channels
 
 `CheckedResult ε α := Except InternalError (Except ε α)` has exactly three interpretations:
@@ -43,8 +49,6 @@ action w = .error vf                    => .ok (.error vf)
 action w = .ok (.error i, w')           => .error i
 action w = .ok (.ok a, w')              => .ok (.ok (a, w'))
 ```
-
-Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7); a `consts` parameter alone does not establish coherence, and generic interpretation coupling remains open (D5, X7).
 
 `BlockError.ofStateError` maps witness faults to `.witness` and other state faults to `.state`. `BlockError.ofVmFault` delegates `.state e` to that adapter and maps other VM faults to `.vmFault`. Transaction decode errors are indexed at the block/payload caller. On the complete guest path they cannot reach `executeBlock`: `is_valid_versioned_hashes` consumes every deterministic decode failure first, giving O6. They stay live for a standalone `executeBlock`. Public-key count and wrong-key errors remain distinct, with the transaction index retained for the latter. EVM exceptional halt/revert are FrameError data inside a completed run; they use settlement, not these global-error adapters. An unchecked system call ignores a settled FrameError, not a provider fault or InternalError.
 

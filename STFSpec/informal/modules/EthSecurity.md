@@ -173,7 +173,7 @@ theorem rom_disagreement_bound (A : DisagreementAdversary t) (Q : ℕ)
 
 `ModelsUpToCollision ps σ c` names the required hash-relative extension of `EthStateWitness`'s collision-indexed form of `Models` (each *successful* operation agrees with `σ`, or `c = some _`); `Progress` is `EthStateFull`'s. `AcceptedTip` is a hypothesis-only predicate naming the external anchor.
 
-For F20, `HashConsts.query h` denotes the record produced by interpreting the existing four constant queries under `h`, using the notation above and the core Hash32/Digest adapter; it does not add acquisition inside either payload kernel. The `hconsts` premise identifies one record with those oracle answers. `witnessPreState h consts x` uses that supplied record in authenticated witness construction, and both displayed payload runs receive it explicitly. Successful `classify h` must be connected to that same witness construction and acquired record by the production F20 composition law, which remains open.
+For F20, `HashConsts.query h` denotes the record produced by interpreting the existing four constant queries under `h`, using the notation above and the pending Hash32/Digest adapter (X7); it does not add acquisition inside either payload kernel. The `hconsts` premise identifies one record with those oracle answers. `witnessPreState h consts x` uses that supplied record in authenticated witness construction, and both displayed payload runs receive it explicitly. Successful `classify h` must be connected to that same witness construction and acquired record by the production F20 composition law, which remains open.
 
 The proposed generic premises require the following proofs:
 
