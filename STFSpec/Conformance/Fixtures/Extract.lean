@@ -15,16 +15,16 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 namespace STFSpec.Conformance.Internal
 
 private def object (location : String) (value : Lean.Json) :=
-  value.getObj?.mapError fun _ => FixtureError.expectedObject location
+  value.getObj?.mapError fun _ ↦ FixtureError.expectedObject location
 
 private def field (location : String) (value : Lean.Json) (name : String) :=
-  value.getObjVal? name |>.mapError fun _ => FixtureError.missingField location name
+  value.getObjVal? name |>.mapError fun _ ↦ FixtureError.missingField location name
 
 private def string (location : String) (value : Lean.Json) :=
-  value.getStr?.mapError fun _ => FixtureError.expectedString location
+  value.getStr?.mapError fun _ ↦ FixtureError.expectedString location
 
 private def array (location : String) (value : Lean.Json) :=
-  value.getArr?.mapError fun _ => FixtureError.expectedArray location
+  value.getArr?.mapError fun _ ↦ FixtureError.expectedArray location
 
 private def blockRecord (id : FixtureId) (value : Lean.Json) :
     Except FixtureError (Option GuestRecord) := do
@@ -37,7 +37,8 @@ private def blockRecord (id : FixtureId) (value : Lean.Json) :
       (← string (location ++ ".statelessInputBytes") input)
     let expected ← decodeHex (location ++ ".statelessOutputBytes")
       (← string (location ++ ".statelessOutputBytes") expected)
-    if expected.size != 43 then throw (.outputLength (location ++ ".statelessOutputBytes") expected.size)
+    if expected.size != 43 then
+      throw (.outputLength (location ++ ".statelessOutputBytes") expected.size)
     return some { id, input, expected }
   | _, _ => throw (.unpairedGuestFields location)
 
@@ -56,9 +57,11 @@ def extractGuestRecords (file : String) (value : Lean.Json) :
     let fields ← object location test
     let info ← field location test "_info"
     let _ ← object (location ++ "._info") info
-    let infoHash ← string (location ++ "._info.hash") (← field (location ++ "._info") info "hash")
+    let infoHash ← string (location ++ "._info.hash")
+      (← field (location ++ "._info") info "hash")
     let hashBytes ← decodeHex (location ++ "._info.hash") infoHash
-    if hashBytes.size != 32 then throw (.infoHashLength (location ++ "._info.hash") hashBytes.size)
+    if hashBytes.size != 32 then
+      throw (.infoHashLength (location ++ "._info.hash") hashBytes.size)
     let format ← string (location ++ "._info.fixture-format")
       (← field (location ++ "._info") info "fixture-format")
     let expectedFormat := if engine then "blockchain_test_engine" else "blockchain_test"

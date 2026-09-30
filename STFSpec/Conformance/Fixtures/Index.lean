@@ -20,7 +20,7 @@ private def identityCompare (a b : FixtureId) : Ordering :=
 
 /-- Sort a fixture identity index and reject duplicate complete identities. -/
 def sortedIndex (index : Array FixtureId) : Except FixtureError (Array FixtureId) := do
-  let result := index.toList.mergeSort (fun a b => identityCompare a b != .gt) |>.toArray
+  let result := index.toList.mergeSort (fun a b ↦ identityCompare a b != .gt) |>.toArray
   let mut previous : Option FixtureId := none
   for id in result do
     if previous == some id then throw (.duplicateIdentity id)

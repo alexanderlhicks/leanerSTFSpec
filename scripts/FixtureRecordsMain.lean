@@ -9,8 +9,9 @@ import Lean.Data.Json.Printer
 
 Internal `fixture-records` driver: read `[archiveRelativeName, localPath]` commands from
 stdin, or append `"content"` for exact identity/byte replies. Each reply is one line:
-`ok N`, `{"count": N, "records": [...]}`, or diagnostic `error ...`. Error text has
-no stable schema. EOF ends the batch; any error makes the exit status nonzero.
+`ok N`, `{"count": N, "records": [...]}`, or diagnostic `error ...`. Diagnostic text
+is escaped into one physical line and has no stable schema. EOF ends the batch;
+any error makes the exit status nonzero.
 Authentication is the host tool's responsibility. No guest is executed.
 Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 -/
@@ -31,17 +32,17 @@ private def recordJson (record : STFSpec.Conformance.GuestRecord) : Lean.Json :=
 
 private def runCommand (line : String) : IO String := do
   match Lean.Json.parse line >>= Lean.Json.getArr? with
-  | .error message => return "error command: " ++ message
+  | .error message => return "error command: " ++ reprStr message
   | .ok command =>
-    match command[0]?.bind (fun x => x.getStr?.toOption),
-        command[1]?.bind (fun x => x.getStr?.toOption) with
+    match command[0]?.bind (fun x ↦ x.getStr?.toOption),
+        command[1]?.bind (fun x ↦ x.getStr?.toOption) with
     | some file, some path =>
       let content := command.size == 3 &&
-        command[2]?.bind (fun x => x.getStr?.toOption) == some "content"
+        command[2]?.bind (fun x ↦ x.getStr?.toOption) == some "content"
       if command.size != 2 && !content then return "error command arity"
       let text ← IO.FS.readFile path
       match STFSpec.Conformance.Internal.parseGuestRecords file text with
-      | .error error => return "error " ++ reprStr error
+      | .error error => return "error " ++ reprStr (reprStr error)
       | .ok records =>
         if content then
           return (Lean.Json.mkObj [("count", .num (Lean.JsonNumber.fromNat records.size)),
@@ -57,7 +58,7 @@ def main : IO UInt32 := do
   repeat
     let line ← stdin.getLine
     if line.isEmpty then break
-    let result ← try runCommand line catch error => pure ("error IO: " ++ error.toString)
+    let result ← try runCommand line catch error => pure ("error IO: " ++ reprStr error.toString)
     if result.startsWith "error" then failed := true
     stdout.putStrLn result
     stdout.flush

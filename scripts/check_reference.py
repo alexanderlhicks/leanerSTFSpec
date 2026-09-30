@@ -8,7 +8,6 @@ both fields, never text occurrences. Downloads are installed atomically.
 import argparse
 from collections import Counter
 import hashlib
-import json
 import pathlib
 import re
 from fixture_archive import archive_json, authenticated_source, paired_bytes

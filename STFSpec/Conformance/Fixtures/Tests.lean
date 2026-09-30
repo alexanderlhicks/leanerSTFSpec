@@ -53,7 +53,7 @@ private def id (testId : String) (index : Nat := 0) (file := file) : FixtureId :
 
 #guard (extractGuestRecords file (fixture #[guestBlock])).toOption.map (·.size) == some 1
 #guard ((extractGuestRecords file (fixture #[guestBlock])).toOption.bind (·[0]?)
-  |>.map (fun r => r.input.data == #[21, 1] && r.expected.size == 43 && r.id == id "test"))
+  |>.map (fun r ↦ r.input.data == #[21, 1] && r.expected.size == 43 && r.id == id "test"))
   == some true
 #guard (extractGuestRecords file (fixture #[Lean.Json.mkObj []])).toOption.map (·.size) == some 0
 #guard isError (extractGuestRecords file (fixture #[Lean.Json.mkObj
@@ -122,6 +122,13 @@ private def engineFile : String := "blockchain_tests_engine/area/file.json"
   matches .error (.conflictingShape _)
 #guard extractGuestRecords engineFile (Lean.Json.mkObj [("test",
   withField (test #[] true) "blocks" .null)]) matches .error (.conflictingShape _)
+-- Conflicting shapes take precedence even when the selected container is invalid.
+#guard extractGuestRecords file (Lean.Json.mkObj [("test",
+  withField (withField (test #[]) "blocks" .null) "engineNewPayloads" .null)])
+  matches .error (.conflictingShape _)
+#guard extractGuestRecords engineFile (Lean.Json.mkObj [("test",
+  withField (withField (test #[] true) "engineNewPayloads" .null) "blocks" .null)])
+  matches .error (.conflictingShape _)
 #guard extractGuestRecords engineFile (Lean.Json.mkObj [("test",
   withField (test #[] true) "engineNewPayloads" .null)])
   matches .error (.expectedArray _)

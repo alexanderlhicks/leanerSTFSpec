@@ -328,6 +328,31 @@ class ArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(fixtures.FixtureError, "conflicting fixture"):
                 fixtures.guest_records(ENGINE if engine else FILE, value)
 
+    def test_container_array_validation(self):
+        for engine in (False, True):
+            container = "engineNewPayloads" if engine else "blocks"
+            file = ENGINE if engine else FILE
+            for invalid in (None, {}, "not an array"):
+                with self.subTest(engine=engine, invalid=invalid):
+                    value = case([], engine)
+                    value["test"][container] = invalid
+                    with self.assertRaises(fixtures.FixtureError) as caught:
+                        fixtures.guest_records(file, value)
+                    self.assertEqual(str(caught.exception),
+                                     f"{file}:test: {container} must be an array")
+
+    def test_conflict_precedes_invalid_container(self):
+        for engine in (False, True):
+            container = "engineNewPayloads" if engine else "blocks"
+            other = "blocks" if engine else "engineNewPayloads"
+            file = ENGINE if engine else FILE
+            value = case([], engine)
+            value["test"][container] = None
+            value["test"][other] = {}
+            with self.subTest(engine=engine), \
+                    self.assertRaisesRegex(fixtures.FixtureError, "conflicting fixture shapes"):
+                fixtures.guest_records(file, value)
+
     def test_shape_and_format_rejections(self):
         for value in ([], {"test": None}, case("not an array"), case([None])):
             with self.assertRaises(fixtures.FixtureError):
@@ -558,13 +583,44 @@ class ArchiveTests(unittest.TestCase):
         executable = pathlib.Path(__file__).resolve().parents[1] / ".lake/build/bin/fixture-records"
         path = pathlib.Path(self.temporary.name) / "fixture.json"
         path.write_text(json.dumps(case([block()])))
-        command = json.dumps([FILE, str(path)]) + "\n"
-        command += json.dumps([FILE, str(path.with_name("missing.json"))]) + "\n"
-        run = subprocess.run([str(executable)], input=command, capture_output=True, text=True)
-        self.assertEqual(run.returncode, 1)
-        self.assertEqual(run.stdout.splitlines()[0], "ok 1")
-        self.assertTrue(run.stdout.splitlines()[1].startswith("error IO:"))
-        self.assertEqual(run.stderr, "")
+        missing = path.with_name("missing.json")
+        other_missing = path.with_name("missing\nsecond.json")
+        for requests in ((path, missing), (missing, path), (missing, other_missing)):
+            with self.subTest(requests=requests):
+                commands = "".join(json.dumps([FILE, str(request)]) + "\n"
+                                   for request in requests)
+                run = subprocess.run([str(executable)], input=commands,
+                                     capture_output=True, text=True)
+                self.assertEqual(run.returncode, 1)
+                replies = run.stdout.splitlines()
+                self.assertEqual(len(replies), len(requests))
+                for request, reply in zip(requests, replies):
+                    if request == path:
+                        self.assertEqual(reply, "ok 1")
+                    else:
+                        self.assertTrue(reply.startswith("error IO:"), reply)
+                self.assertEqual(run.stderr, "")
+
+    def test_actual_lean_driver_projection_errors_keep_one_reply(self):
+        executable = pathlib.Path(__file__).resolve().parents[1] / ".lake/build/bin/fixture-records"
+        valid = pathlib.Path(self.temporary.name) / "valid.json"
+        invalid = valid.with_name("invalid.json")
+        valid.write_text(json.dumps(case([block()])))
+        bad_format = case([])["test"]
+        bad_format["_info"]["fixture-format"] = "wrong" * 40
+        for value in (None, bad_format):
+            with self.subTest(value=value):
+                invalid.write_text(json.dumps({"long-id-" * 30: value}))
+                commands = "".join(json.dumps([FILE, str(request)]) + "\n"
+                                   for request in (invalid, valid))
+                run = subprocess.run([str(executable)], input=commands,
+                                     capture_output=True, text=True)
+                self.assertEqual(run.returncode, 1)
+                replies = run.stdout.splitlines()
+                self.assertEqual(len(replies), 2)
+                self.assertTrue(replies[0].startswith("error "), replies)
+                self.assertEqual(replies[1], "ok 1")
+                self.assertEqual(run.stderr, "")
 
     def test_actual_lean_content_identity_and_bytes(self):
         executable = pathlib.Path(__file__).resolve().parents[1] / ".lake/build/bin/fixture-records"
