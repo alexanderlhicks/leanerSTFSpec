@@ -1,10 +1,13 @@
 /-
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
+
 import STFSpec.Base.FixedBytes
 
 /-!
 # Compiled byte regression checks
+
+Library `EthBase`. Spec guidance: `STFSpec/informal/modules/EthBase.md` §3.
 
 Run `lake build bytes-native-tests --wfail && lake exe bytes-native-tests`.
 These exercise the compiled packed operations against their list models, including
@@ -41,6 +44,8 @@ private def checkConstruction : IO Nat := do
   for n in [0, 1, 2, 20, 32, 65, 256] do
     let xs := (List.range n).map (fun i ↦ UInt8.ofNat (i * 37 + 255))
     let b := Bytes.generate n (fun i ↦ UInt8.ofNat (i * 37 + 255))
+    require s!"packed export {n}" (b.toByteArray.data.toList == xs)
+    require s!"packed roundtrip {n}" (Bytes.ofByteArray b.toByteArray == b)
     require s!"generate {n}" (b.toList == xs)
     require s!"zeros {n}" ((Bytes.empty.rightPadZero n).toList == List.replicate n 0)
     require s!"fold {n}" (b.foldl (fun a v ↦ a * 256 + v.toNat) 0 ==
@@ -49,7 +54,7 @@ private def checkConstruction : IO Nat := do
       | throw (IO.userError s!"ofBytes? {n}")
     require s!"roundtrip {n}" (fixed.toBytes == b)
     require s!"wrong length {n}" ((FixedBytes.ofBytes? (n := n + 1) b).isNone)
-    count := count + 5
+    count := count + 7
   require "huge width rejects early"
     ((FixedBytes.ofBytes? (n := 2 ^ 4096) Bytes.empty).isNone)
   return count + 1

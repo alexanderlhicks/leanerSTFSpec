@@ -46,7 +46,7 @@ def main():
             fork_types.VersionedHash is crypto_hash.Hash32 and
             fork_types.Bloom is dependency_bytes.Bytes256 and
             crypto_hash.Hash64 is dependency_bytes.Bytes64):
-        raise RuntimeError("pinned byte aliases differ from this slice's source map")
+        raise RuntimeError("pinned byte aliases differ from the source map")
     rng = random.Random(context.seed)
     # Keep the option in the two-entry header, so the shared guard count stays exact.
     guards = ["import STFSpec.Base", "open STFSpec.Base\nset_option maxRecDepth 4096"]

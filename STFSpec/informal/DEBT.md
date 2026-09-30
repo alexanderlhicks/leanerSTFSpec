@@ -63,3 +63,36 @@ Nat temporaries, preserve the existing contracts with ordinary equality proofs,
 and pass boundary, differential and native correctness gates. Record comparable
 consumer measurements before closing this entry; no narrower input limit or
 change to error behavior is permitted.
+
+## DEBT-BYTES-ZEROS — packed zero-builder peak memory
+
+**Status:** open, 2026-09-30. **Owner:** EthBase maintainers. **Authority:** D18.
+
+`Bytes.zeros` uses geometrically increasing packed copies to build zeros; padding
+and `extractPadded` can make a final append copy. The ordinary `toList_zeros`,
+`toList_leftPadZero`, `toList_rightPadZero` and `toList_extractPadded_window`
+theorems preserve the complete byte model. Time and copied bytes are O(result
+length), with no boxed byte-list or pointer-array intermediate. Peak live storage
+can nevertheless exceed a single result buffer. The [independent review of
+6289e57](https://github.com/alexanderlhicks/leanerSTFSpec/pull/3#pullrequestreview-5365566565)
+reports 257–310 MB peak for a 100 MB padded result on Lean 4.34.0. This is a local
+allocation measurement, not a target guest cost or a maximum resource guarantee.
+
+Reproduce the copy structure with `lake build EthBase --wfail` and inspect
+`zeros`, `rightPadZero` and `extractPadded` in
+`.lake/build/ir/STFSpec/Base/Bytes.c`: doubling retains the shared half while
+appending it, odd lengths add a final push, and the read may append its copied
+window to the zeros. The exception keeps the small well-founded builder and its
+replicated-list proof while byte-consumer profiles remain pending. Already
+sufficient padding returns its input; unavailable offsets are checked as Nat
+before slicing, so offset magnitude does not drive the allocation.
+
+Expected consumers are VM padded calldata/code reads and precompile input
+padding, listed in EthBase §3. The limitation is local to constructing requested
+padding; byte export, fixed-byte conversion and existing-buffer access do not
+require this builder. Review before integrating those consumers, at release and
+when updating Lean. Replace it with a single-buffer construction if representative
+profiles or C1–C4 make peak storage material; preserve the ordinary model laws,
+check native huge-offset/zero-length behavior, and measure both small reads and
+large results before closing this entry. No input restriction or host-error rule
+is adopted by this exception.

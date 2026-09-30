@@ -4,7 +4,7 @@
 
 Run with the pinned EELS virtual environment's Python:
   EELS/.venv/bin/python STFSpec/Conformance/Base/narrow_differential.py \
-    --eels EELS --output SCRATCH/narrow-differential.lean
+    --eels EELS --output <outside-worktree>/narrow-differential.lean
 
 Sources: ethereum_types/numeric.py:44,91,103,131,321,325,357,364,611,614,625,636;
 width classes/constants at :716,738–739,743,765–766,770,792–793,797,819–820. Invoke actual checked

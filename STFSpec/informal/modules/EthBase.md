@@ -252,29 +252,31 @@ For each `n ∈ {8,16,32,64}`, `STFSpec/Base/Un.lean` defines a separate `Un` st
 
 All rows are implemented for each width. Regression evidence is in `STFSpec/Conformance/Base/NarrowGuards.lean`, `NarrowCallerProofs.lean` and `narrow_differential.py`; the driver owns its invocation, seed and case counts. Remaining operators and consumer sites are listed in §10.
 
-### Implemented byte-sequence slice
+### Implemented byte sequences
 
 `STFSpec/Base/Bytes.lean` implements `Bytes` with private packed `ByteArray` storage,
 stable list observation, explicit constructors and bounds-checked byte access,
 nontruncating zero padding and the public `extractPadded` Base helper. The rows are
-**discharged for byte-value semantics** on all finite byte sequences and natural
+**implemented for byte-value semantics** on all finite byte sequences and natural
 parameters. They introduce no state effects or rejection limits. Correspondence to
 Python is its successful byte-value semantics. On the probed 64-bit CPython 3.13
-host, both padding helpers (`utils/byte.py:37,59`) raise `OverflowError` at requested
-sizes `2^63 - 1` ("byte string is too large") and `2^63` (size conversion), with
-allocation failures also possible below those sizes. Their reachability/first
+host, both padding helpers (`utils/byte.py:37,59`) raise the size-conversion
+`OverflowError` at every requested size ≥ `2^63`, and "byte string is too large"
+for sizes in `[2^63−33, 2^63−1]`. Lower sizes can still raise `MemoryError`;
+these are observations of that Python host, not portable limits. Their reachability/first
 handler (X1) and treatment under O12 remain open; the observed host bounds are not
 a new rejection rule. In particular, the total `Nat` domain is not narrowed to a
 host machine's index range. Negative Python `int` widths are outside the typed
-`Nat` seam; the EELS consumers supply unsigned parameters.
+`Nat` interface; the EELS consumers supply unsigned parameters.
 
 | Dependency/source at the pin | Lean declaration and public type | Domain and success observation | Ordered failures / consumer | Public laws | Regression evidence |
 |---|---|---|---|---|---|
 | `ethereum_types/bytes.py:165` (`Bytes = bytes`), locked 0.4.1 | `structure Bytes` with private storage; `Bytes.toList : Bytes → List UInt8` | Every finite sequence; stable byte-list observation with its exact length | None in the pure value model; no state effects | `length_toList`, `ext`, `toList_inj`, `toList_ofList`, `ofList_toList`, `getElem_toList` | `BytesGuards.lean`: empty/mixed-byte observation and inverse; `BytesCallerProofs.lean`: observer-only equality/inverse callers |
 | Lean model interface for `ethereum_types/bytes.py:165` byte values (CONTRIBUTING §7.4) | `Bytes.ofList : List UInt8 → Bytes`; `ofByteArray : ByteArray → Bytes`; `empty : Bytes` | Explicit construction retains all input bytes; no implicit representation conversion | None in the pure model; host allocation limits remain open | `toList_ofList`, `ofList_toList`, `size_ofList`, `toList_ofByteArray`, `size_ofByteArray`, `toList_empty`, `size_empty`, `size_eq_zero_iff` | Empty/mixed explicit construction, inverse callers and private-field/constructor/coercion rejection guards |
-| Same byte-value model; internal interface | `Bytes.size : Bytes → Nat`; `GetElem Bytes Nat UInt8 (fun b i => i < b.size)` | Exact length; byte access requires an in-bounds proof | Bounds supplied in the type; no unchecked accessor | `length_toList`, `getElem_toList` | Size, MSB/high-byte access and out-of-bounds optional lookup guards |
-| Same byte-value model; internal interface | `Bytes.push : Bytes → UInt8 → Bytes`; `append : Bytes → Bytes → Bytes` (`Append Bytes`) | Append one byte or concatenate sequences; empty operands preserve the other sequence | No primitive rejection; host allocation limits remain open | `toList_push`, `size_push`, `toList_append`, `size_append` | Packed push/append guards and model-only callers |
-| Same byte-value model; internal interface | `Bytes.extract : Bytes → (start stop : Nat) → Bytes` | Unpadded window, clipped to source size; empty for unavailable or reversed windows | None in pure byte semantics | `toList_extract`, `size_extract` | Partial/absent slice guards; public model caller |
+| Explicit packed adapter for `ByteArray` consumers | `Bytes.toByteArray : Bytes → ByteArray` | Same bytes and size; shares the packed buffer without a boxed-list conversion | None; explicit adapter, no coercion | `toList_toByteArray`, `size_toByteArray`, `ofByteArray_toByteArray`, `toByteArray_ofByteArray` | Packed export guards, observer-only callers and compiled roundtrip checks |
+| Same byte-value model; public interface | `Bytes.size : Bytes → Nat`; `GetElem Bytes Nat UInt8 (fun b i => i < b.size)` | Exact length; byte access requires an in-bounds proof | Bounds supplied in the type; no unchecked accessor | `length_toList`, `getElem_toList` | Size, MSB/high-byte access and out-of-bounds optional lookup guards |
+| Same byte-value model; public interface | `Bytes.push : Bytes → UInt8 → Bytes`; `append : Bytes → Bytes → Bytes` (`Append Bytes`) | Append one byte or concatenate sequences; empty operands preserve the other sequence | No primitive rejection; host allocation limits remain open | `toList_push`, `size_push`, `toList_append`, `size_append` | Packed push/append guards and model-only callers |
+| Same byte-value model; public interface | `Bytes.extract : Bytes → (start stop : Nat) → Bytes` | Unpadded window, clipped to source size; empty for unavailable or reversed windows | None in pure byte semantics | `toList_extract`, `size_extract` | Partial/absent slice guards; public model caller |
 | Lean packed builder; not a separate EELS callable | `Bytes.generate : Nat → (Nat → UInt8) → Bytes` | Exactly `n` bytes from function values at indices `0…n−1`; result indices only | None in the pure model; host allocation limits remain open | `toList_generate`, `size_generate`, `getElem_generate` | Empty/nonzero packed generation; generic model/size callers |
 | Lean packed observer; not a separate EELS callable | `Bytes.foldl : (α → UInt8 → α) → α → Bytes → α` | Left fold over the complete byte sequence; no intermediate list in executable code | No additional primitive failure | `foldl_eq` | Big-endian Horner fold guard; generic model-only caller |
 | `utils/byte.py:18,37` (`left_pad_zero_bytes`) | `Bytes.leftPadZero : Bytes → Nat → Bytes` | Every sequence and natural width; prepend `n - b.size` zero bytes, retain oversize input, size `max b.size n` | None in the pure value model; source host size/allocation faults remain open as above; consumers own D14/B14 mapping | `toList_leftPadZero`, `size_leftPadZero`, `leftPadZero_of_le`, `leftPadZero_idempotent`, `getElem?_toList_leftPadZero` | `BytesGuards.lean`: empty, zero, equal/short/long target, 21-byte input to 20, idempotence, prefix bytes; actual pinned helper differential |
@@ -300,7 +302,8 @@ one zero for an odd length. Its ordinary list-model theorem proves the exact
 replicated-zero sequence; the measure decreases as `n / 2 < n`. This uses
 geometrically sized packed copies, without a boxed array or a per-byte `Nat` loop.
 Append returns the other operand when either operand is empty, avoiding a copy.
-Already sufficient padding inputs are returned unchanged.
+Already sufficient padding inputs are returned unchanged. The bounded extra
+copying and peak-memory tradeoff are recorded under D18 in DEBT-BYTES-ZEROS.
 
 Padded reads first compare `start` with source size in `Nat`. For an available
 window they copy only `min len (b.size - start)` bytes, with both slice endpoints
@@ -328,14 +331,14 @@ padding parameters of types `int`/`Uint`/`U256`, compares in-bounds
 These comparisons leave host-resource policy, opcode effects, guest executions
 and the remaining byte/conversion API open (§10).
 
-### Implemented fixed-byte and domain-key slice
+### Implemented fixed bytes and domain keys
 
 `STFSpec/Base/FixedBytes.lean` implements the following API in `STFSpec.Base`.
 The listed declarations and laws are implemented for every natural width, including zero.
 `FixedBytes n`, `Address` and `Hash32` have private BitVec representations and distinct
 types. Byte contents, rather than those type distinctions, model EELS cross-type byte
 equality. Constructors accept a `Bytes` input; other Python constructor parameter
-forms are outside this typed seam. Values are immutable and have no state effects.
+forms are outside this typed interface. Values are immutable and have no state effects.
 Every `none` is an exact-length `ValueError` at `ethereum_types/bytes.py:29–37`;
 its first consuming handler/outcome belongs to the consumer under D14/B14.
 No primitive fault constructor or global X1 classification is added.
@@ -377,8 +380,8 @@ shifting and writes it directly into packed storage. Ordinary equality theorems
 connect both paths to the legible references. Neither conversion allocates an
 intermediate byte list. Inverse/range and equal-width lexical-order proofs include
 width zero. Growing generic widths still incur bignum work; representation and
-composition cost gates remain open under D2/C1–C4. Local native conversion evidence
-is recorded with the validation commands; it establishes no guest performance target.
+composition cost gates remain open under D2/C1–C4. The compiled
+`bytes-native-tests` gate exercises conversion correctness, not guest performance.
 
 The pair law implements F19's ordered-key contract, including `EthState`'s
 transient-storage map. Its differential compares Python tuples; it executes no
@@ -611,9 +614,9 @@ keys; the BAL does not sort those pairs.
 
 **Byte sequences** [R/C]:
 
-- `Bytes.toList` is injective, has length `b.size`, and is inverse to list-to-byte-array construction.
+- `Bytes.toList` is injective, has length `b.size`, and is inverse to `Bytes.ofList` construction. Explicit `ofByteArray`/`toByteArray` adapters are inverse and preserve the list model and size; consumers typed over `ByteArray` use that packed boundary.
 - Padding prepends/appends exactly `n - b.size` zeros; its size is `max b.size n`, it retains sufficient inputs and is idempotent at a fixed width. The per-byte observations specify the original bytes and zero prefix/suffix.
-- `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in the byte-sequence slice; VM memory/gas effects are separate.
+- `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in `Bytes.lean`; VM memory/gas effects are separate.
 
 **Fixed bytes** [C]:
 - `ofBytes? b = some x ↔ b.size = n ∧ x.toBytes = b`;

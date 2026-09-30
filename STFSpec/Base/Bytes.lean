@@ -11,7 +11,7 @@ import Init.Omega
 # Byte sequences, zero padding and bounded padded reads
 
 Library `EthBase`. Padding follows pinned EELS `src/ethereum/utils/byte.py:18,40`.
-The internal padded-read helper models `src/ethereum/forks/amsterdam/vm/memory.py:63`.
+The public padded-read helper models `src/ethereum/forks/amsterdam/vm/memory.py:63`.
 It copies only available bytes and builds packed zeros for the missing suffix;
 a large offset is never traversed or narrowed.
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
@@ -31,6 +31,10 @@ namespace Bytes
 
 /-- Explicit construction from a packed byte array, retaining every byte. -/
 def ofByteArray (b : ByteArray) : Bytes := ofByteArrayRaw b
+
+/-- Explicit packed export for consumers whose byte API uses `ByteArray`.
+This observes the existing packed buffer without allocating a list or copying bytes. -/
+def toByteArray (b : Bytes) : ByteArray := b.raw
 
 /-- Construct a byte sequence from its stable list model. -/
 def ofList (xs : List UInt8) : Bytes := ofByteArray xs.toByteArray
@@ -75,6 +79,20 @@ theorem size_ofByteArray (b : ByteArray) : (ofByteArray b).size = b.size := rfl
 
 /-- Explicit packed construction preserves the input byte-list observation. -/
 theorem toList_ofByteArray (b : ByteArray) : (ofByteArray b).toList = b.data.toList := rfl
+
+/-- Packed export has the same stable byte-list observation. -/
+theorem toList_toByteArray (b : Bytes) : b.toByteArray.data.toList = b.toList := rfl
+
+/-- Packed export preserves the exact byte count. -/
+theorem size_toByteArray (b : Bytes) : b.toByteArray.size = b.size := rfl
+
+/-- Export followed by explicit packed construction retains the sequence. -/
+theorem ofByteArray_toByteArray (b : Bytes) : ofByteArray b.toByteArray = b := by
+  cases b
+  rfl
+
+/-- Explicit packed construction followed by export retains the packed input. -/
+theorem toByteArray_ofByteArray (b : ByteArray) : (ofByteArray b).toByteArray = b := rfl
 
 /-- The list observation has exactly the byte sequence's size. -/
 theorem length_toList (b : Bytes) : (toList b).length = b.size := by

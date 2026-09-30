@@ -16,7 +16,6 @@ open STFSpec.Base
 
 -- Storage and implicit representation conversions are unavailable to callers.
 #check_failure Bytes.raw
-#check_failure Bytes.data
 #check_failure Bytes.ofByteArrayRaw
 #check_failure fun (b : Bytes) ↦ b.1
 #check_failure (⟨ByteArray.empty⟩ : Bytes)
@@ -28,13 +27,19 @@ open STFSpec.Base
 #guard (Bytes.ofList [0, 128, 255]).size = 3
 #guard (Bytes.ofList [0, 128, 255])[1]'(by decide) = 128
 #guard (Bytes.ofList [0, 128, 255])[3]? = none
-#guard Bytes.toList (Bytes.ofByteArray ([0, 128, 255] : List UInt8).toByteArray) = [0, 128, 255]
+#guard Bytes.toList (Bytes.ofByteArray ([0, 128, 255] : List UInt8).toByteArray) =
+  [0, 128, 255]
+#guard (Bytes.ofList [0, 128, 255]).toByteArray.data.toList = [0, 128, 255]
+#guard (Bytes.ofList [0, 128, 255]).toByteArray.size = 3
+#guard Bytes.ofByteArray (Bytes.ofList [0, 128, 255]).toByteArray = Bytes.ofList [0, 128, 255]
+#guard (Bytes.ofByteArray ByteArray.empty).toByteArray = ByteArray.empty
 #guard Bytes.toList (Bytes.empty.push 128) = [128]
 #guard Bytes.toList (Bytes.ofList [1, 2] ++ Bytes.ofList [3]) = [1, 2, 3]
 #guard Bytes.toList ((Bytes.ofList [1, 2, 3]).extract 1 7) = [2, 3]
 #guard Bytes.toList ((Bytes.ofList [1, 2, 3]).extract 7 9) = []
 #guard Bytes.toList (Bytes.generate 0 UInt8.ofNat) = []
-#guard Bytes.toList (Bytes.generate 5 (fun i ↦ UInt8.ofNat (i + 128))) = [128, 129, 130, 131, 132]
+#guard Bytes.toList (Bytes.generate 5 (fun i ↦ UInt8.ofNat (i + 128))) =
+  [128, 129, 130, 131, 132]
 #guard Bytes.foldl (fun n b ↦ 256 * n + b.toNat) 0 (Bytes.ofList [1, 128, 255]) = 98559
 
 private def sample : Bytes := Bytes.ofList [1, 128, 255]

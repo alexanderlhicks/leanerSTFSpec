@@ -5,7 +5,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Base.Bytes
 
 /-!
-# Byte-sequence client proof tests
+# Byte-sequence caller proof tests
 
 Library `EthConformance`: these callers use only stable byte observations and public
 laws, without unfolding a padding/read definition or inspecting stored array data.
@@ -89,3 +89,13 @@ example (n : Nat) (f : Nat → UInt8) :
 
 example {α : Type u} (f : α → UInt8 → α) (init : α) (b : Bytes) :
     b.foldl f init = b.toList.foldl f init := Bytes.foldl_eq f init b
+
+-- Packed consumers cross the representation boundary through public laws.
+example (b : Bytes) : b.toByteArray.data.toList = b.toList := Bytes.toList_toByteArray b
+
+example (b : Bytes) : b.toByteArray.size = b.size := Bytes.size_toByteArray b
+
+example (b : Bytes) : Bytes.ofByteArray b.toByteArray = b := Bytes.ofByteArray_toByteArray b
+
+example (b : ByteArray) : (Bytes.ofByteArray b).toByteArray = b :=
+  Bytes.toByteArray_ofByteArray b
