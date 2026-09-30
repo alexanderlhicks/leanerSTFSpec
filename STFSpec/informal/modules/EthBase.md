@@ -317,8 +317,10 @@ push loop, with a list-range model theorem, and `foldl` visits packed bytes with
 list-fold model theorem. Executable builders/folds do not materialize the list
 observer. The compiled `bytes-native-tests` CI target checks native operations
 against finite list models, including huge slice offsets and clipped endpoints;
-kernel guards alone do not exercise the native byte-array primitives. These
-structural bounds and regressions do not discharge full C1–C4 target measurements.
+ordinary model theorems prove the Lean equations, while `#guard` supplies evaluated
+regression tests. The standalone executable adds end-to-end compiled coverage.
+These structural bounds and regressions do not discharge full C1–C4 target
+measurements.
 
 Regression evidence is in `STFSpec/Conformance/Base/BytesGuards.lean`,
 `BytesCallerProofs.lean` and `bytes_differential.py`. The driver uses

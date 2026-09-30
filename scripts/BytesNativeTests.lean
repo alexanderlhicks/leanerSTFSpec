@@ -11,8 +11,9 @@ Library `EthBase`. Spec guidance: `STFSpec/informal/modules/EthBase.md` §3.
 
 Run `lake build bytes-native-tests --wfail && lake exe bytes-native-tests`.
 These exercise the compiled packed operations against their list models, including
-natural offsets whose low machine bits look like valid indices. Kernel-evaluated
-guards alone do not exercise the runtime's native byte-array primitives.
+natural offsets whose low machine bits look like valid indices. Ordinary model
+theorems prove the Lean equations; `#guard` supplies evaluated regression tests.
+This standalone executable adds end-to-end compiled regression coverage.
 -/
 
 open STFSpec.Base
