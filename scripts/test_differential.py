@@ -105,6 +105,51 @@ class DifferentialTests(unittest.TestCase):
             Driver("test", self.script, 7)
         self.assertEqual(raised.exception.code, 2)
 
+    def test_initializer_rejects_wrong_pin(self):
+        _, distribution = self.prepare_initializer()
+        pin = self.spec / "reference.toml"
+        pin.write_text(pin.read_text().replace(self.driver.head, "0" * 40))
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("EELS checkout does not match reference.toml", errors.getvalue())
+
+    def test_initializer_rejects_wrong_dependency_version(self):
+        _, distribution = self.prepare_initializer()
+        Path(distribution.locate_file("ethereum_types-1.0.dist-info/METADATA")).write_text(
+            "Name: ethereum-types\nVersion: 2.0\n")
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("ethereum-types version does not match reference.toml", errors.getvalue())
+
+    def test_initializer_rejects_dependency_export_from_wrong_source(self):
+        source, distribution = self.prepare_initializer()
+        # Every installed byte has a valid RECORD hash. Importing the requested
+        # attribute still yields another source file, so RECORD checking alone
+        # cannot establish the source-to-observation mapping.
+        alternative = source.with_name("alternative.py")
+        alternative.write_text("VALUE = 9\n")
+        source.with_name("__init__.py").write_text("from . import alternative as numeric\n")
+        records = []
+        for file in sorted(source.parent.glob("*.py")):
+            data = file.read_bytes()
+            digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode().rstrip("=")
+            records.append(f"ethereum_types/{file.name},sha256={digest},{len(data)}")
+        records.append("ethereum_types-1.0.dist-info/RECORD,,")
+        Path(distribution.locate_file("ethereum_types-1.0.dist-info/RECORD")).write_text(
+            "\n".join(records) + "\n")
+        with self.initializer_environment(distribution), \
+                redirect_stderr(io.StringIO()) as errors, \
+                self.assertRaises(SystemExit) as raised:
+            Driver("test", self.script, 7)
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("ethereum_types/numeric.py was imported outside", errors.getvalue())
+
     def test_initializer_rejects_internal_output(self):
         _, distribution = self.prepare_initializer()
         for output in (self.spec / "evidence.lean", self.root / ".venv/evidence.lean"):
@@ -322,6 +367,23 @@ class DifferentialTests(unittest.TestCase):
         spec = FreshSourceFinder(self.driver).find_spec("ethereum", [str(self.root / "src")])
         self.assertIsInstance(spec.loader, FreshSourceLoader)
 
+    def test_finder_rejects_oracle_package_in_dependency_directory(self):
+        finder = FreshSourceFinder(self.driver)
+        pinned = finder.find_spec("ethereum", [str(self.root / "src")])
+        namespace = {}
+        exec(pinned.loader.get_code("ethereum"), namespace)
+        self.assertEqual(namespace["VALUE"], 1)
+        installed = self.root / ".venv/lib/site-packages"
+        counterfeit = installed / "ethereum/__init__.py"
+        counterfeit.parent.mkdir(parents=True)
+        counterfeit.write_text("VALUE = 9\n")
+        control = importlib.machinery.PathFinder.find_spec("ethereum", [str(installed)])
+        self.assertEqual(Path(control.origin), counterfeit)
+        # A Python source file inside the frozen venv is not thereby the pinned
+        # ethereum package. The finder rejects the path before loading its code.
+        with self.assertRaisesRegex(ImportError, "outside the frozen environment"):
+            finder.find_spec("ethereum", [str(installed)])
+
     def test_finder_rejects_sourceless_oracle(self):
         py_compile.compile(str(self.source), cfile=str(self.source.parent / "__init__.pyc"),
                            doraise=True)
@@ -439,6 +501,31 @@ class DifferentialTests(unittest.TestCase):
                                   capture_output=True, text=True)
         self.assertEqual(isolated.returncode, 0, isolated.stderr)
         self.assertFalse(marker.exists())
+
+    def test_harness_disables_ordinary_import_cache_writes(self):
+        source = self.root / ".venv/review_cache_control.py"
+        source.parent.mkdir()
+        source.write_text("VALUE = 1\n")
+        scripts = Path(__file__).resolve().parent
+        probe = (
+            "import importlib,sys\n"
+            "sys.path.insert(0,sys.argv[1])\n"
+            "if sys.argv[3] == 'harness':\n"
+            "    import differential\n"
+            "sys.path.insert(0,sys.argv[2])\n"
+            "module=importlib.import_module('review_cache_control')\n"
+            "if module.VALUE != 1: raise RuntimeError('wrong import result')\n"
+            "print(module.__cached__)\n"
+        )
+        for mode in ("ordinary", "harness"):
+            with self.subTest(mode=mode):
+                result = subprocess.run(
+                    [sys.executable, "-I", "-c", probe, str(scripts), str(source.parent), mode],
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                cache = Path(result.stdout.strip())
+                self.assertEqual(cache.exists(), mode == "ordinary")
+                cache.unlink(missing_ok=True)
 
     def test_installed_native_dependency_preserved(self):
         spec = importlib.machinery.PathFinder.find_spec("_json")

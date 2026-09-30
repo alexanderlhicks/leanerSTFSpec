@@ -9,7 +9,8 @@ ethereum-types Python bytes are compared with the installed distribution RECORD.
 Isolated startup ignores Python environment overrides and the user site. The
 interpreter and frozen installation, including its installed startup hooks and
 RECORD, remain trusted inputs; this does not authenticate a hostile host. Drivers
-refuse unisolated runs, but cannot undo code executed before their startup checks.
+check the isolation requirement within that trusted interpreter; they cannot undo
+pre-startup execution or detect a hostile startup hook that spoofs interpreter flags.
 Observations are bug-finding evidence.
 """
 
