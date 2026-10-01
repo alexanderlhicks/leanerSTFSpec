@@ -1,10 +1,10 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
-- **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. The scratch venv has 0.1.7; I diffed the two wheels, and `rlp.py` and `exceptions.py` are byte-identical (only `__version__` differs). The D1r mutation fuzzing ran under 0.1.7; the D2r nesting probes ran under the locked 0.1.6.
+- **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
 - **`remerkleable`**: `eth-remerkleable` 0.1.31.
 
 ## 1. Purpose
@@ -109,6 +109,57 @@ It also owns **contract-address derivation** (CREATE/CREATE2). That derivation n
 - **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when an offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). The spec's `encode` is total over well-typed values whose encoding has offsets `< 2^32`, and is stated with that hypothesis.
 
 ## 3. EELS source map
+
+### Implemented typed RLP slice
+
+`STFSpec/Codec/RlpItem.lean` supplies the public raw model and diagnostic error.
+`STFSpec/Codec/RlpTyped.lean` implements the following pure, total operations on
+all model items. The exported accept-set laws are discharged for this slice;
+whole-wire, instance, schema and guest correspondence remain open (§10).
+No instance is added on nested `RlpItem` (F17); only nonnested `RlpError` derives
+`DecidableEq`. The model constructors preserve all supplied bytes/ordered children.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:77–78` (0.1.6); `ethereum_types/numeric.py:477–484` (0.4.1) | `Rlp.ofNat : Nat → RlpItem` | every natural; `.bytes (Uint.toBeBytes n).toByteArray`; no effects | none | `toNat_ofNat`; zero/01/7f/80/0100 payloads |
+| `ethereum_rlp/rlp.py:263–277` (0.1.6) | `Rlp.toNat : RlpItem → Except RlpError Nat` | all items; byte leaf gives complete BE value, zero from empty | list shape; nonempty leading zero | `toNat_canonical_iff`, `toNat_eq_ok_iff`; 00/0001/000001 reject |
+| `ethereum_rlp/rlp.py:263–277`; `ethereum_types/numeric.py:566–577` | `Rlp.toNatBounded : Nat → RlpItem → Except RlpError Nat` | all widths/items; canonical integer of at most width bytes | list shape; leading zero; byte count exceeds width; guards precede numeric construction | `toNatBounded_canonical_iff`, `toNatBounded_eq_ok_item_iff`, `toNatBounded_leading_zero`; U64 max/overflow, 33-byte U256, model width zero |
+| `ethereum_rlp/rlp.py:245–251` | `Rlp.toBool : RlpItem → Except RlpError Bool` | empty bytes false, singleton01 true | every other leaf or list, one Boolean shape diagnostic | `toBool_eq_ok_iff`; 00/02/0101/list reject |
+| `ethereum_rlp/rlp.py:254–260` | `Rlp.toBytes : RlpItem → Except RlpError ByteArray` | every byte leaf, exact bytes; no effects | list shape | `toBytes_eq_ok_iff`; 0001ff preservation/list rejection |
+| `ethereum_rlp/rlp.py:254–260`; `ethereum_types/bytes.py:27–36` | `Rlp.toFixed : (n : Nat) → RlpItem → Except RlpError (FixedBytes n)` | exact n-byte leaf, including n=0; all bytes preserved | list shape; wrong length | `toFixed_eq_ok_iff`, `toFixed_eq_ok_item_iff`; 0-byte and 19/20/21-byte address payloads, 31/32/33 bytes |
+| `ethereum_rlp/rlp.py:374–379` | `Rlp.toList : RlpItem → Except RlpError (List RlpItem)` | raw list shape only; ordered children unchanged, no child typing | byte shape | `toList_eq_ok_iff`; nested raw child preserved; actual target `list[Bytes]` cases use valid Bytes children |
+| `ethereum_rlp/rlp.py:217–229` | `Rlp.toFields : (n : Nat) → RlpItem → Except RlpError (Vector RlpItem n)` | raw dataclass shape/arity step only; exact n ordered fields, no child typing | byte shape; field count before children | `toFields_eq_ok_iff`, `toFields_wrong_arity`; too few/many and arity0; actual toy dataclasses have valid Bytes fields |
+| `ethereum_rlp/rlp.py:325–343` | `Rlp.union2 : (RlpItem → Except RlpError α) → (RlpItem → Except RlpError α) → RlpItem → Except RlpError α` | all items, total callbacks; both alternatives contribute; returns sole success | zero successes (no variant); two successes (multiple variants), even equal values | `union2_eq_ok_iff`; actual Bytes0/Bytes20 union; model both-failure and same/different-value double-success |
+
+**Error correspondence.** All typed rejection constructors here are diagnostic
+refinements of one dependency `DecodingError`. Shape, Boolean, width, field-count,
+no-variant and multiple-variant diagnostics, and integer leading-zero
+`nonCanonical`, must be consumed identically by the future `decodeTo` wrapper.
+The dependency's `decode_to` wraps every typed exception (`rlp.py:167–171`), after
+raw `decode` outside that wrapper. Future consuming handlers include the header
+fallback (`stateless.py:234–237`) and transaction decode in
+`execution_engine/new_payload.py:60–68` (CONTRACT O6); their composition is not
+implemented by these leaves. `empty`, `truncated` and `trailing` are model error
+constructors for future wire work and are never produced by this slice. No new
+outcome or host-depth policy follows (D14, Q20, O12).
+
+**Checks and provenance.** `STFSpec/Conformance/Codec/RlpTypedGuards.lean` owns
+strict deterministic model regressions; `RlpTypedCallerProofs.lean` uses only public
+contracts, including both canonicality directions, complete bounded range and
+exactly-one union. `rlp_typed_differential.py` authenticates the pinned source and
+locked installed ethereum-rlp 0.1.6/ethereum-types 0.4.1 with trusted RECORD metadata,
+verified resolved origins and current bytes pre/post. Its loader bypasses existing
+`.pyc`; generated trusted-package probes check poisoned cache, wrong origin and
+changed source. Run the frozen interpreter with `-I -B`, `--eels EELS` and
+`--output SCRATCH/observations.lean` outside both repositories. The interpreter,
+startup environment, frozen installation and RECORD remain trust inputs. The seed
+5015 run has 422 guards: integers123, Boolean44, Bytes41, fixed123, list5,
+field20, union41 and minimal payload25. Successful oracle results are checked for
+exact Python classes/types, including bool versus integer classes. Width-zero
+integers and arbitrary callbacks are model-only cases, not actual pin targets.
+This is finite typed-value evidence, not EEST execution or a proof of Python code.
+
+### Remaining source ownership
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
@@ -286,6 +337,22 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 
 **No derived instances on the nested inductives** (F17). `deriving BEq`, `Repr` or `DecidableEq` on `RlpItem`, `SszType` or `SszValue` generates `partial` constants (for example `instBEqT.beq`), which D21 bans and only the compiled declaration check catches. Write structural instances by hand, as mutual structural recursions (a compiled prototype of the interfaces showed the pattern works). Non-nested types such as `RlpError` and `SszError` may derive them.
 
+**Implemented leaf costs.** Raw shape observations (`toBytes`, `toList`) share the
+input without traversing children. Boolean checks compare only the empty and
+singleton byte shapes. Integer adapters inspect shape/first byte/size before the
+Base Horner fold; leading-zero or over-width bounded inputs never construct the
+large natural. Accepted numeric work traverses the bytes once, with growing
+arbitrary-precision arithmetic costs; this is not a linear bit-cost claim.
+`toFixed` checks size before the Base fixed-byte constructor and preserves its
+public byte observation. `toFields` counts the list, then builds its array only
+when arity matches; it does not deserialize or recurse into children. `union2`
+performs both callbacks, costing their sum. Generated C inspection confirms the
+integer guard order, both union applications and arity-before-array construction.
+These are static code-shape observations, without allocator profiling, native
+throughput/guest measurements or satisfaction of whole-codec cost gates. Schemas,
+wire workloads and consumer lifetime/cleanup checks remain required (REVIEW C1;
+CONTRIBUTING §3).
+
 ## 7. Contract and laws
 
 **RLP.**
@@ -293,9 +360,22 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 - [C] Round trip: `Encodable x → decode (encode x) = .ok x`.
 - [C] **Canonicality:** `decode b = .ok x → Encodable x ∧ encode x = b`. Together with the round trip, `decode b = .ok x ↔ Encodable x ∧ encode x = b`. This is the Lean form of D1r.
 - [C] **Injectivity and prefix-freeness:** `Encodable x ∧ Encodable y ∧ encode x ++ r = encode y ++ s → x = y ∧ r = s`. These feed [S]: witness and header binding under Keccak collision resistance.
-- [C] Integer canonicality: `toNat (.bytes b) = .ok n ↔ b = Uint.toBeBytes n`; `toNatBounded w` additionally requires `b.size ≤ w`.
+- [C] Integer canonicality: `toNat (.bytes b) = .ok n ↔ b = (Uint.toBeBytes n).toByteArray`; `toNatBounded w` additionally requires `b.size ≤ w`.
 - [R] Typed round trips for each instance: `Encodable (toRlp a) → decodeTo (encodeOf a) = .ok a` (where toRlp is the instance adapter). This is used by `EthBlock` (transaction, header and receipt codecs) and `EthStateCommit` (account leaves).
 - [R] `union2 f g x = .ok a` implies that exactly one of `f x`, `g x` succeeds.
+
+**Discharged model leaf laws.** The implementations export full integer
+minimality biconditionals (`toNat_canonical_iff`, `toNat_eq_ok_iff`), bounded
+canonicality/range (`toNatBounded_canonical_iff`, `toNatBounded_eq_ok_item_iff`),
+zero-width acceptance (`toNatBounded_zero_iff`) and encoder roundtrip
+(`toNat_ofNat`). Boolean, raw bytes, fixed length/byte observation and raw list
+accept sets are `toBool_eq_ok_iff`, `toBytes_eq_ok_iff`, `toFixed_eq_ok_iff` and
+`toList_eq_ok_iff`; `toFixed_eq_ok_item_iff` additionally pins model shape. `toFields_eq_ok_iff` preserves exactly the vector's ordered
+fields; `toFields_wrong_arity` rejects before child typing. `union2_eq_ok_iff`
+characterizes a sole success plus the other alternative's failure. These apply to
+all model inputs, without wire-instance or child-schema claims. Integer
+canonicality uses public Base fold/range/encoded-width and fixed-byte injectivity,
+so it also proves the converse byte minimality rather than just value roundtrip.
 
 **SSZ.**
 - [T] `decode` is total: recursion on the type, with each sub-decode on a strictly smaller slice. Offsets are validated against the slice length before use.
@@ -345,11 +425,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire encode/decode, `Encodable`, length prefixes/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
 - **"EELS accepts exactly the image of `encode`" (S3)** is argued from the re-encode check. It is not proved for remerkleable's `decode_bytes`, which could raise (and so reject) on some canonical input. This is unlikely but unverified. The differential round-trip fuzzing should cover every Amsterdam schema, not only toy containers.
-- **RLP canonicality** has 500k fuzz cases of evidence and no proof yet. The prefix-freeness proof strategy is standard, but it is unwritten in Lean.
+- **Wire RLP canonicality** has 500k fuzz cases of evidence and no proof yet; the model integer-leaf minimality laws in §7 are discharged. The prefix-freeness proof strategy is standard, but it is unwritten in Lean.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).

@@ -115,7 +115,9 @@ regressions. Its §10 owns missing APIs and derived laws.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the reference Keccak-f[1600]
 hash providers, their public model/byte laws, primary KATs and finite differential
 evidence; its §10 owns remaining hash APIs and correspondence.
-Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
+[EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns the implemented typed
+RLP model leaves and their public accept-set laws; wire/schema/SSZ and the whole
+Codec gate remain open (§10). Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
 extraction and authentication tooling.

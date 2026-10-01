@@ -73,6 +73,17 @@ retained reference endpoints, including padding, block absorption and byte outpu
 These laws do not supply the query instance, acquisition or oracle coupling, and
 local native diagnostics do not supply target/resource composition.
 
+### Typed RLP model premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies raw-model typed
+leaf accept sets and byte/field order preservation. The integer premise includes
+both minimality directions and complete bounded range; union success requires
+exactly one successful alternative. Consumers must still implement raw wire
+codecs, child schemas/instances and diagnostic erasure through `decodeTo` wherever
+the pinned caller uses `decode_to`. The header fallback and payload transaction
+handlers remain unimplemented; these leaf laws discharge none of their guest
+outcomes, host-depth policy or complete schema premises (Q20, O12).
+
 ### Hash constants and oracle premises
 
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,
