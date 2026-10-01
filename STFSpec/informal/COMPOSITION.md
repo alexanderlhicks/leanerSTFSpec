@@ -37,6 +37,17 @@ hypothesis. This supplies the digest operation for future SSZ/request consumers;
 record encoding, request-root composition and collision assumptions remain their
 owners' obligations.
 
+### RIPEMD-160 digest premise
+
+[EthHash §3](modules/EthHash.md#3-eels-source-map) supplies the total pure
+`ripemd160 : ByteArray → FixedBytes 20` provider and all-input MD4 padding,
+little-endian word/byte and ascending chaining laws into an inductive digest
+model. Base packed generation, byte-list observations and checked fixed-byte
+construction, together with the accepted compression bridge, supply its premises.
+The future precompile consumer still owns gas-before-computation, the twelve-byte
+zero prefix and host capability/resource policy (DISC-005/O12). Finite actual
+pinned precompile observations do not discharge those Lean composition obligations.
+
 ### BLAKE2F parameter premise
 
 `EthPrecompiles` establishes `data.size = 213` after its size check before calling

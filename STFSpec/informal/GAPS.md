@@ -128,9 +128,8 @@ None: every inventory item is claimed by a module or excluded with a reason.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
-  deterministic/differential evidence are owned by §3–§4. RIPEMD-160
-  digest/padding/serialization remains unimplemented. Its remaining vectors need
-  transcription from primary sources, including the RIPEMD-160 paper.
+  deterministic/differential evidence are owned by §3–§4, including the complete
+  RIPEMD-160 digest/padding/serialization and nine selected primary message vectors.
   Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.

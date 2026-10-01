@@ -1,8 +1,8 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-09-30.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-01.*
 
-**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-09-30); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
+**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-01); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
 Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
 
@@ -107,7 +107,7 @@ X1 is coordinated by EthConformance tooling; each module owns its explicit and i
 
 The highest-risk uncompleted items are closing the failure ledger's unresolved sites (X1), the complete CALL/CREATE gas proof (the fuel-adequacy investigation, §7 G2–G7), code-authenticity/oracle coupling, lenient witness root agreement (the witness/full-state agreement prototype, §7 S2), and the open interface items (X15). Until these are resolved, the repository is suitable for targeted validation and scaffolding, not an unconditional claim of end-to-end soundness.
 
-## 6. Implementation-readiness assessment (2026-09-30)
+## 6. Implementation-readiness assessment (2026-10-01)
 
 **Implemented scope.** [EthBase §3](modules/EthBase.md#3-eels-source-map) owns the
 implemented declarations, source correspondence, public proofs and operation-value
