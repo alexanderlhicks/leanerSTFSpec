@@ -120,8 +120,13 @@ operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
 [EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
 Q49 provider and internal-node APIs, public-law domains and conformance evidence.
-Its §10 owns remaining witness/database/root APIs, consumer measures and
-trie/resource obligations. Other semantic components remain scaffolding.
+Q50 supplies actual finite-map domain/ending-key laws and private extension/child
+strict sum-descent support and private longest shared-prefix selection with
+ordinary domain/maximality/representative laws. Private bounded branch support
+adds full-key partition/ending and ordered supplied-callback/C6 sequencing laws
+with their explicit lawful-monad premises (EthCommit §3). Its §10 owns remaining witness/database/root APIs,
+constructor measures and trie/resource obligations. Other semantic components
+remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
@@ -130,8 +135,14 @@ extraction and authentication tooling.
 **Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
 Path/node guards and authenticated differential drivers are owned by [EthCommit
 §3](modules/EthCommit.md#3-eels-source-map). Typed-Bytes/Python sequence support
-checks supply provider evidence; resource gates remain open in §7. Q49 does not
-discharge consumer map-recursion measures or aggregate copy/comparison costs.
+checks supply provider evidence; finite full-output native correctness observations
+supply no throughput or C1–C4 claim. Q49 supplies provider support; Q50 discharges
+domain/strict-descent support over actual finite maps, including all sixteen
+empty/nonempty child cases. Private callback-based branch formation adds bounded
+ordered C6 encoding support, without recursive construction or a parent query
+(EthCommit §3). Actual C7–C8,
+whole-constructor choice independence/canonicality,
+source-root agreement and aggregate copy/comparison costs remain open.
 Base differential drivers compare public operation values with the pinned source.
 Q51 table-support vectors compare complete UInt64/native/source values with independent
 nonprotocol Python arithmetic and actual Std map observations (EthBase §3); this

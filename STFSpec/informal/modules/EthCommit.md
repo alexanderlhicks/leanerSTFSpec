@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -22,8 +22,16 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 - C5. `EMPTY_TRIE_ROOT = keccak256(rlp(b""))` = `0x56e8…b421` (`mpt:71–75`). In Lean it is `HashConsts.emptyTrieRoot` (`EthBase`; D5), acquired through the oracle at the caller-owned F20 boundary and passed to the operations that need it (`decodeRoot`, `rootHash`, `mathRoot`). The literal is its value at `m := Id` only (`HashConsts.literals`, `EthBase`), and `EthHash` checks that `HashConsts.query` at `Id` yields it (`EthHash` §7).
 - C6. `encode_internal_node` (`mpt:213–249`): `none ↦ b""`; leaf `↦ (HP(rest, true), value)`; extension `↦ (HP(seg, false), subnode)`; branch `↦ 16 subnodes ++ [value]`; if `len(rlp(·)) < 32` the **unencoded structure** is returned (inlined in the parent), else `keccak256(rlp(·))`.
-- C7. `patricialize obj level` (`mpt:507–581`): empty → `none`; one key → leaf with `key[level:]` (possibly **empty**: valid, e.g. below a branch at level 63 of a 64-nibble key); if all keys share a non-empty prefix from `level` → extension over the longest common prefix; else a branch whose value is the key ending at `level` (if any) and whose children are the recursive results at `level + 1`. EELS picks an arbitrary first key (`next(iter(obj))`); the result is independent of the choice (§7.3). The Lean definition takes an `ExtTreeMap Nibbles ByteArray`.
-- C8. `root` (`mpt:478–504`): `r = encode_internal_node (patricialize (prepare t) 0)`; if `len(rlp r) < 32` return `keccak256(rlp r)` else `r` (already the hash). The empty trie gives C5.
+- C7. `patricialize obj level` (`mpt:507–581`): empty → `none`; one key → leaf with `key[level:]` (possibly **empty**: valid, e.g. below a branch at level 63 of a 64-nibble key); if all keys share a non-empty prefix from `level` → extension over the longest common prefix; else a branch whose value is the key ending at `level` (if any) and whose children are the recursive results at `level + 1`. EELS picks an arbitrary first key (`next(iter(obj))`); the result is independent of the choice (§7.3). The Lean definition takes an `ExtTreeMap Nibbles ByteArray` and an explicit
+  `PatricializeDomain obj level` proof (Q50): every full key reaches `level` and
+  every consumed prefix agrees. Every finite map starts at zero. Keys/values may
+  be empty, lengths odd/arbitrarily finite and keys prefix-related. No behavior
+  for a direct outside-domain helper call is selected.
+- C8. `root` (`mpt:478–504`): `r = encode_internal_node (patricialize (prepare t) 0)`; if `len(rlp r) < 32` return `keccak256(rlp r)` else `r` (already the hash). The empty trie gives C5. Q50 separates the caller's F20 acquisition from
+  local execution: `mathRoot emptyRoot ∅ = pure emptyRoot`, with no new local
+  query or local oracle failure. Concrete Id/pinned-root equality requires
+  coherent supplied constants plus complete assembled-node `Encodable` and
+  host premises; it is not equality of the entire Python/local generic trace.
 - C9. `_prepare_data` (`mpt:407–448`): encode each value (`encode_node`, C10); `None` values and empty encodings are rejected by `assert`; keys are `keccak256`-hashed if `secured`; keys become nibble lists. Consumers must never pass a value whose encoding is empty; in Lean this is a precondition carried by the value class (`encode v ≠ empty` for non-default `v`).
 - C10. `encode_node` (`mpt:252–269`) dispatches: `Account` → `encode_account` (owned by `EthStateCommit`, needs the storage root); `Bytes` → identity; otherwise `rlp.encode`. In Lean this is the `TrieValue` class; the `Account` instance is supplied by `EthStateCommit`.
 - C11. The typed trie (`mpt:274–347`): a map with `secured` and `default`; `trie_set` with the default **erases** the key; `trie_get` returns the default when absent; `copy_trie` is a shallow copy (identity on a persistent Lean map). `EthBlock` uses it (unsecured) for the transaction, receipt and withdrawal roots (`fork.py:351–354`), so its root must equal C8 on those value types.
@@ -231,6 +239,150 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/compact_differential.py \
 Finite actual-source and native complete-result observations validate this slice;
 no node, root, witness or guest acceptance/refinement is discharged.
 
+### Implemented mathematical-root domain support
+
+Q50 ([issue #26](https://github.com/alexanderlhicks/leanerSTFSpec/issues/26))
+clarifies the reachable helper domain. `STFSpec/Commit/Root.lean` implements
+the **pure domain/descent support** in this subsection, not a new EELS
+operation or root. Private callback-based branch support is described below.
+Its private partition retains full keys and values, uses an explicit packed-digit
+bounds guard. `RootDomainGuards.partition` tests the filter expression in the
+public `PatricializeDomain.child` statement. `RootDomainGuards.remaining` tests a
+local copy of the measure expression `(obj.keys.map (fun k ↦ k.size - level)).sum`;
+this is a termination sum, not a runtime/aggregate-cost bound. No repeated-prefix
+search is adopted.
+
+| Exact pinned EELS context | Lean support/public domain | Success/effects and failures | Proved law | Deterministic evidence |
+|---|---|---|---|---|
+| `merkle_patricia_trie.py:507–543` | `PatricializeDomain : ExtTreeMap Nibbles ByteArray → Nat → Prop`; arbitrary finite full keys/byte values | Proof seam only; no queries/errors/rejection or outside-domain completion | `PatricializeDomain.zero`, public `depth`/`consumedPrefix` | `RootDomainGuards.domainCheck_iff`; empty/singleton/multikey, short-key and inconsistent-prefix counterexamples |
+| `merkle_patricia_trie.py:567–571` | Ending keys and branch lookup on this domain | Unique ending key; optional empty value stays present; no new effects | `ending_unique`, `ending_prefix_key`, `branch_value_representative_eq` | `RootDomainCallerProofs.ending_value/absent_branch_value`; actual insertion permutations and empty/prefix key values |
+| `merkle_patricia_trie.py:564–576` | Public `PatricializeDomain.child` over the explicit guarded `obj.filter`, each `Fin 16` | Keys remain full; ending keys excluded before digit access; empty children allowed; strict sum requires the domain and `obj.size > 1` | public `ending_not_mem_child`/`child`; private `child_keys`, `mem_child`, `child_lookup`, `multikey_measure_pos`, `child_measure_lt` | All sixteen complete child key/value outputs, sums/domain/strictness including empty groups; symbolic `root_child` |
+| `merkle_patricia_trie.py:555–562` | Public `PatricializeDomain.extension`; all keys reach and agree at `level+amount` | Pure domain preservation; private strict descent requires `obj.size > 0` and `amount > 0` | `extension`; private `remainingSum_extension_lt`/`extension_measure_lt` | Odd 257/259-digit prefix keys, complete retained paths/sums; zero advancement/empty-map/singleton-zero counter-premise guards |
+
+`RootDomainGuards.cases` compares complete structured outputs through committed
+`#guard`s. Uncommitted local native checks are separate finite support evidence;
+no native support runner is supplied here. Pinned `mpt:478–581` was read directly,
+without a replacement oracle.
+The universal support proofs consume only public Nibbles and Std laws. Actual
+C7–C8, composition with the existing C6 laws,
+whole-constructor choice independence,
+canonicality, source-root agreement, assembled-node `Encodable`/host premises,
+F20 consumer coherence, D5 coupling and C1–C4 remain open.
+
+### Implemented mathematical-root longest shared-prefix support
+
+`Root.lean` adds private pure selection for the future C7 constructor. The actual
+finite map retains full keys and every byte value. `selectSharedPrefix` traverses
+its ordered key list once, handles an empty map as `none`, and otherwise returns
+a selected member and additional length. `sharedPrefixFold` initializes the cap
+from that member's remaining length, compares pairs at the current `level`, shrinks
+the cap and stops at zero. `sharedPrefixScan` structurally consumes a remaining
+counter; explicit `size` bounds guard both `get` indices. It neither copies suffixes
+nor scans the consumed prefix. The ordinary List/drop reference is proof support.
+
+| Exact pinned EELS context | Lean private support and domain | Success/effects and failures | Ordinary proof | Deterministic/source evidence |
+|---|---|---|---|---|
+| `merkle_patricia_trie.py:534,543–552` | `sharedPrefixScan`, `pairSharedPrefix`, `sharedPrefixFold`; all finite paths, natural levels/caps | Pure capped longest suffix-prefix length; guarded exhaustion; no query/error or new input restriction | `sharedPrefixScan_model` at all valid bounds; all-input `pairSharedPrefix_model`; `sharedPrefixFold_model` | Owner-private pair/fold examples; capped/unequal/empty/4097-digit complete observations |
+| `merkle_patricia_trie.py:534,543–552` | `selectSharedPrefix : ExtTreeMap Nibbles ByteArray → Nat → Option (Nibbles × Nat)`; private support only | `none` exactly for empty keys; otherwise an actual member and selected length; values unaffected | `selectSharedPrefix_none_iff`, `selectSharedPrefix_member`, `selectSharedPrefix_domain` | Empty/singleton/ending keys, empty values, insertion permutations; genuine source leaf/extension/branch prefix observations |
+| `merkle_patricia_trie.py:555–562` | `sharedPrefixFrom` on `PatricializeDomain obj level` and a real member | Every full key reaches and agrees at `level+amount`; positive length supplies existing extension and strict sum descent | `sharedPrefixFrom_le_iff/domain/bound/maximal/positive_descent` | Universal domain/extension/child clients; arbitrary consumed depth, odd unequal keys, complete long paths and sums |
+| `merkle_patricia_trie.py:534,543–552` | Same domain and explicit selected-member premises | Length and complete additional prefix independent of member; identical full-key sets give identical length regardless of values/history; zero excludes a common positive next domain | `sharedPrefixFrom_representative_eq/prefix_representative_eq/keys_eq/zero_iff` | Alternative members, all16 next digits, prefix relationships; wrong-depth/consumed-prefix negatives where premises fail |
+
+`RootPrefixGuards` observes the legible List/drop reference through public path
+and map contracts. Root's all-input `pairSharedPrefix_model`, `sharedPrefixFold_model`,
+`sharedPrefixFrom_model` and `selectSharedPrefix_model` equalities connect those
+reference expressions to the private packed implementation. Private law clients
+and finite scanner checks live in Root; no private declaration names are constructed
+by consumers. `RootPrefixCallerProofs` consumes public domain fields and the existing
+`child` law. No provider storage or generated provider equations are unfolded.
+The selector allocates one list of full-key references through public `obj.keys`; scan work is bounded by each current cap and matching remaining digits,
+with no packed key copy. These are source-structure bounds, not allocation/throughput
+measurements or completed C1–C4. There is no new D18 performance exception.
+
+The finite authenticated source driver executes genuine pinned `patricialize` both
+with and without a restored trace hook. It reads complete selected prefix values
+from the top frame and checks exact node/path classes before normalization; no
+callable, class, recursion, encoding or hash is replaced. Current source/lock and
+installed types/RLP/crypto identities are checked before and after. Full prefix
+observations are emitted as Lean reference guards and elaborated with
+`lake env lean -DwarningAsError=true`. The committed driver does not compile or run
+a native Root executable; the all-input owner equalities provide the implementation
+bridge for these reference observations:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_prefix_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
+Only pure selection support is supplied. Actual C7–C8, whole-constructor choice
+independence, canonicality, C6/root composition, source-root agreement, complete
+assembled-node `Encodable`, oracle coherence/coupling, host/resources and guest
+acceptance remain open. No outside-domain `patricialize` behavior is selected.
+
+
+### Mathematical-root private branch support
+
+`Root.lean` reuses its existing guarded full-key `childPartition`, with ordinary
+List/filter reference equality, exact optional lookup, disjointness and coverage.
+`branchParts` is a private pure decomposition model with sixteen numeric maps
+and an optional ending lookup. On the explicit domain and a real member, that
+lookup is present exactly for the unique ending key, with its original bytes;
+`some empty` remains distinct from `none`. The decomposition and ending bytes
+are representative independent.
+
+The private `branchStage` supplies each full child map, an erased equality
+identifying that actual partition, and its next-depth domain proof to a callback.
+`Vector.ofFnM` sequences the callback then actual C6 `encodeInternalNode` for
+ascending digits 0..15. The returned branch defaults the ending lookup only at
+its final `.bytes` field and does not encode or hash the parent. Ending lookup
+is direct; it does not build another vector of sixteen maps just to project a
+field. No recursive `patricialize`, root wrapper or public constructor seam is
+added. The equality witness enables later Root-local use of the existing private
+strict-descent fact without repeated filtering; it is not recursion in this item.
+
+| Exact pinned EELS context | Lean private support and domain | Success/effects and failures | Ordinary proof | Deterministic/source evidence |
+|---|---|---|---|---|
+| `merkle_patricia_trie.py:564–572` | Existing `childPartition`; `branchParts : ExtTreeMap Nibbles ByteArray → Nat → Nibbles → BranchParts`; full finite maps | Whole keys/values retained; guarded digit reads; optional ending bytes including empty; pure | `inChild_reference`, `childPartition_model`, `mem_child`, `child_lookup_model`, `child_disjoint`, `child_coverage`, `ending_excluded`, `childPartition_domain`, `branchParts_get/ending_present/ending_none_iff/ending_representative` | Owner-local universal partition/lookup/index/ending examples; all16 groups, empty map/depth999, ending and continuing keys, long odd full paths, member/insertion alternatives, wrong-domain negatives |
+| `merkle_patricia_trie.py:574–577` | `childAction`, `childReferences`; supplied child callback with actual-partition equality and next-depth proof | Construct then actual C6 encode for each digit; the first-callback error theorem assumes its run is pure error; finite guards cover later failure positions | `childReferences_first/list/pure`, `childAction_construct_error`, `branchStage_first_error`; reassociation/list equations explicitly require `LawfulMonad`; query instance on `ExceptT ε m` needs no underlying query instance | Complete State/ExceptT traces, all16 constructor-failure positions and all10 queried encoding failures, actual31/32/33 preimages and full32-byte answers; genuine pinned ascending construct/encode observations |
+| `merkle_patricia_trie.py:578–581` | `branchStage : ... → m InternalNode`; private callback support only | Sixteen references then defaulted ending bytes; no parent query; retains empty values | `branchStage_assembled`, `branchStage_representative`, `branch_reference_position`, `branch_value_position`; representative rewriting needs no `LawfulMonad` assumption | Whole assembled wire/state, empty and nonempty ending fields, all members and insertion permutations; one-child/empty-value example preserves Q50 and supplies no canonical occupancy theorem |
+
+`RootBranchGuards` uses explicitly labeled test instrumentation of verified actual
+private Root names; it copies no recursive executable algorithm. Private branch
+law examples live in Root; reusable `RootBranchCallerProofs` clients use existing public
+`PatricializeDomain`, Nibbles, Std, Vector and InternalNode laws. Provider storage
+and generated provider equations are not unfolded. A branch performs at most
+sixteen guarded filters, one per executed callback, retaining full keys. This
+source-structure bound and final emitted-code inspection supply no allocation,
+throughput or C1–C4 result and require no new D18 exception.
+
+The fresh driver below authenticates pinned source/lock, installed types/RLP/crypto
+and exact classes before normalization and after execution. A restored trace hook
+observes genuine top-level branch groups, optional ending selection, and all sixteen
+alternating child construction/encoding calls. Complete source results match
+untraced replays; no source callable, class, recursion, encoder or hash is replaced.
+It emits complete grouping/ending observations for source-selected and minimum
+members, including reversed insertion and complete31/32/33 child encodings.
+The driver compares grouping and optional ending lookup; it does not compare the
+complete callback stage. Committed stage guards independently compare full
+assembled wire/state, including a nonempty ending value at position sixteen.
+Those support fields, not recursive Lean construction/root agreement, are compared
+by generated guards. Separate uncommitted local O3 native runs exercise complete
+stage outputs and traces; no native runner is committed here:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_branch_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
+The interpreter, frozen installation/RECORD, startup and host crypto remain trust
+inputs. No Python-host or generic-oracle coupling interpretation is adopted.
+Q50 allows empty byte values: `{[] ↦ empty, [0] ↦ empty}` forms a branch with one
+occupied numeric reference and an empty byte field under the supplied finite
+callback. A later canonical occupancy/lookup theorem needs appropriate value
+premises; no rejection or domain restriction is introduced. Actual C7–C8,
+whole-constructor choice independence, canonical witnesses, complete assembled-node
+`Encodable`, source-root correspondence, F20 coherence/D5 coupling and resources
+remain open.
+
 ## 4. Tests
 
 `InternalNodeGuards.lean` checks absent, leaf and extension structures, nested
@@ -271,6 +423,31 @@ generated `#guard`s. Witness-node and trie cases remain open.
 - **Adversarial witnesses** (hand-built DBs; cycles only through the internal `decodeRoot` API with a DB that is not keccak-keyed): missing root (O4(a)); missing child never accessed (accepted); malformed node off every accessed path (rejected, eager); on-path cycle of length 1 and 3 (malformed); diamond sharing (accepted, and memoised decode equal to unmemoised); a DAG of depth 8 with 16 identical children (cost test); empty-path leaf below a depth-63 branch (accepted); branch collapse whose sole sibling is a stub (rejected) and the same after an insertion (accepted, C26); each non-canonical case of C16 including the `0x80` entry flip; no-op delete through a non-canonical node changing the root (C19).
 - **Property tests:** `rootHash (buildMpt m) = mathRoot m`; random update/delete sequences on fully resolved tries against `mathRoot` of the updated map; random pruning of a canonical trie to a witness, then sequences whose success matches the data-availability characterisation (§7.5); differential checks against EELS through a Python harness (bug-finding only).
 
+`RootDomainGuards` additionally compares empty/singleton/multikey
+maps, empty and prefix-related full keys/values, all sixteen numeric children,
+ending exclusion, representative branch lookups, reversed insertion and odd/long
+paths. It checks actual complete key/value lists, remaining-length sums and the
+finite domain predicate (proved equivalent by `domainCheck_iff`), including short
+keys/inconsistent consumed prefixes and missing positive-extension/multikey
+premises. `RootDomainCallerProofs` supplies universal domain, lookup and distinct
+insert-permutation clients through public contracts. Root owns private strict-descent
+proofs and scanner law clients; conformance guards test the public domain/filter
+contracts and the stated reference expressions. Uncommitted local finite native
+checks remain separate evidence. No constructor differential or root correspondence
+is claimed by these support tests.
+
+`RootBranchGuards` compares complete values, including every numeric
+constructor and queried encoding failure position. `printComplete` retains full
+wire bytes, full-key/value groups, preimages, answers, original errors and states.
+Root holds private universal branch law clients; `RootBranchCallerProofs` consumes
+public provider contracts. To reproduce separate uncommitted native support cases,
+compile a temporary executable
+importing those modules and invoke `RootBranchGuards.printComplete`; additionally
+compare every complete generated `sourceBranches` row from the driver above.
+Retain default limits, warnings as errors, fresh current-module imports and sidecar
+identities. These are bounded branch-support tests, not completed C7/C8 or EEST
+root tests. No checksum or sampled field substitutes for complete values.
+
 ## 5. Interface
 
 ```lean
@@ -309,7 +486,11 @@ def assembleInternalNodeModel : Option InternalNode → RlpItem   -- public byte
 def internalNodeWireModel : Option InternalNode → List UInt8   -- full total RLP model
 def encodeInternalNode : Option InternalNode → m RlpItem        -- C6, full width ≥ 32 hashes
 def encodeInternalNodeModel : Option InternalNode → m RlpItem   -- same effects, model bytes
-def patricialize (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat) : m (Option InternalNode)
+structure PatricializeDomain (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat) : Prop where
+  depth : ∀ k, k ∈ obj → level ≤ k.size
+  consumedPrefix : ∀ k, k ∈ obj → ∀ j, j ∈ obj → k.take level = j.take level
+def patricialize (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) : m (Option InternalNode)
 def mathRoot (emptyRoot : Hash32) (t : Std.ExtTreeMap Nibbles ByteArray) : m Hash32
 def secureKeys (secured : Bool) (t : Std.ExtTreeMap ByteArray ByteArray) : m (Std.ExtTreeMap Nibbles ByteArray)
 
@@ -449,9 +630,15 @@ starting-level and positive-advance hypotheses; bounded path-prefix equivalence 
 both size bounds. These are source-structure bounds, not allocation/throughput
 measurements or completed resource gates. The decoder's temporary digit and byte Lists
 plus packed copy are linear in decoded length; no fusion or single-allocation claim is
-made (DEBT-COMPACT-DECODE). The whole-trie laws below remain open. Consumers still owe
-filtered-map sum-measure strictness, positive advancement, variable-length branch
-values, canonicality, choice independence and aggregate copying/comparison costs.
+made (DEBT-COMPACT-DECODE). Q50's actual finite-map domain, ending-key/branch
+lookup laws and private extension/child strict sum support are discharged in
+`Root.lean` (§3). Root adds private longest shared-prefix selection and its
+ordinary domain/maximality/member-independence support there, alongside bounded
+private full-key partition/decomposition and ordered supplied-callback/C6 branch
+support with explicit lawful sequencing and original first-callback-error laws (§3).
+The constructor
+still owes actual C7–C8, canonicality, whole-constructor choice independence and aggregate
+copying/comparison costs.
 Repeated full suffix copies can be quadratic; key cursors and node-path-only copies are
 a possible consumer design, not an implemented performance claim. A consuming change
 must assess aggregate copying/comparison costs and record any justified performance
@@ -471,7 +658,7 @@ arbitrary nested items. No child reference validation or recursive child hash is
 
 ### 7.1 Totality [T]
 
-- `compactToNibbles`, `patricialize` (measure: Σ remaining key lengths, strictly decreasing through extension and branch), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
+- `compactToNibbles`, `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension; actual recursion unimplemented), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
 
 ### 7.2 Per-operation commuting obligations (D25) [C]
 
@@ -545,6 +732,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D18: HashMap expected bounds for `NodeDB` and the memo.
 - D19 (accepted): eager decoding; the memo is the permitted internal laziness only in the sense of sharing, with the proof of §7.6.
 - D25 (accepted): `represents` as the abstraction relation.
+- Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent support is in §3, while actual constructors and source agreement remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
 - NEW-COMMIT-1: DECISIONS B3 (Q32): `Ref` hidden behind the trie API; `Option Node` only if it keeps the provenance DISC-003 needs (open: not yet tested).
@@ -564,7 +752,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.
 - **`patricialize` choice-independence** and the Canonical-uniqueness lemma for a hexary trie with branch values and variable-length keys (unsecured tries) have no existing Lean proof; the Nipkow chapter is binary.
 - **Internal-node scope:** C6 operational/model/lift laws are proved as in §3/§7.0.1. Complete standard-domain and Python Extended interpretation/host premises remain caller obligations. Root/patricialization/witness/cache/database laws, canonical trie-shape conditions and resource gates remain open. Empty extension paths and arbitrary nested fields are valid C6 inputs; witness validity is a separate contract.
-- **Pure path scope:** the `Nibbles` representation/invariant, implemented pure path operations and Q49 bounded generation/clipped copies/lawful order are discharged as in §3/§7.0. Trie mutation/integration, map-recursion measures, aggregate copy/allocation costs and C1–C4 measurements remain open; slices copy O(k).
+- **Pure path scope:** the `Nibbles` representation/invariant, implemented pure path operations and Q49 bounded generation/clipped copies/lawful order are discharged as in §3/§7.0. Q50 domain/strict sum-descent support is discharged in §3. Private longest shared-prefix selection and its domain/maximality/representative laws, and bounded private branch partition/ending/callback-C6 sequencing support, are supplied in §3. Actual C7–C8, trie mutation/integration, aggregate copy/allocation costs and C1–C4 measurements remain open; slices copy O(k).
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection, diagnostic adapters to witness/guest channels and whole-node/trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.

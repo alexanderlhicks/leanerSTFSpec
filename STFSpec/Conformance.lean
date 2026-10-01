@@ -71,6 +71,12 @@ import STFSpec.Conformance.Commit.CompactCallerProofs
 import STFSpec.Conformance.Commit.NibblesCallerProofs
 import STFSpec.Conformance.Commit.InternalNodeGuards
 import STFSpec.Conformance.Commit.InternalNodeCallerProofs
+import STFSpec.Conformance.Commit.RootDomainGuards
+import STFSpec.Conformance.Commit.RootDomainCallerProofs
+import STFSpec.Conformance.Commit.RootPrefixGuards
+import STFSpec.Conformance.Commit.RootBranchGuards
+import STFSpec.Conformance.Commit.RootBranchCallerProofs
+import STFSpec.Conformance.Commit.RootPrefixCallerProofs
 
 /-!
 # STFSpec.Conformance
