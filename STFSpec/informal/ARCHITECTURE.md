@@ -447,6 +447,8 @@ The options considered for each decision, and what evidence settles or revisits 
 | D26 | secp256k1 recovery for senders and EIP-7702 authorities | `RunnerEnv` parameter · direct `EthCurve` dependency of `EthVmRunner` | — (pure-Lean dependencies only) |
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
 
+**RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

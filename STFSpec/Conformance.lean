@@ -46,6 +46,11 @@ import STFSpec.Conformance.Hash.KeccakQueryGuards
 import STFSpec.Conformance.Hash.KeccakQueryCallerProofs
 import STFSpec.Conformance.Hash.PackedKeccakGuards
 import STFSpec.Conformance.Hash.PackedKeccakCallerProofs
+
+import STFSpec.Conformance.Codec.RlpEncodeGuards
+import STFSpec.Conformance.Codec.RlpEncodeCallerProofs
+import STFSpec.Conformance.Codec.RlpTypedGuards
+import STFSpec.Conformance.Codec.RlpTypedCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
