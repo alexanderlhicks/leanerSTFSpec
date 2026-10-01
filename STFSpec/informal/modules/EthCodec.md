@@ -130,8 +130,8 @@ allocation proportional to that declaration.
 `RlpItem` model. **Discharged:** its packed output equals the total readable
 byte-list reference on every item, and the computed size equals actual output
 width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
-Byte/list payloads and all length digits are preserved in order; wire decoder laws beyond the implemented slice,
-wire canonicality, injectivity, schema instance or guest outcome is implemented.
+Byte/list payloads and all length digits are preserved in order; no wire decoder laws beyond the
+implemented slice, wire canonicality, injectivity, schema instances or guest outcomes are implemented.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
