@@ -61,7 +61,7 @@ Every row is required before claiming that module's corresponding refinement, in
 
 | Module | Remaining design/proof work |
 |---|---|
-| EthBase | Enumerate checked integer operations and failure sites; specify Envelope's role; formalise Taylor descent and resolve DISC-002 practical feasibility. |
+| EthBase | Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Enumerate checked integer operations and failure sites; specify Envelope's role; formalise Taylor descent and resolve DISC-002 practical feasibility. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
 | EthField | Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
@@ -133,6 +133,9 @@ Path/node guards and authenticated differential drivers are owned by [EthCommit
 checks supply provider evidence; resource gates remain open in §7. Q49 does not
 discharge consumer map-recursion measures or aggregate copy/comparison costs.
 Base differential drivers compare public operation values with the pinned source.
+Q51 table-support vectors compare complete UInt64/native/source values with independent
+nonprotocol Python arithmetic and actual Std map observations (EthBase §3); this
+provides no EELS cryptographic, NodeDB/root or C1–C4 claim.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.
 Production F20 entry seams, consumer coherence and D5 generic coupling remain open.

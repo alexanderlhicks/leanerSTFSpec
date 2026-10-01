@@ -392,6 +392,14 @@ Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/
 | `Node`/`Ref` | inductive with immutable `Enc` per resolved node | a set of maps (`represents` is a relation, D25) | `represents` | `Enc` agrees with C18/C19; ext child is a branch or stub; every branch has exactly 16 children (F5) and occupancy ≥ 2 | functional; tries are not snapshot-reachable (built once per root computation), so path copying suffices | lookup O(d) node steps (d ≤ 64 branch levels for secured keys) plus path comparisons; update/delete O(d) nodes rebuilt, each with one RLP encoding and ≤ one keccak; `rootHash` O(1) (cached at the root) |
 | DAG decode memo (DISC-004, B15; not the per-root storage-trie memo of `EthStateWitness`, F6) | `Std.HashMap Hash32 (Except TrieError Node)` threaded linearly during one `decodeRoot` | partial function on hashes | memo consistency (Nipkow Ch. 18) | an entry equals the unmemoised decode of that hash | linear-only | total decode O(Σ distinct reachable entry sizes + keccak) instead of EELS's path-expanded cost |
 
+NodeDB reuses EthBase's Q51 Hashable Hash32 support and existing actual-equality
+laws (EthBase §3). Public Std map laws supply insertion/lookup, distinct-key
+preservation and equal-key overwrite without a distinct-support-hash premise.
+This prerequisite does not implement NodeDB.build or discharge C12 authenticity:
+Keccak keys still come from KeccakQuery (D5/F4). Expected table bounds are
+conditional on a suitable distribution; actual construction, duplicate handling
+and adversarial-distribution measurements remain open (ARCHITECTURE §5.0, C2).
+
 Computing `Enc` strictly in the smart constructor re-hashes the whole path on every update (O(u·d) keccaks for `u` updates), whereas EELS hashes each dirty node once at root time. Either is correct; the choice is internal to this module (DECISIONS B15, Q33) and still open.
 
 ## 7. Contract and laws

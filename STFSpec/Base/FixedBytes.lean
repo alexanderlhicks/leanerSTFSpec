@@ -673,6 +673,54 @@ theorem toNat_toBytes32 (x : Hash32) : x.toBytes32.toNat = x.toNat := rfl
 /-- Adding the domain distinction preserves the numeric model. -/
 theorem toNat_ofBytes32 (x : Bytes32) : (ofBytes32 x).toNat = x.toNat := rfl
 
+/-! ### Nonprotocol hash-table support (DECISIONS Q51) -/
+
+private def tableHashStep (acc : UInt64) (byte : UInt8) : UInt64 :=
+  (acc ^^^ byte.toUInt64) * 1099511628211
+
+private def tableHashByte (value i : Nat) : UInt8 :=
+  UInt8.ofNat (value >>> (8 * (31 - i)))
+
+/-- Nonprotocol support hash: fold all 32 big-endian digits of the complete numeric
+observer, including leading zeros. UInt64 xor/multiply arithmetic wraps modulo `2^64`.
+This model promises neither injectivity nor cryptographic security or distribution. -/
+def tableHashReference (x : Hash32) : UInt64 :=
+  ((List.range 32).map (tableHashByte x.toNat)).foldl tableHashStep 14695981039346656037
+
+private def tableHashFold (step : Nat → UInt64 → UInt64) : Nat → Nat → UInt64 → UInt64
+  | 0, _, acc => acc
+  | remaining + 1, i, acc => tableHashFold step remaining (i + 1) (step i acc)
+
+private theorem tableHashFold_eq (step : Nat → UInt64 → UInt64)
+    (remaining i : Nat) (acc : UInt64) :
+    tableHashFold step remaining i acc =
+      (List.range' i remaining).foldl (fun acc j ↦ step j acc) acc := by
+  induction remaining generalizing i acc with
+  | zero => simp [tableHashFold]
+  | succ remaining ih =>
+    simp only [tableHashFold, ih, List.range'_succ, List.foldl_cons]
+
+/-- Structural streaming table support, without an intermediate byte list or buffer.
+The callback and Nat shifts can allocate; this is not an allocation-free claim. -/
+def tableHash (x : Hash32) : UInt64 :=
+  tableHashFold (fun i acc ↦ tableHashStep acc (tableHashByte x.toNat i))
+    32 0 14695981039346656037
+
+/-- The executable table support equals its complete 32-digit reference on every value. -/
+theorem tableHash_eq_reference (x : Hash32) : tableHash x = tableHashReference x := by
+  simpa only [tableHash, tableHashReference, List.foldl_map, List.range_eq_range'] using
+    tableHashFold_eq (fun i acc ↦ tableHashStep acc (tableHashByte x.toNat i))
+      32 0 14695981039346656037
+
+/-- Hash-table support only. Actual equality supplies the generic lawful hash instances;
+this instance performs no protocol hash query and allows support-hash collisions. -/
+instance : Hashable Hash32 where
+  hash := tableHash
+
+/-- Hashable exposes the same nonprotocol model as the executable support function. -/
+theorem hash_eq_reference (x : Hash32) : hash x = tableHashReference x :=
+  tableHash_eq_reference x
+
 end Hash32
 
 /-- State root hash domain; EELS `src/ethereum/state.py:34`. -/
