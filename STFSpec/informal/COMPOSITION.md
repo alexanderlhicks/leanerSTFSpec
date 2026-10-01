@@ -164,6 +164,19 @@ through `decodeTo` wherever the pinned caller uses `decode_to`. The header fallb
 handlers remain unimplemented; these leaf laws discharge none of their guest
 outcomes, host-depth policy or complete schema premises (Q20, O12).
 
+### Hash32 table-support premise
+
+[EthBase §3](modules/EthBase.md#3-eels-source-map) supplies Q51's total
+nonprotocol Hashable Hash32, its all-input executable/reference equality and
+existing actual equality's lawful hash classes. Complete numeric/byte observers
+preserve support hashing; public Std insertion/overwrite/different-key lookup
+laws hold without a distinct-hash premise. This supplies only the table prerequisite
+for EthCommit's NodeDB. Input-order construction, Keccak authentication, generic
+oracle coupling, eager decoding, root agreement and resource gates remain with
+their existing owners. Support/bucket collisions affect costs, not key equality
+or cryptographic authenticity; map expected costs retain ARCHITECTURE §5.0's
+measurement/distribution premises.
+
 ### Hash constants and oracle premises
 
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,
