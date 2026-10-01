@@ -61,6 +61,8 @@ import STFSpec.Conformance.Codec.AddressCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
+import STFSpec.Conformance.Commit.NibblesGuards
+import STFSpec.Conformance.Commit.NibblesCallerProofs
 
 /-!
 # STFSpec.Conformance

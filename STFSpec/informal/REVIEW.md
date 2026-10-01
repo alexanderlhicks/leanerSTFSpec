@@ -117,13 +117,20 @@ hash providers, their public model/byte laws, primary KATs and finite differenti
 evidence; its §10 owns remaining hash APIs and correspondence.
 [EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns its implemented
 operations, source correspondence and conformance evidence; §7 owns public-law
-domains, and §10 owns remaining APIs and laws. Other semantic components remain scaffolding.
+domains, and §10 owns remaining APIs and laws.
+[EthCommit §3/§7.0](modules/EthCommit.md#3-eels-source-map) owns the bounded nibble
+abstraction and three pure path operations, with public model/range/length/flag/
+maximal-prefix laws; decoder, node/database/root and the whole trie gate remain
+open (§10). Other semantic components remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
 extraction and authentication tooling.
 
 **Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
+The pure trie path guards and authenticated source differential driver are owned
+by [EthCommit §3](modules/EthCommit.md#3-eels-source-map); resource gates remain
+open in §7.
 Base differential drivers compare public operation values with the pinned source.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.

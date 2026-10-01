@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-09-30. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-10-01. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -119,6 +119,7 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 | Q45 | NEW-CRYPTO-8: conditions for reusing cryptography-specs | With D15. At `09deaff` it is not reusable as-is (Lean v4.29.1, `partial def`, `get!`, `native_decide`). |
 | Q46 | SHA-256 total input domain | **Accepted by the maintainer (2026-09-30), recorded in [issue #9](https://github.com/alexanderlhicks/leanerSTFSpec/issues/9).** Preserve `sha256 : ByteArray → Bytes32` and totality. Its trailer encodes `(8 * msg.size) mod 2^64` as eight big-endian bytes. FIPS 180-4 correspondence requires `8 * msg.size < 2^64`; beyond that domain this selects a total extension, without FIPS or pinned-host equivalence. No rejection, error-result or gas change. Fixed-word compression has no length premise. |
 | Q47 | RLP total encoder outside the encodable domain | **Accepted by the maintainer (2026-09-30), recorded in [issue #12](https://github.com/alexanderlhicks/leanerSTFSpec/issues/12).** Preserve the total `Rlp.encode`, `encodeBytes` and length-prefix helper signatures. Compute prefix tags in UInt8 modulo 256 and retain exact, unbounded minimal big-endian length digits. The packed encoder must equal its total byte-list model for every item. Standard RLP and pinned-dependency correspondence require `Encodable` (every item payload length has an at-most-eight-byte prefix). Outside that domain, this selects a total extension without claiming protocol acceptance/rejection, injectivity, decoder canonicality or pinned-host/resource equivalence. No rejection API or gas change. Revisit if a consumer needs behavior beyond this domain. |
+| Q48 | Empty compact-path diagnostic projection | **Open** (owner: EthCommit §9/§10). Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:859–889` raises `IndexError` on empty compact input. Specify its exact `TrieError`/`Malformed` projection before implementing `compactToNibbles`; retain C3's lenient success domain and empty-input malformed outcome. No constructor or disposition is selected. |
 
 ## 5. Adding or changing a decision
 
