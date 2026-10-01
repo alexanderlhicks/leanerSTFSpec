@@ -43,6 +43,11 @@ jobs:
         run: |
           lake build fixed-endian-bench --wfail
           lake exe check-decls FixedEndianBench
+      - name: Packed Keccak benchmark build, declaration audit and generator freshness
+        run: |
+          lake build packed-keccak-bench --wfail
+          lake exe check-decls PackedKeccakBench
+          python3 scripts/gen_packed_keccak.py --check
       - name: Dependency and hygiene boundaries (source level)
         run: python3 scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)

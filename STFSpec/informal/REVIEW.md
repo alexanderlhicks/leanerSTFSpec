@@ -125,6 +125,8 @@ Base differential drivers compare public operation values with the pinned source
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.
 Production F20 entry seams, consumer coherence and D5 generic coupling remain open.
+The packed candidate retains state across blocks and proves endpoint equality;
+D4/resource/DEBT evaluation remains open.
 Extraction guards, host regressions and authenticated content comparison validate
 fixture tooling as specified by EthConformance §3–§4.
 They establish local evidence, without implementing Lean opcode effects. Guest,

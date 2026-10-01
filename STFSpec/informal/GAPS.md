@@ -136,10 +136,14 @@ pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
 - **BLAKE2F coverage** in EEST is 5 files per format. The parameter/compression tests in §3 do not execute these guest fixtures. The finite compression driver covers both flags, high-bit counters and sigma wrap; fixture coverage of `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set remains unassessed.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
-- **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
+- **Fast-path selection and resource gates** (D4): the native 25-field candidate
+now has ordinary all-input permutation/digest equality beside the retained
+reference (§3). Defaults are unchanged. D4 evaluation, actual target/native-client
+cost, allocated-volume/peak-live-space profiling and future-consumer composition
+remain open. This does not establish accelerator equivalence or DEBT closure.
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
 - **`sha256` for SSZ versus request hashing**: whether both uses must be modelled by one collision-resistance assumption in `EthSecurity` has no owner.
-- **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total, fast-path equivalence or whole-hash cost gate is discharged.
+- **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total or whole-hash cost gate is discharged.
 The fixed-rate sponge uses packed bytes and native lanes, copying the padded
 message once and processing blocks with a tail-recursive loop. Generated C and
 the retained historical native diagnostic provide local cost evidence; their
@@ -151,6 +155,10 @@ with no executable per-round List or bignum lane arithmetic. Its generated C is
 inspected and compiled with strict checks; static boxing/index sites are code
 shape observations, not measured allocation totals. No RIPEMD performance or
 whole-hash cost gate is discharged.
+
+The separate packed candidate proves ordinary all-input endpoint equality (§3);
+its native diagnostics and remaining resource obligations are recorded in
+DEBT-KECCAK-DIGEST.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains
 host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
