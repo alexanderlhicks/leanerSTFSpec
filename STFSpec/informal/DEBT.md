@@ -231,6 +231,121 @@ the digest call lies between clock reads. Reproduce digest code shape with
 and `squeeze` in `.lake/build/ir/STFSpec/Hash/KeccakSponge.c`; inspect the
 permutation separately using DEBT-HASH-REFERENCE's procedure.
 
+The separate `PackedKeccak` candidate now proves ordinary observer, step,
+prefix/permutation, block absorption, squeeze and all-input fixed-rate endpoint
+correspondence beside the retained reference ([EthHash §3](modules/EthHash.md#3-eels-source-map)).
+The reference defaults and caller sources are retained; D4 remains provisional
+and this entry stays open. `scripts/PackedKeccakBench.lean` is a committed,
+warning-strict native diagnostic, separately built and declaration-audited in CI.
+Run `lake build packed-keccak-bench --wfail`, then the native binary
+`.lake/build/bin/packed-keccak-bench`. The benchmark source records supplemental
+actual pinned-host expected values; primary KATs remain in the conformance suite.
+
+The historical pre-wrapper candidate diagnostic used Base parent
+`60cba4ad145d669c2cad1e3bf860d0a987b37f9c`, Lean 4.34.0 release commit
+`293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`, clang 22.1.4 with
+`-O3 -DNDEBUG -DLEAN_EXPORTING` and no LTO, on an Intel Core Ultra 7 165U x86_64
+shared Linux host. Candidate permutation/sponge source SHA-256 values are
+`32257ffae3c42c2da051ef6f16bb8597831be9aedb83660bf57b287c1890495c` and
+`4ef4296608b8a690009a86353c9939eaf7873449423881ce091d6d1f52a3bed9`; native binary SHA-256 is
+`c93094352b661c94b9a39abef009c679a3645f3e1eb44729436546edaaf69f60`.
+The reference algorithm source hashes above are unchanged; Base byte/fixed-byte
+source SHA-256 values are
+`40750891e503b9ff1aaeff9e742a346f465ad71fcddee37ec8e2fae01ff2ede4` and
+`929b44724047f9439e03ae0bb026defa2f1d1fa7453ead6783deee6626c24779`.
+
+Both endpoint sizes are measured at lengths 0,32,64,135,136,137,71,72,73,4096 and
+1 MiB using `(17*i+131)%256`. Three trials alternate reference/candidate order,
+with 100 repetitions for small inputs, 10 for 4096 and one for 1 MiB. Complete
+expected outputs are checked before and after the nanosecond clocks. The loop
+retains/replaces full outputs, releasing earlier results inside timing; its last
+fixed-width output remains for the outside-clock gate and is then released.
+Padding, block decode, permutation, squeeze and public output conversions are
+included. C and native assembly confirm the digest call and retained-output store
+within each repeated timed iteration, with no checksum or equality in that loop.
+
+The historical pre-wrapper three-sample diagnostic yielded:
+
+| Digest / 1 MiB | Reference ms | Packed candidate ms | Median reference/candidate |
+|---|---|---|---|
+| Keccak-256 | 2184.1/2250.2/3097.4 | 97.9/113.4/107.6 | 20.92× |
+| Keccak-512 | 4201.8/4114.4/2659.6 | 166.4/186.9/151.2 | 24.73× |
+
+These comparisons are local diagnostics against the retained Lean reference,
+not a native-client baseline or target ceiling. Host contention/frequency/affinity
+were not controlled. Generated C shows 25 scalar `uint64_t` fields at offsets
+0,8,…,192, 200-byte record constructors and exclusive-record reuse branches. The
+candidate digest's own hot-function graph has no UInt64 lane boxing, observer
+conversion or coordinate-model calls. Startup round constants remain boxed once,
+and byte callback adapters, Nat operations, closures, padding/output allocation
+and runtime lifetimes remain. These source/code-shape observations are not dynamic
+allocated-volume or peak-live-space profiles. No standalone hash measurement
+claims to discharge all C1–C4; their relevant obligations arise in the future
+consumer composition. The existing replacement criteria below remain unchanged.
+
+### Historical 2026-09-30 wrapped-reference candidate diagnostic
+
+The historical 2026-09-30 remeasurement used the private `KeccakState` coordinate API at
+reference parent `47d46bbd29dd2ff7b8bc815e06d15b13c989d40e`, Lean 4.34.0 release
+commit `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`, clang 22.1.4 with
+`-O3 -DNDEBUG -DLEAN_EXPORTING` and no LTO on the same shared Intel Core Ultra 7
+165U x86_64 Linux host. Historical samples are marked separately above; the
+paired benchmark below measured those historical source bytes. The complete committed
+benchmark was rebuilt and rerun at both endpoints, all eleven lengths and three
+alternating-order trials (132 rows). Every pre/post full-result gate passed.
+The measured unit is nanoseconds per complete digest, including retained-output
+replacement; no checksum or equality is inside the clocks.
+
+| Digest / 1 MiB | Wrapped reference ms | Packed candidate ms | Median reference/candidate |
+|---|---|---|---|
+| Keccak-256 | 815.4/830.1/826.9 | 38.2/38.8/38.4 | 21.53× |
+| Keccak-512 | 1836.3/2006.0/2439.5 | 96.0/96.2/97.7 | 20.86× |
+
+Historical wrapped-reference source SHA-256 identities, separately from the historical samples:
+
+- `STFSpec/Hash/KeccakPermutation.lean`: `8bd477bfa1cf3207f3a031db767c201d7685b89d8c5a5556fd6212b7aa36f75b`.
+- `STFSpec/Hash/KeccakSponge.lean`: `651fb1a07145e1759a6eec339b7bb2e682cfe631acb784cba3ef4b1073d63509`.
+- `STFSpec/Hash/PackedKeccakPermutation.lean`: `f85e956ed1efdc1d5ae0d73fe418f445b90dd96c93ef10649338b67ebe04d09e`.
+- `STFSpec/Hash/PackedKeccakSponge.lean`: `63e10871dad163845dda451f62d3dfb203092c1e058728de9ba379f3ff6a455f`.
+- `scripts/PackedKeccakBench.lean`: `67b0ed5d7b3b91e561c5a386b619110e0040f82218631497b2e5858d32c1111c`.
+
+Historical wrapped-reference native binary SHA-256: `d13649d8f3decaf684e4a48be67e15f6a6ed85a2d354c45df076950dd0d9af08`.
+Generated C and native assembly again confirm one digest closure call and
+retained-output replacement at every timed loop back edge, without equality or
+checksum. The candidate graph retains the scalar-field observations above.
+These local reference comparisons are separate from native-client or target
+throughput evidence. Frequency, affinity and host contention were uncontrolled;
+allocation volume/peak-live-space and future-consumer composition remain open.
+This diagnostic changes no default, D4 status or DEBT replacement criterion.
+
+These retained paired measurements precede the merged provider formatting and
+public-law changes. They describe the named historical source bytes.
+
+### 2026-10-01 merged-provider candidate diagnostic
+
+A fresh run on merged provider parent
+`042b4cf4a9f9ce9d8268eaeb8e1dea088ace4571` kept the packed candidate and
+benchmark source bytes above, while the retained reference sponge source SHA-256
+is now `3a6a68a63d82217d2fa97c780cf51a09016bd12de8e1fd621248bb8b312ca755`.
+The compiler, native flags and shared host are as described above. The current
+native binary SHA-256 is
+`c24a347532204d175b3ee1ac5974a8674732569b687e2c61848d4df6fdeb90a7`.
+All 132 alternating-order trials and 264 complete pre/post output gates passed;
+the same eleven lengths, two endpoints, repetitions and nanosecond units apply.
+The following three-sample results belong only to this merged-provider run:
+
+| Digest / 1 MiB | Current reference ms | Packed candidate ms | Median reference/candidate |
+|---|---|---|---|
+| Keccak-256 | 2408.6/4412.0/1722.6 | 96.9/89.9/71.5 | 26.78× |
+| Keccak-512 | 4404.0/4116.6/4915.0 | 161.5/164.7/162.8 | 27.05× |
+
+These samples are separate from both historical tables and are not pooled with
+them. Fresh current C and linked assembly retain the scalar-state and timed-loop
+observations above. Shared-host contention, affinity and frequency remain
+uncontrolled; no native-client target, allocation-volume, peak-live-space or
+future-consumer C1–C4 conclusion follows. D4, the reference default and this
+entry's replacement criteria remain unchanged.
+
 This exception keeps the legible reference and ordinary model proofs required
 by D4. Trie/code/header, opcode, address and constant-acquisition consumers
 inherit this provider cost; their semantics and query obligations remain unchanged.

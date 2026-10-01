@@ -102,6 +102,12 @@ name = "fixed-endian-bench"
 srcDir = "scripts"
 root = "FixedEndianBench"
 
+# Build and audit complete packed/reference hash cost diagnostics; run timings manually.
+[[lean_exe]]
+name = "packed-keccak-bench"
+srcDir = "scripts"
+root = "PackedKeccakBench"
+
 [[lean_exe]]
 name = "check-decls"
 srcDir = "scripts"

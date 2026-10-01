@@ -11,6 +11,8 @@ import STFSpec.Hash.Ripemd160Compression
 import STFSpec.Hash.Blake2Compression
 import STFSpec.Hash.KeccakQuery
 import STFSpec.Hash.Ripemd160Digest
+import STFSpec.Hash.PackedKeccakPermutation
+import STFSpec.Hash.PackedKeccakSponge
 
 /-!
 # STFSpec.Hash

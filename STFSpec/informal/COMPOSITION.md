@@ -67,6 +67,12 @@ The concrete fixed-rate Keccak provider supplies total byte-level model
 correspondence and fixed widths ([EthHash §3](modules/EthHash.md#3-eels-source-map)).
 Query dispatch, acquisition and oracle coupling have separate premises below.
 
+The separate packed candidate supplies ordinary all-input equality with these
+retained reference endpoints, including padding, block absorption and byte output
+([EthHash §3](modules/EthHash.md#3-eels-source-map)); current defaults remain unchanged.
+These laws do not supply the query instance, acquisition or oracle coupling, and
+local native diagnostics do not supply target/resource composition.
+
 ### Hash constants and oracle premises
 
 Constants acquisition and coherence follow F20 (EthStateless R5, EthBlock §2.7,

@@ -449,6 +449,59 @@ guest/EEST execution, cryptographic security, all-host equivalence and C1–C4
 acceptance remain separate obligations. Static boxing/Nat conversion limits and
 replacement criteria are recorded in [DEBT-RIPEMD-DIGEST](../DEBT.md#debt-ripemd-digest--boxed-compression-and-byte-conversion).
 
+### Proved packed Keccak candidate beside the reference
+
+`STFSpec/Hash/PackedKeccakPermutation.lean` and `PackedKeccakSponge.lean` add the
+`STFSpec.Hash.PackedKeccak` namespace. This candidate is **discharged for the
+ordinary correspondence slice below**, with pure total operations and no failure
+channel. Existing default `STFSpec.Hash.keccak256`/`keccak512`, provider laws and
+reference callers are retained. D4 remains provisional; this slice neither
+selects a new default nor supplies the future D5 query instance.
+
+| Source / operation | Public candidate declaration and domain | Ordinary public laws | Tests / status |
+|---|---|---|---|
+| FIPS 202 §3.1.2; explicit representation boundary | `State` has 25 native `UInt64` fields `aXY`, grouped by y rows, corresponding to index x+5*y; `toReference : State → KeccakState`, `ofReference : KeccakState → State` through public coordinate construction/observation, `lane : State → Fin 25 → UInt64`, `toModel : State → KeccakModel` | `ofReference_toReference`, `toReference_ofReference`, `toReference_injective`, `toReference_lane`, `toModel_injective` | asymmetric lane/round-trip guards and public-law clients; **discharged** |
+| FIPS 202 §§3.2.1–3.2.5; underlying pinned pycryptodome 3.23.0, EELS `crypto/hash.py:62–95` has no raw round API | `theta`, `rho`, `pi`, `chi : State → State`; `iota : State → Fin 24 → State`; every native state/round, simultaneous chi reads original row | `toReference_theta/rho/pi/chi/iota`, `toModel_theta/rho/pi/chi/iota` | independent coordinate/LFSR per-step observations and asymmetric row guards; **discharged** |
+| FIPS 202 §§3.3–3.4 | `round : State → Fin 24 → State`, `rounds : State → (n : Nat) → n ≤ 24 → State`, `permutation : State → State`; ascending bounded prefixes/full24 | `toReference_round/rounds/permutation`, `toModel_round/rounds/permutation` | published zero-state permutation KAT, all-prefix/model and composition clients; **discharged** |
+| Legacy fixed-rate byte sponge; reference codecs in §3 | `zero : State`, `xorBlock/absorbBlock : KeccakSponge.Rate → Bytes → Nat → State → State`, `absorb : Rate → Bytes → Nat → Nat → State → State`; any finite bytes, offset/count and packed state, unavailable bytes zero-extended | `toReference_zero/xorBlock/absorbBlock/absorb`, `xorBlock_model`, `absorb_model`, `absorb_add` | both capacity boundaries, unavailable huge offset and ordered split client; **discharged** |
+| Little-endian output; rate136/output32 and rate72/output64 | `squeeze : State → (n : Nat) → n ≤ 200 → Bytes`, `digestBytes : Rate → Bytes → Bytes`; public reference padding and packed state across blocks | `squeeze_eq`, `squeeze_model`, `digestBytes_eq/model`, `size_digestBytes` | byte-order/empty-output guards and complete host/model checks; **discharged** |
+| EELS `crypto/hash.py:62–77`, pinned pycryptodome 3.23.0 | `PackedKeccak.keccak256 : ByteArray → Hash32`; every finite message, complete public output construction | `keccak256_eq` to retained reference, `keccak256_bytes/model`, `size_keccak256` | published empty/135/136/137-byte KATs, full-result native gates, finite actual authenticated EELS values; **discharged** |
+| EELS `crypto/hash.py:80–95`, pinned pycryptodome 3.23.0 | `PackedKeccak.keccak512 : ByteArray → Hash64`; every finite message, retained pending Q18 | `keccak512_eq` to retained reference, `keccak512_bytes/model`, `size_keccak512` | published empty KAT, both rate boundaries in finite actual-host comparison, full-result native gates; **discharged** |
+
+`PackedKeccakGuards.lean` owns 28 deterministic guards, including six selected
+primary KAT facts (zero permutation, Keccak-256 empty/135/136/137 and Keccak-512
+empty). It records the Keccak team archive/member hashes and exact selections.
+`PackedKeccakCallerProofs.lean` has 14 clients using only public observer,
+reference and semantic-model equations; neither packed fields nor provider
+containers are unfolded. `scripts/gen_packed_keccak.py` is the readable owner of
+the generated permutation source; `--check` verifies byte-for-byte freshness.
+
+`packed_keccak_differential.py` checks the exact pinned `Bytes32`/`Bytes64` result
+classes, widths and raw byte domains before emitting values; result-domain
+regressions reject Boolean/int coercions, untyped buffers and malformed widths.
+Seed 21021 covers 80 messages (64 random, length 0..4096), producing 160 digest
+observations through authenticated actual EELS functions. Its separate retained
+coordinate-walk/forward-pi/LFSR model covers 60 states, 240 observations for each
+step/round, 200 prefixes and 60 full permutations: 1700 model guards. Exact
+messages/states/results and model/driver hashes are retained outside the worktree.
+The frozen invocation is `.venv/bin/python -I -B`; source/dependency integrity is
+checked before and after evaluation. This is finite bug-finding evidence, not a
+universal host theorem, OpenSSL comparison, EEST guest or security result.
+
+`scripts/PackedKeccakBench.lean` supplies a separately built/audited native
+comparison of complete public candidate and reference endpoints, with padding,
+block decoding, output conversions and retained-output replacement inside timing.
+Full results are checked before/after clocks; no checksum or equality is timed.
+Workloads are 0/32/64/135/136/137/71/72/73/4096/1MiB bytes, patterned 17*i+131,
+three alternating-order trials per digest/workload. The current wrapped-reference
+132-row remeasurement and historical source bases are distinguished in
+[DEBT-KECCAK-DIGEST](../DEBT.md#debt-keccak-digest--reference-sponge-cost).
+Generated C/assembly confirm a digest call inside each iteration; scalar field/code shape is not a
+dynamic allocation-volume measurement. Target/native-client comparison,
+allocated-volume/peak-live-space profiling, future-consumer composition and the
+actual [DEBT replacement criteria](../DEBT.md#debt-keccak-digest--reference-sponge-cost)
+remain open; local reference gains close none of those obligations.
+
 ## 4. Tests
 
 The implemented query tests and finite constant observations are owned by §3.
@@ -531,13 +584,14 @@ def HashConsts.query {m} [Monad m] [KeccakQuery m] : m HashConsts
   -- emptyOmmerHash ← keccak 0xc0, transferTopic ← keccak b"Transfer(address,address,uint256)"
 ```
 
-The `sha256` digest type is `Bytes32`; `EthCodec` and requests use it as SSZ `Root`/`Bytes32`. The choice of lane container is part of D4: `Vector UInt64 25` for the reference, and an unboxed 25-field structure for the candidate fast path.
+The `sha256` digest type is `Bytes32`; `EthCodec` and requests use it as SSZ `Root`/`Bytes32`. The choice of lane container is part of D4: private `Vector UInt64 25` storage for the retained reference, and the proved `PackedKeccak.State` native 25-field candidate in §3. Fields `aXY` encode coordinate (x,y), with reference index x+5*y; callers use `toReference`, `toModel` and their public laws. The candidate endpoints live in `STFSpec.Hash.PackedKeccak`; the existing defaults retain their signatures and definitions.
 
 ## 6. Data structures
 
 | Type | Representation | Model | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|
 | `KeccakState` | private `Vector UInt64 25` (reference) | the FIPS 202 state `Fin 5 × Fin 5 → BitVec 64` via lane indexing | size 25 (by type) | local to one hash call, linear | `keccakF1600`: O(1) (24 rounds). `keccak256`: O(⌈(n+1)/136⌉) permutations |
+| `PackedKeccak.State` | 25 native UInt64 fields, row-grouped `aXY` | public `toReference`, then `toModel` coordinate observation | exact lane count by structure; ordinary observer/step laws | local to one call, linear; retained across blocks | O(1) permutation, O(n/rateBytes + 1) digest, O(n) padded bytes |
 | SHA-256 state | `Vector UInt32 8` + 64-word schedule | FIPS 180-4 | by type | linear, local | O(⌈(n+9)/64⌉) compressions |
 | RIPEMD-160 state | `Vector UInt32 5` | the original specification | by type | linear, local | O(⌈(n+9)/64⌉) |
 | BLAKE2b work vector | `Vector UInt64 16` | RFC 7693 `v` | by type | linear, local | O(rounds) |
@@ -577,7 +631,10 @@ must establish their corresponding standard relations and these laws.
 - [F] (D4) a future faster digest must equal the present legible reference through
   an ordinary equality or model refinement (no `@[csimp]`, D21). A candidate
   unrolled permutation needs a round-by-round simulation against `keccakF1600`;
-  no fast path is implemented (§10).
+  the distinct packed candidate supplies this simulation and all-input endpoint
+  equality through `PackedKeccak.keccak256_eq` and `keccak512_eq`. D4 remains
+  provisional; default selection and compiler replacement are unchanged. A distinct
+  SHA-256 fast path remains unwritten (§10).
 - [R] (bridge module outside the core) `keccakF1600 ≡` the ZisK accelerator's `keccakF` (`ZiskAccel.lean:113`; §10) under the lane-order correspondence.
 - [C] `HashConsts.query (m := Id) = HashConsts.literals` (`EthBase`), as a `#guard` or theorem; by F16 this is evaluable only once `keccak256` has no `sorry` leaf. The core guards check all four fields at `Id`; the actual-pin driver additionally compares each field with its authenticated pinned global (§3). No equality-to-literals theorem is supplied.
 - [C] The lift instances forward (discharged in `KeccakQuery.lean`): `keccak (m := ExceptT ε m) b = ExceptT.lift (keccak b)` and likewise for `StateT` (definitional).
@@ -602,6 +659,8 @@ parsed-word input. RIPEMD-160 padding, byte decoding/serialization and complete
 inductive digest correspondence are also discharged on every finite message (§3).
 BLAKE2b bounded runtime vectors are finite evidence; the maximum round count is
 parsed only. Q46 supplies the SHA-256 domain policy.
+Packed Keccak step/prefix/permutation and complete fixed-rate digest/reference
+equations are discharged for the separate candidate in §3.
 The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
@@ -636,10 +695,14 @@ pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
 - **BLAKE2F coverage** in EEST is 5 files per format. The parameter/compression tests in §3 do not execute these guest fixtures. The finite compression driver covers both flags, high-bit counters and sigma wrap; fixture coverage of `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set remains unassessed.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
-- **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
+- **Fast-path selection and resource gates** (D4): the native 25-field candidate
+now has ordinary all-input permutation/digest equality beside the retained
+reference (§3). Defaults are unchanged. D4 evaluation, actual target/native-client
+cost, allocated-volume/peak-live-space profiling and future-consumer composition
+remain open. This does not establish accelerator equivalence or DEBT closure.
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
 - **`sha256` for SSZ versus request hashing**: whether both uses must be modelled by one collision-resistance assumption in `EthSecurity` has no owner.
-- **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total, fast-path equivalence or whole-hash cost gate is discharged.
+- **Performance:** reference rounds use arrays with boxed lanes and closure dispatch, with no `List` construction in the executable round path. [DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds) owns the generated-C procedure/results, historical diagnostics and replacement criterion under D4/D18. No throughput target, dynamic allocation total or whole-hash cost gate is discharged.
 The fixed-rate sponge uses packed bytes and native lanes, copying the padded
 message once and processing blocks with a tail-recursive loop. Generated C and
 the retained historical native diagnostic provide local cost evidence; their
@@ -651,6 +714,10 @@ with no executable per-round List or bignum lane arithmetic. Its generated C is
 inspected and compiled with strict checks; static boxing/index sites are code
 shape observations, not measured allocation totals. No RIPEMD performance or
 whole-hash cost gate is discharged.
+
+The separate packed candidate proves ordinary all-input endpoint equality (§3);
+its native diagnostics and remaining resource obligations are recorded in
+DEBT-KECCAK-DIGEST.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains
 host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
