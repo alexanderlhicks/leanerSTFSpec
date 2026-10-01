@@ -130,8 +130,8 @@ allocation proportional to that declaration.
 `RlpItem` model. **Discharged:** its packed output equals the total readable
 byte-list reference on every item, and the computed size equals actual output
 width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
-Byte/list payloads and all length digits are preserved in order; no wire decoder laws beyond the
-implemented slice, wire canonicality, injectivity, schema instances or guest outcomes are implemented.
+Byte/list payloads and all length digits are preserved in order. Raw wire laws
+are owned by §7; schema instances and guest outcomes remain unimplemented.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
@@ -187,21 +187,21 @@ This finite evidence establishes neither full raw-decode canonicality nor host l
 inputs. **Discharged for this slice:** exact storage correspondence to the
 proof-facing `decodeModel`, byte-window observations, singleton/short-string
 case equations, short-list outer-failure priority and nonempty successful input.
-Private header witnesses establish positive advancement and bounded header reads;
-the mutual recursion decreases `2 * remainingBytes + stage` (item0, joined1).
-The packed and list frontends share parser classification/ordered-error semantics:
-the refinement proves storage correspondence, while authenticated source probes
-independently audit those semantics. Universal `Encodable` round trip,
-accepted-input canonicality/image equivalence and prefix-free/injective laws are
-**pending**, as a separate dependent proof work item; no finite test discharges them.
+Each recursive child consumes a nonempty prefix of its bounded parent window.
+The packed and list frontends share parser classification and ordered-error
+semantics: the refinement proves storage correspondence, while authenticated
+source probes independently audit those semantics. The universal wire-law
+contracts and their domains are owned by §7.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures and consuming handler | Public law and deterministic regression |
 |---|---|---|---|---|
 | `ethereum_rlp/rlp.py:143–162` (0.1.6) | `Rlp.decode : ByteArray → Except RlpError RlpItem`; proof-facing `decodeModel : List UInt8 → Except RlpError RlpItem` | all finite bytes; exact nested byte/list tree, pure/no effects | empty before dispatch; all errors refine DecodingError; header fallback O3 and payload O6 handlers remain unimplemented | `decode_eq_model`, `decode_empty`, `decode_success_nonempty`; empty/00/7f/80/81/ff |
 | `ethereum_rlp/rlp.py:387–424` | private byte branches of `decode` | accepted exact byte leaf; copy only validated available scope | low tag with extra bytes: negative length; short extent truncation, trailing, prefixed low singleton; long digit truncation, leading zero, length<56, payload truncation, trailing | `decode_single`, `decodeModel_single`, `decodeModel_short_bytes`; 55/56/255/256 bytes and simultaneous failures; long equations pending |
-| `ethereum_rlp/rlp.py:427–484` | private list branches/ordered joined cursor of `decode` | exact ordered children in original-input windows; no copied list payload | outer header/canonicality/extent/trailing before children; child permissive header, declared-extent truncation, exact child decode; first failure wins | `decodeModel_short_list_truncated`, `decodeModel_short_list_trailing`; empty/nested/asymmetric trees, malformed first/later child and outer-extent priority; inverse/canonicality pending |
+| `ethereum_rlp/rlp.py:427–484` | private list branches/ordered joined cursor of `decode` | exact ordered children in original-input windows; no copied list payload | outer header/canonicality/extent/trailing before children; child permissive header, declared-extent truncation, exact child decode; first failure wins | `decodeModel_short_list_truncated`, `decodeModel_short_list_trailing`; empty/nested/asymmetric trees, malformed first/later child and outer-extent priority; universal `decodeModel_success`, `decodeModel_encodeModel` |
 | `ethereum_rlp/rlp.py:487–543` | private bounded window header descriptor in `decode` | at most eight original length digits; Nat extents; validated header endpoint | digit truncation before leading zero; header remains permissive about body and short/long form | advancing/bounded witnesses used by kernel-checked termination; all eight string/list long tags and tiny input declaring2^64−1 |
 | derived storage observation | `decode_window_model` | clipped/empty/public Base extract, including conceptual huge offsets | same complete result and diagnostics as the exact list window | public Base window law; caller proof does not unfold the Base representation |
+| derived from `ethereum_rlp/rlp.py:66–135,143–162,387–484` | `Rlp.decode_encode`, `decode_success_encodable`, `encode_eq_of_decode_eq_ok` | every `Encodable` item round trips; every successful finite input proves its result `Encodable` and reencodes exactly | no extra successful-domain premise or protocol guard | `decodeModel_encodeModel`, `decodeModel_success`; public-law callers in `RlpCanonicalCallerProofs.lean` |
+| derived extent/image laws, `ethereum_rlp/rlp.py:387–484,487–543` | `Rlp.decode_eq_ok_iff`, `exists_decode_eq_ok_iff`, `eq_of_encode_eq`, `encode_inj`, `encode_prefix_free` | exact accepted image; injective and prefix-free encodings on `Encodable` with arbitrary tails | no claim of inverses or binding outside Q47 standard domain | public universal callers including accepted-tree round trip composition in `RlpCanonicalCallerProofs.lean` |
 
 **Checks and provenance.** `RlpDecodeGuards.lean` compares complete constructor
 trees with manual structural functions and exact diagnostics. Caller proofs use
@@ -572,7 +572,7 @@ expose payload preservation and prefix cases. `encodePayloadModel_eq_flatMap`,
 child concatenation and sum of encoded widths, with empty and nested children
 preserved. `Encodable` is characterized recursively by `encodable_bytes_iff` and
 `encodable_list_iff`; standard tags do not wrap on this domain. These discharge
-encoding model obligations only; the decoder-dependent contracts above remain open.
+encoding model obligations; raw wire contracts are listed below.
 
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
@@ -580,9 +580,18 @@ specified in §3. `decode_window_model` observes exact clipped public byte windo
 `decode_empty`, `decode_single`/`decodeModel_single`,
 `decodeModel_short_bytes`, `decodeModel_short_list_truncated/trailing` and
 `decode_success_nonempty` establish their stated ordered cases/progress.
-Private advancing header witnesses and validated window endpoints discharge
-kernel termination of the raw parser. The [C] `Encodable` inverse, canonicality,
-image and prefix-free/injective contracts above remain pending and unchanged.
+The raw parser terminates by consuming nonempty prefixes within bounded parent
+windows. `decodeModel_encodeModel` and `decode_encode` prove a round trip for every
+`Encodable` item. `decodeModel_success`, `decode_success_encodable` and
+`encode_eq_of_decode_eq_ok` prove unconditional successful-domain membership and
+exact input reencoding. `decode_eq_ok_iff` and `exists_decode_eq_ok_iff` characterize
+the accepted image. `eq_of_encode_eq` and its iff companion `encode_inj` give
+injectivity on `Encodable`; `encode_prefix_free` binds items and arbitrary byte
+tails. `itemLengthModel_encodeModel` recovers the encoded first-item extent
+independently of arbitrary trailing bytes. `RlpCanonicalCallerProofs.lean`
+composes these public laws without provider representation unfolding. Typed/schema,
+host-depth and security obligations remain separate; Q47 supplies no inverse or
+binding outside the standard domain.
 
 **Discharged header laws.** `decodeItemLength_eq_model` relates every packed cursor
 to the readable suffix model. `decodeItemLength_single`, `short_bytes`, `short_list`
@@ -598,7 +607,7 @@ supply no successful payload decode, canonicality or encode/decode inverse.
 **Discharged model leaf laws.** The implementations export full integer
 minimality biconditionals (`toNat_canonical_iff`, `toNat_eq_ok_iff`), bounded
 canonicality/range (`toNatBounded_canonical_iff`, `toNatBounded_eq_ok_item_iff`),
-zero-width acceptance (`toNatBounded_zero_iff`) and encoder roundtrip
+zero-width acceptance (`toNatBounded_zero_iff`) and encoder round trip
 (`toNat_ofNat`). Boolean, raw bytes, fixed length/byte observation and raw list
 accept sets are `toBool_eq_ok_iff`, `toBytes_eq_ok_iff`, `toFixed_eq_ok_iff` and
 `toList_eq_ok_iff`; `toFixed_eq_ok_item_iff` additionally pins model shape. `toFields_eq_ok_iff` preserves exactly the vector's ordered
@@ -606,7 +615,7 @@ fields; `toFields_wrong_arity` rejects before child typing. `union2_eq_ok_iff`
 characterizes a sole success plus the other alternative's failure. These apply to
 all model inputs, without wire-instance or child-schema claims. Integer
 canonicality uses public Base fold/range/encoded-width and fixed-byte injectivity,
-so it also proves the converse byte minimality rather than just value roundtrip.
+so it also proves the converse byte minimality rather than just value round trip.
 
 **SSZ.**
 - [T] `decode` is total: recursion on the type, with each sub-decode on a strictly smaller slice. Offsets are validated against the slice length before use.
@@ -665,13 +674,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented operations and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable`, the cursor `decodeItemLength`/header model and the nine typed model adapters in §3 are implemented with the §7 public laws. Raw wire decode/list cursors and storage/window/ordered-case laws are implemented; universal RLP inverses/canonicality/prefix-freeness remain pending. Derived address query/Id/suffix laws and the bounded CREATE preimage law are proved (§3). `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders and SSZ are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+- **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
+  public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
+  element/schema decoders and SSZ are unimplemented.
+  The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
+  correspondence does not implement the consuming header/transaction handlers.
+  Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
+  remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
 - **"EELS accepts exactly the image of `encode`" (S3)** is argued from the re-encode check. It is not proved for remerkleable's `decode_bytes`, which could raise (and so reject) on some canonical input. This is unlikely but unverified. The differential round-trip fuzzing should cover every Amsterdam schema, not only toy containers.
-- **Wire RLP canonicality** remains a separate dependent proof obligation after the implemented total raw decoder/storage refinement. It has finite fuzz/differential evidence and no universal proof yet; the model integer-leaf minimality laws in §7 are discharged. The prefix-freeness proof strategy is standard, but it is unwritten in Lean.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).

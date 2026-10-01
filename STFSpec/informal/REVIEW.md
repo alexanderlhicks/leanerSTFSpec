@@ -116,8 +116,8 @@ regressions. Its §10 owns missing APIs and derived laws.
 hash providers, their public model/byte laws, primary KATs and finite differential
 evidence; its §10 owns remaining hash APIs and correspondence.
 [EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns its implemented
-operations, source correspondence, public proofs and conformance evidence; §10
-owns remaining APIs and laws. Other semantic components remain scaffolding.
+operations, source correspondence and conformance evidence; §7 owns public-law
+domains, and §10 owns remaining APIs and laws. Other semantic components remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
