@@ -80,8 +80,8 @@ encoding and its exact byte-list model, computed/output widths and ordered child
 payload concatenation. Standard/pinned correspondence retains `Encodable` (Q47),
 which characterizes every recursive child and encoded list payload length.
 Consumers can compose empty/nested byte/list models without unfolding the temporary
-writer cache. Decoder canonicality, injectivity, schema instances and guest outcomes remain
-their owners' open obligations.
+writer cache. The raw wire-law domains are owned by EthCodec §7; schema
+instances and guest outcomes remain their owners' open obligations.
 
 ### Derived address premise
 
@@ -104,7 +104,8 @@ diagnostics and positive unbounded declared extent. It inspects at most eight
 length digits and does not validate payload availability or canonical item forms.
 Future full parsers must bound the extent inside the parent list window before
 payload reads, recurse only within that extent and require full consumption.
-Canonicality/inverses, schemas, host-depth and guest outcomes remain open.
+The full decoder's laws are owned by EthCodec §7. Schemas, host-depth and guest
+outcomes remain open.
 
 ### Raw RLP decoder premise
 
@@ -112,17 +113,20 @@ Canonicality/inverses, schemas, host-depth and guest outcomes remain open.
 decoding, exact storage/list-model and byte-window equations and named ordered
 singleton/short-form failure cases. Private cursor windows are bounded before
 child descent or leaf copies. Shared parser semantics are audited separately
-against authenticated locked source. Canonicality, `Encodable` inverses/image,
-prefix-free/injective laws, schemas, host-depth and guest outcomes remain open.
+against authenticated locked source. Consumers use the raw inverse, accepted-image
+and binding contracts owned by [EthCodec §7](modules/EthCodec.md#7-contract-and-laws)
+with their explicit domains; they retain Q47's total extension without
+outside-domain inverse or pinned-host claims. Schemas, host-depth/resources,
+security and guest outcomes remain open.
 
 ### Typed RLP model premise
 
 [EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies raw-model typed
 leaf accept sets and byte/field order preservation. The integer premise includes
 both minimality directions and complete bounded range; union success requires
-exactly one successful alternative. Consumers must still discharge universal raw wire
-codec laws, implement child schemas/instances and diagnostic erasure through `decodeTo` wherever
-the pinned caller uses `decode_to`. The header fallback and payload transaction
+exactly one successful alternative. Consumers compose the raw wire laws from
+EthCodec §7 and must implement child schemas/instances and diagnostic erasure
+through `decodeTo` wherever the pinned caller uses `decode_to`. The header fallback and payload transaction
 handlers remain unimplemented; these leaf laws discharge none of their guest
 outcomes, host-depth policy or complete schema premises (Q20, O12).
 

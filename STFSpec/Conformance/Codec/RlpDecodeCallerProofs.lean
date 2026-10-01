@@ -8,7 +8,8 @@ import STFSpec.Codec
 # Raw RLP public-law callers
 
 Library `EthConformance`. Consumers use the public model/ordered-case equations
-and the Base window laws. These do not discharge wire canonicality or inverses.
+and the Base window laws. `RlpCanonicalCallerProofs.lean` composes the separate
+wire canonicality and inverse laws.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3,7.
 -/
 
