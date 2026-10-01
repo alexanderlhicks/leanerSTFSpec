@@ -83,6 +83,16 @@ Consumers can compose empty/nested byte/list models without unfolding the tempor
 writer cache. Decoder canonicality, injectivity, schema instances, derived
 addresses and guest outcomes remain their owners' open obligations.
 
+### RLP header premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies the packed
+`decodeItemLength` helper's suffix/window model correspondence, ordered header
+diagnostics and positive unbounded declared extent. It inspects at most eight
+length digits and does not validate payload availability or canonical item forms.
+Future full parsers must bound the extent inside the parent list window before
+payload reads, recurse only within that extent and require full consumption.
+Canonicality/inverses, schemas, host-depth and guest outcomes remain open.
+
 ### Typed RLP model premise
 
 [EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies raw-model typed

@@ -45,6 +45,17 @@ It also owns **contract-address derivation** (CREATE/CREATE2). That derivation n
   - a long form used for a length `< 56` (`:417,448`).
 
   Items inside a list are decoded recursively from their exact extent (`:464–484`). *Verified empirically on ethereum-rlp 0.1.7 (`rlp.py` byte-identical to the locked 0.1.6):* 200k structured mutations of random encodings plus 300k random ≤5-byte strings produced no accepted non-canonical input, and no exception other than `DecodingError`. This is evidence, not a proof; the proof is the [C] canonicality obligation in §7.
+**Header-helper scope (`rlp.py:488–543`).** `decodeItemLength b pos` reports
+`decode_item_length(b[pos:])`'s declared encoded extent. Short forms require only
+the tag. Long forms require all one-to-eight length digits and reject a leading
+zero; header truncation precedes that rejection. They still accept lengths below
+56, missing declared payloads and trailing bytes. Prefixed single bytes below
+0x80 are also accepted by this helper. The full decoder and
+`decode_joined_encodings` (`:465–484`) own payload availability, full consumption
+and item canonicality. An empty or out-of-range cursor fails as empty. Extents
+use Nat: an eight-byte length of 2^64−1 gives extent 2^64+8, with no wrap or
+allocation proportional to that declaration.
+
 - **D2r. Deep nesting is a host-limit case (O12).** Decoding recurses about 3 Python frames per nesting level. `ethereum/__init__.py:30` sets the recursion limit to `max(12288, current)`, but the guest also imports py_ecc, which raises it, so the **guest-process limit is 100,000**. Deterministic probe inputs (payload transactions with deep RLP nesting) showed that 20,000 nested lists in a payload transaction decode, while 40,000 and 120,000 raise **`RecursionError`**, not `DecodingError`. (With only `import ethereum`, the threshold is between 4,000 and 5,000 levels.)
   - Witness nodes and headers are at most 2^10 bytes (`stateless.py:35–36`), so they cannot reach this.
   - Transactions are `progressive_byte_list` with no size limit (`execution_engine/types.py:64–67`), so a deep-nesting transaction reaches it inside `decode_transaction` (`transactions.py:573–585`). **On the complete guest path** the first decode is in `is_valid_versioned_hashes` (`execution_engine/new_payload.py:60–68`), whose local catch-all consumes the `RecursionError`, so the output is O6 `(root, false, …)` (DISC-006). A standalone `execute_block` call would raise it from its own decode.
@@ -144,6 +155,31 @@ literals are chunked and constant-byte runs use `List.replicate`, without
 changing limits or tested bytes. Interpreter/startup,
 frozen installation and RECORD remain trust inputs. These are finite actual
 encoder observations, not EEST guest execution or a Python equivalence proof.
+
+### Implemented RLP header slice
+
+`STFSpec/Codec/RlpHeader.lean` implements the total packed cursor helper, with
+ordinary equality to `itemLengthModel` on the observed suffix. **Discharged for
+this slice:** exact tag/header cases, ordered diagnostics, bounded-digit public
+endian correspondence, suffix/window observations, positive extents and independence
+from bytes beyond the nine-byte header window. No complete item decoder is implied.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures and consuming handler | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:488–543` (0.1.6) | `Rlp.decodeItemLength : ByteArray → Nat → Except RlpError Nat`; readable `itemLengthModel : List UInt8 → Except RlpError Nat` | all packed inputs/Nat cursors; declared first-item extent; pure, no effects; accepts missing bodies/small long forms/trailing bytes | empty cursor; long-header truncation; leading-zero length; all diagnostics erase to source DecodingError. Raw decode/callers (`:465–484`) remain separate; header fallback O3 and payload O6 handlers are unimplemented | `decodeItemLength_eq_model`, `decodeItemLength_single/short_bytes/short_list/long`, `length_digits_bound`, `decodeItemLength_empty_iff/pos/lt/success_bound/window/suffix/header_congr`, `itemLengthModel_take_nine`; tag boundaries, zero-versus-truncated, asymmetric digits, nonzero cursors, 2^64−1 declared length |
+
+Header regressions are `RlpHeaderGuards.lean` (complete diagnostic results and an
+all-256-tag sweep) and `RlpHeaderCallerProofs.lean` (public equations only).
+`rlp_header_differential.py` calls the actual locked helper under the accepted
+source-authenticated fresh loader and shared driver. The bounded seeded cases cover
+all tags, one-to-eight digit fields, leading zeros, incomplete headers, small long
+forms, absent payloads, trailing bytes, nonzero/random cursors and conceptual
+out-of-range Nat offsets using small buffers. Observation/input negative controls
+reject bool, float and untyped results before Lean emission. Success is an exact
+plain int; the only admitted source failure is the exact DecodingError class.
+Package source/origins/RECORD, EELS/lock and interpreter identity are checked as in
+the typed driver; interpreter/startup/frozen installation/RECORD remain trust inputs.
+This finite evidence establishes neither full raw-decode canonicality nor host limits.
 
 ### Implemented typed RLP slice
 
@@ -271,6 +307,12 @@ This is finite typed-value evidence, not EEST execution or a proof of Python cod
   - SSZ: a 43-byte `StatelessValidationResult` round trip; the zero sentinel encoding; boolean `02` rejected; offset gap rejected; offset below the fixed size; an offset beyond the scope; decreasing offsets; `ByteList` over its limit; 257 headers (`ssz_list(256)`) rejected at decode (O1).
   - SSZ roots: the empty progressive list root `= H(0^32, 0^32)`; a 3-field progressive container root; `ByteList[2^16]` roots near chunk boundaries (31/32/33 bytes).
   - Addresses: CREATE for a fixed sender at nonces 0–3, the four EIP-1014 CREATE2 examples, and nonce `2^64−1` (which makes the RLP integer 8 bytes long).
+- **Implemented header-helper cases:** all 256 tags; exact string/list boundaries
+  7f/80/b7/b8/bf/c0/f7/f8/ff; one-to-eight digits; truncated length digits before
+  leading zero; asymmetric high-to-low digits; 2^64−1 payload declaration with
+  nine-byte extent addition; nonzero/end/huge cursors; missing bodies, prefixed
+  singleton<80, small long forms and trailing bytes accepted by the helper.
+  Whole-item decode rejection cases above remain future full-decoder tests.
 - **Property / differential tests.**
   - Random `RlpItem` round trip, and canonicality under mutation fuzzing.
   - Random well-typed SSZ values round trip.
@@ -387,6 +429,14 @@ timings retain outputs until after timing; output cleanup and whole-process RSS 
 not supply total allocated volume, peak-live allocation accounting, a native-client
 comparison or C1–C4/guest acceptance. Those gates remain open (CONTRIBUTING §3).
 
+**Implemented header costs.** The cursor checks availability before packed reads,
+reads one tag and traverses at most eight original length digits by structural
+recursion. It builds no suffix copy, list or declared-payload buffer. Header work
+is bounded independently of declared payload length, including conceptual large
+out-of-range offsets. The readable suffix/window model is proof-facing only.
+Generated-C shape and finite native whole-result probes support that structure;
+no whole-decoder O(n), allocator-volume, host-depth or guest-cost claim follows.
+
 **Implemented leaf costs.** Raw shape observations (`toBytes`, `toList`) share the
 input without traversing children. Boolean checks compare only the empty and
 singleton byte shapes. Integer adapters inspect shape/first byte/size before the
@@ -426,6 +476,17 @@ child concatenation and sum of encoded widths, with empty and nested children
 preserved. `Encodable` is characterized recursively by `encodable_bytes_iff` and
 `encodable_list_iff`; standard tags do not wrap on this domain. These discharge
 encoding model obligations only; the decoder-dependent contracts above remain open.
+
+**Discharged header laws.** `decodeItemLength_eq_model` relates every packed cursor
+to the readable suffix model. `decodeItemLength_single`, `short_bytes`, `short_list`
+and `long` expose exact cases; the long equation gives header truncation before
+leading-zero rejection and the public `Uint.ofBeBytes` value of the digit window.
+`length_digits_bound` gives one-to-eight digits; `decodeItemLength_success_bound`
+gives payload<2^64 and an unbounded tag+digits+payload extent, while `pos` and `lt`
+give positive advancement and extent<2^64+9. `empty_iff` characterizes end/out-of-range
+cursors. `window`, `suffix`, `header_congr` and `itemLengthModel_take_nine` preserve
+window/offset semantics and ignore bytes outside the bounded header. These laws
+supply no successful payload decode, canonicality or encode/decode inverse.
 
 **Discharged model leaf laws.** The implementations export full integer
 minimality biconditionals (`toNat_canonical_iff`, `toNat_eq_ok_iff`), bounded
@@ -470,6 +531,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthCommit` (node RLP), `EthVmInstructions` (CREATE/CREATE2 addresses), `EthBlock` (transaction/header/receipt RLP, withdrawal and request SSZ, BAL encoding), and transitively `EthStateCommit` (account leaf RLP), `EthStateWitness` and `EthStateless` (`StatelessInput` schema, output encoding, the request root).
 - **Seams provided.** Generic RLP and SSZ with canonicality theorems. Schema owners write `SszSchema`/`RlpDecode` instances and prove only the per-instance schema laws. Contract-address derivation.
 - **Cross-module invariants.** Consumers must decode with `decodeTo` (typed) wherever EELS uses `decode_to`, so that D2r stays unobservable. Schema owners must mirror `_infer` exactly: field order, widths, limits, and progressive versus plain types.
+- **Implemented header premise.** The extent helper supplies suffix/window
+  correspondence and positive declared extents. Full parsers must still check
+  declared extents against the current parent window before reading payloads,
+  apply canonical item checks, recurse and require full consumption.
 - **Relies on.** `EthHash.sha256` and `keccak256`, and `EthBase` byte conversions (in particular `Uint.toBeBytes 0 = empty`).
 
 ## 9. Open decisions
@@ -490,7 +555,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire decode/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable`, the cursor `decodeItemLength`/header model and the nine typed model adapters in §3 are implemented with the §7 public laws. Full wire decode/list cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
