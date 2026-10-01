@@ -63,6 +63,8 @@ import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
 import STFSpec.Conformance.Commit.NibblesGuards
 import STFSpec.Conformance.Commit.NibblesCallerProofs
+import STFSpec.Conformance.Commit.InternalNodeGuards
+import STFSpec.Conformance.Commit.InternalNodeCallerProofs
 
 /-!
 # STFSpec.Conformance

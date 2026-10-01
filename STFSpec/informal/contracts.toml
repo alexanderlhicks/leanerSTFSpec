@@ -11,6 +11,7 @@ EthSecurity = ["EthStateless", "EthStateFull", "EthPairingMathlib"]
 [owners]
 HashConsts = "EthBase"
 KeccakQuery = "EthHash"
+InternalNode = "EthCommit"
 SszSchema = "EthCodec"
 Nibbles = "EthCommit"
 GasCosts = "EthVmCore"
