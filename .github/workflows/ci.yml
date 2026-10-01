@@ -59,6 +59,10 @@ jobs:
           scripts/test_checks.sh
       - name: Differential oracle safeguard regressions
         run: python3 scripts/test_differential.py
+      - name: Hash32 observation parser regressions
+        run: |
+          python3 -B scripts/test_hash32_output_parser.py
+          python3 -B -O scripts/test_hash32_output_parser.py
       - name: Pinned reference consistency
         run: |
           python3 scripts/check_reference.py

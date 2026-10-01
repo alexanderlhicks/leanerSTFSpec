@@ -142,6 +142,8 @@ python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
 python3 scripts/test_differential.py
+python3 -B scripts/test_hash32_output_parser.py
+python3 -B -O scripts/test_hash32_output_parser.py
 python3 scripts/check_reference.py && python3 scripts/test_reference_checks.py
 python3 scripts/gen_arch_diagram.py --check
 python3 scripts/check_spec.py && python3 scripts/test_spec_checks.py
