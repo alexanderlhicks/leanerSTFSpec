@@ -25,7 +25,7 @@ if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
     print("run with the frozen EELS .venv interpreter -I -B", file=sys.stderr)
     raise SystemExit(2)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
-from differential import Driver, FreshSourceLoader
+from differential import FreshSourceLoader, setup_driver
 
 
 def exact(value, cls):
@@ -51,7 +51,7 @@ def identity(context):
 
 
 def main():
-    context = Driver(__doc__, __file__, 3030)
+    context = setup_driver(__doc__, __file__, 3030)
     before = identity(context)
     recursion_before = sys.getrecursionlimit()
     from ethereum_types.bytes import Bytes
@@ -60,12 +60,14 @@ def main():
     if Bytes is not bytes:
         raise TypeError("locked ethereum-types Bytes alias differs")
     origins = {"mpt": str(context.check_source(mpt, "ethereum/merkle_patricia_trie.py")),
-               "bytes": str(context.check_source(dependency_bytes, "ethereum_types/bytes.py", dependency=True))}
+               "bytes": str(context.check_source(
+                   dependency_bytes, "ethereum_types/bytes.py", dependency=True))}
     guards = ["import STFSpec.Conformance.Commit.NibblesGuards",
               "import STFSpec.Conformance.Fixtures.Hex",
               "open STFSpec.Commit STFSpec.Conformance.Commit.NibblesGuards",
               "private def raw (text : String) : ByteArray := "
-              "(STFSpec.Conformance.Internal.decodeHex \"differential\" text).toOption.getD ByteArray.empty",
+              "(STFSpec.Conformance.Internal.decodeHex \"differential\" text)"
+              ".toOption.getD ByteArray.empty",
               "private def pathHex (text : String) : Nibbles := "
               "Nibbles.ofList ((raw text).data.toList.map (fun b ↦ ⟨b.toNat % 16, by omega⟩))"]
     observations = []
@@ -77,7 +79,8 @@ def main():
         result = mpt.bytes_to_nibble_list(value)
         exact(result, Bytes)
         observations.append({"operation": "split", "input": value.hex(), "output": result.hex()})
-        guards.append(f'#guard digits (bytesToNibbleList (raw "0x{value.hex()}")) == bytes (raw "0x{result.hex()}")')
+        guards.append(f'#guard digits (bytesToNibbleList (raw "0x{value.hex()}")) == '
+                      f'bytes (raw "0x{result.hex()}")')
         counts["split"] += 1
 
     def observe_compact(value, leaf):
@@ -85,7 +88,8 @@ def main():
         exact(leaf, bool)
         result = mpt.nibble_list_to_compact(value, leaf)
         exact(result, Bytes)
-        observations.append({"operation": "compact", "input": value.hex(), "leaf": leaf, "output": result.hex()})
+        observations.append({"operation": "compact", "input": value.hex(),
+                             "leaf": leaf, "output": result.hex()})
         guards.append(f'#guard decide (nibbleListToCompact (pathHex "0x{value.hex()}") '
                       f'{str(leaf).lower()} = raw "0x{result.hex()}")')
         counts["compact"] += 1
@@ -97,8 +101,10 @@ def main():
         exact(result, int)
         if result < 0:
             raise ValueError("negative source prefix length")
-        observations.append({"operation": "prefix", "left": a.hex(), "right": b.hex(), "output": result})
-        guards.append(f'#guard commonPrefixLength (pathHex "0x{a.hex()}") (pathHex "0x{b.hex()}") == {result}')
+        observations.append({"operation": "prefix", "left": a.hex(),
+                             "right": b.hex(), "output": result})
+        guards.append(f'#guard commonPrefixLength (pathHex "0x{a.hex()}") '
+                      f'(pathHex "0x{b.hex()}") == {result}')
         counts["prefix"] += 1
 
     for value in range(256):
@@ -157,14 +163,16 @@ def main():
     saved_blobs = context.oracle_blobs
     context.oracle_blobs = {**saved_blobs, "src/ethereum/merkle_patricia_trie.py": "0" * 40}
     try:
-        FreshSourceLoader("ethereum.merkle_patricia_trie", origins["mpt"], context).get_code("ethereum.merkle_patricia_trie")
+        FreshSourceLoader("ethereum.merkle_patricia_trie", origins["mpt"], context).get_code(
+            "ethereum.merkle_patricia_trie")
     except ImportError:
         counts["authentication_negative"] += 1
     else:
         raise AssertionError("synthetic wrong oracle blob accepted")
     finally:
         context.oracle_blobs = saved_blobs
-    context.output.write_text("-- Generated differential evidence; do not commit.\n" + "\n".join(guards) + "\n")
+    context.output.write_text(
+        "-- Generated differential evidence; do not commit.\n" + "\n".join(guards) + "\n")
     command = ["lake", "env", "lean", "-DwarningAsError=true", str(context.output)]
     result = subprocess.run(command, cwd=context.root)
     context.check_clean()
@@ -179,14 +187,18 @@ def main():
               "dont_write_bytecode": sys.flags.dont_write_bytecode,
               "recursion_before": recursion_before, "recursion_after": sys.getrecursionlimit(),
               "manual_limit_changes": False, "origins": origins,
-              "loader_classes": {"mpt": str(type(mpt.__loader__)), "bytes": str(type(dependency_bytes.__loader__))},
+              "loader_classes": {"mpt": str(type(mpt.__loader__)),
+                                 "bytes": str(type(dependency_bytes.__loader__))},
               "before": before, "after": after, "source_identity_preserved": before == after,
               "seed": context.seed, "counts": counts, "source_calls": len(observations),
               "emitted_guards": sum(line.startswith("#guard ") for line in guards),
-              "lean_command": command, "lean_exit": result.returncode, "observations": observations}
-    context.output.with_suffix(".json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
-    print(json.dumps({key: report[key] for key in ["source_commit", "source_identity_preserved", "counts",
-                                                 "source_calls", "emitted_guards", "lean_exit"]}, sort_keys=True))
+              "lean_command": command, "lean_exit": result.returncode,
+              "observations": observations}
+    context.output.with_suffix(".json").write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n")
+    summary_keys = ["source_commit", "source_identity_preserved", "counts",
+                    "source_calls", "emitted_guards", "lean_exit"]
+    print(json.dumps({key: report[key] for key in summary_keys}, sort_keys=True))
     return result.returncode
 
 

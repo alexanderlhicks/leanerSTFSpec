@@ -23,7 +23,7 @@ structure Nibbles where
   private data : ByteArray
   private valid : ∀ i, (h : i < data.size) → (data[i]'h).toNat < 16
 
-private theorem toNat_ofNibble (x : Fin 16) : (UInt8.ofNat x.val).toNat = x.val := by
+private theorem toNat_ofNat_val (x : Fin 16) : (UInt8.ofNat x.val).toNat = x.val := by
   apply UInt8.toNat_ofNat_of_lt'
   have := x.isLt
   change _ < 256
@@ -47,7 +47,7 @@ def ofList (xs : List (Fin 16)) : Nibbles :=
     intro i hi
     simp only [List.size_toByteArray, List.length_map] at hi
     simp only [List.getElem_toByteArray, List.getElem_map]
-    rw [toNat_ofNibble (xs[i])]
+    rw [toNat_ofNat_val (xs[i])]
     exact (xs[i]).isLt⟩
 
 /-- Abstraction preserves path length. -/
@@ -74,7 +74,7 @@ theorem toList_ofList (xs : List (Fin 16)) : (ofList xs).toList = xs := by
     rw [getElem_toList _ _ (by rw [size_ofList]; exact hj)]
     apply Fin.ext
     simp only [get, ofList, List.getElem_toByteArray, List.getElem_map]
-    exact toNat_ofNibble (xs[i])
+    exact toNat_ofNat_val (xs[i])
 
 /-- Extensional equality through the stable model. -/
 theorem ext {x y : Nibbles} (h : x.toList = y.toList) : x = y := by
@@ -131,7 +131,7 @@ def bytesToNibbleList (b : ByteArray) : Nibbles :=
     intro i hi
     rw [Bytes.size_toByteArray, Bytes.size_generate] at hi
     change ((Bytes.generate _ _)[i]'(by rw [Bytes.size_generate]; exact hi)).toNat < 16
-    rw [Bytes.getElem_generate _ _ i hi, toNat_ofNibble (splitDigit b i)]
+    rw [Bytes.getElem_generate _ _ i hi, toNat_ofNat_val (splitDigit b i)]
     exact (splitDigit b i).isLt⟩
 
 /-- Splitting doubles the byte count. -/
@@ -142,7 +142,7 @@ private theorem get_split (b : ByteArray) (i : Nat) (hi : i < 2 * b.size) :
     (bytesToNibbleList b).get ⟨i, by rw [size_bytesToNibbleList]; exact hi⟩ = splitDigit b i := by
   apply Fin.ext
   change ((Bytes.generate _ _)[i]'(by rw [Bytes.size_generate]; exact hi)).toNat = _
-  rw [Bytes.getElem_generate _ _ i hi, toNat_ofNibble (splitDigit b i)]
+  rw [Bytes.getElem_generate _ _ i hi, toNat_ofNat_val (splitDigit b i)]
 
 /-- The high output position contains the input byte's high nibble. -/
 theorem get_bytesToNibbleList_high (b : ByteArray) (i : Nat) (hi : i < b.size) :
@@ -270,8 +270,8 @@ private theorem compactPairs_get (xs : List (Fin 16)) (i : Nat)
           omega
         simpa [compactPairs, Nat.mul_add, Nat.add_assoc] using compactPairs_get rest i hi'
 
-/-- Structural compact reference: a header followed by adjacent ordered pairs.
-Even paths pair the full list; odd paths put the head in the header and pair the tail. -/
+/-- EELS `src/ethereum/merkle_patricia_trie.py:384–390`: structural compact reference.
+A header precedes adjacent pairs. Even paths pair the full list; odd paths pair the tail. -/
 def nibbleListToCompactModel (xs : List (Fin 16)) (leaf : Bool) : List UInt8 :=
   compactHeader xs.length leaf (xs.headD 0) ::
     compactPairs (if xs.length % 2 = 0 then xs else xs.tail)
@@ -353,6 +353,22 @@ theorem nibbleListToCompact_eq_model (x : Nibbles) (leaf : Bool) :
       simp only [compactByte, Nat.succ_ne_zero, ite_false, Nat.add_sub_cancel,
         List.getElem_cons_succ, List.getElem_ofFn,
         Nibbles.length_toList, digitAt_model]
+
+/-- EELS `src/ethereum/merkle_patricia_trie.py:383–392`: each suffix byte
+packs the next ordered pair after the parity-dependent header digit. -/
+theorem nibbleListToCompact_pair (x : Nibbles) (leaf : Bool) (i : Nat)
+    (hi : i < x.size / 2) :
+    (nibbleListToCompact x leaf)[i + 1]'(by rw [size_nibbleListToCompact]; omega) =
+      packNibbles (x.toList[2 * i + x.size % 2]?.getD 0)
+        (x.toList[2 * i + x.size % 2 + 1]?.getD 0) := by
+  have he := congrArg (fun bs ↦ bs[i + 1]?) (nibbleListToCompact_eq_model x leaf)
+  rw [compactModel_eq_indexed] at he
+  rw [List.getElem?_eq_getElem (by
+    rw [Array.length_toList, ByteArray.size_data, size_nibbleListToCompact]
+    omega)] at he
+  simp only [Nibbles.length_toList, List.getElem?_cons_succ, List.getElem?_ofFn,
+    hi, dite_eq_left, Array.getElem_toList] at he
+  exact Option.some.inj he
 
 /-- Header byte retains precisely the parity/leaf flag and padding-or-first nibble. -/
 theorem nibbleListToCompact_header (x : Nibbles) (leaf : Bool) :
