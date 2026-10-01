@@ -90,10 +90,20 @@ Q49 supplies bounded packed generation, clipped prefix/suffix/window equations
 and lawful lexicographic comparison with actual path equality, so ordered-map
 insert/lookup/extensionality use public seams. Strict suffix decrease retains
 `level < size` and positive advancement; equal bounded path prefixes follow
-from maximal common-prefix laws. Consumers still own filtered-map sum measures,
-branch-value/domain/canonicality obligations and aggregate copy/comparison costs.
+from maximal common-prefix laws. Q50 supplies the actual finite-map domain at zero, ending-key uniqueness and
+representative-independent branch lookup, guarded child-domain preservation and
+private strict sum descent for every numeric child (including empty children) and
+positive shared extensions. Private longest shared-prefix selection supplies its
+full-depth/shared-prefix premises, maximality, representative-independent length
+and additional path, and strict sum descent for positive amounts (EthCommit §3). Full keys are retained; empty byte
+values and prefix relationships remain allowed. Private bounded branch support
+uses those partitions and ending lookup with supplied child construction followed
+by C6 encoding in numeric order; its sequencing equations retain LawfulMonad
+premises (EthCommit §3). It returns a branch without a parent query and implements
+no recursive constructor or root. Whole-constructor choice independence,
+canonicality and aggregate copy/comparison costs remain open.
 Future node/trie consumers own those checks and witness/guest adapters. These
-pure premises introduce no hashing, node/root or host-resource theorem; the local
+pure path/domain premises introduce no node/root or host-resource theorem; the local
 decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
 
 ### Internal-node encoding premise
@@ -106,6 +116,19 @@ contexts. Standard/pinned correspondence requires `Encodable` of the complete
 assembly, including HP width and joined payload; actual trie/schema callers own
 that premise, Python Extended interpretation and host compatibility. Global oracle
 coupling, cache/witness/root and whole-trie/resource gates remain open.
+
+### Mathematical-root domain and constants premise
+
+`PatricializeDomain` is the public proof seam in EthCommit's future `Root` owner;
+its fields use actual `Nibbles.size`/`take` and finite-map membership. Bounded branch
+assembly is supplied; no recursive trie/node constructor or root is supplied by
+this support slice. Q50's arbitrary-depth helper
+requires the proof explicitly; no behavior outside that domain is selected.
+Empty `mathRoot emptyRoot` locally returns `pure emptyRoot` without a new query
+or local oracle failure. Caller-owned F20 acquisition must provide the coherent
+constant. Future concrete Id/pinned-root equality needs that coherence and the
+complete assembled-node `Encodable` and host premises; local execution is not the
+whole Python acquisition/root trace. D5 generic coupling remains open.
 
 ### RLP encoding premise
 

@@ -261,7 +261,7 @@ Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves 
 
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
-| Mathematical root | `patricialize`-style definition over a finite map | the definition | [C] order independence |
+| Mathematical root | `patricialize`-style definition over a finite map | proof-carrying reachable helper domain (Q50), all maps start at zero | [C] domain/strict descent support in EthCommit §3; actual construction and order independence open |
 | Full-state backend | a mathematical state plus `mathStateRoot` | `PreState` + `Models`, plus progress | [C] agreement and successful operations on well-formed finite state/diffs |
 | Witness-state backend | DBs plus partial trie | `PreState` + `Models`, plus data-availability conditions | [C] agreement for every σ consistent with the witness and rooted at `parent.state_root`, modulo collisions; success under the explicit availability conditions |
 
@@ -453,6 +453,16 @@ The options considered for each decision, and what evidence settles or revisits 
 **Empty compact diagnostic options (Q48).** Name the raw first-byte failure `Malformed.compactEmpty`; reuse `rlp`; or reuse `pathEmpty`. The source raises `IndexError` at `incremental_mpt.py:878` before a decoded path/leaf flag exists, while the later extension check at `:959` rejects an empty decoded path. The owning disposition is DECISIONS Q48. All options preserve nonempty leniency and O4's output; the chosen name keeps the two phases inspectable.
 
 **Nibble provider options (Q49).** Nat-indexed bounded packed generation or model construction; guarded/clipped packed copies or a later view representation; direct packed lexicographic scan or common-prefix scan followed by next digit/length comparison. Each option preserves the same List observers and ordinary equality bridge, without public storage or unchecked digit conversion. The owning disposition is DECISIONS Q49. Exact public model/index/size laws, lawful map clients and local current-source compiled correctness supply provider evidence; views and aggregate costs are revisited under D25/D18 and C1–C4.
+
+**Reachable mathematical-root helper domain and supplied empty root options (Q50).**
+An explicit proof-carrying reachable domain at arbitrary depth, a private reachable
+helper with a zero wrapper, or an outside-domain completion. Empty roots use
+caller-supplied F20 constants; local root execution and prior acquisition are
+distinct. The owning disposition is DECISIONS Q50. Finite-map domain/descent laws
+supply support; actual C7–C8, composition with C6 laws, choice independence,
+canonicality and concrete source agreement with complete assembled-node
+`Encodable` and host premises remain separate obligations.
+
 
 **Hash32 table-support options (Q51).** Truncated Nat hashing; the explicit complete 32-digit support model with ordinary streaming/reference equality; or another support representation behind the same model laws. The owning disposition is in DECISIONS Q51 and the provider contract in EthBase §3. EthBase's boundary excludes protocol/cryptographic hashing and permits the named nonprotocol support instance; every Keccak remains routed through KeccakQuery (D5). Revisit executable support costs against actual construction/allocation/adversarial-distribution evidence; functional lawful-hash proofs do not close §5.0 or C1–C4.
 

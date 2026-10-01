@@ -5,6 +5,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Commit.Nibbles
 import STFSpec.Commit.Compact
 import STFSpec.Commit.InternalNode
+import STFSpec.Commit.Root
 
 /-!
 # STFSpec.Commit
