@@ -80,8 +80,21 @@ encoding and its exact byte-list model, computed/output widths and ordered child
 payload concatenation. Standard/pinned correspondence retains `Encodable` (Q47),
 which characterizes every recursive child and encoded list payload length.
 Consumers can compose empty/nested byte/list models without unfolding the temporary
-writer cache. Decoder canonicality, injectivity, schema instances, derived
-addresses and guest outcomes remain their owners' open obligations.
+writer cache. Decoder canonicality, injectivity, schema instances and guest outcomes remain
+their owners' open obligations.
+
+### Derived address premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies the exact CREATE
+RLP preimage and CREATE2 two-query order/dependence, concrete Id formulas and
+final twenty-byte suffix laws. Every Keccak uses `KeccakQuery`, retaining arbitrary
+answers and ordered effects; lawful ExceptT error contracts preserve original
+failures. Base's `Address.toBytes_ofNat_toNat` proves suffix conversion, including
+leading zeros and no-op source padding.
+`encodable_computeContractAddress_preimage` supplies Q47's CREATE `Encodable`
+premise for every sender and nonce below 2^256, including U64 protocol nonces.
+The total Nat API has no input cap. VM creation/state/gas/collision behavior,
+oracle coupling, security assumptions and guest/resource gates remain their owners' obligations.
 
 ### RLP header premise
 

@@ -592,6 +592,18 @@ theorem toBytes_ofU256Masked (x : U256) :
       Bytes.ofList ((Bytes.toList (U256.toBeBytes32 x).toBytes).drop 12) := by
   rw [ofU256Masked_eq_reference, toBytes_maskedAddressReference]
 
+/-- The numeric conversion retains exactly the final twenty public hash bytes,
+including leading zeros. -/
+theorem toBytes_ofNat_toNat (hash : Hash32) :
+    (Address.ofNat hash.toNat).toBytes = Bytes.ofList (hash.toBytes.toList.drop 12) := by
+  have h : Address.ofNat hash.toNat =
+      Address.ofU256Masked (U256.ofBeBytes32 hash.toBytes32) := by
+    apply Address.toNat_inj.mp
+    rw [Address.toNat_ofNat, Address.toNat_ofU256Masked, U256.toNat_ofBeBytes32,
+      Hash32.toNat_toBytes32]
+  rw [h, Address.toBytes_ofU256Masked, U256.toBeBytes32_ofBeBytes32,
+    Hash32.toBytes_toBytes32]
+
 /-- Embedding an address in a word preserves its complete numeric value. -/
 theorem toNat_toU256 (x : Address) : x.toU256.toNat = x.toNat := by
   apply U256.toNat_ofNat_of_lt

@@ -267,6 +267,52 @@ exact Python classes/types, including bool versus integer classes. Width-zero
 integers and arbitrary callbacks are model-only cases, not actual pin targets.
 This is finite typed-value evidence, not EEST execution or a proof of Python code.
 
+### Implemented derived addresses
+
+`STFSpec/Codec/Address.lean` implements the four existing address APIs and proves
+their exact one/two-query expansions, arbitrary-answer dependence, concrete Id
+formulas and final twenty-byte suffix observations through public Base laws.
+`encodable_computeContractAddress_preimage` proves the CREATE sender/nonce list is
+`Encodable` for every sender and nonce below 2^256, supplying Q47's standard-domain
+premise for protocol nonces. The Nat API remains total at every nonce; the bound
+is a theorem hypothesis, not an input guard or outside-domain acceptance policy.
+Creation/state/gas/collision handling, security assumptions and generic oracle
+coupling remain separate.
+
+| Pinned EELS source | Lean declaration and public type | Domain, value/effects | Ordered failures and consuming handler | Public law and deterministic regression |
+|---|---|---|---|---|
+| `forks/amsterdam/utils/address.py::compute_contract_address` (`:42–63`); locked `ethereum_rlp/rlp.py:66–88`, `ethereum_types/numeric.py:477–484` | `computeContractAddressQ : [Monad m] → [KeccakQuery m] → Address → Nat → m Address`; `computeContractAddress : Address → Nat → Address` | all Nat; one exact RLP sender/minimal-nonce query; complete final twenty bytes; `Encodable` proved for every nonce < 2^256 | no local guard/error mapping; lawful ExceptT queries preserve the original failure; VM/guest consuming handlers remain unimplemented | `encodable_computeContractAddress_preimage`, `computeContractAddressQ_eq`, `computeContractAddressQ_of_pure_answer`, `computeContractAddress_id/eq`, `toBytes_computeContractAddressQ`, `toBytes_computeContractAddress`, `run_computeContractAddressQ_error`; fixed sender at nonces 0–3, 127/128/255/256, 2^64−1 and larger Nat widths |
+| `forks/amsterdam/utils/address.py::compute_create2_contract_address` (`:66–93`) | `computeCreate2ContractAddressQ : [Monad m] → [KeccakQuery m] → Address → Bytes32 → ByteArray → m Address`; `computeCreate2ContractAddress : Address → Bytes32 → ByteArray → Address` | every supplied fixed sender/salt and finite init code; exact code query, then ff/sender20/salt32/that answer32 query; final twenty-byte suffix | under the lawful ExceptT error contracts, first query failure suppresses second; outer failure retains its original error; no local handler or query after failure; VM/guest consuming handlers remain unimplemented | `computeCreate2ContractAddressQ_eq`, `computeCreate2ContractAddressQ_of_pure_answers`, `computeCreate2ContractAddress_id/eq`, `toBytes_computeCreate2ContractAddressQ`, `toBytes_computeCreate2ContractAddress`, `run_computeCreate2ContractAddressQ_error_code/hash`; EIP-1014 examples 0–3 and arbitrary recording answers/errors |
+| D5 transformer composition | `run_computeContractAddressQ_stateT/exceptT`, `run_computeCreate2ContractAddressQ_stateT/exceptT` | added state unchanged; underlying ordered effects retained; exception lift wraps success without handling underlying failures | underlying effects remain unchanged; lawful ExceptT error contracts preserve failures | ordinary lawful-monad equations; extra StateT/ExceptT recording cases |
+
+**Checks and provenance.** `AddressGuards.lean` compares complete values and exact
+recorded preimages, distinct arbitrary inner/final answers, inner-answer changes,
+zero-containing suffixes and first/second failures. `AddressCallerProofs.lean` uses
+only public expansion/Id/suffix/Base equations, including the no-op padding proof
+and the bounded CREATE preimage law. The suffix conversion uses
+`Address.toBytes_ofNat_toNat`, owned by [EthBase §3](EthBase.md#3-eels-source-map).
+The four CREATE2 facts are [EIP-1014 examples 0–3](https://eips.ethereum.org/EIPS/eip-1014#examples),
+also observed against the actual pinned address functions. The committed driver
+`STFSpec/Conformance/Codec/address_differential.py` authenticates current EELS,
+ethereum-types and typed RLP source/RECORD files. Run it from the repository root:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/address_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
+The driver owns its seed and case counts and records them in the result. It checks
+exact Python input/output and hash classes, with negative class controls. It
+instruments only ephemeral loaded hash bindings, forwards the original provider
+and restores bindings in `finally`. Complete 20-byte results and one/two-query
+preimages/digests are retained. Source/lock/RECORD files are authenticated before
+and after execution; the imported recursion setup is left unchanged. Dependency
+versions are checked against the pin. The concrete hash backend, isolated
+interpreter, startup and installed dependencies/RECORD remain explicit trust
+inputs. The emitted Lean guards and committed generic-effect guards provide
+bounded reproducible evidence. They establish no universal Python equivalence,
+EEST guest execution, native-client speed, C1–C4 or security result.
+
 ### Remaining source ownership
 
 | EELS item | Line | Spec declaration | Notes |
@@ -306,8 +352,6 @@ This is finite typed-value evidence, not EEST execution or a proof of Python cod
 | `utils/ssz.py::_to_view` | 288 | `SszSchema.toValue` | |
 | `utils/ssz.py::_from_ssz_value` | 299 | `SszSchema.ofValue?` | `base(int(v))` widening (S1) |
 | `utils/ssz.py::_from_view` | 318 | `SszSchema.ofValue?` | |
-| `forks/amsterdam/utils/address.py::compute_contract_address` | 42 | `computeContractAddress` | A1 |
-| `forks/amsterdam/utils/address.py::compute_create2_contract_address` | 66 | `computeCreate2ContractAddress` | A2 |
 
 `to_address_masked` from the same file is claimed by `EthBase` (a pure conversion). `encode_account` (in `fork_types.py`) is claimed by `EthStateCommit`; its state-dependent encoding remains outside EthCodec.
 
@@ -574,7 +618,10 @@ so it also proves the converse byte minimality rather than just value roundtrip.
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
 **Addresses.**
-- [C] `computeContractAddress a n = lastBytes20 (keccak256 (encode (.list [.bytes a.toBytes, ofNat n])))`, and likewise for CREATE2. The `…Q` forms at `m := Id` equal these by `rfl`.
+- [C] The implemented formulas return the final twenty bytes of `keccak256(encode (.list [.bytes a.toBytes, ofNat n]))` for CREATE, and `keccak256(0xff ‖ a ‖ s ‖ keccak256(c))` for CREATE2. Their `…Q` forms at `m := Id` equal the concrete endpoints by `rfl`.
+- [C] Public query expansions preserve exact preimages/order and arbitrary-answer dependence. Byte-effect equations expose the final suffix through Base's `Address.toBytes_ofNat_toNat`. Pure-answer and StateT/ExceptT forwarding laws require `LawfulMonad`; lawful ExceptT failure laws retain the supplied original errors and suppress subsequent queries.
+- [C] `encodable_computeContractAddress_preimage` establishes Q47's CREATE `Encodable` premise for every sender and nonce below 2^256. The API still accepts every Nat, with the total encoder completion outside that proved bound.
+- [R] VM creation/state/gas/collision behavior and D5 generic interpretation coupling remain open; the address formulas alone supply none of them.
 
 ### Informal correctness argument
 
@@ -618,7 +665,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable`, the cursor `decodeItemLength`/header model and the nine typed model adapters in §3 are implemented with the §7 public laws. Raw wire decode/list cursors and storage/window/ordered-case laws are implemented; universal RLP inverses/canonicality/prefix-freeness remain pending. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+- **Implemented operations and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable`, the cursor `decodeItemLength`/header model and the nine typed model adapters in §3 are implemented with the §7 public laws. Raw wire decode/list cursors and storage/window/ordered-case laws are implemented; universal RLP inverses/canonicality/prefix-freeness remain pending. Derived address query/Id/suffix laws and the bounded CREATE preimage law are proved (§3). `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders and SSZ are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
