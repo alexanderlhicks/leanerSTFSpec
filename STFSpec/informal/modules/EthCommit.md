@@ -90,7 +90,11 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### Implemented pure path operations
 
-The following operations and their public model laws are implemented on the stated typed domains in `STFSpec/Commit/Nibbles.lean`; the remaining source map above is unimplemented. `Nibbles` has private packed storage and a byte-range invariant, with public `size`, `get`, `toList` and `ofList` (§5/§6; F19). Ordinary model equations specify their observations (D25).
+The following operations and their public model laws are implemented on the stated typed domains
+in `STFSpec/Commit/Nibbles.lean`; other source-map items remain unimplemented except the
+internal-node encoding below. `Nibbles` has private packed storage and a byte-range invariant,
+with public `size`, `get`, `toList` and `ofList` (§5/§6; F19). Ordinary model equations specify
+their observations (D25).
 
 | Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Model law | Deterministic/differential evidence |
 |---|---|---|---|---|---|
@@ -109,13 +113,80 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
 
 The interpreter, installation/startup and installed dependency RECORD remain trust inputs. The reference import setup may change its recursion limit; the driver records the limit before and after imports and does not change it manually.
 
+### Implemented internal-node encoding
+
+`STFSpec/Commit/InternalNode.lean` implements the existing nonrecursive §5 type:
+children are already encoded `RlpItem` structures/references. Its total assembly
+and operational model equalities and local effect laws are proved on all typed
+inputs. The finite source comparison supplies bounded Python evidence.
+No partial-witness node/cache, patricialization, root or database is implemented.
+
+| Exact pinned source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Public laws | Regression evidence |
+|---|---|---|---|---|---|
+| `src/ethereum/merkle_patricia_trie.py:88–183,228–241` | `InternalNode`; `assembleInternalNode : Option InternalNode → RlpItem`; every finite bounded path, arbitrary byte/list field, sixteen ordered branch children | None is empty bytes; leaf/extension HP followed by the unchanged field; branch children then value at position 16; pure | None in the typed domain; unsupported Python classes/fields are outside the caller interpretation | `assembleInternalNode_eq_model`, `_none/leaf/extension/branch`; `branch_items_get/value/length` | Empty/odd/even HP, empty extension, nested values, distinct ordered children/value-last |
+| `src/ethereum/merkle_patricia_trie.py:213–249`; locked `ethereum_rlp/rlp.py:66–88,91–140` (0.1.6) | `encodeInternalNode : {m} → [Monad m] → [KeccakQuery m] → Option InternalNode → m RlpItem`; operationally all typed inputs; standard correspondence requires complete `Rlp.Encodable (assembleInternalNode node)` | One assembly and one packed RLP encoding; complete width < 32 returns the structure; otherwise exactly one whole-preimage query and all 32 answer bytes | No local error/guard/handler; original monadic query failures propagate; no guest outcome selected here | `encodeInternalNode_eq_model`, `_eq/inline/hash/none/id/of_pure_answer/recording`; `run_encodeInternalNode_exceptT/stateT/error`; `toList_encode_assembleInternalNode`, `size_encode_assembleInternalNode` | 31/32/33 bytes from HP parity, fields, nested payload, branch value and child 7; arbitrary/failing oracles and transformer client |
+
+`InternalNodeGuards.lean` compares complete byte/list trees, preimages and answers;
+`InternalNodeCallerProofs.lean` composes public laws, complete domain premises,
+child ordering and transformer contexts.
+`STFSpec/Conformance/Commit/internal_node_differential.py` authenticates the current
+pinned source/lock and installed ethereum-types/ethereum-rlp RECORD bytes and exact
+classes/origins before and after running with the isolated pinned venv launcher
+`-I -B`. It covers absence, leaf/extension paths and fields, ordered branch items,
+thresholds, nested structures and long values/paths. Adjacent `encode_node` (C10)
+observations, expected-exception checks and source/effect observations are recorded
+separately. Altered actual inline/digest results exercise the production result
+validator, and changed observed lock bytes exercise the Driver rejection path.
+The catalog is fixed; the seed does not vary it. Missing `-I`/`-B` startup rejection
+checks are separate from the in-run controls. Output metadata owns case/control
+counts and source/environment identities.
+
+The driver compiles generated Lean guards with warnings fatal. Each guard compares
+full assembly, RLP bytes, concrete `Id` output, arbitrary recording-oracle answer,
+query preimages and error propagation. Instrumentation is restored in `finally`.
+The driver does not manually change resource limits; pinned reference imports may
+change them (`src/ethereum/__init__.py:30`). Interpreter/startup, the pinned
+installation and RECORD remain trusted inputs. This is finite source
+evidence; EEST execution, throughput and host-resource acceptance remain unverified.
+
+From the repository root, reproduce with an output outside both repositories:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/internal_node_differential.py \
+  --eels EELS --output SCRATCH.lean
+```
+
+Python tuple/list and byte/fixed-byte classes are normalized only after exact
+class checks. Richer Extended fields require a caller-owned byte/list
+interpretation; the existing `RlpItem` API asserts no raw Python class equality
+or totality for arbitrary unsupported/custom/cyclic Python objects. Q47's total
+completion governs unconditional operational laws. For standard/pinned
+correspondence, `encodable_assembleInternalNode_leaf_iff/extension_iff/branch_iff`
+retain HP width, every field and the complete joined encoded payload bound,
+rather than assuming only child encodability. Actual trie/schema callers must
+establish these premises and reference host compatibility.
+
 `encode_account` (in `merkle_patricia_trie.py`) is claimed by `EthStateCommit`.
 
 **External semantics.** `ethereum_rlp.rlp` encode/decode and `Extended` (owned by `EthCodec`): this module relies on decode being **strict** (non-canonical length prefixes and single bytes `< 0x80` wrapped as strings are rejected, truncated input rejected [executed]) and on `Rlp.encode_eq_of_decode_eq_ok` and `decode_success_encodable` ([EthCodec §7](EthCodec.md#7-contract-and-laws)) for successfully decoded bytes. These proved raw-codec laws supply exact reencoding and the Q47 domain; applying them to inline child references and their accepted witness interpretation in C15 remains an EthCommit obligation. Leading zero bytes inside strings are just bytes. `ethereum_types` `Bytes`, `Uint`, `ulen`, `slotted_freezable` (value semantics only); `copy.copy` in `copy_trie` (shallow; identity in Lean); `utils.hexadecimal.hex_to_bytes` (G1) for the constant.
 
 ## 4. Tests
 
-The implemented pure operations evaluate all byte splits, all ordered nibble pairs under both leaf flags, all singleton flags, empty/odd/even encodings, zero/15 extremes and long paths. Prefix guards cover asymmetric proper prefixes and first/end mismatches. `NibblesGuards.longChecks` compares whole outputs, and the differential driver emits full actual-source observations. Decoder and trie cases below remain open; resource gates are owned by REVIEW §7.
+`InternalNodeGuards.lean` checks absent, leaf and extension structures, nested
+fields, and complete encodings at the 31/32/33-byte threshold under arbitrary and
+failing oracles. Its concrete `Id` guard checks a branch of sixteen distinct
+32-byte child references against the full digest obtained from the authenticated
+pinned C6 operation. The driver in §3 additionally compares full ordered branches,
+HP parities, nested values and long structures with pinned EELS. Symbolic clients
+in `InternalNodeCallerProofs.lean` compose domain, model, ordering and lift laws.
+These node tests cover C6; root construction and witness operations remain open.
+
+The implemented pure operations evaluate all byte splits, all ordered nibble pairs under both
+leaf flags, all singleton flags, empty/odd/even encodings, zero/15 extremes and long paths.
+Prefix guards cover asymmetric proper prefixes and first/end mismatches.
+`NibblesGuards.longChecks` compares whole outputs, and the differential driver emits
+full actual-source observations. Decoder and trie cases below remain open; resource gates are
+owned by REVIEW §7.
 
 - **EEST fixture areas:** every `blockchain_tests`/`blockchain_tests_engine` area checks the state, transaction, receipt and withdrawal roots, so the mathematical root is exercised by the whole corpus (corpus pin: `reference.toml`). Witness decoding and the partial trie specifically: `amsterdam/eip8025_optional_proofs`, especially `test_witness_state_deletes.py` (collapse adds an auxiliary sibling node), `test_witness_state_replay_order.py` (insert-before-delete), `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender/absent/failed-call-target account nodes, extra unused node, unsorted but complete).
 - **EELS unit tests** (`tests/json_loader/test_incremental_mpt.py` at e1a316a0): `TestCompactToNibbles` (even/odd leaf/extension, empty even leaf, round trip), `TestHashedNode` (stub in root computation; insert/delete/traverse into a stub raise), `TestDecodeWitnessToMpt(More)`, `TestMalformedWitnessNodes` (malformed RLP, non-empty string node, list length 3, extension with empty child ref, extension to leaf, extension to extension, non-hash child bytes, branch with 0 and 1 occupied entries, extension with empty path), `TestPartialWitness` (root preserved; modify known path; insert into stub fails; delete collapsing onto a stub fails), `TestBuildVsDecode` (roots match after mutation), `TestDecodeEdgeCases`. From `test_witness_state.py`: `TestCanonicalSecureTrieValidation` (zero-length extension paths and unresolved stubs in account and storage tries). Port each as a `#guard`.
@@ -138,7 +209,7 @@ def nibbleListToCompact : Nibbles → (isLeaf : Bool) → ByteArray
 def compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)     -- lenient, C3
 def commonPrefixLength : Nibbles → Nibbles → Nat
 
--- D5: everything that hashes is generic in the oracle monad; public uses take m := Id.
+-- D5: hashing kernels retain generic m; executable entry points specialise to Id.
 -- The empty-trie root is HashConsts.emptyTrieRoot (EthBase), projected by callers
 -- from their existing constants context and passed in where needed (C5, F20).
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
@@ -148,7 +219,11 @@ inductive InternalNode
   | leaf (restOfKey : Nibbles) (value : RlpItem)
   | extension (keySegment : Nibbles) (subnode : RlpItem)
   | branch (subnodes : Vector RlpItem 16) (value : RlpItem)   -- no nested occurrence, so Vector is accepted (contrast F5)
-def encodeInternalNode : Option InternalNode → m RlpItem          -- hashes iff ≥ 32 bytes (C6)
+def assembleInternalNode : Option InternalNode → RlpItem
+def assembleInternalNodeModel : Option InternalNode → RlpItem   -- public byte-list HP model
+def internalNodeWireModel : Option InternalNode → List UInt8   -- full total RLP model
+def encodeInternalNode : Option InternalNode → m RlpItem        -- C6, full width ≥ 32 hashes
+def encodeInternalNodeModel : Option InternalNode → m RlpItem   -- same effects, model bytes
 def patricialize (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat) : m (Option InternalNode)
 def mathRoot (emptyRoot : Hash32) (t : Std.ExtTreeMap Nibbles ByteArray) : m Hash32
 def secureKeys (secured : Bool) (t : Std.ExtTreeMap ByteArray ByteArray) : m (Std.ExtTreeMap Nibbles ByteArray)
@@ -240,15 +315,31 @@ Computing `Enc` strictly in the smart constructor re-hashes the whole path on ev
 
 `Nibbles.length_toList`, `getElem_toList` and `get_lt` supply abstraction length/index/range; `toList_inj`/`ext` supply extensionality. `toList_ofList`, `size_ofList` and `ofList_toList` supply the model construction boundary. The three operation models (`bytesToNibbleListModel`, `nibbleListToCompactModel`, `commonPrefixLengthModel`) are legible finite-list references beside packed implementations with ordinary all-input equations. The per-operation laws are named in §3. Prefix `_take_iff` has explicit `k ≤ a.size` and `k ≤ b.size` hypotheses; `_maximal` requires the result strictly below both sizes and states that the next bounded digits differ. Compact `_pair` specifies each ordered suffix byte for `i < x.size / 2` through the public List observation; `_flag` is `2*leaf + parity`; `_first` distinguishes even zero padding from the odd first digit. No inverse on arbitrary accepted compact bytes is asserted.
 
-The splitter and encoder each generate a single packed output in linear byte steps; prefix comparison performs at most the shorter path length in packed steps and stops early on mismatch. `toList` allocates its mathematical list; `ofList` copies digits once. No slicing API is implemented; ByteArray slicing would copy O(n). These are source-structure bounds, not allocation/throughput measurements or completed resource gates. The node/trie laws below remain open.
+The splitter and encoder each generate a single packed output in linear byte steps; prefix comparison performs at most the shorter path length in packed steps and stops early on mismatch. `toList` allocates its mathematical list; `ofList` copies digits once. No slicing API is implemented; ByteArray slicing would copy O(n). These are source-structure bounds, not allocation/throughput measurements or completed resource gates. The whole-trie laws below remain open.
 
-All laws are stated at `m := Id` (concrete `keccak256`), where the monadic operations are pure functions; `mathRoot t` abbreviates `Id.run (mathRoot emptyTrieRoot t)` with the reference constant, and likewise for `rootHash`, `update`, `delete` and `buildMpt`. The coupling at a generic oracle monad belongs to `EthSecurity` and is open (D5).
+### 7.0.1 Internal-node operational laws
+
+C6's assembly and full RLP model equations are unconditional on typed inputs.
+`encodeInternalNode_eq/inline/hash/recording` expose zero/one exact whole query;
+`_of_pure_answer` retains the complete arbitrary answer and `_id` supplies concrete
+execution. `run_encodeInternalNode_exceptT/stateT/error` preserve underlying
+computations, added state and original errors, with `LawfulMonad` where bind laws
+are needed. These local equations discharge no global oracle coupling (D5).
+The standard-domain iff laws require the complete assembled structure, including
+HP width and joined payload. The branch positions and value-last law preserve
+arbitrary nested items. No child reference validation or recursive child hash is added.
 
 ### 7.1 Totality [T]
 
-- `compactToNibbles`, `patricialize` (measure: Σ remaining key lengths, strictly decreasing through extension and branch), `encodeInternalNode` (structural), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
+- `compactToNibbles`, `patricialize` (measure: Σ remaining key lengths, strictly decreasing through extension and branch), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
 
 ### 7.2 Per-operation commuting obligations (D25) [C]
+
+The remaining whole-trie laws are stated at `m := Id` (concrete `keccak256`),
+where the monadic operations are pure functions; `mathRoot t` abbreviates
+`Id.run (mathRoot emptyTrieRoot t)` with the reference constant, and likewise for
+`rootHash`, `update`, `delete` and `buildMpt`. Coupling at a generic oracle monad
+belongs to `EthSecurity` and remains open (D5).
 
 - `trieGet (trieSet t k v) k' = if k' = k then v else trieGet t k'`; `root t = mathRoot (prepareTrie t)`.
 - Invariant preservation: `update`/`delete`/`mkBranch`/`mkExt` preserve `Canonical` and the `Enc` rule.
@@ -331,6 +422,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Order-sensitivity conjectures** (§7.5) are unproved; the mixed-order counterexample is verified.
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.
 - **`patricialize` choice-independence** and the Canonical-uniqueness lemma for a hexary trie with branch values and variable-length keys (unsecured tries) have no existing Lean proof; the Nipkow chapter is binary.
+- **Internal-node scope:** C6 operational/model/lift laws are proved as in §3/§7.0.1. Complete standard-domain and Python Extended interpretation/host premises remain caller obligations. Root/patricialization/witness/cache/database laws, canonical trie-shape conditions and resource gates remain open. Empty extension paths and arbitrary nested fields are valid C6 inputs; witness validity is a separate contract.
 - **Pure path scope:** the `Nibbles` representation/invariant and three operations are implemented with public model laws in §3/§7.0. Consumer slicing/mutation APIs, node/trie integration and C1–C4 measurements remain open; `ByteArray` slices copy O(n).
 - **Empty compact diagnostic (Q48):** C3 retains lenient success and malformed failure only on empty input. The exact `TrieError`/`Malformed` projection of that source `IndexError` is unspecified (distinct from an empty extension path); `compactToNibbles` remains unimplemented pending clarification. No constructor/disposition is inferred. Canonical compact injectivity/model inverse is also unproved; no general accepted-witness-byte inverse is claimed.
 - **Nibbles instances:** define `DecidableEq`, `BEq`, lawful `Ord` and `Inhabited` behind the private storage boundary before implementing the §5 trie maps. Their laws must agree with the public List model; this is a scoped follow-up, not part of the three pure operations.

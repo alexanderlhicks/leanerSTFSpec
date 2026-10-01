@@ -20,6 +20,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 |---|---|---|
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
+| InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
@@ -83,6 +84,17 @@ ordinary all-input model equations and public caller proofs. The encoder range
 premise is produced by the path type itself. These pure premises introduce no
 oracle, state effect or failure adapter. Compact decoding/its empty diagnostic,
 node/root/witness integration and all trie agreement/resource gates remain open.
+
+### Internal-node encoding premise
+
+[EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) supplies nonrecursive
+complete assembly, all-input total RLP model equality and the exact inline/one
+whole-query rule. Public laws retain arbitrary nested fields, sixteen ordered
+children/value-last, all 32 answer bytes, original oracle failures and transformer
+contexts. Standard/pinned correspondence requires `Encodable` of the complete
+assembly, including HP width and joined payload; actual trie/schema callers own
+that premise, Python Extended interpretation and host compatibility. Global oracle
+coupling, cache/witness/root and whole-trie/resource gates remain open.
 
 ### RLP encoding premise
 
