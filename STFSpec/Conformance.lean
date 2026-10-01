@@ -51,6 +51,10 @@ import STFSpec.Conformance.Codec.RlpEncodeGuards
 import STFSpec.Conformance.Codec.RlpEncodeCallerProofs
 import STFSpec.Conformance.Codec.RlpTypedGuards
 import STFSpec.Conformance.Codec.RlpTypedCallerProofs
+import STFSpec.Conformance.Codec.RlpHeaderGuards
+import STFSpec.Conformance.Codec.RlpHeaderCallerProofs
+import STFSpec.Conformance.Codec.RlpDecodeGuards
+import STFSpec.Conformance.Codec.RlpDecodeCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
