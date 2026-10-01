@@ -80,8 +80,19 @@ encoding and its exact byte-list model, computed/output widths and ordered child
 payload concatenation. Standard/pinned correspondence retains `Encodable` (Q47),
 which characterizes every recursive child and encoded list payload length.
 Consumers can compose empty/nested byte/list models without unfolding the temporary
-writer cache. Decoder canonicality, injectivity, schema instances, derived
-addresses and guest outcomes remain their owners' open obligations.
+writer cache. Decoder canonicality, injectivity, schema instances and guest outcomes remain
+their owners' open obligations.
+
+### Derived address premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies the exact CREATE
+RLP preimage and CREATE2 two-query order/dependence, concrete Id formulas and
+final twenty-byte suffix laws. Every Keccak uses the generic query seam and
+retains arbitrary answers/original failures. Public Base fixed-byte/word/masked
+address laws discharge suffix conversion, including leading zeros and no-op
+source padding. CREATE standard/pinned correspondence retains the preimage's
+`Encodable` (Q47). VM creation/state/gas/collision behavior, oracle coupling,
+security assumptions and guest/resource gates remain their owners' obligations.
 
 ### RLP header premise
 
