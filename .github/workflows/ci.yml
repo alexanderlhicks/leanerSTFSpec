@@ -48,6 +48,7 @@ jobs:
           lake build packed-keccak-bench --wfail
           lake exe check-decls PackedKeccakBench
           python3 scripts/gen_packed_keccak.py --check
+          python3 scripts/test_packed_keccak_generator.py
       - name: Dependency and hygiene boundaries (source level)
         run: python3 scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)

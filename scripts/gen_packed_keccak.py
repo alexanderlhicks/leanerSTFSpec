@@ -237,7 +237,7 @@ parser.add_argument('--check',action='store_true')
 args=parser.parse_args()
 target=Path(__file__).resolve().parents[1]/'STFSpec/Hash/PackedKeccakPermutation.lean'
 if args.check:
-    if not target.is_file() or target.read_text()!=s:
+    if not target.is_file() or target.read_bytes()!=s.encode('utf-8'):
         raise SystemExit('generated packed Keccak permutation is stale')
 else:
     target.write_text(s)
