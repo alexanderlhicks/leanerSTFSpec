@@ -258,7 +258,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
-- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire encode/decode, `Encodable`, length prefixes/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire decode/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -272,7 +272,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.
 - **Address derivation ownership.** Placing it here (not in `EthVmInstructions`) is a judgement call made in this spec, not an ARCHITECTURE decision.
-- **Performance** of `encode` (two-pass) and cursor `decode` is unmeasured, as is the SSZ `decode` of a maximal witness (thousands of nodes).
+- **Performance.** Encoder structural/generated-C checks and local compiled construction diagnostics are bounded evidence (§6); allocator volume, cleanup/lifetime and native-client/guest cost acceptance remain open. Cursor `decode` and SSZ decoding of a maximal witness are unmeasured.
 - **The fixed-arity tuple laxity (D4r)** is deliberately not modelled. Any EELS change that introduces a fixed-arity RLP tuple target would silently diverge.
 
 ### [`EthState`](modules/EthState.md)

@@ -1,6 +1,6 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
@@ -24,6 +24,9 @@ It also owns **contract-address derivation** (CREATE/CREATE2). That derivation n
   - A string of length `< 56` encodes as `0x80+len ‖ data`.
   - A longer string encodes as `0xB7+|L| ‖ L ‖ data`, where `L` is the minimal big-endian length.
 - **E2. Lists.** The payload is the concatenation of item encodings. A payload of length `< 56` gets the header `0xC0+len`; a longer one gets `0xF7+|L| ‖ L`.
+
+**Total-domain scope (Q47).** E1–E2 standard RLP and pinned-dependency correspondence are stated under `Encodable`: every item payload length has an at-most-eight-byte length prefix. The total encoder and prefix helper compute the tag in UInt8 (modulo 256) and retain exact, unbounded minimal big-endian length digits outside this domain; their packed implementation must equal the total byte-list model for every item. This completion supplies no outside-domain protocol acceptance/rejection, injectivity, decoder canonicality or pinned-host/resource claim. Locked `rlp.py:104–108,122–126` has no explicit eight-digit guard: byte construction rejects list tags at nine length digits and string tags at 73. Those conceptual constructor bounds are separate from physical allocation limits.
+
 - **E3. Typed values.**
   - `Uint`/`FixedUnsigned` encode as the byte string `to_be_bytes()`, which is minimal. **Zero is the empty string (`0x80`), never `0x00`** (`:77–78`; `ethereum_types/numeric.py:477`).
   - `bool` encodes as `0x01` or the empty string (`:79–83`).
@@ -109,6 +112,38 @@ It also owns **contract-address derivation** (CREATE/CREATE2). That derivation n
 - **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when an offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). The spec's `encode` is total over well-typed values whose encoding has offsets `< 2^32`, and is stated with that hypothesis.
 
 ## 3. EELS source map
+
+### Implemented RLP encoder slice
+
+`STFSpec/Codec/RlpEncode.lean` implements the pure total encoder on the public
+`RlpItem` model. **Discharged:** its packed output equals the total readable
+byte-list reference on every item, and the computed size equals actual output
+width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
+Byte/list payloads and all length digits are preserved in order; no raw decoder,
+wire canonicality, injectivity, schema instance or guest outcome is implemented.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:66–88` (0.1.6), raw byte/list dispatch | `Rlp.encode : RlpItem → ByteArray` | every model item; two-pass packed total byte-model completion, no effects; pinned/standard scope `Encodable` | none; Q47 defines completion outside the correspondence domain | `toList_encode`, `size_encode`; empty/ordered nested/asymmetric zero models |
+| `ethereum_rlp/rlp.py:90–109` | `Rlp.encodeBytes : ByteArray → ByteArray` | every byte string; singleton<80 itself, otherwise header then original bytes | none; standard/pinned scope `Encodable (.bytes b)` | `encodeBytes_single`, `encodeBytes_short`, `encodeBytes_long`, `size_encodeBytes`; 00/7f/80, 55/56, 255/256 |
+| `ethereum_rlp/rlp.py:100–108,119–126`; `ethereum_types/numeric.py:477–484` (0.4.1) | internal `Rlp.encodeLengthPrefix : UInt8 → UInt8 → Nat → ByteArray`; public `lengthPrefixModel` observation | every length/base tag; short tag or long tag plus exact minimal BE digits; tags modulo256 per Q47 | none; source correspondence only at standard tags with ≤8 digits | `toList_encodeLengthPrefix`, `size_encodeLengthPrefix`, `length_digits_value/width/head/order`, `short_tag_toNat`, `long_tag_toNat`; 255/256/65535/65536 and symbolic 8/9/72/73-digit helper cases |
+| `ethereum_rlp/rlp.py:112–128` | list branch `Rlp.encode (.list xs)`; `Rlp.encodeModel : RlpItem → List UInt8` | header length counts encoded child bytes, never item count; ordered complete payload; total model completion | none; standard/pinned scope `Encodable (.list xs)` | `toList_encode_list`, `encode_list_short/long`, `size_encode_list`; payload55/56 from empty children and single prefixed strings |
+| `ethereum_rlp/rlp.py:130–135` | reference `Rlp.encodePayloadModel : List RlpItem → List UInt8` | exact ordered concatenation of encoded child models; runtime uses cached packed writers | none | `encodePayloadModel_append`, `encodePayloadModel_eq_flatMap`, `length_encodePayloadModel`; empty/nested/mixed children |
+| derived from the prefix cases above, no extra Python acceptance guard | `Rlp.encodedSize : RlpItem → Nat`; `Rlp.Encodable : RlpItem → Prop` | cached size pass; every recursive item payload has ≤8 minimal length digits; refinement hypothesis rather than protocol limit | none; no rejecting API | `encodedSize_eq_model_length`, `encodable_bytes_iff`, `encodable_list_iff`, `encodable_bytes_tag`, `encodable_list_tag` |
+
+**Checks and provenance.** `RlpEncodeGuards.lean` supplies strict deterministic
+byte/list/prefix/typed-leaf composition cases. `RlpEncodeCallerProofs.lean` uses only
+public model/size/domain contracts. `rlp_encode_differential.py` reuses the typed
+driver's authenticated current-source/RECORD loader, frozen `-I -B` interpreter and
+pinned EELS byte checks. Its seed5023 bounded raw bytes/list trees reach depth32,
+string lengths1024, sibling counts256 and mixed nested cases; typed integer models
+include0/1/1024. It checks exact Python input/result classes before observations,
+including11 negative shape controls. Whole returned bytes, byte helper dispatch,
+sequence dispatch and joined payloads are compared, not checksums. Lengthy Lean
+literals are chunked and constant-byte runs use `List.replicate`, without
+changing limits or tested bytes. Interpreter/startup,
+frozen installation and RECORD remain trust inputs. These are finite actual
+encoder observations, not EEST guest execution or a Python equivalence proof.
 
 ### Implemented typed RLP slice
 
@@ -256,7 +291,7 @@ namespace Rlp
   def Encodable : RlpItem → Prop       -- every encoded item length has an at-most-eight-byte length prefix
   def encode       : RlpItem → ByteArray      -- two-pass: size, then write (§6)
   def encodeBytes  : ByteArray → ByteArray
-  def encodeLengthPrefix (short long : UInt8) (len : Nat) : ByteArray   -- internal
+  def encodeLengthPrefix (short long : UInt8) (len : Nat) : ByteArray   -- internal; total scope Q47
   def decode       : ByteArray → Except RlpError RlpItem                 -- total, cursor-based
   def decodeItemLength : ByteArray → (pos : Nat) → Except RlpError Nat  -- internal
   -- typed layer
@@ -337,6 +372,21 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 
 **No derived instances on the nested inductives** (F17). `deriving BEq`, `Repr` or `DecidableEq` on `RlpItem`, `SszType` or `SszValue` generates `partial` constants (for example `instBEqT.beq`), which D21 bans and only the compiled declaration check catches. Write structural instances by hand, as mutual structural recursions (a compiled prototype of the interfaces showed the pattern works). Non-nested types such as `RlpError` and `SszError` may derive them.
 
+**Implemented encoder costs.** The first structural pass caches each subtree's
+size and packed writer closure once. The second pass copies each header/payload
+into one output buffer pre-sized from the cached root size, in child order; it
+never recomputes child sizes or constructs subtree output buffers. Temporary
+writer closures and cached prefixes are local to the call. Under `Encodable`,
+headers have bounded width, giving O(nodes + output bytes) traversal/copy work;
+this is not an arbitrary-precision arithmetic bit-cost or host-depth guarantee.
+`encodedSize` alone runs the planning pass, including its temporary cache.
+Generated C confirms this call structure and packed copy_slice/output-capacity
+construction. Compiled whole-byte comparisons against `encodeModel` cover shallow
+sibling and deep single-child trees plus asymmetric mixed order. Local construction
+timings retain outputs until after timing; output cleanup and whole-process RSS do
+not supply total allocated volume, peak-live allocation accounting, a native-client
+comparison or C1–C4/guest acceptance. Those gates remain open (CONTRIBUTING §3).
+
 **Implemented leaf costs.** Raw shape observations (`toBytes`, `toList`) share the
 input without traversing children. Boolean checks compare only the empty and
 singleton byte shapes. Integer adapters inspect shape/first byte/size before the
@@ -363,6 +413,19 @@ CONTRIBUTING §3).
 - [C] Integer canonicality: `toNat (.bytes b) = .ok n ↔ b = (Uint.toBeBytes n).toByteArray`; `toNatBounded w` additionally requires `b.size ≤ w`.
 - [R] Typed round trips for each instance: `Encodable (toRlp a) → decodeTo (encodeOf a) = .ok a` (where toRlp is the instance adapter). This is used by `EthBlock` (transaction, header and receipt codecs) and `EthStateCommit` (account leaves).
 - [R] `union2 f g x = .ok a` implies that exactly one of `f x`, `g x` succeeds.
+
+**Discharged encoder laws.** `toList_encode` relates the packed encoder to
+`encodeModel` for every item, including Q47 completion; `size_encode` and
+`encodedSize_eq_model_length` equate size pass, output and reference widths.
+`toList_encodeLengthPrefix` and `size_encodeLengthPrefix` expose exact headers;
+`length_digits_value/width/head/order` give complete value, minimal width,
+nonzero head and high-to-low digit order. Singleton/short/long byte and list laws
+expose payload preservation and prefix cases. `encodePayloadModel_eq_flatMap`,
+`encodePayloadModel_append` and `length_encodePayloadModel` establish ordered
+child concatenation and sum of encoded widths, with empty and nested children
+preserved. `Encodable` is characterized recursively by `encodable_bytes_iff` and
+`encodable_list_iff`; standard tags do not wrap on this domain. These discharge
+encoding model obligations only; the decoder-dependent contracts above remain open.
 
 **Discharged model leaf laws.** The implementations export full integer
 minimality biconditionals (`toNat_canonical_iff`, `toNat_eq_ok_iff`), bounded
@@ -397,7 +460,7 @@ so it also proves the converse byte minimality rather than just value roundtrip.
 
 **Argument.** RLP prefix cases determine one extent; recurse only inside that extent and require full consumption. The shortest-length and integer checks give canonicality and prefix-freeness. Typed decoders then check constructor shape, arity and integer ranges. SSZ induction over types establishes fixed-size layouts and variable-offset boundaries; the strict decoder's accepted bytes must re-encode identically, while the reverse implication needs a separate proof that every canonical encoding decodes. The schema adapter transfers both results to the caller's type. Merkleization induction replaces padded subtrees with the zero-hash recurrence; progressive zero hashes are defined for every required depth, not just the cached prefix. Binding descends through equal child preimages; unequal preimages with equal digests expose a collision. Exact field interpretation and mixed-in lengths distinguish zero padding.
 
-**Open obligations.** Rootability of every accepted guest input, unbounded progressive-length domains, RLP encodability and all schema instances need proof. These domains must not become new acceptance limits without an explicit protocol decision. Generic inactive-field binding is not implied by the guest-schema result.
+**Open obligations.** Rootability of every accepted guest input, unbounded progressive-length domains, RLP encodability of schema-produced items and all schema instances need proof. These domains must not become new acceptance limits without an explicit protocol decision. Generic inactive-field binding is not implied by the guest-schema result.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -410,6 +473,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Relies on.** `EthHash.sha256` and `keccak256`, and `EthBase` byte conversions (in particular `Uint.toBeBytes 0 = empty`).
 
 ## 9. Open decisions
+
+- **Q47** owns the total RLP encoder completion beyond `Encodable`; decoder acceptance and round-trip/canonicality contracts retain the domain in §7.
 
 - **SSZ reference implementation** (DECISIONS B5, Q21/Q22; adopted provisionally): [ethereum/ssz-specs `lean/`](https://github.com/ethereum/ssz-specs/tree/main/lean) (@d4a0d75, MIT, Lean v4.33.1, no dependencies, `warningAsError`).
   - **Why it fits:** its types-as-data design (`Desc` declarations plus separate values) matches the `SszValue` + `WellTyped` resolution. It proves codec canonicality ("every accepted byte string is canonical"), round trips, admissibility, whole-value binding in SHA-256 collision form, progressive trees (EIP-7916/7495), and a merkleization cost bound.
@@ -425,7 +490,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire encode/decode, `Encodable`, length prefixes/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
+- **Implemented slice and remaining APIs.** Raw `RlpItem`/diagnostic `RlpError`, the two-pass encoder/total byte model/`Encodable` and the nine typed model adapters in §3 are implemented with the §7 public laws. Wire decode/cursors, `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`, element/schema decoders, SSZ and derived addresses are unimplemented. The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic correspondence does not implement the consuming header/transaction handlers. Whole EthCodec gates, all schema proofs, security binding and cost/guest obligations remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -439,5 +504,5 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.
 - **Address derivation ownership.** Placing it here (not in `EthVmInstructions`) is a judgement call made in this spec, not an ARCHITECTURE decision.
-- **Performance** of `encode` (two-pass) and cursor `decode` is unmeasured, as is the SSZ `decode` of a maximal witness (thousands of nodes).
+- **Performance.** Encoder structural/generated-C checks and local compiled construction diagnostics are bounded evidence (§6); allocator volume, cleanup/lifetime and native-client/guest cost acceptance remain open. Cursor `decode` and SSZ decoding of a maximal witness are unmeasured.
 - **The fixed-arity tuple laxity (D4r)** is deliberately not modelled. Any EELS change that introduces a fixed-arity RLP tuple target would silently diverge.

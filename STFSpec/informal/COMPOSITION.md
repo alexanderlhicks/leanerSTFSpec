@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-09-30.*
+*Status: conditional proof plan. Date: 2026-10-01.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -72,6 +72,16 @@ retained reference endpoints, including padding, block absorption and byte outpu
 ([EthHash §3](modules/EthHash.md#3-eels-source-map)); current defaults remain unchanged.
 These laws do not supply the query instance, acquisition or oracle coupling, and
 local native diagnostics do not supply target/resource composition.
+
+### RLP encoding premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies total packed
+encoding and its exact byte-list model, computed/output widths and ordered child
+payload concatenation. Standard/pinned correspondence retains `Encodable` (Q47),
+which characterizes every recursive child and encoded list payload length.
+Consumers can compose empty/nested byte/list models without unfolding the temporary
+writer cache. Decoder canonicality, injectivity, schema instances, derived
+addresses and guest outcomes remain their owners' open obligations.
 
 ### Typed RLP model premise
 
