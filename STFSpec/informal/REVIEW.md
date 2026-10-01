@@ -118,18 +118,20 @@ evidence; its §10 owns remaining hash APIs and correspondence.
 [EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns its implemented
 operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
-[EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path and
-internal-node APIs, public-law domains and conformance evidence. Its §10 owns
-remaining witness/database/root APIs and trie/resource obligations.
-Other semantic components remain scaffolding.
+[EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
+Q49 provider and internal-node APIs, public-law domains and conformance evidence.
+Its §10 owns remaining witness/database/root APIs, consumer measures and
+trie/resource obligations. Other semantic components remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
 extraction and authentication tooling.
 
-**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`. The
-path/node guards and authenticated source differential drivers are owned by [EthCommit
-§3](modules/EthCommit.md#3-eels-source-map); resource gates remain open in §7.
+**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
+Path/node guards and authenticated differential drivers are owned by [EthCommit
+§3](modules/EthCommit.md#3-eels-source-map). Typed-Bytes/Python sequence support
+checks supply provider evidence; resource gates remain open in §7. Q49 does not
+discharge consumer map-recursion measures or aggregate copy/comparison costs.
 Base differential drivers compare public operation values with the pinned source.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.

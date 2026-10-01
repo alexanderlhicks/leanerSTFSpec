@@ -451,6 +451,8 @@ The options considered for each decision, and what evidence settles or revisits 
 
 **Empty compact diagnostic options (Q48).** Name the raw first-byte failure `Malformed.compactEmpty`; reuse `rlp`; or reuse `pathEmpty`. The source raises `IndexError` at `incremental_mpt.py:878` before a decoded path/leaf flag exists, while the later extension check at `:959` rejects an empty decoded path. The owning disposition is DECISIONS Q48. All options preserve nonempty leniency and O4's output; the chosen name keeps the two phases inspectable.
 
+**Nibble provider options (Q49).** Nat-indexed bounded packed generation or model construction; guarded/clipped packed copies or a later view representation; direct packed lexicographic scan or common-prefix scan followed by next digit/length comparison. Each option preserves the same List observers and ordinary equality bridge, without public storage or unchecked digit conversion. The owning disposition is DECISIONS Q49. Exact public model/index/size laws, lawful map clients and local current-source compiled correctness supply provider evidence; views and aggregate costs are revisited under D25/D18 and C1–C4.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

@@ -19,7 +19,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Contract | Owner | Required consumer behaviour |
 |---|---|---|
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
-| Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
+| Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | TrieError, Malformed | EthCommit | Keep raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
@@ -86,6 +86,12 @@ normalization; unused high flags and even low padding need not survive.
 The path type produces the digit-range premise. Raw empty compact input returns
 `.malformed .compactEmpty` (Q48); the later empty decoded extension-path error
 remains the node consumer's `.malformed .pathEmpty` obligation under existing O4.
+Q49 supplies bounded packed generation, clipped prefix/suffix/window equations
+and lawful lexicographic comparison with actual path equality, so ordered-map
+insert/lookup/extensionality use public seams. Strict suffix decrease retains
+`level < size` and positive advancement; equal bounded path prefixes follow
+from maximal common-prefix laws. Consumers still own filtered-map sum measures,
+branch-value/domain/canonicality obligations and aggregate copy/comparison costs.
 Future node/trie consumers own those checks and witness/guest adapters. These
 pure premises introduce no hashing, node/root or host-resource theorem; the local
 decoder allocation exception is recorded in DEBT-COMPACT-DECODE.

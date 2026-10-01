@@ -413,34 +413,31 @@ computation and DISC-005/O12 policy.
 **Status:** open, 2026-10-01. **Owner:** EthCommit maintainers. **Authority:** D18.
 
 `compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)` preserves its
-all-input List model, exact empty diagnostic, ordered digit/flag/length laws,
-canonical inverse and normalization contract in `STFSpec/Commit/Compact.lean`.
-The future witness node decoder is the expected caller. Typical node paths are
-short; the API also accepts every nonempty leading byte and arbitrarily long
-finite suffixes. The indexed builder creates a bounded-digit
-List; public `Nibbles.ofList` maps it to a UInt8 List and converts that into the
-packed output. Work and temporary storage are O(decoded length), with no slicing
-or mutation API and no claim of list fusion or one packed allocation.
+all-input List model, exact empty diagnostic, ordered digit/flag/length laws, canonical
+inverse and normalization contract in `STFSpec/Commit/Compact.lean`. The future witness
+node decoder is the expected caller. Typical node paths are short; the API also accepts
+every nonempty leading byte and arbitrarily long finite suffixes. The indexed builder
+creates a bounded-digit List; public `Nibbles.ofList` maps it to a UInt8 List and
+converts that into the packed output. Work and temporary storage are O(decoded length),
+with no slicing or mutation API and no claim of list fusion or one packed allocation.
 
-This exception keeps the representation private and uses the existing proven
-public construction boundary. A direct packed generator and its observer laws
-are currently absent from that boundary; adding them is a separate provider work
-item. Reproduce the code shape on pinned Lean 4.34.0 with
-`lake build EthCommit:static --wfail`, then inspect `compactToNibbles` and its
-specialized `List.ofFn`/`Nibbles.ofList` path in
-`.lake/build/ir/STFSpec/Commit/Compact.c` and `Nibbles.c`: list construction and
-mapping precede the byte-array conversion. This is static code-shape evidence,
-not measured allocation volume, peak live space, throughput or completed C1–C4.
-Finite compiled checks compare complete decoded and reencoded results. Repeated
-calls release earlier results between cases. These checks provide correctness
-evidence for those cases; they do not measure allocation, peak live space or
-throughput.
+This exception keeps the representation private and uses the proven public construction
+boundary. Q49 supplies a packed generator and its observer laws; the decoder still uses
+the List/`Nibbles.ofList` boundary. Replacing it through that public generator is a
+separate decoder work item. Reproduce the code shape on pinned Lean 4.34.0 with `lake
+build EthCommit:static --wfail`, then inspect `compactToNibbles` and its specialized
+`List.ofFn`/`Nibbles.ofList` path in `.lake/build/ir/STFSpec/Commit/Compact.c` and
+`Nibbles.c`: list construction and mapping precede the byte-array conversion. This is
+static code-shape evidence, not measured allocation volume, peak live space, throughput
+or completed C1–C4. Finite compiled checks compare complete decoded and reencoded
+results. They provide correctness evidence for those cases; they do not establish
+physical release or measure allocation, peak live space or throughput.
 
 Review before integrating the node decoder, at release and toolchain/pin updates.
-Replace through the public model boundary when a reviewed packed provider builder
-is available or representative witness profiles make the temporary lists material.
-The replacement must preserve `compactToNibbles_eq_model` and all exact
-success/failure/observer, canonical inverse and normalization laws, keep public
-caller proofs unchanged, and pass authenticated source and native full-result
-checks. Measure complete construction/conversion/allocation and lifetime cost
-before closing the entry. No input restriction or host-error policy is authorized.
+Evaluate replacement through the Q49 public generator before integrating the node
+decoder, or when representative witness profiles make the temporary lists material. The
+replacement must preserve `compactToNibbles_eq_model` and all exact
+success/failure/observer, canonical inverse and normalization laws, keep public caller
+proofs unchanged, and pass authenticated source and native full-result checks. Measure
+complete construction/conversion/allocation and lifetime cost before closing the entry.
+No input restriction or host-error policy is authorized.

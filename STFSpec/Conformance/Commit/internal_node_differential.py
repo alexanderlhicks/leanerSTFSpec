@@ -7,12 +7,12 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/internal_node_differentia
     --eels EELS --output SCRATCH.lean
 Use an output outside both checkouts. The driver does not manually change resource
 limits; reference imports may change them (`src/ethereum/__init__.py:30` at the pin).
-Authentication uses pinned source/lock blobs and installed types/RLP RECORD; the frozen installation,
-interpreter/startup and RECORD are trusted environment inputs. Byte/list models
-are constructed only after exact source classes are checked. Richer Extended
+Authentication uses pinned source/lock blobs and installed types/RLP RECORD; the frozen
+installation, interpreter/startup and RECORD are trusted environment inputs. Byte/list
+models are constructed only after exact source classes are checked. Richer Extended
 fields use this private caller-owned interpretation, without raw class equality.
-Unsupported/cyclic arbitrary Python objects and guest/resource behavior are outside
-this finite evidence. Oracle instrumentation is restored in finally.
+Unsupported/cyclic arbitrary Python objects and guest/resource behavior are outside this
+finite evidence. Oracle instrumentation is restored in finally.
 """
 
 import base64

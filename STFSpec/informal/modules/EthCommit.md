@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -170,6 +170,42 @@ establish these premises and reference host compatibility.
 
 **External semantics.** `ethereum_rlp.rlp` encode/decode and `Extended` (owned by `EthCodec`): this module relies on decode being **strict** (non-canonical length prefixes and single bytes `< 0x80` wrapped as strings are rejected, truncated input rejected [executed]) and on `Rlp.encode_eq_of_decode_eq_ok` and `decode_success_encodable` ([EthCodec §7](EthCodec.md#7-contract-and-laws)) for successfully decoded bytes. These proved raw-codec laws supply exact reencoding and the Q47 domain; applying them to inline child references and their accepted witness interpretation in C15 remains an EthCommit obligation. Leading zero bytes inside strings are just bytes. `ethereum_types` `Bytes`, `Uint`, `ulen`, `slotted_freezable` (value semantics only); `copy.copy` in `copy_trie` (shallow; identity in Lean); `utils.hexadecimal.hex_to_bytes` (G1) for the constant.
 
+### Implemented bounded provider operations (Q49)
+
+These **discharged** sequence support operations in `STFSpec/Commit/Nibbles.lean`
+are not additional EELS functions. They supply the typed `Bytes` slice semantics
+used at `merkle_patricia_trie.py:538/543/547/556` and ordinary Python byte
+lexicographic ordering. All operations are pure: no hashing, state effects,
+error constructors, O-row or arbitrary key-size cap. `Fin 16` supplies digit
+bounds; all natural counts/offsets are accepted, including enormous ones.
+
+| Source/support semantics | Lean declaration/public type and domain | Success/effects and failures | Public laws | Deterministic/differential evidence |
+|---|---|---|---|---|
+| Lean bounded generator support (Q49), not an EELS function | `Nibbles.generate : Nat → (Nat → Fin 16) → Nibbles`; all natural lengths and bounded callbacks | Exactly `n` digits; callback visits ascending `0..n-1`, none at zero or outside the interval; pure, no error result | `size_generate`, `get_generate`, `toList_generate`, `generate_congr`, `generate_zero` | `NibblesOperationsGuards.allGenerators`: zero/15/affine/mixed callbacks, empty/singleton/64/4096/4097 full outputs; bounded callback congruence and zero tests; Python sequence support differential |
+| Typed `Bytes` copying windows, `merkle_patricia_trie.py:538/543/547/556`; ethereum-types 0.4.1 | `Nibbles.extract : Nibbles → Nat → Nat → Nibbles`; all bounded paths and natural start/stop offsets | Start inclusive, stop exclusive, clipped at size, reversed/equal/unavailable windows empty; no effects or failure | `size_extract`, `get_extract`, `toList_extract`, `extract_of_stop_le_start`, `extract_of_size_le_start` | `allWindows`: every small window plus 128/1024-bit offsets; long clipped/reversed windows; actual typed-index Python `Bytes` slice observations |
+| Prefix/suffix copies of the same sequence model | `Nibbles.take`, `Nibbles.drop : Nibbles → Nat → Nibbles`; every natural count | Oversized take retains the path; oversized drop returns empty; no effects or failure | `toList_take/drop`, `size_take/drop`, `get_take/drop`, `take_zero`, `drop_zero`, `take_size`, `drop_size`, `take_of_size_le`, `drop_of_size_le`, `take_take`, `drop_drop`, `take_drop`, `drop_take`, `size_take_le`, `size_drop_le` | All small and huge offsets, full long prefix/suffix outputs; public symbolic clipped/composed windows |
+| Python byte lexicographic order, a support helper rather than new EELS function | `Ord Nibbles`, `Std.TransOrd Nibbles`, `Std.LawfulEqOrd Nibbles`, `DecidableEq Nibbles`; all finite bounded path pairs | First differing digit determines order, proper prefix first; leading zeros significant; comparator equality is actual path equality; pure, no failure | `compare_toList`, `compare_eq_eq_iff`, `compare_of_toList_eq` | All 16×16 digit pairs; empty/proper prefix, unequal lengths with first/last mismatch, significant zero, long equal/prefix/mismatch paths; actual Python byte order; real map distinct-key/overwrite tests and symbolic insert/lookup/extensionality |
+| Remaining-length and maximal-prefix provider support | All paths; strict suffix laws require `level < x.size` and `0 < n`; bounded prefix equivalence requires `k ≤ a.size` and `k ≤ b.size` | No consumer recursion, key filtering or root selection is implemented | `size_drop_add_lt`, `size_drop_succ_lt`, `take_commonPrefixLength`, `take_eq_iff_le_commonPrefixLength` | `NibblesOperationsCallerProofs.remaining_length`, `prefix_paths`; every new public law has a symbolic public-only client |
+
+`STFSpec/Conformance/Commit/NibblesOperationsGuards.lean` owns complete-value
+regressions; `NibblesOperationsCallerProofs.lean` uses only public seams for map
+insert/lookup/extensionality, clipped windows and prefix/measure support.
+`STFSpec/Conformance/Commit/nibble_operations_differential.py` executes bounded
+sequence support observations with the frozen venv launcher `-I -B`,
+authenticating all pinned source/lock blobs and installed ethereum-types Python
+RECORD rows before fresh source imports. It checks exact classes before
+normalization, preserves source identities, retains
+invalid-class/domain/authentication controls and emits full Lean output
+comparisons through generated `#guard`s. This is finite sequence-support
+evidence, not EEST guest execution, new source-operation coverage or measured
+C1–C4 completion. Run from the repository root with an evidence destination
+outside both repositories:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibble_operations_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
 ### Implemented compact decoding
 
 The pure decoder is **discharged** in `STFSpec/Commit/Compact.lean`. Its narrowly
@@ -178,7 +214,7 @@ implement the existing §5 type only, without implementing their node/trie consu
 
 | Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Model law | Deterministic/differential evidence |
 |---|---|---|---|---|---|
-| `forks/amsterdam/incremental_mpt.py:859–889` | `STFSpec.Commit.compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)`; every finite byte array | Pure; first high nibble bit1 supplies leaf, bit0 parity; ignores high bits2–3 and even low padding; retains odd low digit, then each suffix high before low | Only raw empty input: `.malformed .compactEmpty` (Q48), corresponding to `IndexError` at `:878`; guest inner handler `stateless.py:303` projects existing O4; `:959` extension-path rejection is a later consumer | `compactToNibbles_eq_model`, `_error_iff`, `_ok_iff`, `_success_iff`, `_size`, `_leaf`, `_index_lt`, `_get`; `compactToNibbles_nibbleListToCompact`; `nibbleListToCompact_inj`; normalization/image laws | `CompactGuards.allLeadingBytes` (all 256 with empty/multiple-byte suffixes), exact empty/00/0f/20/2f/f123, canonical odd/even/zero/15/mixed long paths and normalization counterexamples; authenticated `STFSpec/Conformance/Commit/compact_differential.py` |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:859–889` | `STFSpec.Commit.compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)`; every finite byte array | Pure; first high nibble bit1 supplies leaf, bit0 parity; ignores high bits2–3 and even low padding; retains odd low digit, then each suffix high before low | Only raw empty input: `.malformed .compactEmpty` (Q48), corresponding to `IndexError` at `:878`; guest inner handler `stateless.py:303` projects existing O4; `:959` extension-path rejection is a later consumer | `compactToNibbles_eq_model`, `_error_iff`, `_ok_iff`, `_success_iff`, `_size`, `_leaf`, `_index_lt`, `_get`; `compactToNibbles_nibbleListToCompact`; `nibbleListToCompact_inj`; normalization/image laws | `CompactGuards.allLeadingBytes` (all 256 with empty/multiple-byte suffixes), exact empty/00/0f/20/2f/f123, canonical odd/even/zero/15/mixed long paths and normalization counterexamples; authenticated `STFSpec/Conformance/Commit/compact_differential.py` |
 
 `CompactCallerProofs.lean` uses the public model/observer laws. The decoder
 builds an indexed digit List and crosses `Nibbles.ofList`, which maps it to a
@@ -210,9 +246,24 @@ The implemented pure operations evaluate all byte splits, all ordered nibble pai
 leaf flags, all singleton flags, empty/odd/even encodings, zero/15 extremes and long paths.
 Prefix guards cover asymmetric proper prefixes and first/end mismatches.
 `NibblesGuards.longChecks` compares whole outputs, and the differential driver emits
-full actual-source observations. The compact decoder guards in §3 additionally cover exact raw-empty failure, every
-leading byte, ordered suffix digits, canonical inverses and accepted-wire normalization.
+full actual-source observations. The compact decoder guards in §3 additionally
+cover exact raw-empty failure, every leading byte, ordered suffix digits, canonical
+inverses and accepted-wire normalization.
 Witness decoding and trie cases below remain open; resource gates are owned by REVIEW §7.
+
+`NibblesOperationsGuards.lean` checks bounded generators, clipped windows,
+huge offsets, significant zeros and lawful map keys through complete outputs.
+Public caller proofs cover symbolic copies, map lookup and conditional measures.
+Uncommitted local finite native checks provide complete-value and persistence evidence.
+They do not demonstrate physical release or reclamation of sibling allocations,
+dynamic allocation, lifetime costs, throughput or completed C1–C4 gates. To
+reproduce the committed deterministic cases natively, compile a temporary Lean
+executable importing `STFSpec.Conformance.Commit.NibblesOperationsGuards` and
+check its `allDigitPairs`, `allWindows`, `allGenerators`, `longChecks` and
+`mapChecks`; retain parent and sibling values and compare their full public
+observations before and after map updates. The committed Python driver evaluates
+generated `#guard`s. Witness-node and trie cases remain open.
+
 
 - **EEST fixture areas:** every `blockchain_tests`/`blockchain_tests_engine` area checks the state, transaction, receipt and withdrawal roots, so the mathematical root is exercised by the whole corpus (corpus pin: `reference.toml`). Witness decoding and the partial trie specifically: `amsterdam/eip8025_optional_proofs`, especially `test_witness_state_deletes.py` (collapse adds an auxiliary sibling node), `test_witness_state_replay_order.py` (insert-before-delete), `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender/absent/failed-call-target account nodes, extra unused node, unsorted but complete).
 - **EELS unit tests** (`tests/json_loader/test_incremental_mpt.py` at e1a316a0): `TestCompactToNibbles` (even/odd leaf/extension, empty even leaf, round trip), `TestHashedNode` (stub in root computation; insert/delete/traverse into a stub raise), `TestDecodeWitnessToMpt(More)`, `TestMalformedWitnessNodes` (malformed RLP, non-empty string node, list length 3, extension with empty child ref, extension to leaf, extension to extension, non-hash child bytes, branch with 0 and 1 occupied entries, extension with empty path), `TestPartialWitness` (root preserved; modify known path; insert into stub fails; delete collapsing onto a stub fails), `TestBuildVsDecode` (roots match after mutation), `TestDecodeEdgeCases`. From `test_witness_state.py`: `TestCanonicalSecureTrieValidation` (zero-length extension paths and unresolved stubs in account and storage tries). Port each as a `#guard`.
@@ -230,6 +281,14 @@ def Nibbles.size : Nibbles → Nat
 def Nibbles.get (x : Nibbles) : Fin x.size → Fin 16
 def Nibbles.toList : Nibbles → List (Fin 16)
 def Nibbles.ofList : List (Fin 16) → Nibbles
+def Nibbles.generate (n : Nat) (f : Nat → Fin 16) : Nibbles  -- Q49
+def Nibbles.extract (x : Nibbles) (start stop : Nat) : Nibbles
+def Nibbles.take (x : Nibbles) (n : Nat) : Nibbles
+def Nibbles.drop (x : Nibbles) (n : Nat) : Nibbles
+instance : Ord Nibbles
+instance : Std.TransOrd Nibbles
+instance : Std.LawfulEqOrd Nibbles
+instance : DecidableEq Nibbles
 def bytesToNibbleList : ByteArray → Nibbles
 def nibbleListToCompact : Nibbles → (isLeaf : Bool) → ByteArray
 def compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)     -- lenient, C3
@@ -327,7 +386,7 @@ Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
-| `Nibbles` | `ByteArray` with bound proof | `List (Fin 16)` | `toList` | every byte `< 16` | value | slice O(n) (copying; a view type is an option) |
+| `Nibbles` | `ByteArray` with bound proof | `List (Fin 16)` | `toList` | every byte `< 16` | value | generate O(n) plus callback; slice O(k) copying; compare O(1+common prefix); source bounds only (Q49) |
 | `Trie K V` | `ExtTreeMap K V` | finite map with default | `trieGet` | no default values stored | value | O(log n) |
 | `NodeDB` | `Std.HashMap Hash32 ByteArray` | finite map | `get?` | `NodeDB.Authentic keccak256` (established by `NodeDB.build` at `Id`; a predicate, not a field, F4) | built linearly, then **read-only shared** | build expected O(n) plus one keccak per entry; lookup expected O(1) (not worst-case; ARCHITECTURE §5.0) |
 | `Node`/`Ref` | inductive with immutable `Enc` per resolved node | a set of maps (`represents` is a relation, D25) | `represents` | `Enc` agrees with C18/C19; ext child is a branch or stub; every branch has exactly 16 children (F5) and occupancy ≥ 2 | functional; tries are not snapshot-reachable (built once per root computation), so path copying suffices | lookup O(d) node steps (d ≤ 64 branch levels for secured keys) plus path comparisons; update/delete O(d) nodes rebuilt, each with one RLP encoding and ≤ one keccak; `rootHash` O(1) (cached at the root) |
@@ -368,11 +427,27 @@ not have a byte-identity inverse: `0f → 00`, `2f → 20` and `f123 → 3123`.
 The splitter and encoder each generate a single packed output in linear byte
 steps; prefix comparison performs at most the shorter path length in packed
 steps and stops early on mismatch. `toList` allocates its mathematical list;
-`ofList` copies digits once. No slicing API is implemented; ByteArray slicing
-would copy O(n). These are source-structure bounds, not allocation/throughput
-measurements or completed resource gates. The decoder's temporary digit and byte
-Lists plus packed copy are linear in decoded length; no fusion or single-allocation
-claim is made (DEBT-COMPACT-DECODE). The whole-trie laws below remain open.
+`ofList` copies digits once. `Nibbles.generate` models `(List.range n).map f`; callback
+congruence requires agreement only at indices below `n`. `extract` models
+`(x.toList.drop start).take (stop-start)` and has size `min stop x.size-start`. `take`
+and `drop` model List prefix/suffix copies, with all-input size/get and composition laws
+in §3. Guarded natural bounds precede `ByteArray.extract`; these operations copy
+surviving digits rather than retaining a view. Comparison scans packed digits directly,
+then compares sizes only after the shared prefix; `compare_toList` establishes
+lexicographic order, and lawful Std instances plus `compare_eq_eq_iff` prevent distinct
+model keys from aliasing in maps. List references occur only in models/proofs, not
+executable generation/slicing/order. Strict remaining-length support has explicit
+starting-level and positive-advance hypotheses; bounded path-prefix equivalence retains
+both size bounds. These are source-structure bounds, not allocation/throughput
+measurements or completed resource gates. The decoder's temporary digit and byte Lists
+plus packed copy are linear in decoded length; no fusion or single-allocation claim is
+made (DEBT-COMPACT-DECODE). The whole-trie laws below remain open. Consumers still owe
+filtered-map sum-measure strictness, positive advancement, variable-length branch
+values, canonicality, choice independence and aggregate copying/comparison costs.
+Repeated full suffix copies can be quadratic; key cursors and node-path-only copies are
+a possible consumer design, not an implemented performance claim. A consuming change
+must assess aggregate copying/comparison costs and record any justified performance
+exception in [DEBT](../DEBT.md) under D18.
 
 ### 7.0.1 Internal-node operational laws
 
@@ -462,6 +537,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D18: HashMap expected bounds for `NodeDB` and the memo.
 - D19 (accepted): eager decoding; the memo is the permitted internal laziness only in the sense of sharing, with the proof of §7.6.
 - D25 (accepted): `represents` as the abstraction relation.
+- Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
 - NEW-COMMIT-1: DECISIONS B3 (Q32): `Ref` hidden behind the trie API; `Option Node` only if it keeps the provenance DISC-003 needs (open: not yet tested).
 - NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict versus lazy `Enc` still open (§6).
@@ -480,9 +556,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.
 - **`patricialize` choice-independence** and the Canonical-uniqueness lemma for a hexary trie with branch values and variable-length keys (unsecured tries) have no existing Lean proof; the Nipkow chapter is binary.
 - **Internal-node scope:** C6 operational/model/lift laws are proved as in §3/§7.0.1. Complete standard-domain and Python Extended interpretation/host premises remain caller obligations. Root/patricialization/witness/cache/database laws, canonical trie-shape conditions and resource gates remain open. Empty extension paths and arbitrary nested fields are valid C6 inputs; witness validity is a separate contract.
-- **Pure path scope:** the `Nibbles` representation/invariant and implemented operations are discharged as in §3/§7.0. Consumer slicing/mutation APIs, witness-node/trie integration and C1–C4 measurements remain open; `ByteArray` slices copy O(n).
+- **Pure path scope:** the `Nibbles` representation/invariant, implemented pure path operations and Q49 bounded generation/clipped copies/lawful order are discharged as in §3/§7.0. Trie mutation/integration, map-recursion measures, aggregate copy/allocation costs and C1–C4 measurements remain open; slices copy O(k).
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection, diagnostic adapters to witness/guest channels and whole-node/trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
-- **Nibbles instances:** define `DecidableEq`, `BEq`, lawful `Ord` and `Inhabited` behind the private storage boundary before implementing the §5 trie maps. Their laws must agree with the public List model; this remains a scoped follow-up to the implemented pure operations.
+- **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
 - **`TrieValue` for `EthBlock`'s value types** (transactions, receipts, withdrawals; `encode_node`'s `Bytes` identity versus RLP) must be instantiated by `EthBlock`; this spec only fixes the class.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
