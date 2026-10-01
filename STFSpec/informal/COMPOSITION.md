@@ -21,6 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
+| TrieError, Malformed | EthCommit | Keep raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
@@ -78,12 +79,16 @@ local native diagnostics do not supply target/resource composition.
 ### Pure trie path premise
 
 [EthCommit §3/§7.0](modules/EthCommit.md#3-eels-source-map) supplies the bounded
-`Nibbles` List abstraction, byte high/low split, canonical compact byte model and
-maximal common-prefix comparison. Packed generation/scan implementations have
-ordinary all-input model equations and public caller proofs. The encoder range
-premise is produced by the path type itself. These pure premises introduce no
-oracle, state effect or failure adapter. Compact decoding/its empty diagnostic,
-node/root/witness integration and all trie agreement/resource gates remain open.
+`Nibbles` List abstraction, byte high/low split, canonical compact byte model,
+lenient compact decoder and maximal common-prefix laws. The canonical encoder
+inverse and injectivity bind path plus leaf flag. Accepted-wire reencoding is
+normalization; unused high flags and even low padding need not survive.
+The path type produces the digit-range premise. Raw empty compact input returns
+`.malformed .compactEmpty` (Q48); the later empty decoded extension-path error
+remains the node consumer's `.malformed .pathEmpty` obligation under existing O4.
+Future node/trie consumers own those checks and witness/guest adapters. These
+pure premises introduce no hashing, node/root or host-resource theorem; the local
+decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
 
 ### Internal-node encoding premise
 

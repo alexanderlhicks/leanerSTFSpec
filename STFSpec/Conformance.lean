@@ -62,6 +62,8 @@ import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests
 import STFSpec.Conformance.Commit.NibblesGuards
+import STFSpec.Conformance.Commit.CompactGuards
+import STFSpec.Conformance.Commit.CompactCallerProofs
 import STFSpec.Conformance.Commit.NibblesCallerProofs
 import STFSpec.Conformance.Commit.InternalNodeGuards
 import STFSpec.Conformance.Commit.InternalNodeCallerProofs
