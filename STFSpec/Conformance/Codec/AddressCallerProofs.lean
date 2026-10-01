@@ -9,7 +9,7 @@ import STFSpec.Codec
 
 Library `EthConformance`. Consumers compose the public query, Id, suffix and
 transformer contracts without unfolding private conversion or provider storage.
-Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3/7/8.
+Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3, 7–8.
 -/
 
 namespace STFSpec.Conformance.Codec.AddressCallerProofs
@@ -18,7 +18,7 @@ open STFSpec.Base STFSpec.Hash STFSpec.Codec
 
 example (hash : Hash32) : (Address.ofNat hash.toNat).toBytes.toList =
     hash.toBytes.toList.drop 12 := by
-  rw [toBytes_address_of_hash, Bytes.toList_ofList]
+  rw [Address.toBytes_ofNat_toNat, Bytes.toList_ofList]
 
 example (hash : Hash32) : (hash.toBytes.toList.drop 12).length = 20 := by
   rw [List.length_drop, Bytes.length_toList, Hash32.size_toBytes]
@@ -68,6 +68,24 @@ example (sender : Address) :
   rw [hz, List.length_append, Array.length_toList, List.length_cons, List.length_nil,
     Nat.zero_add, List.append_assoc, ← ByteArray.size_data]
 
+-- Consumers discharge the CREATE preimage domain from the public bound law.
+example (sender : Address) (nonce : Nat) (h : nonce < 2 ^ 256) :
+    Rlp.Encodable (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce]) :=
+  encodable_computeContractAddress_preimage sender nonce h
+
+example (sender : Address) :
+    Rlp.Encodable (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat 0]) :=
+  encodable_computeContractAddress_preimage sender 0 (by decide)
+
+example (sender : Address) (nonce : U64) :
+    Rlp.Encodable (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce.toNat]) := by
+  apply encodable_computeContractAddress_preimage
+  exact Nat.lt_trans (U64.toNat_lt nonce) (by decide)
+
+example (sender : Address) :
+    Rlp.Encodable (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat (2 ^ 64 - 1)]) :=
+  encodable_computeContractAddress_preimage sender (2 ^ 64 - 1) (by decide)
+
 section Generic
 variable {m : Type → Type} [Monad m] [LawfulMonad m] [KeccakQuery m]
 
@@ -95,7 +113,7 @@ example (sender : Address) (nonce : Nat) (hash : Hash32)
     (do let result ← computeContractAddressQ (m := m) sender nonce
         pure result.toBytes : m Bytes) = pure (Bytes.ofList (hash.toBytes.toList.drop 12)) := by
   rw [computeContractAddressQ_of_pure_answer sender nonce hash h]
-  simp only [pure_bind, toBytes_address_of_hash]
+  simp only [pure_bind, Address.toBytes_ofNat_toNat]
 
 example {σ : Type} (sender : Address) (nonce : Nat) (s : σ) :
     (computeContractAddressQ (m := StateT σ m) sender nonce).run s =

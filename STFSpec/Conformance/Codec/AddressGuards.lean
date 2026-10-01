@@ -112,7 +112,7 @@ private def stateFailureCheck : Bool :=
   (match result with | .error e => e == "first: original error" | .ok _ => false) &&
     trace.seen == [code]
 
-/-- Complete generic effect/result checks, also called from the native harness. -/
+/-- Complete generic effect/result checks for the committed conformance guards. -/
 def genericChecks : Bool := createCheck && create2Check firstAnswer && create2Check otherFirst &&
   (outerPreimage firstAnswer != outerPreimage otherFirst) && extraStateCheck &&
   extraExceptCheck && extraBothCheck && failureCheck 0 && failureCheck 1 &&
@@ -121,7 +121,7 @@ def genericChecks : Bool := createCheck && create2Check firstAnswer && create2Ch
 #guard genericChecks
 end FailingOracle
 
--- Minimal nonce zero is empty, the exact RLP preimage ends in 80 rather than 00.
+-- Minimal nonce zero is empty; the exact RLP preimage ends in 80 rather than 00.
 #guard createPreimage = ByteArray.mk
   ((([0xd6, 0x94, 0xde, 0xad, 0xbe, 0xef] : List UInt8) ++
     List.replicate 16 0 ++ [0x80]).toArray)

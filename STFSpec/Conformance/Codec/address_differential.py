@@ -2,7 +2,9 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Actual pinned CREATE/CREATE2 observations, including complete query traces.
 
-Run EELS/.venv/bin/python -I -B with --eels EELS --output EXTERNAL.lean.
+Run from the repository root:
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/address_differential.py \
+  --eels EELS --output EXTERNAL.lean.
 Reuse the shared EELS/ethereum-types source authentication and the typed RLP
 current-source/RECORD loader. Instrument only the ephemeral loaded address
 module's keccak binding, forward the original hash, and restore it in finally.
@@ -141,7 +143,8 @@ def main():
             require_type(expected_preimage, bytes)
             if len(trace) != 1 or trace[0][0] != expected_preimage:
                 raise AssertionError("CREATE did not issue the exact sole RLP query")
-            expression = f"computeContractAddress (Address.ofNat {int.from_bytes(sender_bytes, 'big')}) {nonce}"
+            sender_value = int.from_bytes(sender_bytes, "big")
+            expression = f"computeContractAddress (Address.ofNat {sender_value}) {nonce}"
             preimage_expr = ("Rlp.encode (.list [.bytes " + lean_bytes(sender_bytes) +
                              f", Rlp.ofNat {nonce}])")
             guards.append(f"#guard {preimage_expr} = {lean_bytes(trace[0][0])}")
@@ -151,8 +154,10 @@ def main():
             if (len(trace) != 2 or trace[0][0] != code or trace[1][0] !=
                     b"\xff" + sender_bytes + salt_bytes + trace[0][1]):
                 raise AssertionError("CREATE2 query order/preimage/answer dependence differs")
-            expression = (f"computeCreate2ContractAddress (Address.ofNat {int.from_bytes(sender_bytes, 'big')}) "
-                          f"(FixedBytes.ofNat {int.from_bytes(salt_bytes, 'big')}) {lean_bytes(code)}")
+            sender_value = int.from_bytes(sender_bytes, "big")
+            salt_value = int.from_bytes(salt_bytes, "big")
+            expression = (f"computeCreate2ContractAddress (Address.ofNat {sender_value}) "
+                          f"(FixedBytes.ofNat {salt_value}) {lean_bytes(code)}")
             counts["create2"] += 1
             item = {"operation": "CREATE2", "sender": sender_bytes.hex(),
                     "salt": salt_bytes.hex(), "init_code": code.hex()}
@@ -160,7 +165,10 @@ def main():
             raise AssertionError("address result differs from final exact twenty-byte suffix")
         guards.append(f"#guard ({expression}).toBytes.toByteArray = {lean_bytes(result_bytes)}")
         for preimage, digest in trace:
-            guards.append(f"#guard (KeccakQuery.keccak (m := Id) {lean_bytes(preimage)}).toBytes.toByteArray = {lean_bytes(digest)}")
+            guards.append(
+                f"#guard (KeccakQuery.keccak (m := Id) {lean_bytes(preimage)})"
+                f".toBytes.toByteArray = {lean_bytes(digest)}"
+            )
         item.update(address=result_bytes.hex(),
                     trace=[{"preimage": p.hex(), "digest": h.hex()} for p, h in trace])
         observations.append(item)
@@ -192,13 +200,16 @@ def main():
     auth.check()
     result = context.run(guards, counts=counts, observations=observations, versions=versions,
                          backend="hashlib" if hash_module._USE_HASHLIB else "pycryptodome",
-                         recursion_limit=recursion_limit, recursion_limit_policy="unchanged after pinned imports",
+                         recursion_limit=recursion_limit,
+                         recursion_limit_policy="unchanged after pinned imports",
                          sources=sources, oracle_sources=context.oracle_blobs,
                          rlp_sources={str(p): h for p, h in auth.expected.items()},
                          rlp_record_sha256=hashlib.sha256(auth.record_bytes).hexdigest(),
                          dependency_sources=context.dependency_sources(),
-                         dependency_record_sha256=hashlib.sha256(context.dependency_record_bytes).hexdigest(),
-                         limits="bounded complete results/traces; no EEST guest, universal Python or security theorem")
+                         dependency_record_sha256=hashlib.sha256(
+                             context.dependency_record_bytes).hexdigest(),
+                         limits=("bounded complete results/traces; no EEST guest, "
+                                 "universal Python or security theorem"))
     auth.check()
     return result
 

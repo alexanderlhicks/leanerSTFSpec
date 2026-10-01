@@ -10,8 +10,8 @@ import STFSpec.Hash.KeccakQuery
 
 Library `EthCodec`. CREATE and CREATE2 preserve the exact supplied oracle answers
 and ordered query effects. Pure execution is their definitional `Id` specialization.
-Standard CREATE preimage correspondence retains `Rlp.Encodable` (Q47); the Nat
-encoder remains total outside that domain. VM creation/state/gas rules are separate.
+The CREATE preimage is `Rlp.Encodable` for every nonce below 2^256 (Q47); the
+Nat encoder remains total at every nonce. VM creation/state/gas rules are separate.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§2–8.
 -/
 
@@ -19,21 +19,47 @@ namespace STFSpec.Codec
 
 open STFSpec.Base STFSpec.Hash
 
+-- Alias for the numeric conversion whose exact suffix law belongs to `EthBase`.
 private def lastBytes20 (hash : Hash32) : Address := Address.ofNat hash.toNat
 
-/-- The numeric conversion retains exactly the final twenty public hash bytes,
-including leading zeros. Only public Base conversion contracts are used. -/
-theorem toBytes_address_of_hash (hash : Hash32) :
-    (Address.ofNat hash.toNat).toBytes = Bytes.ofList (hash.toBytes.toList.drop 12) := by
-  have h : Address.ofNat hash.toNat =
-      Address.ofU256Masked (U256.ofBeBytes32 hash.toBytes32) := by
-    apply Address.toNat_inj.mp
-    rw [Address.toNat_ofNat, Address.toNat_ofU256Masked, U256.toNat_ofBeBytes32,
-      Hash32.toNat_toBytes32]
-  rw [h, Address.toBytes_ofU256Masked, U256.toBeBytes32_ofBeBytes32,
-    Hash32.toBytes_toBytes32]
+private theorem size_encode_bytes_le (b : ByteArray) (h : b.size ≤ 32) :
+    (Rlp.encode (.bytes b)).size ≤ 33 := by
+  have hs := Rlp.size_encodeBytes b
+  rw [Rlp.encodeBytes] at hs
+  rw [hs]
+  split <;> (try split) <;> omega
 
-/-- One exact RLP sender/minimal-nonce query; EELS
+/-- Every sender and nonce below 2^256 has a standard-domain CREATE preimage.
+This discharges Q47's `Rlp.Encodable` premise without capping the total Nat API. -/
+theorem encodable_computeContractAddress_preimage (sender : Address) (nonce : Nat)
+    (h : nonce < 2 ^ 256) :
+    Rlp.Encodable (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce]) := by
+  have hs : (Uint.toBeBytes nonce).size ≤ 32 := (Uint.size_toBeBytes_le_iff _ _).mpr h
+  have ha : sender.toBytes.toByteArray.size = 20 := by
+    rw [Bytes.size_toByteArray, Address.size_toBytes]
+  have hn : (Uint.toBeBytes nonce).toByteArray.size ≤ 32 := by
+    rw [Bytes.size_toByteArray]
+    exact hs
+  rw [Rlp.encodable_list_iff]
+  refine ⟨?_, ?_⟩
+  · intro x hx
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
+    rcases hx with rfl | rfl
+    · rw [Rlp.encodable_bytes_iff, ha]
+      decide
+    · unfold Rlp.ofNat
+      rw [Rlp.encodable_bytes_iff]
+      omega
+  · rw [Rlp.encodePayloadModel_cons, Rlp.encodePayloadModel_cons, Rlp.encodePayloadModel_nil,
+      ← Rlp.toList_encode, ← Rlp.toList_encode]
+    simp only [List.append_nil, List.length_append, Array.length_toList, ByteArray.size_data]
+    have hsender := size_encode_bytes_le sender.toBytes.toByteArray (by omega)
+    have hnonce := size_encode_bytes_le (Uint.toBeBytes nonce).toByteArray hn
+    unfold Rlp.ofNat
+    omega
+
+/-- CREATE returns the last twenty bytes of the oracle answer to
+`keccak256(rlp([sender, nonce]))`, with the nonce minimally encoded. EELS
 `src/ethereum/forks/amsterdam/utils/address.py:42–63` at the pin. -/
 def computeContractAddressQ {m : Type → Type} [Monad m] [KeccakQuery m]
     (sender : Address) (nonce : Nat) : m Address := do
@@ -41,7 +67,9 @@ def computeContractAddressQ {m : Type → Type} [Monad m] [KeccakQuery m]
     (Rlp.encode (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce]))
   pure (lastBytes20 hash)
 
-/-- Two ordered queries: init code, then ff/sender/salt/that answer; EELS
+/-- CREATE2 returns the last twenty bytes of the answer to
+`keccak256(0xff ‖ sender ‖ salt ‖ keccak256(initCode))`. Query init code first,
+then include all thirty-two bytes of that answer in the outer preimage. EELS
 `src/ethereum/forks/amsterdam/utils/address.py:66–93` at the pin. -/
 def computeCreate2ContractAddressQ {m : Type → Type} [Monad m] [KeccakQuery m]
     (sender : Address) (salt : Bytes32) (initCode : ByteArray) : m Address := do
@@ -70,7 +98,8 @@ theorem computeContractAddressQ_eq {m : Type → Type} [Monad m] [KeccakQuery m]
       pure (Address.ofNat hash.toNat) : m Address) := rfl
 
 /-- Public two-query expansion pins order, exact preimages and dependence on the
-complete first answer. An earlier monadic failure suppresses later queries. -/
+complete first answer. The lawful `ExceptT` error laws below establish that
+an earlier query failure suppresses later queries. -/
 theorem computeCreate2ContractAddressQ_eq {m : Type → Type} [Monad m] [KeccakQuery m]
     (sender : Address) (salt : Bytes32) (initCode : ByteArray) :
     computeCreate2ContractAddressQ (m := m) sender salt initCode = (do
@@ -89,7 +118,7 @@ theorem toBytes_computeContractAddressQ {m : Type → Type}
         (Rlp.encode (.list [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce]))
       pure (Bytes.ofList (hash.toBytes.toList.drop 12))) := by
   rw [computeContractAddressQ_eq]
-  simp only [bind_assoc, pure_bind, toBytes_address_of_hash]
+  simp only [bind_assoc, pure_bind, Address.toBytes_ofNat_toNat]
 
 /-- Observing CREATE2 bytes preserves both queries and the first answer dependence,
 then returns the exact twenty-byte suffix of the second answer. -/
@@ -104,7 +133,7 @@ theorem toBytes_computeCreate2ContractAddressQ {m : Type → Type}
           codeHash.toBytes.toByteArray)
       pure (Bytes.ofList (hash.toBytes.toList.drop 12))) := by
   rw [computeCreate2ContractAddressQ_eq]
-  simp only [bind_assoc, pure_bind, toBytes_address_of_hash]
+  simp only [bind_assoc, pure_bind, Address.toBytes_ofNat_toNat]
 
 /-- The pure CREATE endpoint is definitionally its identity query computation. -/
 theorem computeContractAddress_id (sender : Address) (nonce : Nat) :
@@ -133,15 +162,15 @@ theorem toBytes_computeContractAddress (sender : Address) (nonce : Nat) :
     (computeContractAddress sender nonce).toBytes = Bytes.ofList
       ((keccak256 (Rlp.encode (.list
         [.bytes sender.toBytes.toByteArray, Rlp.ofNat nonce]))).toBytes.toList.drop 12) := by
-  rw [computeContractAddress_eq, toBytes_address_of_hash]
+  rw [computeContractAddress_eq, Address.toBytes_ofNat_toNat]
 
 /-- CREATE2 returns exactly the last twenty outer digest bytes. -/
 theorem toBytes_computeCreate2ContractAddress (sender : Address) (salt : Bytes32)
     (initCode : ByteArray) : (computeCreate2ContractAddress sender salt initCode).toBytes =
       Bytes.ofList ((keccak256 (⟨#[0xff]⟩ ++ sender.toBytes.toByteArray ++
-        salt.toBytes.toByteArray ++ (keccak256 initCode).toBytes.toByteArray)).toBytes.toList.drop
-          12) := by
-  rw [computeCreate2ContractAddress_eq, toBytes_address_of_hash]
+        salt.toBytes.toByteArray ++
+        (keccak256 initCode).toBytes.toByteArray)).toBytes.toList.drop 12) := by
+  rw [computeCreate2ContractAddress_eq, Address.toBytes_ofNat_toNat]
 
 /-- Arbitrary pure CREATE answers are retained, without a concrete digest premise. -/
 theorem computeContractAddressQ_of_pure_answer {m : Type → Type}
