@@ -449,7 +449,7 @@ The options considered for each decision, and what evidence settles or revisits 
 
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
 
-**Empty compact diagnostic (Q48).** The owning question is in DECISIONS Q48 and the behavior in EthCommit C3. Compare a dedicated malformed diagnostic with reuse of an existing diagnostic only after specifying the source `IndexError` projection. Preserve the lenient decoder's success domain and empty-input malformed outcome; no option is selected.
+**Empty compact diagnostic options (Q48).** Name the raw first-byte failure `Malformed.compactEmpty`; reuse `rlp`; or reuse `pathEmpty`. The source raises `IndexError` at `incremental_mpt.py:878` before a decoded path/leaf flag exists, while the later extension check at `:959` rejects an empty decoded path. The owning disposition is DECISIONS Q48. All options preserve nonempty leniency and O4's output; the chosen name keeps the two phases inspectable.
 
 ## 12. Not yet decided
 

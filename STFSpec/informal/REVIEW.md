@@ -120,7 +120,7 @@ operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
 [EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path and
 internal-node APIs, public-law domains and conformance evidence. Its §10 owns
-remaining decoding, witness/database/root APIs and trie/resource obligations.
+remaining witness/database/root APIs and trie/resource obligations.
 Other semantic components remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
