@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35); DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
@@ -88,11 +88,43 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 | `forks/amsterdam/witness_state.py::_trie_lookup` | 53 | `lookup` | generic walk |
 | `forks/amsterdam/witness_state.py::build_node_db` | 37 | `NodeDB.build` | |
 
+### Implemented pure path slice (WI-030a)
+
+The following operations and their public model laws are **discharged** on the
+stated typed domains in `STFSpec/Commit/Nibbles.lean`; the remaining source map
+above is **unimplemented**. `Nibbles` retains the §5/§6 packed representation and
+F19, with a private byte-range invariant, public `size`/`get`/`toList`, and model
+construction `ofList`. Clients use these observers and ordinary laws (D25).
+
+| Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Model law | Deterministic/differential evidence |
+|---|---|---|---|---|---|
+| `merkle_patricia_trie.py:395–404` | `STFSpec.Commit.bytesToNibbleList : ByteArray → Nibbles`; every finite byte array | High then low nibble; length `2*n`; pure | None on this domain; no O-row | `toList_bytesToNibbleList`; `size_bytesToNibbleList`; `get_bytesToNibbleList_high/low`; `high_low_decomposition` | `NibblesGuards.allByteSplits` (all 256); empty/zero/ff/long buffers; authenticated driver |
+| `merkle_patricia_trie.py:360–392` | `STFSpec.Commit.nibbleListToCompact : Nibbles → Bool → ByteArray`; every finite bounded path and leaf flag; `Nibbles` supplies the range premise | Four flag combinations, even zero padding/odd first digit, ordered pairs; pure, nonempty `n/2+1` bytes | None on this domain; invalid Python nibble values are outside it, not a new runtime error API | `nibbleListToCompact_eq_model`; `size_nibbleListToCompact`; `nibbleListToCompact_nonempty/header/flag/first/empty` | `NibblesGuards.allCompactFlags` (all ordered pairs/both flags and singleton flags); empty/odd/even/long paths; authenticated driver |
+| `merkle_patricia_trie.py:350–357` | `STFSpec.Commit.commonPrefixLength : Nibbles → Nibbles → Nat`; every pair of finite bounded paths | Stops at first mismatch or either end; pure | None on this domain; no O-row | `commonPrefixLength_eq_model`; `_le_left/right`, `_symm`, `_self`, `_take_iff`, `_equal_prefixes`, `_maximal` | Empty/proper prefixes in both orders, first/end mismatch and 4096-digit common prefix; authenticated driver |
+
+`STFSpec/Conformance/Commit/NibblesGuards.lean` owns deterministic value guards;
+`NibblesCallerProofs.lean` composes only public laws and observers.
+`scripts/differential_commit_nibbles.py` invokes these three actual pinned Python
+functions using the isolated frozen venv launcher (`-I -B`). It authenticates
+current source/lock and installed ethereum-types 0.4.1 RECORD bytes, checks exact
+Python input/result classes before normalization, preserves source/environment
+identity before/after and retains class/domain/authentication negative controls.
+Emitted guards compare full outputs, including long paths. This is finite
+reference evidence; it supplies no EEST guest execution or whole-trie theorem.
+
 `encode_account` (in `merkle_patricia_trie.py`) is claimed by `EthStateCommit`.
 
 **External semantics.** `ethereum_rlp.rlp` encode/decode and `Extended` (owned by `EthCodec`): this module relies on decode being **strict** (non-canonical length prefixes and single bytes `< 0x80` wrapped as strings are rejected, truncated input rejected [executed]) and on `encode (decode b) = b` for successfully decoded inline subterms, which makes `rlp.encode(child_ref)` in C15 the original bytes [inference from strictness; to be proved in `EthCodec`]. Leading zero bytes inside strings are just bytes. `ethereum_types` `Bytes`, `Uint`, `ulen`, `slotted_freezable` (value semantics only); `copy.copy` in `copy_trie` (shallow; identity in Lean); `utils.hexadecimal.hex_to_bytes` (G1) for the constant.
 
 ## 4. Tests
+
+The implemented pure slice evaluates all 256 byte splits, all 256 ordered nibble
+pairs under both leaf flags, all singleton flags, empty/odd/even encodings,
+zero/15 extremes and 4096/4097-digit paths. Prefix guards cover asymmetric proper
+prefixes and first/end mismatches. `NibblesGuards.longChecks` compares whole
+outputs, and the differential driver emits full actual source observations.
+Compiled current-C native correctness checks are local evidence, not throughput
+measurements or completed C1–C4 gates. Decoder and trie cases below remain open.
 
 - **EEST fixture areas:** every `blockchain_tests`/`blockchain_tests_engine` area checks the state, transaction, receipt and withdrawal roots, so the mathematical root is exercised by the whole corpus (295 areas). Witness decoding and the partial trie specifically: `amsterdam/eip8025_optional_proofs` (100 files), especially `test_witness_state_deletes.py` (collapse adds an auxiliary sibling node), `test_witness_state_replay_order.py` (insert-before-delete), `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender/absent/failed-call-target account nodes, extra unused node, unsorted but complete).
 - **EELS unit tests** (`tests/json_loader/test_incremental_mpt.py` at e1a316a0): `TestCompactToNibbles` (even/odd leaf/extension, empty even leaf, round trip), `TestHashedNode` (stub in root computation; insert/delete/traverse into a stub raise), `TestDecodeWitnessToMpt(More)`, `TestMalformedWitnessNodes` (malformed RLP, non-empty string node, list length 3, extension with empty child ref, extension to leaf, extension to extension, non-hash child bytes, branch with 0 and 1 occupied entries, extension with empty path), `TestPartialWitness` (root preserved; modify known path; insert into stub fails; delete collapsing onto a stub fails), `TestBuildVsDecode` (roots match after mutation), `TestDecodeEdgeCases`. From `test_witness_state.py`: `TestCanonicalSecureTrieValidation` (zero-length extension paths and unresolved stubs in account and storage tries). Port each as a `#guard`.
@@ -208,6 +240,27 @@ Computing `Enc` strictly in the smart constructor re-hashes the whole path on ev
 
 ## 7. Contract and laws
 
+### 7.0 Discharged pure path laws
+
+`Nibbles.length_toList`, `getElem_toList` and `get_lt` supply abstraction
+length/index/range; `toList_inj`/`ext` supply extensionality. `toList_ofList`,
+`size_ofList` and `ofList_toList` supply the model construction boundary.
+The three operation models (`bytesToNibbleListModel`,
+`nibbleListToCompactModel`, `commonPrefixLengthModel`) are legible finite-list
+references beside packed implementations with ordinary all-input equations.
+The per-operation laws are named in §3. Prefix `_take_iff` has explicit
+`k ≤ a.size` and `k ≤ b.size` hypotheses; `_maximal` requires the result strictly
+below both sizes and states that the next bounded digits differ. Compact
+`_flag` is `2*leaf + parity`; `_first` distinguishes even zero padding from the
+odd first digit. No inverse on arbitrary accepted compact bytes is asserted.
+
+The splitter and encoder each generate a single packed output in linear byte
+steps; prefix comparison performs at most the shorter path length in packed
+steps and stops early on mismatch. `toList` allocates its mathematical list;
+`ofList` copies digits once. No slicing API is implemented; ByteArray slicing
+would copy O(n). These are source-structure bounds, not allocation/throughput
+measurements or completed resource gates. The node/trie laws below remain open.
+
 All laws are stated at `m := Id` (concrete `keccak256`), where the monadic operations are pure functions; `mathRoot t` abbreviates `Id.run (mathRoot emptyTrieRoot t)` with the reference constant, and likewise for `rootHash`, `update`, `delete` and `buildMpt`. The coupling at a generic oracle monad belongs to `EthSecurity` and is open (D5).
 
 ### 7.1 Totality [T]
@@ -267,6 +320,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthCodec`
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
+- **Pure path seam:** the public bounded List abstraction and the three path equations/laws of §7.0 supply digit order, canonical compact output and maximal prefix comparison; future node/trie consumers still own their contracts.
 - **Seams provided:** `mathRoot` (the definition roots are compared with), `decodeRoot`/`lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
@@ -295,7 +349,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Order-sensitivity conjectures** (§7.5) are unproved; the mixed-order counterexample is verified.
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.
 - **`patricialize` choice-independence** and the Canonical-uniqueness lemma for a hexary trie with branch values and variable-length keys (unsecured tries) have no existing Lean proof; the Nipkow chapter is binary.
-- **`Nibbles` representation** and slicing cost are undecided; `ByteArray` slices copy.
+- **Pure path scope:** the `Nibbles` representation/invariant and three operations are discharged as in §3/§7.0. Consumer slicing/mutation APIs, node/trie integration and C1–C4 measurements remain open; `ByteArray` slices copy O(n).
+- **Empty compact diagnostic:** C3 retains lenient success and malformed failure only on empty input. The exact `TrieError`/`Malformed` projection of that source `IndexError` is unspecified (distinct from an empty extension path); `compactToNibbles` remains unimplemented pending clarification. No constructor/disposition is inferred. Canonical compact injectivity/model inverse is also unproved; no general accepted-witness-byte inverse is claimed.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
 - **`TrieValue` for `EthBlock`'s value types** (transactions, receipts, withdrawals; `encode_node`'s `Bytes` identity versus RLP) must be instantiated by `EthBlock`; this spec only fixes the class.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.

@@ -18,6 +18,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 
 | Contract | Owner | Required consumer behaviour |
 |---|---|---|
+| Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
@@ -72,6 +73,16 @@ retained reference endpoints, including padding, block absorption and byte outpu
 ([EthHash §3](modules/EthHash.md#3-eels-source-map)); current defaults remain unchanged.
 These laws do not supply the query instance, acquisition or oracle coupling, and
 local native diagnostics do not supply target/resource composition.
+
+### Pure trie path premise
+
+[EthCommit §3/§7.0](modules/EthCommit.md#3-eels-source-map) supplies the bounded
+`Nibbles` List abstraction, byte high/low split, canonical compact byte model and
+maximal common-prefix comparison. Packed generation/scan implementations have
+ordinary all-input model equations and public caller proofs. The encoder range
+premise is produced by the path type itself. These pure premises introduce no
+oracle, state effect or failure adapter. Compact decoding/its empty diagnostic,
+node/root/witness integration and all trie agreement/resource gates remain open.
 
 ### RLP encoding premise
 
