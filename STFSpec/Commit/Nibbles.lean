@@ -3,7 +3,6 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Base.Bytes
-import Init.Data.UInt.Lemmas
 
 /-!
 # Bounded trie paths and pure path operations
@@ -24,6 +23,12 @@ structure Nibbles where
   private data : ByteArray
   private valid : ∀ i, (h : i < data.size) → (data[i]'h).toNat < 16
 
+private theorem toNat_ofNibble (x : Fin 16) : (UInt8.ofNat x.val).toNat = x.val := by
+  apply UInt8.toNat_ofNat_of_lt'
+  have := x.isLt
+  change _ < 256
+  omega
+
 namespace Nibbles
 
 /-- Number of nibbles. -/
@@ -42,7 +47,7 @@ def ofList (xs : List (Fin 16)) : Nibbles :=
     intro i hi
     simp only [List.size_toByteArray, List.length_map] at hi
     simp only [List.getElem_toByteArray, List.getElem_map]
-    rw [UInt8.toNat_ofNat_of_lt' (by have := (xs[i]).isLt; change _ < 256; omega)]
+    rw [toNat_ofNibble (xs[i])]
     exact (xs[i]).isLt⟩
 
 /-- Abstraction preserves path length. -/
@@ -69,7 +74,7 @@ theorem toList_ofList (xs : List (Fin 16)) : (ofList xs).toList = xs := by
     rw [getElem_toList _ _ (by rw [size_ofList]; exact hj)]
     apply Fin.ext
     simp only [get, ofList, List.getElem_toByteArray, List.getElem_map]
-    exact UInt8.toNat_ofNat_of_lt' (n := (xs[i]).val) (by have := (xs[i]).isLt; change _ < 256; omega)
+    exact toNat_ofNibble (xs[i])
 
 /-- Extensional equality through the stable model. -/
 theorem ext {x y : Nibbles} (h : x.toList = y.toList) : x = y := by
@@ -119,13 +124,14 @@ private def splitDigit (b : ByteArray) (i : Nat) : Fin 16 :=
     if i % 2 = 0 then highNibble b[i / 2] else lowNibble b[i / 2]
   else 0
 
-/-- EELS :395–404: one linear packed generation, high nibble before low. -/
+/-- EELS `src/ethereum/merkle_patricia_trie.py:395–404`: high nibble before low.
+Generates one linear packed buffer. -/
 def bytesToNibbleList (b : ByteArray) : Nibbles :=
   ⟨(Bytes.generate (2 * b.size) (fun i ↦ UInt8.ofNat (splitDigit b i).val)).toByteArray, by
     intro i hi
     rw [Bytes.size_toByteArray, Bytes.size_generate] at hi
     change ((Bytes.generate _ _)[i]'(by rw [Bytes.size_generate]; exact hi)).toNat < 16
-    rw [Bytes.getElem_generate _ _ i hi, UInt8.toNat_ofNat_of_lt' (by have := (splitDigit b i).isLt; change _ < 256; omega)]
+    rw [Bytes.getElem_generate _ _ i hi, toNat_ofNibble (splitDigit b i)]
     exact (splitDigit b i).isLt⟩
 
 /-- Splitting doubles the byte count. -/
@@ -136,17 +142,19 @@ private theorem get_split (b : ByteArray) (i : Nat) (hi : i < 2 * b.size) :
     (bytesToNibbleList b).get ⟨i, by rw [size_bytesToNibbleList]; exact hi⟩ = splitDigit b i := by
   apply Fin.ext
   change ((Bytes.generate _ _)[i]'(by rw [Bytes.size_generate]; exact hi)).toNat = _
-  rw [Bytes.getElem_generate _ _ i hi, UInt8.toNat_ofNat_of_lt' (by have := (splitDigit b i).isLt; change _ < 256; omega)]
+  rw [Bytes.getElem_generate _ _ i hi, toNat_ofNibble (splitDigit b i)]
 
 /-- The high output position contains the input byte's high nibble. -/
 theorem get_bytesToNibbleList_high (b : ByteArray) (i : Nat) (hi : i < b.size) :
-    (bytesToNibbleList b).get ⟨2 * i, by rw [size_bytesToNibbleList]; omega⟩ = highNibble b[i] := by
+    (bytesToNibbleList b).get ⟨2 * i, by rw [size_bytesToNibbleList]; omega⟩ =
+      highNibble b[i] := by
   rw [get_split b _ (by omega)]
   simp [splitDigit, hi]
 
 /-- The next output position contains the same input byte's low nibble. -/
 theorem get_bytesToNibbleList_low (b : ByteArray) (i : Nat) (hi : i < b.size) :
-    (bytesToNibbleList b).get ⟨2 * i + 1, by rw [size_bytesToNibbleList]; omega⟩ = lowNibble b[i] := by
+    (bytesToNibbleList b).get ⟨2 * i + 1, by rw [size_bytesToNibbleList]; omega⟩ =
+      lowNibble b[i] := by
   rw [get_split b _ (by omega)]
   have hd : (2 * i + 1) / 2 = i := by omega
   simp [splitDigit, hd, hi, Nat.add_mod]
@@ -155,11 +163,14 @@ private theorem splitModel_length (xs : List UInt8) :
     (bytesToNibbleListModel xs).length = 2 * xs.length := by
   induction xs with
   | nil => simp [bytesToNibbleListModel]
-  | cons b xs ih => simp [bytesToNibbleListModel] at *; omega
+  | cons b xs ih =>
+    simp [bytesToNibbleListModel] at *
+    omega
 
 private theorem splitModel_get (xs : List UInt8) (i : Nat) (hi : i < 2 * xs.length) :
     (bytesToNibbleListModel xs)[i]'(by rw [splitModel_length]; exact hi) =
-      if i % 2 = 0 then highNibble (xs[i / 2]'(by omega)) else lowNibble (xs[i / 2]'(by omega)) := by
+      if i % 2 = 0 then highNibble (xs[i / 2]'(by omega))
+      else lowNibble (xs[i / 2]'(by omega)) := by
   induction xs generalizing i with
   | nil => simp at hi
   | cons b xs ih =>
@@ -169,7 +180,9 @@ private theorem splitModel_get (xs : List UInt8) (i : Nat) (hi : i < 2 * xs.leng
       cases i with
       | zero => simp [bytesToNibbleListModel]
       | succ i =>
-        have hi' : i < 2 * xs.length := by simp at hi; omega
+        have hi' : i < 2 * xs.length := by
+          simp at hi
+          omega
         have hd : (i + 1 + 1) / 2 = i / 2 + 1 := by omega
         have hm : (i + 1 + 1) % 2 = i % 2 := by omega
         simpa [bytesToNibbleListModel, hd, hm] using ih i hi'
@@ -182,14 +195,16 @@ theorem toList_bytesToNibbleList (b : ByteArray) :
     rfl
   · intro i hi hj
     have hi' : i < 2 * b.size := by
-      rw [Nibbles.length_toList, size_bytesToNibbleList] at hi; exact hi
+      rw [Nibbles.length_toList, size_bytesToNibbleList] at hi
+      exact hi
     rw [Nibbles.getElem_toList _ _ (by rw [size_bytesToNibbleList]; exact hi'),
-      get_split b i hi', splitModel_get _ i (by simpa only [Array.length_toList, ByteArray.size_data] using hi')]
+      get_split b i hi', splitModel_get _ i
+        (by simpa only [Array.length_toList, ByteArray.size_data] using hi')]
     simp only [splitDigit, dite_eq_left (show i / 2 < b.size by omega), Array.getElem_toList]
     rfl
 
 /-- The two nibble values recover every input byte without wrapping. -/
-theorem high_low_decomposition (b : UInt8) :
+theorem highNibble_mul_add_lowNibble (b : UInt8) :
     16 * (highNibble b).val + (lowNibble b).val = b.toNat := by
   simp only [highNibble, lowNibble]
   omega
@@ -221,13 +236,73 @@ private theorem compactHeader_value (n : Nat) (leaf : Bool) (first : Fin 16) :
   cases leaf <;> simp only [leafBit, Bool.false_eq_true, ite_false, ite_true]
     <;> split <;> change _ < 256 <;> omega
 
-/-- Legible List model: one flag/padding-or-first byte, then adjacent ordered pairs.
-For odd paths pairing starts at 1; for even paths at 0. -/
+private def compactPairs : List (Fin 16) → List UInt8
+  | high :: low :: rest => packNibbles high low :: compactPairs rest
+  | _ => []
+
+private theorem compactPairs_length (xs : List (Fin 16)) :
+    (compactPairs xs).length = xs.length / 2 := by
+  cases xs with
+  | nil => rfl
+  | cons high xs =>
+    cases xs with
+    | nil => simp [compactPairs]
+    | cons low rest =>
+      simp only [compactPairs, List.length_cons]
+      rw [compactPairs_length rest]
+      omega
+
+private theorem compactPairs_get (xs : List (Fin 16)) (i : Nat)
+    (hi : i < xs.length / 2) :
+    (compactPairs xs)[i]'(by rw [compactPairs_length]; exact hi) =
+      packNibbles (xs[2 * i]?.getD 0) (xs[2 * i + 1]?.getD 0) := by
+  cases xs with
+  | nil => simp at hi
+  | cons high xs =>
+    cases xs with
+    | nil => simp at hi
+    | cons low rest =>
+      cases i with
+      | zero => simp [compactPairs]
+      | succ i =>
+        have hi' : i < rest.length / 2 := by
+          simp only [List.length_cons] at hi
+          omega
+        simpa [compactPairs, Nat.mul_add, Nat.add_assoc] using compactPairs_get rest i hi'
+
+/-- Structural compact reference: a header followed by adjacent ordered pairs.
+Even paths pair the full list; odd paths put the head in the header and pair the tail. -/
 def nibbleListToCompactModel (xs : List (Fin 16)) (leaf : Bool) : List UInt8 :=
-  compactHeader xs.length leaf (xs[0]?.getD 0) ::
-    List.ofFn (fun i : Fin (xs.length / 2) ↦
-      packNibbles (xs[2 * i.val + xs.length % 2]?.getD 0)
-        (xs[2 * i.val + xs.length % 2 + 1]?.getD 0))
+  compactHeader xs.length leaf (xs.headD 0) ::
+    compactPairs (if xs.length % 2 = 0 then xs else xs.tail)
+
+private theorem compactModel_eq_indexed (xs : List (Fin 16)) (leaf : Bool) :
+    nibbleListToCompactModel xs leaf =
+      compactHeader xs.length leaf (xs[0]?.getD 0) ::
+        List.ofFn (fun i : Fin (xs.length / 2) ↦
+          packNibbles (xs[2 * i.val + xs.length % 2]?.getD 0)
+            (xs[2 * i.val + xs.length % 2 + 1]?.getD 0)) := by
+  have hh : xs.headD 0 = xs[0]?.getD 0 := by cases xs <;> rfl
+  unfold nibbleListToCompactModel
+  rw [hh]
+  congr 1
+  split
+  · next he =>
+    apply List.ext_getElem
+    · simp [compactPairs_length]
+    · intro i hi hj
+      rw [compactPairs_get xs i (by simpa [compactPairs_length] using hi)]
+      simp [List.getElem_ofFn, he]
+  · next ho =>
+    have hm : xs.length % 2 = 1 := by omega
+    have ht : xs.tail.length / 2 = xs.length / 2 := by
+      rw [List.length_tail]
+      omega
+    apply List.ext_getElem
+    · rw [compactPairs_length, List.length_ofFn, ht]
+    · intro i hi hj
+      rw [compactPairs_get xs.tail i (by simpa [compactPairs_length] using hi)]
+      simp [List.getElem_ofFn, hm, List.getElem?_tail, Nat.add_comm]
 
 private def digitAt (x : Nibbles) (i : Nat) : Fin 16 :=
   if h : i < x.size then x.get ⟨i, h⟩ else 0
@@ -246,7 +321,8 @@ private def compactByte (x : Nibbles) (leaf : Bool) (i : Nat) : UInt8 :=
   else packNibbles (digitAt x (2 * (i - 1) + x.size % 2))
     (digitAt x (2 * (i - 1) + x.size % 2 + 1))
 
-/-- EELS :360–392. Generates one packed output; no slices or List model are allocated. -/
+/-- EELS `src/ethereum/merkle_patricia_trie.py:360–392`: canonical compact encoding.
+Generates one packed output without allocating slices or the List model. -/
 def nibbleListToCompact (x : Nibbles) (isLeaf : Bool) : ByteArray :=
   (Bytes.generate (x.size / 2 + 1) (compactByte x isLeaf)).toByteArray
 
@@ -257,22 +333,25 @@ theorem size_nibbleListToCompact (x : Nibbles) (leaf : Bool) :
 
 /-- Every compact output is nonempty. -/
 theorem nibbleListToCompact_nonempty (x : Nibbles) (leaf : Bool) :
-    0 < (nibbleListToCompact x leaf).size := by rw [size_nibbleListToCompact]; omega
+    0 < (nibbleListToCompact x leaf).size := by
+  rw [size_nibbleListToCompact]
+  omega
 
 /-- Ordinary all-input compact correspondence with the finite-list model. -/
 theorem nibbleListToCompact_eq_model (x : Nibbles) (leaf : Bool) :
     (nibbleListToCompact x leaf).data.toList = nibbleListToCompactModel x.toList leaf := by
+  rw [compactModel_eq_indexed]
   change (Bytes.generate _ _).toList = _
   rw [Bytes.toList_generate]
   apply List.ext_getElem
-  · simp [nibbleListToCompactModel, Nibbles.length_toList]
+  · simp [Nibbles.length_toList]
   · intro i hi hj
     rw [List.getElem_map, List.getElem_range]
     cases i with
-    | zero => simp [compactByte, nibbleListToCompactModel, digitAt_model, Nibbles.length_toList]
+    | zero => simp [compactByte, digitAt_model, Nibbles.length_toList]
     | succ i =>
       simp only [compactByte, Nat.succ_ne_zero, ite_false, Nat.add_sub_cancel,
-        nibbleListToCompactModel, List.getElem_cons_succ, List.getElem_ofFn,
+        List.getElem_cons_succ, List.getElem_ofFn,
         Nibbles.length_toList, digitAt_model]
 
 /-- Header byte retains precisely the parity/leaf flag and padding-or-first nibble. -/
@@ -316,12 +395,14 @@ private def prefixScan (a b : Nibbles) : Nat → Nat → Nat
   | remaining + 1, i =>
     if digitAt a i = digitAt b i then prefixScan a b remaining (i + 1) else i
 
-/-- EELS :350–357. One forward packed scan, stopping at the first mismatch or end. -/
+/-- EELS `src/ethereum/merkle_patricia_trie.py:350–357`: longest common prefix.
+Scans the packed paths forward, stopping at the first mismatch or end. -/
 def commonPrefixLength (a b : Nibbles) : Nat := prefixScan a b (min a.size b.size) 0
 
 private theorem prefixScan_model (a b : Nibbles) (remaining i : Nat)
     (h : remaining + i = min a.size b.size) :
-    prefixScan a b remaining i = i + commonPrefixLengthModel (a.toList.drop i) (b.toList.drop i) := by
+    prefixScan a b remaining i =
+      i + commonPrefixLengthModel (a.toList.drop i) (b.toList.drop i) := by
   induction remaining generalizing i with
   | zero =>
     have he : a.toList.drop i = [] ∨ b.toList.drop i = [] := by
@@ -345,7 +426,8 @@ private theorem prefixScan_model (a b : Nibbles) (remaining i : Nat)
     rw [prefixScan, ea, eb, commonPrefixLengthModel]
     simp only [digitAt, dite_eq_left ha, dite_eq_left hb]
     split
-    · rw [ih (i + 1) (by omega)]; omega
+    · rw [ih (i + 1) (by omega)]
+      omega
     · omega
 
 /-- Ordinary all-input prefix correspondence with the finite-list model. -/
@@ -361,7 +443,13 @@ private theorem prefixModel_le_left (xs ys : List (Fin 16)) :
   | cons x xs ih =>
     cases ys with
     | nil => simp [commonPrefixLengthModel]
-    | cons y ys => simp only [commonPrefixLengthModel]; split <;> have := ih ys <;> simp <;> omega
+    | cons y ys =>
+      simp only [commonPrefixLengthModel]
+      split
+      · have := ih ys
+        simp only [List.length_cons]
+        omega
+      · omega
 
 private theorem prefixModel_symm (xs ys : List (Fin 16)) :
     commonPrefixLengthModel xs ys = commonPrefixLengthModel ys xs := by
@@ -378,7 +466,8 @@ theorem commonPrefixLength_le_left (a b : Nibbles) : commonPrefixLength a b ≤ 
   exact prefixModel_le_left _ _
 
 /-- Prefix comparison is symmetric despite the source's asymmetric loop. -/
-theorem commonPrefixLength_symm (a b : Nibbles) : commonPrefixLength a b = commonPrefixLength b a := by
+theorem commonPrefixLength_symm (a b : Nibbles) :
+    commonPrefixLength a b = commonPrefixLength b a := by
   rw [commonPrefixLength_eq_model, commonPrefixLength_eq_model, prefixModel_symm]
 
 /-- Prefix length cannot exceed the right path. -/
@@ -390,7 +479,9 @@ private theorem prefixModel_self (xs : List (Fin 16)) :
     commonPrefixLengthModel xs xs = xs.length := by
   induction xs with
   | nil => rfl
-  | cons x xs ih => simp [commonPrefixLengthModel, ih]; omega
+  | cons x xs ih =>
+    simp [commonPrefixLengthModel, ih]
+    omega
 
 /-- A path agrees with itself for its complete length. -/
 theorem commonPrefixLength_self (a : Nibbles) : commonPrefixLength a a = a.size := by

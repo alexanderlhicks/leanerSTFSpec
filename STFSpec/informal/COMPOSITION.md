@@ -18,8 +18,8 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 
 | Contract | Owner | Required consumer behaviour |
 |---|---|---|
-| Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
+| Nibbles | EthCommit | Consumers use public bounded digits, List abstraction and pure path laws; slices would copy O(n). |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |

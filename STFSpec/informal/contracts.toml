@@ -12,6 +12,7 @@ EthSecurity = ["EthStateless", "EthStateFull", "EthPairingMathlib"]
 HashConsts = "EthBase"
 KeccakQuery = "EthHash"
 SszSchema = "EthCodec"
+Nibbles = "EthCommit"
 GasCosts = "EthVmCore"
 StateGasCosts = "EthVmCore"
 VmLimits = "EthVmCore"

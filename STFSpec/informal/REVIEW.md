@@ -127,7 +127,10 @@ theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
 extraction and authentication tooling.
 
-**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`. The pure trie path guards and authenticated source differential driver are owned by [EthCommit §3](modules/EthCommit.md#3-eels-source-map); finite full-output native correctness observations supply no throughput or C1–C4 claim.
+**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
+The pure trie path guards and authenticated source differential driver are owned
+by [EthCommit §3](modules/EthCommit.md#3-eels-source-map); resource gates remain
+open in §7.
 Base differential drivers compare public operation values with the pinned source.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.

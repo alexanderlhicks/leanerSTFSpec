@@ -2,8 +2,12 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Pure path observations against actual authenticated pinned EELS expressions.
 
-Invoke EELS/.venv/bin/python -I -B, with --eels EELS and --output outside both
-repositories. The shared Driver authenticates current source/lock bytes and locked
+From the repository root, run:
+  EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
+    --eels EELS --output EXTERNAL.lean
+
+Choose EXTERNAL.lean outside both repositories. The shared Driver
+authenticates current source/lock bytes and locked
 ethereum-types RECORD and installs fresh source loaders. Inputs/results have exact
 classes checked before normalization. Only bounded valid nibble paths are encoded.
 No compact decoder, node, root, guest, throughput or host-resource claim is made.
@@ -20,7 +24,7 @@ import sys
 if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
     print("run with the frozen EELS .venv interpreter -I -B", file=sys.stderr)
     raise SystemExit(2)
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 from differential import Driver, FreshSourceLoader
 
 
@@ -47,9 +51,7 @@ def identity(context):
 
 
 def main():
-    root = Path(__file__).resolve().parent.parent
-    # Driver's public convention infers root from the established conformance path.
-    context = Driver(__doc__, root / "STFSpec/Conformance/Base/bytes_differential.py", 3030)
+    context = Driver(__doc__, __file__, 3030)
     before = identity(context)
     recursion_before = sys.getrecursionlimit()
     from ethereum_types.bytes import Bytes

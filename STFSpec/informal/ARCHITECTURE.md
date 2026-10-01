@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-09-30). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-01). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -448,6 +448,8 @@ The options considered for each decision, and what evidence settles or revisits 
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
 
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
+
+**Empty compact diagnostic (Q48).** The owning question is in DECISIONS Q48 and the behavior in EthCommit C3. Compare a dedicated malformed diagnostic with reuse of an existing diagnostic only after specifying the source `IndexError` projection. Preserve the lenient decoder's success domain and empty-input malformed outcome; no option is selected.
 
 ## 12. Not yet decided
 

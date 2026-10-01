@@ -21,6 +21,7 @@ def path (xs : List Nat) : Nibbles := Nibbles.ofList (xs.map (fun n ↦ ⟨n % 1
 /-- Exact Nat observation used only in tests. -/
 def digits (x : Nibbles) : List Nat := x.toList.map Fin.val
 
+/-- Observe every output byte as a natural number for full-output comparisons. -/
 def bytes (b : ByteArray) : List Nat := b.data.toList.map UInt8.toNat
 
 /-- Every possible byte is checked independently, including 00 and ff. -/
@@ -35,12 +36,15 @@ def allCompactFlags : Bool := (List.range 16).all fun a ↦
     bytes (nibbleListToCompact (path [a, b]) false) == [0, 16 * a + b] &&
     bytes (nibbleListToCompact (path [a, b]) true) == [32, 16 * a + b]
 
+/-- A 4097-digit path spanning all nibble values with odd parity. -/
 def longPath : Nibbles := path (List.range 4097)
 
+/-- Independently enumerate the complete compact bytes of `longPath`. -/
 def longCompactExpected (leaf : Bool) : List Nat :=
   (if leaf then 48 else 16) ::
     (List.range 2048).map (fun i ↦ 16 * ((2 * i + 1) % 16) + (2 * i + 2) % 16)
 
+/-- Compare complete long outputs and prefixes at both path boundaries. -/
 def longChecks : Bool :=
   bytes (nibbleListToCompact longPath false) == longCompactExpected false &&
   bytes (nibbleListToCompact longPath true) == longCompactExpected true &&
@@ -58,7 +62,8 @@ def longChecks : Bool :=
 #guard allCompactFlags
 #guard longChecks
 #guard digits (bytesToNibbleList ByteArray.empty) == []
-#guard digits (bytesToNibbleList ([0, 15, 16, 255] : List UInt8).toByteArray) == [0, 0, 0, 15, 1, 0, 15, 15]
+#guard digits (bytesToNibbleList ([0, 15, 16, 255] : List UInt8).toByteArray) ==
+  [0, 0, 0, 15, 1, 0, 15, 15]
 #guard bytes (nibbleListToCompact (path []) false) == [0]
 #guard bytes (nibbleListToCompact (path []) true) == [32]
 #guard bytes (nibbleListToCompact (path [1, 2, 3]) false) == [17, 35]
