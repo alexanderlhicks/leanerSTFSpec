@@ -45,6 +45,11 @@ its public byte laws and two inverse laws are owned by
 [EthHash §3](modules/EthHash.md#3-eels-source-map). The precompile then owns gas
 charging and flag rejection in R5 order before invoking compression.
 
+BLAKE2b F's pure compression/byte premise is discharged for all UInt32 counts by
+[EthHash §3](modules/EthHash.md#3-eels-source-map). Its precompile consumer must still
+establish gas-before-compression and validate the raw flag after charging gas;
+those effect/order obligations are not produced by the pure hash function.
+
 ### Keccak digest premise
 
 The concrete fixed-rate Keccak provider supplies total byte-level model

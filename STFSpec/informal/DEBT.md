@@ -123,6 +123,41 @@ not be included when inspecting the native call path. There is no List builder
 in either executable round path. These are static observations, not dynamic
 allocation totals.
 
+The BLAKE2b F reference additionally carries variable-round cost: its UInt32
+round count selects O(rounds) work, with no semantic truncation or new bound.
+The ordinary `compress_model` proof preserves all counts, flags, counter words
+and serialized bytes. Expected use is the BLAKE2F precompile after successful gas
+charging; gas-before-evaluation and host/zkVM resource adequacy remain obligations
+of that consumer and O12, not exceptions supplied by this debt entry.
+
+Reproduce its static evidence with `lake build EthHash --wfail` and inspect
+`rotr`, `G`, `initState`, `round`, `rounds`, `feedForward`, `outputByte`,
+`serializeWords` and the specialised packed generator in
+`.lake/build/ir/STFSpec/Hash/Blake2Compression.c`. Word arithmetic uses
+`lean_uint64_add`, `lean_uint64_xor` and native shift/or operations; output uses
+`lean_uint64_to_uint8`. `G` has eight `lean_array_fset` calls and eight explicit
+UInt64 result boxes; each round calls G eight times, giving 64 explicit boxing
+and 64 array-write calls per executed round through those sites. This does not count allocator calls:
+array uniqueness governs copying/reuse, and callbacks, reference counts and
+closure allocation remain relevant. Initialization builds sixteen boxed words
+and feed-forward eight; both use `Array.ofFn` callbacks. The count-decreasing
+`rounds` function and the exactly-64-byte packed serializer compile to tail
+`goto _start` iteration. Byte generation uses `lean_byte_array_push`, with no
+boxed per-byte temporary array. Native round execution calls no List builder,
+BitVec model or Nat word arithmetic; Nat operations serve counts, sigma/index
+arithmetic and rotation amounts only. These are code-shape observations, not a
+benchmark, dynamic allocation total or C1–C4 result.
+
+This bounded implementation exception keeps the sequential G definition and
+ordinary alias-aware proof legible. Review before integrating the precompile,
+at release and after toolchain/pin updates. Replace or refine the reference under
+D25 if representative variable-round precompile/composition measurements make
+boxing material; preserve arbitrary-index G simulation, ascending sigma/split
+laws, full UInt32-domain compression and exact little-endian bytes. Measure
+allocation and complete lifetime costs with correctness outside timing before
+closing this exception. No speed claim or maximum-count runtime experiment is
+supported by this entry.
+
 The [independent review of `deded43`](https://github.com/alexanderlhicks/leanerSTFSpec/pull/8#pullrequestreview-5369643733)
 reported 270–385 µs per permutation, approximately 6,000 allocations per permutation,
 and 13–19 µs per SHA compression on its local host. These are historical reviewer

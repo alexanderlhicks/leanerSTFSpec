@@ -156,8 +156,8 @@ evidence below. It does not validate precompile gas/effects or guest behavior.
 
 ### Raw BLAKE2F parameters
 
-The operations below are implemented and proved for the stated domains. Remaining hash,
-compression and precompile operations retain their open obligations in §10.
+The operations below are implemented and proved for the stated domains. Remaining digest
+and precompile operations retain their open obligations in §10.
 
 | Pinned EELS source / dependency | Lean declaration and public type | Domain, effects and failure owner | Public law | Deterministic evidence |
 |---|---|---|---|---|
@@ -169,7 +169,54 @@ before emitting Lean values; its result-domain regressions reject Boolean/int
 coercions, wrong lengths and out-of-range fields. It uses `scripts/differential.py`
 for the pin, source and installed dependency checks before and after observation.
 Generated oracle observations stay outside both repositories and are finite evidence.
-No compression, gas ordering, whole-hash refinement or EEST guest result is claimed.
+This parser slice claims no compression, gas ordering, whole-hash refinement or EEST guest result.
+
+### Implemented BLAKE2b F compression
+
+`STFSpec/Hash/Blake2Compression.lean` implements the native UInt64 reference and
+its separate standard `BitVec 64` vector model. The following rows are **discharged**
+for their typed domains. These operations are pure, have no failure channel or
+state effects beyond their returned values, and introduce no rejection bound.
+`compress` accepts every UInt32 round count; the finite runtime tests are bounded.
+`EthPrecompiles` must charge gas before compression and owns raw flag validation.
+The raw parser API, its UInt8 flag and both inverse laws are unchanged.
+
+| Source at the pin / operation | Public declaration and domain | Observation / public law | Deterministic evidence |
+|---|---|---|---|
+| Word representation; `ethereum-types` 0.4.1 `Uint` values restricted to 64 bits | `wordsModel : Vector UInt64 n → Vector (BitVec 64) n` | `wordsModel_get`, `wordsModel_set`, `wordsModel_injective`; no arithmetic instance leaks from Base wrappers | symbolic arbitrary-index caller and model-determined G client |
+| `crypto/blake2.py:177–190,259–266` additions and rotations | `rotr : UInt64 → Nat → UInt64`; all native words, total counts modulo 64 | `toBitVec_add`, `toBitVec_rotr` for `0 < r < 64`, `toBitVec_rotr_total`, `rotateRight_eq_xor` for `0 < r < 64`; the source XOR and standard rotation coincide by disjoint bit ranges | high-bit rotations 0/1/16/24/32/63/64/65/128/129; large helper counts |
+| `crypto/blake2.py:91–125` constants | `IV : Vector UInt64 8`, `sigma : Vector (Vector (Fin 16) 16) 10`, `MIX_TABLE : Vector (Fin 16 × Fin 16 × Fin 16 × Fin 16) 8` | `sigma_row_0` through `sigma_row_9` expose every complete row; model/native rounds reuse the same literal tables | all IV words, all 160 sigma entries and all eight column/diagonal tuples compared with actual pinned fields and RFC literals |
+| `crypto/blake2.py:152–192` G | `G : Vector UInt64 16 → Fin 16 → Fin 16 → Fin 16 → Fin 16 → UInt64 → UInt64 → Vector UInt64 16`; arbitrary aliases | eight sequential writes with fresh reads; `wordsModel_G`, `G_get_of_ne` | all fifteen alias partitions, allsame/distinct writes at every index, untouched words, high-bit/carry/random states |
+| `crypto/blake2.py:215–224` initialization | `initState : Vector UInt64 8 → UInt64 → UInt64 → Bool → Vector UInt64 16` | `wordsModel_initState`, `initState_get`; first half h, second half IV, counter XORs and final inversion | both flags, asymmetric counters with high bits, round-zero examples |
+| `crypto/blake2.py:227–244` rounds | `round : Vector UInt64 16 → Vector UInt64 16 → Nat → Vector UInt64 16`; message then work state; `rounds : Vector UInt64 16 → Nat → Nat → Vector UInt64 16 → Vector UInt64 16`; count then ascending start | `wordsModel_round`, `round_add_ten`, `wordsModel_rounds`, `rounds_zero`, `rounds_succ`, `rounds_add`; every finite prefix and arbitrary start, no bound premise | compression counts 0/1/2/9/10/11/12/20/21; arbitrary-start two-round prefixes at 0/9/10/11/20 via actual pinned G calls; split caller |
+| `crypto/blake2.py:246–247` feed-forward and serialization | `feedForward : Vector UInt64 8 → Vector UInt64 16 → Vector UInt64 8`; `outputByte : UInt64 → Fin 8 → UInt8`; `serializeWords : Vector UInt64 8 → ByteArray` | `wordsModel_feedForward`, `feedForward_get`, `outputByte_eq_wordByte`, `serializeWords_model`, `serializeWords_size`; all 64 bytes, little-endian, leading zeros retained | all-zero fixed width and asymmetric/high-bit byte positions; numeric radix-256 caller |
+| `crypto/blake2.py:194–247` complete F | `compress : UInt32 → Vector UInt64 8 → Vector UInt64 16 → UInt64 → UInt64 → Bool → ByteArray`; all typed inputs | `compress_model`, `compress_eq`, `compress_size`; full UInt32-domain ordinary theorem and size 64 | primary EIP-152 examples 4–7; example 8 remains parse-only; actual typed pinned compression differential |
+
+The Lean names `initState`, `rounds`, `feedForward`, `outputByte` and `serializeWords`
+name source-local stages; `initState` avoids Lean's reserved `initialize` keyword.
+EELS slice assignment `v[8:15] = IV` makes a seventeenth trailing word. The contract
+observes exactly `v[0..15]`, which includes every G and output read; it claims no
+whole-list equality with that Python allocation. All source operations above are
+failure-free on the fixed-width domain. Host resource outcomes remain O12.
+
+`Blake2CompressionGuards.lean` transcribes the selected primary EIP-152 compression
+bytes and checks rotation, initialization and serialization seams.
+`Blake2CompressionCallerProofs.lean` uses exported equations for aliasing, split
+rounds, arbitrary UInt32 compression, symbolic maximum-count size and byte digits,
+without unfolding the native path or provider storage. The full model proof
+establishes representation/operation correspondence; literal fidelity is separately
+supported by source inspection, primary examples and finite table comparisons.
+
+Run `EELS/.venv/bin/python -I -B STFSpec/Conformance/Hash/blake2_compression_differential.py
+--eels EELS --output OUTSIDE/compression.lean` with the output outside both
+repositories. The driver uses the shared authenticated current-source loader,
+checks exact typed `Uint` inputs and result widths, and calls actual pinned
+`Blake2b().G` and `Blake2b().compress`. Its separate integer RFC model is supplemental.
+It executes at most 21 rounds, records finite coverage and pre/post identities,
+and never runs maximum UInt32 compression. No precompile effects, guest/EEST
+execution, cryptographic security, throughput target or C1–C4 result is claimed.
+The variable-round reference allocation exception is owned by
+[DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds).
 
 ### SHA-256 message digest
 
@@ -256,6 +303,58 @@ EEST execution, query composition or cryptographic security. The separate native
 1 MiB performance case checks its expected digest outside the timed loop; bounded
 cost evidence does not discharge a throughput target or accelerator replacement.
 
+### Implemented RIPEMD-160 fixed-word compression slice
+
+`STFSpec/Hash/Ripemd160Compression.lean` owns this **discharged** bounded slice.
+The public compression domain is literally `Vector UInt32 5` × `Vector UInt32 16`;
+there is no length or host-capability premise. Words are already parsed. Both
+working branches store A,B,C,D,E in that order. Ascending rounds use f(j) on the
+left and f(79−j) on the right, with separate order/rotation/constant tables; updates
+are simultaneous. Feedforward reads all five original chaining words.
+
+EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–54`, notably `:52`,
+invokes `hashlib.new("ripemd160", data)`, without exposing raw compression.
+The algorithm rows therefore cite Dobbertin–Bosselaers–Preneel, *RIPEMD-160:
+A Strengthened Version of RIPEMD*, FSE 1996, pp. 71–82, and
+[the corrected author pseudocode](https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt).
+No publication copy is retained. The independent model shares standard literal
+table data but uses only BitVec arithmetic; separate integer-model tests audit all
+entries against independently transcribed primary mathematical data.
+
+| Source | Public declaration and type | Domain / success observation | Ordered failures / consumer | Public laws | Tests |
+|---|---|---|---|---|---|
+| Author word convention | `Ripemd160Model n := Vector (BitVec 32) n`; `ripemd160ToModel : Vector UInt32 n → Ripemd160Model n` | Every word vector; exact unsigned words and low bit order | None; fixed sizes | `ripemd160ToModel_word`, `_bit`, `_inj` | Public observers and six composition clients |
+| Author cyclic left shift | `ripemd160Rotl : UInt32 → Nat → UInt32` | Every word/amount, rotation modulo 32 | None | `toBitVec_ripemd160Rotl`, `ripemd160Rotl_bit` | 0/31/32/33/64 and independent rotation probes |
+| Author f(j) | `ripemd160F : Fin 80 → UInt32 → UInt32 → UInt32 → UInt32`; `Ripemd160Model.f` | Five 16-round Boolean groups | None | `toBitVec_ripemd160F` | Every j, all group boundaries |
+| Author initial value | `ripemd160IV : Vector UInt32 5` | Original five chaining words | None | Used by primary KATs | All five IV words; empty/abc compression KATs |
+| Author r,r′,s,s′,K,K′ | `ripemd160LeftOrder`, `ripemd160RightOrder : Vector (Fin 16) 80`; `ripemd160LeftRotations`, `ripemd160RightRotations : Vector Nat 80`; `ripemd160LeftConstants`, `ripemd160RightConstants : Vector UInt32 5` | Exact branch/group tables | None; indexes bounded by types | Used by round law | All 320 order/rotation entries and ten constants |
+| Author round selection | `ripemd160Group : Fin 80 → Fin 5`; `ripemd160Reverse : Fin 80 → Fin 80` | j/16 and 79−j | None | Used by round law | Every j, boundaries |
+| Author simultaneous update | `ripemd160Step : Vector UInt32 5 → Fin 80 → UInt32 → UInt32 → Nat → Vector UInt32 5`; `Ripemd160Model.step` | A=E,B=T,C=B,D=rotl10(C),E=D, original operands | None | `ripemd160ToModel_step` | Explicit simultaneous update and asymmetric branch cases |
+| Author dual loop body | `Ripemd160Work` (two five-word branches); `ripemd160WorkToModel`; `ripemd160Round : Ripemd160Work → Vector UInt32 16 → Fin 80 → Ripemd160Work`; `Ripemd160Model.round` | Independent left/right updates on every working state | None | `ripemd160WorkToModel_inj`, `_round` | Distinct arbitrary initial branches and every round group |
+| Author ascending j loop | `ripemd160Rounds : Ripemd160Work → Vector UInt32 16 → (n : Nat) → n ≤ 80 → Ripemd160Work`; `Ripemd160Model.rounds` | Prefix 0 through n−1, structural recursion | None; n≤80 supplied by caller | `ripemd160WorkToModel_rounds` | All prefixes 0–80 on eight states |
+| Author cross-branch combine | `ripemd160Feedforward : Vector UInt32 5 → Ripemd160Work → Vector UInt32 5`; `Ripemd160Model.feedforward` | Original h1+C+D′,h2+D+E′,h3+E+A′,h4+A+B′,h0+B+C′ | None | `ripemd160ToModel_feedforward` | Unequal original/left/right words; wraparound; arbitrary states |
+| Author complete compression | `ripemd160Compress : Vector UInt32 5 → Vector UInt32 16 → Vector UInt32 5`; `Ripemd160Model.compress` | Initialize both branches from h, exactly 80 rounds, original-state feedforward | None | `ripemd160ToModel_compress` | Primary compression KATs, integer-model comparison, finite test-only EELS composition |
+
+`Ripemd160CompressionGuards.lean` has 36 deterministic guards, including primary
+empty/abc compression KATs for explicitly supplied MD4-padded little-endian blocks.
+These are not production digest tests. `Ripemd160CompressionCallerProofs.lean`
+has six clients using public laws, including two consecutive compressions and
+prefix-feedforward composition without unfolding native word/storage arithmetic.
+
+`ripemd160_compression_differential.py` uses an independently written integer model
+with cyclic feedforward indexing, seed 170160, 41 arbitrary original chaining states,
+unequal working branches, all table entries, every group boundary and prefixes
+0–80: 2827 generated guards. Its finite test-only MD4 padding and serial compression
+on 92 messages are compared against
+actual authenticated pinned `ripemd160.py` precompile execution and its supported
+host `hashlib` backend. Nine primary author digest facts, including million-a, are
+checked separately; random/boundary message observations remain bug-finding evidence.
+The interpreter is the frozen EELS venv with `-I -B`; the shared Driver authenticates
+current source/lock bytes against the unreplaced pin and ethereum-types against its
+installed RECORD. Pre/post identities include sources, interpreter and shared driver.
+These tests establish no all-host, all-resource, guest/EEST or cryptographic claim.
+DISC-005/Q19/D14/O12 dispositions stay open and unchanged.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -301,6 +400,7 @@ def keccak512 (msg : ByteArray) : Hash64        -- rate 72, out 64 (unreachable)
 def sha256    (msg : ByteArray) : Bytes32
 def sha256Compress : Vector UInt32 8 → Vector UInt32 16 → Vector UInt32 8   -- internal
 def ripemd160 (msg : ByteArray) : FixedBytes 20
+def ripemd160Compress : Vector UInt32 5 → Vector UInt32 16 → Vector UInt32 5 -- fixed-word reference
 
 -- BLAKE2b F (EIP-152)
 namespace Blake2b
@@ -367,13 +467,16 @@ additional evidence for standard fidelity. Induction over ordered blocks lifts t
 packing and squeezing to both public digest observers. The remaining operations
 must establish their corresponding standard relations and these laws.
 
-- [C] `(keccak256 b).toBytes.size = 32`, `(sha256 b).toBytes.size = 32`, `(ripemd160 b).toBytes.size = 20`, and `(Blake2b.compress …).size = 64`. The first three hold by type; the last must be proved.
+- [C] `(keccak256 b).toBytes.size = 32`, `(sha256 b).toBytes.size = 32`, `(ripemd160 b).toBytes.size = 20`, and `(Blake2b.compress …).size = 64`. The first three hold by type; `Blake2b.compress_size` proves the last.
 - [C] Sponge decomposition is implemented by `KeccakSponge.digestBytes` and
   exposed by `keccak256_bytes`/`keccak512_bytes`: pad, ordered absorb, then squeeze, with `pad` giving `(b ++ 0x01 ++ zeros ++ 0x80)` of length a multiple of 136, or `b ++ 0x81` when exactly one padding byte remains. This is the statement that fast paths refine.
 - [C] Fixed-word SHA-256 compression correspondence, schedule recurrence/input preservation, bounded round-prefix correspondence and original-state feed-forward are discharged by the §3 laws. Message padding, byte correspondence, serial block composition and the inductive full-digest relation are discharged in §3; FIPS-domain correspondence retains the explicit Q46 hypothesis.
 - [C] KATs as `#guard` (compile-time), not `native_decide` (CONTRIBUTING §4).
 - [C] BLAKE2b raw parameters: `getParameters_serialize` and `serialize_getParameters` prove the two-way bijection between all raw `Params` and 213-byte inputs; `serialize_size` proves its exact size. `getParameters_rounds/h/m/t0/t1/f` expose the field windows; `wordByte_leWord`, `leWord_wordByte`, `toNat_leWord_succ`, `toNat_leWord_eq_ofLeBytes` and `wordByte_toNat` connect bytes, bits and numeric radix-256 digits. These parameter laws are proved in §3.
-- [C] BLAKE2b compression: `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
+- [C] BLAKE2b compression is discharged by `wordsModel_G`, `wordsModel_initState`,
+  `wordsModel_rounds`, `rounds_add`, `wordsModel_feedForward`, `serializeWords_model`,
+  `compress_model` and `compress_size`. G permits arbitrary aliases; ascending
+  rounds span all UInt32 counts. `G` rotates correctly: `rotr64 x r = (x >>> r) ||| (x <<< (64 − r))` for `0 < r < 64`, which is exactly EELS's `(x >> R) ^ ((x << (w−R)) % 2^w)` on words < 2^64 (trap (b)). The 17-element trap (a) does not change the output.
 - [T] Every function is structurally recursive over the input blocks or over `rounds : UInt32` (via `Nat` fuel = `rounds.toNat`).
 - [F] (D4) a future faster digest must equal the present legible reference through
   an ordinary equality or model refinement (no `@[csimp]`, D21). A candidate
@@ -394,10 +497,14 @@ must establish their corresponding standard relations and these laws.
 
 **Open obligations.** Reference permutation step/round/prefix and lane-bit correspondence,
 fixed-rate Keccak padding, byte packing, ordered absorption, squeezing and digest
-correspondence, SHA-256 fixed-word and message-digest correspondence, and BLAKE2F
-raw parameter byte-layout correspondence with both round trips are discharged
-for the implementations in §3. RIPEMD-160 and BLAKE2F compression rounds and their complete
-boundary vectors remain unwritten. Q46 supplies the SHA-256 domain policy.
+correspondence, SHA-256 fixed-word and message-digest correspondence, BLAKE2F raw
+parameter byte-layout correspondence with both round trips, and BLAKE2b G/round/
+feed-forward/byte correspondence over all UInt32 counts are discharged for the
+slices in §3. RIPEMD-160 Boolean/rotation/step/dual-round, bounded-prefix and
+complete fixed-word compression correspondence are also discharged on every
+parsed-word input. RIPEMD digest/padding/serialization remains unwritten.
+BLAKE2b bounded runtime vectors are finite evidence; the maximum round count is
+parsed only. Q46 supplies the SHA-256 domain policy.
 The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
@@ -424,14 +531,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
-  deterministic/differential evidence are owned by §3–§4. The query interface,
-  RIPEMD-160 and BLAKE2F compression remain unimplemented. Their vectors need
-  transcription from primary sources (the RIPEMD-160 paper and EIP-152).
+  deterministic/differential evidence are owned by §3–§4. The query interface
+  and RIPEMD-160 digest/padding/serialization remain unimplemented. Their remaining
+  vectors need transcription from primary sources, including the RIPEMD-160 paper.
   Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
 - **RIPEMD-160 host discrepancy** (R4): recorded as DISC-005; no upstream report has been made.
-- **BLAKE2F coverage** in EEST is 5 files per format. The parameter-only tests in §3 do not execute these guest fixtures or compression. Beyond the EIP-152 vectors I have not checked whether any fixture exercises `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set.
+- **BLAKE2F coverage** in EEST is 5 files per format. The parameter/compression tests in §3 do not execute these guest fixtures. The finite compression driver covers both flags, high-bit counters and sigma wrap; fixture coverage of `rounds` near `2^32 − 1` with sufficient gas (probably impossible within the block gas limit), `f` exactly 0 versus 1 at the same rounds, or `t` counters with the high bit set remains unassessed.
 - **The gas-before-compute ordering** for BLAKE2F is a cross-module obligation with no stated theorem yet. `EthPrecompiles` must own it. If it were violated, an adversarial `rounds` value could make evaluation hang in the guest while the reference charges out of gas first.
 - **Fast-path proof strategy** (D4): the simulation proof of an unrolled keccak against the reference is unscoped. No existing Lean proof of this shape was found in this repository. VCV-io's `Keccak.lean` is a candidate reference but is slow (compiled at `f5119c6`: about 200–300 µs per 64-byte hash, allocation-bound).
 - **Bridge to the ZisK accelerator's `keccakF`** (`RiscvZkvm.Rv64.ZiskAccel`, `ZiskAccel.lean:113`; the copy checked locally is evm-asm's `EvmAsm/Rv64/ZiskAccel.lean`, the same file `EthField` §4 cites at `:313`/`:489`): the lane-order and endianness correspondence (it acts on `List (BitVec 64)`) is not written down. The bridge module has no owner package yet: it would need riscv-zkvm, which is on toolchain v4.33.
@@ -443,6 +550,11 @@ the retained historical native diagnostic provide local cost evidence; their
 source basis and limitations are recorded in
 [DEBT-KECCAK-DIGEST](../DEBT.md#debt-keccak-digest--reference-sponge-cost).
 D4’s status is unchanged.
+RIPEMD-160 uses array-backed fixed-word vectors and native UInt32 arithmetic,
+with no executable per-round List or bignum lane arithmetic. Its generated C is
+inspected and compiled with strict checks; static boxing/index sites are code
+shape observations, not measured allocation totals. No RIPEMD performance or
+whole-hash cost gate is discharged.
 - **`keccak512`, `_hashlib_has_keccak` and `_USE_HASHLIB` scope (Q18).** Keccak512 is
 implemented and proved against the fixed-rate model. The backend probe remains
 host dispatch with no corresponding Lean operation. A static call-graph pass over the pinned EELS, run by the failure ledger (maintained outside this repository), places `keccak512` outside the guest call graph and finds the backend probe runs at import time only, so they can be excluded in `STFSpec/informal/EXCLUDED.md` with that reason (DECISIONS Q18).
