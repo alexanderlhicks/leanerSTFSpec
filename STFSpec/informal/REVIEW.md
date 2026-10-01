@@ -116,8 +116,8 @@ regressions. Its §10 owns missing APIs and derived laws.
 hash providers, their public model/byte laws, primary KATs and finite differential
 evidence; its §10 owns remaining hash APIs and correspondence.
 [EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns the two-pass RLP encoder/total byte model and typed
-model leaves and the packed cursor header helper with their public laws; full
-decoding/schema/SSZ and the whole
+model leaves, packed cursor header helper and total raw decoder/storage refinement
+with their public laws; raw inverse/canonicality/prefix-free proofs, schemas/SSZ and the whole
 Codec gate remain open (§10). Other semantic components remain scaffolding. [COMPOSITION](COMPOSITION.md) records partial discharge of the
 shared integer/helper premise; no end-to-end theorem is discharged.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture

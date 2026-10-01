@@ -93,13 +93,22 @@ Future full parsers must bound the extent inside the parent list window before
 payload reads, recurse only within that extent and require full consumption.
 Canonicality/inverses, schemas, host-depth and guest outcomes remain open.
 
+### Raw RLP decoder premise
+
+[EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies total packed raw
+decoding, exact storage/list-model and byte-window equations and named ordered
+singleton/short-form failure cases. Private cursor windows are bounded before
+child descent or leaf copies. Shared parser semantics are audited separately
+against authenticated locked source. Canonicality, `Encodable` inverses/image,
+prefix-free/injective laws, schemas, host-depth and guest outcomes remain open.
+
 ### Typed RLP model premise
 
 [EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies raw-model typed
 leaf accept sets and byte/field order preservation. The integer premise includes
 both minimality directions and complete bounded range; union success requires
-exactly one successful alternative. Consumers must still implement raw wire
-codecs, child schemas/instances and diagnostic erasure through `decodeTo` wherever
+exactly one successful alternative. Consumers must still discharge universal raw wire
+codec laws, implement child schemas/instances and diagnostic erasure through `decodeTo` wherever
 the pinned caller uses `decode_to`. The header fallback and payload transaction
 handlers remain unimplemented; these leaf laws discharge none of their guest
 outcomes, host-depth policy or complete schema premises (Q20, O12).
