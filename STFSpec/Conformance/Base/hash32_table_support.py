@@ -1,7 +1,8 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Actual Hash32 whole-value/native regressions against independent nonprotocol arithmetic.
 
-Run after building the core: python3 STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/evidence
+Run after building the core:
+python3 STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/evidence
 The output directory retains source, commands, failures and current artifact provenance.
 This is a functional test, not EELS hashing or a distribution/throughput benchmark.
 """
@@ -89,6 +90,27 @@ def main := Hash32TableProbe.main
 
 
 def check_output(raw, vectors):
+    def require(condition, message):
+        if not condition:
+            raise AssertionError(message)
+
+    def natural(field, line):
+        require(field.isascii() and field.isdecimal(), f"Expected decimal natural: {line}")
+        try:
+            return int(field)
+        except ValueError as error:
+            raise AssertionError(f"Invalid natural: {line}") from error
+
+    def byte_list(field, width, line):
+        try:
+            value = ast.literal_eval(field)
+        except (SyntaxError, ValueError) as error:
+            raise AssertionError(f"Invalid byte list: {line}") from error
+        require(type(value) is list and len(value) == width, f"Expected {width} bytes: {line}")
+        require(all(type(byte) is int and 0 <= byte <= 255 for byte in value),
+                f"Expected integer bytes in [0, 255]: {line}")
+        return value
+
     observations = []
     expected_maps = {"tiny": {3: [3, 0, 170, 85], 8: [2, 0, 170, 85]}}
     long_key = lambda i: (1 << 240) + 257 * i
@@ -104,35 +126,41 @@ def check_output(raw, vectors):
         child[long_key(1024)] = payload(sibling + 61440)
         expected_maps[f"sibling{sibling}"] = child
     seen_vectors, sizes, lookups = [], {}, {}
+    arity = {"V": 5, "S": 3, "M": 5}
     for line in raw.splitlines():
         fields = line.split("|")
+        require(fields[0] in arity and len(fields) == arity[fields[0]],
+                f"Unexpected output schema: {line}")
         if fields[0] == "V":
             _, n, actual, reference, content = fields
-            n = int(n)
-            assert int(actual) == int(reference) == support(n), line
-            assert ast.literal_eval(content) == list((n % (1 << 256)).to_bytes(32, "big")), line
+            n = natural(n, line)
+            require(natural(actual, line) == natural(reference, line) == support(n), line)
+            require(byte_list(content, 32, line) ==
+                    list((n % (1 << 256)).to_bytes(32, "big")), line)
             seen_vectors.append(n)
         elif fields[0] == "S":
             _, label, size = fields
-            assert label not in sizes
-            sizes[label] = int(size)
-            assert sizes[label] == len(expected_maps[label]), line
+            require(label in expected_maps and label not in sizes, line)
+            sizes[label] = natural(size, line)
+            require(sizes[label] == len(expected_maps[label]), line)
         elif fields[0] == "M":
             _, label, n, content, actual = fields
-            n = int(n)
+            require(label in expected_maps, line)
+            n = natural(n, line)
             canonical = n % (1 << 256)
-            assert ast.literal_eval(content) == list(canonical.to_bytes(32, "big")), line
-            value = None if actual == "none" else ast.literal_eval(actual)
-            assert value == expected_maps[label].get(canonical), line
+            require(byte_list(content, 32, line) == list(canonical.to_bytes(32, "big")), line)
+            value = None if actual == "none" else byte_list(actual, 4, line)
+            require(value == expected_maps[label].get(canonical), line)
             lookups.setdefault(label, []).append(n)
         else:
             raise AssertionError(f"Unexpected output: {line}")
         observations.append(line)
-    assert seen_vectors == vectors
-    assert set(sizes) == set(expected_maps) == set(lookups)
-    assert lookups["tiny"] == [3, 8, 3 + (1 << 256), 999]
+    require(seen_vectors == vectors, "Incomplete Hash32 observations")
+    require(set(sizes) == set(expected_maps) == set(lookups), "Incomplete Hash32 observations")
+    require(lookups["tiny"] == [3, 8, 3 + (1 << 256), 999], "Incomplete Hash32 observations")
     for label in set(expected_maps) - {"tiny"}:
-        assert lookups[label] == [long_key(i) for i in range(1025)]
+        require(lookups[label] == [long_key(i) for i in range(1025)],
+                f"Incomplete Hash32 lookups: {label}")
     return {"vectors": len(vectors), "maps": len(sizes),
             "whole_key_payload_lookups": sum(map(len, lookups.values())),
             "observations": len(observations)}
@@ -142,6 +170,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
+    if not __debug__:
+        parser.error("use default Python mode for native provenance checks; parser tests support -O")
     root = Path(__file__).resolve().parents[3]
     out = args.output.resolve()
     if out == root or root in out.parents:
@@ -167,12 +197,41 @@ def main():
     run("package-current-native", ["lake", "build", "EthBase:static", "--wfail"])
     toolchain = Path(run("toolchain", ["lake", "env", "lean", "--print-prefix"]).decode().strip())
     fresh = out / "fresh"
+
+    def current_imports(source):
+        """Resolve source imports by module name, replacing historical setup paths."""
+        imports = {}
+        for line in source.splitlines():
+            if not line.startswith("import "):
+                continue
+            for name in line.split()[1:]:
+                relative = Path(*name.split(".")).with_suffix(".olean")
+                if name.startswith("STFSpec."):
+                    artifact = fresh / relative
+                    if not artifact.is_file():
+                        artifact = root / ".lake/build/lib/lean" / relative
+                else:
+                    artifact = toolchain / "lib/lean" / relative
+                assert artifact.is_file(), f"Missing current import {name}: {artifact}"
+                parts = [artifact]
+                for suffix in (".olean.server", ".olean.private"):
+                    part = artifact.with_suffix(suffix)
+                    if part.is_file():
+                        parts.append(part)
+                ir = [artifact.with_suffix(suffix) for suffix in (".ir.sig", ".ir")
+                      if artifact.with_suffix(suffix).is_file()]
+                imports[name] = [[str(part) for part in parts]]
+                if ir:
+                    imports[name].append([str(part) for part in ir])
+                provenance.setdefault("imports", {})[name] = {
+                    str(part): digest(part) for part in parts + ir}
+        return imports
+
     for module in ("Bytes", "FixedBytes"):
         stem = fresh / "STFSpec/Base" / module
         stem.parent.mkdir(parents=True, exist_ok=True)
         setup = json.loads((root / f".lake/build/ir/STFSpec/Base/{module}.setup.json").read_text())
-        if module == "FixedBytes":
-            setup["importArts"]["STFSpec.Base.Bytes"] = [[str(fresh / "STFSpec/Base/Bytes.olean")]]
+        setup["importArts"] = current_imports((root / f"STFSpec/Base/{module}.lean").read_text())
         setup_file = stem.with_suffix(".setup.json")
         setup_file.write_text(json.dumps(setup, indent=2) + "\n")
         run(f"fresh-{module}", ["lake", "env", "lean", "--setup", setup_file,
@@ -185,6 +244,7 @@ def main():
         run(f"compile-{module}", ["lake", "env", "leanc", "-c", stem.with_suffix(".c"),
                                  "-o", stem.with_suffix(".o"), *flags])
         provenance[module] = {"source": digest(root / f"STFSpec/Base/{module}.lean"),
+                              "setup": digest(setup_file),
                               "olean": digest(stem.with_suffix(".olean")),
                               "c": digest(stem.with_suffix(".c")),
                               "object": digest(stem.with_suffix(".o"))}
@@ -205,7 +265,7 @@ def main():
     source.write_text(probe_source(vectors))
     setup = {"plugins": [], "dynlibs": [], "name": "Hash32TableProbe", "isModule": False,
              "options": {"autoImplicit": False, "relaxedAutoImplicit": False},
-             "importArts": {"STFSpec.Base.FixedBytes": [[str(fresh / "STFSpec/Base/FixedBytes.olean")]]}}
+             "importArts": current_imports(source.read_text())}
     setup_file = out / "Hash32TableProbe.setup.json"
     setup_file.write_text(json.dumps(setup, indent=2) + "\n")
     env = os.environ.copy()
@@ -218,7 +278,8 @@ def main():
     run("probe-compile", ["lake", "env", "leanc", "-c", out / "Hash32TableProbe.c",
                           "-o", out / "Hash32TableProbe.o", "-O3", "-Werror"])
     run("probe-link", ["lake", "env", "leanc", out / "Hash32TableProbe.o", archive,
-                       "-o", out / "hash32-table-probe", "-Wl,-Map=" + str(out / "native-link.map")])
+                       "-o", out / "hash32-table-probe",
+                       "-Wl,-Map=" + str(out / "native-link.map")])
     native_output = run("native-evaluate", [out / "hash32-table-probe"])
     assert native_output == source_output, "native/source complete observation mismatch"
     summary = check_output(native_output.decode(), vectors)
