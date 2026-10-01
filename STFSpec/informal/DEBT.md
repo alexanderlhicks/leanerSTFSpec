@@ -241,3 +241,54 @@ conversions, padding and allocations, representative short and large consumers,
 C1 retention/cleanup costs and the CONTRIBUTING §3 native-client baseline before
 closing this entry. No narrower domain or semantic shortcut is permitted.
 Query/security/accelerator and composed C1–C4 obligations remain open.
+
+## DEBT-RIPEMD-DIGEST — boxed compression and byte conversion
+
+**Status:** open, 2026-09-30. **Owner:** EthHash maintainers. **Authority:** D4/D18.
+
+The production `ripemd160 : ByteArray → FixedBytes 20` retains its all-input
+MD4 padding, ordered compression and twenty-byte model correspondence through
+`Ripemd160.ripemd160_digest`. Expected workloads are precompile messages,
+including empty/short, 55/56/63/64-byte boundaries and large multi-block inputs.
+Padding creates at most 72 suffix bytes and appends once to a packed message;
+block processing is O(message bytes), with constant-width sixteen-word decoding
+and the accepted eighty-round dual-branch compression per block. No intermediate
+whole-message list is built in the executable digest path. The separate proof
+model deliberately uses lists and BitVec words; it is not the native path.
+
+Reproduce static evidence with `lake build EthHash:static EthBase:static --wfail`
+and inspect `Ripemd160Digest.c`, `Ripemd160Compression.c`, `Base/Bytes.c` and
+`Base/FixedBytes.c` under `.lake/build/ir/STFSpec/Hash/` and
+`.lake/build/ir/STFSpec/`. The packed suffix/serializer specializations use
+`lean_byte_array_push`; `blocks` decreases its count and advances by 64 using
+`goto _start`. Byte reads compare natural offsets with the packed size before
+`lean_byte_array_fget`; even a conceptual enormous offset does not reach a
+narrowed byte index. `parseBlock` constructs sixteen boxed UInt32 words through
+an `Array.ofFn` callback. The accepted compression continues using fixed-size
+boxed vector states, native UInt32 arithmetic and eighty dual rounds per block.
+This preserves legibility and its ordinary model proof; it is an explicit local
+reference allocation exception rather than a speed claim.
+
+Byte decoding uses Nat radix-256 sums bounded below 2^32; word serialization
+uses Nat division and bounded exponents 0..3. The suffix length field performs
+low-64 Nat arithmetic and bounded exponents 0..7. These are conversion/index
+costs distinct from native compression lane arithmetic. The checked public Base
+`FixedBytes.ofBytes?` constructor converts twenty bytes into its private numeric
+representation; subsequent `toBytes` materializes the fixed-width output again.
+That bounded conversion can involve multi-limb Nat arithmetic. No claim that
+all digest arithmetic is native UInt32, that all storage is unboxed or that static
+call-site counts equal dynamic allocated volume is made.
+
+Current compiled whole-result checks cover all nine primary digest facts,
+including a compact million-a message, and finite actual pinned precompile
+digests after checking/stripping the twelve-byte zero prefix. These correctness
+checks include the full public fixed-byte output path. They are finite native
+validation, not throughput, dynamic allocation, host resource or C1–C4 acceptance.
+No native-client target is discharged. Review at consumer integration, release,
+and toolchain/pin updates. Replace the boxed compression representation or prove
+more direct byte conversions under D25 when representative complete precompile
+measurements make these costs material; preserve the arbitrary-word compression,
+all-input byte model, minimal padding and complete fixed output laws. Measure
+allocation, conversions and complete lifetime cost with correctness outside any
+timed loop before closing this exception. The consumer still owns gas-before-
+computation and DISC-005/O12 policy.

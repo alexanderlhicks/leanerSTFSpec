@@ -32,6 +32,8 @@ import STFSpec.Conformance.Hash.Sha256CompressionCallerProofs
 import STFSpec.Conformance.Hash.Sha256CompressionGuards
 import STFSpec.Conformance.Hash.Blake2ParametersGuards
 import STFSpec.Conformance.Hash.Blake2ParametersCallerProofs
+import STFSpec.Conformance.Hash.Ripemd160DigestGuards
+import STFSpec.Conformance.Hash.Ripemd160DigestCallerProofs
 import STFSpec.Conformance.Hash.Sha256DigestGuards
 import STFSpec.Conformance.Hash.Sha256DigestCallerProofs
 import STFSpec.Conformance.Hash.KeccakSpongeGuards

@@ -29,7 +29,13 @@ It also defines the tiny `KeccakQuery` monad class, its `Id` and transformer-lif
 
 The total SHA-256 input-domain policy is Q46: the padding trailer contains the low 64 bits of the original bit length, encoded big-endian. FIPS 180-4 correspondence requires `8 * msg.size < 2^64`. Beyond that domain the total extension claims neither FIPS nor pinned-host equivalence. Fixed-word compression is independent of this bound.
 
-**R4. `ripemd160`** is RIPEMD-160 via `hashlib.new("ripemd160", data)` (`vm/precompiled_contracts/ripemd160.py:52`). The precompile left-pads the 20-byte digest to 32 bytes.
+**R4. `ripemd160`** is RIPEMD-160 via `hashlib.new("ripemd160", data)` (`vm/precompiled_contracts/ripemd160.py:52`). The precompile left-pads the 20-byte digest to 32 bytes. The pure algorithm uses
+MD4 padding: append 0x80, the minimal zeros to 56 modulo 64, then the low 64 bits
+of the original bit length in eight little-endian bytes. The corrected author
+pseudocode explicitly delegates padding to MD4; RFC 1320 §§2, 3.1–3.2 allows
+arbitrary lengths and specifies the low-order 64 bits. This is the algorithm's
+total byte-message rule, separate from SHA-256's Q46 disposition. No huge-host
+message, provider capability or resource policy follows from the mathematical rule.
 
 *Host dependency (naive-reading trap).* On hosts whose OpenSSL build/provider configuration lacks RIPEMD-160, `hashlib.new("ripemd160")` raises `ValueError`, and Python 3.12 has no built-in fallback. `ValueError` is not an `ExceptionalHalt`, so on such a host the exception would escape the frame and invalidate the block (`stateless.py:303`). The checked host computes it: `9c1185a5…` for the empty input. The spec implements RIPEMD-160 unconditionally. DISC-005 records this host dependence; the exact D14/O12 policy remains open.
 
@@ -400,6 +406,49 @@ This is structural cost evidence, not a specialization speed claim or a discharg
 of C1–C4. D5's generic interpretation coupling (X7), production F20 guest/block/
 backend entry seams, consumer coherence and S2 remain open.
 
+### Implemented RIPEMD-160 message digest
+
+`STFSpec/Hash/Ripemd160Digest.lean` implements the public `ripemd160` operation
+at EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:52`.
+The underlying algorithm is the [corrected author pseudocode](https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt),
+with [MD4 padding](https://www.rfc-editor.org/rfc/rfc1320.html) (§§2, 3.1–3.2) and
+[nine selected primary digest facts](https://homes.esat.kuleuven.be/~bosselae/ripemd160.html).
+These are algorithm citations; EELS invokes its host backend rather than exposing
+padding or compression. All following rows are **discharged** against the explicit
+byte-list/BitVec model, on every finite input, with no effects beyond returned
+values and no failures. Host equivalence is supported only by finite observations
+on a capable host (DISC-005/O12), not by a universal hashlib theorem. Shared
+standard constants, zero-count/radix formulas and IV are explicit premises of
+the model; accepted `ripemd160ToModel_compress` supplies the compression bridge.
+
+| Source / operation | Public declaration and type | Domain / observation | Laws | Deterministic / differential cases |
+|---|---|---|---|---|
+| RFC 1320 §3.2 length | `Ripemd160.bitLength : Nat → Nat`, `lengthTrailer : Nat → Bytes` | All conceptual byte counts; low 64 bits, eight little-endian bytes | `bitLength_mod`, `bitLength_lt`, `size_lengthTrailer`, `getElem_lengthTrailer`, `lengthTrailer_value` | Asymmetric trailer; 2^61−1, 2^61, 2^61+1 and above 2^64 byte counts; helpers only |
+| RFC 1320 §3.1 zeros | `zeroCount : Nat → Nat`, `paddedLength : Nat → Nat` | Minimal 0..63 zero bytes; completed length divisible by 64 | `zeroCount_lt/congruent/unique/minimal`, `padding_boundary`, `paddedLength_mod/ge`, `blockCount` | 55/56/63/64 and adjacent/multiblock boundaries |
+| RFC 1320 §§3.1–3.2 padding | `paddingSuffix : Nat → Bytes`, `pad : ByteArray → Bytes` | Marker, exact zeros and low-64 trailer; one packed append | `size_paddingSuffix`, `toList_paddingSuffix`, `size_pad`, `toList_pad`, `pad_prefix`, `pad_multiple64`, `pad_model` | Exact asymmetric padded bytes; 175 finite pad comparisons |
+| RFC 1320 §2 words | `parseWord : UInt8 → UInt8 → UInt8 → UInt8 → UInt32`, `wordByte : UInt32 → Nat → UInt8` | Four little-endian bytes; serializer byte positions 0..3 | `toNat_parseWord`, `toBitVec_parseWord`, `parseWord_wordByte`, `parseWord_value` (Base endian bridge) | Asymmetric/high/low/leading-zero words; client roundtrip |
+| Author block input | `parseBlock : Bytes → Nat → Vector UInt32 16` | Every offset; unavailable bytes zero extended; complete blocks have direct byte observations | `ripemd160ToModel_parseBlock`, `parseBlock_get`, `parseBlock_of_size_le` | Partial input and 2^64 offset; finite production digest cases |
+| Author ascending iteration | `blocks : Bytes → Nat → Nat → Vector UInt32 5 → Vector UInt32 5` | Count, offset, arbitrary initial state; offsets advance by 64; tail recursion | `blocks_model`, `blocks_add`, `Model.blocks_succ/blocks_chain`, `Model.Chain.eq_blocks` | Three-block split clients; multiblock asymmetric/random messages |
+| Author output order | `serialize : Vector UInt32 5 → Bytes`, `digestValue : Vector UInt32 5 → FixedBytes 20` | Five little-endian words; public checked Base construction | `serialize_model`, `serialize_get`, `size_serialize`, `toBytes_digestValue` | Asymmetric words/leading zeros; native complete digest comparisons |
+| EELS ripemd160.py:52 / complete algorithm | `STFSpec.Hash.ripemd160 : ByteArray → FixedBytes 20` | All finite messages; pure total 20-byte result | `size_ripemd160`, `Ripemd160.ripemd160_model`, `Ripemd160.ripemd160_digest` into independent `Model.Digest`/`Chain` | All nine primary facts including compact million-a; 176 actual pinned precompile calls, 128 random lengths 0..4096 |
+
+`Ripemd160DigestGuards.lean` supplies nine primary complete digest guards and
+padding/word/offset probes; `Ripemd160DigestCallerProofs.lean` uses public laws.
+`ripemd160_differential.py` invokes the actual authenticated pinned precompile
+with funded gas, checks its complete 32-byte result and twelve zero prefix bytes,
+then independently strips the prefix and compares twenty bytes with the production
+Lean digest. Its 351 observations comprise 176 digest guards and 175 independent
+finite padding guards; message declarations are not counted as observations.
+It emits a separate native full-result comparison source. The million-a message
+is generated compactly; its production digest is checked, without a megabyte
+literal. The shared driver verifies pinned source bytes, dependency RECORD,
+isolated interpreter and pre/post identities. The trusted interpreter, OpenSSL,
+frozen installation and RECORD are not a hostile-host authentication theorem.
+Gas in that Python adapter does not prove Lean precompile effects/order. Complete
+guest/EEST execution, cryptographic security, all-host equivalence and C1–C4
+acceptance remain separate obligations. Static boxing/Nat conversion limits and
+replacement criteria are recorded in [DEBT-RIPEMD-DIGEST](../DEBT.md#debt-ripemd-digest--boxed-compression-and-byte-conversion).
+
 ## 4. Tests
 
 The implemented query tests and finite constant observations are owned by §3.
@@ -549,7 +598,8 @@ parameter byte-layout correspondence with both round trips, and BLAKE2b G/round/
 feed-forward/byte correspondence over all UInt32 counts are discharged for the
 slices in §3. RIPEMD-160 Boolean/rotation/step/dual-round, bounded-prefix and
 complete fixed-word compression correspondence are also discharged on every
-parsed-word input. RIPEMD digest/padding/serialization remains unwritten.
+parsed-word input. RIPEMD-160 padding, byte decoding/serialization and complete
+inductive digest correspondence are also discharged on every finite message (§3).
 BLAKE2b bounded runtime vectors are finite evidence; the maximum round count is
 parsed only. Q46 supplies the SHA-256 domain policy.
 The oracle scope is fixed (D5; a compiled prototype of the interfaces showed it flows through every interface, F1–F4, F15, F18); the oracle coupling for `Models` at generic `m` remains open (it is stated at `PreState Id`). RIPEMD reference equivalence is conditional on host capability (DISC-005), not solely an OpenSSL major version.
@@ -578,9 +628,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Remaining core hash implementations.** The implemented providers, laws and
-  deterministic/differential evidence are owned by §3–§4. RIPEMD-160
-  digest/padding/serialization remains unimplemented. Its remaining vectors need
-  transcription from primary sources, including the RIPEMD-160 paper.
+  deterministic/differential evidence are owned by §3–§4, including the complete
+  RIPEMD-160 digest/padding/serialization and nine selected primary message vectors.
   Historical prototypes are evidence only.
 - **Backend equivalence unverified.** That OpenSSL keccak-256 and pycryptodome keccak are bit-identical on all inputs is assumed from their specifications, not tested. The fixed-rate driver supplies finite evidence against the actual pinned
 pycryptodome backend; it does not compare OpenSSL or prove backend equivalence.
