@@ -101,9 +101,11 @@ For each implemented EELS operation, keep a reviewable source-to-Lean row in the
 
 Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
 [EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe scoped seams.
-Generic C11 storage/safety is supplied by EthCommit §3; the byte-key, concrete
-encoding, preparation/root and consumer seams remain **unimplemented**. Preparation validation must cover empty Bytes versus
-RLP zero/empty collections, directly stored valid defaults, lawful byte-key alias exclusion,
+Generic C11 storage/safety, the Q53 byte-key contract and pure unsecured preparation
+are supplied by EthCommit §3; concrete encoding/key adapters, typed root and consumer
+seams remain **unimplemented**. Before any implementation claim, validate arbitrary supplied defaults, unsafe
+nondefault insertion versus safe default deletion, exact safety iff, direct valid stored
+defaults, empty Bytes versus RLP zero/empty collections, lawful byte-key alias exclusion,
 encoding exactly once, whole prepared maps and zero preparation queries. Root validation
 must use a supplied nonliteral empty root, preserve original C8 errors/prior state and
 whole queries/answers, and explicitly require `LawfulMonad` for sequential-reference
@@ -131,7 +133,7 @@ evidence; its §10 owns remaining hash APIs and correspondence.
 operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
 [EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
-Q49 provider, internal-node and C12 raw database APIs, public-law domains and
+Q49 provider, internal-node, C12 raw database and Q53 generic storage/preparation APIs, public-law domains and
 source/conformance evidence.
 Q50 supplies actual finite-map domain/ending-key laws and private extension/child
 strict sum-descent support and private longest shared-prefix selection with
