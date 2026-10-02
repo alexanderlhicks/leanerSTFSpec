@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-01). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-02). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -261,7 +261,7 @@ Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves 
 
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
-| Mathematical root | `patricialize`-style definition over a finite map | proof-carrying reachable helper domain (Q50), all maps start at zero | [C] domain/strict descent and recursive C7 construction with every-node representative independence in EthCommit §3; C8/root and canonicality open |
+| Mathematical root | `patricialize`-style definition over a finite map | proof-carrying reachable helper domain (Q50), all maps start at zero | [C] domain/strict descent and recursive C7 construction with every-node representative independence in EthCommit §3; C8 total local root/reference equality in EthCommit §3; canonicality and whole-source refinement open |
 | Full-state backend | a mathematical state plus `mathStateRoot` | `PreState` + `Models`, plus progress | [C] agreement and successful operations on well-formed finite state/diffs |
 | Witness-state backend | DBs plus partial trie | `PreState` + `Models`, plus data-availability conditions | [C] agreement for every σ consistent with the witness and rooted at `parent.state_root`, modulo collisions; success under the explicit availability conditions |
 
@@ -463,8 +463,11 @@ caller-supplied F20 constants; local root execution and prior acquisition are
 distinct. The owning disposition is DECISIONS Q50. Finite-map domain/descent laws
 supply support, and recursive C7 uses the existing C6 operation with ordinary
 public dispatch/extensionality laws and private every-node representative independence
-(EthCommit §3). C8/root, canonicality and concrete source/root agreement with
-complete assembled-node `Encodable` and host premises remain separate obligations.
+(EthCommit §3). C8 supplies the total local root and ordinary reference/fused
+equality with explicit lawful sequencing. Concrete pinned-root correspondence
+retains prepared-map/value interpretation, complete assembled `Encodable`, coherent
+F20 constants and host premises. Canonicality and whole-source refinement remain
+separate obligations.
 
 
 **Hash32 table-support options (Q51).** Truncated Nat hashing; the explicit complete 32-digit support model with ordinary streaming/reference equality; or another support representation behind the same model laws. The owning disposition is in DECISIONS Q51 and the provider contract in EthBase §3. EthBase's boundary excludes protocol/cryptographic hashing and permits the named nonprotocol support instance; every Keccak remains routed through KeccakQuery (D5). Revisit executable support costs against actual construction/allocation/adversarial-distribution evidence; functional lawful-hash proofs do not close §5.0 or C1–C4.

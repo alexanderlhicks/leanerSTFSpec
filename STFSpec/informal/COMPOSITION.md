@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-01.*
+*Status: conditional proof plan. Date: 2026-10-02.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -105,7 +105,8 @@ child/domain witness and prefix domain/strict-descent laws, with public empty,
 singleton, extension, ordered branch and optional-lookup extensionality equations.
 Its private recursive selector equality permits different valid representatives at
 every descendant; public clients use ordinary arbitrary-member equations without
-a new selector API. C8/root, canonicality and aggregate copy/comparison costs remain open.
+a new selector API. C8 supplies the total local root wrapper and ordinary
+reference/fused equality (§3). Canonicality and aggregate copy/comparison costs remain open.
 Future node/trie consumers own those checks and witness/guest adapters. These
 pure path/domain premises introduce no node/root or host-resource theorem; the local
 decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
@@ -130,19 +131,27 @@ children/value-last, all 32 answer bytes, original oracle failures and transform
 contexts. Standard/pinned correspondence requires `Encodable` of the complete
 assembly, including HP width and joined payload; actual trie/schema callers own
 that premise, Python Extended interpretation and host compatibility. Global oracle
-coupling, cache/witness/root and whole-trie/resource gates remain open.
+coupling, cache/witness and whole-trie/resource gates remain open; the total local
+C8 wrapper is supplied by the following seam.
 
 ### Mathematical-root domain and constants premise
 
 `PatricializeDomain` is the public proof seam in EthCommit's `Root` owner;
 its fields use actual `Nibbles.size`/`take` and finite-map membership. Recursive C7
-constructs internal nodes on this domain; C8/root is not supplied. Q50's arbitrary-depth helper
+constructs internal nodes on this domain; C8 supplies `mathRoot emptyRoot obj`. Q50's arbitrary-depth helper
 requires the proof explicitly; no behavior outside that domain is selected.
 Empty `mathRoot emptyRoot` locally returns `pure emptyRoot` without a new query
 or local oracle failure. Caller-owned F20 acquisition must provide the coherent
-constant. Future concrete Id/pinned-root equality needs that coherence and the
-complete assembled-node `Encodable` and host premises; local execution is not the
-whole Python acquisition/root trace. D5 generic coupling remains open.
+constant. On nonempty maps the actual C7 action precedes exactly one final query
+on the complete top assembly; descendants and their original errors remain ordered.
+The private C6/root reference equals the fused action in every lawful oracle monad,
+including all answer bytes and effects. This total local equality uses Q47, not
+`Encodable` or collision assumptions; fixed32 answers have RLP width33.
+Concrete Id/pinned-root correspondence needs compatible prepared-map/value
+interpretation, constant coherence, complete assembled-node `Encodable` and
+successful host behavior. Python empty root queries `80` once; local Q50 empty
+execution queries zero times. These whole generic traces are not identified.
+Typed preparation, whole-source refinement and D5 generic coupling remain open.
 
 ### RLP encoding premise
 
