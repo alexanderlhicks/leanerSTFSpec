@@ -8,15 +8,18 @@ import STFSpec.Commit.InternalNode
 import Init.Data.Vector.OfFn
 
 /-!
-# Mathematical trie domain, shared prefix and private branch support
+# Mathematical trie construction and its domain support
 
 Library `EthCommit`. Support for pinned EELS
 `src/ethereum/merkle_patricia_trie.py:507–581`, on Q50's reachable domain.
-Keys retain their complete paths and values may be empty. The private branch stage
-sequences supplied child construction then C6 encoding
-in numeric order and returns a branch without hashing its parent. It does not
-recurse or implement C7/C8. Partition, sum, prefix and branch helpers stay private
-to this owner; callers use public domain laws.
+Keys retain complete paths and values may be empty. `patricialize` implements C7
+with well-founded recursion and minimum-key selection. The private branch stage
+sequences actual child construction then C6 encoding in numeric order, without
+hashing the returned parent. Ordinary public dispatch equations retain literal
+monadic association; a private recursive proof permits arbitrary valid member
+selectors at every descendant. C8/root and witness acceptance remain separate.
+Partition, sum, prefix and branch helpers stay private to this owner; callers use
+public domain and construction laws.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.2/5/7.1.
 -/
 
@@ -60,7 +63,7 @@ theorem ending_prefix_key {obj : Std.ExtTreeMap Nibbles ByteArray} {level : Nat}
   rwa [Nibbles.take_of_size_le k level (by omega)] at hp
 
 /-- Optional branch-value lookup is independent of the representative, including
-absent and empty byte values. This is not whole-constructor choice independence. -/
+absent and empty byte values. This is not whole-constructor choice independence on its own. -/
 theorem branch_value_representative_eq {obj : Std.ExtTreeMap Nibbles ByteArray} {level : Nat}
     (hd : PatricializeDomain obj level) {a b : Nibbles} (ha : a ∈ obj) (hb : b ∈ obj) :
     obj[a.take level]? = obj[b.take level]? := by
@@ -434,7 +437,7 @@ private theorem pairSharedPrefix_le_iff (a b : Nibbles) (level cap amount : Nat)
       ((take_advance_iff a b level amount hp).mp he)⟩
 
 /-- The fold is characterized by the actual advanced full-key domain. This is
-proof support for the future C7 constructor, not a public selection operation. -/
+proof support for the C7 constructor, not a public selection operation. -/
 private theorem sharedPrefixFrom_le_iff {obj : Std.ExtTreeMap Nibbles ByteArray}
     {level : Nat} (hd : PatricializeDomain obj level) (representative : Nibbles)
     (hr : representative ∈ obj) (amount : Nat) :
@@ -593,7 +596,7 @@ private theorem selectSharedPrefix_domain
 /-! Bounded sixteen-child branch support for EELS `:564–581`.
 Whole-key filters and optional ending lookup preserve Q50 empty values.
 The callback is supplied, not recursive construction. Its erased equality
-witness identifies the actual partition for future Root-local descent proofs.
+witness identifies the actual partition for Root-local descent proofs.
 Sequencing equations state LawfulMonad premises exactly where monad laws are used. -/
 
 private theorem inChild_reference (level : Nat) (digit : Fin 16) (key : Nibbles) :
@@ -1058,5 +1061,235 @@ example {m : Type → Type} [Monad m] [LawfulMonad m]
     (branchStage (m := ExceptT ε m) obj level hd a construct).run = pure (.error error) :=
   branchStage_first_error obj level hd a construct error failed
 
+
+/-! Recursive construction follows empty, singleton, extension, branch dispatch.
+A private selector parameter supports the every-node choice-independence proof.
+The public constructor supplies the lawful minimum key. -/
+
+private abbrev RepresentativeSelector :=
+  (obj : Std.ExtTreeMap Nibbles ByteArray) → Nat → obj.size ≠ 0 →
+    {key : Nibbles // key ∈ obj}
+
+private def minimumKeySelector : RepresentativeSelector := fun obj _ hn ↦
+  ⟨obj.minKey (fun he ↦ hn (Std.ExtTreeMap.eq_empty_iff_size_eq_zero.mp he)),
+    Std.ExtTreeMap.minKey_mem⟩
+
+private theorem singleton_member_eq {obj : Std.ExtTreeMap Nibbles ByteArray}
+    (hs : obj.size = 1) (a b : Nibbles) (ha : a ∈ obj) (hb : b ∈ obj) : a = b := by
+  have hl := Std.ExtTreeMap.length_keys (t := obj)
+  have hka := Std.ExtTreeMap.mem_keys.mpr ha
+  have hkb := Std.ExtTreeMap.mem_keys.mpr hb
+  obtain ⟨key, he⟩ := List.length_eq_one_iff.mp (hl.trans hs)
+  rw [he] at hka hkb
+  simp only [List.mem_singleton] at hka hkb
+  exact hka.trans hkb.symm
+
+private def patricializeWith {m : Type → Type} [Monad m] [KeccakQuery m]
+    (select : RepresentativeSelector) (obj : Std.ExtTreeMap Nibbles ByteArray)
+    (level : Nat) (domain : PatricializeDomain obj level) : m (Option InternalNode) :=
+  if empty : obj.size = 0 then pure none
+  else
+    let representative := select obj level empty
+    if _singleton : obj.size = 1 then
+      pure (some (.leaf (representative.val.drop level)
+        (.bytes (obj[representative.val]'representative.property))))
+    else
+      let amount := sharedPrefixFrom obj level representative.val
+      if _positive : 0 < amount then do
+        let child ← patricializeWith select obj (level + amount)
+          (sharedPrefixFrom_domain domain representative.val representative.property)
+        let reference ← encodeInternalNode child
+        pure (some (.extension (representative.val.extract level (level + amount)) reference))
+      else do
+        let branch ← branchStage obj level domain representative.val
+          (fun digit child _actual childDomain ↦ patricializeWith select child (level + 1)
+            childDomain)
+        pure (some branch)
+termination_by remainingMeasure obj level
+decreasing_by
+  · exact (sharedPrefixFrom_positive_descent domain representative.val
+      representative.property _positive).2
+  · subst child
+    exact child_measure_lt domain (by omega) digit
+
+private theorem patricializeWith_independent {m : Type → Type} [Monad m] [KeccakQuery m]
+    (left right : RepresentativeSelector) (obj : Std.ExtTreeMap Nibbles ByteArray)
+    (level : Nat) (domain : PatricializeDomain obj level) :
+    patricializeWith (m := m) left obj level domain =
+      patricializeWith right obj level domain := by
+  rw [patricializeWith, patricializeWith]
+  by_cases empty : obj.size = 0
+  · simp only [dite_eq_left empty]
+  · simp only [dite_eq_right empty]
+    let a := left obj level empty
+    let b := right obj level empty
+    by_cases singleton : obj.size = 1
+    · simp only [dite_eq_left singleton]
+      have same := singleton_member_eq singleton a.val b.val a.property b.property
+      simp only [a, b] at same
+      simp only [same]
+    · simp only [dite_eq_right singleton]
+      have amount := sharedPrefixFrom_representative_eq domain a.val b.val
+        a.property b.property
+      change sharedPrefixFrom obj level (left obj level empty).val =
+        sharedPrefixFrom obj level (right obj level empty).val at amount
+      simp only [← amount]
+      by_cases positive : 0 < sharedPrefixFrom obj level a.val
+      · simp only [a] at positive
+        simp only [dite_eq_left positive]
+        rw [patricializeWith_independent left right obj _]
+        have path := sharedPrefixFrom_prefix_representative_eq domain a.val b.val
+          a.property b.property
+        simp only [a, b, ← amount] at path
+        rw [path]
+      · simp only [a] at positive
+        simp only [dite_eq_right positive]
+        have callbacks :
+            (fun digit child (_actual : child = childPartition obj level digit) childDomain ↦
+              patricializeWith (m := m) left child (level + 1) childDomain) =
+            (fun digit child (_actual : child = childPartition obj level digit) childDomain ↦
+              patricializeWith right child (level + 1) childDomain) := by
+          funext digit child actual childDomain
+          exact patricializeWith_independent left right child (level + 1) childDomain
+        rw [callbacks, branchStage_representative obj level domain _ _
+          (left obj level empty).property (right obj level empty).property]
+termination_by remainingMeasure obj level
+decreasing_by
+  · exact (sharedPrefixFrom_positive_descent domain a.val a.property positive).2
+  · subst child
+    exact child_measure_lt domain (by omega) digit
+
+/-- Recursively construct the mathematical internal trie on the reachable full-map
+ domain. Empty values, ending keys and arbitrary finite lengths are retained.
+ Every nonempty node selects the minimum full key. Pinned EELS
+ `src/ethereum/merkle_patricia_trie.py:507–581` at the reference pin. -/
+def patricialize {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) : m (Option InternalNode) :=
+  patricializeWith minimumKeySelector obj level domain
+
+/-- The reachable-domain proof is erased and cannot affect construction. -/
+theorem patricialize_domain_irrel {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (left right : PatricializeDomain obj level) :
+    patricialize (m := m) obj level left = patricialize obj level right := rfl
+
+/-- Equality of every optional full-key lookup determines the complete construction,
+including query effects. Different-value writes must yield equal final maps. -/
+theorem patricialize_ext {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj other : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) (otherDomain : PatricializeDomain other level)
+    (same : ∀ key : Nibbles, obj[key]? = other[key]?) :
+    patricialize (m := m) obj level domain = patricialize other level otherDomain := by
+  have equal : obj = other := Std.ExtTreeMap.ext_getElem? same
+  subst other
+  rfl
+
+/-- Empty dispatch returns absence at every depth without selecting a key or querying. -/
+theorem patricialize_empty {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) (empty : obj.size = 0) :
+    patricialize (m := m) obj level domain = pure none := by
+  rw [patricialize, patricializeWith, dite_eq_left empty]
+
+/-- A singleton keeps the original value and actual suffix, even if either is empty. -/
+theorem patricialize_singleton {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) (singleton : obj.size = 1)
+    (representative : Nibbles) (member : representative ∈ obj) :
+    patricialize (m := m) obj level domain =
+      pure (some (.leaf (representative.drop level) (.bytes (obj[representative]'member)))) := by
+  have empty : obj.size ≠ 0 := by omega
+  have same := singleton_member_eq singleton
+    (minimumKeySelector obj level empty).val representative
+    (minimumKeySelector obj level empty).property member
+  rw [patricialize, patricializeWith, dite_eq_right empty, dite_eq_left singleton]
+  simp only [same]
+
+/-- A positive maximal shared prefix copies just the extension segment, recursively
+constructs the same full map at the advanced depth, and C6-encodes that child once.
+Maximality is expressed with the public reachable-domain contract. The representative
+may be any actual member; no monad laws or hash assumptions are used. -/
+theorem patricialize_extension {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level amount : Nat)
+    (domain : PatricializeDomain obj level) (multikey : 1 < obj.size)
+    (representative : Nibbles) (member : representative ∈ obj) (positive : 0 < amount)
+    (advanced : PatricializeDomain obj (level + amount))
+    (maximal : ∀ extra, PatricializeDomain obj (level + extra) → extra ≤ amount) :
+    patricialize (m := m) obj level domain = (do
+      let child ← patricialize obj (level + amount) advanced
+      let reference ← encodeInternalNode child
+      pure (some (.extension (representative.extract level (level + amount)) reference)) :
+      m (Option InternalNode)) := by
+  have empty : obj.size ≠ 0 := by omega
+  have singleton : obj.size ≠ 1 := by omega
+  let selected := minimumKeySelector obj level empty
+  have lengthEq : sharedPrefixFrom obj level selected.val = amount :=
+    Nat.le_antisymm
+      (maximal _ (sharedPrefixFrom_domain domain selected.val selected.property))
+      (sharedPrefixFrom_maximal domain selected.val selected.property advanced)
+  have path : selected.val.extract level (level + amount) =
+      representative.extract level (level + amount) := by
+    have h := congrArg (fun k : Nibbles ↦ k.drop level)
+      (advanced.consumedPrefix selected.val selected.property representative member)
+    simpa only [Nibbles.drop_take] using h
+  rw [patricialize, patricializeWith, dite_eq_right empty, dite_eq_right singleton]
+  change sharedPrefixFrom obj level (minimumKeySelector obj level empty).val = amount at lengthEq
+  simp only [lengthEq, dite_eq_left positive]
+  change (do
+    let child ← patricialize (m := m) obj (level + amount) advanced
+    let reference ← encodeInternalNode child
+    pure (some (InternalNode.extension (selected.val.extract level (level + amount)) reference))) = _
+  rw [path]
+
+/-- With no positive shared prefix, construction uses sixteen full-key partitions
+in numeric order. Each supplied child is constructed then C6-encoded. The ending
+lookup defaults only in the final field. Literal bind association is retained, so
+this equation needs only `Monad`; the returned branch has no parent query. -/
+theorem patricialize_branch {m : Type → Type} [Monad m] [KeccakQuery m]
+    (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) (multikey : 1 < obj.size)
+    (representative : Nibbles) (member : representative ∈ obj)
+    (noPrefix : ¬ PatricializeDomain obj (level + 1)) :
+    patricialize (m := m) obj level domain = (do
+      let branch ← (do
+        let children ← Vector.ofFnM (fun digit : Fin 16 ↦ do
+          let child ← patricialize
+            (obj.filter (fun key _ ↦
+              if h : level < key.size then decide (key.get ⟨level, h⟩ = digit) else false))
+            (level + 1) (domain.child digit)
+          encodeInternalNode child)
+        pure (InternalNode.branch children
+          (.bytes (obj[representative.take level]?.getD ByteArray.empty))) : m InternalNode)
+      pure (some branch) : m (Option InternalNode)) := by
+  have empty : obj.size ≠ 0 := by omega
+  have singleton : obj.size ≠ 1 := by omega
+  let selected := minimumKeySelector obj level empty
+  have zero := (sharedPrefixFrom_zero_iff domain selected.val selected.property).mpr noPrefix
+  have nonpositive : ¬ 0 < sharedPrefixFrom obj level selected.val := by omega
+  rw [patricialize, patricializeWith, dite_eq_right empty, dite_eq_right singleton]
+  change ¬ 0 < sharedPrefixFrom obj level (minimumKeySelector obj level empty).val at nonpositive
+  rw [dite_eq_right nonpositive, branchStage_representative obj level domain _ representative
+    (minimumKeySelector obj level empty).property member]
+  rfl
+
+/-- Lawful sequencing removes the final intermediate branch bind, while preserving
+ascending construction/encoding order and every query's original failure. -/
+theorem patricialize_branch_lawful {m : Type → Type} [Monad m] [LawfulMonad m]
+    [KeccakQuery m] (obj : Std.ExtTreeMap Nibbles ByteArray) (level : Nat)
+    (domain : PatricializeDomain obj level) (multikey : 1 < obj.size)
+    (representative : Nibbles) (member : representative ∈ obj)
+    (noPrefix : ¬ PatricializeDomain obj (level + 1)) :
+    patricialize (m := m) obj level domain = (do
+      let children ← Vector.ofFnM (fun digit : Fin 16 ↦ do
+        let child ← patricialize
+          (obj.filter (fun key _ ↦
+            if h : level < key.size then decide (key.get ⟨level, h⟩ = digit) else false))
+          (level + 1) (domain.child digit)
+        encodeInternalNode child)
+      pure (some (.branch children
+        (.bytes (obj[representative.take level]?.getD ByteArray.empty)))) : m (Option InternalNode)) := by
+  rw [patricialize_branch obj level domain multikey representative member noPrefix]
+  simp only [bind_assoc, pure_bind]
 
 end STFSpec.Commit
