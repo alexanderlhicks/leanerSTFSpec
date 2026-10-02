@@ -257,8 +257,9 @@ wrapper (including distinct payloads), compares complete actual RLP parses of
 minimal/competing/descendant controls, and actual compact results for all sixteen
 flags and noncanonical padding/high bits. `DecoderDiagnosticCallerProofs.lean`
 uses only public codec/compact/diagnostic contracts. The finite source driver
-runs genuine pinned `_decode_witness_node`, checks exact classes and ordered
-exception lines, restores tracing and repeats every call untraced. Full raw
+runs genuine pinned `_decode_witness_node` and asserts ordered exception lines
+for ten named cases. It records all 85 complete outcomes, checks aggregate counts
+and the allowed exception classes, restores tracing and repeats every call untraced. Full raw
 values, complete source/lock and installed types/RLP/crypto identities are
 retained before/after. Emitted guards compare actual successful RLP and compact
 values against Lean seams; there is no Lean whole-node diagnostic comparison.
@@ -269,6 +270,9 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/decoder_diagnostic_differ
 ```
 
 Interpreter/startup, frozen installation/RECORD and host remain trust inputs.
+Uncommitted local finite native checks are separate support evidence. The command
+above is the committed source-only reproducer, emitting interpreter `#guard`s;
+no native diagnostic runner is committed here.
 No C14/whole decoder, WitnessError adapter, W1, guest or resource gate is discharged.
 
 ### Implemented mathematical-root domain support
@@ -477,9 +481,10 @@ cover exact raw-empty failure, every leading byte, ordered suffix digits, canoni
 inverses and accepted-wire normalization.
 Q52 seam guards cover exact wires `c2c0c0`, `c220c0`, `c4c0810180`,
 `c220c080`, `c280c0`, `c2c078`, `c22080`, `c22078`, `c200c0`, `c20078`,
-`c210c0`, `c410c2c0c0`, `c410c220c0`. Source observations additionally check
+`c210c0`, `c410c2c0c0`, `c410c220c0`. Source observations additionally record
 all sixteen flags with byte/list second fields, accepted noncanonical padding/high
-bits and a branch-list ending with two occupied hashed children. The latter is a
+bits and a branch-list ending with two occupied hashed children, with aggregate
+counts and allowed exception classes checked as described in §3. The latter is a
 source acceptance control, not a branch decoder. Remaining dispatcher regressions
 must assign Q52 in C14 order, distinguish compactEmpty/pathEmpty, preserve original
 descendant errors and accept branch-list endings. Witness decoding and trie cases
@@ -753,8 +758,8 @@ Arbitrary generic answers carry no concrete authentication guarantee.
 Q52's constructors are distinct by ordinary inductive equality. The public
 clients in §3 prove wrapper injectivity and use `compactToNibbles_error_iff` to
 exclude either field diagnostic and `pathEmpty` from compact primitive failures.
-Public codec success binds the whole wire and supplies `Encodable`; failed codec
-parsing supplies no decoded item. These facts support future ordering proofs but
+Public codec success binds the whole wire and supplies `Encodable`;
+`failed_rlp_no_item` states generic `Except` success/error exclusivity. These facts support future ordering proofs but
 do not implement or prove C14 dispatch or the WitnessError/O4 adapter.
 
 ### 7.1 Totality [T]

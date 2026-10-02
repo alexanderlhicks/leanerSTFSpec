@@ -19,12 +19,13 @@ namespace STFSpec.Conformance.Commit.DecoderDiagnosticGuards
 
 open STFSpec.Codec STFSpec.Commit
 
--- Full structural comparison, without deriving a nested instance.
 mutual
+  /-- Compare complete RLP items structurally, including every nested byte payload. -/
   def sameItem : RlpItem → RlpItem → Bool
     | .bytes a, .bytes b => decide (a = b)
     | .list xs, .list ys => sameItems xs ys
     | _, _ => false
+  /-- Compare complete ordered RLP item lists structurally, including their lengths. -/
   def sameItems : List RlpItem → List RlpItem → Bool
     | [], [] => true
     | x :: xs, y :: ys => sameItem x y && sameItems xs ys

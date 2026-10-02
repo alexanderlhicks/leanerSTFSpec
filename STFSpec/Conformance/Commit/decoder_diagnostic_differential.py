@@ -8,6 +8,11 @@ unimplemented. Source/lock/installed RECORD and exact result classes are checked
 before/after; hooks are restored and calls replayed untraced. Frozen interpreter,
 installation/RECORD and host remain trust inputs. No guest execution is claimed.
 """
+import sys
+
+if not sys.flags.isolated or not sys.flags.dont_write_bytecode or sys.flags.optimize:
+    raise RuntimeError("unoptimized lexical EELS .venv/bin/python -I -B required")
+
 from pathlib import Path
 import base64
 import hashlib
@@ -16,12 +21,9 @@ import json
 import platform
 import ssl
 import subprocess
-import sys
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
-if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
-    raise RuntimeError("lexical EELS .venv/bin/python -I -B required")
 sys.path.insert(0, str(ROOT / "STFSpec/Conformance/Codec"))
 from rlp_typed_differential import setup_driver, RlpSourceAuth, RlpFreshFinder
 
