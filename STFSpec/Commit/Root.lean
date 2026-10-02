@@ -3,6 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Commit.Nibbles
+import STFSpec.Commit.Preparation
 import Std.Data.ExtTreeMap.Lemmas
 import STFSpec.Commit.InternalNode
 import Init.Data.Vector.OfFn
@@ -18,10 +19,11 @@ sequences actual child construction then C6 encoding in numeric order, without
 hashing the returned parent. Ordinary public dispatch equations retain literal
 monadic association; a private recursive proof permits arbitrary valid member
 selectors at every descendant. C8 supplies the supplied-empty branch and one
-final complete top query. Witness acceptance remains separate.
+final complete top query. Q53's safe unsecured typed `root` composes pure preparation
+with C8 using the caller's empty root. Witness acceptance remains separate.
 Partition, sum, prefix and branch helpers stay private to this owner; callers use
 public domain and construction laws.
-Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.2/5/7.1.
+Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.2/5/7.0.3/7.1.
 -/
 
 namespace STFSpec.Commit
@@ -1463,5 +1465,47 @@ theorem run_mathRoot_stateT {m : Type → Type} {σ : Type}
   split
   · rfl
   · rfl
+
+/-! Typed unsecured composition retains C8's literal complete action. -/
+
+section TypedRoot
+
+variable {K V : Type} [Ord K] [Std.TransOrd K] [Std.LawfulEqOrd K]
+variable [TrieValue V] [KeyBytes K]
+
+/-- EELS `src/ethereum/merkle_patricia_trie.py:478–504` at the pin, on Q53's
+safe unsecured domain. Pass the caller's F20 empty root directly to C8 on the pure
+prepared map. There is no preparation bind, filtering, local query or new failure. -/
+def root {m : Type → Type} [Monad m] [KeccakQuery m] (emptyRoot : Hash32)
+    (t : Trie K V) (_unsecured : t.secured = false) (_safe : t.PrepareSafe) : m Hash32 :=
+  mathRoot emptyRoot (prepareTrieModel t)
+
+omit [Std.LawfulEqOrd K] in
+/-- Complete typed root action equals C8 on the pure prepared map; Monad suffices. -/
+theorem root_eq_mathRoot {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (t : Trie K V) (unsecured : t.secured = false)
+    (safe : t.PrepareSafe) :
+    root (m := m) emptyRoot t unsecured safe = mathRoot emptyRoot (prepareTrieModel t) := rfl
+
+omit [Std.LawfulEqOrd K] in
+/-- Empty stored data returns any supplied root with no new local query or failure. -/
+theorem root_empty {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (t : Trie K V) (unsecured : t.secured = false)
+    (safe : t.PrepareSafe) (empty : t.data = ∅) :
+    root (m := m) emptyRoot t unsecured safe = pure emptyRoot := by
+  rw [root_eq_mathRoot, (prepareTrieModel_empty_iff t).mpr empty]
+  exact mathRoot_empty emptyRoot ∅ Std.ExtTreeMap.size_empty
+
+/-- Whole-action equality to separately sequenced preparation explicitly uses
+LawfulMonad's pure-bind law. It includes all underlying effects and failures. -/
+theorem root_eq_reference {m : Type → Type} [Monad m] [KeccakQuery m] [LawfulMonad m]
+    (emptyRoot : Hash32) (t : Trie K V) (unsecured : t.secured = false)
+    (safe : t.PrepareSafe) :
+    root (m := m) emptyRoot t unsecured safe = (do
+      let prepared ← prepareTrie (m := m) t unsecured safe
+      mathRoot emptyRoot prepared) := by
+  rw [root_eq_mathRoot, prepareTrie_eq, pure_bind]
+
+end TypedRoot
 
 end STFSpec.Commit

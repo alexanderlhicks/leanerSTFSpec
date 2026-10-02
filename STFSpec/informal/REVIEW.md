@@ -68,7 +68,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety, byte-key and unsecured preparation laws (EthCommit §3); implement/prove concrete encoding/key interpretation bridges and typed-root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; implement/prove Q55's generic pre-RLP occurrence acquisition, raw/inline cache provenance, explicit Id-run agreement and failure forwarding; any B15 memo refinement additionally covers effects/path/first error; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
+| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety, lawful byte-key, pure unsecured preparation and typed-root laws (EthCommit §3); implement/prove concrete encoding/key bridges and consumer instances with caller F20 coherence, exact source equality/dispatch and schema/assembled Encodable/host premises. Distinguish canonicality from lookup equivalence; implement/prove Q55's generic pre-RLP occurrence acquisition, raw/inline cache provenance, explicit Id-run agreement and failure forwarding; any B15 memo refinement additionally covers effects/path/first error; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Implement Q53 U256 validity/nonempty laws independently of zero deletion and contextual Account integration, without a bare Account instance or secured-policy claim. Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
@@ -102,7 +102,7 @@ For each implemented EELS operation, keep a reviewable source-to-Lean row in the
 Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
 [EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe scoped seams.
 Generic C11 storage/safety, the Q53 byte-key contract and pure unsecured preparation
-are supplied by EthCommit §3; concrete encoding/key adapters, typed root and consumer
+and typed root composition are supplied by EthCommit §3; concrete encoding/key adapters and consumer
 seams remain **unimplemented**. Before any implementation claim, validate arbitrary supplied defaults, unsafe
 nondefault insertion versus safe default deletion, exact safety iff, direct valid stored
 defaults, empty Bytes versus RLP zero/empty collections, lawful byte-key alias exclusion,
@@ -164,7 +164,7 @@ evidence; its §10 owns remaining hash APIs and correspondence.
 operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
 [EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
-Q49 provider, internal-node, C12 raw database and Q53 generic storage/preparation APIs, public-law domains and
+Q49 provider, internal-node, C12 raw database and Q53 generic storage/preparation/root APIs, public-law domains and
 source/conformance evidence.
 Q50 supplies actual finite-map domain/ending-key laws and private extension/child
 strict sum-descent support and private longest shared-prefix selection with

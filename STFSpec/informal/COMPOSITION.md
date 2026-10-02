@@ -21,7 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
-| Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract and pure unsecured preparation; remaining consumer/root contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
+| Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
@@ -33,18 +33,18 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
-### Typed-trie storage and preparation premise (Q53)
+### Typed-trie storage, preparation and root premise (Q53)
 
 [EthCommit §3/§7.0.3](modules/EthCommit.md#3-eels-source-map) supplies generic
 arbitrary-default storage and separate `NoDefault`/`PrepareSafe` laws. Its
 `TrieValue` class specifies total encoding with nonemptiness under validity;
 the generic lawful injective byte-key contract and pure preparation are supplied in
-EthCommit §3. Concrete encoding/key adapters and typed root remain unimplemented.
+EthCommit §3. Typed root composition is supplied; concrete encoding/key adapters remain unimplemented.
 Empty construction supplies both predicates for any
 default; an all-value setter preserves safety from a safe input exactly when it deletes
 by equality with that default or inserts a valid value. Preparation/root require safety
 and `secured = false`, but no `NoDefault`; valid stored defaults are encoded directly.
-Implemented preparation is pure with zero queries; the unimplemented typed root contract
+Implemented preparation is pure with zero queries; the supplied typed root
 calls C8 directly on that pure map
 with the caller's existing F20 empty root. Local composition/empty equations need only
 `Monad`; equality to a separate preparation-bind reference needs `LawfulMonad`.
@@ -220,7 +220,7 @@ Concrete Id/pinned-root correspondence needs compatible prepared-map/value
 interpretation, constant coherence, complete assembled-node `Encodable` and
 successful host behavior. Python empty root queries `80` once; local Q50 empty
 execution queries zero times. These whole generic traces are not identified.
-Typed preparation, whole-source refinement and D5 generic coupling remain open.
+Q53 typed preparation/root composition is supplied above. Concrete encoding bridges, whole-source refinement and D5 generic coupling remain open.
 
 ### RLP encoding premise
 
