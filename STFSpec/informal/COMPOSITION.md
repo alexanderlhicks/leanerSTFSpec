@@ -60,6 +60,21 @@ F20 constants and pinned host compatibility. Total invalid encodings imply no Py
 success. Secure traversal, collisions, source history and generic coupling remain open;
 approval alone supplies no concrete source bridge or consumer/root proof.
 
+### Conditional existing Bytes key provider (Q54)
+
+When a concrete Q53 consumer chooses existing Base `Bytes`, [EthBase
+§5/§7](modules/EthBase.md#5-interface) specifies its all-finite unsigned byte-lex
+order, proper-prefix behavior, ordinary packed/reference equality, lawful actual
+comparison equality and `toByteArray_toList` observation. These functional
+providers are supplied by EthBase §3. The future EthCommit-owned `KeyBytes Bytes` adapter uses exactly
+`Bytes.toByteArray`: the existing inverse proves injectivity, and `compare_toList`
+plus `toByteArray_toList` proves comparison agreement with core ByteArray `toList`.
+Generic Q53 preparation/storage contracts remain independently feasible. Actual
+RLP ordinal bytes use byte order (zero `[128]` follows one `[1]`); EthBlock retains
+concrete encoder, source equality/schema, safety and coherent F20 empty-root
+premises. Adapter implementation, consumer composition/costs, host compatibility,
+secured-policy and generic coupling remain open with their existing owners.
+
 ### SHA-256 digest premise
 
 [EthHash §3](modules/EthHash.md#3-eels-source-map) supplies the pure total

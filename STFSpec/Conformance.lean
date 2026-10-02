@@ -4,6 +4,8 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Conformance.Base.BytesCallerProofs
 import STFSpec.Conformance.Base.BytesGuards
+import STFSpec.Conformance.Base.BytesOrderCallerProofs
+import STFSpec.Conformance.Base.BytesOrderGuards
 import STFSpec.Conformance.Base.FixedBytesCallerProofs
 import STFSpec.Conformance.Base.FixedBytesGuards
 import STFSpec.Conformance.Base.Hash32TableCallerProofs

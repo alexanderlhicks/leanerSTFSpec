@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -942,6 +942,13 @@ def collisionWitness (db : NodeDB) (m) : Option (ByteArray × ByteArray)  -- com
 
 Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` → `Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (the flat `_data` is dropped: it is unused on the guest path, C21); `_encode_mutable_node`, `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc` construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`, `_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`, `_insert_into_branch` → `update`/`mptSet`; `_mpt_delete_node`, `_delete_from_extension`, `_delete_from_branch`, `_collapse_branch` → `delete`/`mkBranch`/`mkExt`; `mpt_root` → `mptRoot`; `compact_to_nibbles` → `compactToNibbles`; `_resolve_child_ref`, `_decode_witness_node`, `decode_witness_to_mpt` → `decodeRoot`/`decodeWitnessToMpt`; `_build_mutable_tree`, `build_mpt` → `buildMpt`; `Witness`, `_record_witness`, `_mpt_traverse_for_witness`, `mpt_get` → `Witness`/`mptGetRecording`.
 
+If a concrete consumer chooses the existing Base `Bytes` as `K`, its future
+EthCommit-owned `KeyBytes Bytes` adapter uses `Bytes.toByteArray` exactly.
+Injectivity follows from the existing `Bytes.ofByteArray_toByteArray` inverse;
+Q54's supplied `Bytes.compare_toList` and `toByteArray_toList` supply the
+required comparison-to-core-ByteArray-list equation (§7.0.3). This conditional
+provider choice introduces no new generic preparation/storage prerequisite.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
@@ -1082,6 +1089,13 @@ byte-list lexicographic order. The List comparator is a proof model, not a requi
 executable conversion. Source Bytes/fixed-byte keys compare by content: a tagged key
 union with two distinct keys for the same bytes cannot meet this contract. A concrete
 consumer must supply lawful key order/equality agreeing with that interpretation.
+For the conditional existing-Bytes choice, EthBase §3/§5/§7 supplies Q54's
+`Ord Bytes`, `Std.TransOrd`, `Std.LawfulEqOrd`, actual-equality and
+packed-export List laws. The future adapter uses public export/inverse laws for
+injectivity and composes `Bytes.compare_toList` with `Bytes.toByteArray_toList` for
+`KeyBytes.compare_toBytes`. The adapter, source alias/equality bridge and actual
+map/preparation/root cost integration remain separate unimplemented obligations;
+generic Q53 preparation/storage contracts do not depend on choosing Bytes.
 
 For `[TrieValue V] [KeyBytes K]`, `unsecured : t.secured = false` and
 `safe : t.PrepareSafe`, require the following equations; preparation uses `Monad` only,

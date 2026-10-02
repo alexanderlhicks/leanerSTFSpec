@@ -1,13 +1,13 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51.*
+*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
 
 ## 1. Purpose
 
-`EthBase` is layer L0 (ARCHITECTURE §2): the primitive value types every other library uses. These are the EVM word `U256` with its full EVM arithmetic API, bounded and unbounded integers (`Uint`, `U8`…`U64`), byte sequences (`Bytes`), fixed-width byte types (`Address`, `Hash32`, `Bytes32`, `Bloom`, …) with their lawful orderings, big/little-endian conversions, a few numeric helpers from `utils/`, the `HashConsts` record of keccak-derived constants (D5; values only, computed by `EthHash`), and the `Envelope` record of implementation limits. It contains no fork policy, no protocol or cryptographic hashing and no codecs. Q51 permits the explicitly named nonprotocol Hash32 table-support instance; every Keccak query still belongs to EthHash under D5. Its main architectural job is to make replacement exercise 4 (ARCHITECTURE §1) pass: callers see `U256` only through stable observers and representation-independent laws.
+`EthBase` is layer L0 (ARCHITECTURE §2): the primitive value types every other library uses. These are the EVM word `U256` with its full EVM arithmetic API, bounded and unbounded integers (`Uint`, `U8`…`U64`), byte sequences (`Bytes`) with their content order (Q54), fixed-width byte types (`Address`, `Hash32`, `Bytes32`, `Bloom`, …) with their lawful orderings, big/little-endian conversions, a few numeric helpers from `utils/`, the `HashConsts` record of keccak-derived constants (D5; values only, computed by `EthHash`), and the `Envelope` record of implementation limits. It contains no fork policy, no protocol or cryptographic hashing and no codecs. Q51 permits the explicitly named nonprotocol Hash32 table-support instance; every Keccak query still belongs to EthHash under D5. Its main architectural job is to make replacement exercise 4 (ARCHITECTURE §1) pass: callers see `U256` only through stable observers and representation-independent laws.
 
 ## 2. Requirements
 
@@ -54,7 +54,16 @@ proofs; a boxed per-byte temporary array is not an implementation exception.
 - `Uint.from_be_bytes` accepts any length (`:523`).
 - `U32.from_le_bytes` and the other little-endian variants are analogous.
 
-**R8. Fixed-width bytes.** `FixedBytes.__new__` raises `ValueError` unless the length is exact (`ethereum_types/bytes.py:29–37`).
+**R8. Byte sequences and fixed-width bytes.** Q54 specifies unsigned byte
+lexicographic order on every finite existing `Bytes`: the first differing UInt8
+determines comparison; when all shared bytes agree, the proper prefix precedes
+the longer sequence. Empty values and significant leading zeros remain in the
+domain, with no maximum length or canonical-encoding premise.
+`ethereum_types/bytes.py:165` aliases `Bytes` to builtin bytes, and fixed-width
+subclasses inherit content comparison/equality (`:16`). Distinct source aliases
+with the same content have no additional runtime tag in this model.
+
+`FixedBytes.__new__` raises `ValueError` unless the length is exact (`ethereum_types/bytes.py:29–37`).
 - `Address = Bytes20` (`state.py:33`), `Hash32 = Bytes32` (`crypto/hash.py:19`), `Root = Hash32` (`state.py:34`), `Bloom = Bytes256` (`forks/amsterdam/fork_types.py:34`), `VersionedHash = Hash32` (`fork_types.py:32`).
 - *Naive-reading trap:* these are `bytes` subclasses, so slicing or concatenating them yields plain `bytes`. Equality with a plain `bytes` of the same content is `True`. The spec must use explicit conversions and `Hash32 ≠ Bytes32` only as a type distinction (D2).
 
@@ -334,6 +343,43 @@ padding parameters of types `int`/`Uint`/`U256`, compares in-bounds
 `memory_read_bytes`, and verifies its out-of-bounds unpadded distinction.
 These comparisons leave host-resource policy, opcode effects, guest executions
 and the remaining byte/conversion API open (§10).
+
+### Implemented variable-length Bytes order (Q54)
+
+EthBase owns the following provider declarations on the existing private packed
+`Bytes`, implemented in `STFSpec/Base/BytesOrder.lean`. The functional model
+and public laws are **discharged**; each row is pure and total on its stated
+domain, with no query, state effect or failure channel.
+
+| Source / support authority | Public declaration / domain | Observation / ordinary law / status | Validation |
+|---|---|---|---|
+| Locked `ethereum-types` 0.4.1 `bytes.py:165,16` (builtin/inherited content order); Q54 | `Bytes.compareReference : Bytes → Bytes → Ordering`; every finite pair | `Ord.compare a.toList b.toList`, using unsigned UInt8 lexical order and proper-prefix order; model **discharged** | `BytesOrderGuards.lean`: empty/equal/prefix, leading zeros, all 65,536 unsigned singleton pairs, early/late differences and 4096-byte shared prefixes; authenticated unchanged source byte comparisons |
+| Q54; D25 executable/reference seam | `Bytes.compare : Bytes → Bytes → Ordering`; same full domain | Direct bounded packed access, beside the legible List reference; `Bytes.compare_eq_reference` for every pair; **discharged** | Ordinary all-input proof; evaluated guards and `BytesNativeTests.lean` complete compiled/model results; private scanner/bounded helper declaration audit |
+| Q54; existing actual Bytes equality | `Ord Bytes`, `Std.TransOrd Bytes`, `Std.LawfulEqOrd Bytes` | Instance comparison is `Bytes.compare`; `Bytes.compare_toList` and `Bytes.compare_eq_eq_iff`; **discharged** | `BytesOrderCallerProofs.lean`: named symbolic public-only clients for every new law, lawful order, equal-content reconstruction and public Std map insert/overwrite/different-key behavior |
+| Q54; existing packed export and Lean core list observation | `Bytes.toByteArray_toList (b : Bytes)`; every finite Bytes | `b.toByteArray.toList = b.toList`; **discharged** | Ordinary core ByteArray-toList bridge and named public-only client; evaluated/compiled empty, leading-zero and 4096-byte packed outputs |
+
+The list reference may be unfolded locally; consumers use these public equations,
+existing inverse/export and extensionality laws, never private storage or scanner
+equations. Existing `Bytes.toList_toByteArray` observes the data-array list; the
+new `toByteArray_toList` law connects the core ByteArray `toList` API exactly.
+Existing DecidableEq remains actual byte-content equality. No additional container,
+raw ByteArray order, new BEq, LT/LE, Hashable, coercion or replacement DecidableEq
+is authorized. Fixed-width/domain orders retain their existing boundaries.
+
+Validation must distinguish `[0] < [0,0]`, `[0,1] < [1]`, and `[255] > [0,0]`.
+Locked `ethereum-rlp` 0.1.6 `rlp.py:66–108` and pinned EELS
+`forks/amsterdam/fork.py:1084–1088,1123–1130,1152–1157` supply actual RLP ordinal
+byte keys: zero encodes as `[128]`, greater than one's `[1]` in byte order.
+Those observations do not supply transaction/receipt/withdrawal value encoders,
+schema or root agreement. The scan is structurally bounded by the shorter size
+and stops at the first mismatch; it constructs no list or byte buffer. Natural-index work depends on
+index bit length. Fresh source observations compare complete results for 3254 byte
+pairs and 1028 actual RLP ordinal keys, including inherited fixed-byte alias
+equality. These finite regressions and the ordinary model proofs supply no cost
+measurement. Correctness-gated comparator measurements must include conversions
+and allocation evidence; actual ordered-map construction, preparation,
+root composition, retention, replacement and C1–C4 costs remain open. Reassess the
+implementation under D18/D25 when consumer measurements show a material limitation.
 
 ### Implemented fixed bytes and domain keys
 
@@ -692,6 +738,23 @@ def Bytes.foldl : (α → UInt8 → α) → α → Bytes → α
 def Bytes.foldr : (UInt8 → α → α) → α → Bytes → α
 -- GetElem Bytes Nat UInt8 requires index < size
 def Bytes.toList : Bytes → List UInt8               -- stable observer (model)
+def Bytes.toByteArray : Bytes → ByteArray           -- existing explicit packed export
+-- Q54: implemented order/law providers, on every finite Bytes pair
+namespace Bytes
+  def compareReference (a b : Bytes) : Ordering := Ord.compare a.toList b.toList
+  def compare (a b : Bytes) : Ordering              -- direct bounded packed scan
+  theorem compare_eq_reference (a b : Bytes) :
+    Bytes.compare a b = Bytes.compareReference a b
+  instance : Ord Bytes                             -- comparator is Bytes.compare
+  instance : Std.TransOrd Bytes
+  instance : Std.LawfulEqOrd Bytes
+  theorem compare_toList (a b : Bytes) :
+    Ord.compare a b = Ord.compare a.toList b.toList
+  theorem compare_eq_eq_iff (a b : Bytes) :
+    Ord.compare a b = Ordering.eq ↔ a = b
+  theorem toByteArray_toList (b : Bytes) :
+    b.toByteArray.toList = b.toList
+end Bytes
 def Bytes.leftPadZero Bytes.rightPadZero : Bytes → Nat → Bytes
 -- public Base model for memory/calldata users
 def Bytes.extractPadded : Bytes → (start len : Nat) → Bytes
@@ -821,6 +884,7 @@ F19 separately governs EthState's ordered address/byte-slot keys; the BAL does n
 **Byte sequences** [R/C]:
 
 - `Bytes.toList` is injective, has length `b.size`, and is inverse to `Bytes.ofList` construction. Explicit `ofByteArray`/`toByteArray` adapters are inverse and preserve the list model and size; consumers typed over `ByteArray` use that packed boundary.
+- Q54's implemented order/law signatures are in §5. Ordinary `compare_eq_reference` holds for all finite pairs; `compare_toList` exposes unsigned byte lexical order, and `compare_eq_eq_iff` uses actual existing Bytes equality. Empty/proper-prefix/leading-zero cases require no premise. `toByteArray_toList` observes the existing packed export through core ByteArray `toList`; it complements the existing data-array observation law. The scanner and bounded helper remain private, and proofs must transfer the List model's lawful order through public injectivity.
 - `Bytes.foldl` and `Bytes.foldr` equal the corresponding folds over `toList`; their executable loops traverse the packed buffer.
 - Padding prepends/appends exactly `n - b.size` zeros; its size is `max b.size n`, it retains sufficient inputs and is idempotent at a fixed width. The per-byte observations specify the original bytes and zero prefix/suffix.
 - `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in `Bytes.lean`; VM memory/gas effects are separate.
@@ -856,7 +920,7 @@ are listed in §3.
 
 **Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal inverse, length, canonicality and ordered width-rejection equations are proved by the §3 implementations; masked-address construction preserves exactly the low 160 bits. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
 
-**Open obligations.** Complete the enumeration of checked-operation failure sites and their errors, the actual Taylor measure and its practical cost analysis (DISC-002), and the Envelope domain. The recurrence argument proves mathematical termination, not a usable zkVM cycle bound.
+**Open obligations.** Complete Q54’s actual consumer cost/integration evidence (§3/§10). Complete the enumeration of checked-operation failure sites and their errors, the actual Taylor measure and its practical cost analysis (DISC-002), and the Envelope domain. The recurrence argument proves mathematical termination, not a usable zkVM cycle bound.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -884,6 +948,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Variable-length Bytes order (Q54).** The comparator/reference, all-input ordinary equality, lawful instances, actual-equality and packed-export model laws and source/compiled/public-only validation are discharged in §3; the conditional EthCommit `KeyBytes Bytes` adapter remains separately unimplemented. Actual maps, preparation/root composition, allocation/retention, replacement and C1–C4 costs remain open; reassess under D18/D25 rather than adopting a cost bound from local comparator evidence.
 - **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; other unbounded integer helpers and Envelope remain unimplemented; hash acquisition and its concrete byte-field equality guards are owned by EthHash §3; F20 production entry seams and coherence remain open. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

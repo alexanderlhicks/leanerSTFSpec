@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
 *Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53.*
+*Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
 
@@ -572,7 +572,13 @@ only when nonempty. Total encoding on `none` or other invalid Lean values suppli
 Python-success claim. Valid legacy interpretations and source agreement retain exact
 schema/dispatch and Q47 premises. Lawful optional value equality must agree with
 Python for default comparisons; lawful RLP-index byte keys satisfy EthCommit's
-injective byte-lex `KeyBytes` contract. No context-free Account instance is introduced.
+injective byte-lex `KeyBytes` contract. If those concrete keys use the existing
+Base `Bytes`, the conditional EthCommit adapter uses Q54's supplied
+EthBase order/export laws (EthBase §5/§7; EthCommit §7.0.3). Compare the actual
+RLP ordinal bytes, not their numeric indices: zero is `[128]`, one is `[1]`, so
+zero's key follows one's. This provider choice supplies none of EthBlock's value
+encoding, source equality/schema, safety, F20 or host premises. No context-free
+Account instance is introduced.
 
 `BlockOutput` retains dense `Array ByteArray` values. The planned public composition
 equation identifies `i ↦ values[i]` under key `bytesToNibbleList (rlp i)` with
@@ -611,7 +617,7 @@ Per operation (model-based, D25):
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
   - `readsDisjoint`: read slots minus written slots. [C]
 - **Receipts and bloom.** `logsBloom (l₁ ++ l₂) = logsBloom l₁ ||| logsBloom l₂`; `logsBloom [] = 0²⁵⁶`. [C] The receipt of transaction `i` carries the cumulative gas `Σ_{j≤i} gasUsed_j`. [C]
-- **Tries (Q53; unimplemented).** Each root is `mathRoot emptyRoot` of the dense encoded ordinal map specified in §5, equal to EthCommit's typed `root emptyRoot t unsecured safe` by its pure preparation equation. EthBlock establishes value validity, lawful byte keys, source equality/encoding and complete schema/assembled `Encodable` premises, and supplies the coherent F20 context root. The stateless-path header derives it from the same bytes, so for canonical encodings the comparison is [I] a tautology. [C, once the required provider/consumer and EthCodec round-trip laws exist]
+- **Tries (Q53; unimplemented).** Each root is `mathRoot emptyRoot` of the dense encoded ordinal map specified in §5, equal to EthCommit's typed `root emptyRoot t unsecured safe` by its pure preparation equation. EthBlock establishes value validity, lawful byte keys (conditionally using Q54 providers when choosing existing Bytes), source equality/encoding and complete schema/assembled `Encodable` premises, and supplies the coherent F20 context root. The stateless-path header derives it from the same bytes, so for canonical encodings the comparison is [I] a tautology. [C, once the required provider/consumer and EthCodec round-trip laws exist]
 - **Arithmetic safety.** Each lemma discharges an EELS `-` that would raise:
   - `updateSenderState` never underflows after `checkTransaction` succeeds, since `maxGasFee ≥ gas·price + blobFee`;
   - `priorityFee = price − baseFee ≥ 0`;
