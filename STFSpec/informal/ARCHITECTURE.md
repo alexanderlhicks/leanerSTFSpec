@@ -472,6 +472,19 @@ separate obligations.
 
 **Hash32 table-support options (Q51).** Truncated Nat hashing; the explicit complete 32-digit support model with ordinary streaming/reference equality; or another support representation behind the same model laws. The owning disposition is in DECISIONS Q51 and the provider contract in EthBase §3. EthBase's boundary excludes protocol/cryptographic hashing and permits the named nonprotocol support instance; every Keccak remains routed through KeccakQuery (D5). Revisit executable support costs against actual construction/allocation/adversarial-distribution evidence; functional lawful-hash proofs do not close §5.0 or C1–C4.
 
+**Typed-trie default/validity and key options (Q53).** Arbitrary defaults with lawful
+equality and a separate preparation proof preserve the source setter's all-value domain.
+A fixed class default with a linking law narrows that domain; an explicit preparation-error
+API broadens modeled failures and changes the interface scope. Generic `KeyBytes` requires
+injective byte interpretation and comparison agreement with byte lexicographic order;
+initial ByteArray specialization would avoid a generic adapter. The owning disposition
+is DECISIONS Q53: keep the generic contract and begin with proof-carrying unsecured safe
+preparation/root. Typed root passes the caller's F20 empty root directly to `mathRoot`
+on the pure prepared map; equality to a separate monadic sequential reference requires
+`LawfulMonad`, while local composition/empty equations need `Monad` alone. Secure traversal,
+collision folding, source history and generic coupling remain separate open obligations.
+This interface clarification changes no dependency boundary or implementation readiness.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

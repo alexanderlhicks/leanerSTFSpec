@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9.*
+*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
 
@@ -148,7 +148,7 @@ It returns `IntrinsicGasCost`.
 
   `extractDepositData` (`requests.py:170`) raises `deposit .length` unless `len = 576`. Then it checks the five head offsets against `160, 256, 320, 384, 512` and the five length words against `48, 32, 8, 96, 8`, in that order, each with its own `deposit` constructor. It returns `pubkey ++ wc ++ amount ++ sig ++ index` (192 bytes). `computeRequestsHash rs = sha256 (concat (map sha256 rs))` (`:307`).
 - **R-BLOOM** (`bloom.py:29–87`). For each log, add its address and then each topic. For each entry `h = keccak e` and each `j ∈ {0, 2, 4}`: `b = be16(h[j..j+2]) & 0x7FF`, then set bit `7 − (i mod 8)` of byte `i / 8`, where `i = 0x7FF − b`.
-- **R-TRIE.** Transaction, receipt and withdrawal roots are the **unsecured** MPT roots (`EthCommit`) of `rlp i ↦ value`. The value is the typed bytes as-is, or `rlp` of a legacy transaction, receipt or withdrawal (`merkle_patricia_trie.py:252–269`).
+- **R-TRIE.** Transaction, receipt and withdrawal roots are the **unsecured** MPT roots (`EthCommit`) of `rlp i ↦ value`. All three source tries have default `None` (`vm/__init__.py:107–117`), distinct from empty Bytes. EthBlock owns the Q53 value interpretations: `encodeTransaction` leaves legacy records for one RLP encoding and returns typed envelopes as Bytes (`transactions.py:540–559`); receipts likewise use legacy records or typed Bytes (`blocks.py:394–414`, `fork.py:669–703,1119–1130`); withdrawals actually enter the trie as already-RLP Bytes (`fork.py:1152–1157`). C10 returns every actual Bytes value unchanged, including typed envelopes and withdrawal encodings, so no extra RLP layer is added. Dense arrays (§5–§6) store these final encodings once. Their root composition uses EthCommit's existing `root`/`mathRoot` with the stored context's F20 empty root; typed calls supply lawful byte keys, `secured = false` and stored-value `PrepareSafe` (Q53), not just default inequality.
 
 ### 2.11 Block access list (R-BAL, EIP-7928, `block_access_lists.py`)
 
@@ -333,7 +333,23 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 
 The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [REVIEW](../REVIEW.md). Earlier experiments using 0.1.7 remain historical evidence and must be rerun when load-bearing.
 
+### Clarified root-input seam (Q53; unimplemented)
+
+| Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+
 ## 4. Tests
+
+Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
+typed transaction/receipt forms, already-RLP withdrawal identity and keys
+`80/01/7f/8180/820100` for ordinals `0/1/127/128/256`. Prove validity/nonempty
+encoding once and the dense-array/prepared-map equation through public owner contracts.
+Distinguish absent `none` from unsafe nondefault empty bytes. Empty roots must use a
+synthetic nonliteral context constant without acquisition or a new local query; nonempty
+roots preserve C8's original errors and prior state. Authenticated source comparisons
+retain exact schema/dispatch, complete `Encodable`, F20 coherence and host premises.
+These are future consumer checks; the guidance clarification claims no new conformance.
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`, in both `blockchain_tests` and `blockchain_tests_engine`, under `for_amsterdam` and the transition `for_bpo2toamsterdamattime15k`):
   - Amsterdam: `eip2780_reduce_intrinsic_tx_gas` (59), `eip7778_block_gas_accounting_without_refunds` (9), `eip7843_slotnum` (10), `eip7928_block_level_access_lists` (202/204), `eip7976_increase_calldata_floor_cost` (21), `eip7981_increase_access_list_cost` (19), `eip8037_state_creation_gas_cost_increase` (268, for block gas and settlement), `eip8246_selfdestruct_no_burn` (7), `eip8282_builder_execution_requests` (22), `eip8025_optional_proofs` (100: public-key hints, chain id, versioned hashes);
@@ -548,6 +564,27 @@ def stateTransition (cfg) (toPre : σ → HashConsts → PreState m) (apply : σ
 
 Constants-consuming entry and header helpers use `consts : HashConsts` and local EELS notation (CONTRIBUTING §7.2, F20). `validateHeader` takes the record explicitly because it runs before `BlockState.new`. Body, transaction, BAL and state consumers project `BlockState.consts` through their existing accumulator, state or world arguments. Construction and validation order follow R-EB (§2.7); the provider factory's type alone does not prove coherence.
 
+**Typed root inputs (Q53; unimplemented).** EthBlock supplies the concrete `TrieValue`
+bridges for `Option BlockTx`, `Option EncodedReceipt` and optional already-encoded
+withdrawal Bytes. `none` interprets Python `None` and is invalid for preparation;
+legacy records encode by RLP, and `some` actual Bytes encode by identity and are valid
+only when nonempty. Total encoding on `none` or other invalid Lean values supplies no
+Python-success claim. Valid legacy interpretations and source agreement retain exact
+schema/dispatch and Q47 premises. Lawful optional value equality must agree with
+Python for default comparisons; lawful RLP-index byte keys satisfy EthCommit's
+injective byte-lex `KeyBytes` contract. No context-free Account instance is introduced.
+
+`BlockOutput` retains dense `Array ByteArray` values. The planned public composition
+equation identifies `i ↦ values[i]` under key `bytesToNibbleList (rlp i)` with
+`prepareTrieModel` of the corresponding default-None, unsecured, safe typed trie.
+Every dense encoded entry must be nonempty; a typed bridge proves the corresponding
+`PrepareSafe`. Existing `mathRoot` consumes this already encoded map, or the existing
+typed `root emptyRoot t unsecured safe` composes it with preparation. Both use the
+same empty root projected from the caller's existing context, using F20 notation.
+Serialize envelopes/withdrawals once; no additional root API or validity runtime guard
+is implied. Equality to a separately sequenced preparation reference needs
+`LawfulMonad`, as specified by EthCommit §7.0.3.
+
 Execution threads `BlockState`, transaction observations and `BalBuilder` explicitly. Pure admission/codec checks return `Except BlockError`; functions that hash return in `m`; functions enclosing a runner call run in `BlockM m`, retaining the outer `InternalError` through system calls, body execution and stateful drivers. `runVmChecked` returns `m (CheckedResult …)` (F14); its `VmFault` is mapped through `BlockError.ofVmFault` into the inner channel, and an internal error passes through unchanged (see COMPOSITION.md). No global `IO` or mutable reference is used. Decoding (`decodeTransaction`, `decodeReceipt`, `extractDepositData`) stays pure.
 
 ## 6. Data structures
@@ -574,7 +611,7 @@ Per operation (model-based, D25):
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
   - `readsDisjoint`: read slots minus written slots. [C]
 - **Receipts and bloom.** `logsBloom (l₁ ++ l₂) = logsBloom l₁ ||| logsBloom l₂`; `logsBloom [] = 0²⁵⁶`. [C] The receipt of transaction `i` carries the cumulative gas `Σ_{j≤i} gasUsed_j`. [C]
-- **Tries.** `transactionsRoot = trieRoot (dense encodes)`. The stateless-path header derives it from the same bytes, so for canonical encodings the comparison is [I] a tautology. [C, once EthCodec's round-trip lemmas exist]
+- **Tries (Q53; unimplemented).** Each root is `mathRoot emptyRoot` of the dense encoded ordinal map specified in §5, equal to EthCommit's typed `root emptyRoot t unsecured safe` by its pure preparation equation. EthBlock establishes value validity, lawful byte keys, source equality/encoding and complete schema/assembled `Encodable` premises, and supplies the coherent F20 context root. The stateless-path header derives it from the same bytes, so for canonical encodings the comparison is [I] a tautology. [C, once the required provider/consumer and EthCodec round-trip laws exist]
 - **Arithmetic safety.** Each lemma discharges an EELS `-` that would raise:
   - `updateSenderState` never underflows after `checkTransaction` succeeds, since `maxGasFee ≥ gas·price + blobFee`;
   - `priorityFee = price − baseFee ≥ 0`;
@@ -613,7 +650,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   - `BlockState`/`TxState` operations and observers from `EthState`: `getAccount`, `getCode`, `incrementNonce`, `setAccountBalance`, `createEther`, `clearAccountPreservingBalance`, `incorporateTxIntoBlock`, `extractBlockDiff`, `trackAncestorAccess`.
   - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `BlockOutput`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions.
   - `secp256k1Recover` through `EthVmRunner`'s transitive closure (`EthCurve`).
-  - `trieRoot` over `ByteArray` maps from `EthCommit` (monadic: it hashes through the oracle, F4); RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
+  - EthCommit's existing `root`/`mathRoot` over the safe typed/prepared dense maps (§5, Q53), with caller context empty root and lawful byte keys; EthBlock supplies its concrete validity/encoding bridges. RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
 - **Dependency inversion (required).** EELS's `incorporate_tx_into_block` (`state_tracker.py:842–847`, G3) calls `update_builder_from_tx`, but `EthState` must not see the BAL. The spec therefore splits it:
   1. `EthBlock` calls `updateBuilderFromTx` **first**, reading the un-merged block state;
   2. it then calls `EthState.incorporateTxIntoBlock`.
@@ -636,12 +673,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Parameter values: resolved, DECISIONS B8 (Q1): types here, values in `EthFork`.
 - Named runtime-fault constructors: resolved, DECISIONS B14 (Q2) and CONTRACT O13: named constructors, no `runtimeFault` catch-all.
 - Blob-price feasibility: tracked as DISC-002 (Q3).
+- Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
 
 ## 10. Gaps
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
+- **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Mathematical termination is required but not yet proved; practical feasibility remains open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

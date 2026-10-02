@@ -21,6 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
+| Trie, TrieValue, KeyBytes | EthCommit | Q53's clarified unimplemented contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete decoding/cache/agreement consumers require `Authentic keccak256`; a generic oracle table alone supplies no concrete authenticity. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
@@ -31,6 +32,29 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Typed-trie preparation premise (Q53; unimplemented)
+
+[EthCommit §5/§7.0.3](modules/EthCommit.md#5-interface) owns arbitrary-default
+setters, separate `NoDefault`/`PrepareSafe`, validity/nonempty encoding and lawful
+injective byte-key interpretation. Empty construction supplies both predicates for any
+default; an all-value setter preserves safety from a safe input exactly when it deletes
+by equality with that default or inserts a valid value. Preparation/root require safety
+and `secured = false`, but no `NoDefault`; valid stored defaults are encoded directly.
+Preparation is pure with zero queries; typed root calls C8 directly on that pure map
+with the caller's existing F20 empty root. Local composition/empty equations need only
+`Monad`; equality to a separate preparation-bind reference needs `LawfulMonad`.
+
+EthBlock supplies valid concrete legacy records, nonempty typed envelope Bytes and
+already-RLP withdrawal Bytes, with lawful byte keys and default `None` semantics. Its
+dense arrays use the same EthCommit root operations (§5 of EthBlock), encoding each value once.
+EthStateCommit owns U256 validity independently of zero deletion and the contextual
+Account/storage-root integration; no context-free Account instance follows from this
+class. Source bridges additionally supply Python equality/dispatch agreement, valid
+supported non-`None` values, complete schema/assembled-node `Encodable` (Q47), coherent
+F20 constants and pinned host compatibility. Total invalid encodings carry no Python-success
+claim. Secure traversal, collisions, source history and generic coupling remain open;
+Q53 discharges none of these proofs or production seams.
 
 ### SHA-256 digest premise
 
