@@ -68,7 +68,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; implement/prove Q53's lawful arbitrary-default setters, separate validity/safety, injective byte-key interpretation and unsecured pure preparation/root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
+| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety laws (EthCommit §3); implement/prove concrete encoding bridges, injective byte-key interpretation and unsecured pure preparation/root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Implement Q53 U256 validity/nonempty laws independently of zero deletion and contextual Account integration, without a bare Account instance or secured-policy claim. Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements; settle the storage-trie memo (F6) and clear order (F7). |
@@ -100,10 +100,10 @@ At module completion record which obligations are actually discharged and how. T
 For each implemented EELS operation, keep a reviewable source-to-Lean row in the owning module's §3 or in the implementation change: exact EELS `file:line` and dependency version if relevant; Lean declaration and public type; accepted-input/precondition domain; success value and state effects; ordered failure conditions and their first consuming handler/O-row; model equation or theorem; and at least one deterministic case or named fixture area. Grouped inventory claims in §3 establish ownership only. Mark an item **unimplemented**, **implemented but unproved**, or **discharged**, and name any caller that must establish a precondition. A passing fixture is evidence for the specific path it executes, not for every branch of the claimed operation.
 
 Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
-[EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe clarified **unimplemented**
-seams. Before any implementation claim, validate arbitrary supplied defaults, unsafe
-nondefault insertion versus safe default deletion, exact safety iff, direct valid stored
-defaults, empty Bytes versus RLP zero/empty collections, lawful byte-key alias exclusion,
+[EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe scoped seams.
+Generic C11 storage/safety is supplied by EthCommit §3; the byte-key, concrete
+encoding, preparation/root and consumer seams remain **unimplemented**. Preparation validation must cover empty Bytes versus
+RLP zero/empty collections, directly stored valid defaults, lawful byte-key alias exclusion,
 encoding exactly once, whole prepared maps and zero preparation queries. Root validation
 must use a supplied nonliteral empty root, preserve original C8 errors/prior state and
 whole queries/answers, and explicitly require `LawfulMonad` for sequential-reference
