@@ -485,6 +485,18 @@ on the pure prepared map; equality to a separate monadic sequential reference re
 collision folding, source history and generic coupling remain separate open obligations.
 This interface clarification changes no dependency boundary or implementation readiness.
 
+**Existing Bytes ordering options (Q54).** A bounded packed scanner can stop at
+the first differing byte; executable List conversion also satisfies byte semantics
+but materializes both whole lists. An additional container or raw ByteArray order
+widens the interface. Numeric and length-first orders disagree with unsigned byte
+lexicographic order for varying lengths and significant leading zeros; actual RLP
+ordinal keys also differ from numeric order. DECISIONS Q54 owns the disposition;
+EthBase §3/§5/§7 owns the exact full-finite Bytes model and provider signatures.
+Scanner details are private and replaceable behind ordinary public equations (D25).
+The conditional EthCommit adapter and consumer integration are separate; correctness
+proofs/local comparator measurements do not close actual map/preparation/root,
+allocation/retention, replacement or C1–C4 obligations.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

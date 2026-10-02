@@ -61,7 +61,7 @@ Every row is required before claiming that module's corresponding refinement, in
 
 | Module | Remaining design/proof work |
 |---|---|
-| EthBase | Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Enumerate checked integer operations and failure sites; specify Envelope's role; formalise Taylor descent and resolve DISC-002 practical feasibility. |
+| EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Enumerate checked integer operations and failure sites; specify Envelope's role; formalise Taylor descent and resolve DISC-002 practical feasibility. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
 | EthField | Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
@@ -112,6 +112,23 @@ whole queries/answers, and explicitly require `LawfulMonad` for sequential-refer
 equality. Public proof-only clients establish the owner/consumer boundary. Authenticated
 source comparisons must retain concrete supported non-`None` equality/dispatch,
 source-schema/assembled `Encodable` (Q47), coherent F20 and pinned host premises.
+
+Q54's [EthBase §3/§5/§7](modules/EthBase.md#3-eels-source-map) functional providers
+are discharged there. Their gates validate every finite input through ordinary
+`compare_eq_reference`, `compare_toList`, actual-equality `compare_eq_eq_iff`,
+`Std.TransOrd`/`Std.LawfulEqOrd` and `toByteArray_toList` proofs; keep scanner/helper
+private and give every new public law a symbolic proof-only client using public
+Base/Std seams. Deterministic and unchanged authenticated source cases cover
+empty/equal/proper-prefix, leading zeros, unsigned high bytes, early/late mismatch,
+long shared prefixes and actual RLP ordinal ordering (`80` after `01`). Native
+checks compare complete results with the List model. Run declaration/boundary gates;
+retain existing equality and reject unapproved container/instance scope. Any local
+comparator cost evidence has a correctness gate, no checksum in timed loops, and
+explicit conversions/allocation/provenance. Actual map construction, preparation,
+root composition, retained versions, replacement and C1–C4 remain separate gates;
+reassess material limitations under D18/D25. A conditional future `KeyBytes Bytes`
+adapter uses the public inverse/order/core-list export laws; it supplies no encoder,
+schema, source equality, F20, host, secure-policy or guest-readiness result.
 
 An implementation gate does not prohibit useful spikes or an incomplete development branch. It prohibits presenting unvalidated behaviour as the normative finished spec. Debt handling follows D18 (accepted): record performance exceptions in `STFSpec/informal/DEBT.md`, and keep missing premises explicit rather than silently weakening them. A patch affecting an observer, failure priority, gas policy, schema, ordering or state lifetime must update all affected contracts and the composition proof before a conformance claim is restored.
 
