@@ -33,11 +33,13 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
-### Typed-trie preparation premise (Q53; unimplemented)
+### Typed-trie storage and preparation premise (Q53)
 
-[EthCommit §5/§7.0.3](modules/EthCommit.md#5-interface) owns arbitrary-default
-setters, separate `NoDefault`/`PrepareSafe`, validity/nonempty encoding and lawful
-injective byte-key interpretation. Empty construction supplies both predicates for any
+[EthCommit §3/§7.0.3](modules/EthCommit.md#3-eels-source-map) supplies generic
+arbitrary-default storage and separate `NoDefault`/`PrepareSafe` laws. Its
+`TrieValue` class specifies total encoding with nonemptiness under validity;
+concrete encoding bridges, lawful injective byte-key interpretation and
+preparation/root remain unimplemented. Empty construction supplies both predicates for any
 default; an all-value setter preserves safety from a safe input exactly when it deletes
 by equality with that default or inserts a valid value. Preparation/root require safety
 and `secured = false`, but no `NoDefault`; valid stored defaults are encoded directly.
