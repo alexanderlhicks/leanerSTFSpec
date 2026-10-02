@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -40,7 +40,8 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 - C12. `build_node_db` (`ws:37–42`) keys every witness entry by `keccak256(entry)`, folding in input order with **last entry wins**. In Lean `NodeDB.build` hashes through the oracle (monadic, D5/F4), so authenticity is the separate predicate `NodeDB.Authentic H db` (every entry `b` under `h` has `H b = h`), which `NodeDB.build` establishes at `m := Id` with `H := keccak256`. Repeated identical entries are harmless; different entries with the same digest must preserve last-write behaviour and yield a collision in the security proof. Extra entries are allowed (fixture `test_validation_state_extra_unused_trie_node`), subject to C16(f).
 - C13. `decode_witness_to_mpt db r` (`inc:994–1040`): if `r = EMPTY_TRIE_ROOT`, the empty trie **without consulting the DB** (`inc:1024–1030`); else `db[r]` (missing → `KeyError`, O4(a)) and decode it. Decoding is pure in Lean (F4), so the empty root is an explicit parameter: `decodeRoot emptyRoot db r`, called with `HashConsts.emptyTrieRoot`.
-- C14. `_decode_witness_node bytes` (`inc:917–991`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Lean decoding is pure (F4), so a DB entry takes its reference `h` as the cached hash, and the inline case is open, §10); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string, `compactToNibbles` (C3); **leaf**: the second item must be a string (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
+- C14. `_decode_witness_node bytes` (`inc:917–991`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Lean decoding is pure (F4), so a DB entry takes its reference `h` as the cached hash, and the inline case is open, §10); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string (list → `.malformed .compactPathList` at `inc:946`, Q52), then `compactToNibbles` (C3); **leaf**, only after successful compact decoding with the leaf flag: the second item must be a string (list → `.malformed .leafValueList` at `inc:951`, Q52) (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
+  Whole RLP decoding at `inc:936` must succeed before either field-shape check; malformed second fields or trailing bytes therefore win over Q52. Raw empty compact bytes fail with `compactEmpty` before interpreting item 1, while an empty decoded extension path fails with `pathEmpty` before child resolution. A descendant failure propagates unchanged through `inc:960` before the parent child-kind check at `:961`. Branch item 16 remains lenient; `leafValueList` belongs only to a two-item leaf. The whole C14 dispatcher and WitnessError/guest adapters are unimplemented.
 - C15. `_resolve_child_ref` (`inc:892–914`): an empty string → no child; a string of length ≠ 32 → malformed; a 32-byte string present in the DB → decode that entry (recursively, eager); absent → an **unresolved stub** `HashedNode h` (not an error); an inline list → decode `rlp.encode(list)`.
 - C16. **Accepted non-canonical encodings** [executed; each reachable only with a trie that no canonical state produces]: (a) hex-prefix flag bits 2–3 set or a non-zero padding nibble (C3); (b) an inline child whose RLP is ≥ 32 bytes (it is then given a cached hash, C18); (c) a hash reference to a DB entry shorter than 32 bytes; (d) a branch value that is a list (read as empty); (e) a leaf with an empty value or a path whose length does not match its depth; (f) a child reference equal to `EMPTY_TRIE_ROOT`: if the DB contains the entry `0x80`, it decodes to **no child**, otherwise it is a stub — so adding the "unused" entry `0x80` can turn an accepted witness into a rejected one (occupancy drops below 2) [executed]. The Lean decoder must reproduce these outcomes exactly (P2), and the agreement theorem (§7.4) covers them through its collision disjunct.
 - C17. **Cycles and sharing.** EELS recurses without a visited set: a reference cycle ends in `RecursionError`, caught as `false` (O12, classified O4 by CONTRACT); the Lean decoder tracks the hashes on the current path and returns `malformed` on a repeat. A DB built by C12 can contain a cycle only through a Keccak fixpoint chain, which cannot be ruled out in Lean without an assumption, so totality needs the check (ARCHITECTURE §5.4). A **shared** hash reached along two paths is decoded twice by EELS; on a DAG-shaped witness this is exponential in depth (16 identical children per level) [inference from `inc:892–914`]. Memoising completed, validated decodings must preserve mathematical decoding and raw encodings (§7.6). This is the DAG memo of DISC-004/B15, internal to one `decodeRoot`; it is not the per-root storage-trie memo of `EthStateWitness` (F6, open). Its effect on host-resource acceptance requires D14/O12 treatment. Deep acyclic chains can exceed Python's recursion limit in EELS: the guest-process limit is 100,000 (py_ecc raises it; 12,288 applies only after `import ethereum`), and the witness-chain depth at which the reference fails has not been re-measured under it (DISC-001, O12 unresolved).
@@ -240,6 +241,39 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/compact_differential.py \
 
 Finite actual-source and native complete-result observations validate this slice;
 no node, root, witness or guest acceptance/refinement is discharged.
+
+### Implemented decoder field diagnostic declarations (Q52)
+
+`TrieError.lean` implements the two diagnostic declarations; C14 dispatch is
+**unimplemented**. These declarations supply no new acceptance rule or adapter.
+
+| Exact pinned source | Lean declaration/public type and domain | Success/effects | Ordered failure/handler | Support laws | Evidence |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:936,944–947` | `Malformed.compactPathList : Malformed`; declaration support only; whole-RLP-decoded two-item node with a list first field | Nominal diagnostic value, no traversal/effect | After whole RLP and arity; before compact decoding; future `TrieError.malformed` → WitnessError → O4, inner `stateless.py:303–304`; adapter unimplemented | Ordinary inductive distinctness and wrapper injectivity; `DecoderDiagnosticCallerProofs.malformed_inj` | `c2c0c0`, `c2c078`; competing `c4c0810180` rejects in the actual codec first |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:947–951` | `Malformed.leafValueList : Malformed`; declaration support only; successful compact decoding with leaf flag and list second field | Nominal diagnostic value, no traversal/effect | After compact success/leaf flag; raw-empty failure wins; descendant failures propagate unchanged; same unimplemented adapter/O4 as above | `compact_error_distinct`, `nonempty_compact`, `node_wire_bound`, `failed_rlp_no_item` compose public existing contracts | `c220c0`; competing `c220c080` codec failure; `c280c0` raw-empty compact failure; `c22080`, `c22078` source acceptance controls |
+
+`DecoderDiagnosticGuards.lean` distinguishes every diagnostic and TrieError
+wrapper (including distinct payloads), compares complete actual RLP parses of
+minimal/competing/descendant controls, and actual compact results for all sixteen
+flags and noncanonical padding/high bits. `DecoderDiagnosticCallerProofs.lean`
+uses only public codec/compact/diagnostic contracts. The finite source driver
+runs genuine pinned `_decode_witness_node` and asserts ordered exception lines
+for ten named cases. It records all 85 complete outcomes, checks aggregate counts
+and the allowed exception classes, restores tracing and repeats every call untraced. Full raw
+values, complete source/lock and installed types/RLP/crypto identities are
+retained before/after. Emitted guards compare actual successful RLP and compact
+values against Lean seams; there is no Lean whole-node diagnostic comparison.
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/decoder_diagnostic_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
+Interpreter/startup, frozen installation/RECORD and host remain trust inputs.
+Uncommitted local finite native checks are separate support evidence. The command
+above is the committed source-only reproducer, emitting interpreter `#guard`s;
+no native diagnostic runner is committed here.
+No C14/whole decoder, WitnessError adapter, W1, guest or resource gate is discharged.
 
 ### Implemented mathematical-root domain support
 
@@ -445,7 +479,16 @@ Prefix guards cover asymmetric proper prefixes and first/end mismatches.
 full actual-source observations. The compact decoder guards in §3 additionally
 cover exact raw-empty failure, every leading byte, ordered suffix digits, canonical
 inverses and accepted-wire normalization.
-Witness decoding and trie cases below remain open; resource gates are owned by REVIEW §7.
+Q52 seam guards cover exact wires `c2c0c0`, `c220c0`, `c4c0810180`,
+`c220c080`, `c280c0`, `c2c078`, `c22080`, `c22078`, `c200c0`, `c20078`,
+`c210c0`, `c410c2c0c0`, `c410c220c0`. Source observations additionally record
+all sixteen flags with byte/list second fields, accepted noncanonical padding/high
+bits and a branch-list ending with two occupied hashed children, with aggregate
+counts and allowed exception classes checked as described in §3. The latter is a
+source acceptance control, not a branch decoder. Remaining dispatcher regressions
+must assign Q52 in C14 order, distinguish compactEmpty/pathEmpty, preserve original
+descendant errors and accept branch-list endings. Witness decoding and trie cases
+below remain open; resource gates are owned by REVIEW §7.
 
 `NibblesOperationsGuards.lean` checks bounded generators, clipped windows,
 huge offsets, significant zeros and lawful map keys through complete outputs.
@@ -571,7 +614,8 @@ inductive Node
 abbrev Ref := Option Node                   -- none = empty; inline vs hashed is a property of Enc (B3; provenance, DISC-003)
 def Node.WF : Node → Prop                   -- every branch has exactly 16 children, plus the §6 invariants
 def childRef : Ref → RlpItem                -- C18: "" · stub hash · cached hash · inline RLP item
-inductive Malformed | rlp | nonEmptyString | compactEmpty | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
+inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | leafValueList
+  | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
@@ -709,6 +753,15 @@ transformer laws state LawfulMonad explicitly. `build_id_model`, full lookup and
 needed: an overwrite retains a preimage whose own digest is the shared key.
 Arbitrary generic answers carry no concrete authentication guarantee.
 
+### 7.0.4 Decoder diagnostic declaration support
+
+Q52's constructors are distinct by ordinary inductive equality. The public
+clients in §3 prove wrapper injectivity and use `compactToNibbles_error_iff` to
+exclude either field diagnostic and `pathEmpty` from compact primitive failures.
+Public codec success binds the whole wire and supplies `Encodable`;
+`failed_rlp_no_item` states generic `Except` success/error exclusivity. These facts support future ordering proofs but
+do not implement or prove C14 dispatch or the WitnessError/O4 adapter.
+
 ### 7.1 Totality [T]
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
@@ -789,6 +842,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D25 (accepted): `represents` as the abstraction relation.
 - Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent support is in §3, while actual constructors and source agreement remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
+- Q52: two-item path-list and leaf-value-list diagnostic declarations follow C14/§5; exact ordering and source acceptance controls are in §3/§4, while dispatcher and adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
 - NEW-COMMIT-1: DECISIONS B3 (Q32): `Ref` hidden behind the trie API; `Option Node` only if it keeps the provenance DISC-003 needs (open: not yet tested).
 - NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict versus lazy `Enc` still open (§6).
@@ -810,6 +864,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`patricialize` choice-independence** and the Canonical-uniqueness lemma for a hexary trie with branch values and variable-length keys (unsecured tries) have no existing Lean proof; the Nipkow chapter is binary.
 - **Internal-node scope:** C6 operational/model/lift laws are proved as in §3/§7.0.1. Complete standard-domain and Python Extended interpretation/host premises remain caller obligations. Root/patricialization/witness/cache/database laws, canonical trie-shape conditions and resource gates remain open. Empty extension paths and arbitrary nested fields are valid C6 inputs; witness validity is a separate contract.
 - **Pure path scope:** the `Nibbles` representation/invariant, implemented pure path operations and Q49 bounded generation/clipped copies/lawful order are discharged as in §3/§7.0. Q50 domain/strict sum-descent support is discharged in §3. Private longest shared-prefix selection and its domain/maximality/representative laws, and bounded private branch partition/ending/callback-C6 sequencing support, are supplied in §3. Actual C7–C8, trie mutation/integration, aggregate copy/allocation costs and C1–C4 measurements remain open; slices copy O(k).
+- **Field diagnostic scope:** Q52 declaration distinctness and public codec/compact seam clients are supplied in §3/§7.0.4. C14 assignment/ordering, descendant-error propagation, branch-list ending leniency, whole eager decoding, WitnessError/O4 adapters and W1 remain unimplemented. Finite source observations are evidence only.
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection, diagnostic adapters to witness/guest channels and whole-node/trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.

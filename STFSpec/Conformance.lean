@@ -68,6 +68,8 @@ import STFSpec.Conformance.Fixtures.Tests
 import STFSpec.Conformance.Commit.NibblesOperationsGuards
 import STFSpec.Conformance.Commit.NibblesOperationsCallerProofs
 import STFSpec.Conformance.Commit.NibblesGuards
+import STFSpec.Conformance.Commit.DecoderDiagnosticGuards
+import STFSpec.Conformance.Commit.DecoderDiagnosticCallerProofs
 import STFSpec.Conformance.Commit.CompactGuards
 import STFSpec.Conformance.Commit.CompactCallerProofs
 import STFSpec.Conformance.Commit.NibblesCallerProofs

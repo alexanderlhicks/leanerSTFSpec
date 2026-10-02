@@ -21,7 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
-| TrieError, Malformed | EthCommit | Keep raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
+| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete decoding/cache/agreement consumers require `Authentic keccak256`; a generic oracle table alone supplies no concrete authenticity. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
@@ -106,6 +106,17 @@ canonicality and aggregate copy/comparison costs remain open.
 Future node/trie consumers own those checks and witness/guest adapters. These
 pure path/domain premises introduce no node/root or host-resource theorem; the local
 decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
+
+### Decoder field diagnostic premise
+
+[EthCommit §3/§7.0.4](modules/EthCommit.md#3-eels-source-map) supplies Q52's
+nominal diagnostic declarations and public codec/compact seam clients. Future C14
+consumers must parse the whole RLP first, check a two-item path field before
+compact decoding, and check a list-valued leaf value only after successful leaf
+compact decoding. Extension path/child checks, original descendant-error
+propagation and branch-list ending leniency remain dispatcher obligations.
+No whole node decoder or WitnessError/guest adapter has been implemented;
+CONTRACT O4 owns the unchanged output projection.
 
 ### Internal-node encoding premise
 
