@@ -68,15 +68,15 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding and order-sensitive collapse; validate table and composed resource bounds. |
-| EthStateCommit | Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
+| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; implement/prove Q53's lawful arbitrary-default setters, separate validity/safety, injective byte-key interpretation and unsecured pure preparation/root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
+| EthStateCommit | Implement Q53 U256 validity/nonempty laws independently of zero deletion and contextual Account integration, without a bare Account instance or secured-policy claim. Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements; settle the storage-trie memo (F6) and clear order (F7). |
 | EthVmCore | Complete GasCosts/error/record fields; prove gas preconditions and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
-| EthBlock | Implement and prove F20 acquisition/threading and context coherence; expand every record/codec and admission arithmetic failure; prove BAL/index/receipt ordering, unchecked-system fault propagation and backend simulation. |
+| EthBlock | Implement/prove Q53's actual Bytes/legacy/typed/withdrawal encoding bridges and dense safe root-input composition using lawful byte keys and context empty root. Implement and prove F20 acquisition/threading and context coherence; expand every record/codec and admission arithmetic failure; prove BAL/index/receipt ordering, unchecked-system fault propagation and backend simulation. |
 | EthFork | Compare complete parameter tables with source; construct coherent config/table; specialise behavioural termination proof; verify previous-header compatibility. |
 | EthStateless | Implement and prove F20 acquisition/threading and context coherence; complete phase-to-outcome projection and input-to-context WF/rootability; typecheck subtype/header/request adapters; prove exact 43-byte encoding; prove O2 unreachable on decoded values. |
 | EthConformance | Co-ordinate closing X1 in the failure ledger (maintained outside this repository); implement exact guest-record/label/replay handling, locked environment and dependent-transition policy. |
@@ -98,6 +98,18 @@ Use these three independent acceptance checks:
 At module completion record which obligations are actually discharged and how. Tests may demonstrate counterexamples or confidence; they cannot be relabelled as a universal proof. Keep the Mathlib and security packages' dependencies directed outward from the core. Use the memory, trie and gas replacement exercises to check that clients depend on public equations; include order/caches/failure observations in the trie exercise.
 
 For each implemented EELS operation, keep a reviewable source-to-Lean row in the owning module's §3 or in the implementation change: exact EELS `file:line` and dependency version if relevant; Lean declaration and public type; accepted-input/precondition domain; success value and state effects; ordered failure conditions and their first consuming handler/O-row; model equation or theorem; and at least one deterministic case or named fixture area. Grouped inventory claims in §3 establish ownership only. Mark an item **unimplemented**, **implemented but unproved**, or **discharged**, and name any caller that must establish a precondition. A passing fixture is evidence for the specific path it executes, not for every branch of the claimed operation.
+
+Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
+[EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe clarified **unimplemented**
+seams. Before any implementation claim, validate arbitrary supplied defaults, unsafe
+nondefault insertion versus safe default deletion, exact safety iff, direct valid stored
+defaults, empty Bytes versus RLP zero/empty collections, lawful byte-key alias exclusion,
+encoding exactly once, whole prepared maps and zero preparation queries. Root validation
+must use a supplied nonliteral empty root, preserve original C8 errors/prior state and
+whole queries/answers, and explicitly require `LawfulMonad` for sequential-reference
+equality. Public proof-only clients establish the owner/consumer boundary. Authenticated
+source comparisons must retain concrete supported non-`None` equality/dispatch,
+source-schema/assembled `Encodable` (Q47), coherent F20 and pinned host premises.
 
 An implementation gate does not prohibit useful spikes or an incomplete development branch. It prohibits presenting unvalidated behaviour as the normative finished spec. Debt handling follows D18 (accepted): record performance exceptions in `STFSpec/informal/DEBT.md`, and keep missing premises explicit rather than silently weakening them. A patch affecting an observer, failure priority, gas policy, schema, ordering or state lifetime must update all affected contracts and the composition proof before a conformance claim is restored.
 
