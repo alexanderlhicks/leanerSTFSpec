@@ -1,9 +1,13 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Fresh source/native complete NodeDB regressions against pinned-source observations.
 
-Run python3 scripts/test_node_db.py --observations OUT/NodeDBSource.observations.json
---output OUT/native. Evidence must be outside the candidate. Finite functional
-construction and sibling observations do not establish table costs or security.
+Run from the repository root:
+python3 STFSpec/Conformance/Commit/node_db_native.py \
+  --observations OUT/NodeDBSource.observations.json --output OUT/native
+Evidence must be outside the candidate. Finite functional construction and sibling
+observations do not establish table costs or security. Observation parsing is
+checked with normal Python and -O; invoke the complete native driver normally,
+since its provenance assertions require the default interpreter mode.
 """
 
 import argparse
@@ -127,6 +131,28 @@ def main := NodeDBProbe.main
 '''.replace("CALLS", "\n".join(calls))
 
 
+def require(condition, detail):
+    """Keep observation checks active under Python optimization."""
+    if not condition:
+        raise AssertionError(detail)
+
+
+def natural(raw):
+    """Parse the canonical ASCII natural text emitted by Lean."""
+    require(raw and raw.isascii() and raw.isdecimal(), raw)
+    require(raw == "0" or raw[0] != "0", raw)
+    return int(raw)
+
+
+def byte_list(raw, *, width=None):
+    """Check UInt8 list types and bounds before equality or bytes conversion."""
+    value = ast.literal_eval(raw)
+    require(type(value) is list, raw)
+    require(all(type(byte) is int and 0 <= byte < 256 for byte in value), raw)
+    require(width is None or len(value) == width, raw)
+    return value
+
+
 def check_output(raw, cases):
     expected = {f'id{c["case"]}': {int(item["key"], 16): bytes.fromhex(item["value"])
                                   for item in c["items"]} for c in cases}
@@ -148,42 +174,56 @@ def check_output(raw, cases):
     traces.update({f"sibling{s}": [bytes([0, i, s, 0]) for i in range(64)] for s in range(8)})
     traces.update({f"failure{n}": small[:n + 1] for n in range(4)})
     sizes, observed, actual_traces, queries, failures, lifts = {}, {}, {}, {}, {}, {}
+    field_counts = {"S": 3, "M": 5, "Q": 4, "T": 3, "F": 3, "L": 3}
+    failure_labels = {f"failure{n}" for n in range(4)}
     for line in raw.splitlines():
         fields = line.split("|")
+        require(fields[0] in field_counts and len(fields) == field_counts[fields[0]], line)
         kind, label = fields[:2]
+        labels = (traces if kind == "T" else failure_labels if kind == "F"
+                  else {"forward", "reverse"} if kind == "L" else expected)
+        require(label in labels, line)
         if kind == "S":
-            assert label not in sizes and int(fields[2]) == len(expected[label]), line
-            sizes[label] = int(fields[2])
+            n = natural(fields[2])
+            require(label not in sizes and n == len(expected[label]), line)
+            sizes[label] = n
             observed[label] = {}
         elif kind == "M":
-            n = int(fields[2])
-            assert ast.literal_eval(fields[3]) == list(n.to_bytes(32, "big")), line
-            value = bytes(ast.literal_eval(fields[4]))
-            assert n not in observed[label] and expected[label][n] == value, line
+            n = natural(fields[2])
+            require(n < 1 << 256, line)
+            require(byte_list(fields[3], width=32) == list(n.to_bytes(32, "big")), line)
+            value = bytes(byte_list(fields[4]))
+            require(n not in observed[label] and expected[label][n] == value, line)
             observed[label][n] = value
         elif kind == "Q":
-            n = int(fields[2])
-            value = None if fields[3] == "none" else bytes(ast.literal_eval(fields[3]))
-            assert value == expected[label].get(n), line
+            n = natural(fields[2])
+            require(n < 1 << 256, line)
+            value = None if fields[3] == "none" else bytes(byte_list(fields[3]))
+            require(value == expected[label].get(n), line)
             queries.setdefault(label, []).append(n)
         elif kind == "T":
-            actual_traces.setdefault(label, []).append(bytes(ast.literal_eval(fields[2])))
+            actual_traces.setdefault(label, []).append(bytes(byte_list(fields[2])))
         elif kind == "F":
-            assert label not in failures
-            failures[label] = int(fields[2])
+            require(label not in failures, "incomplete or inconsistent NodeDB observations")
+            failures[label] = natural(fields[2])
         elif kind == "L":
-            assert label not in lifts
-            lifts[label] = int(fields[2])
+            require(label not in lifts, "incomplete or inconsistent NodeDB observations")
+            lifts[label] = natural(fields[2])
         else:
             raise AssertionError(line)
-    assert observed == expected and set(sizes) == set(expected)
-    assert queries == {label: [0, 999999, (1 << 256) - 1] for label in expected}
-    assert {label: actual_traces.get(label, []) for label in traces} == traces
-    assert set(actual_traces) == set(traces) - {"empty"}
-    assert failures == {f"failure{n}": n for n in range(4)} and lifts == {"forward": 91, "reverse": 91}
-    return {"maps": len(expected), "full_key_value_observations": sum(map(len, expected.values())),
+    require(observed == expected and set(sizes) == set(expected),
+            "missing or inconsistent table observations")
+    require(queries == {label: [0, 999999, (1 << 256) - 1] for label in expected},
+            "missing or misordered lookup observations")
+    require({label: actual_traces.get(label, []) for label in traces} == traces,
+            "missing or misordered query trace")
+    require(set(actual_traces) == set(traces) - {"empty"}, "incorrect trace labels")
+    require(failures == {f"failure{n}": n for n in range(4)} and
+            lifts == {"forward": 91, "reverse": 91}, "incorrect failure or lifted state")
+    return {"maps": len(observed), "full_key_value_observations": sum(map(len, observed.values())),
             "missing_or_present_queries": sum(map(len, queries.values())),
-            "ordered_queries": sum(map(len, traces.values())), "failure_positions": len(failures)}
+            "ordered_queries": sum(map(len, actual_traces.values())),
+            "failure_positions": len(failures)}
 
 
 def main():
@@ -191,7 +231,9 @@ def main():
     parser.add_argument("--observations", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
-    root, out = Path(__file__).resolve().parents[1], args.output.resolve()
+    if not __debug__:
+        parser.error("invoke the full native driver without -O; parser tests may use -O")
+    root, out = Path(__file__).resolve().parents[3], args.output.resolve()
     if out.is_relative_to(root):
         parser.error("output must be outside the candidate")
     out.mkdir(parents=True, exist_ok=False)

@@ -412,14 +412,18 @@ failure prefixes. Instrumented answers are controls, not concrete Keccak collisi
 The isolated interpreter, startup, frozen installation/RECORD, loader and host
 hash backend remain trust premises.
 
-Run `python3 scripts/test_node_db.py --observations OUTSIDE/NodeDBSource.observations.json
+Run `python3 STFSpec/Conformance/Commit/node_db_native.py --observations OUTSIDE/NodeDBSource.observations.json
 --output OUTSIDE/native`. Current actual-module setup/import artifacts and fresh
 C/olean equality precede owned O3/Werror object compilation. Complete source and
 native observations agree with the pinned concrete tables and independent
 arbitrary-answer controls, including reconstructed full-256-bit keys, empty raw
 values, extra entries, larger tables, sibling extensions and retained-parent checks.
 The native link map and exact archive-member/object comparisons identify the
-selected owned providers. No checksum substitutes for table or trace observations.
+selected owned providers. The parser enforces exact observation schemas, canonical
+natural fields and byte-list types/widths before comparing values; validated counts
+come from observed tables and traces. Parser regressions run in CI with normal
+Python and `-O`; the full native driver requires default Python mode for its
+provenance checks. No checksum substitutes for table or trace observations.
 These finite functional runs establish no table distribution, throughput,
 allocation, C1–C4, R4, generic oracle coupling, decoder/root or guest/EEST claim.
 
