@@ -1,8 +1,8 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-01.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-02.*
 
-**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-01); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
+**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
 Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
 
@@ -68,7 +68,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Complete C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding and order-sensitive collapse; validate table and composed resource bounds. |
+| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements; settle the storage-trie memo (F6) and clear order (F7). |
@@ -107,7 +107,7 @@ X1 is coordinated by EthConformance tooling; each module owns its explicit and i
 
 The highest-risk uncompleted items are closing the failure ledger's unresolved sites (X1), the complete CALL/CREATE gas proof (the fuel-adequacy investigation, §7 G2–G7), code-authenticity/oracle coupling, lenient witness root agreement (the witness/full-state agreement prototype, §7 S2), and the open interface items (X15). Until these are resolved, the repository is suitable for targeted validation and scaffolding, not an unconditional claim of end-to-end soundness.
 
-## 6. Implementation-readiness assessment (2026-10-01)
+## 6. Implementation-readiness assessment (2026-10-02)
 
 **Implemented scope.** [EthBase §3](modules/EthBase.md#3-eels-source-map) owns the
 implemented declarations, source correspondence, public proofs and operation-value
@@ -127,8 +127,10 @@ ordinary domain/maximality/representative laws. Private bounded branch support
 adds full-key partition/ending and ordered supplied-callback/C6 sequencing laws
 with their explicit lawful-monad premises (EthCommit §3). Recursive C7 adds actual
 full-map construction, public dispatch/extensionality and private every-node selector
-independence. Its §10 owns remaining witness/root APIs and trie/resource obligations.
-Other semantic components remain scaffolding.
+independence. C8 adds the total local root, supplied-empty bypass and ordinary
+whole-action reference/fused equality with explicit lawful sequencing. Its §10 owns
+remaining witness/trie APIs and trie/resource obligations. Other semantic components
+remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
@@ -143,8 +145,9 @@ domain/strict-descent support over actual finite maps, including all sixteen
 empty/nonempty child cases. Private callback-based branch formation adds bounded
 ordered C6 encoding support. Recursive C7 supplies complete node/query observations
 and private every-node selector independence, without a parent query at the return
-(EthCommit §3). C8 and canonicality,
-source-root agreement and aggregate copy/comparison costs remain open.
+(EthCommit §3). C8 supplies the total local wrapper and full-byte/effect reference
+equality, with complete final-query and original-error observations. Canonicality,
+whole-source refinement and aggregate copy/comparison costs remain open.
 Base differential drivers compare public operation values with the pinned source.
 Q51 table-support vectors compare complete UInt64/native/source values with independent
 nonprotocol Python arithmetic and actual Std map observations (EthBase §3); this

@@ -8,16 +8,17 @@ import STFSpec.Commit.InternalNode
 import Init.Data.Vector.OfFn
 
 /-!
-# Mathematical trie construction and its domain support
+# Mathematical trie construction, roots and domain support
 
 Library `EthCommit`. Support for pinned EELS
-`src/ethereum/merkle_patricia_trie.py:507–581`, on Q50's reachable domain.
+`src/ethereum/merkle_patricia_trie.py:478–581`, on Q50's reachable domain.
 Keys retain complete paths and values may be empty. `patricialize` implements C7
 with well-founded recursion and minimum-key selection. The private branch stage
 sequences actual child construction then C6 encoding in numeric order, without
 hashing the returned parent. Ordinary public dispatch equations retain literal
 monadic association; a private recursive proof permits arbitrary valid member
-selectors at every descendant. C8/root and witness acceptance remain separate.
+selectors at every descendant. C8 supplies the supplied-empty branch and one
+final complete top query. Witness acceptance remains separate.
 Partition, sum, prefix and branch helpers stay private to this owner; callers use
 public domain and construction laws.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.2/5/7.1.
@@ -25,7 +26,7 @@ Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.2/5/7.1.
 
 namespace STFSpec.Commit
 
-open STFSpec.Codec STFSpec.Hash
+open STFSpec.Base STFSpec.Codec STFSpec.Hash
 
 /-- Reachable depth of a finite full-key map: keys are long enough and have the
 same consumed prefix. Every finite map has this domain at depth zero. -/
@@ -1291,5 +1292,176 @@ theorem patricialize_branch_lawful {m : Type → Type} [Monad m] [LawfulMonad m]
         (.bytes (obj[representative.take level]?.getD ByteArray.empty)))) : m (Option InternalNode)) := by
   rw [patricialize_branch obj level domain multikey representative member noPrefix]
   simp only [bind_assoc, pure_bind]
+
+/-! Mathematical root: C6/root reference and its fused complete-top query. -/
+
+private theorem size_encode_hash_answer (answer : Hash32) :
+    (Rlp.encode (.bytes answer.toBytes.toByteArray)).size = 33 := by
+  rw [Rlp.encode_bytes, Rlp.size_encodeBytes, Bytes.size_toByteArray, Hash32.size_toBytes]
+  simp
+
+-- EELS root returns Extended: short structures are hashed, while C6 hash answers
+-- are returned as raw bytes, not their 33-byte RLP encodings. This reference
+-- observes that result as an RlpItem; it makes no typed Hash32 conversion.
+private def encodeRootReference {m : Type → Type} [Monad m] [KeccakQuery m]
+    (node : Option InternalNode) : m RlpItem := do
+  let reference ← encodeInternalNode node
+  if (Rlp.encode reference).size < 32 then do
+    let answer ← KeccakQuery.keccak (Rlp.encode reference)
+    pure (.bytes answer.toBytes.toByteArray)
+  else pure reference
+
+private theorem encodeRootReference_eq {m : Type → Type} [Monad m] [LawfulMonad m]
+    [KeccakQuery m] (node : Option InternalNode) :
+    encodeRootReference (m := m) node = (do
+      let answer ← KeccakQuery.keccak (Rlp.encode (assembleInternalNode node))
+      pure (.bytes answer.toBytes.toByteArray) : m RlpItem) := by
+  by_cases short : (Rlp.encode (assembleInternalNode node)).size < 32
+  · rw [encodeRootReference, encodeInternalNode_inline node short, pure_bind,
+      ite_eq_left short]
+  · rw [encodeRootReference, encodeInternalNode_hash node (by omega)]
+    simp only [bind_assoc, pure_bind]
+    apply congrArg (fun continuation : Hash32 → m RlpItem ↦
+      (KeccakQuery.keccak (Rlp.encode (assembleInternalNode node)) : m Hash32) >>= continuation)
+    funext answer
+    rw [size_encode_hash_answer, ite_eq_right (by decide)]
+
+private def mathRootReference {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) : m RlpItem :=
+  if obj.size = 0 then pure (.bytes emptyRoot.toBytes.toByteArray)
+  else do
+    let node ← patricialize obj 0 (PatricializeDomain.zero obj)
+    encodeRootReference node
+
+/-- Mathematical full-map root. Q50 returns the supplied constant on empty maps
+with no local query. Otherwise C7's descendants precede exactly one query on the
+complete top assembly, with no threshold on the root itself. Pinned EELS
+`src/ethereum/merkle_patricia_trie.py:478–504`, with caller-owned preparation/F20. -/
+def mathRoot {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) : m Hash32 :=
+  if obj.size = 0 then pure emptyRoot
+  else do
+    let node ← patricialize obj 0 (PatricializeDomain.zero obj)
+    KeccakQuery.keccak (Rlp.encode (assembleInternalNode node))
+
+-- Ordinary whole-action equality includes every answer byte and all monadic effects.
+-- Q47 makes it unconditional on Encodable. LawfulMonad explicitly licenses the
+-- eliminated/reassociated intermediate binds. This is the total local reference,
+-- not generic equality to Python's acquisition/preparation effects on empty input.
+private theorem mathRoot_eq_reference {m : Type → Type} [Monad m] [LawfulMonad m]
+    [KeccakQuery m] (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) :
+    (do let answer ← mathRoot (m := m) emptyRoot obj
+        pure (RlpItem.bytes answer.toBytes.toByteArray)) =
+      mathRootReference emptyRoot obj := by
+  by_cases empty : obj.size = 0
+  · rw [mathRoot, mathRootReference, ite_eq_left empty, ite_eq_left empty, pure_bind]
+  · rw [mathRoot, mathRootReference, ite_eq_right empty, ite_eq_right empty, bind_assoc]
+    apply congrArg (fun continuation : Option InternalNode → m RlpItem ↦
+      patricialize obj 0 (PatricializeDomain.zero obj) >>= continuation)
+    funext node
+    exact (encodeRootReference_eq node).symm
+
+/-- Exact local root dispatch; the literal monadic association needs only Monad. -/
+theorem mathRoot_eq {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) :
+    mathRoot (m := m) emptyRoot obj =
+      (if obj.size = 0 then pure emptyRoot else do
+        let node ← patricialize obj 0 (PatricializeDomain.zero obj)
+        KeccakQuery.keccak (Rlp.encode (assembleInternalNode node)) : m Hash32) := rfl
+
+/-- Empty input bypasses C7 and even a failing oracle, retaining the supplied constant. -/
+theorem mathRoot_empty {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) (empty : obj.size = 0) :
+    mathRoot (m := m) emptyRoot obj = pure emptyRoot := by
+  rw [mathRoot_eq, ite_eq_left empty]
+
+/-- Every nonempty map constructs descendants then queries the entire top wire once. -/
+theorem mathRoot_nonempty {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) (nonempty : obj.size ≠ 0) :
+    mathRoot (m := m) emptyRoot obj = (do
+      let node ← patricialize obj 0 (PatricializeDomain.zero obj)
+      KeccakQuery.keccak (Rlp.encode (assembleInternalNode node)) : m Hash32) := by
+  rw [mathRoot_eq, ite_eq_right nonempty]
+
+/-- Matching every optional full-key lookup determines the complete root action. -/
+theorem mathRoot_ext {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj other : Std.ExtTreeMap Nibbles ByteArray)
+    (same : ∀ key : Nibbles, obj[key]? = other[key]?) :
+    mathRoot (m := m) emptyRoot obj = mathRoot emptyRoot other := by
+  have equal : obj = other := Std.ExtTreeMap.ext_getElem? same
+  subst other
+  rfl
+
+/-- Id runs actual C7 followed by the concrete complete-top digest. Empty constants
+are still caller supplied; their coherence with C5 is a separate premise. -/
+theorem mathRoot_id (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) :
+    mathRoot (m := Id) emptyRoot obj =
+      if obj.size = 0 then emptyRoot else
+        keccak256 (Rlp.encode (assembleInternalNode
+          (patricialize (m := Id) obj 0 (PatricializeDomain.zero obj)))) := rfl
+
+/-- An original construction failure suppresses the final root query. -/
+theorem run_mathRoot_construction_error {m : Type → Type} {ε : Type}
+    [Monad m] [LawfulMonad m] [KeccakQuery (ExceptT ε m)]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray)
+    (nonempty : obj.size ≠ 0) (error : ε)
+    (failed : (patricialize (m := ExceptT ε m) obj 0 (PatricializeDomain.zero obj)).run =
+      pure (.error error)) :
+    (mathRoot (m := ExceptT ε m) emptyRoot obj).run = pure (.error error) := by
+  rw [mathRoot_nonempty emptyRoot obj nonempty, ExceptT.run_bind, failed, pure_bind]
+
+/-- The final query's original error is retained after a pure successful construction. -/
+theorem run_mathRoot_query_error {m : Type → Type} {ε : Type}
+    [Monad m] [LawfulMonad m] [KeccakQuery (ExceptT ε m)]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray)
+    (nonempty : obj.size ≠ 0) (node : Option InternalNode) (error : ε)
+    (constructed : patricialize (m := ExceptT ε m) obj 0 (PatricializeDomain.zero obj) =
+      pure node)
+    (failed : (KeccakQuery.keccak (m := ExceptT ε m)
+      (Rlp.encode (assembleInternalNode node))).run = pure (.error error)) :
+    (mathRoot (m := ExceptT ε m) emptyRoot obj).run = pure (.error error) := by
+  rw [mathRoot_nonempty emptyRoot obj nonempty, constructed, pure_bind]
+  exact failed
+
+/-- Exception-lift execution preserves C7's actual transformer computation; success
+forwards the final query, while a construction error skips it. No C7 lift is assumed. -/
+theorem run_mathRoot_exceptT {m : Type → Type} {ε : Type}
+    [Monad m] [LawfulMonad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) :
+    (mathRoot (m := ExceptT ε m) emptyRoot obj).run =
+      (if obj.size = 0 then pure (.ok emptyRoot) else do
+        let result ← (patricialize (m := ExceptT ε m) obj 0
+          (PatricializeDomain.zero obj)).run
+        match result with
+        | .error error => pure (.error error)
+        | .ok node => do
+          let answer ← KeccakQuery.keccak (Rlp.encode (assembleInternalNode node))
+          pure (.ok answer) : m (Except ε Hash32)) := by
+  rw [mathRoot_eq]
+  split
+  · rfl
+  · rw [ExceptT.run_bind]
+    apply congrArg (fun continuation : Except ε (Option InternalNode) → m (Except ε Hash32) ↦
+      (patricialize (m := ExceptT ε m) obj 0 (PatricializeDomain.zero obj)).run >>= continuation)
+    funext result
+    cases result with
+    | error error => rfl
+    | ok node => simp [KeccakQuery.keccak_exceptT, ExceptT.run_lift]
+
+/-- State-lift execution carries C7's returned state into the final query and
+preserves it there; any underlying effects remain in the underlying monad. -/
+theorem run_mathRoot_stateT {m : Type → Type} {σ : Type}
+    [Monad m] [LawfulMonad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (obj : Std.ExtTreeMap Nibbles ByteArray) (state : σ) :
+    (mathRoot (m := StateT σ m) emptyRoot obj).run state =
+      (if obj.size = 0 then pure (emptyRoot, state) else do
+        let (node, next) ← (patricialize (m := StateT σ m) obj 0
+          (PatricializeDomain.zero obj)).run state
+        let answer ← KeccakQuery.keccak (Rlp.encode (assembleInternalNode node))
+        pure (answer, next) : m (Hash32 × σ)) := by
+  rw [mathRoot_eq]
+  split
+  · rfl
+  · rfl
 
 end STFSpec.Commit

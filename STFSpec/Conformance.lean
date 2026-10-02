@@ -83,6 +83,8 @@ import STFSpec.Conformance.Commit.RootBranchCallerProofs
 import STFSpec.Conformance.Commit.RootPrefixCallerProofs
 import STFSpec.Conformance.Commit.RootConstructionGuards
 import STFSpec.Conformance.Commit.RootConstructionCallerProofs
+import STFSpec.Conformance.Commit.MathRootGuards
+import STFSpec.Conformance.Commit.MathRootCallerProofs
 
 /-!
 # STFSpec.Conformance
