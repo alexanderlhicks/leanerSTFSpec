@@ -100,9 +100,12 @@ and additional path, and strict sum descent for positive amounts (EthCommit §3)
 values and prefix relationships remain allowed. Private bounded branch support
 uses those partitions and ending lookup with supplied child construction followed
 by C6 encoding in numeric order; its sequencing equations retain LawfulMonad
-premises (EthCommit §3). It returns a branch without a parent query and implements
-no recursive constructor or root. Whole-constructor choice independence,
-canonicality and aggregate copy/comparison costs remain open.
+premises (EthCommit §3). It returns a branch without a parent query. Recursive C7 now consumes the supplied
+child/domain witness and prefix domain/strict-descent laws, with public empty,
+singleton, extension, ordered branch and optional-lookup extensionality equations.
+Its private recursive selector equality permits different valid representatives at
+every descendant; public clients use ordinary arbitrary-member equations without
+a new selector API. C8/root, canonicality and aggregate copy/comparison costs remain open.
 Future node/trie consumers own those checks and witness/guest adapters. These
 pure path/domain premises introduce no node/root or host-resource theorem; the local
 decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
@@ -131,10 +134,9 @@ coupling, cache/witness/root and whole-trie/resource gates remain open.
 
 ### Mathematical-root domain and constants premise
 
-`PatricializeDomain` is the public proof seam in EthCommit's future `Root` owner;
-its fields use actual `Nibbles.size`/`take` and finite-map membership. Bounded branch
-assembly is supplied; no recursive trie/node constructor or root is supplied by
-this support slice. Q50's arbitrary-depth helper
+`PatricializeDomain` is the public proof seam in EthCommit's `Root` owner;
+its fields use actual `Nibbles.size`/`take` and finite-map membership. Recursive C7
+constructs internal nodes on this domain; C8/root is not supplied. Q50's arbitrary-depth helper
 requires the proof explicitly; no behavior outside that domain is selected.
 Empty `mathRoot emptyRoot` locally returns `pure emptyRoot` without a new query
 or local oracle failure. Caller-owned F20 acquisition must provide the coherent

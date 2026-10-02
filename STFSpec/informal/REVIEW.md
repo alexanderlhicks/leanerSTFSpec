@@ -125,9 +125,10 @@ Q50 supplies actual finite-map domain/ending-key laws and private extension/chil
 strict sum-descent support and private longest shared-prefix selection with
 ordinary domain/maximality/representative laws. Private bounded branch support
 adds full-key partition/ending and ordered supplied-callback/C6 sequencing laws
-with their explicit lawful-monad premises (EthCommit §3). Its §10 owns remaining
-witness/root APIs, constructor measures and trie/resource obligations. Other semantic components
-remain scaffolding.
+with their explicit lawful-monad premises (EthCommit §3). Recursive C7 adds actual
+full-map construction, public dispatch/extensionality and private every-node selector
+independence. Its §10 owns remaining witness/root APIs and trie/resource obligations.
+Other semantic components remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
 [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
@@ -140,9 +141,9 @@ checks supply provider evidence; finite full-output native correctness observati
 supply no throughput or C1–C4 claim. Q49 supplies provider support; Q50 discharges
 domain/strict-descent support over actual finite maps, including all sixteen
 empty/nonempty child cases. Private callback-based branch formation adds bounded
-ordered C6 encoding support, without recursive construction or a parent query
-(EthCommit §3). Actual C7–C8,
-whole-constructor choice independence/canonicality,
+ordered C6 encoding support. Recursive C7 supplies complete node/query observations
+and private every-node selector independence, without a parent query at the return
+(EthCommit §3). C8 and canonicality,
 source-root agreement and aggregate copy/comparison costs remain open.
 Base differential drivers compare public operation values with the pinned source.
 Q51 table-support vectors compare complete UInt64/native/source values with independent
