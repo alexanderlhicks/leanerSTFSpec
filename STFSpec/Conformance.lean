@@ -87,6 +87,8 @@ import STFSpec.Conformance.Commit.MathRootGuards
 import STFSpec.Conformance.Commit.MathRootCallerProofs
 import STFSpec.Conformance.Commit.TrieGuards
 import STFSpec.Conformance.Commit.TrieCallerProofs
+import STFSpec.Conformance.Commit.PreparationGuards
+import STFSpec.Conformance.Commit.PreparationCallerProofs
 
 /-!
 # STFSpec.Conformance
