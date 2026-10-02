@@ -10,6 +10,9 @@ import STFSpec.Base.FixedBytes
 Library `EthCommit`. The diagnostic constructors are owned by EthCommit §5.
 `compactEmpty` names the first-byte failure in the pinned compact decoder;
 `pathEmpty` names the later decoded extension-path check (Q48, CONTRACT O4).
+Q52 names the two-item node's path-list check before compact decoding and its
+leaf-value-list check after successful leaf compact decoding. The whole node
+decoder and the WitnessError/guest adapters remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/2.7/5.
 -/
 
@@ -21,8 +24,12 @@ inductive Malformed where
   | rlp
   /-- A string-valued node is nonempty. -/
   | nonEmptyString
+  /-- A two-item decoded node has a list-valued first field, before compact decoding. -/
+  | compactPathList
   /-- Raw compact bytes are empty, before path decoding. -/
   | compactEmpty
+  /-- After successful leaf compact decoding, the second field is list-valued. -/
+  | leafValueList
   /-- A decoded extension path is empty. -/
   | pathEmpty
   /-- A node list has neither two nor seventeen fields. -/
