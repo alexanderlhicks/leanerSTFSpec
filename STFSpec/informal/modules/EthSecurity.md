@@ -1,7 +1,7 @@
 # `EthSecurity`: witness soundness, header-chain and request binding, and the Keccak ROM bound
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44.*
+*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44, Q55.*
 
 `EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). It defines no executable behaviour. **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal.
 
@@ -34,7 +34,7 @@ No theorem may assume collision resistance for **totality**: `runStatelessGuest`
 - for header binding, the RLP encodings of the accepted chain's last 256 headers.
 
 **R4. Shared-oracle scope (D5).** **Broad scope, monad-parametric** (D5/B10, 2026-09-28; interfaces settled by review of a compiled prototype of the interfaces, 2026-09-29, DECISIONS §3): **every** keccak call goes through `KeccakQuery`, so all uses share one `h`; there are no concretely computed exceptions. Every core function that hashes, or reads a pre-state, is generic in `{m} [Monad m] [KeccakQuery m]`, and the executable spec is its `m := Id` instance (concrete keccak256). The uses are:
-- trie node hashing and secure-key hashing (`EthCommit`); node-DB and code-DB keying and account code-hash agreement (`EthStateWitness`, `EthStateCommit`);
+- trie node hashing, Q55's eligible complete raw-node occurrence queries before RLP parsing (including malformed inputs and exact parsed inline-list reencoding), and secure-key hashing (`EthCommit`); node-DB and code-DB keying and account code-hash agreement (`EthStateWitness`, `EthStateCommit`);
 - header-chain hashing (`EthStateless.validateHeaders`), the parent-hash check in `validate_header` (`EthBlock`), the payload block-hash check `is_valid_block_hash` and the payload transactions/withdrawals roots (`EthStateless`);
 - transaction and signing hashes, sender and authority address derivation, transactions/receipts/withdrawals roots, the bloom and the BAL hash (`EthBlock`);
 - the KECCAK256 opcode, CREATE/CREATE2 addresses, newly installed code hashes on code-deposit and delegation paths (`EthVmInstructions`, `EthVmRunner`), and ECRECOVER (`EthPrecompiles`, as `PrecompileFn m`);
@@ -94,7 +94,8 @@ theorem keccakQuery_ofFn (f) (k : KeccakKernel α) :
 
 -- Proposed hash-relative theorem templates, not compiled concrete APIs.
 -- Notation: for a kernel k : KeccakKernel α, `k h` is k run with every query answered by h
--- (simulateQ (QueryImpl.ofFn h)); at h = keccak256 it is the executable m := Id instance.
+-- (simulateQ (QueryImpl.ofFn h)); identifying h = keccak256 with executable Id
+-- requires the actual keccakQuery_ofFn bridge, not notation alone (Q55).
 -- `PreState` below means the core's `PreState m` at that run. ModelsQ/ProgressQ below
 -- name proposed hash-relative premises; their definitions and concrete bridges are
 -- the open oracle coupling (D5, X7). The core Models/Progress remain at `PreState Id`.
@@ -103,8 +104,9 @@ theorem keccakQuery_ofFn (f) (k : KeccakKernel α) :
 -- (1) deterministic trie agreement
 def trieQueries (h) (db : NodeDB) (M : Std.TreeMap ByteArray ByteArray) : Finset ByteArray
 def extractTrieCollision (h) (db : NodeDB) (M) : Option (Collision h)             -- computable
-theorem decodeRoot_represents (h db r t) (M) (ha : NodeDB.Authentic h db) :
-  decodeRoot h db r = .ok t → mathRoot h M = r →
+theorem decodeRoot_represents (h consts db r t) (M) (ha : NodeDB.Authentic h db)
+    (hconsts : consts = HashConsts.query h) :
+  decodeRoot h consts.emptyTrieRoot db r = .ok t → mathRoot h M = r →
   represents t M ∨ ∃ c, extractTrieCollision h db M = some c
 theorem witness_lookup_agreement (h db r k v M) (ha : NodeDB.Authentic h db) :
   lookupWitness h db r k = .ok v → mathRoot h M = r →
@@ -183,6 +185,25 @@ The proposed generic premises require the following proofs:
 
 Formalising these relations and the Hash32/Digest adapter remains X7. Until that coupling and hypothesis satisfiability are established, the generic templates carry no security content; they prove no production coherence or instantiated theorem.
 
+**Decoder interpretation premise (Q55; unproved).** `decodeRoot h` above is
+hash-relative notation for interpreting the actual generic decoder kernel, not
+a public pure decoder or a computational hash callback. At `h = keccak256`, the
+concrete premise is `Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t`, with
+`consts = Id.run HashConsts.query`; prove the real interpretation bridge for the
+complete pre-RLP acquisition/traversal before using this specialization. A pure
+hash-relative value model is allowed, but comparison with a generic action needs
+`KeccakQuery.keccak b = pure (H b)` at all relevant occurrences and `LawfulMonad`
+for sequencing. This conditional value comparison does not cover failing/stateful
+trace equality. Coherent F20 constants remain caller supplied.
+
+R3's preimage collection must include every eligible entered complete raw input,
+even when later whole RLP or shape admission fails, and inline inputs reencoded
+from exact parsed `RlpItem` subterms with proved `Encodable` provenance. A DB key
+is a reference, not a substitute for an occurrence answer. Equality of a decoded
+cache to that reference needs authenticity and eligible raw length; short
+authentic entries have no cached digest. Q55 supplies no new authentication
+admission rule, generic backend lifetime, memo/coupling theorem or security gate.
+
 ## 6. Data structures
 
 | Object | Representation | Model | Invariant | Persistence | Complexity |
@@ -199,7 +220,7 @@ Every extractor comes with a soundness lemma (`extract… = some c → c.x ∈ S
 
 All [S]; each lists the core obligations it consumes (the ids are the owning modules' laws).
 
-1. **Trie agreement** (`decodeRoot_represents`, `witness_lookup_agreement`, `witness_root_update_agreement`). Consumes: `EthCommit` [C] canonical-form invariant and "canonical tries are equal iff they represent the same map" (Nipkow et al. Ex. 12.1), `represents` simulation laws for lookup/update/delete, NodeDB.Authentic and the decoded-node hash law, RLP prefix-freeness/injectivity (`EthCodec`), eager decoding (D19) so that the decoded trie covers everything reachable. **Strategy:** induction on the decoded trie; at each hashed reference compare the witness node with `M`'s canonical subtrie node: equal encodings → recurse; different encodings with equal hash → collision; RLP injectivity closes the "same encoding, different node" case. Incremental root agreement follows Cassez (FM 2021) for "incremental = from-scratch" plus the same case split.
+1. **Trie agreement** (`decodeRoot_represents`, `witness_lookup_agreement`, `witness_root_update_agreement`). Consumes: `EthCommit` [C] canonical-form invariant and "canonical tries are equal iff they represent the same map" (Nipkow et al. Ex. 12.1), `represents` simulation laws for lookup/update/delete, NodeDB.Authentic, the actual Q55 interpretation/Id-run decoder premise and the decoded-node hash law restricted to eligible raw lengths, RLP prefix-freeness/injectivity (`EthCodec`), eager decoding (D19) so that the decoded trie covers everything reachable. **Strategy:** induction on the decoded trie; at each hashed reference compare the witness node with `M`'s canonical subtrie node: equal encodings → recurse; different encodings with equal hash → collision; RLP injectivity closes the "same encoding, different node" case. Incremental root agreement follows Cassez (FM 2021) for "incremental = from-scratch" plus the same case split.
 2. **State models up to collision** (`witness_models`). Consumes `EthStateCommit` account/storage leaf encodings and `ModelsRoot`/`ModelsCode`, `EthStateWitness` backend construction, including WitnessBackend.WF authentication/coherence. Code: a code-DB hit `c'` for `code_hash` with `σ` holding `c ≠ c'` and `keccak c = code_hash` is a collision.
 3. **Block agreement** (`stateless_implies_stateful`). Consumes: `EthStateless` L-backend-generic (the payload path touches `pre` only through `PreState` operations), `EthBlock` L-hint-equivalence (hint accepted ⇒ same result as recovery), and a **Models-parametricity** law for `executeBlock`: if `ps₁`, `ps₂` both model `σ` and every operation `ps₁` answers during the run succeeds, and `ps₂` has progress, then the runs agree. **Strategy:** a simulation between the two runs in which the only differing component is the backend, with equal answers at every query (from `Models`), then `ModelsRoot` for the post-state root. The proof size of the parametricity law is the dominant unknown (§10).
 4. **Header binding** (`header_chain_binding`, `blockhash_agreement`). Consumes `EthStateless` L-headers, RLP injectivity and re-encoding identity (`rlp (decode b) = b`), `EthBlock` `validate_header` parent-hash check. **Strategy:** backward induction along the chain from the anchored parent hash.
@@ -241,6 +262,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - VCV-io pin and API: DECISIONS Q14 (pin a full commit when work starts; `Measure`-based API).
 
 ## 10. Gaps
+
+- **Decoder interpretation/provenance (Q55):** prove the complete decoder kernel bridge, all preparse occurrence inputs and exact inline subterm provenance, concrete Id-run cache laws and conditional authentic reference binding. B15/F6 memo/action lifetime, whole generic coupling, W1/S2/R2 and query/resource bounds remain open; h-notation supplies no proof.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

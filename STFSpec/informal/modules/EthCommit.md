@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -39,12 +39,12 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 ### 2.3 Node database and eager decoding (D19; CONTRACT O4)
 
 - C12. `build_node_db` (`ws:37–42`) keys every witness entry by `keccak256(entry)`, folding in input order with **last entry wins**. In Lean `NodeDB.build` hashes through the oracle (monadic, D5/F4), so authenticity is the separate predicate `NodeDB.Authentic H db` (every entry `b` under `h` has `H b = h`), which `NodeDB.build` establishes at `m := Id` with `H := keccak256`. Repeated identical entries are harmless; different entries with the same digest must preserve last-write behaviour and yield a collision in the security proof. Extra entries are allowed (fixture `test_validation_state_extra_unused_trie_node`), subject to C16(f).
-- C13. `decode_witness_to_mpt db r` (`inc:994–1040`): if `r = EMPTY_TRIE_ROOT`, the empty trie **without consulting the DB** (`inc:1024–1030`); else `db[r]` (missing → `KeyError`, O4(a)) and decode it. Decoding is pure in Lean (F4), so the empty root is an explicit parameter: `decodeRoot emptyRoot db r`, called with `HashConsts.emptyTrieRoot`.
-- C14. `_decode_witness_node bytes` (`inc:917–991`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Lean decoding is pure (F4), so a DB entry takes its reference `h` as the cached hash, and the inline case is open, §10); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string (list → `.malformed .compactPathList` at `inc:946`, Q52), then `compactToNibbles` (C3); **leaf**, only after successful compact decoding with the leaf flag: the second item must be a string (list → `.malformed .leafValueList` at `inc:951`, Q52) (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
+- C13. `decode_witness_to_mpt db r` (`inc:994–1040`): if `r = EMPTY_TRIE_ROOT`, the empty trie **without consulting the DB** (`inc:1024–1030`); else `db[r]` (missing → `KeyError`, O4(a)) and decode it. Q55 makes complete decoding a generic `KeccakQuery` action: `decodeRoot emptyRoot db r`, with the caller's existing `HashConsts.emptyTrieRoot` (F20). Empty-root bypass returns `pure (.ok none)` without DB lookup or local query; missing root returns the existing typed error without a local query. The wrapper only packages a successful root with `secured`, preserving decoder effects and failures.
+- C14. `_decode_witness_node bytes` (`inc:917–991`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Q55 requires exactly one `KeccakQuery` on the complete newly entered raw preimage before whole RLP parsing, retaining its actual answer verbatim; an incoming DB key never supplies that answer); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string (list → `.malformed .compactPathList` at `inc:946`, Q52), then `compactToNibbles` (C3); **leaf**, only after successful compact decoding with the leaf flag: the second item must be a string (list → `.malformed .leafValueList` at `inc:951`, Q52) (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
   Whole RLP decoding at `inc:936` must succeed before either field-shape check; malformed second fields or trailing bytes therefore win over Q52. Raw empty compact bytes fail with `compactEmpty` before interpreting item 1, while an empty decoded extension path fails with `pathEmpty` before child resolution. A descendant failure propagates unchanged through `inc:960` before the parent child-kind check at `:961`. Branch item 16 remains lenient; `leafValueList` belongs only to a two-item leaf. The whole C14 dispatcher and WitnessError/guest adapters are unimplemented.
 - C15. `_resolve_child_ref` (`inc:892–914`): an empty string → no child; a string of length ≠ 32 → malformed; a 32-byte string present in the DB → decode that entry (recursively, eager); absent → an **unresolved stub** `HashedNode h` (not an error); an inline list → decode `rlp.encode(list)`.
 - C16. **Accepted non-canonical encodings** [executed; each reachable only with a trie that no canonical state produces]: (a) hex-prefix flag bits 2–3 set or a non-zero padding nibble (C3); (b) an inline child whose RLP is ≥ 32 bytes (it is then given a cached hash, C18); (c) a hash reference to a DB entry shorter than 32 bytes; (d) a branch value that is a list (read as empty); (e) a leaf with an empty value or a path whose length does not match its depth; (f) a child reference equal to `EMPTY_TRIE_ROOT`: if the DB contains the entry `0x80`, it decodes to **no child**, otherwise it is a stub — so adding the "unused" entry `0x80` can turn an accepted witness into a rejected one (occupancy drops below 2) [executed]. The Lean decoder must reproduce these outcomes exactly (P2), and the agreement theorem (§7.4) covers them through its collision disjunct.
-- C17. **Cycles and sharing.** EELS recurses without a visited set: a reference cycle ends in `RecursionError`, caught as `false` (O12, classified O4 by CONTRACT); the Lean decoder tracks the hashes on the current path and returns `malformed` on a repeat. A DB built by C12 can contain a cycle only through a Keccak fixpoint chain, which cannot be ruled out in Lean without an assumption, so totality needs the check (ARCHITECTURE §5.4). A **shared** hash reached along two paths is decoded twice by EELS; on a DAG-shaped witness this is exponential in depth (16 identical children per level) [inference from `inc:892–914`]. Memoising completed, validated decodings must preserve mathematical decoding and raw encodings (§7.6). This is the DAG memo of DISC-004/B15, internal to one `decodeRoot`; it is not the per-root storage-trie memo of `EthStateWitness` (F6, open). Its effect on host-resource acceptance requires D14/O12 treatment. Deep acyclic chains can exceed Python's recursion limit in EELS: the guest-process limit is 100,000 (py_ecc raises it; 12,288 applies only after `import ethereum`), and the witness-chain depth at which the reference fails has not been re-measured under it (DISC-001, O12 unresolved).
+- C17. **Cycles and sharing.** EELS recurses without a visited set: a reference cycle ends in `RecursionError`, caught as `false` (O12, classified O4 by CONTRACT); the Lean decoder tracks the hashes on the current path and returns `malformed` on a repeat. A DB built by C12 can contain a cycle only through a Keccak fixpoint chain, which cannot be ruled out in Lean without an assumption, so totality needs the check (ARCHITECTURE §5.4). A **shared** hash reached along two paths is decoded twice by EELS; on a DAG-shaped witness this is exponential in depth (16 identical children per level) [inference from `inc:892–914`]. Memoising completed, validated decodings must preserve mathematical decoding and raw encodings (§7.6). This is the DAG memo of DISC-004/B15, internal to one `decodeRoot`; it is not the per-root storage-trie memo of `EthStateWitness` (F6, open). Q55's mathematical traversal baseline has no completed-node memo: repeated sibling references are distinct occurrences. B15 does not select a memo here; effect suppression, shared stateful answers and path-dependent cached failures require explicit refinement premises. Its effect on host-resource acceptance requires D14/O12 treatment. Deep acyclic chains can exceed Python's recursion limit in EELS: the guest-process limit is 100,000 (py_ecc raises it; 12,288 applies only after `import ethereum`), and the witness-chain depth at which the reference fails has not been re-measured under it (DISC-001, O12 unresolved).
 - C18. **Cached encodings.** A decoded node keeps its original bytes and, iff they are ≥ 32 bytes, their hash (`inc:932–934`, `:955–956`, `:967–968`, `:986–988`). When a parent is re-encoded, a child's reference is (`_encode_mutable_node_to_extended`, `inc:287–313`): empty → `b""`; stub → its hash; an unmodified node with a cached hash → that hash (**not** recomputed, even if non-canonical); otherwise the node is re-encoded from its fields (C6 rules: `< 32` bytes inline, else hash).
 - C19. **Visited nodes lose their cache.** Every node on the path of an update or delete is invalidated (`_invalidate_hash`, `inc:231–237`, called at `:490` and `:694`) — including nodes that end up unchanged, such as a mismatching leaf in a no-op delete — and is then re-encoded from its fields. Off-path nodes keep their cached encoding. For a non-canonical witness this makes the root after a **no-op delete differ** from the pre-root [executed]. A functional implementation achieves this by rebuilding every visited node through the smart constructor and must **not** short-circuit "unchanged" subtrees to the original node.
 
@@ -68,7 +68,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.7 Failure behaviour
 
-- C29. Every decoding, lookup and update failure is a `TrieError` (mapped to `WitnessError`, then to O4 → `false`). Preconditions of the mathematical root (C9) are type-level, not runtime failures. No function may depend on host recursion limits (O12, DISC-001; C17); all recursion is structural or on an explicit measure (§7.1).
+- C29. Typed decoding, lookup and update diagnostics are `TrieError` (mapped to `WitnessError`, then to O4 → `false`). Q55 forwards underlying query-monad failures unchanged, without converting them to a decoder diagnostic or adding an outcome projection; the caller owns any later adapter. Preconditions of the mathematical root (C9) are type-level, not runtime failures. No function may depend on host recursion limits (O12, DISC-001; C17); all recursion is structural or on an explicit measure (§7.1).
 
 ## 3. EELS source map
 
@@ -777,7 +777,7 @@ generated `#guard`s. Witness-node and trie cases remain open.
 - **EEST fixture areas:** every `blockchain_tests`/`blockchain_tests_engine` area checks the state, transaction, receipt and withdrawal roots, so the mathematical root is exercised by the whole corpus (corpus pin: `reference.toml`). Witness decoding and the partial trie specifically: `amsterdam/eip8025_optional_proofs`, especially `test_witness_state_deletes.py` (collapse adds an auxiliary sibling node), `test_witness_state_replay_order.py` (insert-before-delete), `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender/absent/failed-call-target account nodes, extra unused node, unsorted but complete).
 - **EELS unit tests** (`tests/json_loader/test_incremental_mpt.py` at e1a316a0): `TestCompactToNibbles` (even/odd leaf/extension, empty even leaf, round trip), `TestHashedNode` (stub in root computation; insert/delete/traverse into a stub raise), `TestDecodeWitnessToMpt(More)`, `TestMalformedWitnessNodes` (malformed RLP, non-empty string node, list length 3, extension with empty child ref, extension to leaf, extension to extension, non-hash child bytes, branch with 0 and 1 occupied entries, extension with empty path), `TestPartialWitness` (root preserved; modify known path; insert into stub fails; delete collapsing onto a stub fails), `TestBuildVsDecode` (roots match after mutation), `TestDecodeEdgeCases`. From `test_witness_state.py`: `TestCanonicalSecureTrieValidation` (zero-length extension paths and unresolved stubs in account and storage tries). Port each as a `#guard`.
 - **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `mathRoot` of the empty map equals `HashConsts.literals.emptyTrieRoot`; hex-prefix vectors for all four flag combinations and the empty path; `compactToNibbles` on `0xf1 0x23`, `0x0f`, `0x2f` and empty input (C3); `patricialize` on 0, 1, 2 keys, keys sharing a prefix, a 64-nibble pair differing only in the last nibble (empty-path leaves), and a key ending at a branch (unsecured); transaction-trie roots of small blocks from fixtures.
-- **Adversarial witnesses** (hand-built DBs; cycles only through the internal `decodeRoot` API with a DB that is not keccak-keyed): missing root (O4(a)); missing child never accessed (accepted); malformed node off every accessed path (rejected, eager); on-path cycle of length 1 and 3 (malformed); diamond sharing (accepted, and memoised decode equal to unmemoised); a DAG of depth 8 with 16 identical children (cost test); empty-path leaf below a depth-63 branch (accepted); branch collapse whose sole sibling is a stub (rejected) and the same after an insertion (accepted, C26); each non-canonical case of C16 including the `0x80` entry flip; no-op delete through a non-canonical node changing the root (C19).
+- **Adversarial witnesses** (hand-built DBs; cycles only through the internal `decodeRoot` API with a DB that is not keccak-keyed): missing root (O4(a)); missing child never accessed (accepted); malformed node off every accessed path (rejected, eager); on-path cycle of length 1 and 3 (malformed); diamond sharing (accepted; baseline repeats occurrence queries, future memo refinement conditional); a DAG of depth 8 with 16 identical children (cost test); empty-path leaf below a depth-63 branch (accepted); branch collapse whose sole sibling is a stub (rejected) and the same after an insertion (accepted, C26); each non-canonical case of C16 including the `0x80` entry flip; no-op delete through a non-canonical node changing the root (C19).
 - **Property tests:** `rootHash (buildMpt m) = mathRoot m`; random update/delete sequences on fully resolved tries against `mathRoot` of the updated map; random pruning of a canonical trie to a witness, then sequences whose success matches the data-availability characterisation (§7.5); differential checks against EELS through a Python harness (bug-finding only).
 
 `RootDomainGuards` additionally compares empty/singleton/multikey
@@ -916,15 +916,17 @@ def mkLeaf (path : Nibbles) (value : ByteArray) : m Node
 def mkExt (path : Nibbles) (child : Node) : m Node          -- merges ext/leaf children (C24)
 def mkBranch (children : Array (Option Node)) (value : ByteArray) : m (Except TrieError Ref)  -- size 16; collapse, C25
 
--- decoding and lookup are pure (F4); builds, updates, deletes and root hashing are monadic
-def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : Except TrieError Ref   -- eager, C13–C17
+-- Q55: complete decoders are generic actions; lookup stays pure. Targets unimplemented.
+def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
+    m (Except TrieError Ref)   -- eager, C13–C17; pre-RLP query on each eligible raw occurrence
 def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref)    -- C23, value ≠ empty
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)                        -- C24–C25
 def rootHash (emptyRoot : Hash32) (t : Ref) : m Hash32                                 -- C27
 
 structure IncrementalMPT where secured : Bool; root : Ref
-def decodeWitnessToMpt (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) (secured : Bool) : Except TrieError IncrementalMPT
+def decodeWitnessToMpt (emptyRoot : Hash32) (db : NodeDB)
+    (r : Hash32) (secured : Bool) : m (Except TrieError IncrementalMPT)
 def mptSet (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) : m (Except TrieError IncrementalMPT)  -- hashes the key iff secured
 def mptRoot (emptyRoot : Hash32) (t : IncrementalMPT) : m Hash32
 
@@ -949,6 +951,27 @@ Q54's supplied `Bytes.compare_toList` and `toByteArray_toList` supply the
 required comparison-to-core-ByteArray-list equation (§7.0.3). This conditional
 provider choice introduces no new generic preparation/storage prerequisite.
 
+**Decoder acquisition target (Q55; unimplemented).** Every newly entered root,
+present DB child or inline child uses its complete raw bytes: below 32 bytes there
+is no query and the cache hash is `none`; at or above 32 bytes exactly one query
+precedes whole RLP parsing and its answer is kept as `some`. An empty-root bypass,
+missing root, absent child/stub or already on-path repeated hash does not enter a
+new raw occurrence and has no local query. Underlying `m` failure is forwarded
+unchanged, with no parsing or later query. A successful query followed by the
+existing typed RLP/shape error retains the query's effects; earlier typed failures
+stop subsequent children/queries. The traversal is eager, depth first, with branch
+children 0 through 15 before occupancy, in the unchanged C14 order.
+
+An inline list is reencoded from the exact successfully parsed `RlpItem` subterm,
+not reconstructed from nibble/path fields. Prove subterm `Encodable` inheritance
+and canonical-wire reencoding via EthCodec's public laws. Preserve accepted raw
+HP flag/padding bytes in `Enc.rlp`; no normalization, authenticity guard or inline
+width restriction is introduced. Empty decoded nodes remain `none`, without an
+`Enc`, even if their entered raw input queried before dispatch/rejection. A private
+pure admission kernel may consume raw bytes and the already acquired optional
+answer, with length/cache and recursive-domain proofs; it is not another public
+pure cache-bearing decoder and cannot skip malformed-preimage queries.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
@@ -957,7 +980,8 @@ provider choice introduces no new generic preparation/storage prerequisite.
 | `Trie K V` | `ExtTreeMap K V` | finite map with arbitrary default | `trieGet` | `NoDefault` is a separate setter-reachable predicate; preparation/root require distinct `PrepareSafe`, not `NoDefault` (Q53) | value | O(log n) |
 | `NodeDB` | `Std.HashMap Hash32 ByteArray` | finite map | `get?` | `NodeDB.Authentic keccak256` (established by `NodeDB.build` at `Id`; a predicate, not a field, F4) | built linearly, then **read-only shared** | build expected O(n) plus one keccak per entry; lookup expected O(1) (not worst-case; ARCHITECTURE §5.0) |
 | `Node`/`Ref` | inductive with immutable `Enc` per resolved node | a set of maps (`represents` is a relation, D25) | `represents` | `Enc` agrees with C18/C19; ext child is a branch or stub; every branch has exactly 16 children (F5) and occupancy ≥ 2 | functional; tries are not snapshot-reachable (built once per root computation), so path copying suffices | lookup O(d) node steps (d ≤ 64 branch levels for secured keys) plus path comparisons; update/delete O(d) nodes rebuilt, each with one RLP encoding and ≤ one keccak; `rootHash` O(1) (cached at the root) |
-| DAG decode memo (DISC-004, B15; not the per-root storage-trie memo of `EthStateWitness`, F6) | `Std.HashMap Hash32 (Except TrieError Node)` threaded linearly during one `decodeRoot` | partial function on hashes | memo consistency (Nipkow Ch. 18) | an entry equals the unmemoised decode of that hash | linear-only | total decode O(Σ distinct reachable entry sizes + keccak) instead of EELS's path-expanded cost |
+
+**DAG decode memo (DISC-004, B15; distinct from F6).** Not selected; Q55 baseline has no completed-node memo. Any future sharing must preserve raw/cache values, path-dependent errors and observations under explicit oracle premises. Lifetime and effect refinement remain open. No adopted bound or D18 exception; measure any candidate.
 
 NodeDB reuses EthBase's Q51 Hashable Hash32 support and existing actual-equality
 laws (EthBase §3). Public Std map laws supply insertion/lookup, distinct-key
@@ -967,7 +991,7 @@ rows in §3; Keccak keys come from KeccakQuery (D5/F4). Expected table bounds re
 conditional on a suitable distribution; adversarial-distribution, allocation and
 composed cost measurements remain open (ARCHITECTURE §5.0, C1–C4).
 
-Computing `Enc` strictly in the smart constructor re-hashes the whole path on every update (O(u·d) keccaks for `u` updates), whereas EELS hashes each dirty node once at root time. Either is correct; the choice is internal to this module (DECISIONS B15, Q33) and still open.
+Computing `Enc` strictly in the smart constructor re-hashes the whole path on every update (O(u·d) keccaks for `u` updates), whereas EELS hashes each dirty node once at root time. A concrete-value comparison may justify either under its representation/cache premises; whole generic update/root query-trace equivalence is a separate obligation. The choice is internal to this module (DECISIONS B15, Q33) and remains unselected by Q55.
 
 ## 7. Contract and laws
 
@@ -1150,12 +1174,13 @@ do not implement or prove C14 dispatch or the WitnessError/O4 adapter.
 - Q53 preparation is a total stored-map fold; its mapped-list reference has ordinary equality.
   The safe/unsecured frontend wraps that complete map in `pure`.
 
-- `compactToNibbles`, `mathRoot` (empty dispatch or actual C7 then one query), `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
+- `compactToNibbles`, `mathRoot` (empty dispatch or actual C7 then one query), `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions. Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its decreases and full path invariant, rather than assuming hash injectivity. This cycle totalization makes no claim about Python's finite host-limit query trace.
 
 ### 7.2 Per-operation commuting obligations (D25) [C]
 
 The remaining whole-trie laws are stated at `m := Id` (concrete `keccak256`),
-where the monadic operations are pure functions; `mathRoot t` abbreviates
+with its concrete interpretation; complete decoder premises explicitly use
+`Id.run (decodeRoot emptyRoot db r)`. `mathRoot t` abbreviates
 `Id.run (mathRoot emptyTrieRoot t)` with the reference constant, and likewise for
 `rootHash`, `update`, `delete` and `buildMpt`. Coupling at a generic oracle monad
 belongs to `EthSecurity` and remains open (D5).
@@ -1176,9 +1201,10 @@ belongs to `EthSecurity` and remains open (D5).
 After Kestrel ACL2 `mmp-trees.lisp` and Miller et al. (ARCHITECTURE §5.4):
 
 ```lean
-theorem decode_agreement (db : NodeDB) (r : Hash32) (t : Ref) (m)
+theorem decode_agreement (consts : HashConsts) (db : NodeDB) (r : Hash32) (t : Ref) (m)
+    (hconsts : consts = Id.run HashConsts.query)
     (hauth : db.Authentic keccak256)
-    (hdec : decodeRoot emptyTrieRoot db r = .ok t) (hroot : mathRoot m = r) :
+    (hdec : Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t) (hroot : mathRoot m = r) :
     represents t m ∨ ∃ x y, collisionWitness db m = some (x, y) ∧ x ≠ y ∧ keccak256 x = keccak256 y
 ```
 
@@ -1191,8 +1217,11 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 
 ### 7.6 Caches [C]
 
-- Memoised `decodeRoot` equals a mathematical, cycle-detecting traversal on every finite DB, including off-path malformed nodes. On cycles both reject; diamond sharing is not a cycle. Agreement with Python additionally requires host-resource compatibility: its unmemoised recursion is not a total mathematical definition.
-- `Enc` cache: for resolved nodes built by smart constructors, `enc` is the encoding of the fields; for decoded nodes, `enc.rlp` is the DB bytes and, given `NodeDB.Authentic keccak256`, `keccak256 enc.rlp = h` when referenced by `h` (ARCHITECTURE §5.4 "[C] a decoded node's hash equals its reference").
+- Q55's successful resolved node keeps the complete admitted raw bytes in `Enc.rlp`; `Enc.hash?` is `some` iff raw length is at least 32, and that value is the actual occurrence's query answer. This includes exact reencoded parsed inline lists and arbitrary alias-keyed DB entries. Short authentic DB entries still have no cached hash. Smart-constructor field encodings and C18/C19 observers remain distinct obligations.
+- At concrete `Id`, `db.map[h]? = some raw` and `NodeDB.Authentic keccak256 db` imply `keccak256 raw = h`; only with `32 ≤ raw.size` does this identify a decoded cache hash with the reference. Authenticity is needed for root binding/security, not arbitrary-DB admission or totality. Finite acyclic pinned source cache agreement additionally needs RLP/`Encodable` and host compatibility.
+- Prove local empty/missing/stub equations, threshold/query-before-whole-RLP, verbatim answers, unchanged first typed error/descendant propagation and underlying failing-query forwarding/no later query. Exercise arbitrary, recording, stateful and failing oracles, including long malformed raw inputs, nonliteral empty roots, repeated siblings, short authentic entries and long inline/alias-keyed nodes. Generic sequencing transformations state `LawfulMonad` explicitly.
+- A pure hash-relative value model under `H` can compare with the generic action only under explicit relevant-occurrence equations `KeccakQuery.keccak b = pure (H b)` and `LawfulMonad` for sequencing. This conditional value theorem supplies no failing/stateful trace equality or whole-trie coupling.
+- B15 DAG memoization is unselected. Successful-node sharing may suppress repeated queries or reuse a stateful first answer; it needs mathematical/cache, path, effect and first-error refinement. Hash-only cached cycle failures are not justified by accept/reject agreement. F6 has a different per-root backend lifetime. Python's unmemoised host behavior remains DISC-001/DISC-004; no production cost/resource gate follows from this baseline.
 - [R] Exact reproduction of C18/C19 on non-canonical witnesses is a conformance obligation (checked by the adversarial `#guard`s against EELS), not a theorem about the model.
 
 ### Informal correctness argument
@@ -1201,7 +1230,7 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 
 **Premises.** Codec/hash equations; explicit distinction between canonical representations and accepted raw witness representations; finite graph traversal with cycle detection; available sibling nodes when collapse requires them.
 
-**Argument.** Induct on remaining key length for canonical construction and lookup. Extension/branch/leaf cases partition keys; smart constructors compress precisely the empty and single-child cases. For incremental updates, the same cases prove lookup preservation and the new value at the updated key. A collapse onto a stub must resolve that stub or fail, which explains order-dependent success. Witness decoding uses visiting/finished states: a visiting edge rejects a cycle; a finished edge reuses its decoded node without changing its raw encoding. Preserve the source encoding of unchanged nodes and re-encode only dirtied paths. Consequently canonical root uniqueness and successful update order independence apply only under canonical-representation hypotheses. They are false for general accepted witnesses: even a no-op delete can canonicalise an accepted noncanonical leaf and change its root.
+**Argument.** Induct on remaining key length for canonical construction and lookup. Extension/branch/leaf cases partition keys; smart constructors compress precisely the empty and single-child cases. For incremental updates, the same cases prove lookup preservation and the new value at the updated key. A collapse onto a stub must resolve that stub or fail, which explains order-dependent success. Witness decoding tracks the current path: an on-path repeat rejects a cycle. Q55's baseline enters each shared sibling occurrence separately and obtains its eligible raw digest before parsing; completed-node reuse is a separate B15 refinement. Preserve the source encoding of unchanged nodes and re-encode only dirtied paths. Consequently canonical root uniqueness and successful update order independence apply only under canonical-representation hypotheses. They are false for general accepted witnesses: even a no-op delete can canonicalise an accepted noncanonical leaf and change its root.
 
 **Open obligations.** Define canonicality separately from lookup agreement, prove cached-encoding and memoization refinement, and resolve host RecursionError differences. Hash-relative full-root folding also needs an explicit secure-key collision/order convention. Totality must not assume hash injectivity.
 
@@ -1220,11 +1249,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 - D4: keccak dominates decode/root cost; the reference or a proved fast path.
-- D5 (broad scope, monad-parametric): `NodeDB.build`, the smart constructors, `update`/`delete`, root hashing and `mathRoot` go through `KeccakQuery`; decoding and lookup stay pure; `NodeDB.Authentic` is a separate predicate; the empty-trie root is `HashConsts.emptyTrieRoot` (F4, C5, C12, C13). Open: coupling at generic `m`.
+- D5 (broad scope, monad-parametric): `NodeDB.build`, the smart constructors, `update`/`delete`, root hashing and `mathRoot` go through `KeccakQuery`; complete decoders follow Q55's generic pre-RLP acquisition; lookup stays pure; `NodeDB.Authentic` is a separate predicate; the empty-trie root is `HashConsts.emptyTrieRoot` (F4, C5, C12, C13). Open: coupling at generic `m`.
 - D16, D20 (accepted): generic over bytes; `encode_account` stays outside.
-- D18: HashMap expected bounds for `NodeDB` and the memo.
-- D19 (accepted): eager decoding; the memo is the permitted internal laziness only in the sense of sharing, with the proof of §7.6.
+- D18: HashMap expected bounds for `NodeDB`; any future memo requires measured/refined costs. Q55 adopts no production exception.
+- D19 (accepted): eager decoding at B4 triggers; B15 sharing remains unselected, with the additional Q55 effect/path obligations in §7.6.
 - D25 (accepted): `represents` as the abstraction relation.
+- Q55: the complete decoder signatures/acquisition contract are in C13–C14/§5/§7.6; implementation, ordinary laws, provenance, whole agreement and generic action lifetime remain open.
 - Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent and recursive C7 construction with finite authenticated source agreement are in §3; the total local C8 wrapper is supplied in §3; whole-source refinement remains open.
 - Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key interpretation/preparation are supplied in §3; typed root and consumer instances remain unimplemented; secure ordering/collision/source-history and generic coupling remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
@@ -1242,8 +1272,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Non-canonical acceptance** (C16, C19) is verified only on hand-made examples; no fixture exercises it, and upstream has not been asked whether it is intended. The `0x80` flip (C16(f)) means "extra unused entries are harmless" is false in general.
-- **Pure decoding and the inline-node hash** (F4 vs C14/C18): decoding is pure, so a decoded node cannot compute a hash. A DB entry takes its reference as its cached hash (sound under `NodeDB.Authentic`), but an inline subterm of 32 bytes or more (C16(b)) has no reference, and the reference hashes it during decoding. Where that hash is computed (through the oracle when the node is first re-encoded or rooted, as a lazy `Enc` would, or in a monadic decoding step) is open (B15).
-- **Exponential decode on DAG witnesses** (C17) is recorded in DISC-004; the reviewed memoized decoder still needs a refinement proof and resource-acceptance policy. It interacts with DISC-001 and with any guest cycle budget.
+- **Decoder cached-hash target (Q55; unimplemented):** implement the two generic complete decoders and prove pre-RLP occurrence queries, threshold/verbatim cache answers, raw/inline provenance and `Encodable` inheritance, ordered typed failures and underlying failure forwarding. Concrete Id/root binding uses coherent F20 constants and authenticity plus eligible length; generic interpretation, consumer lifetime, whole cache/update/root/source simulation and W1 remain open.
+- **Exponential decode on DAG witnesses** (C17) remains DISC-004. Q55's no-completed-memo baseline supplies sequencing, not a production cost bound; a B15 memo needs value/cache/path/effect/first-error refinement and host compatibility, distinct from F6 and DISC-001. No guest cycle budget or resource policy is adopted.
 - **Inline witness interpretation:** compose the proved `Rlp.encode_eq_of_decode_eq_ok` and `decode_success_encodable` contracts (EthCodec §7) at C15. Raw-codec reencoding is supplied; proving which decoded subterms represent accepted witness children, and preserving their provenance/caches, remains open.
 - **Order-sensitivity conjectures** (§7.5) are unproved; the mixed-order counterexample is verified.
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.

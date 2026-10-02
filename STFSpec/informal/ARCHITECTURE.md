@@ -227,7 +227,7 @@ Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves 
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
 | Witness/code DBs | read-only `Std.HashMap Hash32 ByteArray` after construction, built through the hash oracle | `lookup`, and the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic` ("a stored value hashes to its key", F4) | [C] authenticated-content invariant |
-| Witness decoding | **eager**, matching the reference: decoding a root decodes everything reachable from it through the node DB (`incremental_mpt.py` `decode_witness_to_mpt`/`_decode_witness_node`/`_resolve_child_ref` at e1a316a0). It is triggered where the reference triggers it: the account trie at first account access; each storage trie at first access to that account's storage; and, in state-root computation, the storage trie of every account with storage changes and the account trie (`witness_state.py` `_get_decoded_secure_root`, `compute_state_root_and_trie_changes`). Decodings are cached by root hash. A malformed node *anywhere* reachable makes validation fail (O4), even if no lookup would reach it; a lazy path walk would accept witnesses the reference rejects. | `decodeRoot : Hash32 → NodeDB → Hash32 → Except WitnessError Trie` (pure; the first argument is the empty-trie root, which short-circuits as in `incremental_mpt.py:1024–1030`) | [T] see "Termination of witness decoding" below; [C] a decoded node's hash equals its reference |
+| Witness decoding | **eager**, matching the reference: decoding a root decodes everything reachable from it through the node DB (`incremental_mpt.py` `decode_witness_to_mpt`/`_decode_witness_node`/`_resolve_child_ref` at e1a316a0). It is triggered where the reference triggers it: the account trie at first account access; each storage trie at first access to that account's storage; and, in state-root computation, the storage trie of every account with storage changes and the account trie (`witness_state.py` `_get_decoded_secure_root`, `compute_state_root_and_trie_changes`). The source caches read decodings by root hash; Q55 leaves generic successful-result ownership/lifetime and F6 open, and root computation decodes afresh. A malformed node *anywhere* reachable makes validation fail (O4), even if no lookup would reach it; a lazy path walk would accept witnesses the reference rejects. | `decodeRoot {m} [Monad m] [KeccakQuery m] (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : m (Except TrieError Ref)` (Q55 unimplemented target; witness adapter separate; empty root short-circuits without a local query, `incremental_mpt.py:1024–1030`) | [T] see "Termination of witness decoding" below; [C] actual raw-preimage answer/cache provenance; equality to a DB reference only under `Authentic keccak256` and raw length ≥32 at concrete Id |
 | Partial trie | explicit `Node`/`Ref` types (`hashed`/`inline`/`node`/`empty`), with `Ref` hidden behind the trie API (B3). Branch children are an `Array (Option Node)` with a separately stated size-16 invariant, because the kernel rejects `Vector` in this nested inductive (F5, [DECISIONS §3](DECISIONS.md)). Each node carries an **immutable cached hash/encoding**, set once when the node is built. geth, remerkleable and milhouse do the same, and snapshots never invalidate it. | `lookup`/`update`/`delete`/`root`, with **agreement with the mathematical root** | [T] lookup/update/delete recurse on the remaining key nibbles; [C] **agreement theorem** (shape below); [S] ROM lift |
 
 **MPT proof pattern.**
@@ -256,8 +256,8 @@ Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves 
 - **Reference resolution** (hash → node through the DB, or an inline RLP list → node) doesn't consume nibbles, so it is bounded separately:
   - Inline references recurse on strictly smaller RLP subterms.
   - Hashed references recurse through the DB. Eager decoding is a depth-first traversal that tracks the hashes on the current path; meeting one again is `WitnessError.malformed`. The proposed measure is (number of DB entries not on the current path, size of the inline subterm), to be checked under [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) W1.
-  - This is total on *arbitrary* DBs **without** assuming collision resistance. On a cycle the reference would recurse until `RecursionError`, which is caught and gives `False`; the spec gives the same output deterministically (`STFSpec/informal/CONTRACT.md` O12).
-  - Diamond-shaped sharing, where the same hash is reached by two paths, is not a cycle. Memoizing **completed, validated** decodings may avoid repeated expansion; a global visited set must not mistake sharing for a cycle or skip a malformed descendant. Prove unchanged accept/reject behaviour, including off-path malformed nodes. Missing child preimages can remain unresolved hashed references until needed, as in the reference; a missing root being decoded fails immediately.
+  - This is total on *arbitrary* DBs **without** assuming collision resistance. At concrete Id, on a cycle the reference would recurse until `RecursionError`, which is caught and gives `False`; the mathematical cycle totalization gives that output deterministically, without claiming the finite host-limit query trace (`STFSpec/informal/CONTRACT.md` O12).
+  - Diamond-shaped sharing, where the same hash is reached by two paths, is not a cycle. Memoizing **completed, validated** decodings may avoid repeated expansion; a global visited set must not mistake sharing for a cycle or skip a malformed descendant. Prove unchanged accept/reject behaviour, including off-path malformed nodes, plus Q55's cache/path/effect/first-error conditions before selecting sharing. Missing child preimages can remain unresolved hashed references until needed, as in the reference; a missing root being decoded fails immediately.
 
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
@@ -363,7 +363,7 @@ Preflight failures and CREATE collisions do not spawn a child; their nonce, gas,
 
 ## 7. Caches and diagnostics are not semantic state
 
-- **Caches** (jumpdest bitmaps keyed by code hash, decoded-node caches, zero-hash tables) live outside semantic state. Each has an invariant that its answers equal those computed from the underlying data, in the form of Nipkow et al. Ch. 18's memoisation-consistency invariant. Removing or replacing a cache requires an observer/refinement proof. In particular, the reference witness storage-root cache affects arbitrary helper calls: the pure replacement is justified only on reachable read-before-write traces (COMPOSITION §3). Raw node encodings must also be preserved. (A hash cached *inside* an immutable trie node, §5.4, is part of that node, not a separate cache.)
+- **Caches** (jumpdest bitmaps keyed by code hash, decoded-node caches, zero-hash tables) live outside semantic state. Each has an invariant that its answers equal those computed from the underlying data, in the form of Nipkow et al. Ch. 18's memoisation-consistency invariant. Removing or replacing a cache requires an observer/refinement proof. For Q55 decoder actions, stable interpreted value equality alone does not prove unchanged generic query effects or first failures; a thunk of an action does not cache its executed result. In particular, the reference witness storage-root cache affects arbitrary helper calls: the pure replacement is justified only on reachable read-before-write traces (COMPOSITION §3). Raw node encodings must also be preserved. (A hash cached *inside* an immutable trie node, §5.4, is part of that node, not a separate cache.)
 - **Diagnostics** (tracing, EIP-3155-style step traces) go through an **event interface**: the runner emits events, and a consumer folds them. Diagnostics must never retain whole previous frames, since that would break the linear use of the memory buffer and silently make memory writes quadratic. The event type carries copies of small values only. A linearity check, to be added with the runner, must run with tracing both on and off and **on a compiled `lake build` executable**: `#eval` in the interpreter shows far more sharing, so linearity observed there is not representative.
 
 ---
@@ -496,6 +496,24 @@ Scanner details are private and replaceable behind ordinary public equations (D2
 The conditional EthCommit adapter and consumer integration are separate; correctness
 proofs/local comparator measurements do not close actual map/preparation/root,
 allocation/retention, replacement or C1–C4 obligations.
+
+**Decoder cached-hash options (Q55).** The owning disposition is DECISIONS Q55;
+EthCommit C13–C14/§5/§7.6 owns the exact unimplemented acquisition contract.
+The selected target keeps `Enc` and queries each eligible complete raw occurrence
+before parsing. A pure frontend with a complete-preimage answer context would
+need coverage/coherence for every entered DB/inline occurrence; an upfront prepass
+changes triggers, repeated effects, unused-entry acquisition and first failure.
+An effectful demand interpreter has substantially the selected boundary; a total
+concrete hash callback would bypass D5. A deferred digest representation would
+change the length/cache invariant and child/root/update observers, and require
+materialization plus source-order failure proofs; it is not selected.
+
+The current-path/inline structural measure above is unchanged. The mathematical
+baseline has no completed-node memo, so diamond siblings enter distinct raw
+occurrences. B15 sharing needs path, cache, effects and first-error refinement;
+a hash-only cycle-error table is not justified. Generic backend result ownership,
+lifetime and F6 remain open. Coherent F20 constants are caller supplied; Q55 adds
+no local constant acquisition, host policy, production cost exception or readiness.
 
 ## 12. Not yet decided
 

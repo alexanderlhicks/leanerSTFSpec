@@ -68,10 +68,10 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety laws (EthCommit §3); implement/prove concrete encoding bridges, injective byte-key interpretation and unsecured pure preparation/root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
+| EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety, byte-key and unsecured preparation laws (EthCommit §3); implement/prove concrete encoding/key interpretation bridges and typed-root contracts with caller empty root; validate exact encoding/effects and explicit lawful sequential-reference equality. Distinguish canonicality from lookup equivalence; implement/prove Q55's generic pre-RLP occurrence acquisition, raw/inline cache provenance, explicit Id-run agreement and failure forwarding; any B15 memo refinement additionally covers effects/path/first error; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Implement Q53 U256 validity/nonempty laws independently of zero deletion and contextual Account integration, without a bare Account instance or secured-policy claim. Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
-| EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements; settle the storage-trie memo (F6) and clear order (F7). |
+| EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
 | EthVmCore | Complete GasCosts/error/record fields; prove gas preconditions and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
@@ -129,6 +129,20 @@ root composition, retained versions, replacement and C1–C4 remain separate gat
 reassess material limitations under D18/D25. A conditional future `KeyBytes Bytes`
 adapter uses the public inverse/order/core-list export laws; it supplies no encoder,
 schema, source equality, F20, host, secure-policy or guest-readiness result.
+
+Q55's [EthCommit](modules/EthCommit.md#5-interface) complete decoder signatures
+are clarified **unimplemented** targets. Future ordinary laws/public clients must
+cover local empty/missing/stub paths with zero queries, complete-preimage threshold
+queries before whole RLP, verbatim arbitrary answers, prior-state retention,
+underlying query failures without later parsing/query, typed first-error ordering,
+raw HP and exact inline parsed-subterm provenance/`Encodable`, long alias-keyed
+entries, short authentic entries, repeated siblings and current-path cycles.
+Use recording/stateful/failing instances and explicit `LawfulMonad` premises for
+sequencing transformations; concrete source comparisons require coherent F20,
+RLP and finite acyclic pinned-host compatibility. Prove the concrete Id-run
+consumer/error-adapter bridge and generic action/result-cache lifetime separately.
+The no-completed-memo baseline supplies no production cost exception or whole
+W1/S2/R2/C1–C4 gate; no implemented source-to-Lean row is added by this guidance.
 
 An implementation gate does not prohibit useful spikes or an incomplete development branch. It prohibits presenting unvalidated behaviour as the normative finished spec. Debt handling follows D18 (accepted): record performance exceptions in `STFSpec/informal/DEBT.md`, and keep missing premises explicit rather than silently weakening them. A patch affecting an observer, failure priority, gas policy, schema, ordering or state lifetime must update all affected contracts and the composition proof before a conformance claim is restored.
 
@@ -235,7 +249,7 @@ Each obligation below has a stable identifier. The report records its status as 
 | G7 | Internal-error freedom | `∀ input, ∃ out, runStatelessGuestChecked input = .ok out` at the guest integration stage. Slice proofs identify the remaining obligations; never infer this theorem merely from fuel sufficiency if other internal errors exist |
 | S1 | State lifetimes | Current/original storage laws, write/clear precedence, snapshots, persistent observations, created-account handling, transient storage and child resume laws |
 | S2 | Backend agreement and progress | `ModelsLookups`, code-hash agreement and root agreement separately from successful operations under well-formedness/data availability. Include an always-error provider to show why agreement alone is insufficient |
-| W1 | Witness traversal totality and acceptance | Empty-path leaf accepted; empty extension rejected; on-path cycle detection; diamond sharing accepted; off-path malformed descendants rejected eagerly; missing root versus unresolved child handled at the correct phase |
+| W1 | Witness traversal totality and acceptance | Empty-path leaf accepted; empty extension rejected; on-path cycle detection; diamond sharing accepted; off-path malformed descendants rejected eagerly; missing root versus unresolved child handled at the correct phase; Q55 pre-RLP occurrence queries/actual answers, raw/inline provenance, typed versus underlying first failures and no later query, Id-run consumer bridge and generic action/result-cache lifetime |
 
 G4–G6 are separate results: existence of sufficient fuel does not give a computable bound, and a bound alone does not prove agreement with the semantic relation. No general gas-monotonicity theorem is required or expected: GAS and call forwarding can change behaviour when semantic gas changes.
 
