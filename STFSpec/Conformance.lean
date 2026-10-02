@@ -60,6 +60,8 @@ import STFSpec.Conformance.Codec.RlpDecodeCallerProofs
 import STFSpec.Conformance.Codec.RlpCanonicalCallerProofs
 import STFSpec.Conformance.Codec.AddressGuards
 import STFSpec.Conformance.Codec.AddressCallerProofs
+import STFSpec.Conformance.Commit.NodeDBGuards
+import STFSpec.Conformance.Commit.NodeDBCallerProofs
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

@@ -1,7 +1,7 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
 *Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50; DISC-001, DISC-003, DISC-004.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
 
@@ -99,8 +99,9 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 ### Implemented pure path operations
 
 The following operations and their public model laws are implemented on the stated typed domains
-in `STFSpec/Commit/Nibbles.lean`; other source-map items remain unimplemented except the compact
-decoder and internal-node encoding below. `Nibbles` has private packed storage and a byte-range
+in `STFSpec/Commit/Nibbles.lean`; compact decoding, internal-node encoding and raw
+NodeDB construction and mathematical-root support are documented below. The remaining
+source-map items are open. `Nibbles` has private packed storage and a byte-range
 invariant, with public `size`, `get`, `toList` and `ofList` (§5/§6; F19). Ordinary model
 equations specify their observations (D25).
 
@@ -127,7 +128,8 @@ The interpreter, installation/startup and installed dependency RECORD remain tru
 children are already encoded `RlpItem` structures/references. Its total assembly
 and operational model equalities and local effect laws are proved on all typed
 inputs. The finite source comparison supplies bounded Python evidence.
-No partial-witness node/cache, patricialization, root or database is implemented.
+Raw database construction is documented separately below. Partial-witness
+node/cache and patricialization/root construction remain open.
 
 | Exact pinned source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Public laws | Regression evidence |
 |---|---|---|---|---|---|
@@ -383,6 +385,44 @@ whole-constructor choice independence, canonical witnesses, complete assembled-n
 `Encodable`, source-root correspondence, F20 coherence/D5 coupling and resources
 remain open.
 
+### Implemented raw node database (C12)
+
+`STFSpec/Commit/NodeDB.lean` implements the C12 seam in `STFSpec.Commit`.
+The following rows are implemented for their stated domains, alongside the path,
+compact and internal-node operations above. The database is shared read-only by
+consumer convention; its authenticity predicate is separate from its representation (F4).
+Their shared-contract owner is registered in [contracts.toml](../contracts.toml)
+and [COMPOSITION §2](../COMPOSITION.md#2-type-ownership-and-adapters).
+
+| Source at the pin / operation | Public declaration / domain | Success, effects and ordered failure | Ordinary law / deterministic evidence |
+|---|---|---|---|
+| `forks/amsterdam/witness_state.py:37–42` (`build_node_db`) | `NodeDB.build {m} [Monad m] [KeccakQuery m] : Array ByteArray → m NodeDB`; every raw array, including empty/invalid RLP, duplicates and unused entries | Exactly one query per entry in input order, then insert the raw entry under the returned Hash32; equal answers overwrite. Empty input has no query. An oracle-monad failure stops before insertion and every later query; construction introduces no error or handler/O-row. Caller owns oracle failures; concrete Id has none | `build_eq_reference`, `build_empty`, `build_singleton`, `build_append`, `build_push`; `NodeDBGuards.lean` observes all raw values, traces, arbitrary collisions and all four failure positions; authenticated actual-source differential |
+| C12/F4 representation and authenticity | `NodeDB` with `map : Std.HashMap Hash32 ByteArray`; `Authentic (H : ByteArray → Hash32) (db : NodeDB) : Prop` | Every stored entry satisfies `H b = h`; predicate only, with no generic-oracle coherence promise | `authentic_insert`, `authentic_model`, `authentic_build_id` establish concrete authenticity without hash injectivity; `NodeDBCallerProofs.recovered_preimage` supplies the future decoder premise |
+| C12/D25 ordered reference and pure model | `buildReference {m} [Monad m] [KeccakQuery m] : List ByteArray → NodeDB → m NodeDB`; `model : (ByteArray → Hash32) → List ByteArray → NodeDB → NodeDB`; all lists/tables | List fold has the same query/insertion order; model extends an arbitrary table with a chosen pure interpretation. Reference is proof support, not a runtime conversion or scan | `buildReference_cons` (LawfulMonad), `build_id_model`, `lookup_model`, `lookup_build_id` expose the full last-matching-entry fold; public-only split/last-write/different-key/reconstruction clients |
+| D5/F15 transformer composition | Same ordered reference over StateT/ExceptT; all lists and initial tables, explicit `LawfulMonad` for ordinary reassociation laws | Added state unchanged; added exceptions wrap success; underlying query effects and failures forward exactly | `run_buildReference_stateT`, `run_buildReference_exceptT`, `run_buildReference_error`; both transformer orders and retained/lost state guards |
+
+Run `EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/node_db_differential.py
+--eels EELS --output OUTSIDE/NodeDBSource.lean`. The driver calls actual pinned
+`build_node_db`, authenticates all pinned source/lock bytes and installed
+Python-source RECORD entries before imports and afterward, and compiles fresh
+source without cached bytecode. Exact classes are recorded before byte
+normalization. Instrumentation restores callables in `finally`, records their
+before/after identities and demonstrates query order, last-write collisions and
+failure prefixes. Instrumented answers are controls, not concrete Keccak collisions.
+The isolated interpreter, startup, frozen installation/RECORD, loader and host
+hash backend remain trust premises.
+
+Run `python3 scripts/test_node_db.py --observations OUTSIDE/NodeDBSource.observations.json
+--output OUTSIDE/native`. Current actual-module setup/import artifacts and fresh
+C/olean equality precede owned O3/Werror object compilation. Complete source and
+native observations agree with the pinned concrete tables and independent
+arbitrary-answer controls, including reconstructed full-256-bit keys, empty raw
+values, extra entries, larger tables, sibling extensions and retained-parent checks.
+The native link map and exact archive-member/object comparisons identify the
+selected owned providers. No checksum substitutes for table or trace observations.
+These finite functional runs establish no table distribution, throughput,
+allocation, C1–C4, R4, generic oracle coupling, decoder/root or guest/EEST claim.
+
 ## 4. Tests
 
 `InternalNodeGuards.lean` checks absent, leaf and extension structures, nested
@@ -576,10 +616,10 @@ Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/
 NodeDB reuses EthBase's Q51 Hashable Hash32 support and existing actual-equality
 laws (EthBase §3). Public Std map laws supply insertion/lookup, distinct-key
 preservation and equal-key overwrite without a distinct-support-hash premise.
-This prerequisite does not implement NodeDB.build or discharge C12 authenticity:
-Keccak keys still come from KeccakQuery (D5/F4). Expected table bounds are
-conditional on a suitable distribution; actual construction, duplicate handling
-and adversarial-distribution measurements remain open (ARCHITECTURE §5.0, C2).
+C12 construction and concrete authenticity are supplied by the implementation
+rows in §3; Keccak keys come from KeccakQuery (D5/F4). Expected table bounds remain
+conditional on a suitable distribution; adversarial-distribution, allocation and
+composed cost measurements remain open (ARCHITECTURE §5.0, C1–C4).
 
 Computing `Enc` strictly in the smart constructor re-hashes the whole path on every update (O(u·d) keccaks for `u` updates), whereas EELS hashes each dirty node once at root time. Either is correct; the choice is internal to this module (DECISIONS B15, Q33) and still open.
 
@@ -656,7 +696,18 @@ The standard-domain iff laws require the complete assembled structure, including
 HP width and joined payload. The branch positions and value-last law preserve
 arbitrary nested items. No child reference validation or recursive child hash is added.
 
+### 7.0.2 Raw database laws
+
+C12's implemented public laws are listed in §3. `build_eq_reference` holds for
+arbitrary Monad/KeccakQuery instances; ordered reassociation, singleton/push and
+transformer laws state LawfulMonad explicitly. `build_id_model`, full lookup and
+`authentic_build_id` use the concrete Id interpretation. No injectivity premise is
+needed: an overwrite retains a preimage whose own digest is the shared key.
+Arbitrary generic answers carry no concrete authentication guarantee.
+
 ### 7.1 Totality [T]
+
+- C12 construction is a total finite Array fold, with a total structural List reference/model.
 
 - `compactToNibbles`, `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension; actual recursion unimplemented), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
 
@@ -720,7 +771,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthCodec`
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
-- **Seams provided:** `mathRoot` (the definition roots are compared with), `decodeRoot`/`lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
+- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); the following trie seams remain unimplemented: `mathRoot` (the definition roots are compared with), `decodeRoot`/`lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -741,6 +792,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-COMMIT-4: DECISIONS B15 (Q35) and DISC-004: memoised decoding needs a proof that it preserves accept/reject, error precedence and observations (§7.6); host-resource interaction is DISC-001 (O12 unresolved).
 
 ## 10. Gaps
+
+- **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

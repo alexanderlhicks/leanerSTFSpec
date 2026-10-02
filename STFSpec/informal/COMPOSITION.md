@@ -22,6 +22,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | TrieError, Malformed | EthCommit | Keep raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
+| NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete decoding/cache/agreement consumers require `Authentic keccak256`; a generic oracle table alone supplies no concrete authenticity. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
@@ -194,11 +195,24 @@ nonprotocol Hashable Hash32, its all-input executable/reference equality and
 existing actual equality's lawful hash classes. Complete numeric/byte observers
 preserve support hashing; public Std insertion/overwrite/different-key lookup
 laws hold without a distinct-hash premise. This supplies only the table prerequisite
-for EthCommit's NodeDB. Input-order construction, Keccak authentication, generic
-oracle coupling, eager decoding, root agreement and resource gates remain with
-their existing owners. Support/bucket collisions affect costs, not key equality
+for EthCommit's NodeDB. Its actual construction and authentication premise are
+provided below; generic oracle coupling, eager decoding, root agreement and
+resource gates remain with their existing owners. Support/bucket collisions affect costs, not key equality
 or cryptographic authenticity; map expected costs retain ARCHITECTURE §5.0's
 measurement/distribution premises.
+
+### Raw node database premise
+
+[EthCommit §3](modules/EthCommit.md#3-eels-source-map) supplies C12's actual
+NodeDB/map, ordered monad-parametric construction, List reference/model equality
+and full last-write lookup. `authentic_build_id` produces the separate concrete
+`Authentic keccak256` premise required by future decoder/cache/agreement consumers
+(EthCommit §7.4/§7.6, EthStateWitness and EthSecurity). Empty/raw malformed inputs
+are uninterpreted; arbitrary oracle answers and errors forward in input order.
+Transformer and failure equations require explicit LawfulMonad where stated.
+Reconstructed keys and actual Std lookups use only public Base/map laws.
+Generic concrete-authentication coupling remains D5/X7; no decoder, root,
+witness agreement, host-resource or C1–C4/R4 completion follows from this slice.
 
 ### Hash constants and oracle premises
 

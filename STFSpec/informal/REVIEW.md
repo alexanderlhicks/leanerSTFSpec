@@ -68,7 +68,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
 | EthState | Define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. |
-| EthCommit | Distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding and order-sensitive collapse. |
+| EthCommit | Complete C7–C8 constructor/root refinement; distinguish canonicality from lookup equivalence; prove raw-cache/memoized decoder refinement; specify secure-key collision folding and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements; settle the storage-trie memo (F6) and clear order (F7). |
@@ -119,13 +119,14 @@ evidence; its §10 owns remaining hash APIs and correspondence.
 operations, source correspondence and conformance evidence; §7 owns public-law
 domains, and §10 owns remaining APIs and laws.
 [EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
-Q49 provider and internal-node APIs, public-law domains and conformance evidence.
+Q49 provider, internal-node and C12 raw database APIs, public-law domains and
+source/conformance evidence.
 Q50 supplies actual finite-map domain/ending-key laws and private extension/child
 strict sum-descent support and private longest shared-prefix selection with
 ordinary domain/maximality/representative laws. Private bounded branch support
 adds full-key partition/ending and ordered supplied-callback/C6 sequencing laws
-with their explicit lawful-monad premises (EthCommit §3). Its §10 owns remaining witness/database/root APIs,
-constructor measures and trie/resource obligations. Other semantic components
+with their explicit lawful-monad premises (EthCommit §3). Its §10 owns remaining
+witness/root APIs, constructor measures and trie/resource obligations. Other semantic components
 remain scaffolding.
 [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
 theorem is proved.
@@ -146,7 +147,11 @@ source-root agreement and aggregate copy/comparison costs remain open.
 Base differential drivers compare public operation values with the pinned source.
 Q51 table-support vectors compare complete UInt64/native/source values with independent
 nonprotocol Python arithmetic and actual Std map observations (EthBase §3); this
-provides no EELS cryptographic, NodeDB/root or C1–C4 claim.
+provides no EELS cryptographic, root or C1–C4 claim.
+The C12 source/complete-map/native slice is owned by EthCommit §3: authentication
+at Id and input-order query/overwrite laws are supplied for future consumers.
+Eager decoding, cache/root agreement, generic oracle coupling and table resource
+gates remain open; functional large/sibling runs are not cost evidence.
 [EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
 compression and digest drivers, provider correspondence and evidence limits.
 Production F20 entry seams, consumer coherence and D5 generic coupling remain open.

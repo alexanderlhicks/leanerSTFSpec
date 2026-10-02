@@ -301,6 +301,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
+- **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Non-canonical acceptance** (C16, C19) is verified only on hand-made examples; no fixture exercises it, and upstream has not been asked whether it is intended. The `0x80` flip (C16(f)) means "extra unused entries are harmless" is false in general.
