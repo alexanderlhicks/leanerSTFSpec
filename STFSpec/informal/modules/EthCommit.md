@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-03. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
@@ -1236,6 +1236,8 @@ belongs to `EthSecurity` and remains open (D5).
 
 ### 7.3 Canonical form and order independence [C]
 
+These still-open sketches require a faithful encoded-value/representation domain: every stored encoded value is nonempty, resolved trees have no stubs/caches, and actual child-reference realization and complete assembled `Encodable` premises are supplied. Total C7 retains empty values; a terminal-empty binding and its absence can have identical complete preimages. The security-local [ToVCVio](ToVCVio.md) shell/shape and safe prepared-image laws establish only their bounded local facts, not this canonicalizer or map agreement.
+
 - `Canonical (canonTrie m)`; `Canonical t ∧ Canonical t' ∧ (∀ k, lookup t k = lookup t' k) ∧ no stubs → canonicalSerialization t = canonicalSerialization t'` (representation/cache identity is not required) (Exercise 12.1).
 - `patricialize` selects the minimum key. Private `patricializeWith_independent` proves equality of complete recursive constructions for arbitrary valid map/depth-dependent member selectors at every node. Public dispatch equations permit any actual representative without exporting the selector seam.
 - **Order independence of successful roots:** under the canonical representation/encoding hypotheses, if two update sequences from `t` both succeed and produce the same final map `m'`, both roots equal `mathRoot m'`. This does not cover arbitrary accepted noncanonical witnesses: C19 gives a no-op deletion that changes the root. There is no general licence to reorder witness updates.
@@ -1252,7 +1254,9 @@ theorem decode_agreement (consts : HashConsts) (db : NodeDB) (r : Hash32) (t : R
     represents t m ∨ ∃ x y, collisionWitness db m = some (x, y) ∧ x ≠ y ∧ keccak256 x = keccak256 y
 ```
 
-The collision pair consists of a DB entry (or an inline subterm) and a node encoding of `canonTrie m` at the same position. It also covers every non-canonical acceptance of C16: a non-canonical node under a root equal to a canonical root is a collision. The composed statement for a root computation is: `decodeRoot` then a successful `mptSet` sequence yields `mathRoot (m.applyAll ops)` for **every** `m` with `mathRoot m = r`, or a computable collision.
+This still-open outline additionally requires the faithful encoded-value and representation premises of §7.3, exact child realization and one shared deterministic hash interpretation. A comparison of empty and nonempty roots needs actual empty-root coherence; an arbitrary supplied empty constant supplies no second colliding preimage.
+
+The collision pair consists of a DB entry (or an inline subterm) and a node encoding of `canonTrie m` at the same position. It also covers every non-canonical acceptance of C16: a non-canonical node under a root equal to a canonical root is a collision. The composed statement for a root computation is: `decodeRoot` then a successful `mptSet` sequence yields `mathRoot (m.applyAll ops)` for every `m` in that faithful encoded-value/representation domain with `mathRoot m = r`, or a computable collision. Arbitrary accepted lenient witnesses still need their own provenance/representation analysis; these sketches change no total core or witness behavior and close no source/security gate.
 
 ### 7.5 Data availability (progress) [C]
 
