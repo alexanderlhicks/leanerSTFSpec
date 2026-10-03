@@ -307,8 +307,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Non-canonical acceptance** (C16, C19) is verified only on hand-made examples; no fixture exercises it, and upstream has not been asked whether it is intended. The `0x80` flip (C16(f)) means "extra unused entries are harmless" is false in general.
-- **Pure decoding and the inline-node hash** (F4 vs C14/C18): decoding is pure, so a decoded node cannot compute a hash. A DB entry takes its reference as its cached hash (sound under `NodeDB.Authentic`), but an inline subterm of 32 bytes or more (C16(b)) has no reference, and the reference hashes it during decoding. Where that hash is computed (through the oracle when the node is first re-encoded or rooted, as a lazy `Enc` would, or in a monadic decoding step) is open (B15).
-- **Exponential decode on DAG witnesses** (C17) is recorded in DISC-004; the reviewed memoized decoder still needs a refinement proof and resource-acceptance policy. It interacts with DISC-001 and with any guest cycle budget.
+- **Decoder cached-hash target (Q55; unimplemented):** implement the two generic complete decoders and prove pre-RLP occurrence queries, threshold/verbatim cache answers, raw/inline provenance and `Encodable` inheritance, ordered typed failures and underlying failure forwarding. Concrete Id/root binding uses coherent F20 constants and authenticity plus eligible length; generic interpretation, consumer lifetime, whole cache/update/root/source simulation and W1 remain open.
+- **Exponential decode on DAG witnesses** (C17) remains DISC-004. Q55's no-completed-memo baseline supplies sequencing, not a production cost bound; a B15 memo needs value/cache/path/effect/first-error refinement and host compatibility, distinct from F6 and DISC-001. No guest cycle budget or resource policy is adopted.
 - **Inline witness interpretation:** compose the proved `Rlp.encode_eq_of_decode_eq_ok` and `decode_success_encodable` contracts (EthCodec §7) at C15. Raw-codec reencoding is supplied; proving which decoded subterms represent accepted witness children, and preserving their provenance/caches, remains open.
 - **Order-sensitivity conjectures** (§7.5) are unproved; the mixed-order counterexample is verified.
 - **No proof strategy yet** for `decode_agreement` in detail: the definition of `collisionWitness` (which pairs are compared, how inline subterms are included) and its computability need a design; Kestrel's `mmp-trees.lisp` is a shape, not a proof to port. Cassez (FM 2021) is precedent for incremental-equals-scratch only.
@@ -326,6 +326,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
 
 ### [`EthStateCommit`](modules/EthStateCommit.md)
+
+- **Decoder consumer bridge (Q55):** implement the explicit concrete Id-run agreement premises and existing error adaptation; prove cache provenance under authenticity/eligible length. Generic action ownership/lifetime, oracle interpretation/coupling and whole state agreement remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -352,10 +354,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved; step-4 order dependence is verified by executing a minimal example, but no fixture tests it on the account trie.
+- **Generic action lifetime (Q55):** implement/prove decoder sequencing at W2, Id-run thunk agreement and its error adapter, read-cache versus fresh root-computation behavior, successful-result ownership/lifetime, first failure and F6 refinement. Stable Id value comparisons do not establish generic stateful/failing-query equivalence.
 - **History condition** (W7) depends on an `EthState` invariant whose formal statement for a pure provider is not settled.
 - **Storage-trie memo** (F6, open): ownership, lifetime and decode triggers are unspecified; until then storage tries are decoded per query (a DEBT candidate). Any precomputation must be shown not to reject anything EELS accepts, in particular storage tries reachable only from account leaves that EELS never reads (B4).
 - **Leaf-failure fidelity:** CONTRACT O4(e) records the SC5/SC6 failures. Exact error adapters and precedence at each eager decode/lookup trigger remain implementation obligations; the failure ledger (X1) must close the individual sites.
-- **Exponential decode on DAG witnesses and deep acyclic chains** (`EthCommit` C17) make EELS's behaviour host-dependent (DISC-001, O12 unresolved): the guest-process recursion limit is 100,000 (py_ecc raises it), and the witness-chain depth at which the reference fails has not been re-measured under it. The Lean backend's memoised, total decode is not yet reconciled with that.
+- **Exponential decode on DAG witnesses and deep acyclic chains** (`EthCommit` C17) make EELS's behaviour host-dependent (DISC-001, O12 unresolved): the guest-process recursion limit is 100,000 (py_ecc raises it), and the witness-chain depth at which the reference fails has not been re-measured under it. Q55's total mathematical baseline and any unselected B15 memo remain unreconciled with that host behavior.
 - **`compute_state_root_and_trie_changes`' node list** is always empty at the pin; its intended content (trie changes for witness generation) is unspecified.
 - **No fixtures** for malformed nodes, cycles, non-canonical encodings, malformed account or storage leaves, or balance overflow from witness data.
 
@@ -573,6 +576,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - The (iii) statements are `EthSecurity`'s (DECISIONS Q44), which has not started; until it does, nothing states KZG binding.
 
 ### [`EthSecurity`](modules/EthSecurity.md)
+
+- **Decoder interpretation/provenance (Q55):** prove the complete decoder kernel bridge, all preparse occurrence inputs and exact inline subterm provenance, concrete Id-run cache laws and conditional authentic reference binding. B15/F6 memo/action lifetime, whole generic coupling, W1/S2/R2 and query/resource bounds remain open; h-notation supplies no proof.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

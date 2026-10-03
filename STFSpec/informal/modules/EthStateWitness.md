@@ -1,7 +1,7 @@
 # `EthStateWitness`: the witness-state backend
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7; DISC-001, DISC-004.*
+*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7, Q55; DISC-001, DISC-004.*
 
 `ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only.
 
@@ -12,7 +12,7 @@
 ## 2. Requirements
 
 - W1. **Construction** (`stateless.py:290–294`): node DB = `EthCommit.NodeDB.build witness.state`, code DB = `CodeDB.build witness.codes` (keyed by keccak, `ws:45–50`), state root = the last witness header's `state_root`. Both builds hash through the oracle (monadic, D5/F4); their authenticity is the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic`, established at `m := Id`. The backend also carries the caller's `HashConsts` (`emptyTrieRoot`, `emptyCodeHash`), supplied according to EthStateless R5 (F20). Construction decodes nothing (W11).
-- W2. **Decode trigger points** (O4; `ws:148–160`): the account trie at the first account access; a storage trie at the first `get_storage` of an account whose storage root is not `EMPTY_TRIE_ROOT`; in root computation, a **fresh** decode of every changed, uncleared storage trie (`ws:254–259`) and of the account trie (`ws:270–277`). Decoded read-only roots are cached by root hash (`ws:152–160`), so two accounts with equal storage roots share one decoding; that cache is not semantic (W10), and how the Lean backend shares storage-trie decodings is open (F6). Every decode is eager over everything reachable (`EthCommit` C13–C17). Decoding itself is pure (F4); lookups hash their keys through the oracle.
+- W2. **Decode trigger points** (O4; `ws:148–160`): the account trie at the first account access; a storage trie at the first `get_storage` of an account whose storage root is not `EMPTY_TRIE_ROOT`; in root computation, a **fresh** decode of every changed, uncleared storage trie (`ws:254–259`) and of the account trie (`ws:270–277`). Decoded read-only roots are cached by root hash (`ws:152–160`), so two accounts with equal storage roots share one decoding; that cache is not semantic (W10), and how the Lean backend shares storage-trie decodings is open (F6). Every decode is eager over everything reachable (`EthCommit` C13–C17). Q55 makes complete decoding a generic query action run at these triggers; lookups hash their keys through the oracle. The concrete Id read-cache value does not determine a generic action/result-cache lifetime.
 - W3. `get_account_optional a` (`ws:162–177`): look up `keccak256 a` in the decoded account trie (`EthCommit.lookup`; a stub on the path is O4(c): the `AssertionError` at `ws:73`, witnessed on 234 corpus inputs by running the pinned EELS over the full fixture corpus); absent → `none`; present → `EthStateCommit.decodeAccountLeaf`. Side effect: `storageRootCache[a] :=` the leaf's storage root, or `EMPTY_TRIE_ROOT` when absent.
 - W4. `get_storage a k` (`ws:179–203`): if `a` is not in the cache, call `get_account_optional a` first (so an account-trie failure can surface here); an `EMPTY_TRIE_ROOT` storage root gives `0` **without decoding**; otherwise decode (cached) and look up `keccak256 k`; absent → `0`; present → `EthStateCommit.decodeStorageLeaf`.
 - W5. `get_code h` (`ws:205–213`): `b""` for `EMPTY_CODE_HASH` (`HashConsts.emptyCodeHash`); else the code DB entry; missing → O4(d), an error, never an absent value (B2).
@@ -22,11 +22,11 @@
   3. for each address in `storageChanges ∪ storageClears` (a Python `set`; iteration order hash-dependent) that is **not** in `accountChanges`: look the account up; if it exists, rewrite its leaf with the new storage root (`EMPTY_TRIE_ROOT` for a pure clear) (`ws:279–294`). `BlockDiff.storageClears` has no clear order, so this step's order is **open (F7)**: prove the W8 commutation or add a clear order;
   4. for each `accountChanges` entry **in first-write order** (`EthState` R6): `none` deletes; otherwise insert the encoded account with storage root: the new root if computed in step 1, else `EMPTY_TRIE_ROOT` if cleared, else the **cached** root, defaulting to `EMPTY_TRIE_ROOT` when the address was never looked up (`ws:296–309`);
   5. return `mpt_root` and an empty node list (`ws:311`).
-- W7. **History condition.** Step 4's default means EELS's root depends on which addresses were looked up earlier. `EthState` guarantees every address in `accountChanges` was looked up (`AccountWritesLookedUp`, `EthState` R32). Under that condition, looking the account up again (pure, deterministic, and certain to succeed because it succeeded before) gives the same storage root; the Lean backend does so and needs no mutable cache.
+- W7. **History condition.** Step 4's default means EELS's root depends on which addresses were looked up earlier. `EthState` guarantees every address in `accountChanges` was looked up (`AccountWritesLookedUp`, `EthState` R32). Under that condition, at concrete Id with its stable hash interpretation, looking the account up again (deterministic, and certain to succeed because it succeeded before) gives the same storage root; the Id prototype does so and needs no mutable cache. This is a reachable-value argument, not a generic stateful/failing-query effect equivalence (Q55).
 - W8. **Order.** Preserve account first-write order and both storage-address and storage-slot first-write orders in BlockDiff. Step 1 partitions each ordered slot list into nonzero writes followed by zero writes, preserving order within each group. No map iteration substitutes for those lists. Step 3's storage-root-only rewrites of present accounts are conjectured to commute, but this needs proof for every accepted encoding, **including failures and observations**, before choosing a deterministic set order. Cross-address independence does not alone establish identical failure priority. This is F7 (open): `storageClears` has no clear order, so either prove the commutation or add a clear order to `BlockDiff` (`EthState` §7.5). A prototype's traversal (storage-address order, then the remaining clears in key order) is not adopted, and a first-clear order alone does not reproduce Python set iteration. The account, storage-address and slot orders are settled by B1.
-- W9. **All failures are O4** and become `false` (`stateless.py:303`): missing root preimage, malformed reachable node, stub on a lookup/update path or collapsing onto a stub, missing code, and leaf-decoding failures (`EthStateCommit` SC5–SC6).
-- W10. **Caches are not semantic** (ARCHITECTURE §7) except through W7: removing `_decoded_secure_roots` changes only cost; `_storage_root_cache` is replaced by re-lookup under W7.
-- W11. **Decode timing** (B4, D19). Decode a root when the reference triggers it (W2), then eagerly decode everything reachable from it. Construction-time decoding of every storage trie is **not** required: pure functions decode on demand. Precomputation is permitted only after proving that its errors surface at the reference's triggers with the reference's precedence and observations (B15), and after measuring the extra work. "On demand" never means lazy, path-only validation. A malformed storage trie that execution never touches must remain accepted, and a malformed account-trie node anywhere must be rejected (the account trie is always decoded by root computation, `fork.py:350` → W6 step 2, unless the root is `EMPTY_TRIE_ROOT`). The following form compiles in a prototype of the interfaces: the account trie as a `Thunk (Except …)` decoded once, with any error surfacing at first access (`ws:148–160`), and storage tries decoded per query with no memo. The storage-trie memo is **open (F6)**: its ownership, lifetime and decode triggers are unspecified, and cache mechanics must stay outside semantic state. Until it is specified, per-query decoding is a DEBT candidate (D18).
+- W9. **Typed witness failures are O4** and become `false` (`stateless.py:303`): missing root preimage, malformed reachable node, stub on a lookup/update path or collapsing onto a stub, missing code, and leaf-decoding failures (`EthStateCommit` SC5–SC6). Underlying Q55 query-monad failures propagate in their original channel until the caller's owning adapter; no new O4/O11/O12 projection is supplied.
+- W10. **Caches are not semantic** (ARCHITECTURE §7) except through W7: removing `_decoded_secure_roots` changes only cost under the concrete Id/stable interpreted-value comparison; `_storage_root_cache` is replaced by re-lookup under W7. Generic query effects, successful-result lifetime and first failure need separate Q55 refinement premises.
+- W11. **Decode timing** (B4, D19). Decode a root when the reference triggers it (W2), then eagerly decode everything reachable from it. Construction-time decoding of every storage trie is **not** required: the decoder action runs on demand at the established trigger (Q55). Precomputation is permitted only after proving that its errors surface at the reference's triggers with the reference's precedence and observations (B15), and after measuring the extra work. "On demand" never means lazy, path-only validation. A malformed storage trie that execution never touches must remain accepted, and a malformed account-trie node anywhere must be rejected (the account trie is always decoded by root computation, `fork.py:350` → W6 step 2, unless the root is `EMPTY_TRIE_ROOT`). The following existing prototype form describes only the concrete Id specialization: the account trie as a `Thunk (Except …)` decoded once, with any error surfacing at first access (`ws:148–160`), and storage tries decoded per query with no memo. The storage-trie memo is **open (F6)**: its ownership, lifetime and decode triggers are unspecified, and cache mechanics must stay outside semantic state. Until it is specified, per-query decoding is a DEBT candidate (D18).
 
 ## 3. EELS source map
 
@@ -68,16 +68,16 @@ structure WitnessBackend where
   codes : CodeDB
   stateRoot : Hash32
   consts : HashConsts
-  accountTrie : Thunk (Except WitnessError Ref)   -- prototype form: pure decodeRoot, decoded once on first access (W11)
-  -- storage tries: decoded per query (pure decodeRoot); a per-root memo is open (F6)
+  accountTrie : Thunk (Except WitnessError Ref)   -- Id prototype only; Id.run decoder via the existing TrieError/WitnessError adapter obligation
+  -- Id prototype storage tries: Id.run decoder per query; per-root memo open (F6)
 def WitnessBackend.build (nodes : NodeDB) (codes : CodeDB) (root : Hash32) (consts : HashConsts) : WitnessBackend
-def WitnessBackend.WF (w : WitnessBackend) : Prop :=       -- at Id
-  NodeDB.Authentic keccak256 w.nodes ∧ CodeDB.Authentic keccak256 w.codes ∧
-  w.consts = Id.run HashConsts.query ∧
-  w.accountTrie.get = decodeRoot w.consts.emptyTrieRoot w.nodes w.stateRoot
--- build establishes WF when its DBs are authentic and consts = Id.run HashConsts.query.
-def WitnessBackend.toPreState (w : WitnessBackend) : PreState m
-def computeStateRootAndTrieChanges (w : WitnessBackend) (d : BlockDiff) : m (Except WitnessError (Hash32 × List InternalNode))
+def WitnessBackend.WF (w : WitnessBackend) : Prop   -- Id; complete obligations specified below
+-- WF requires both concrete DB authentication predicates, coherent consts and
+-- accountTrie.get equality to the existing TrieError/WitnessError adaptation of
+-- Id.run (decodeRoot w.consts.emptyTrieRoot w.nodes w.stateRoot) (Q55).
+-- build must establish all these obligations; the adapter/decoder are unimplemented.
+def WitnessBackend.toPreState (w : WitnessBackend) : PreState Id   -- displayed record is the Id prototype
+def computeStateRootAndTrieChanges (w : WitnessBackend) (d : BlockDiff) : Id (Except WitnessError (Hash32 × List InternalNode))
 
 -- the theorems are stated at m := Id (Models is at PreState Id, D5)
 theorem WitnessBackend.models (w) (σ) (hwb : WitnessBackend.WF w) (hwf : MathState.WF σ) (hc : CodeAuthentic σ)
@@ -90,23 +90,52 @@ theorem WitnessBackend.refines_eels : ...   -- under AccountWritesLookedUp, same
 
 The provider factory receives `consts` from its caller (F20); it does not acquire it. `WitnessBackend.build` stores that record, and `toPreState`/root/lookup consumers read `w.consts` through their existing backend argument, with local EELS notation rather than an additional constants argument. Establishing DB authenticity and constants/oracle coherence is still W1, not a consequence of the factory parameter alone.
 
+**Generic decoder action lifetime (Q55; unimplemented).** The displayed
+`WitnessBackend` record is only the Id prototype, not a representation of a
+generic `PreState m`. Its full WF contract requires `NodeDB.Authentic keccak256 w.nodes`,
+`CodeDB.Authentic keccak256 w.codes`, `w.consts = Id.run HashConsts.query`,
+and the thunk equality after the
+existing TrieError-to-WitnessError adaptation of
+`Id.run (decodeRoot w.consts.emptyTrieRoot w.nodes w.stateRoot)`; success premises
+use that explicit Id-run expression. Defining/proving the adapter remains open.
+A future generic backend runs the complete decoder action at W2, including all
+eligible pre-RLP occurrence queries. `Thunk (m (Except WitnessError Ref))` stores
+an action value: forcing and running it again repeats effects, rather than caching
+an executed result. Successful-result ownership/lifetime, first-failure sequencing
+and F6 behavior must be specified/proved before choosing that representation.
+Read caches are distinct from W6's fresh storage/account decodes. The caller's
+existing constants record is threaded unchanged; no decoder acquires it.
+
+The previously required generic public entry targets remain visible below;
+`…` denotes the backend parameter whose generic representation/lifetime remains
+unspecified, not a new public record or adapter. These targets are independent
+of the Id-only record displayed above and remain unimplemented:
+
+```lean
+-- {m : Type → Type} [Monad m] [KeccakQuery m]
+WitnessBackend.toPreState : … → PreState m
+computeStateRootAndTrieChanges : … → BlockDiff →
+    m (Except WitnessError (Hash32 × List InternalNode))
+```
+
+
 ## 6. Data structures
 
 | Type | Representation | Invariant | Persistence | Complexity |
 |---|---|---|---|---|
 | `NodeDB`, `CodeDB` | `Std.HashMap`, built linearly | `NodeDB.Authentic`/`CodeDB.Authentic` (keys are hashes of values; separate predicates, F4) | read-only shared | build expected O(n) + one keccak per entry |
-| account trie | `Thunk (Except WitnessError Ref)` (prototype form) | its value equals `decodeRoot emptyTrieRoot nodes stateRoot` | forced once, then shared | one eager decode (with the DAG memo of `EthCommit`); lookup O(64) node steps |
-| storage tries | none yet: decoded per query | each decode equals `decodeRoot emptyTrieRoot nodes h` | — | O(reachable storage-trie size) **per query**: a cost debt until the F6 memo is specified |
+| account trie | `Thunk (Except WitnessError Ref)` (prototype form) | Id-only value equals the existing error adaptation of `Id.run (decodeRoot emptyTrieRoot nodes stateRoot)` | forced once, then shared | one eager Id decode; B15 completed-node sharing unselected; lookup O(64) node steps |
+| storage tries | none yet: decoded per query | each Id decode equals the existing error adaptation of `Id.run (decodeRoot emptyTrieRoot nodes h)` | — | O(path-expanded reachable occurrences) **per Id query**; costs and F6 sharing remain open |
 | root computation | `EthCommit.IncrementalMPT` per changed trie | as `EthCommit` | functional, linear use | O(u · d) node rebuilds for `u` updates |
 
 Per-query storage decoding repeats work that EELS caches by root (`ws:152–160`). The per-root memo that would remove it is F6 (open; a DEBT candidate, D18): it must preserve the B4 triggers and B15 precedence and keep cache mechanics outside semantic state.
 
 ## 7. Contract and laws
 
-- [C] **Agreement up to collision:** `WitnessBackend.models` — from `EthCommit.decode_agreement` on the account trie and on each storage trie, plus `EthStateCommit`'s leaf round trips; `WitnessBackend.WF` supplies node/code authentication and coherent constants/thunk; `ModelsCode` follows from its code-DB clause. These premises apply to arbitrary backend records, not only to records returned by `build`.
+- [C] **Agreement up to collision:** `WitnessBackend.models` — from `EthCommit.decode_agreement` on the account trie and on each storage trie, plus `EthStateCommit`'s leaf round trips; `WitnessBackend.WF` supplies node/code authentication, coherent constants and the Id-run decoder/thunk agreement through the existing error adapter; `ModelsCode` follows from its code-DB clause. These premises apply to arbitrary backend records, not only to records returned by `build`.
 - [C] **Progress / data availability:** `LookupAvailable w a` requires successful eager account-root decoding (including off-path nodes), a resolved lookup path and successful account-leaf decoding. Storage lookup additionally requires successful eager decoding of its triggered storage root, a resolved slot path and successful storage-leaf decoding. `UpdatesAvailable w d` requires `BlockDiff.WF`, read-before-write, successful eager decoding at each W2 root trigger, every insertion/deletion path and every collapsing branch's remaining sibling resolved, and successful leaf decoding for every value inspected, **in the W6 replay order**. A resolved path alone is insufficient when malformed off-path nodes are eagerly decoded. Authenticated absence is success (ARCHITECTURE §5.3).
-- [R] **Refinement to EELS:** for any sequence of provider calls made by `EthBlock` execution satisfying `AccountWritesLookedUp`, each call's result (value, or failure) equals EELS's; hence the guest's boolean is the same (W9, W11).
-- [C] **Cache laws:** the account-trie thunk's value equals on-demand decoding; re-lookup equals the cached storage root under W7. Any storage-trie memo (F6, open) must equal per-query decoding, including error precedence (B15).
+- [R] **Concrete Id refinement to EELS:** under concrete Id, coherent constants and pinned-host premises, for any sequence of provider calls made by `EthBlock` execution satisfying `AccountWritesLookedUp`, each call's result (value, or failure) equals EELS's; hence the guest's boolean is the same (W9, W11).
+- [C] **Id cache laws:** the account-trie thunk's value equals the adapted Id-run on-demand decoding; re-lookup equals the cached storage root under W7. Any storage-trie memo (F6, open) must equal per-query decoding under its stated interpretation, including error precedence (B15); generic action/result reuse additionally proves Q55 effects and ownership/lifetime.
 - [C] **Order laws:** step-3 commutation (W8; F7, open) and step-1 independence still need proofs. Slot iteration uses the diff's stored order, filtered into the nonzero and zero groups, so no insert/delete group commutation premise is required by the working interface.
 
 ### Informal correctness argument
@@ -115,7 +144,7 @@ Per-query storage decoding repeats work that EELS caches by root (`ws:152–160`
 
 **Premises.** WitnessBackend.WF (authenticated node/code dictionaries, coherent HashConsts and account thunk), initial root agreement, code authenticity of σ, the full code/node preimage set, EthCommit lenient decoding laws, immutable pre-state queries, and read-before-write for changed accounts.
 
-**Argument.** Build node and code dictionaries in input order with the reference's duplicate-key policy. Lookup authenticates the relevant path and updates the account storage-root cache; repeating the lookup has the same answer. Reachable read-before-write ensures every changed account has its original storage root recorded, instead of the empty default. The pure provider redoes that immutable successful lookup (W7); its refinement is over reachable traces, not arbitrary history-dependent calls to the Python helper. Root computation processes storage-address and slot orders retained in BlockDiff, splitting slot writes into nonzero then zero groups while preserving order within each group. It then processes account changes in first-write order. Induct over these operations, applying the path/update agreement or extracting a collision. Preserve original raw encodings of unchanged nodes. Final storage-root-only account rewrites require a separate commutation argument before their iteration order can be changed.
+**Argument.** Build node and code dictionaries in input order with the reference's duplicate-key policy. Lookup authenticates the relevant path and updates the account storage-root cache; repeating the lookup has the same answer. Reachable read-before-write ensures every changed account has its original storage root recorded, instead of the empty default. At concrete Id the provider redoes that immutable successful lookup (W7); its refinement is over reachable traces, not arbitrary history-dependent calls to the Python helper. Root computation processes storage-address and slot orders retained in BlockDiff, splitting slot writes into nonzero then zero groups while preserving order within each group. It then processes account changes in first-write order. Induct over these operations, applying the path/update agreement or extracting a collision. Preserve original raw encodings of unchanged nodes. Final storage-root-only account rewrites require a separate commutation argument before their iteration order can be changed.
 
 **Open obligations.** Prove that last commutation law for all accepted witness encodings, complete cache-history reachability, and implement the collision extractor including σ's code bytes. Canonical full-state agreement is conditional; witness availability and host-resource compatibility cannot be deduced from the root alone.
 
@@ -130,7 +159,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-- D5 (broad scope, monad-parametric): node and code DB builds, key hashing in lookups, and root updates go through `KeccakQuery`; decoding is pure (F4); `toPreState` returns `PreState m`; the theorems are stated at `m := Id`.
+- D5 (broad scope, monad-parametric): node and code DB builds, key hashing in lookups, and root updates go through `KeccakQuery`; complete decoding follows Q55; the displayed thunk/backend is Id only, while generic `PreState m` action/result ownership remains open; the theorems are stated at `m := Id`.
 - D8 (accepted): authenticated absence versus missing data.
 - D19 (accepted): eager decoding from the reference's trigger (W11).
 - NEW-STATE-1 (from `EthState`): resolved: DECISIONS B1 (Q29).
@@ -144,9 +173,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved; step-4 order dependence is verified by executing a minimal example, but no fixture tests it on the account trie.
+- **Generic action lifetime (Q55):** implement/prove decoder sequencing at W2, Id-run thunk agreement and its error adapter, read-cache versus fresh root-computation behavior, successful-result ownership/lifetime, first failure and F6 refinement. Stable Id value comparisons do not establish generic stateful/failing-query equivalence.
 - **History condition** (W7) depends on an `EthState` invariant whose formal statement for a pure provider is not settled.
 - **Storage-trie memo** (F6, open): ownership, lifetime and decode triggers are unspecified; until then storage tries are decoded per query (a DEBT candidate). Any precomputation must be shown not to reject anything EELS accepts, in particular storage tries reachable only from account leaves that EELS never reads (B4).
 - **Leaf-failure fidelity:** CONTRACT O4(e) records the SC5/SC6 failures. Exact error adapters and precedence at each eager decode/lookup trigger remain implementation obligations; the failure ledger (X1) must close the individual sites.
-- **Exponential decode on DAG witnesses and deep acyclic chains** (`EthCommit` C17) make EELS's behaviour host-dependent (DISC-001, O12 unresolved): the guest-process recursion limit is 100,000 (py_ecc raises it), and the witness-chain depth at which the reference fails has not been re-measured under it. The Lean backend's memoised, total decode is not yet reconciled with that.
+- **Exponential decode on DAG witnesses and deep acyclic chains** (`EthCommit` C17) make EELS's behaviour host-dependent (DISC-001, O12 unresolved): the guest-process recursion limit is 100,000 (py_ecc raises it), and the witness-chain depth at which the reference fails has not been re-measured under it. Q55's total mathematical baseline and any unselected B15 memo remain unreconciled with that host behavior.
 - **`compute_state_root_and_trie_changes`' node list** is always empty at the pin; its intended content (trie changes for witness generation) is unspecified.
 - **No fixtures** for malformed nodes, cycles, non-canonical encodings, malformed account or storage leaves, or balance overflow from witness data.

@@ -1,7 +1,7 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
 *Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53.*
+*Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55.*
 
 ## 1. Purpose
 
@@ -17,7 +17,7 @@
 - SC6. **Storage leaf decoding** (`witness_state.py:198–203`): RLP-decode; a string → its big-endian value (leading zeros accepted; > 32 significant bytes fails with `OverflowError`); the empty string → `0`; **a list → `0`** silently. RLP failure → witness failure.
 - SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:36`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:45–50`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
 - SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = mathStateRoot (σ.apply d)`. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:129–135`).
-- SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified decode thunk (WitnessBackend.WF), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
+- SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified Id-run decoder/thunk agreement via the existing error-adapter obligation (WitnessBackend.WF, Q55), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
 - SC10. The encodings are canonical: `decodeAccountLeaf (encodeAccount a r) = .ok (a, r)` and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
 
 ## 3. EELS source map
@@ -82,6 +82,16 @@ root API or secured traversal/collision policy. Concrete source agreement retain
 supported non-`None` interpretation, exact equality/dispatch, complete source-schema
 and assembled-node `Encodable` (Q47), coherent F20 constants and host premises.
 
+Q55's unimplemented complete decoder is a generic `KeccakQuery` action, with
+its cache/acquisition contract owned by EthCommit C13–C14/§7.6. Concrete witness
+agreement uses `Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t` and the
+actual Id interpretation with coherent caller-supplied F20 constants. A decoded
+cache equals a referenced DB key only under authenticity and raw length ≥32;
+arbitrary alias-keyed DB admission still retains the actual raw-preimage digest.
+The Id witness thunk is not a generic result-cache representation. Generic
+`PreState m` agreement needs a real query interpretation/action-lifetime bridge;
+Q55 chooses none and adds no local constants acquisition.
+
 ## 6. Data structures
 
 No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
@@ -98,7 +108,7 @@ No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles Byt
 
 - `mathStateRoot (σ.apply d)` is the root after `apply_changes_to_state` (`state_mpt.py:133–161`) and after `State.compute_state_root` (`state_mpt.py:82–120`) — the full backend's commuting equation.
 - **Lenient decodings are collision-guarded:** if a leaf decoded by `decodeAccountLeaf` is not the canonical encoding of the result, then no WF σ with the same root has it without a collision, since the leaf bytes are part of an authenticated node.
-- **Witness agreement (lifting `EthCommit.decode_agreement`):** for the witness backend `ps` built from authenticated `db` and `codes`, coherent HashConsts and parent root `r`, and every structurally WF, code-authentic σ with `mathStateRoot σ = r`: `Models ps σ ∨ (StateCollision db codes σ).isSome`. The storage-trie part applies `decode_agreement` per account, with the storage root taken from the authenticated account leaf. Code-store authenticity is an additional premise because the state root does not commit to the code store's values.
+- **Witness agreement (lifting `EthCommit.decode_agreement`):** for the witness backend `ps` built from authenticated `db` and `codes`, coherent HashConsts, explicit `Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t` premises at the triggered roots, and parent root `r`, and every structurally WF, code-authentic σ with `mathStateRoot σ = r`: `Models ps σ ∨ (StateCollision db codes σ).isSome`. The storage-trie part applies `decode_agreement` per account, with the storage root taken from the authenticated account leaf. Code-store authenticity is an additional premise because the state root does not commit to the code store's values.
 
 ### 7.3 Code [C]
 
@@ -134,6 +144,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: U256 preparation validity and contextual Account integration follow §5/§8, with no bare Account instance or secured policy supplied.
 
 ## 10. Gaps
+
+- **Decoder consumer bridge (Q55):** implement the explicit concrete Id-run agreement premises and existing error adaptation; prove cache provenance under authenticity/eligible length. Generic action ownership/lifetime, oracle interpretation/coupling and whole state agreement remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

@@ -23,7 +23,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract and pure unsecured preparation; remaining consumer/root contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
-| NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete decoding/cache/agreement consumers require `Authentic keccak256`; a generic oracle table alone supplies no concrete authenticity. |
+| NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
@@ -158,12 +158,38 @@ decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
 
 [EthCommit §3/§7.0.4](modules/EthCommit.md#3-eels-source-map) supplies Q52's
 nominal diagnostic declarations and public codec/compact seam clients. Future C14
-consumers must parse the whole RLP first, check a two-item path field before
+consumers must parse the whole RLP before shape dispatch, after any Q55 preparse
+query, check a two-item path field before
 compact decoding, and check a list-valued leaf value only after successful leaf
 compact decoding. Extension path/child checks, original descendant-error
 propagation and branch-list ending leniency remain dispatcher obligations.
 No whole node decoder or WitnessError/guest adapter has been implemented;
 CONTRACT O4 owns the unchanged output projection.
+
+### Complete decoder action premise (Q55; unimplemented)
+
+[EthCommit C13–C14/§5/§7.6](modules/EthCommit.md#5-interface) owns the two generic
+complete decoder targets and query-before-whole-RLP acquisition on newly entered
+eligible raw occurrences. Pure lookup/childRef, raw cache shape, lenient admission,
+ordered diagnostics and current-path cycle behavior retain their contracts.
+Concrete agreement premises are `Id.run (decodeRoot consts.emptyTrieRoot db r) =
+.ok t`, using the actual Id interpretation and coherent supplied F20 constants.
+Cache/reference equality requires authenticity and raw length ≥32; long inline
+and arbitrary alias-keyed DB entries retain actual complete-preimage answers.
+Consumers prove exact parsed inline subterm/reencoding provenance, without
+normalizing accepted raw HP. No decoder locally acquires constants.
+
+EthStateWitness runs generic decode actions at B4/W2 triggers, distinguishing read
+cache reuse from fresh root-computation decoding. Its current pure result thunk
+is Id only; a thunk of an action does not cache an executed result. Generic
+successful-result ownership/lifetime and first-failure/F6 refinement remain open.
+Underlying monadic failure remains in its original channel; typed decoder errors
+preserve earlier query effects and stop later traversal. The existing witness
+error-adapter/CONTRACT projection is a separate implementation obligation.
+Hash-relative security/value comparison requires a real interpretation bridge,
+explicit relevant-query equations and lawful sequencing; stable Id values do not
+prove arbitrary stateful/failing effects. Q55 supplies no whole W1/S2/R2 coupling
+or production cost/resource gate, and selects no B15 completed-node memo.
 
 ### Internal-node encoding premise
 
@@ -333,7 +359,7 @@ Let `Reachable` mean a trace starting from valid block/transaction construction 
 The induction invariant has the following parts:
 
 1. Structural MathState/overlay invariants, including no orphan storage and the specified absent-account defaults.
-2. Every changed account has been looked up in the immutable provider context before its first write. This populates the reference witness storage-root cache. The pure witness provider repeats the same immutable lookup at root computation rather than storing call history; the reachable trace proves that extra lookup succeeds and agrees. A raw setAccount/destroyAccount does not establish this fact.
+2. Every changed account has been looked up in the immutable provider context before its first write. This populates the reference witness storage-root cache. At concrete Id/stable interpretation, the witness prototype repeats the same immutable lookup at root computation rather than storing call history; the reachable trace proves that extra lookup succeeds and agrees. For generic Q55 actions, value agreement alone does not prove equal query effects/first failure or result-cache lifetime. A raw setAccount/destroyAccount does not establish this fact.
 3. TxRevertible contains writes, clears, transient values and write-order metadata; TxObs stays outside snapshots. Rollback selects the saved revertible roots and retains observations/created-account tracking and the authoritative ancestor cursor.
 4. Account order, storage-address order and per-address slot order enumerate each current live write once. A clear resets the affected storage ordering, makes pending writes into reads, and hides lower overlays. Incorporation performs clears before ordered writes.
 5. BAL updates observe the unmerged transaction and block views, then merge. First-index pre-values, nonce maximum and balance/code last-value behaviour follow the source builder.
