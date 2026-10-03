@@ -4,7 +4,7 @@
 # pinned to a full commit (the analysis was against upstream main f5119c6; toolchain v4.34.0).
 name = "STFSpecSecurity"
 version = "0.0.0"
-defaultTargets = ["EthSecurity"]
+defaultTargets = ["EthSecurity", "ToVCVio"]
 # Share the bridge package's dependency checkouts (Mathlib and its dependencies) instead of
 # fetching a second copy.
 packagesDir = "../STFSpecMathlib/.lake/packages"
@@ -24,3 +24,8 @@ path = "../STFSpecMathlib"
 [[lean_lib]]
 name = "EthSecurity"
 roots = ["STFSpecSecurity"]
+
+# Local proved support; no VCV-io/PolyFun dependency is adopted here.
+[[lean_lib]]
+name = "ToVCVio"
+roots = ["ToVCVio"]

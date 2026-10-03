@@ -102,6 +102,9 @@ flowchart TB
   Security --> EthStateless
   Security --> EthStateFull
   Security --> PairingM
+  ToVCVio --> EthBase
+  ToVCVio --> EthCodec
+  ToVCVio --> EthCommit
   EthField -. "source candidate (D6)" .-> CompPoly
   EthPairing -. "reference (D15)" .-> CryptoSpecs
   Security -. "planned (P4)" .-> VCV

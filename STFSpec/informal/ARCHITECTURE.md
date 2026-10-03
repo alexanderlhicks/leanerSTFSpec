@@ -75,7 +75,7 @@ All core libraries live in one Mathlib-free **core Lake package** (the repositor
 
 **Outside the core package:**
 - **`STFSpecMathlib/`**, the Mathlib bridge package: `EthFieldMathlib`, `EthCurveMathlib`, `EthPairingMathlib`.
-- **`STFSpecSecurity/`**, the security package: `EthSecurity` (requires the core and the bridge package; VCV-io enters here only).
+- **`STFSpecSecurity/`**, the security package: `EthSecurity` (requires the core and the bridge package) and the separate `ToVCVio` local RLP/reference support library (existing core/standard dependencies; see its owning guidance). VCV-io may enter here only, subject to Q14/D26; it is not installed.
 
 **Reduced dependency overview** (the README diagram is generated from `boundaries.toml`; edges implied by longer paths are omitted). The table above includes additional permitted imports, such as hashes used directly by instructions and precompiles:
 
@@ -96,6 +96,7 @@ EthCommit       → EthCodec → EthHash → EthBase
 EthPairing      → EthCurve → EthField → EthBase
 EthField        ⇢ CompPoly-derived Montgomery code, vendored or upstream (D6);  EthPairing/EthCurve ⇢ cryptography-specs as reference (D15)
 EthSecurity     → EthStateless, EthStateFull, EthPairingMathlib (STFSpec/informal/contracts.toml), VCV-io, Mathlib
+ToVCVio        → EthBase, EthCodec, EthCommit (STFSpec/informal/contracts.toml); no VCV-io import
 Eth*Mathlib     → Eth*, Mathlib
 ```
 

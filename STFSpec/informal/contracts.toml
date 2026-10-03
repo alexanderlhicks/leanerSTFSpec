@@ -7,6 +7,7 @@ EthFieldMathlib = ["EthField"]
 EthCurveMathlib = ["EthCurve", "EthFieldMathlib"]
 EthPairingMathlib = ["EthPairing", "EthCurveMathlib"]
 EthSecurity = ["EthStateless", "EthStateFull", "EthPairingMathlib"]
+ToVCVio = ["EthBase", "EthCodec", "EthCommit"]
 
 [owners]
 HashConsts = "EthBase"
