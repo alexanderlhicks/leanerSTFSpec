@@ -436,3 +436,7 @@ This is a proof dependency graph, not the core import graph; in particular State
 | Anchors and oracle coupling | consumer + Security | security conclusion | external anchor specified; D5 coupling open |
 
 An implementation is ready for a claimed end-to-end theorem only when every required premise has a producer and a discharged proof. Markdown argument sections and mechanical document checks are necessary scaffolding; they cannot guarantee the truth of an unproved premise.
+
+### Local security RLP reference support
+
+`ToVCVio` (security package only; owning [guidance](modules/ToVCVio.md) §§5/7) consumes existing core canonical RLP, exact hash-byte and `InternalNode` contracts. Its child threshold uses the complete encoded list; empty absence, inline lists and digest bytes remain distinct. Its explicit `QueryMorphism` preserves pure/bind and the chosen full query action for this kernel. The actual core adapter uses the installed `KeccakQuery` on both sides, recursive complete Encodable and list shape, and `LawfulMonad`; an unrelated callback additionally needs full action equality at that exact preimage. Equal digest values alone do not couple failure/state. Same-h raw-pair extraction performs no additional query and has conditional soundness, not whole-map binding. Canonical Patricia grammar, witness provenance, X7 generic provider/model coupling, an installed VCV-io QueryHom adapter and budgets remain open. No arbitrary direct-style transport follows from a generic capability type.

@@ -3,7 +3,7 @@
 *Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44, Q55.*
 
-`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). It defines no executable behaviour. **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal.
+`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). Its agreement declarations define no executable guest behaviour. The separate local `ToVCVio` support library has executable RLP reference and raw-pair extraction helpers, owned by [ToVCVio](ToVCVio.md). **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal.
 
 ## 1. Purpose
 
@@ -75,6 +75,8 @@ and the bridge `probEvent_eq_one_simulateQ_randomOracle_run_iff` (`VCVio/OracleC
 - **Declaration check:** release theorems must use only `propext`, `Quot.sound`, `Classical.choice`, with no `sorry` through dependencies (`CONTRIBUTING.md` §4); conditional theorems list each hypothesis and the bridge that discharges it.
 
 ## 5. Interface
+
+**Implemented local support.** [ToVCVio §§5/7](ToVCVio.md) owns the certified RLP/reference APIs, explicit query-preserving map, same-h raw collision extractor and actual core adapter. This supplies bounded helper laws; the agreement and ROM interfaces below remain proposed.
 
 Namespace `STFSpecSecurity`; all public. Names of core items are those of their owning specs; `h` ranges over `ByteArray → Digest`.
 
@@ -218,6 +220,8 @@ Every extractor comes with a soundness lemma (`extract… = some c → c.x ∈ S
 
 ## 7. Contract and laws
 
+The bounded local RLP/reference laws are owned by [ToVCVio §7](ToVCVio.md). They prove neither whole-map agreement nor ROM coupling. The agreement laws below remain open.
+
 All [S]; each lists the core obligations it consumes (the ids are the owning modules' laws).
 
 1. **Trie agreement** (`decodeRoot_represents`, `witness_lookup_agreement`, `witness_root_update_agreement`). Consumes: `EthCommit` [C] canonical-form invariant and "canonical tries are equal iff they represent the same map" (Nipkow et al. Ex. 12.1), `represents` simulation laws for lookup/update/delete, NodeDB.Authentic, the actual Q55 interpretation/Id-run decoder premise and the decoded-node hash law restricted to eligible raw lengths, RLP prefix-freeness/injectivity (`EthCodec`), eager decoding (D19) so that the decoded trie covers everything reachable. **Strategy:** induction on the decoded trie; at each hashed reference compare the witness node with `M`'s canonical subtrie node: equal encodings → recurse; different encodings with equal hash → collision; RLP injectivity closes the "same encoding, different node" case. Incremental root agreement follows Cassez (FM 2021) for "incremental = from-scratch" plus the same case split.
@@ -244,6 +248,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 8. Composition
 
 - **Depends on:** `EthStateless`, `EthStateFull`, `EthPairingMathlib`. Direct repository imports; external Mathlib and the proposed VCV-io dependency are discussed below.
+- **Local support:** [ToVCVio](ToVCVio.md), a separate existing-dependency security library, supplies bounded RLP/reference and same-query core adapter laws; it is cited here, not a current direct import.
 - **Used by:** release reports and consumers who cite soundness (evm-asm, pancaketh, zkVM teams).
 - **Seams consumed:** the `KeccakQuery` class and its `ExceptT`/`StateT` lifts (`EthHash`, D5), `HashConsts` (`EthBase`), and every [S]-tagged obligation of `EthCommit`, `EthStateCommit`, `EthStateWitness`, `EthBlock`, `EthStateless`, `EthCodec`.
 - **Cross-module invariants relied on:** kernels in the D5 scope are generic over `KeccakQuery` and instantiated with `m := Id`, concrete keccak, in the executable spec; the executable result equals `simulateQ (QueryImpl.ofFn keccak256)` of the generic kernel (`keccakQuery_ofFn`, a proof obligation of the bridge instance). **Guaranteed:** nothing to the core; theorems only.
@@ -267,7 +272,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **VCV-io has no MPT, RLP or trie support** [V: a grep over VCV-io main for patricia/trie/MPT/rlp/verkle finds nothing]. Its `HashForest` (variadic mixed nodes, `providedDigest`) covers node shapes but has no binding, uniqueness or extractability theorems yet, does not model RLP's "embed if shorter than 32 bytes, else hash" references, and does not walk keyed paths. The MPT layer (node datatype, RLP injectivity, get/absence/update against a witness DB, a binding theorem) is new work, estimated at 2–4k lines [I].
+- **Remaining Ethereum support:** VCV-io at `f5119c64ebb055d69c143704e12eba6df7dc386c` has ordered variadic `HashForest` and binary Merkle binding support; it lacks canonical Ethereum RLP/HP/keyed-Patricia support. [ToVCVio](ToVCVio.md) now supplies the local certified canonical RLP facade, complete-byte child threshold, explicit query-preserving transport, same-h raw-pair extractor and same-query core adapter. Canonical Patricia grammar, keyed lookup/update/witness agreement and whole-map binding remain open; the local slice installs no VCV-io dependency or QueryHom adapter.
 - **VCV-io is not a dependency yet**, tracks `main` with high churn (about 200 commits in a month), has deprecated `evalSPMF`/`probOutput`/`probEvent` (since 2026-09-13) in favour of `Measure` semantics, and changed advantage types to `ℝ≥0∞`. Statements here use `𝒟[·]`; lemma names may move. Compiling a VCV-io executable pulls in the whole Mathlib C closure (145 MB binary in a test build); irrelevant for proofs, but it rules out using VCV-io in the core.
 - **Oracle domain.** `randomOracle` needs `DecidableEq` on the domain; the domain is `ByteArray` (unbounded length). Lean core provides `DecidableEq ByteArray` (`Init/Data/ByteArray/Basic.lean:36` at v4.34.0 [V]); whether VCV-io's `QueryCache` machinery and `BoundedROMCRAdversary` (which also needs `Inhabited X`) work smoothly with `ByteArray` keys is unchecked [I].
 - **Models-parametricity of `executeBlock`** has no proof strategy cheaper than a whole-STF simulation; the proof-level query trace or adapter of DECISIONS B9 is the intended route. This is the largest unknown and blocks theorem (2).

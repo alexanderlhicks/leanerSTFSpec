@@ -83,7 +83,8 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthFieldMathlib | Build public-operation bridges without circular typeclass premises; certify all primes/extensions and sqrt lemmas. |
 | EthCurveMathlib | Prove valid-point operation bridges, group/subgroup orders, exact map/decompression and qualified ECDSA laws. |
 | EthPairingMathlib | Supply concrete pairing laws/group/setup premises; complete convention-independence and honest-opening proofs. |
-| EthSecurity | Establish nonvacuous directional simulation, extractors, oracle closure and budgets; keep chain anchoring and cryptographic security assumptions explicit. |
+| EthSecurity | Consume bounded local ToVCVio RLP/reference laws without inferring whole-map binding; establish nonvacuous directional simulation, whole-trie extractors, oracle closure and budgets; keep chain anchoring and cryptographic security assumptions explicit. |
+| ToVCVio | Certified RLP facade, child-reference threshold/effect laws, explicit query-morphism transport, local same-h raw-pair extraction and same-query InternalNode adapter are supplied (own guidance §7). Installed VCV-io pin/QueryHom adapter/import audit, canonical Patricia/witness/map binding, whole-kernel coupling and consumer/cost gates remain open. |
 
 ## 4. Agent implementation contract
 
