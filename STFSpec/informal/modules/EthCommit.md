@@ -662,9 +662,10 @@ guest/EEST or cost claim; generic preparation is supplied separately below.
 
 `STFSpec/Commit/Preparation.lean` supplies the generic byte-key contract and pure
 preparation seam. `KeyBytes K` has exactly injective `toBytes` and agreement of
-`Ord.compare` with byte-list lexicographic comparison. There is no concrete
-production Bytes/ByteArray order, adapter or value-encoding instance. Test-local
-List UInt8 interpretation retains every finite byte sequence, empty keys, leading
+`Ord.compare` with byte-list lexicographic comparison. Q54 supplies production
+`Bytes` order ([EthBase §3](EthBase.md#3-eels-source-map)); a concrete `KeyBytes Bytes`
+adapter, production value-encoding bridges and raw `ByteArray` order remain absent.
+Test-local List UInt8 interpretation retains every finite byte sequence, empty keys, leading
 zeros, unequal lengths and prefixes. Key interpretation is injective; value
 encoding need not be.
 
@@ -711,11 +712,53 @@ installation/RECORD and host remain trust inputs. There is no all-input Python
 bridge, production consumer instance, secure traversal/collision/source-history,
 C8/root, EEST/guest, oracle-coupling or resource result.
 
-### Remaining typed root seam (Q53; unimplemented)
+### Implemented generic typed-root composition
 
-| Exact pinned EELS source | Public declaration/domain | Required behavior | Remaining proof/validation |
-|---|---|---|---|
-| `src/ethereum/merkle_patricia_trie.py:478–504` | `root emptyRoot t unsecured safe`; C8 over the pure prepared map | Direct `mathRoot` call, supplied empty-root result on empty data, same whole C8 queries/answers/errors/state | Typed root composition remains unimplemented; `root_eq_mathRoot` and empty law need `Monad`; equality to separately sequenced preparation reference needs `LawfulMonad`; nonliteral caller constant, full C8 errors/state and authenticated source comparison retain all caller premises |
+Q53's safe unsecured `root` is supplied in `STFSpec/Commit/Root.lean` beside C8.
+It directly calls `mathRoot emptyRoot (prepareTrieModel t)`, without an executable
+preparation bind. The erased premises are `t.secured = false` and `t.PrepareSafe`;
+there is no `NoDefault` requirement, default filter, new query, error or root policy.
+The generic `KeyBytes`/`TrieValue` interpretation and caller-owned F20 constant are
+retained from the existing seams. Concrete consumer adapters remain open.
+
+| Exact pinned EELS source | Lean declaration/public domain | Success/effects | Ordered failures/handler | Ordinary public law | Deterministic/source evidence |
+|---|---|---|---|---|---|
+| `src/ethereum/merkle_patricia_trie.py:478–504`, preparation `:407–475` | `root : {m} → [Monad m] → [KeccakQuery m] → Hash32 → (t : Trie K V) → t.secured = false → t.PrepareSafe → m Hash32`; generic lawful ordered injective byte keys and total value encoding | Exact complete C8 action on pure complete preparation; empty data returns any supplied constant with zero local queries; nonempty queries retain all original preimages/answers and state | Original C8 descendant/final-query failure, without a new handler or runtime frontend failure | `root_eq_mathRoot`, `root_empty` under `Monad`; `root_eq_reference` identifies separately sequenced preparation only under `LawfulMonad` | Named public-only `TypedRootCallerProofs`; complete `TypedRootGuards`; authenticated genuine typed source driver |
+
+Named clients consume only public preparation/root laws. They verify literal
+composition, arbitrary caller empty roots, equal complete storage observations,
+state and error forwarding, and the explicit lawful sequential-reference domain.
+The deterministic suite observes every full digest, preimage, answer, diagnostic
+and state field at seeded counters, including every descendant/top first error.
+A directly stored valid default contributes a real query despite failing
+`NoDefault`; distinct sample values with equal encodings retain identical root
+effects. Empty input bypasses even a failing oracle.
+
+`STFSpec/Conformance/Commit/typed_root_differential.py` runs genuine original
+`Trie`, setters, `root`, `_prepare_trie`, `_prepare_data`, encoding, `patricialize`,
+RLP and hashing. It authenticates source/lock and installed types/RLP/Crypto RECORD
+bytes, class/callable identities and retained input/state before and after calls.
+Tracing is restored in `finally`; each full root is also run without tracing.
+Generated Lean fixtures start from original raw-byte/integer writes and defaults,
+use actual `trieSet`, pure preparation and typed `root`, compare complete prepared
+maps and concrete roots/query streams, and replay all source answer bytes.
+Those local value/key instances are finite instrumentation, not production adapters.
+Source preparation failures and secure fixtures stay source-only observations:
+no runtime error or secure composition is invented for the safe frontend.
+Python empty-root acquisition on `80` is recorded separately from the zero-query
+local call using the coherent caller constant.
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/typed_root_differential.py \
+  --eels EELS --output EXTERNAL.lean
+```
+
+Generic source correspondence remains conditional on exact concrete supported-value
+encoding/equality, lawful byte keys, schema and complete assembled `Encodable`,
+coherent F20 constants and pinned host compatibility (§7.0.3). Finite source/native
+observations supply no unconditional Python theorem, concrete production adapter,
+secure traversal/collision/history policy, D5 coupling, canonicality, W1/S2,
+C1–C4, fuel or guest/security readiness result.
 
 ## 4. Tests
 
@@ -730,7 +773,7 @@ exactly-once encoding. Preparation has zero queries. Root tests must pass a nonl
 empty root, retain whole C8 queries/answers, original failures and prior state, and use
 only public contracts in proof clients. Authenticated pinned comparisons must cover
 the concrete supported/schema/assembled-node `Encodable`, equality, F20 and host premises;
-the generic preparation cases are supplied in §3, while consumer/root validation remains open.
+the generic preparation cases are supplied in §3, while concrete consumer validation remains open; generic typed-root validation is supplied below.
 
 `InternalNodeGuards.lean` checks absent, leaf and extension structures, nested
 fields, and complete encodings at the 31/32/33-byte threshold under arbitrary and
@@ -852,7 +895,7 @@ def mathRoot (emptyRoot : Hash32) (t : Std.ExtTreeMap Nibbles ByteArray) : m Has
 def secureKeys (secured : Bool) (t : Std.ExtTreeMap ByteArray ByteArray) : m (Std.ExtTreeMap Nibbles ByteArray)
 
 -- public: typed trie with default (EthBlock's tries)
--- Q53: generic storage/safety/key interpretation/preparation implemented; root/consumers open.
+-- Q53: generic storage/safety/key interpretation/preparation/root implemented; concrete consumers open.
 variable [Ord K] [Std.TransOrd K] [Std.LawfulEqOrd K]
 class TrieValue (V : Type) where
   encode : V → ByteArray
@@ -1079,7 +1122,7 @@ Arbitrary generic answers carry no concrete authentication guarantee.
 ### 7.0.3 Typed defaults, preparation validity and root composition (Q53)
 
 The storage/safety and generic unsecured preparation laws are implemented as listed
-in §3; typed root and concrete consumer bridges below remain unimplemented. `Valid` is preparation validity for the chosen
+in §3, including typed-root composition; concrete consumer bridges remain unimplemented. `Valid` is preparation validity for the chosen
 typed interpretation, independently of a particular trie default; no `Decidable Valid`
 instance is required. The class supplies only encoding nonemptiness under `Valid`.
 Empty construction establishes `NoDefault` and `PrepareSafe` for **every** supplied
@@ -1172,7 +1215,8 @@ do not implement or prove C14 dispatch or the WitnessError/O4 adapter.
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
 - Q53 preparation is a total stored-map fold; its mapped-list reference has ordinary equality.
-  The safe/unsecured frontend wraps that complete map in `pure`.
+  The safe/unsecured preparation frontend wraps that complete map in `pure`; typed root
+  directly calls total C8 on the pure map without another bind.
 
 - `compactToNibbles`, `mathRoot` (empty dispatch or actual C7 then one query), `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup`/`update`/`delete` (remaining key length; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions. Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its decreases and full path invariant, rather than assuming hash injectivity. This cycle totalization makes no claim about Python's finite host-limit query trace.
 
@@ -1185,7 +1229,7 @@ with its concrete interpretation; complete decoder premises explicitly use
 `rootHash`, `update`, `delete` and `buildMpt`. Coupling at a generic oracle monad
 belongs to `EthSecurity` and remains open (D5).
 
-- Typed get/set and storage/safety equations are discharged in §3. Generic preparation equations are discharged in §3; typed-root equations retain the exact domains and monad-law premises in §7.0.3 and remain unimplemented.
+- Typed get/set and storage/safety equations are discharged in §3. Generic preparation equations are discharged in §3; typed-root equations are discharged with the exact domains and monad-law premises in §7.0.3.
 - Invariant preservation: `update`/`delete`/`mkBranch`/`mkExt` preserve `Canonical` and the `Enc` rule.
 - Simulation for the **root-compatible** abstraction relation (which includes canonical encoding/commitment compatibility, not just matching lookups): `represents t m → update t k v = .ok t' → represents t' (m.insert k v)`; `represents t m → delete t k = .ok t' → represents t' (m.erase k)`; `represents t m → lookup t k = .ok r → r = m[k]?`; `represents t m → rootHash t = mathRoot m`. No collision assumption is needed for these: they are structural, because the smart constructors mirror `patricialize` (Nipkow et al. Ch. 12 `nodeP` pattern).
 - `rootHash (canonTrie m) = mathRoot m`; `represents (buildMpt m) m`.
@@ -1241,8 +1285,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthCodec`
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
-- **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root and concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
-- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize` and C8 `mathRoot` on prepared full-nibble maps (§3); the following trie seams remain unimplemented: `decodeRoot`/`lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
+- **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied; concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
+- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); the following trie seams remain unimplemented: `decodeRoot`/`lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -1256,7 +1300,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D25 (accepted): `represents` as the abstraction relation.
 - Q55: the complete decoder signatures/acquisition contract are in C13–C14/§5/§7.6; implementation, ordinary laws, provenance, whole agreement and generic action lifetime remain open.
 - Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent and recursive C7 construction with finite authenticated source agreement are in §3; the total local C8 wrapper is supplied in §3; whole-source refinement remains open.
-- Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key interpretation/preparation are supplied in §3; typed root and consumer instances remain unimplemented; secure ordering/collision/source-history and generic coupling remain open.
+- Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key interpretation/preparation are supplied in §3; typed root composition is supplied; consumer instances remain unimplemented; secure ordering/collision/source-history and generic coupling remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
 - Q52: two-item path-list and leaf-value-list diagnostic declarations follow C14/§5; exact ordering and source acceptance controls are in §3/§4, while dispatcher and adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
@@ -1284,7 +1328,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection, diagnostic adapters to witness/guest channels and whole-node/trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
-- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Implement concrete encoding bridges and caller-empty-root equations of §5/§7.0.3 with public proof-only clients and §4 validation. Generic preparation supplies no root or concrete consumer bridge. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
+- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. Concrete encoding bridges remain open. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
 - **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes, not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.

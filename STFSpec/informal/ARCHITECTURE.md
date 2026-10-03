@@ -483,7 +483,7 @@ preparation/root. Typed root passes the caller's F20 empty root directly to `mat
 on the pure prepared map; equality to a separate monadic sequential reference requires
 `LawfulMonad`, while local composition/empty equations need `Monad` alone. Secure traversal,
 collision folding, source history and generic coupling remain separate open obligations.
-This interface clarification changes no dependency boundary or implementation readiness.
+EthCommit §3 supplies generic storage/safety, pure unsecured preparation and typed root composition; concrete consumer bridges remain open. This interface clarification changes no dependency boundary or implementation readiness.
 
 **Existing Bytes ordering options (Q54).** A bounded packed scanner can stop at
 the first differing byte; executable List conversion also satisfies byte semantics
