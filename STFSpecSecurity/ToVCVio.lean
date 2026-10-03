@@ -10,12 +10,14 @@ import ToVCVio.Trie.PatriciaNode
 import ToVCVio.Test.PatriciaNode
 import ToVCVio.Trie.PatriciaStructure
 import ToVCVio.Test.PatriciaStructure
+import ToVCVio.Trie.PatriciaSupport
+import ToVCVio.Test.PatriciaSupport
 
 /-!
 # Local proved RLP reference, Patricia shell and structural support
 
 Existing dependencies only. Faithful node injection, finite lookup, packed path
-joining, one-step prefix compression and resolved shape facts
+joining, one-step prefix compression, canonical support witnesses and resolved shape facts
 do not establish recursive map binding or a whole guest theorem.
 Library `ToVCVio` in `STFSpecSecurity`.
 Spec guidance: `STFSpec/informal/modules/ToVCVio.md`.
