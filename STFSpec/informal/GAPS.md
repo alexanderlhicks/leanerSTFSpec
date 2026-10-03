@@ -598,6 +598,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`ToVCVio`](modules/ToVCVio.md)
 
 - **Installed VCV-io adapter:** Q14/D26 pin/dependency adoption, complete imported declaration audit, Hash32/range adapter and exact QueryHom preservation remain open.
-- **Whole trie support:** canonical Ethereum HP/keyed-Patricia grammar, map binding, lenient witness provenance and secure-key folding are not supplied by certified arbitrary RLP lists.
+- **Whole trie support:** one-shell injection and the separate finite resolved shape are supplied above; recursive canonicalization/lookup/uniqueness, actual reference realization, whole-map binding, lenient witness provenance and secure-key folding remain open. Arbitrary certified RLP lists do not prove Patricia child kind.
 - **Oracle/security composition:** X7 generic Models/Progress/provider coherence and whole direct-style kernel interpretation, complete preimage sets, budgets and S2/W1 remain owned by EthSecurity/REVIEW; local transport and raw extraction do not discharge them.
 - **Cost and consumers:** actual security consumers and C1–C4 measurements remain open. Native helper checks validate execution/provenance for this scope only.
