@@ -14,14 +14,17 @@ import ToVCVio.Trie.PatriciaSupport
 import ToVCVio.Test.PatriciaSupport
 import ToVCVio.Trie.PatriciaExtensionality
 import ToVCVio.Test.PatriciaExtensionality
+import ToVCVio.Trie.PatriciaRealization
+import ToVCVio.Test.PatriciaRealization
 
 /-!
 # Local proved RLP reference, Patricia shell and structural support
 
 Existing dependencies only. Faithful node injection, finite lookup, packed path
 joining, one-step prefix compression, canonical support witnesses, resolved shape facts
-and canonical resolved-tree observational extensionality do not establish
-recursive map binding or a whole guest theorem.
+and canonical resolved-tree observational extensionality support finite resolved
+realization for actual maps satisfying `NonemptyValues`, including the empty map.
+These local laws do not establish recursive map binding or a whole guest theorem.
 Library `ToVCVio` in `STFSpecSecurity`.
 Spec guidance: `STFSpec/informal/modules/ToVCVio.md`.
 -/
