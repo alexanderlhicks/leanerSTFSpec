@@ -9,6 +9,8 @@
 
 Provide a proved canonical RLP facade, faithful child-reference wire/threshold kernel, explicit query-preserving interpretation contract, local same-h collision extractor, and adapter to the actual core `encodeInternalNode`. These helpers sit outside the core and Mathlib bridge under P4. The faithful nonrecursive Patricia shell and separate finite resolved grammar supply local injection/domain facts. `PatriciaStructure` adds exact finite lookup, packed path joining and one-step prefix compression preserving lookup and canonical shape. `PatriciaSupport` supplies complete supported keys for every actual canonical finite tree and two distinct complete keys for every canonical branch. `PatriciaRealization` supplies ordinary Prop existence of a canonical optional resolved root for every actual finite map satisfying `NonemptyValues`, explicitly including the empty map, with exact complete byte observation at every finite key. `PatriciaExtensionality` proves that all-finite full lookup, or complete optional byte observation, determines an already canonical resolved tree or root.
 
+`PatriciaReference` supplies two structural Prop interpretation relations and three conditional admissibility/occupancy/local-shell laws under one fixed pure hash proof model; present references retain complete shell certificates, while the top certificate and derivation inhabitation remain separate.
+
 ## 2. Requirements
 
 Retain recursive `Rlp.Encodable`, including joined payload bounds. Thresholds count complete packed RLP, including all headers. Empty child absence, a present empty list, supplied empty leaf values and a 32-byte digest remain distinct. Every query passes through the chosen callback; the core adapter uses the actual installed `KeccakQuery`. Generic naturality requires explicit pure/bind/query laws. Arbitrary direct-style kernels have no naturality guarantee from a capability type alone. No decoder, secure-key, root, error or host policy is introduced. `PresentValue` excludes empty encoded bytes locally; total core finite maps and lenient witness acceptance retain their existing behavior. Generic paths permit every finite length, including empty leaf paths.
@@ -34,6 +36,8 @@ No EELS inventory operations are owned here. The adapter consumes `EthCommit` C6
 `ToVCVio.Test.PatriciaExtensionality` applies all three laws to arbitrary actual trees/roots with both canonicality premises and all-finite full-value/full-byte hypotheses. Clients cover arbitrary Nat and packed paths, empty/odd/even/128/129/137+ complete paths and early/late mismatches, None/Some in both orientations, every numeric slot with both terminals, terminal-plus-one at 0/15, extreme/interior two-child counts, equal values and repeated identical child trees. Syntactically different constant/split and reversed-condition child functions are compared propositionally through public laws and extensionality. Canonical nested branches, positive shared segments, unequal residual lengths and arbitrarily long complete prefixes retain their full queries. Public-equation omission controls include zero extensions, extensions to leaves, dead roots/children and compressible one-child branches. Distinct full present values can have identical support at every key; for every bound n, distinct-value canonical leaves at an n+1-digit path agree below the bound but differ at the full path. Zero/255 and leading/trailing zeros remain in complete bytes. Native clients specify keys directly and preserve optional tags and full values; they neither extract Prop witnesses nor compare function-valued trees executably.
 
 `ToVCVio.Test.PatriciaRealization` retains arbitrary actual maps, insertion and finite histories under explicit nonempty-value premises, and composes the public safe pure prepared-model bridge without an unsecured assumption. Empty/odd/even/129/137 and arbitrary Nat-length paths, empty/prefix-ending keys, repeated equal values, all sixteen numeric slots and terminal-inclusive occupancy boundaries remain covered. Controls exclude stored empty bytes from the domain and from every possible observer witness, separate conflicting full values at one lookup, and distinguish equal support from unequal complete bytes including leading/trailing zero and 255. Explicit canonical runtime fixtures compare full optional bytes against actual maps for complete positive/negative keys and long suffixes; no Prop witness is selected or executable normalizer introduced.
+
+`ToVCVio.Test.PatriciaReference` clients introduce or eliminate all five relation constructors and apply the three public laws with arbitrary fixed h, complete nonempty values, packed paths and every finite length. Public clients retain leaf fields, the whole extension path, original numeric child indices and exact terminal presence. Absence/presence inversion, terminal-plus-one, two-no-terminal, all sixteen identical child occurrences, equal values and occupied all-zero digests keep their premises. Zero extensions, dead/terminal-only/compressible branches and a positive extension-to-leaf separate canonicality from derivation/local admissibility. Symbolic erased proofs exhibit a canonical leaf at path length 2^65 whose top HP size is 2^64+1 and hence lacks Fits, and an abstract 2^64−1-byte value whose individual value/HP bounds hold while its joined shell fails. No enormous path/value is evaluated. Complete 31/32/33-byte fixtures include all headers; empty/odd/even/129-digit paths, zero/255/leading/trailing bytes and both complete long-header repeated branches support full-byte interpreted/native checks using existing public shell/reference helpers. No Prop witness is extracted or function-valued tree compared executably.
 
 ## 5. Interface
 
@@ -120,6 +124,31 @@ theorem nonemptyValues_realized (obj : Std.ExtTreeMap Nibbles ByteArray)
 
 This is Prop-only existence over the actual finite-map type, including the empty map. Every stored value must differ from `ByteArray.empty`; no key-length, distinct-value, frontend or unsecured premise is added. Complete None/Some tags and full bytes are retained. All entry, partition, descent, occupancy, choice and map-bridge support stays private. The law supplies no runtime root selector, constructor, normalization API or public uniqueness corollary.
 
+`PatriciaReference` exports these two mutually structural Prop relations and exactly three main laws in `ToVCVio.Trie`:
+
+```lean
+inductive NodeInterprets (h : ByteArray → Hash32) : FullTree → PatriciaNode → Prop
+inductive RefInterprets (h : ByteArray → Hash32) : Option FullTree → ChildRef → Prop
+
+theorem ref_interprets_admissible
+    {h : ByteArray → Hash32} {resolved : Option FullTree} {reference : ChildRef}
+    (derivation : RefInterprets h resolved reference) : AdmissibleRef reference
+
+theorem ref_interprets_occupied
+    {h : ByteArray → Hash32} {resolved : Option FullTree} {reference : ChildRef}
+    (derivation : RefInterprets h resolved reference) :
+    occupied reference = resolved.isSome
+
+theorem node_interprets_locally_admissible
+    {h : ByteArray → Hash32} {tree : FullTree} {node : PatriciaNode}
+    (canonical : Canonical tree) (derivation : NodeInterprets h tree node) :
+    LocallyAdmissible node
+```
+
+The necessary `NodeInterprets.leaf` constructor preserves the complete path/nonempty value; `.extension` preserves the segment and a present-child `RefInterprets`; `.branch` preserves the terminal and pointwise child derivations at every original `Fin 16` slot. `RefInterprets.empty` relates only `none` to `.empty`; `.present tree node derivation fits` relates `some tree` exactly to `refWithHash h (ToVCVio.Trie.asListNode node fits)`. `fits` is the actual complete assembled `FitsRlp`, including nested/header/joined bounds, never a weaker item-wise or width-only certificate. Count/list/vector proof adapters remain private. There is no constructor/selector/normalizer runtime API or extra public law.
+
+A node derivation does not certify its own top shell. Every present referenced shell is certified, but top Fits is an additional premise; canonicality and local admissibility imply neither complete certificates nor derivation inhabitation. The arbitrary fixed deterministic `h` is only a proof model; it is not an installed Keccak callback, action/query morphism or D5 interpretation result. No key-length, distinct-child/value or injective-h assumption is introduced.
+
 ## 6. Data structures
 
 | Object | Representation | Model | Invariant | Persistence | Complexity |
@@ -128,6 +157,7 @@ This is Prop-only existence over the actual finite-map type, including the empty
 | `ChildRef` | empty/list/hash sum | exact RLP item | inline admissibility means complete encoded size <32 | value | one complete encode, zero or one query |
 | `QueryMorphism` | map plus proof fields | selected monad interpretation | pure/bind/query preservation | value | no runtime adapter is adopted |
 | `PatriciaNode` | nonrecursive typed shell | actual core assembly | nonempty encoded values; actual child wires | value | fixed sixteen-child assembly; encoder cost owned by EthCodec |
+| `NodeInterprets` / `RefInterprets` | mutually structural Prop families | exact resolved fields and actual shell/reference | complete Fits at each present child; top Fits separate | proof only | no runtime witness construction or cost claim |
 | `FullTree` / `Canonical` | finite nested inductive / ordinary predicate | resolved shape | positive extension to branch; terminal-inclusive occupancy | value | proof model only; no canonicalizer or cost claim |
 | `joinPath` | public packed bounded generation | `Nibbles.ofList (p.toList ++ q.toList)` | ordinary all-input equality; total guarded callback | value | no input List materialization in packed runtime; no cost claim |
 | `lookup` / `lookupRoot` | mutually structural finite tree/optional arm | exact resolved path observation | no canonicality premise | value | model support; no source resource bound |
@@ -188,6 +218,12 @@ The prefix inverse and constructor equations prove exact lookup. Complete indexe
 
 **Open obligations.** The proof supplies no runtime witness selector, constructor, normalization or cost result. A public resolved-map uniqueness corollary, executable finite-map construction, actual C7/C6 reference/effect realization, C8 hashing/source agreement, secure-key folding, witness provenance, whole-map binding and oracle/security/consumer composition remain separate. Total core maps may still store empty bytes; their existing C7 domain and lenient witness behavior are unchanged.
 
+### Conditional structural reference laws
+
+`ref_interprets_admissible` follows by the reference introduction cases and the accepted actual certified threshold kernel. `ref_interprets_occupied` splits that same complete-preimage threshold: absence is empty, either present tag is occupied even for zero digest bytes. `node_interprets_locally_admissible` consumes the actual `Canonical` premise; its extension case retains positivity and its branch case transports pointwise presence through the private vector/List.ofFn count bridge, counting terminal presence and all sixteen occurrences. Full paths/values/terminal/index fields are retained by the constructors. These are conditional ordinary laws, not derivation inhabitation or a converse canonicality theorem.
+
+**Remaining composition premises.** Recursive certificate/derivation construction and the actual map/maximal-prefix/C7 partition/value-encoding bridge remain open. Actual C7 constructs and encodes each numeric child before the next, including repeated occurrences; a fixed pure h supplies no action/order/prior-state/failure/first-error/later-suppression comparison. A future nonempty root comparison separately needs actual C7 equality, top Fits, and unconditional complete-top hashing under an explicit oracle interpretation. Thresholded child references are not C8 root commitments, and returned digest wire encoding is not a second root preimage. Empty C8 returns the caller-supplied constant with no local query; pinned/pure equality separately needs coherent F20 empty-root data. Witness aliases/provenance/admission, generic D5 coupling, whole-map binding/collision extraction/security/budgets/nonvacuity/cost/readiness remain open. This local relation changes no core empty-value domain, source or host behavior.
+
 ### Informal correctness argument
 
 **Claim.** The local reference faithfully represents certified canonical RLP and its explicit callback action; equal references under one chosen hash, together with unequal certified nodes (equivalently unequal complete preimages), expose a raw hash collision under the stated hypotheses.
@@ -196,7 +232,7 @@ The prefix inverse and constructor equations prove exact lookup. Complete indexe
 
 **Argument.** Core canonical decoding supplies an inverse and injection on the certified domain. List/bytes tags and digest width separate reference forms. Split on complete encoded size: inline returns the original item without a query; hashing forwards one full callback answer. Rewrite pure/bind/query preservation for transport. Equal references either identify their original nodes by injection or identify hash answers; unequal complete encodings then form the extractor's exact raw pair. Rewrite actual core assembly/threshold equations with the same callback to establish the adapter.
 
-**Open obligations.** Executable finite-map construction, a public resolved-map uniqueness corollary and reference realization, witness decoding/authenticity, whole-map binding, generic backend/oracle coupling and a VCV-io QueryHom adapter remain separate work. No security probability or whole guest result follows.
+**Open obligations.** Executable finite-map construction, a public resolved-map uniqueness corollary and recursive certificate/derivation construction and actual reference/effect realization, witness decoding/authenticity, whole-map binding, generic backend/oracle coupling and a VCV-io QueryHom adapter remain separate work. No security probability or whole guest result follows.
 
 ## 8. Composition
 
@@ -212,6 +248,6 @@ P4 fixes security-only placement. D5 retains the shared-oracle requirement; D26 
 ## 10. Gaps
 
 - **Installed VCV-io adapter:** Q14/D26 pin/dependency adoption, complete imported declaration audit, Hash32/range adapter and exact QueryHom preservation remain open.
-- **Whole trie support:** one-shell injection, finite resolved shape, total resolved lookup, one-step prefix preservation, canonical complete-key/branch two-key witnesses and canonical resolved-tree observational extensionality and finite resolved-map existence for maps satisfying `NonemptyValues`, including the empty map, are supplied above; executable finite-map construction, a public resolved-map uniqueness corollary, actual reference realization, whole-map binding, lenient witness provenance and secure-key folding remain open. Arbitrary certified RLP lists do not prove Patricia child kind.
+- **Whole trie support:** one-shell injection, finite resolved shape, total resolved lookup, one-step prefix preservation, canonical complete-key/branch two-key witnesses and canonical resolved-tree observational extensionality and finite resolved-map existence for maps satisfying `NonemptyValues`, including the empty map, and conditional structural reference derivations/admissibility/occupancy/local-shell laws are supplied above; executable finite-map construction, a public resolved-map uniqueness corollary, recursive certificate/derivation inhabitation, actual C7/C6 reference/effect realization and top C8 agreement, whole-map binding, lenient witness provenance and secure-key folding remain open. Arbitrary certified RLP lists do not prove Patricia child kind.
 - **Oracle/security composition:** X7 generic Models/Progress/provider coherence and whole direct-style kernel interpretation, complete preimage sets, budgets and S2/W1 remain owned by EthSecurity/REVIEW; local transport and raw extraction do not discharge them.
 - **Cost and consumers:** actual security consumers and C1–C4 measurements remain open. Native helper checks validate execution/provenance for this scope only.

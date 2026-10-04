@@ -16,6 +16,8 @@ import ToVCVio.Trie.PatriciaExtensionality
 import ToVCVio.Test.PatriciaExtensionality
 import ToVCVio.Trie.PatriciaRealization
 import ToVCVio.Test.PatriciaRealization
+import ToVCVio.Trie.PatriciaReference
+import ToVCVio.Test.PatriciaReference
 
 /-!
 # Local proved RLP reference, Patricia shell and structural support
@@ -25,6 +27,8 @@ joining, one-step prefix compression, canonical support witnesses, resolved shap
 and canonical resolved-tree observational extensionality support finite resolved
 realization for actual maps satisfying `NonemptyValues`, including the empty map.
 These local laws do not establish recursive map binding or a whole guest theorem.
+Conditional structural child-reference derivations retain complete certificates;
+inhabitation, actual C7/C8/effect agreement and security remain separate.
 Library `ToVCVio` in `STFSpecSecurity`.
 Spec guidance: `STFSpec/informal/modules/ToVCVio.md`.
 -/
