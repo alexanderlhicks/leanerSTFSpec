@@ -206,12 +206,15 @@ Lean-only nominal shapes of §5. Source attribution does not assert lookup/root 
 |---|---|---|---|---|
 | `state.py:92–139` Protocol shape (D9/D5/B2) | `PreState (m : Type → Type)` with the exact four §5 fields, arbitrary supplied functions and raw BlockDiff; no Monad premise | Each complete supplied action/function is retained unchanged, including every result/error tag and input. No lookup, default, bypass, hashing or root semantics | Exactly `PreState.getAccount?_mk`, `getStorage_mk`, `getCode_mk`, `stateRoot_mk`, `eta`, `ext`, `ext_apply` | Generic public-only `PreStateCallerProofs`; complete supplied callbacks in `PreStateGuards`; `scripts/PreStateNativeTests.lean` |
 | Lean nominal support, §5 | `WitnessItem.node/code/leaf`, `WitnessError.missing/malformed/unresolved` | Every supplied Hash32 and nested item tag is retained; no adapter, decoder or outcome projection | Ordinary generated constructor/recursor/injectivity support, without an equality/BEq/order/hash instance | Every constructor and complete 32-byte payload, with an independent tagged byte-list expectation |
+| Lean nominal support, §5/R29 (no EELS StateError class or operation) | `StateError.witness : WitnessError → StateError`, `balanceUnderflow`, `balanceOverflow`, `storageOnMissingAccount`; every supplied WitnessError and the three nullary values | Pure construction/elimination retains the complete supplied witness value; nullary tags carry no payload. No actions, effects, failures or outcome adapter | Ordinary generated constructor/recursor/injectivity support; private arbitrary-payload retention and distinct-tag structural examples; no custom public law or instance | `Conformance/State/StateErrorGuards.lean` and `scripts/StateErrorNativeTests.lean`: all outer/nested tags and complete 32-byte payloads, every byte position, including first and last |
 
 `State/PreState.lean` imports the EthState error owner and BlockDiff only.
 `State/WitnessError.lean` imports Base.FixedBytes only. Arbitrary-m action equality is ordinary
 Lean equality, without an effect-equivalence interpretation. The coarse errors are not frozen;
-their §10 refinement obligations remain open. `StateError` and `ModelsLookups` remain
-unimplemented; Q57 specifies the latter's supplied code-observer constants context.
+their §10 refinement obligations remain open. `State/StateError.lean` imports only
+`State/WitnessError.lean` and is exported by the State aggregate. R15/R19/R29 cite future
+operation uses, without implementing them. `ModelsLookups` remains unimplemented;
+Q57 specifies its supplied code-observer constants context.
 
 ## 4. Tests
 
@@ -242,6 +245,17 @@ unimplemented; Q57 specifies the latter's supplied code-observer constants conte
   error, empty code versus error, exact root bytes versus error, every raw diff field
   and unusual metadata, and retained parent/sibling callbacks. These carrier tests
   execute no pinned Protocol body or backend/root/hash semantics.
+- **Implemented nominal StateError cases:** private arbitrary-WitnessError construction/
+  elimination examples retain the supplied value and distinguish all four outer tags.
+  `StateErrorGuards` owns the shared complete case corpus and observers, reused by
+  `scripts/StateErrorNativeTests.lean`; both compare complete independent
+  tagged byte-list expectations for 340 cases: missing/malformed node, code and leaf,
+  unresolved hash, zero/max/mixed hashes and high/low changes at every one of 32 positions,
+  including first and last byte positions. The runner checks all 340 cases unconditionally;
+  `--dump` emits every complete actual/expected pair. Leaves and the three nullary state errors
+  carry no invented hash. The native dump emits full actual/expected values. Test
+  observers stay in EthConformance; no production equality/repr/default/order/hash/coercion
+  instance is installed for the carrier. There is no nominal EELS operation to differentially run.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
 - **Future Q57/Q58 cases (unimplemented):** successful/absent account answers,
   reserved/nonreserved code at arbitrary supplied records and an always-error provider;
@@ -260,6 +274,7 @@ emptyAccount values, internal WriteOrder support, raw MathState observers, raw
 BlockDiff values and raw mathematical application are implemented and pure; the raw
 MathState record and structural `WF` are also supplied. The raw PreState carrier and
 coarse nominal WitnessItem/WitnessError values are supplied without a Monad premise.
+The nominal StateError carrier in §5/R29 is also supplied, without operations or adapters.
 MathState mutation, diff WF/history/reachable preservation, actual PreState providers/
 ModelsLookups and tracker operations remain unimplemented targets. The EELS
 default-empty BlockDiff convenience constructor remains deferred (§10).
@@ -679,12 +694,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application and the raw four-operation
-  PreState carrier with coarse nominal WitnessItem/WitnessError values are supplied
-  (§3/§7). The owning laws and test rows specify their domains. MathState mutation,
-  diff WF/history/reachable preservation, actual provider operations/ModelsLookups,
-  StateError, witness diagnostic refinement, tracker effects/errors, ordered-write
-  integration, reachability, snapshot and operational source-refinement obligations
-  remain open.
+  PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
+  are supplied (§3/§5/§7). The owning laws and test rows specify their domains.
+  MathState mutation, diff WF/history/reachable preservation, actual provider operations/
+  ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
+  refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
+  and operational source-refinement obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);

@@ -149,6 +149,9 @@ lake exe apply-native-tests
 lake build pre-state-native-tests --wfail
 lake exe check-decls PreStateNativeTests
 lake exe pre-state-native-tests
+lake build state-error-native-tests --wfail
+lake exe check-decls StateErrorNativeTests
+lake exe state-error-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py

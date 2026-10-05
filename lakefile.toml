@@ -153,3 +153,9 @@ root = "ApplyNativeTests"
 name = "pre-state-native-tests"
 srcDir = "scripts"
 root = "PreStateNativeTests"
+
+# Complete nominal StateError observations, outside the public state library.
+[[lean_exe]]
+name = "state-error-native-tests"
+srcDir = "scripts"
+root = "StateErrorNativeTests"
