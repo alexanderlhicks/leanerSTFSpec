@@ -136,3 +136,9 @@ root = "WriteOrderNativeTests"
 name = "math-state-native-tests"
 srcDir = "scripts"
 root = "MathStateNativeTests"
+
+# Complete raw BlockDiff observations, outside the public state library.
+[[lean_exe]]
+name = "block-diff-native-tests"
+srcDir = "scripts"
+root = "BlockDiffNativeTests"
