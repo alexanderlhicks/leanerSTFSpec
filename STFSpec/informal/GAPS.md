@@ -284,6 +284,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthState`](modules/EthState.md)
 
+- **Bounded value support:** the Account record and supplied empty-account value are implemented with ordinary field laws and deterministic value guards (§3/§7). All `MathState`, `BlockDiff`, provider, ordered-write, tracker effect/error, reachability, snapshot and source-refinement obligations below remain open; this support does not change whole-State readiness.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:753–797` and `witness_state.py:303–309`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
