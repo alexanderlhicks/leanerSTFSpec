@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-05. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
@@ -83,8 +83,8 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `state.py::EMPTY_CODE_HASH` | 36 | `emptyCodeHash` | `HashConsts.emptyCodeHash` (`EthBase`, R2); `Id` value `HashConsts.literals`, checked in `EthHash` |
-| `state.py::Account` | 42 | `Account` | nonce `Nat` |
-| `state.py::EMPTY_ACCOUNT` | 52 | `emptyAccount` | |
+| `state.py::Account` | 42–49 | `STFSpec.State.Account` | Value seam implemented in `State/Account.lean`: unbounded `Nat` nonce, `U256` balance and complete `Hash32` code hash; constructor/eta/ext laws and ordinary field equality. `Conformance/State/AccountGuards.lean` covers full fields, huge nonce and zero/maximum balance. No runtime fault or tracker effect is introduced. |
+| `state.py::EMPTY_ACCOUNT` | 52–56 | `STFSpec.State.emptyAccount` | Supplied `HashConsts` gives nonce zero, balance `U256.zero` and exactly `consts.emptyCodeHash`; three projection laws. Total for arbitrary constants; pinned value correspondence requires coherent F20 constants. Full-hash/alternative-constant and absence-versus-present guards are in `Conformance/State/AccountGuards.lean`. |
 | `state.py::BlockDiff` | 61 | `BlockDiff` | adds the three replay orders (B1) |
 | `state.py::PreState` | 92 | `PreState m` | record of operations (D9), generic in `m` (D5) |
 | `state.py::PreState.get_account_optional` | 100 | `PreState.getAccount?` | |
@@ -144,6 +144,7 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
 
 ## 5. Interface
@@ -312,6 +313,10 @@ Observation sets could become `TreeSet`s if `EthBlock` needs sorted output direc
 
 ## 7. Contract and laws
 
+**Account value seam.** (R1–R3)
+
+`State/Account.lean` supplies `Account.nonce_mk`, `balance_mk`, `codeHash_mk`, `eta` and `ext`, together with ordinary `DecidableEq` from the public fields. The record is its own model; its constructors add no nonce cap, state validity predicate, hash acquisition or codec. For every supplied `consts`, `emptyAccount_nonce`, `emptyAccount_balance` and `emptyAccount_codeHash` preserve zero, `U256.zero` and exactly `consts.emptyCodeHash`. Absence is `none : Option Account`, distinct from a present empty account. These value laws supply no tracker operation, state/error invariant or lifecycle refinement.
+
 ### 7.1 Model and commuting equations
 
 Fix σ₀ with `MathState.WF σ₀` and `ModelsLookups ps σ₀` (so the laws are stated at `m := Id`, R8). The model of a transaction state `t` is the triple (`t.view σ₀`, `t.originalAt σ₀`, `t.rev.transient`) together with the observation sets. Define `TxRevertible.asDiff` as the diff whose clears are `storageClears` and whose changes are the writes; then **both layers use the same `apply`**, and R11 is a consequence of the definition of `apply` rather than a separate axiom. Per operation, under success (`op t = .ok (x, t')`) [C]:
@@ -390,6 +395,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - F7 (open): clear iteration order in the witness root replay (§7.5).
 
 ## 10. Gaps
+
+- **Bounded value support:** the Account record and supplied empty-account value are implemented with ordinary field laws and deterministic value guards (§3/§7). All `MathState`, `BlockDiff`, provider, ordered-write, tracker effect/error, reachability, snapshot and source-refinement obligations below remain open; this support does not change whole-State readiness.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
