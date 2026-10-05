@@ -24,7 +24,7 @@
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `merkle_patricia_trie.py::encode_account` | 193 | `encodeAccount` | also `fork_types.py` (G1) |
+| `merkle_patricia_trie.py::encode_account` | 193 | `encodeAccount` | also `fork_types.py`; supplied by the same Lean definition |
 | `forks/amsterdam/fork_types.py::encode_account` | 67 | `encodeAccount` | the fork-local copy; same RLP `(nonce, balance, storage_root, code_hash)` as the shared one (verified by reading both); one Lean definition serves both |
 | `forks/amsterdam/witness_state.py::_decode_account_from_leaf` | 103 | `decodeAccountLeaf` | lenient, SC5 |
 
@@ -54,6 +54,48 @@ provider laws on every U256. They supply component encoding and typed-trie evide
 EEST guest and assembled-root coverage, whole-source/host agreement and SC10 remain
 open. No strict typed RLP/U256 decoder substitutes for the separately specified
 lenient witness decoder.
+
+### Implemented contextual account encoder (SC1, Q47, Q53)
+
+`STFSpec/StateCommit/Account.lean` supplies exactly `encodeAccount`,
+`encodeAccount_ne_empty` and `encodeAccount_inj`; all proof support is private.
+One definition implements both shared and Amsterdam source functions.
+
+| Source at the pin | Public declaration/type and status | Domain, success and effects | Ordered failures | Public laws and evidence |
+|---|---|---|---|---|
+| `src/ethereum/merkle_patricia_trie.py:193–210`; `src/ethereum/forks/amsterdam/fork_types.py:67–81`; `ethereum_rlp/rlp.py:66–135` (0.1.6); `ethereum_types/numeric.py:477–484` (0.4.1) | `STFSpec.StateCommit.encodeAccount : Account → Hash32 → ByteArray`; **discharged total composition** | Every account and supplied complete 32-byte root: RLP list of minimal unbounded nonce, minimal balance, complete root and complete code hash, in that order. Pure; no hashing, callback, traversal or state effects. Existing Q47 completion applies outside Encodable | No typed error or nonce rejection. Python correspondence covers supplied 32-byte roots, supported Uint/U256 dispatch and bounded host execution; source itself accepts a broader Bytes root parameter | `encodeAccount_ne_empty (a : Account) (r : Hash32) : encodeAccount a r ≠ ByteArray.empty`, unconditional; `encodeAccount_inj` below, with both exact assembled domain premises. Private public-law clients and complete-wire guards |
+
+The exact binding law is:
+
+```lean
+theorem encodeAccount_inj (acc₁ acc₂ : Account) (root₁ root₂ : Hash32)
+    (h₁ : Rlp.Encodable (.list [Rlp.ofNat acc₁.nonce, Rlp.ofNat acc₁.balance.toNat,
+      .bytes root₁.toBytes.toByteArray, .bytes acc₁.codeHash.toBytes.toByteArray]))
+    (h₂ : Rlp.Encodable (.list [Rlp.ofNat acc₂.nonce, Rlp.ofNat acc₂.balance.toNat,
+      .bytes root₂.toBytes.toByteArray, .bytes acc₂.codeHash.toBytes.toByteArray])) :
+    encodeAccount acc₁ root₁ = encodeAccount acc₂ root₂ ↔ acc₁ = acc₂ ∧ root₁ = root₂
+```
+
+Each premise includes every child and the total **encoded** child-payload length
+<2^64 (`Rlp.encodable_list_iff`), not just child widths. There is no nonce cap
+or public account-domain helper. Nonempty uses the public list-size equation;
+binding uses public RLP injectivity, integer round trips, byte-export injectivity
+and Account extensionality. Neither law unfolds foreign provider internals.
+
+`AccountCallerProofs.lean` consumes both laws on arbitrary accounts/roots and
+independently varies nonce, balance, root and code hash under the explicit domains.
+A private client also discharges the complete domain for every supplied emptyAccount
+and Hash32 root, then consumes the binding law without a domain hypothesis.
+`AccountGuards.lean` compares complete bytes to an independent unsigned division
+and RLP-prefix model, plus literal exact expansions: supplied/literal emptyAccount,
+zero/max balance, separate 127/128 fields, nonce 2^256 and 2^1024+17, nonce payload
+55/56, reachable outer payload 255/256, byte boundaries through nonce width 188,
+balance widths 1–32, every fixed-byte position with 00/01/7f/80/ff markers, swapped
+roots/hashes and asymmetric/interior/leading/trailing zeros. Both hash items
+contribute 66 bytes, so account payload ≥68; outer 55/56 is impossible here.
+These committed guards compare complete wires; the private symbolic clients compose
+the public laws with their exact assembled premises. Whole-source/host agreement,
+SC10's lenient decoder and contextual callback/root integration remain open.
 
 ## 4. Tests
 
@@ -110,8 +152,10 @@ no concrete root/hash agreement for a noncoherent record.
 Q53's supplied U256 instance proves `encodeStorage v ≠ empty` for every value: zero
 encodes as `80`, independently of supplied-default deletion. Actual storage maps omit
 zero by their caller semantics (SC2); that is a `NoDefault` obligation, distinct from
-stored-value `PrepareSafe`. The U256 instance and its all-value encoding laws are
-discharged; contextual Account and complete root/source bridges remain unimplemented.
+stored-value `PrepareSafe`. The U256 instance and its all-value encoding laws, plus
+the contextual Account encoder and its complete-domain binding law, are discharged;
+callback/traversal and complete
+root/source bridges remain unimplemented.
 Bare `Account` requires the per-address storage root/callback (`merkle_patricia_trie.py:429–433`);
 EthStateCommit owns that contextual integration, its exact encoding, address/callback
 ordering and source correspondence. `TrieValue.encode : Account → ByteArray` alone
@@ -138,7 +182,7 @@ No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles Byt
 
 ### 7.1 Encoding laws [C], feeds [S]
 
-- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Round trips SC10 and injectivity of `encodeAccount` in `(acc, root)` remain open.
+- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Account-wire nonempty is unconditional; injectivity in `(acc, root)` is discharged under both exact assembled Q47 premises in §3. Round trips SC10 remain open.
 - `storageRoot σ a = emptyTrieRoot ↔ σ.storage a` is empty (given `WF`; ⇐ by definition, ⇒ needs collision freedom and is stated as "or collision").
 - `mathStateRoot` depends only on `σ.accounts` and the storage of existing accounts; it ignores `σ.code`.
 
@@ -159,7 +203,7 @@ No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles Byt
 
 **Premises.** EthState structural laws, EthCommit canonical root laws, exact account RLP field order, CodeAuthentic σ, and CodeChangesAuthentic for updates that introduce code.
 
-**Argument.** Canonical account encoding is injective by the four field codecs; storage maps omit zero values, while the total storage encoder preserves the canonical integer encoding even at zero. Apply the trie equation first to each storage map, then to the account map whose leaves include those storage roots. This yields mathStateRoot and the root clause of Models. Code storage is a separate map: state roots bind account code hashes, but do not authenticate the bytes stored under them. CodeAuthentic supplies that missing equation. Compare successful witness paths with the mathematical paths: equal encoded preimages permit descent; differing preimages with equal hashes yield a collision. The extractor must include trie nodes, secure-key preimages and code preimages from both the witness and σ, not only node DB entries.
+**Argument.** Canonical account encoding is injective under both complete assembled Q47 domains by the four field codecs; storage maps omit zero values, while the total storage encoder preserves the canonical integer encoding even at zero. Apply the trie equation first to each storage map, then to the account map whose leaves include those storage roots. This yields mathStateRoot and the root clause of Models. Code storage is a separate map: state roots bind account code hashes, but do not authenticate the bytes stored under them. CodeAuthentic supplies that missing equation. Compare successful witness paths with the mathematical paths: equal encoded preimages permit descent; differing preimages with equal hashes yield a collision. The extractor must include trie nodes, secure-key preimages and code preimages from both the witness and σ, not only node DB entries.
 
 **Open obligations.** Complete the collision extractor and its finite query set, lenient leaf-decoding refinement and the hash-relative code-authenticity model. Backend progress is additional to Models: a backend that always errors would otherwise satisfy successful-answer implications vacuously.
 
@@ -171,7 +215,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthStateFull`, `EthStateWitness`, `EthSecurity` (proofs).
 - **Seams:** the `Models` predicate is the contract every backend proves and every refinement theorem over `executeBlock` assumes; `mathStateRoot` is what `EthBlock`'s state-root check means semantically.
 - **Relies on:** `EthCommit`'s `mathRoot`, `represents` and `decode_agreement`; `EthState`'s `apply`, full `BlockDiff.WF` and `ModelsLookups constsId ps σ`; RLP injectivity from `EthCodec`. Q58's structural-only premise does not replace full WF in the root law.
-- **Typed encoding seam (Q53):** U256 `Valid`/nonempty laws and storage-wire injectivity are supplied in §3 independently of zero deletion. Contextual Account/storage-root encoding remains unimplemented. The initial unsecured typed root domain supplies no secured state/storage root implementation; secure traversal, collisions, source history and generic coupling retain their existing obligations.
+- **Typed encoding seam (Q53):** U256 `Valid`/nonempty laws and storage-wire injectivity are supplied in §3 independently of zero deletion. Contextual Account/storage-root encoding and binding under both complete Q47 domains are supplied in §3; callback/root/source composition remains open. The initial unsecured typed root domain supplies no secured state/storage root implementation; secure traversal, collisions, source history and generic coupling retain their existing obligations.
 
 ## 9. Open decisions
 
@@ -188,11 +232,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity are discharged in §3; design and prove the contextual Account/storage-root bridge without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
+- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
 - **Lenient leaf decodings** (SC5, SC6) are verified by execution on examples only; CONTRACT O4(e) lists their failure classes, but constructor/precedence proofs and malformed-leaf regressions remain required (X1).
 - **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
-- **Duplicate `encode_account`** in `fork_types.py` (G1) must be reconciled with SC1.
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
 - **Blockchain-test pre-states** (`EthStateFull`) must satisfy `MathState.WF` (no orphan storage); this is argued from `state_mpt.set_storage`'s assertion (`state_mpt.py:198`) and genesis loading, not checked on the corpus.
