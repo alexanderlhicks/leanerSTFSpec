@@ -6,6 +6,7 @@ import STFSpec.State.Account
 import STFSpec.State.WriteOrder
 import STFSpec.State.MathState
 import STFSpec.State.BlockDiff
+import STFSpec.State.Apply
 
 /-!
 # STFSpec.State
@@ -16,8 +17,8 @@ overlays, lifetimes, `BlockDiff`, and their laws. Independent of commitments.
 
 Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
-support, raw MathState observers and raw BlockDiff values are supplied. Lookup
-providers, model mutation/application, state overlays, tracker effects and lifecycle
-laws remain scaffolding.
+support, raw MathState observers, raw BlockDiff values and raw mathematical diff
+application are supplied. Lookup providers, model mutation, state overlays, tracker
+effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/

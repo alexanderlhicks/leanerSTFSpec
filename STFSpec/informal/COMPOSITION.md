@@ -24,7 +24,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
-| Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState and raw BlockDiff contracts; PreState implementation remains open. Raw diff callers preserve whole optional payloads and every metadata occurrence; WF, apply, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
+| Account, MathState, `PreState m`, BlockDiff | EthState | Account, raw BlockDiff and MathState value/observer/WF laws, plus raw mathematical apply laws, are supplied (EthState §3/§7). Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. PreState implementation remains open. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
@@ -59,8 +59,9 @@ retain raw field/lookup extensionality and exactly three `WF` clauses: nonzero s
 inclusion in accounts. Raw lookup extensionality keeps whole optional inner maps
 and all raw code hashes. Fixed-constants observer equality cannot determine raw
 code, even under `WF`; code authenticity/completeness are separate premises.
-`wf_empty` proves only the empty raw triple's structural invariant. Mutation,
-`apply`, providers, reachability, diff/order/overlay preservation, S1/S2, commitments
+`wf_empty` proves only the empty raw triple's structural invariant. Raw mathematical
+application is supplied by EthState §3/§7; mutation, providers, reachability,
+diff/order/overlay preservation, S1/S2, commitments
 and consumer/resource gates remain open. Complete finite native/reference-list
 observations and retained sibling checks establish no composed cost bound.
 

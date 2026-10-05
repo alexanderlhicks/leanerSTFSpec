@@ -54,6 +54,11 @@ jobs:
           lake build block-diff-native-tests --wfail
           lake exe check-decls BlockDiffNativeTests
           lake exe block-diff-native-tests
+      - name: Complete raw mathematical diff application regressions
+        run: |
+          lake build apply-native-tests --wfail
+          lake exe check-decls ApplyNativeTests
+          lake exe apply-native-tests
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

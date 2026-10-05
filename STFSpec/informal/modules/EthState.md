@@ -178,6 +178,23 @@ a separate finite association-list oracle, including actual reconstructed keys,
 differing insertion orders and retained parent/sibling maps. This is finite functional
 evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
 
+### Implemented raw mathematical diff application
+
+`State/Apply.lean` supplies `MathState.apply : MathState → BlockDiff → MathState`
+on every finite raw input, without WF or history premises. Persistent clear/change
+folds do not scan the complete pre-state. The three metadata fields are ignored.
+
+| Source / model item | Lean declaration | Domain, value/effects and failures | Laws and deterministic validation |
+|---|---|---|---|
+| `state_mpt.py:133–161` clear, account, storage and code phases; `merkle_patricia_trie.py:325–347` defaults | `MathState.apply` | Clears precede writes; raw account deletion preserves storage; each changed address starts from its post-clear map or empty. Written zero erases, nonzero inserts; only a touched resulting empty inner map is removed. All raw code, including reserved and empty entries, is overwritten. Total, pure; no account guard, hashing or failure. | Whole optional account/storage/code lookup laws, three observer equations, identity/effect congruence, field/address/slot frames and cleanup laws below. `ApplyCallerProofs` consumes the §7 laws on arbitrary inputs; `ApplyGuards` and `ApplyNativeTests` compare complete output with an independent finite association-list model. |
+
+Concrete reference correspondence uses typed finite nonaliasing source dictionaries,
+account default `None`, storage default `U256(0)`, pinned fixed-width/Uint/U256
+interpretation and caller-coherent F20 constants. Missing nonreserved source code
+raises `KeyError`, distinct from the mathematical `none` answer. The bounded probe
+executes only unchanged selected application/trie/getter bodies; no hash/root,
+tracker, witness, host-resource or arbitrary-object correspondence follows.
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (202 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -196,6 +213,7 @@ evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
 - **Implemented raw BlockDiff cases:** `Conformance/State/BlockDiffCallerProofs.lean` names arbitrary public callers of the §7 laws. `Conformance/State/BlockDiffGuards.lean` and `scripts/BlockDiffNativeTests.lean` compare all seven fields against an independent finite association-list oracle: complete fixed-width keys, unbounded nonce, maximum balance, absent/deleted/empty/replacement accounts, zero writes and empty/orphan storage maps, empty/duplicate/foreign/permuted metadata, reserved and other hashes with arbitrary complete code, insertion-order variation and retained parent/sibling values. Complete interpreted/native observations include every byte, value, presence tag and list occurrence. These comparisons exercise the raw value contract from `state.py:61–89` and B1 guidance; they execute no tracker/backend operation or EEST guest fixture.
+- **Implemented raw application cases:** `Conformance/State/ApplyCallerProofs.lean` consumes the §7 laws on arbitrary inputs. The independent association-list model in `ApplyGuards.lean`, emitted completely by `ApplyNativeTests.lean --dump`, covers deletion without clear, orphan writes, untouched versus touched empty inners, unwritten stored zero, clear then rewrite, explicit zero erasure, raw reserved-code replacement with arbitrary observer constants, and duplicate/foreign/reversed metadata. Complete raw inputs/outputs, optional tags, indexed 20/32-byte keys, huge nonces, U256 words, full code and retained parent/sibling values are observed. Finite source application comparison retains the typed/default/nonaliasing premises above; these checks establish no WF preservation, history, root or EEST result.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
 
 ## 5. Interface
@@ -203,11 +221,11 @@ evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All public unless marked internal. `Except` failures use `StateError`. Account and
-emptyAccount values, internal WriteOrder support, raw MathState observers and raw
-BlockDiff values are implemented and pure; the raw MathState record and structural
-`WF` are also supplied. MathState mutation/application, BlockDiff application/WF/
-history, PreState and tracker operations remain unimplemented targets. The EELS
-default-empty BlockDiff convenience constructor remains deferred (§10).
+emptyAccount values, internal WriteOrder support, raw MathState observers, raw
+BlockDiff values and raw mathematical application are implemented and pure; the raw
+MathState record and structural `WF` are also supplied. MathState mutation, diff WF/
+history/reachable preservation, PreState and tracker operations remain unimplemented
+targets. The EELS default-empty BlockDiff convenience constructor remains deferred (§10).
 
 ```lean
 -- public types
@@ -418,7 +436,8 @@ is added. Fixed-constants observer equality does not determine the raw state: th
 reserved-hash bypass hides raw code entries even under `WF`. Missing nonreserved
 mathematical code is `none`, distinct from `some ByteArray.empty` and from B2's
 provider failure. There is no public empty-state operation, setter, normalization or
-new equality/order instance. Mutation, `apply` and reachable preservation remain open.
+new equality/order instance. Raw application is supplied below; other mutation and
+reachable preservation remain open.
 
 ### Raw BlockDiff value seam (R4, B1)
 
@@ -443,6 +462,27 @@ The ordinary public laws retain arbitrary supplied fields:
 All constructor laws quantify arbitrary supplied fields. `ext_lookup` imposes no
 validity or history premises and no payload equality instance. Existing public Std
 extensionality uses the lawful complete Address/Bytes32/Hash32 comparison providers.
+
+### Raw mathematical application laws (R5)
+
+All eighteen laws quantify arbitrary raw states, diffs and keys, with no WF/history
+premise. `apply_accounts_lookup`, `apply_storage_lookup`, `apply_code_lookup`
+determine the complete raw output: account changes use outer optional replacement;
+storage uses post-clear inner maps, zero erasure and touched-empty pruning; code
+changes override every raw hash. `apply_account?_eq`, `apply_storageAt_eq`,
+`apply_code?_eq` supply the observer equations; the code equation retains arbitrary
+supplied constants and the reserved-hash bypass.
+
+`apply_of_no_changes` and `apply_congr_effects` give identity and equality from the
+four equal effect fields alone. `apply_accounts_of_no_changes`,
+`apply_storage_of_no_changes`, `apply_code_of_no_changes` frame complete fields.
+`apply_storage_of_untouched`, `apply_storage_of_deleted_account_without_clear`,
+`apply_storage_of_clear_no_writes`, `apply_storage_of_empty_writes` distinguish
+untouched raw inners, deletion independence and touched-empty cleanup.
+`apply_storage_slot_of_write_zero`, `apply_storage_slot_of_write_ne_zero`,
+`apply_storage_slot_of_no_write` expose slot erasure, insertion and the post-clear
+frame. The laws use expanded public Std expressions, not additional public model
+helpers. They supply no `BlockDiff.WF`, reachable preservation or replay order.
 
 ### 7.1 Model and commuting equations
 
@@ -552,10 +592,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
-  WF, and raw BlockDiff values are supplied (§3/§7). The owning laws and test rows
-  specify their domains. MathState mutation/application, BlockDiff application/WF/
-  history, provider/PreState, tracker effects/errors, ordered-write integration,
-  reachability, snapshot and operational source-refinement obligations remain open.
+  WF, raw BlockDiff values and raw mathematical application are supplied (§3/§7).
+  The owning laws and test rows specify their domains. MathState mutation, diff WF/
+  history/reachable preservation, provider/PreState, tracker effects/errors,
+  ordered-write integration, reachability, snapshot and operational source-refinement
+  obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
