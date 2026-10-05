@@ -1,6 +1,6 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
@@ -948,7 +948,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Variable-length Bytes order (Q54).** The comparator/reference, all-input ordinary equality, lawful instances, actual-equality and packed-export model laws and source/compiled/public-only validation are discharged in §3; the conditional EthCommit `KeyBytes Bytes` adapter remains separately unimplemented. Actual maps, preparation/root composition, allocation/retention, replacement and C1–C4 costs remain open; reassess under D18/D25 rather than adopting a cost bound from local comparator evidence.
+- **Variable-length Bytes order (Q54).** The comparator/reference, all-input ordinary equality, lawful instances, actual-equality and packed-export model laws and source/compiled/public-only validation are discharged in §3; the conditional `instKeyBytesBytes : KeyBytes Bytes` adapter is supplied separately by [EthCommit §3/§7.0.3](EthCommit.md#pure-unsecured-typed-preparation-q53), using only these public export/inverse/order laws. Actual maps, preparation/root composition, allocation/retention, replacement and C1–C4 costs remain open; reassess under D18/D25 rather than adopting a cost bound from local comparator evidence.
 - **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; other unbounded integer helpers and Envelope remain unimplemented; hash acquisition and its concrete byte-field equality guards are owned by EthHash §3; F20 production entry seams and coherence remain open. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

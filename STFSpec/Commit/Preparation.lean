@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Commit.Trie
 import STFSpec.Commit.Nibbles
+import STFSpec.Base.BytesOrder
 
 /-!
 # Pure unsecured typed-trie preparation
@@ -13,14 +14,16 @@ Preparation visits the complete stored map once, encodes each binding once and
 inserts its injectively interpreted byte-key path. No default or validity filter
 is executed. Safety and the unsecured domain are separate erased proof arguments.
 The mapped-list reference is proof support, beside the executable packed-key fold.
-Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/5/7.0.3; Q53.
+The existing packed Bytes key adapter supplies its exact export contract (Q54).
+Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/5/7.0.3; Q53/Q54.
 -/
 
 namespace STFSpec.Commit
 
 /-- Injective byte-key interpretation agreeing with the lawful key comparator.
 The byte-list comparison is a proof contract, not an executable key conversion.
-No concrete Bytes/ByteArray adapter is selected here (Q53). -/
+The existing Base `Bytes` adapter is supplied below; concrete consumer key and
+source interpretations remain caller obligations (Q53/Q54). -/
 class KeyBytes (K : Type) [Ord K] where
   /-- Complete finite bytes of the key, including empty keys and leading zeros. -/
   toBytes : K → ByteArray
@@ -29,6 +32,24 @@ class KeyBytes (K : Type) [Ord K] where
   /-- Key order agrees exactly with byte-content lexicographic order. -/
   compare_toBytes : ∀ a b,
     compare a b = compare (toBytes a).toList (toBytes b).toList
+
+/-- Interpret every finite Base `Bytes` key by its exact packed export.
+Public inverse/order laws supply injection and byte-lex agreement, including empty
+keys and significant zeros. This functional adapter selects no source alias,
+value encoder, secured policy, consumer bridge or cost bound (Q53/Q54). -/
+instance instKeyBytesBytes : KeyBytes STFSpec.Base.Bytes where
+  toBytes := STFSpec.Base.Bytes.toByteArray
+  toBytes_injective := by
+    intro a b h
+    have inverse := congrArg STFSpec.Base.Bytes.ofByteArray h
+    simpa only [STFSpec.Base.Bytes.ofByteArray_toByteArray] using inverse
+  compare_toBytes a b := by
+    rw [STFSpec.Base.Bytes.toByteArray_toList, STFSpec.Base.Bytes.toByteArray_toList]
+    exact STFSpec.Base.Bytes.compare_toList a b
+
+/-- The existing Bytes key adapter retains the exact complete packed export (Q54).
+Source key context: EELS `src/ethereum/merkle_patricia_trie.py:407–448` at the pin. -/
+theorem toBytes_bytes (k : STFSpec.Base.Bytes) : KeyBytes.toBytes k = k.toByteArray := rfl
 
 variable {K V : Type} [Ord K] [Std.TransOrd K] [Std.LawfulEqOrd K]
 

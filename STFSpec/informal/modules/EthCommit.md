@@ -688,16 +688,35 @@ guest/EEST or cost claim; generic preparation is supplied separately below.
 `STFSpec/Commit/Preparation.lean` supplies the generic byte-key contract and pure
 preparation seam. `KeyBytes K` has exactly injective `toBytes` and agreement of
 `Ord.compare` with byte-list lexicographic comparison. Q54 supplies production
-`Bytes` order ([EthBase §3](EthBase.md#3-eels-source-map)); a concrete `KeyBytes Bytes`
-adapter, production value-encoding bridges and raw `ByteArray` order remain absent.
-Test-local List UInt8 interpretation retains every finite byte sequence, empty keys, leading
-zeros, unequal lengths and prefixes. Key interpretation is injective; value
-encoding need not be.
+`Bytes` order ([EthBase §3](EthBase.md#3-eels-source-map)). The named production
+`instKeyBytesBytes : KeyBytes STFSpec.Base.Bytes` is supplied in the same Preparation
+owner, using the direct `STFSpec.Base.BytesOrder` import and exactly
+`Bytes.toByteArray`. Its fields cover every finite existing Bytes, including empty
+keys, significant zeros, unequal lengths and prefixes. The public `toBytes_bytes`
+equation names the exact packed export for consumers, beyond injection/order alone.
+Injection applies public
+`Bytes.ofByteArray` to export equality and uses `ofByteArray_toByteArray`; order
+uses only `compare_toList` and `toByteArray_toList`. Production value-encoding
+bridges and concrete Python key/alias/equality interpretations remain open.
+Test-local List UInt8 coverage is retained alongside production Bytes-key controls.
+Key interpretation is injective; value encoding need not be.
 
 | Exact pinned EELS source | Public declaration/domain and status | Success/effects | Ordered failures/domain boundary | Ordinary law | Validation |
 |---|---|---|---|---|---|
+| Q53/Q54 provider adapter; `Bytes.toByteArray`, `ofByteArray_toByteArray`, `compare_toList`, `toByteArray_toList` from EthBase; source key context `src/ethereum/merkle_patricia_trie.py:407–448`, inherited content order `ethereum_types/bytes.py:165` (0.4.1) | `instKeyBytesBytes : KeyBytes STFSpec.Base.Bytes`; **discharged functional instance**, every finite existing Bytes with its existing lawful order/equality | Exact complete packed export; injective byte keys and unsigned lexical order, proper prefix first; pure, no query/filter/failure | Conditional on a consumer choosing existing Bytes; supplies no concrete Python alias/equality bridge, encoder, secured policy or cost bound | `toBytes_bytes (k : Bytes) : KeyBytes.toBytes k = k.toByteArray`; ordinary instance fields `toBytes_injective` via public inverse and `compare_toBytes` via public order/export laws; no provider representation unfolding | Private `PreparationCallerProofs` instance synthesis, exact export/injection/order/actual-equality and complete generic map/root clients; private `PreparationGuards` whole Bytes-key maps, reconstruction/overwrite/distinct keys/aliased values, significant zeros, first/last mismatch and raw ordinal bytes `[128]` after `[1]`; List clients retained |
 | `src/ethereum/merkle_patricia_trie.py:407–448` | `prepareTrieModel : Trie K V → ExtTreeMap Nibbles ByteArray`; `Ord`/`TransOrd`, `KeyBytes`, `TrieValue`; **discharged pure model** | One stored-map fold, one encoding/path insertion per stored binding; retain valid stored defaults; do not encode an absent default or filter values | Total model also computes on invalid values; no source-success claim there. Pinned preparation asserts stored None before encode and exact empty encoding next; safety excludes both at the frontend | `prepareTrieModel_eq_reference` equates executable fold with mapped-list `prepareTrieReference`; `keyBytes_path_injective`, `prepareTrieModel_lookup/lookup_some_iff/image_nonempty/size/empty_iff/congr/insert` | `PreparationGuards` complete empty/prefix/zero/noninjective-value/default maps; `PreparationCallerProofs` public-only clients; actual pinned complete-map comparisons |
 | `src/ethereum/merkle_patricia_trie.py:451–475` | `prepareTrie {m} [Monad m]` under lawful key order, `secured = false` and `PrepareSafe`; **discharged local seam** | `pure` complete prepared map, zero local query/failure; proof arguments erased; no `NoDefault` premise | No runtime error or handler/O-row added; concrete supported non-None equality/dispatch and host premises remain caller obligations | `prepareTrie_eq/empty/proof_irrel`; State/Except callers need no query instance or `LawfulMonad` | Direct valid stored default executes despite failed `NoDefault`; carried State unchanged and Except succeeds; unsafe None/empty interpretations cannot satisfy safety |
+
+Private Bytes clients import the existing public Commit aggregate without a local
+Bytes instance. They specialize exact exported bytes, injectivity, byte-order and
+actual-equality implications; full optional prepared lookup/image, cardinality,
+empty-map equivalence, insertion/overwrite and the complete pure preparation action
+retain caller-supplied `TrieValue V`. Symbolic `Trie Bytes V` root clients retain
+`PrepareSafe`, `secured = false`, caller `emptyRoot`, `Monad` and `KeccakQuery`;
+only the separate sequential-reference client adds `LawfulMonad`. The adapter
+adds no production value instance, equality/order/default provider, coercion,
+source alias or runtime traversal API. These functional clients establish no
+consumer encoding/source/root bridge, resource/cost or readiness result.
 
 Executable preparation calls the existing map fold and packed splitter directly;
 List enumeration occurs only in the legible reference and proofs/observations.
@@ -931,6 +950,9 @@ class KeyBytes (K : Type) [Ord K] where
   toBytes_injective : Function.Injective toBytes
   compare_toBytes : ∀ a b,
     compare a b = compare (toBytes a).toList (toBytes b).toList
+-- Implemented conditional existing-Bytes adapter; exact export/inverse/order fields (§3).
+instance instKeyBytesBytes : KeyBytes STFSpec.Base.Bytes
+theorem toBytes_bytes (k : STFSpec.Base.Bytes) : KeyBytes.toBytes k = k.toByteArray
 structure Trie (K V : Type) [Ord K] where
   secured : Bool
   default : V
@@ -1014,12 +1036,9 @@ def collisionWitness (db : NodeDB) (m) : Option (ByteArray × ByteArray)  -- com
 
 Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` → `Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (the flat `_data` is dropped: it is unused on the guest path, C21); `_encode_mutable_node`, `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc` construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`, `_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`, `_insert_into_branch` → `update`/`mptSet`; `_mpt_delete_node`, `_delete_from_extension`, `_delete_from_branch`, `_collapse_branch` → `delete`/`mkBranch`/`mkExt`; `mpt_root` → `mptRoot`; `compact_to_nibbles` → `compactToNibbles`; `_resolve_child_ref`, `_decode_witness_node`, `decode_witness_to_mpt` → `decodeRoot`/`decodeWitnessToMpt`; `_build_mutable_tree`, `build_mpt` → `buildMpt`; `Witness`, `_record_witness`, `_mpt_traverse_for_witness`, `mpt_get` → `Witness`/`mptGetRecording`.
 
-If a concrete consumer chooses the existing Base `Bytes` as `K`, its future
-EthCommit-owned `KeyBytes Bytes` adapter uses `Bytes.toByteArray` exactly.
-Injectivity follows from the existing `Bytes.ofByteArray_toByteArray` inverse;
-Q54's supplied `Bytes.compare_toList` and `toByteArray_toList` supply the
-required comparison-to-core-ByteArray-list equation (§7.0.3). This conditional
-provider choice introduces no new generic preparation/storage prerequisite.
+For a consumer choosing existing Base `Bytes`, §3/§5 owns the supplied adapter
+and named exact-export equation. Generic preparation/storage contracts do not
+require choosing this concrete provider.
 
 **Decoder acquisition target (Q55; unimplemented).** Every newly entered root,
 present DB child or inline child uses its complete raw bytes: below 32 bytes there
@@ -1191,10 +1210,9 @@ union with two distinct keys for the same bytes cannot meet this contract. A con
 consumer must supply lawful key order/equality agreeing with that interpretation.
 For the conditional existing-Bytes choice, EthBase §3/§5/§7 supplies Q54's
 `Ord Bytes`, `Std.TransOrd`, `Std.LawfulEqOrd`, actual-equality and
-packed-export List laws. The future adapter uses public export/inverse laws for
-injectivity and composes `Bytes.compare_toList` with `Bytes.toByteArray_toList` for
-`KeyBytes.compare_toBytes`. The adapter, source alias/equality bridge and actual
-map/preparation/root cost integration remain separate unimplemented obligations;
+packed-export List laws. The adapter, its named `toBytes_bytes` exact-export
+contract and public-only complete preparation/root clients are owned by §3/§5.
+Concrete source alias/equality bridges and consumer cost integration remain open;
 generic Q53 preparation/storage contracts do not depend on choosing Bytes.
 
 For `[TrieValue V] [KeyBytes K]`, `unsecured : t.secured = false` and
@@ -1337,7 +1355,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D25 (accepted): `represents` as the abstraction relation.
 - Q55: the complete decoder signatures/acquisition contract are in C13–C14/§5/§7.6; implementation, ordinary laws, provenance, whole agreement and generic action lifetime remain open.
 - Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent and recursive C7 construction with finite authenticated source agreement are in §3; the total local C8 wrapper is supplied in §3; whole-source refinement remains open.
-- Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key interpretation/preparation are supplied in §3; typed root composition is supplied; consumer instances remain unimplemented; secure ordering/collision/source-history and generic coupling remain open.
+- Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and
+  the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key
+  interpretation/preparation are supplied in §3; typed root composition is supplied; the
+  conditional existing-Bytes key instance is supplied in §3, while concrete consumer
+  value/source bridges remain unimplemented; secure ordering/collision/source-history and generic
+  coupling remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
 - Q52: two-item path-list and leaf-value-list diagnostic declarations follow C14/§5; exact ordering and source acceptance controls are in §3/§4, while dispatcher and adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
@@ -1368,6 +1391,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
 - **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. Concrete encoding bridges remain open. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
+- **Existing-Bytes key adapter (Q54):** `instKeyBytesBytes`, its named exact-export `toBytes_bytes` equation and ordinary all-finite injection/order fields are discharged in §3, with private public-import complete generic map and root clients. Choosing a concrete Python key/equality/alias interpretation, consumer encoding/root agreement, actual map/preparation/root/retention/replacement and C1–C4 costs remains open; no raw ByteArray order, additional production value/default/equality instance or secured policy is supplied.
 - **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes, not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.

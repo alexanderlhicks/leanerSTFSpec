@@ -8,7 +8,7 @@ import STFSpec.Codec
 /-!
 # Pure preparation regressions
 
-Library `EthConformance`. Local List-byte keys and supported sample values are
+Library `EthConformance`. List-byte and production Bytes keys with sample values are
 test instrumentation only. Tests call the production preparation fold/frontend.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/4/7.0.3; Q53.
 -/
@@ -179,5 +179,118 @@ def printComplete : IO Unit := do
   IO.println (repr stateObservation)
   IO.println (repr exceptObservation)
   IO.println (repr (observePrepared (.raw [99].toByteArray) []))
+
+/-! ### Existing packed Bytes key controls -/
+
+-- Bytes controls synthesize the production adapter; no local key instance is added.
+private def bytesTrie (default : SampleValue) (rows : List (Bytes × SampleValue)) :
+    Trie Bytes SampleValue := ⟨false, default, Std.ExtTreeMap.ofList rows compare⟩
+
+private def observeBytesTrie (t : Trie Bytes SampleValue) :
+    List (List Nat × List UInt8) :=
+  (prepareTrieModel t).toList.map
+    (fun (k, v) ↦ (k.toList.map Fin.val, v.data.toList))
+
+private def observeBytes (default : SampleValue) (rows : List (Bytes × SampleValue)) :
+    List (List Nat × List UInt8) := observeBytesTrie (bytesTrie default rows)
+
+private def bytesPrefixRows : List (Bytes × SampleValue) :=
+  [(Bytes.ofList [255], .raw [9].toByteArray), (Bytes.ofList [], .raw [1].toByteArray),
+    (Bytes.ofList [0, 1], .raw [3].toByteArray), (Bytes.ofList [0], .raw [2].toByteArray),
+    (Bytes.ofList [1], .raw [4].toByteArray), (Bytes.ofList [1, 255], .raw [5].toByteArray),
+    (Bytes.ofList [0, 0], .raw [6].toByteArray)]
+
+#guard observeBytes .none bytesPrefixRows =
+  [([], [1]), ([0, 0], [2]), ([0, 0, 0, 0], [6]), ([0, 0, 0, 1], [3]),
+    ([0, 1], [4]), ([0, 1, 15, 15], [5]), ([15, 15], [9])]
+#guard observeBytes (.raw [99].toByteArray) [] = []
+#guard observeBytes .none bytesPrefixRows.reverse = observeBytes .none bytesPrefixRows
+#guard (bytesTrie .none bytesPrefixRows).data.size = 7
+#guard (prepareTrieModel (bytesTrie .none bytesPrefixRows)).size = 7
+
+-- Complete maps distinguish early and late mismatches and unsigned high bytes.
+#guard observeBytes .none
+  [(Bytes.ofList [255, 0, 0], .raw [4].toByteArray),
+    (Bytes.ofList [1, 0, 1], .raw [2].toByteArray),
+    (Bytes.ofList [0, 255, 255], .raw [1].toByteArray),
+    (Bytes.ofList [1, 0, 2], .raw [3].toByteArray)] =
+  [([0, 0, 15, 15, 15, 15], [1]), ([0, 1, 0, 0, 0, 1], [2]),
+    ([0, 1, 0, 0, 0, 2], [3]), ([15, 15, 0, 0, 0, 0], [4])]
+
+-- Different public constructions have actual equal content and overwrite one key.
+#guard Bytes.ofByteArray [0, 1].toByteArray = Bytes.ofList [0, 1]
+#guard compare (Bytes.ofByteArray [0, 1].toByteArray) (Bytes.ofList [0, 1]) = Ordering.eq
+#guard observeBytes .none
+  [(Bytes.ofList [0, 1], .integer 0), (Bytes.ofList [0], .collection []),
+    (Bytes.ofByteArray [0, 1].toByteArray, .raw [7].toByteArray),
+    (Bytes.ofList [1], .raw [2, 192].toByteArray)] =
+  [([0, 0], [192]), ([0, 0, 0, 1], [7]), ([0, 1], [2, 192])]
+
+-- Equal encoded values do not collapse distinct keys; encoding need not be injective.
+#guard observeBytes .none
+  [(Bytes.ofList [0], .raw [128].toByteArray), (Bytes.ofList [0, 0], .integer 0)] =
+  [([0, 0], [128]), ([0, 0, 0, 0], [128])]
+#guard observeBytes .none [(Bytes.ofList [0], .raw [128].toByteArray)] =
+  observeBytes .none [(Bytes.ofList [0], .integer 0)]
+
+-- These are raw ordinal byte keys, with no Python alias or consumer encoder selected.
+#guard compare (Bytes.ofList [128]) (Bytes.ofList [1]) = Ordering.gt
+#guard observeBytes .none
+  [(Bytes.ofList [128], .raw [9].toByteArray), (Bytes.ofList [1], .raw [8].toByteArray)] =
+  [([0, 1], [8]), ([8, 0], [9])]
+#guard KeyBytes.toBytes (Bytes.ofList []) = [].toByteArray
+#guard KeyBytes.toBytes (Bytes.ofList [0, 0, 1]) = [0, 0, 1].toByteArray
+
+private def bytesStoredDefault : Trie Bytes SampleValue :=
+  ⟨false, .raw [7].toByteArray,
+    (∅ : Std.ExtTreeMap Bytes SampleValue).insert (Bytes.ofList []) (.raw [7].toByteArray)⟩
+
+private theorem bytesStoredDefault_safe : bytesStoredDefault.PrepareSafe := by
+  intro k v h
+  change ((∅ : Std.ExtTreeMap Bytes SampleValue).insert
+    (Bytes.ofList []) (.raw [7].toByteArray))[k]? = some v at h
+  rw [Std.ExtTreeMap.getElem?_insert] at h
+  split at h
+  · have he : SampleValue.raw [7].toByteArray = v := Option.some.inj h
+    subst v
+    change [7].toByteArray ≠ ByteArray.empty
+    decide
+  · rw [Std.ExtTreeMap.getElem?_empty] at h
+    cases h
+
+private theorem bytesStoredDefault_has_default : ¬ bytesStoredDefault.NoDefault := by
+  intro h
+  exact h (Bytes.ofList []) (.raw [7].toByteArray) Std.ExtTreeMap.getElem?_insert_self rfl
+
+#guard observeBytesTrie bytesStoredDefault = [([], [7])]
+#guard (prepareTrieModel bytesStoredDefault)[bytesToNibbleList [].toByteArray]? =
+  some [7].toByteArray
+#guard observeBytesTrie
+  { bytesStoredDefault with data :=
+      bytesStoredDefault.data.insert (Bytes.ofList [0]) (.raw [8].toByteArray) } =
+  [([], [7]), ([0, 0], [8])]
+#guard observeBytesTrie
+  { bytesStoredDefault with data :=
+      bytesStoredDefault.data.insert (Bytes.ofByteArray [].toByteArray) (.raw [8].toByteArray) } =
+  [([], [8])]
+
+-- Whole pure frontend observations retain safety and unsecured proofs, without a query.
+private def bytesStateObservation : List (List Nat × List UInt8) × Nat :=
+  let (prepared, state) :=
+    (prepareTrie (m := StateM Nat) bytesStoredDefault rfl bytesStoredDefault_safe).run 713
+  (prepared.toList.map (fun (k, v) ↦ (k.toList.map Fin.val, v.data.toList)), state)
+
+#guard bytesStateObservation = ([([], [7])], 713)
+#guard (prepareTrie (m := Id) bytesStoredDefault rfl bytesStoredDefault_safe).toList.map
+  (fun (k, v) ↦ (k.toList.map Fin.val, v.data.toList)) = [([], [7])]
+
+private def bytesExceptObservation : Except String (List (List Nat × List UInt8)) :=
+  (prepareTrie (m := Except String) bytesStoredDefault rfl bytesStoredDefault_safe).map
+    (fun prepared ↦ prepared.toList.map
+      (fun (k, v) ↦ (k.toList.map Fin.val, v.data.toList)))
+
+#guard match bytesExceptObservation with
+  | .ok observed => observed == [([], [7])]
+  | .error _ => false
 
 end STFSpec.Conformance.Commit.PreparationGuards
