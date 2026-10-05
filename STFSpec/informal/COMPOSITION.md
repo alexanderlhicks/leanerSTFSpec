@@ -76,7 +76,7 @@ agreement supplies no authentication, availability or root agreement; D5/X7 gene
 coupling remains open.
 
 [EthState §7.4](modules/EthState.md#74-invariants-exported-to-other-libraries) owns
-Q58's unimplemented StructuralPremises and ordinary law targets. Initial
+Q58's supplied StructuralPremises and ordinary laws. Initial
 MathState.WF plus deletion-to-clear and raw storage-change address-to-post-account
 presence suffices for structural apply preservation, including empty patches and zero
 writes with arbitrary metadata/code/account fields. This local implication supplies
@@ -418,7 +418,7 @@ The induction invariant has the following parts:
 The induction begins with tracker construction over an arbitrary WF prestate σ₀, under
 `ModelsLookups consts ps σ₀` at its fixed supplied record/provider (Q57) and the
 required F20 context-coherence premises. Q58's structural implication is a separate
-raw conditional target; it does not construct this reachable trace. Construction and
+raw conditional theorem; it does not construct this reachable trace. Construction and
 preservation of the complete reachable invariant remain obligations. Each future
 operation's observer equation must preserve it; the caller establishes the operation's
 preconditions. Snapshot/restore proves part 3 directly. Ordered fold induction proves
@@ -447,7 +447,7 @@ Full Models retains the concrete Id record of EthStateCommit §5/§7.3 (Q57).
 Both execution contexts must be coherent with that record before its lookup conjunct
 can supply `ModelsLookups` at their BlockState.consts; factory parameters alone do
 not establish this. The universal full-WF diff root clause and authentication/collision/
-progress premises are unchanged; Q58's structural-only target cannot replace them.
+progress premises are unchanged; Q58's structural-only theorem cannot replace them.
 
 Witness agreement also requires authenticated witness node/code databases, coherent oracle-derived constants and the specified decode thunk (EthStateWitness.WitnessBackend.WF). Guest construction must establish those premises.
 
