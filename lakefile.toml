@@ -130,3 +130,9 @@ root = "FixtureRecordsMain"
 name = "write-order-native-tests"
 srcDir = "scripts"
 root = "WriteOrderNativeTests"
+
+# Complete raw MathState and observer regressions; no cost or whole-State claim.
+[[lean_exe]]
+name = "math-state-native-tests"
+srcDir = "scripts"
+root = "MathStateNativeTests"

@@ -99,6 +99,9 @@ import STFSpec.Conformance.State.AccountGuards
 import STFSpec.Conformance.State.WriteOrderCallerProofs
 import STFSpec.Conformance.State.WriteOrderGuards
 
+import STFSpec.Conformance.State.MathStateCallerProofs
+import STFSpec.Conformance.State.MathStateGuards
+
 /-!
 # STFSpec.Conformance
 

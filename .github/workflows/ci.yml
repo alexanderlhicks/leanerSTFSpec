@@ -44,6 +44,11 @@ jobs:
           lake build write-order-native-tests --wfail
           lake exe check-decls WriteOrderNativeTests
           lake exe write-order-native-tests
+      - name: Complete mathematical-state regressions
+        run: |
+          lake build math-state-native-tests --wfail
+          lake exe check-decls MathStateNativeTests
+          lake exe math-state-native-tests
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

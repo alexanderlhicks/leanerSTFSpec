@@ -44,6 +44,26 @@ Full clear/restore/incorporation/extraction, caller reachability and account-rea
 history remain open, together with S1/S2 and composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
 
+### Raw mathematical-state premise
+
+[EthState §3/§7](modules/EthState.md#3-eels-source-map) supplies the Account value
+provider and raw three-map MathState with total `account?`, `storageAt` and
+`code? σ consts h`. Missing address/slot storage defaults to zero; optional account
+absence differs from a present empty account. The caller's empty-code hash bypasses
+raw code lookup; missing nonreserved model code remains `none`. Provider missing-code
+errors (B2) remain unchanged. Source correspondence requires coherent F20 constants;
+the model itself accepts arbitrary records and raw maps.
+
+The [raw and structural laws](modules/EthState.md#raw-mathematical-state-observer-laws)
+retain raw field/lookup extensionality and exactly three `WF` clauses: nonzero slots, nonempty inner maps and storage-domain
+inclusion in accounts. Raw lookup extensionality keeps whole optional inner maps
+and all raw code hashes. Fixed-constants observer equality cannot determine raw
+code, even under `WF`; code authenticity/completeness are separate premises.
+`wf_empty` proves only the empty raw triple's structural invariant. Mutation,
+`apply`, providers, reachability, diff/order/overlay preservation, S1/S2, commitments
+and consumer/resource gates remain open. Complete finite native/reference-list
+observations and retained sibling checks establish no composed cost bound.
+
 ### Typed-trie storage, preparation and root premise (Q53)
 
 [EthCommit §3/§7.0.3](modules/EthCommit.md#3-eels-source-map) supplies generic
@@ -376,7 +396,14 @@ The induction invariant has the following parts:
 5. BAL updates observe the unmerged transaction and block views, then merge. First-index pre-values, nonce maximum and balance/code last-value behaviour follow the source builder.
 6. Code hashes newly installed by callers authenticate their bytes. This is CodeChangesAuthentic, not a structural law of EthState, which cannot import hashing.
 
-The empty construction establishes the invariant. Each operation's observer equation preserves it; the caller establishes the operation's preconditions. Snapshot/restore proves part 3 directly. Ordered fold induction proves parts 1 and 4 at incorporation and diff extraction. Parts 2 and 6 require proofs across Block, Instructions and Runner, rather than an assertion in State alone. WriteOrder uses persistent position indexes so erase/reinsert and snapshots do not rely on repeatedly filtering a list.
+The induction begins with tracker construction over an arbitrary WF prestate σ₀, under the
+required provider and supplied-constant premises. Construction and preservation of the complete
+reachable invariant remain obligations. Each future operation's observer equation must preserve
+it; the caller establishes the operation's preconditions. Snapshot/restore proves part 3
+directly. Ordered fold induction proves parts 1 and 4 at incorporation and diff extraction.
+Parts 2 and 6 require proofs across Block, Instructions and Runner, rather than an assertion in
+State alone. WriteOrder uses persistent position indexes so erase/reinsert and snapshots do not
+rely on repeatedly filtering a list.
 
 Witness updates must use the recorded order. EELS's branch collapse can need unavailable siblings, so exchanging delete and insert can exchange failure with success. Even a successful no-op delete can change an accepted noncanonical node's root. Canonical finite-map root laws therefore cannot be applied unconditionally to raw witnesses. The storage-root-only rewrite phase's set-order independence remains an explicit obligation.
 
