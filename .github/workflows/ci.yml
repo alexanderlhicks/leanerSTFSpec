@@ -59,6 +59,11 @@ jobs:
           lake build apply-native-tests --wfail
           lake exe check-decls ApplyNativeTests
           lake exe apply-native-tests
+      - name: Complete raw PreState native callback regressions
+        run: |
+          lake build pre-state-native-tests --wfail
+          lake exe check-decls PreStateNativeTests
+          lake exe pre-state-native-tests
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail
