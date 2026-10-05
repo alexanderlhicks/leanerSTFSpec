@@ -235,9 +235,11 @@ history.
 There is no runtime error, normalization, hash, pin, dependency, guest outcome or
 resource-policy change. D5/X7 generic coupling remains open.
 
-**Validation and limits.** Supplied-record lookup agreement and tracker laws remain
-informal, unimplemented and unproved. EthState §3/§7.4 owns the supplied structural
-predicate and ordinary laws; §4 identifies their private public-law clients,
+**Validation and limits.** EthState §3/§5 owns the supplied success-only lookup
+predicate and its private ordinary positive/negative proof clients. Contextual tracker
+laws, actual backend construction/progress and full-model projection remain open.
+EthState §3/§7.4 owns the supplied structural predicate and ordinary laws; §4 identifies
+their private public-law clients,
 independent omission proofs and complete finite guards. Their preservation theorem
 requires initial structural WF and both selected premises; it does not supply full
 metadata-domain policy or reachable history. Document checks validate consistency/

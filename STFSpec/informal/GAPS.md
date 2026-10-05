@@ -286,12 +286,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
-  WF, raw BlockDiff values, raw mathematical application and the raw four-operation
-  PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
-  and bounded structural preservation are supplied (§3/§5/§7). The owning laws and
-  test rows specify their domains.
+  WF, raw BlockDiff values, raw mathematical application, the raw four-operation
+  PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
+  bounded structural preservation and supplied-record ModelsLookups are supplied
+  (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
-  ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
+  contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
+  witness diagnostic
   refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
   and operational source-refinement obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
@@ -307,7 +308,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **State errors under O13** (R29): `balanceOverflow` is argued reachable in the ledger from the pinned `U256` semantics [verified by execution] but has no fixture; honest-chain unreachability is an argument, not a proof. `balanceUnderflow` and `storageOnMissingAccount` are unresolved failure-ledger entries. `StateError` cannot be frozen (B14) until they close.
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
-- **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
+- **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
+  positive/negative guards are supplied (§3/§4). Contextual read laws at the retained
+  BlockState record and full-model lookup projection under concrete Id coherence remain
+  open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.

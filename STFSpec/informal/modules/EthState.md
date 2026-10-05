@@ -213,8 +213,8 @@ Lean-only nominal shapes of §5. Source attribution does not assert lookup/root 
 Lean equality, without an effect-equivalence interpretation. The coarse errors are not frozen;
 their §10 refinement obligations remain open. `State/StateError.lean` imports only
 `State/WitnessError.lean` and is exported by the State aggregate. R15/R19/R29 cite future
-operation uses, without implementing them. `ModelsLookups` remains unimplemented;
-Q57 specifies its supplied code-observer constants context.
+operation uses, without implementing them. `ModelsLookups` supplies Q57 lookup
+agreement; actual providers and full-model/contextual tracker proofs remain open.
 
 ### Implemented bounded structural preservation (Q58)
 
@@ -228,6 +228,22 @@ runtime enumeration, decision procedure, effect, failure or metadata normalizati
 | Sufficient structural premises motivated by `state_mpt.py:133–161,187–206` and `merkle_patricia_trie.py:325–347`; not a separate EELS operation | `BlockDiff.StructuralPremises : MathState → BlockDiff → Prop` | **Discharged:** exactly deletion-tombstone-to-clear and raw storage-change-address-to-post-account presence, including empty patches and zero writes. No initial WF, code, account-value or metadata restriction. Pure logical contract; no failure/handler. | `structuralPremises_iff`, `structuralPremises_storage_clear`, `structuralPremises_account_present`; private arbitrary clients in `StructuralCallerProofs.lean`, omission/empty/zero counterexamples in `StructuralGuards.lean`. |
 | Structural consequence of clear-before-write, zero deletion and touched-empty pruning at those sources | `MathState.wf_apply_of_structuralPremises` | **Discharged:** initial `MathState.WF σ` and `BlockDiff.StructuralPremises σ d` imply all three output WF clauses. Callers establish both premises; this is not reachable extraction. | Public Apply slot/account/inner-map laws and MathState WF laws; private proofs of independent premise omissions, malformed initial zero/empty/orphan states, deletion with clear and clear/reintroduction. |
 | Effect-only predicate congruence; replay metadata is B1 guidance | `BlockDiff.structuralPremises_congr_effects` | **Discharged:** equality of accountChanges, storageChanges, codeChanges and storageClears implies predicate iff, with no metadata equality premise. | Public `apply_congr_effects`; private arbitrary clients and complete finite observations for missing/present-empty/extra/duplicate/foreign metadata. No full optional-map policy is selected. |
+
+### Implemented supplied-record lookup agreement
+
+`State/ModelsLookups.lean` supplies exactly the R8/Q57 proposition, exported by State.
+It consumes the raw PreState carrier and MathState's public observers, with no new
+public helper, law, instance or decision procedure. Its three success implications
+are the complete definition; roots and errors impose no condition.
+
+| Source/support | Lean declaration and domain | Value/effects and failures | Validation and limits |
+|---|---|---|---|
+| Lean model relation for `state.py:100–122` Protocol shape; `state_mpt.py:49–80` and `forks/amsterdam/witness_state.py:205–213` observers (Q57) | `ModelsLookups : HashConsts → PreState Id → MathState → Prop` | Every supplied record/provider and finite raw state; exact optional account, storage word and `some code` agreement on success. Supplied reserved hash bypasses raw code. Errors unconstrained; no root, WF, hashing, authenticity, availability or coherence premise, operation or failure handler. | **Supplied definition:** private ordinary symbolic `ModelsLookupsCallerProofs` and positive/negative `ModelsLookupsGuards`, wired through EthConformance. No executable EELS Prop body exists to compare; provider/backend modeling, contextual tracker laws and full-model projection remain open. |
+
+The predicate's arbitrary-record domain does not assert correspondence to concrete
+EELS hashes without F20 coherence. Private supplied callbacks establish whole-predicate
+positive cases, error-only vacuity and wrong-success rejection; they provide no
+production provider, progress, root/authentication, resource or release result.
 
 ## 4. Tests
 
@@ -270,8 +286,15 @@ runtime enumeration, decision procedure, effect, failure or metadata normalizati
   observers stay in EthConformance; no production equality/repr/default/order/hash/coercion
   instance is installed for the carrier. There is no nominal EELS operation to differentially run.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
-- **Future Q57 cases (unimplemented):** successful/absent account answers,
-  reserved/nonreserved code at arbitrary supplied records and an always-error provider.
+- **Implemented lookup-agreement cases (Q57):** private ordinary symbolic clients
+  consume each complete successful answer and publicly specified observer law. Guards
+  prove whole-predicate agreement for arbitrary raw states and supplied root functions;
+  success witnesses retain optional accounts, zero defaults and exact nonreserved bytes.
+  Negative cases reject absent/present-empty confusion, wrong storage/code successes and
+  nonreserved code success at raw absence. Raw zero/nonzero/orphan/empty-inner storage,
+  hidden reserved bytes, unrelated constants-field variation, different reserved records,
+  always/selective errors (including reserved-code errors), and arbitrary successful/error
+  roots are covered. These proof guards use no native universal-Prop oracle or new runner.
 - **Implemented Q58 cases:** private symbolic clients cover the §7.4 laws.
   `StructuralGuards.lean` proves independent premise omissions and initial-WF necessity
   for zero/empty-inner/orphan states, raw empty/zero patch presence at absent accounts,
@@ -279,7 +302,6 @@ runtime enumeration, decision procedure, effect, failure or metadata normalizati
   deletion with/without clear, clear/reintroduction, zero last-slot pruning, empty patches
   with/without clear, account replacement before writes, arbitrary code and unusual metadata.
   These logical/finite cases do not execute tracker, backend/root or guest operations.
-
 
 ## 5. Interface
 
@@ -293,8 +315,9 @@ coarse nominal WitnessItem/WitnessError values are supplied without a Monad prem
 The nominal StateError carrier in §5/R29 is also supplied, without operations or adapters.
 The bounded structural predicate and preservation laws are supplied (§3/§7.4).
 MathState mutation, diff WF/history/reachable preservation, actual PreState providers/
-ModelsLookups and tracker operations remain unimplemented targets. The EELS
-default-empty BlockDiff convenience constructor remains deferred (§10).
+tracker operations remain unimplemented targets. The R8 lookup relation is supplied
+as ModelsLookups (§3/§5). The EELS default-empty BlockDiff convenience constructor
+remains deferred (§10).
 
 ```lean
 -- public types
@@ -566,7 +589,8 @@ without a Monad premise. Projection laws retain entire functions; `eta` reconstr
 record; `ext` consumes equality of all four functions; `ext_apply` consumes pointwise
 equality of complete actions at every input. Neither equality law interprets action effects.
 The nominal WitnessItem/WitnessError constructors add no backend or diagnostic adapter.
-`ModelsLookups`, progress, code/root agreement and error refinement remain separate.
+The supplied `ModelsLookups` relation is described in §3/§5; progress, code/root
+agreement and error refinement remain separate.
 
 ### 7.1 Model and commuting equations
 
@@ -603,7 +627,7 @@ that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
 ### 7.3 Pre-state contract obligations
 
 - [C] `ModelsLookups consts ps σ₀` concerns one fixed record/provider and is *used* by every read equation above; it does not quantify a provider's answers over unrelated records.
-- [R] Callers never see `PreState` internals; backends prove full binary `Models` (`EthStateCommit`), plus progress (ARCHITECTURE §5.3). Its lookup conjunct supplies the contextual premise when the execution record is coherent with the concrete Id record. An always-error provider satisfies `ModelsLookups consts ps σ₀` vacuously; planned tests use one to distinguish progress.
+- [R] Callers never see `PreState` internals; backends prove full binary `Models` (`EthStateCommit`), plus progress (ARCHITECTURE §5.3). Its lookup conjunct supplies the contextual premise when the execution record is coherent with the concrete Id record. An always-error provider satisfies `ModelsLookups consts ps σ₀` vacuously; `errors_vacuous` in `ModelsLookupsGuards.lean` proves this for arbitrary raw states, errors and root functions, distinguishing agreement from progress.
 
 ### 7.4 Invariants exported to other libraries
 
@@ -710,12 +734,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
-  WF, raw BlockDiff values, raw mathematical application and the raw four-operation
-  PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
-  and bounded structural preservation are supplied (§3/§5/§7). The owning laws and
-  test rows specify their domains.
+  WF, raw BlockDiff values, raw mathematical application, the raw four-operation
+  PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
+  bounded structural preservation and supplied-record ModelsLookups are supplied
+  (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
-  ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
+  contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
+  witness diagnostic
   refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
   and operational source-refinement obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
@@ -731,7 +756,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **State errors under O13** (R29): `balanceOverflow` is argued reachable in the ledger from the pinned `U256` semantics [verified by execution] but has no fixture; honest-chain unreachability is an argument, not a proof. `balanceUnderflow` and `storageOnMissingAccount` are unresolved failure-ledger entries. `StateError` cannot be frozen (B14) until they close.
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
-- **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
+- **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
+  positive/negative guards are supplied (§3/§4). Contextual read laws at the retained
+  BlockState record and full-model lookup projection under concrete Id coherence remain
+  open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.
