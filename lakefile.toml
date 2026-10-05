@@ -142,3 +142,9 @@ root = "MathStateNativeTests"
 name = "block-diff-native-tests"
 srcDir = "scripts"
 root = "BlockDiffNativeTests"
+
+# Complete raw mathematical application observations.
+[[lean_exe]]
+name = "apply-native-tests"
+srcDir = "scripts"
+root = "ApplyNativeTests"

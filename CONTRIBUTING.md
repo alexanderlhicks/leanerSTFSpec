@@ -143,6 +143,9 @@ lake exe check-decls MathStateNativeTests && lake exe math-state-native-tests
 lake build block-diff-native-tests --wfail
 lake exe check-decls BlockDiffNativeTests
 lake exe block-diff-native-tests
+lake build apply-native-tests --wfail
+lake exe check-decls ApplyNativeTests
+lake exe apply-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py
