@@ -113,6 +113,24 @@ F20 constants and pinned host compatibility. Total invalid encodings imply no Py
 success. Secure traversal, collisions, source history and generic coupling remain open;
 approval alone supplies no concrete source bridge or consumer/root proof.
 
+### Local account-leaf decoding seam
+
+[EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies SC5
+with caller-supplied F20 defaults: complete strict RLP, exact four-field shape,
+then nonce → balance → root → code. The public contracts characterize all
+accepted values and the sole coarse malformed-leaf rejection, raw empty input,
+relevant-constants congruence and account SC10. The roundtrip takes **complete
+assembled** `Rlp.Encodable`, exactly as account binding does under Q47; callers
+must establish child and joined encoded-payload bounds. The private
+`AccountDecodeCallerProofs.empty_domain` and `empty_account_roundtrip` clients
+discharge and consume this premise for every supplied emptyAccount and Hash32 root.
+Explicit 32-byte hashes, including all-zero, are never replaced by defaults.
+The private bounded balance fold equals its unsigned checked reference on every
+finite input; nonce stays
+unbounded. This local seam supplies no triggered backend lookup/root behavior,
+secure traversal/callbacks, witness authentication, progress, collision/source-history,
+generic coupling, global error adapter/O12, resources, C1–C4 or guest readiness.
+
 ### Local storage-leaf decoding seam
 
 [EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies the pure
@@ -122,7 +140,7 @@ private packed checked folding equals its full Nat reference on every finite Byt
 The nominal witness-error carrier is owned by
 [EthState §3/§5](modules/EthState.md#3-eels-source-map).
 Only invalid RLP and parsed numeric overflow map locally to `.malformed .leaf`.
-This supplies no global O4 adapter, granularity refinement, account decoder,
+This supplies no global O4 adapter, granularity refinement,
 authentication, lookup/progress, secure root/callback, Q55 action or generic
 oracle coupling; those remain their owners' obligations. Local Q47 encodability
 for SC10 follows the public U256 width bound; no stored-zero policy follows.

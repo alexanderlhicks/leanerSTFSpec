@@ -18,7 +18,7 @@
 - SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:36`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:45–50`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
 - SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = Id.run (mathStateRoot (m := Id) constsId (σ.apply d))`. This spells out the existing concrete root interpretation. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:129–135`).
 - SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified Id-run decoder/thunk agreement via the existing error-adapter obligation (WitnessBackend.WF, Q55), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
-- SC10. The encodings are canonical: `decodeAccountLeaf (encodeAccount a r) = .ok (a, r)` and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
+- SC10. The encodings are canonical: for every supplied `consts`, `decodeAccountLeaf consts (encodeAccount a r) = .ok (a, r)` under complete assembled `Rlp.Encodable (.list [Rlp.ofNat a.nonce, Rlp.ofNat a.balance.toNat, .bytes r.toBytes.toByteArray, .bytes a.codeHash.toBytes.toByteArray])` (Q47), and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
 
 ## 3. EELS source map
 
@@ -94,8 +94,9 @@ balance widths 1–32, every fixed-byte position with 00/01/7f/80/ff markers, sw
 roots/hashes and asymmetric/interior/leading/trailing zeros. Both hash items
 contribute 66 bytes, so account payload ≥68; outer 55/56 is impossible here.
 These committed guards compare complete wires; the private symbolic clients compose
-the public laws with their exact assembled premises. Whole-source/host agreement,
-SC5/account SC10 and contextual callback/root integration remain open.
+the public laws with their exact assembled premises. The lenient account decoder
+and conditional SC10 are supplied below. Whole-source/host agreement and contextual
+callback/root integration remain open.
 
 ### Implemented lenient storage decoder (SC6, storage SC10)
 
@@ -147,8 +148,85 @@ absorbing arbitrary suffix patterns. The nonzero fitting-byte and empty-list
 trailing cases check exact parser errors before otherwise successful value branches.
 These committed component cases preserve parser/local-result failure order. The
 ordinary all-Bytes packed/reference proof is separate from finite guard coverage.
-SC5/account SC10, secure roots/callbacks, authentication, backend progress, generic
-coupling and global errors/resources remain open.
+Secure roots/callbacks, authentication, backend progress, generic coupling and
+global errors/resources remain open.
+
+### Implemented lenient account decoder (SC5, conditional account SC10)
+
+`STFSpec/StateCommit/AccountDecode.lean` supplies exactly `decodeAccountLeaf`
+and five public laws. All field, reference, packed-fold, equality and domain
+support stays private; existing nominal Account, WitnessError and HashConsts
+retain their owners.
+
+| Source at the pin | Declaration/type and status | Domain, success and effects | Ordered failures | Laws and evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/witness_state.py:103–127`; `ethereum_rlp/rlp.py:143–156,387–543` (0.1.6); `ethereum_types/numeric.py:44–48,523,611–612,690–712` and `ethereum_types/bytes.py:29–51,109–112` (0.4.1) | `decodeAccountLeaf : HashConsts → ByteArray → Except WitnessError (Account × Hash32)`; **discharged local composition** | Every finite raw leaf; complete strict RLP followed by exact list-of-four shape. Empty bytes/lists take 0/0/supplied empty root/supplied empty code. Nonce is complete unbounded unsigned; balance accepts exactly the numerical U256 range, regardless of length/leading zeros. Explicit hashes retain all 32 bytes, including zero. Pure, no state/hash/cache effects | Strict RLP error; wrong outer shape/arity; nonce nonempty list; balance nonempty list/overflow; root nonempty list/wrong nonempty width; code nonempty list/wrong nonempty width. Helpers execute sequentially nonce → balance → root → code. All map only to `.malformed .leaf` (local O4(e)); this coarse value exposes no failed-field diagnostics | `decodeAccountLeaf_eq_ok_iff`, `_eq_error_iff`, `_empty`, `_encodeAccount`, `_congr_consts`; ordinary private bounded/reference equality and prefix/absorbing/retained-bound proofs, public-contract clients and complete-wire guards |
+| Conditional account SC10 | `decodeAccountLeaf_encodeAccount consts acc storageRoot h`; **discharged on complete assembled Q47 domain** | Every supplied constants record; caller supplies the complete four-field `Encodable` below; the private empty-account client named below discharges it for that family. Explicit hashes never default. Nonce has no cap or runtime domain guard | None on that domain; no inverse claim outside Q47 | Arbitrary-input symbolic roundtrip client, huge nonce and explicit zero hashes; canonical execution pairs |
+
+The exact five statement types are:
+
+```lean
+theorem decodeAccountLeaf_eq_ok_iff
+    (consts : HashConsts) (leaf : ByteArray) (acc : Account) (storageRoot : Hash32) :
+    decodeAccountLeaf consts leaf = .ok (acc, storageRoot) ↔
+      ∃ n b r c : RlpItem,
+        Rlp.decode leaf = .ok (.list [n, b, r, c]) ∧
+        ((∃ bs : ByteArray,
+            n = .bytes bs ∧ Uint.ofBeBytes (Bytes.ofByteArray bs) = acc.nonce) ∨
+          (n = .list [] ∧ acc.nonce = 0)) ∧
+        ((∃ bs : ByteArray,
+            b = .bytes bs ∧ Uint.ofBeBytes (Bytes.ofByteArray bs) = acc.balance.toNat) ∨
+          (b = .list [] ∧ acc.balance = U256.zero)) ∧
+        ((((r = .bytes ByteArray.empty) ∨ (r = .list [])) ∧
+            storageRoot = consts.emptyTrieRoot) ∨
+          r = .bytes storageRoot.toBytes.toByteArray) ∧
+        ((((c = .bytes ByteArray.empty) ∨ (c = .list [])) ∧
+            acc.codeHash = consts.emptyCodeHash) ∨
+          c = .bytes acc.codeHash.toBytes.toByteArray)
+theorem decodeAccountLeaf_eq_error_iff (consts : HashConsts) (leaf : ByteArray) :
+    decodeAccountLeaf consts leaf = .error (.malformed .leaf) ↔
+      ¬ ∃ acc : Account, ∃ storageRoot : Hash32,
+        decodeAccountLeaf consts leaf = .ok (acc, storageRoot)
+theorem decodeAccountLeaf_empty (consts : HashConsts) :
+    decodeAccountLeaf consts ByteArray.empty = .error (.malformed .leaf)
+theorem decodeAccountLeaf_encodeAccount
+    (consts : HashConsts) (acc : Account) (storageRoot : Hash32)
+    (h : Rlp.Encodable (.list [Rlp.ofNat acc.nonce, Rlp.ofNat acc.balance.toNat,
+      .bytes storageRoot.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray])) :
+    decodeAccountLeaf consts (encodeAccount acc storageRoot) = .ok (acc, storageRoot)
+theorem decodeAccountLeaf_congr_consts
+    (consts₁ consts₂ : HashConsts) (leaf : ByteArray)
+    (hroot : consts₁.emptyTrieRoot = consts₂.emptyTrieRoot)
+    (hcode : consts₁.emptyCodeHash = consts₂.emptyCodeHash) :
+    decodeAccountLeaf consts₁ leaf = decodeAccountLeaf consts₂ leaf
+```
+
+The executable balance path folds over packed `Bytes` with `Option Nat`, starting
+at `some 0`. Before multiplication it requires the prefix <2^248; each retained
+value stays <2^256, while `none` absorbs every suffix without growing integers.
+The adjacent legible checked unsigned reference is proof-facing. Ordinary
+all-input equality, a generalized Horner-prefix invariant, absorbing rejection
+and retained-state bounds use only public Base models/laws. Production performs
+no List conversion or unbounded balance-reference evaluation. Long zero prefixes
+remain accepted. Nonce's complete Nat result inherently entails output-dependent
+integer work; this supplies no parser-allocation, measured throughput or C1–C4 gate.
+
+`AccountDecodeCallerProofs.lean` consumes all five contracts on arbitrary leaves,
+accounts, supplied defaults and irrelevant constants, with explicit whole-domain
+roundtrips and nonce 2^1024+17. Its private `empty_domain` proves the complete
+assembled domain for every supplied emptyAccount and Hash32 root, and
+`empty_account_roundtrip` consumes that proof for every decoder constants record. `AccountDecodeGuards.lean` observes full parser trees,
+all returned values, all 16 falsy mixtures, outer shape/arity 0/1/3/5, every nonempty
+list field/nested empty list, huge/leading-zero nonce, fitting/overflow balances,
+long zero prefixes/absorbing suffixes, hash widths 0/1/31/32/33/long, explicit all-zero
+hashes, asymmetric bytes and canonical pairs. Competing invalid early fields and
+malformed late children retain the complete parser error before coarse mapping.
+
+These committed complete-wire guards and ordinary public-law clients establish
+local component behavior on their stated domains. Witness DB authentication,
+triggered lookup/root contexts, callbacks, secure roots, backend progress,
+collision/source-history, generic coupling, global errors/O12/resources and C1–C4
+remain open.
 
 ## 4. Tests
 
@@ -236,7 +314,7 @@ proof-facing and its fixed numeric bound is specified in §3. No new containers.
 
 ### 7.1 Encoding laws [C], feeds [S]
 
-- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Account-wire nonempty is unconditional; injectivity in `(acc, root)` is discharged under both exact assembled Q47 premises in §3. Storage SC10 is discharged above on nonzero words; account SC10 remains open.
+- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Account-wire nonempty is unconditional; injectivity in `(acc, root)` is discharged under both exact assembled Q47 premises in §3. Storage SC10 is discharged above on nonzero words. Account SC10 is discharged as `decodeAccountLeaf consts (encodeAccount acc root) = .ok (acc, root)` for every supplied `consts`, under complete assembled `Rlp.Encodable (.list [Rlp.ofNat acc.nonce, Rlp.ofNat acc.balance.toNat, .bytes root.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray])` (Q47, §3). This premise includes child and joined encoded-payload bounds; it supplies no inverse outside that domain.
 - `storageRoot σ a = emptyTrieRoot ↔ σ.storage a` is empty (given `WF`; ⇐ by definition, ⇒ needs collision freedom and is stated as "or collision").
 - `mathStateRoot` depends only on `σ.accounts` and the storage of existing accounts; it ignores `σ.code`.
 
@@ -248,7 +326,7 @@ proof-facing and its fixed numeric bound is specified in §3. No new containers.
 
 ### 7.3 Code [C]
 
-- **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This module's laws use `consts = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
+- **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This subsection's hash-agreement laws use `consts = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
 - `setCode` agreement: if every `EthState.setCode` call passes `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` has `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
 
 ### Informal correctness argument
@@ -288,7 +366,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
-- **Lenient account decoding** (SC5/account SC10) remains open, including constructor/precedence proofs and malformed-leaf regressions (X1). SC6 and nonzero storage SC10 are discharged locally in §3; backend/authentication/progress, collision-guarded agreement and the shared error-adapter/granularity obligations remain open.
+- **Lenient leaf decoding integration:** local SC5/SC6 acceptance/value/constructor contracts and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first and statically sequential account-field order, coarse `.malformed .leaf` results, ordinary bounded/reference proofs and malformed-wire regressions are supplied. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
 - **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
