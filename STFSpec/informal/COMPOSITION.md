@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-04.*
+*Status: conditional proof plan. Date: 2026-10-05.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -32,6 +32,17 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Internal first-write order premise
+
+[EthState §3/§7.5](modules/EthState.md#3-eels-source-map) supplies the raw
+persistent `WriteOrder` support; its component laws are owned by EthState §7.5. WF is
+exact inverse/bound consistency; Agrees separately equates optional forward
+presence with an arbitrary associated write map, including tombstones and zero.
+Lawful key equality and both predicates enable later coupled ordered folds.
+Full clear/restore/incorporation/extraction, caller reachability and account-read
+history remain open, together with S1/S2 and composed C1/C4. Paired-root finite
+tests do not establish the whole State invariant or select F7 clear traversal.
 
 ### Typed-trie storage, preparation and root premise (Q53)
 

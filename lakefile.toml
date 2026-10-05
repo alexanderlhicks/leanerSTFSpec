@@ -124,3 +124,9 @@ roots = ["CheckDeclsTest.Bad", "CheckDeclsTest.Good", "CheckDeclsTest.ProvedCsim
 name = "fixture-records"
 srcDir = "scripts"
 root = "FixtureRecordsMain"
+
+# Complete compiled observations of the internal persistent first-write index.
+[[lean_exe]]
+name = "write-order-native-tests"
+srcDir = "scripts"
+root = "WriteOrderNativeTests"

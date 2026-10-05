@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-03.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-05.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -67,7 +67,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
-| EthState | Account and supplied empty-account value support is owned by EthState §3/§7: unbounded nonce, complete balance/hash fields, ordinary field/eta/ext/equality laws and full-value/absence guards. Pinned source correspondence requires coherent F20 emptyCodeHash, without local hashing. All tracker operations, MathState/BlockDiff/PreState, errors, ordered writes and state lifetimes remain open: define Reachable; discharge account-read/write and balance preconditions at callers; prove persistent WriteOrder clear/restore/incorporation laws. This value seam supplies no S1/S2 or whole-State readiness result. |
+| EthState | Supplied Account/emptyAccount and internal WriteOrder component contracts are owned by EthState §3/§7. Pinned source correspondence requires coherent F20 emptyCodeHash, without local hashing. MathState/BlockDiff/PreState, tracker operations/errors, ordered-write integration and state lifetimes remain open: define Reachable; discharge account-read/write and balance preconditions at callers; prove coupled whole clear/restore/incorporation/extraction laws. S1/S2 and composed C1/C4 remain open; these contracts supply no whole-State readiness result. |
 | EthCommit | Complete whole-source C7–C8 constructor/root refinement and C14 ordered diagnostic dispatch, WitnessError/O4 adapters and W1; compose Q53's supplied generic storage/safety, lawful byte-key, pure unsecured preparation and typed-root laws (EthCommit §3); implement/prove concrete encoding/key bridges and consumer instances with caller F20 coherence, exact source equality/dispatch and schema/assembled Encodable/host premises. Distinguish canonicality from lookup equivalence; implement/prove Q55's generic pre-RLP occurrence acquisition, raw/inline cache provenance, explicit Id-run agreement and failure forwarding; any B15 memo refinement additionally covers effects/path/first error; specify secure-key collision folding, source history and order-sensitive collapse; validate table and composed resource bounds. |
 | EthStateCommit | Implement Q53 U256 validity/nonempty laws independently of zero deletion and contextual Account integration, without a bare Account instance or secured-policy claim. Finish code-authenticity/root clauses, lenient leaf cases and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
@@ -99,6 +99,9 @@ Use these three independent acceptance checks:
 At module completion record which obligations are actually discharged and how. Tests may demonstrate counterexamples or confidence; they cannot be relabelled as a universal proof. Keep the Mathlib and security packages' dependencies directed outward from the core. Use the memory, trie and gas replacement exercises to check that clients depend on public equations; include order/caches/failure observations in the trie exercise.
 
 For each implemented EELS operation, keep a reviewable source-to-Lean row in the owning module's §3 or in the implementation change: exact EELS `file:line` and dependency version if relevant; Lean declaration and public type; accepted-input/precondition domain; success value and state effects; ordered failure conditions and their first consuming handler/O-row; model equation or theorem; and at least one deterministic case or named fixture area. Grouped inventory claims in §3 establish ownership only. Mark an item **unimplemented**, **implemented but unproved**, or **discharged**, and name any caller that must establish a precondition. A passing fixture is evidence for the specific path it executes, not for every branch of the claimed operation.
+
+Internal first-write order support is specified in
+[EthState §3/§7.5](modules/EthState.md#3-eels-source-map).
 
 Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
 [EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe scoped seams.

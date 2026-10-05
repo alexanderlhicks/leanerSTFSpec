@@ -129,6 +129,30 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 
 **External semantics.** `ethereum_types.numeric.U256` (add/sub raise on overflow/underflow; the tracker relies on raising, R19), `Uint` (unbounded, `Nat`), `ethereum_types.bytes.Bytes`/`Bytes20`/`Bytes32` (fixed-width constructors, owned by `EthBase`), `ethereum_types.frozen.modify` (functional update of a frozen dataclass: in Lean, record update) and `slotted_freezable` (immutability; no Lean counterpart needed). `EthBase` owns the representations; this module requires checked `U256` addition/subtraction returning `Option`/`Except`.
 
+### Implemented internal order support
+
+`STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
+operations in the source map above remain **unimplemented**; a dictionary ordering
+helper does not implement `setAccount`, `setStorage`, clear, snapshot, incorporation
+or extraction. The following support rows are **discharged for the
+stated component laws**, with no error or hashing channel. Python dictionary
+correspondence additionally requires the pinned host/dependency interpretation;
+finite dictionary traces do not establish whole-tracker refinement.
+
+| Source constraint at the pin | Lean declaration / type | Domain and effects | Public laws | Regression evidence |
+|---|---|---|---|---|
+| Fresh dictionaries, `src/ethereum/forks/amsterdam/state_tracker.py:869–871,874` | `WriteOrder.empty : WriteOrder K` | Ord/TransOrd; zero counter, empty maps | `toList_empty`, `wf_empty` | `WriteOrderCallerProofs.lean`, `WriteOrderGuards.lean`: empty |
+| Dictionary assignment, `src/ethereum/forks/amsterdam/state_tracker.py:473,499–500,855–856,864–866` | `WriteOrder.record : WriteOrder K → K → WriteOrder K` | Raw total operation; present key returns original record; fresh key inserts both maps at next and increments next | `record_of_present`, `next_record`, `wf_record`, `toList_record`, `agrees_record_insert` | 9/2/9, tombstone/zero, arbitrary K/V, reconstructed Address/Bytes32 |
+| Dictionary deletion, `src/ethereum/forks/amsterdam/state_tracker.py:567,860` | `WriteOrder.erase : WriteOrder K → K → WriteOrder K` | Raw total operation; absence is exact no-op; presence removes both selected entries, retaining next | `erase_of_absent`, `next_erase`, `wf_erase`, `toList_erase`, `agrees_erase_erase` | head/middle/tail/absent/all erases, reinsert, malformed omission controls |
+| Ordered dictionary exposure, `src/ethereum/forks/amsterdam/state_tracker.py:895–900` | `WriteOrder.toList : WriteOrder K → List K` | Live reverse-map position traversal; no counter-range scan | `mem_toList_iff`, `toList_nodup` | full map/counter/value/order tuples; sparse 4/100 positions with next 2^100+17 |
+
+The wired `EthConformance` clients use public component/Base/Std laws.
+`scripts/WriteOrderNativeTests.lean` checks and emits complete finite observations,
+including retained parents, siblings, repeated nested restores, whole-inner
+clear/discard/recreate, incoming [4,9,1] into [9,2], all complete actual-key bytes
+and malformed/nonlawful raw records. These are paired-container test models,
+with no State lifetime API or F7 traversal policy.
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (202 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -151,7 +175,9 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
-All public unless marked internal. `Except` failures use `StateError`.
+All public unless marked internal. `Except` failures use `StateError`. Account and
+emptyAccount values and internal WriteOrder support are implemented and pure.
+MathState, BlockDiff, PreState and tracker operations remain unimplemented targets.
 
 ```lean
 -- public types
@@ -207,7 +233,13 @@ structure WriteOrder (K : Type) [Ord K] [Std.TransOrd K] where
 def WriteOrder.empty : WriteOrder K
 def WriteOrder.record : WriteOrder K → K → WriteOrder K -- existing key keeps its position
 def WriteOrder.erase : WriteOrder K → K → WriteOrder K
-def WriteOrder.toList : WriteOrder K → List K           -- ascending position, not sorted key
+def WriteOrder.toList : WriteOrder K → List K           -- ascending live position, not sorted key
+-- Raw type and operations require only Ord K and Std.TransOrd K.
+def WriteOrder.WF (r : WriteOrder K) : Prop :=
+  (∀ k p, r.positions[k]? = some p ↔ r.keysByPosition[p]? = some k) ∧
+  (∀ p k, r.keysByPosition[p]? = some k → p < r.next)
+def WriteOrder.Agrees (r : WriteOrder K) (writes : Std.ExtTreeMap K V) : Prop :=
+  ∀ k, r.positions[k]?.isSome = writes[k]?.isSome
 
 -- overlays (D22 persistent trees; D23 split)
 structure TxRevertible where          -- snapshot-reachable, worst-case persistent
@@ -303,7 +335,7 @@ def BlockState.storageReadSet : BlockState m → Set (Address × Bytes32)
 |---|---|---|---|---|---|---|
 | `Account` | structure | itself | identity | — | value | O(1) |
 | `BlockDiff` | `ExtTreeMap`s + account/address/slot order lists | final writes together with replay order | lookup values and ordered iteration | each list enumerates its map's domain exactly once; slot order restarts after a clear | read-only after extraction | build O(n log n) |
-| `WriteOrder K` | two persistent `ExtTreeMap`s and a `Nat` counter | duplicate-free list of keys | `toList` in position order | maps are inverse bijections; every position is `< next`; domain equals the associated write map | snapshot-reachable | record/erase O(log n), list extraction O(n); no linear list filtering per clear |
+| `WriteOrder K` | two persistent `ExtTreeMap`s and a `Nat` counter | duplicate-free list of keys | `toList` in position order | intrinsic `WF`: exact inverse and position bound; separate `Agrees`: associated write domain | snapshot-reachable | required analytical bounds: O(log n) tree-path work for record/erase, O(n) live-entry extraction, O(1) saved-root selection (excluding comparison and reclamation costs); no range(next) scan; C1/C4 integration measurements open |
 | `MathState` | nested `ExtTreeMap`s | finite maps with defaults | `account?`, `storageAt`, `code?` | `WF` | value | O(log n) lookups |
 | `TxRevertible` | nested persistent `ExtTreeMap`/`ExtTreeSet` (D22) | a `BlockDiff` layered over the block view, plus transient map | `asDiff`, `transient` | WriteOrder observers enumerate live first writes for accounts, storage addresses and slots; clears ⊆ addresses; inner maps are post-clear writes only | **snapshot-reachable: worst-case persistent** | read O(log A + log S); write O(log A + log S) path copy; snapshot O(1); revert O(1) plus reclamation of the discarded version; `destroyStorage` O(s) for `s` pending writes of that address |
 | `TxObs` | `Std.HashSet`s | finite sets | `toList` as sets | monotone within a transaction | **linear-only** (never inside a snapshot, D23) | insert expected O(1) (not worst-case, ARCHITECTURE §5.0); merge O(m) |
@@ -352,7 +384,33 @@ Fix σ₀ with `MathState.WF σ₀` and `ModelsLookups ps σ₀` (so the laws ar
 - `BlockDiff.WF σ₀ d` [C]: (i) `d.accountChanges a = some none → a ∈ d.storageClears`; (ii) `a ∈ dom d.storageChanges → (σ₀.apply d).account? a ≠ none`; (iii) account, storage-address and slot order lists enumerate the corresponding domains without duplicates. With (i)–(ii), `σ₀.apply d` is structurally `WF`. Preservation is for **reachable block execution**, not arbitrary raw helper calls: EELS `set_account(..., None)` alone does not clear storage, and `set_account` alone does not read the account. Callers must establish these premises before exporting a WF diff or using the history theorem.
 - `AccountWritesLookedUp` [R] (R32): every address in `accountChanges` was the argument of a successful `preState.getAccount?` call during the block. As a Lean statement it is the equivalent observable property "every address in `b.accountWrites` is in `b.accountReads` and its first read fell through to the provider"; it is stated over an instrumented execution in the proof library, since a pure provider cannot record calls.
 
-### 7.5 Order
+### 7.5 Internal order-index laws and State order
+
+The implemented internal `WriteOrder` contract has fourteen ordinary laws. Raw
+laws require only Ord/TransOrd; lawful laws additionally require LawfulEqOrd on
+actual K equality. All finite `WF` records are admitted, including huge/gapped
+positions; no density, counter-width, key-width or whole-State reachability
+premise is imposed. Malformed and nonlawful records retain their concrete raw
+behavior, without repair or a universal lawful list claim.
+
+| Laws | Exact component claim and hypotheses |
+|---|---|
+| `toList_empty`, `wf_empty` | Raw empty traversal is [] and both WF clauses hold |
+| `record_of_present`, `erase_of_absent` | Raw optional lookup some p / none implies exact whole-record no-op |
+| `next_record`, `next_erase` | Raw counter is if forward isSome then next else next+1 / unchanged |
+| `wf_record`, `wf_erase` | Lawful + WF implies WF after the operation |
+| `mem_toList_iff`, `toList_nodup` | Lawful + WF: membership iff forward isSome=true; no duplicate actual keys |
+| `toList_record` | Lawful + WF: if forward isSome then retain list else append [k] |
+| `toList_erase` | Lawful + WF: exactly `(toList r).filter (fun a => compare k a != .eq)` |
+| `agrees_record_insert` | Lawful + Agrees r writes: Agrees (record r k) (writes.insert k v), arbitrary V, no WF |
+| `agrees_erase_erase` | Lawful + Agrees r writes: Agrees (erase r k) (writes.erase k), no WF |
+
+`WF` and `Agrees` are separate: a tombstone None and a zero payload remain
+present writes. The two maps and next must be saved with the associated write
+root; selecting a saved version can lower next relative to a discarded child.
+Whole inner clear discards that inner index; later recreation starts empty.
+Those implementation integration laws remain open; finite retained-root tests
+supply component examples only.
 
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
@@ -370,6 +428,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 8. Composition
 
+- **Internal support supplied:** `WriteOrder` and its component laws (§7.5); actual Address/Bytes32 clients use EthBase's lawful comparison and byte inverse seams. Future consumers preserve WF and Agrees together and use ordered State observers; no external overlay seam is supplied by this component.
 - **Depends on:** `EthBase`
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
@@ -396,8 +455,17 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bounded value support:** the Account record and supplied empty-account value are implemented with ordinary field laws and deterministic value guards (§3/§7). All `MathState`, `BlockDiff`, provider, ordered-write, tracker effect/error, reachability, snapshot and source-refinement obligations below remain open; this support does not change whole-State readiness.
-
+- **Bounded component support:** Account and supplied empty-account values and
+  internal WriteOrder support are supplied (§3/§7). The owning laws and test rows
+  specify their domains. All MathState, BlockDiff, provider/PreState, tracker
+  effects/errors, ordered-write integration, reachability, snapshot and operational
+  source-refinement obligations remain open; these component contracts do not
+  change whole-State readiness.
+- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
+  whole clear/restore/incorporation and extraction must still preserve all coupled
+  order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and
+  composed C1/C4 remain open. Tree shape and finite retained-version correctness do
+  not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:753–797` and `witness_state.py:303–309`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
