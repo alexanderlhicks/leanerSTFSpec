@@ -113,6 +113,20 @@ F20 constants and pinned host compatibility. Total invalid encodings imply no Py
 success. Secure traversal, collisions, source history and generic coupling remain open;
 approval alone supplies no concrete source bridge or consumer/root proof.
 
+### Local storage-leaf decoding seam
+
+[EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies the pure
+SC6 decoder and nonzero storage SC10 through public RLP/Base contracts.
+Complete strict RLP parsing precedes list-to-zero or complete unsigned bytes;
+private packed checked folding equals its full Nat reference on every finite Bytes.
+The nominal witness-error carrier is owned by
+[EthState §3/§5](modules/EthState.md#3-eels-source-map).
+Only invalid RLP and parsed numeric overflow map locally to `.malformed .leaf`.
+This supplies no global O4 adapter, granularity refinement, account decoder,
+authentication, lookup/progress, secure root/callback, Q55 action or generic
+oracle coupling; those remain their owners' obligations. Local Q47 encodability
+for SC10 follows the public U256 width bound; no stored-zero policy follows.
+
 ### Conditional existing Bytes key provider (Q54)
 
 When a concrete Q53 consumer chooses existing Base `Bytes`, [EthBase

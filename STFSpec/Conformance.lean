@@ -116,6 +116,8 @@ import STFSpec.Conformance.State.ModelsLookupsGuards
 
 import STFSpec.Conformance.StateCommit.StorageCallerProofs
 import STFSpec.Conformance.StateCommit.StorageGuards
+import STFSpec.Conformance.StateCommit.StorageDecodeCallerProofs
+import STFSpec.Conformance.StateCommit.StorageDecodeGuards
 import STFSpec.Conformance.StateCommit.AccountCallerProofs
 import STFSpec.Conformance.StateCommit.AccountGuards
 
