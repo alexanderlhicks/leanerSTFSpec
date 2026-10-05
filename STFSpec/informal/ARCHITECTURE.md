@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-02). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-06). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -61,7 +61,7 @@ All core libraries live in one Mathlib-free **core Lake package** (the repositor
 | `EthCodec` | RLP, SSZ, `hash_tree_root` | `EthHash` | state, VM |
 | `EthState` | **semantic** state: `Account`, the `PreState m` record and its *lookup* contract (`ModelsLookups`), `MathState`, overlays (`TxState`/`BlockState`), lifetimes, `BlockDiff`, and the lookup, overlay and rollback laws | `EthBase` | **`EthCommit`, `EthCodec`**: no hashed nodes, RLP, dirty paths, witness decoding or roots |
 | `EthCommit` | MPT **generic over encoded keys and values** (`ByteArray → ByteArray` maps): nibbles, hex-prefix, node types, the mathematical root, witness decoding, the partial trie, lookup/update/delete, incremental root | `EthCodec` | `EthState`, VM: it knows nothing about accounts |
-| `EthStateCommit` | **integration:** account and storage leaf encodings, `mathStateRoot : MathState → Hash32` (account trie of storage roots), and the full contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`. `ModelsCode` checks successful code results against their hash; `ModelsRoot` states `ps.stateRoot d = .ok r → r = mathStateRoot (σ.apply d)` for well-formed diffs | `EthState`, `EthCommit` | VM |
+| `EthStateCommit` | **integration:** account and storage leaf encodings, `mathStateRoot` (account trie of storage roots), and the binary full contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups constsId ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`, where `constsId` names `Id.run (HashConsts.query (m := Id))` (Q57; EthStateCommit SC7/§7.3). `ModelsCode` checks successful code results against their concrete hash; `ModelsRoot` states `ps.stateRoot d = .ok r → r = Id.run (mathStateRoot (m := Id) constsId (σ.apply d))` for every well-formed diff | `EthState`, `EthCommit` | VM |
 | `EthStateFull` | full-state backend: `PreState` from a mathematical state; `stateRoot` via `mathStateRoot` | `EthStateCommit` | VM |
 | `EthStateWitness` | witness-state backend: node and code DBs, `PreState` over the partial trie | `EthStateCommit` | VM |
 | `EthVmCore` | `Evm` frame, `Message`, environments; **Stack**, **Memory**, **GasMeter** and gas *policy* (the parameter record lives here); jumpdest analysis | `EthState` | `EthCommit`, backends |
@@ -207,13 +207,21 @@ Mathematical correctness and cryptographic security are separate deliverables (D
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
 | `Account` | `{nonce : Nat, balance : U256, codeHash : Hash32}` | — | — |
-| `PreState` | an explicit **record of operations**, parametric in the hash monad (D5): `PreState m` with `getAccount? : Address → m (Except WitnessError (Option Account))`, `getStorage : Address → Bytes32 → m (Except WitnessError U256)`, `getCode : Hash32 → m (Except WitnessError ByteArray)` (B2), and `stateRoot : BlockDiff → m (Except WitnessError Hash32)`. Execution uses `m := Id`; `ModelsLookups`/`Models` are stated at `PreState Id`. The provider appears visibly in execution and theorem statements. | the record type, plus **`ModelsLookups ps σ`** (defined here): when a lookup returns `.ok`, it agrees with the mathematical state σ, *including absence*. The root clause and code-hash agreement are defined in `EthStateCommit` (§3), because they need encodings and roots | each backend proves the full `Models` (§5.4) |
+| `PreState` | an explicit **record of operations**, parametric in the hash monad (D5): `PreState m` with `getAccount? : Address → m (Except WitnessError (Option Account))`, `getStorage : Address → Bytes32 → m (Except WitnessError U256)`, `getCode : Hash32 → m (Except WitnessError ByteArray)` (B2), and `stateRoot : BlockDiff → m (Except WitnessError Hash32)`. Execution uses `m := Id`; lookup/full models are stated at `PreState Id`. The provider appears visibly in execution and theorem statements. | the record type, plus **`ModelsLookups consts ps σ`** (EthState R8/§5; Q57): successful answers agree with mathematical observers, *including account absence*, and code uses `σ.code? consts h` at the supplied reserved hash. Tracker premises use `BlockState.consts`; no provider field or local acquisition is added. Full `Models` stays binary at the coherent concrete Id record (§3). Generic coupling remains D5/X7 | each backend proves full `Models` (§5.4) and the caller establishes context coherence |
 | Revertible tx state | persistent `Std.ExtTreeMap` overlays. Storage is **nested by address** (`Address → Bytes32 → U256`), because clearing and committing storage are account-level operations. | `getStorage`, `getStorageOriginal`, `setStorage`, `clearStorage`, `getAccount`, `setAccount`, `getCode`, `setCode`, `snapshot`, `revert`, with laws | [C] read-after-write, read-through order. The **`clearStorage` law:** a clear suppresses lower overlays and the pre-state for slots not subsequently rewritten in that overlay. Later local writes remain visible. The clear converts pending writes to reads (`state_tracker.py:547–568`). [C] revert restores exactly the revertible component |
 | Persistent observations | **kept outside the snapshotted component** and threaded linearly alongside it: `account_reads`, `storage_reads`, `code_reads` and `created_accounts`. They are never reverted within a transaction, so no snapshot needs to hold them, and they can be ephemeral sets (`Std.HashSet`, or `TreeSet` where sorted output is needed). Keeping them inside the snapshot would make every write copy them | add and observe, with monotonicity | [C] monotone across reverts; [C] the split is invisible to callers: reading through the combined state gives the EELS results |
 | Frame accumulators | **warm access sets:** persistent trees, since a child extends the parent's set and a failed child's additions are discarded. **Logs:** a strict rope (`leaf · concat`) with O(1) append, so merging a child's logs into the parent never copies them once per call-depth level. Refund counter: a signed `Int` | as §6 | [C] merge-on-success/discard-on-failure laws on the model (a set or a list of logs) |
 | `BlockDiff` | extensional maps plus the account, storage-address and slot first-write orders (B1); the iteration order of storage clears is open (F7) | the ordered diff API consumed by the backends' `stateRoot` | [C] order metadata enumerates each live write once |
 
 Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves make snapshots cheap or establish storage semantics. Snapshot cost comes from persistence, and correctness from the laws above; key ordering still matters for speed (D2).
+
+Q58's separate unimplemented `BlockDiff.StructuralPremises` and ordinary laws
+are owned by EthState §5/§7.4: deletion tombstones clear storage, and every raw
+storage-change address has a present post-account, including empty patches and zero
+writes. With initial MathState.WF this suffices for structural output WF on all finite
+raw inputs, with arbitrary metadata/code/account fields. It does not supply full
+BlockDiff.WF, optional slot-order-map missing/extra-entry policy, replay history,
+reachability, AccountWritesLookedUp or F7, and does not replace root/availability premises.
 
 **Log traversal.** Flatten once at receipt construction using an explicit traversal stack and one linear output builder, preserving order and duplicate occurrences. The list-append equation is a model law, not an instruction to append recursively flattened lists. That implementation can be quadratic on skewed ropes. Rope height can grow with sibling calls beyond the call-depth limit; prove traversal totality and avoid dependence on host recursive stack depth. Include empty-child merges, skewed shapes and cleanup in the C3 measurements.
 
@@ -524,6 +532,31 @@ interface would change the all-finite logical domain and API. DECISIONS Q56 owns
 the disposition and precise interface. Revisit when a consumer requires executable
 extraction/construction or public provider/domain laws change, retaining Q47's
 separation of total completion from standard encodable scope.
+
+**Lookup-record options (Q57).** An explicit record only on ModelsLookups matches
+the existing public code observer and BlockState context while keeping full Models
+binary at its concrete Id interpretation. Parameterizing all full predicates would
+require a wider migration and an explicit concrete-coherence restriction; arbitrary
+reserved hashes cannot silently imply concrete code authenticity. A fixed literal
+binding bypasses generic caller interpretation; acquisition in EthState violates D16.
+Universal record quantification overconstrains one provider's reserved-hash answers;
+existential hiding does not supply the tracker equation at its actual record. A new
+PreState field changes D9, while omitting code agreement loses R8's observer contract.
+DECISIONS Q57 owns the disposition. Full record/root/decoder coherence and generic
+D5/X7 coupling cannot follow from equality of the emptyCodeHash field alone.
+
+**Structural diff options (Q58).** Separate two-clause structural premises admit
+every finite raw diff with arbitrary metadata/code/account fields and support a
+conditional output-WF law; raw deletion/storage helpers alone supply no such premises.
+Weaker output-only conditions would not preserve the selected deletion-to-clear and
+raw-address clauses. Full static WF additionally needs enumeration of raw writes,
+with tombstones/empty patches/zeros included. Its optional slot-order map could require
+explicit lists at changed addresses, exact matched outer domains, defaulted changed
+lists or global defaulted membership: those differ on missing empty-patch lists and
+extra entries. None of those completions follows from the structural contract. First-live
+write order, reachable extraction, AccountWritesLookedUp and F7 need separate history
+and operational contracts. DECISIONS Q58 owns the bounded disposition; EthState §7.4
+owns its law targets, without an additional account-reformulation law.
 
 ## 12. Not yet decided
 

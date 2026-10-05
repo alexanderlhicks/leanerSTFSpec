@@ -24,7 +24,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
-| Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply and raw PreState carrier contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError values add no diagnostic adapter. Actual providers/ModelsLookups/constants context, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
+| Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply and raw PreState carrier contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError values add no diagnostic adapter. Actual providers/ModelsLookups and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
@@ -64,6 +64,24 @@ application is supplied by EthState §3/§7; mutation, providers, reachability,
 diff/order/overlay preservation, S1/S2, commitments
 and consumer/resource gates remain open. Complete finite native/reference-list
 observations and retained sibling checks establish no composed cost bound.
+
+### Supplied lookup context and bounded structural targets (Q57–Q58)
+
+[EthState R8/§5/§7.1](modules/EthState.md#5-interface) specifies the unimplemented
+`ModelsLookups consts ps σ₀` target. Each tracker proof uses the fixed initial
+BlockState record/provider carried by the participating contexts. Full binary
+Models supplies lookup agreement at EthStateCommit's concrete `constsId`; using
+it at the execution record requires F20 coherence. Arbitrary supplied-record lookup
+agreement supplies no authentication, availability or root agreement; D5/X7 generic
+coupling remains open.
+
+[EthState §7.4](modules/EthState.md#74-invariants-exported-to-other-libraries) owns
+Q58's unimplemented StructuralPremises and ordinary law targets. Initial
+MathState.WF plus deletion-to-clear and raw storage-change address-to-post-account
+presence suffices for structural apply preservation, including empty patches and zero
+writes with arbitrary metadata/code/account fields. This local implication supplies
+neither full optional-map WF policy nor replay history, reachable extraction,
+AccountWritesLookedUp or F7; those obligations remain with their existing producers.
 
 ### Typed-trie storage, preparation and root premise (Q53)
 
@@ -397,11 +415,14 @@ The induction invariant has the following parts:
 5. BAL updates observe the unmerged transaction and block views, then merge. First-index pre-values, nonce maximum and balance/code last-value behaviour follow the source builder.
 6. Code hashes newly installed by callers authenticate their bytes. This is CodeChangesAuthentic, not a structural law of EthState, which cannot import hashing.
 
-The induction begins with tracker construction over an arbitrary WF prestate σ₀, under the
-required provider and supplied-constant premises. Construction and preservation of the complete
-reachable invariant remain obligations. Each future operation's observer equation must preserve
-it; the caller establishes the operation's preconditions. Snapshot/restore proves part 3
-directly. Ordered fold induction proves parts 1 and 4 at incorporation and diff extraction.
+The induction begins with tracker construction over an arbitrary WF prestate σ₀, under
+`ModelsLookups consts ps σ₀` at its fixed supplied record/provider (Q57) and the
+required F20 context-coherence premises. Q58's structural implication is a separate
+raw conditional target; it does not construct this reachable trace. Construction and
+preservation of the complete reachable invariant remain obligations. Each future
+operation's observer equation must preserve it; the caller establishes the operation's
+preconditions. Snapshot/restore proves part 3 directly. Ordered fold induction proves
+parts 1 and 4 at incorporation and diff extraction.
 Parts 2 and 6 require proofs across Block, Instructions and Runner, rather than an assertion in
 State alone. WriteOrder uses persistent position indexes so erase/reinsert and snapshots do not
 rely on repeatedly filtering a list.
@@ -421,6 +442,12 @@ Structural totality separately uses remaining depth, helper stage and fuel. The 
 ## 5. Backend-parametric block simulation
 
 `Models` relates successful answers/roots to σ and includes structural WF and CodeAuthentic. It does not promise those operations succeed: an always-error provider otherwise satisfies implications vacuously. The full side needs progress on the execution trace, including CodeComplete. The witness side may fail on unavailable nodes or code.
+
+Full Models retains the concrete Id record of EthStateCommit §5/§7.3 (Q57).
+Both execution contexts must be coherent with that record before its lookup conjunct
+can supply `ModelsLookups` at their BlockState.consts; factory parameters alone do
+not establish this. The universal full-WF diff root clause and authentication/collision/
+progress premises are unchanged; Q58's structural-only target cannot replace them.
 
 Witness agreement also requires authenticated witness node/code databases, coherent oracle-derived constants and the specified decode thunk (EthStateWitness.WitnessBackend.WF). Guest construction must establish those premises.
 

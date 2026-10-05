@@ -1,7 +1,7 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30).*
+*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
 Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3.
 
@@ -63,8 +63,9 @@ def FullState.setStorage (s : FullState) (a : Address) (k : Bytes32) (v : U256) 
 def FullState.stateRoot (s : FullState) (consts : HashConsts) : m Hash32
 def CodeComplete (σ : MathState) : Prop -- every account-referenced nonempty code hash is available
 def FullState.ofMath (σ : MathState) (hwf : MathState.WF σ) (hc : CodeAuthentic σ) : FullState
--- stated at m := Id with consts := Id.run HashConsts.query (Models is at PreState Id, D5)
-theorem FullState.models (s : FullState) : Models (s.toPreState consts) s.σ
+-- constsId names Id.run (HashConsts.query (m := Id)) as in EthStateCommit §5/§7.3.
+-- stated at m := Id; binary Models retains this coherent concrete record (Q57).
+theorem FullState.models (s : FullState) : Models (s.toPreState constsId) s.σ
 theorem FullState.progress (s : FullState) : ∀ a key d, BlockDiff.WF s.σ d → (getAccount?, getStorage, stateRoot succeed)
 ```
 
@@ -76,7 +77,7 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
 
 ## 7. Contract and laws
 
-- [C] `ModelsLookups`: by definition. `ModelsCode`: every returned `(h, c)` has `keccak256 c = h`, from `CodeAuthentic`; `storeCode` computes the hash and `applyChanges` requires `CodeChangesAuthentic`. Authentication and `CodeComplete` are separate: completeness ensures progress for account-referenced code.
+- [C] `ModelsLookups consts (s.toPreState consts) s.σ` at Id: by the observer definitions for every supplied record, with no acquisition. Full binary `Models` and its `ModelsCode` clause remain at `constsId` (Q57), so the execution-context lookup premise follows under concrete record coherence. `ModelsCode`: every returned `(h, c)` has `keccak256 c = h`, from `CodeAuthentic`; `storeCode` computes the hash and `applyChanges` requires `CodeChangesAuthentic`. Authentication and `CodeComplete` are separate: completeness ensures progress for account-referenced code.
 - [C] `ModelsRoot`: `stateRoot d = mathStateRoot (σ.apply d)` by definition; the EELS commuting equation (FS4) is that `compute_state_root` computes this value.
 - [C] `applyChanges` preserves `WF` given `BlockDiff.WF`; `s.toPreState.stateRoot d = .ok (stateRoot (applyChanges s d))` (with the required WF/authenticity proofs).
 - [T] Progress FS7; no failure on WF inputs except missing code.
