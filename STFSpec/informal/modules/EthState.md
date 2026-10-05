@@ -153,6 +153,31 @@ clear/discard/recreate, incoming [4,9,1] into [9,2], all complete actual-key byt
 and malformed/nonlawful raw records. These are paired-container test models,
 with no State lifetime API or F7 traversal policy.
 
+### Implemented raw mathematical-state observers
+
+`State/MathState.lean` supplies the raw three-map model and the following total pure
+observers. All finite raw maps are accepted; construction performs no cleanup or
+validation. These are mathematical observers of the lookup contract, not implementations
+of the `PreState` protocol or of a backend class. Source references are at the pin;
+fixed-byte/U256 interpretation uses pinned `ethereum-types 0.4.1`.
+
+| Source / model item | Lean declaration and public type | Domain, value/effects and failures | Laws and deterministic validation |
+|---|---|---|---|
+| Mathematical finite maps (no EELS `MathState` class) | `MathState` with `accounts : ExtTreeMap Address Account`, `storage : ExtTreeMap Address (ExtTreeMap Bytes32 U256)`, `code : ExtTreeMap Hash32 ByteArray` | Every raw finite triple; exact fields, no normalization, effects or failure | **Discharged:** constructor, reconstruction and raw extensionality laws (§7); raw extensionality requires whole optional inner-map equality and raw code lookup equality at every hash, including the reserved hash. |
+| `state.py:100–106`, `state_mpt.py:59–66` | `MathState.account? : MathState → Address → Option Account` | Raw lookup; `none` differs from `some (emptyAccount consts)`; no effects/failure | `account?_eq_lookup`; empty/present/huge-nonce/max-balance and all-hash-byte cases in `Conformance/State/MathStateGuards.lean` and `MathStateNativeTests`. |
+| `state.py:108–114`, `state_mpt.py:67–80`, `merkle_patricia_trie.py:341–347` | `MathState.storageAt : MathState → Address → Bytes32 → U256` | Missing outer or inner lookup returns zero; present raw zero is retained; no account guard, effects or failure | `storageAt_eq_lookup`, `storageAt_of_storage_none`, `storageAt_of_slot_none`, `storageAt_of_slot_some`; absent/empty/zero/orphan/nonzero/max and complete key-byte cases. |
+| `state.py:116–122`, `state_mpt.py:49–57`, `forks/amsterdam/witness_state.py:205–213` | `MathState.code? : MathState → HashConsts → Hash32 → Option ByteArray` | Supplied `emptyCodeHash` returns `some ByteArray.empty` before raw lookup, even with hidden bytes; other hashes retain raw `none`/empty/nonempty distinction. No hash acquisition or effects/failure. Provider `KeyError` on missing nonreserved code remains a separate B2 error, never a successful absent provider answer. Concrete source comparison requires caller-coherent F20 constants. | `code?_empty`, `code?_of_ne`, `code?_congr_consts`; arbitrary/nonliteral constants, unrelated-field variation and hidden reserved entry guards. |
+| Structural model invariant, motivated by `state_mpt.py:187–206` and `merkle_patricia_trie.py:325–338` cleanup | `MathState.WF : MathState → Prop` | Exactly nonzero stored values, nonempty stored inner maps, and storage-domain inclusion in accounts; no code clause, account-value restriction or runtime wrapper. | `wf_iff`, `wf_empty`, `wf_storage_value_ne_zero`, `wf_storage_nonempty`, `wf_storage_account_present`, `storageAt_zero_of_account_none`, `storageAt_zero_iff`, `storage_present_iff_exists_nonzero`. Three independent omission proofs exercise each clause. |
+
+The public laws in §7 have arbitrary public-map/key/value/constants clients in
+`Conformance/State/MathStateCallerProofs.lean`. The three-clause invariant supplies no
+code authenticity or completeness. `hidden_code_counterexample` proves that even two
+WF states may be raw-unequal while every observer at fixed constants agrees.
+`math-state-native-tests` compares complete raw maps and optional/value answers against
+a separate finite association-list oracle, including actual reconstructed keys,
+differing insertion orders and retained parent/sibling maps. This is finite functional
+evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (202 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -169,6 +194,7 @@ with no State lifetime API or F7 traversal policy.
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
+- **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
 
 ## 5. Interface
@@ -176,8 +202,10 @@ with no State lifetime API or F7 traversal policy.
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All public unless marked internal. `Except` failures use `StateError`. Account and
-emptyAccount values and internal WriteOrder support are implemented and pure.
-MathState, BlockDiff, PreState and tracker operations remain unimplemented targets.
+emptyAccount values, internal WriteOrder support and raw MathState observers are
+implemented and pure; the raw MathState record and structural `WF` are also supplied.
+MathState mutation/application, BlockDiff, PreState and tracker operations remain
+unimplemented targets.
 
 ```lean
 -- public types
@@ -349,6 +377,44 @@ Observation sets could become `TreeSet`s if `EthBlock` needs sorted output direc
 
 `State/Account.lean` supplies `Account.nonce_mk`, `balance_mk`, `codeHash_mk`, `eta` and `ext`, together with ordinary `DecidableEq` from the public fields. The record is its own model; its constructors add no nonce cap, state validity predicate, hash acquisition or codec. For every supplied `consts`, `emptyAccount_nonce`, `emptyAccount_balance` and `emptyAccount_codeHash` preserve zero, `U256.zero` and exactly `consts.emptyCodeHash`. Absence is `none : Option Account`, distinct from a present empty account. These value laws supply no tracker operation, state/error invariant or lifecycle refinement.
 
+### Raw mathematical-state observer laws
+
+The raw laws hold for every finite raw state, without `WF`:
+
+| Laws | Claim and premises |
+|---|---|
+| `accounts_mk`, `storage_mk`, `code_mk`, `eta` | Construction preserves each whole map; reconstruction preserves the state. |
+| `ext`, `ext_lookup` | Raw field equality, or equality of all optional lookups, determines state equality. Inner storage maps and every raw code hash are compared whole. |
+| `account?_eq_lookup`, `storageAt_eq_lookup` | Account lookup is optional; storage defaults either missing layer to zero. |
+| `storageAt_of_storage_none`, `storageAt_of_slot_none`, `storageAt_of_slot_some` | The stated absent/present lookup premise determines the exact storage answer, retaining raw zero. |
+| `code?_empty`, `code?_of_ne` | The supplied reserved hash returns empty bytes; every other hash retains its raw optional lookup. |
+| `code?_congr_consts` | Equal empty-code fields suffice for equal code observations; other supplied constant fields are irrelevant. |
+
+The structural laws expose only the stated storage invariant:
+
+| Laws | Claim and premises |
+|---|---|
+| `wf_iff` | `WF` is equivalent to exactly the three clauses below. |
+| `wf_empty` | The triple of empty raw maps is structurally well formed. |
+| `wf_storage_value_ne_zero`, `wf_storage_nonempty`, `wf_storage_account_present` | Under `WF` and the relevant present lookup, eliminate each storage clause. |
+| `storageAt_zero_of_account_none` | Under `WF`, an absent account has zero observed storage. |
+| `storageAt_zero_iff` | Under `WF`, zero observation is equivalent to slot absence in every present inner map. |
+| `storage_present_iff_exists_nonzero` | Under `WF`, raw address storage is present exactly when some observed slot is nonzero. |
+
+`WF` is exactly:
+
+1. Every value in every present inner map is unequal to `U256.zero`.
+2. Every present inner map has `isEmpty = false`.
+3. Every storage address has `accounts[a]?.isSome = true`.
+
+Under `WF`, `storageAt a k = U256.zero` iff every inner map stored at `a` lacks `k`;
+raw storage presence at `a` iff some observed slot is nonzero. No `WF` code condition
+is added. Fixed-constants observer equality does not determine the raw state: the
+reserved-hash bypass hides raw code entries even under `WF`. Missing nonreserved
+mathematical code is `none`, distinct from `some ByteArray.empty` and from B2's
+provider failure. There is no public empty-state operation, setter, normalization or
+new equality/order instance. Mutation, `apply` and reachable preservation remain open.
+
 ### 7.1 Model and commuting equations
 
 Fix σ₀ with `MathState.WF σ₀` and `ModelsLookups ps σ₀` (so the laws are stated at `m := Id`, R8). The model of a transaction state `t` is the triple (`t.view σ₀`, `t.originalAt σ₀`, `t.rev.transient`) together with the observation sets. Define `TxRevertible.asDiff` as the diff whose clears are `storageClears` and whose changes are the writes; then **both layers use the same `apply`**, and R11 is a consequence of the definition of `apply` rather than a separate axiom. Per operation, under success (`op t = .ok (x, t')`) [C]:
@@ -455,12 +521,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bounded component support:** Account and supplied empty-account values and
-  internal WriteOrder support are supplied (§3/§7). The owning laws and test rows
-  specify their domains. All MathState, BlockDiff, provider/PreState, tracker
-  effects/errors, ordered-write integration, reachability, snapshot and operational
-  source-refinement obligations remain open; these component contracts do not
-  change whole-State readiness.
+- **Bounded component support:** Account and supplied empty-account values,
+  internal WriteOrder support, and raw MathState with its pure observers and
+  structural WF are supplied (§3/§7). The owning laws and test rows specify their
+  domains. MathState mutation/application, all BlockDiff, provider/PreState,
+  tracker effects/errors, ordered-write integration, reachability, snapshot and
+  operational source-refinement obligations remain open; these component contracts
+  do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and

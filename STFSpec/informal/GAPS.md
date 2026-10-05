@@ -284,12 +284,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthState`](modules/EthState.md)
 
-- **Bounded component support:** Account and supplied empty-account values and
-  internal WriteOrder support are supplied (§3/§7). The owning laws and test rows
-  specify their domains. All MathState, BlockDiff, provider/PreState, tracker
-  effects/errors, ordered-write integration, reachability, snapshot and operational
-  source-refinement obligations remain open; these component contracts do not
-  change whole-State readiness.
+- **Bounded component support:** Account and supplied empty-account values,
+  internal WriteOrder support, and raw MathState with its pure observers and
+  structural WF are supplied (§3/§7). The owning laws and test rows specify their
+  domains. MathState mutation/application, all BlockDiff, provider/PreState,
+  tracker effects/errors, ordered-write integration, reachability, snapshot and
+  operational source-refinement obligations remain open; these component contracts
+  do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and

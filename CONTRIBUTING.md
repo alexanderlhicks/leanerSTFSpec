@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-09-30.*
+*Status: current contributor guidance. Date: 2026-10-05.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -138,6 +138,8 @@ lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
 lake build write-order-native-tests --wfail
 lake exe check-decls WriteOrderNativeTests && lake exe write-order-native-tests
+lake build math-state-native-tests --wfail
+lake exe check-decls MathStateNativeTests && lake exe math-state-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py
