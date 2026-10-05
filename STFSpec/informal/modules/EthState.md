@@ -85,7 +85,7 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `state.py::EMPTY_CODE_HASH` | 36 | `emptyCodeHash` | `HashConsts.emptyCodeHash` (`EthBase`, R2); `Id` value `HashConsts.literals`, checked in `EthHash` |
 | `state.py::Account` | 42–49 | `STFSpec.State.Account` | Value seam implemented in `State/Account.lean`: unbounded `Nat` nonce, `U256` balance and complete `Hash32` code hash; constructor/eta/ext laws and ordinary field equality. `Conformance/State/AccountGuards.lean` covers full fields, huge nonce and zero/maximum balance. No runtime fault or tracker effect is introduced. |
 | `state.py::EMPTY_ACCOUNT` | 52–56 | `STFSpec.State.emptyAccount` | Supplied `HashConsts` gives nonce zero, balance `U256.zero` and exactly `consts.emptyCodeHash`; three projection laws. Total for arbitrary constants; pinned value correspondence requires coherent F20 constants. Full-hash/alternative-constant and absence-versus-present guards are in `Conformance/State/AccountGuards.lean`. |
-| `state.py::BlockDiff` | 61 | `BlockDiff` | adds the three replay orders (B1) |
+| `state.py::BlockDiff` | 61–89 | `STFSpec.State.BlockDiff` (seven raw fields; §5/§7) | **implemented raw value seam**: four EELS effect fields plus three B1 metadata fields; all finite raw inputs; constructor preserves complete payloads without effects/failures; ordinary component laws (§7) and complete-field guards/native oracle (§4). EELS default-empty construction is deferred. No application, WF or history claim. |
 | `state.py::PreState` | 92 | `PreState m` | record of operations (D9), generic in `m` (D5) |
 | `state.py::PreState.get_account_optional` | 100 | `PreState.getAccount?` | |
 | `state.py::PreState.get_storage` | 108 | `PreState.getStorage` | |
@@ -195,6 +195,7 @@ evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
   - an always-error provider: every fall-through read fails and no read defaults (R30).
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
+- **Implemented raw BlockDiff cases:** `Conformance/State/BlockDiffCallerProofs.lean` names arbitrary public callers of the §7 laws. `Conformance/State/BlockDiffGuards.lean` and `scripts/BlockDiffNativeTests.lean` compare all seven fields against an independent finite association-list oracle: complete fixed-width keys, unbounded nonce, maximum balance, absent/deleted/empty/replacement accounts, zero writes and empty/orphan storage maps, empty/duplicate/foreign/permuted metadata, reserved and other hashes with arbitrary complete code, insertion-order variation and retained parent/sibling values. Complete interpreted/native observations include every byte, value, presence tag and list occurrence. These comparisons exercise the raw value contract from `state.py:61–89` and B1 guidance; they execute no tracker/backend operation or EEST guest fixture.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
 
 ## 5. Interface
@@ -202,10 +203,11 @@ evidence, with no tracker, backend/root, EEST, resource or C1–C4 claim.
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All public unless marked internal. `Except` failures use `StateError`. Account and
-emptyAccount values, internal WriteOrder support and raw MathState observers are
-implemented and pure; the raw MathState record and structural `WF` are also supplied.
-MathState mutation/application, BlockDiff, PreState and tracker operations remain
-unimplemented targets.
+emptyAccount values, internal WriteOrder support, raw MathState observers and raw
+BlockDiff values are implemented and pure; the raw MathState record and structural
+`WF` are also supplied. MathState mutation/application, BlockDiff application/WF/
+history, PreState and tracker operations remain unimplemented targets. The EELS
+default-empty BlockDiff convenience constructor remains deferred (§10).
 
 ```lean
 -- public types
@@ -225,10 +227,13 @@ inductive StateError
 
 structure BlockDiff where
   accountChanges : Std.ExtTreeMap Address (Option Account)
-  accountOrder   : List Address                 -- first-write order, no duplicates (B1)
+  -- Reachable extraction: first-write order, no duplicates (B1/§7.4–§7.5).
+  accountOrder   : List Address                 -- raw constructor admits any list
   storageChanges : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)
-  storageAddressOrder : List Address             -- first appearance after the last removal
-  storageSlotOrder : Std.ExtTreeMap Address (List Bytes32) -- per-address first-write order
+  -- Reachable extraction: first appearance after the last removal.
+  storageAddressOrder : List Address             -- raw constructor admits any list
+  -- Reachable extraction: per-address first-write order; restart after a clear.
+  storageSlotOrder : Std.ExtTreeMap Address (List Bytes32) -- raw lists admit any occurrences
   codeChanges    : Std.ExtTreeMap Hash32 ByteArray
   storageClears  : Std.ExtTreeSet Address        -- no clear order (F7, open)
 
@@ -362,7 +367,7 @@ def BlockState.storageReadSet : BlockState m → Set (Address × Bytes32)
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
 | `Account` | structure | itself | identity | — | value | O(1) |
-| `BlockDiff` | `ExtTreeMap`s + account/address/slot order lists | final writes together with replay order | lookup values and ordered iteration | each list enumerates its map's domain exactly once; slot order restarts after a clear | read-only after extraction | build O(n log n) |
+| `BlockDiff` | `ExtTreeMap`s + account/address/slot order lists | seven exact raw fields; reachable extraction supplies replay invariants separately | whole optional lookups, exact metadata and clear membership | raw constructor admits any value; reachable extraction must enumerate each map domain exactly once and restart slot order after a clear (§7.4/§7.5) | value; read-only after extraction | raw fields retained; reachable build target O(n log n), with composed measurements outstanding |
 | `WriteOrder K` | two persistent `ExtTreeMap`s and a `Nat` counter | duplicate-free list of keys | `toList` in position order | intrinsic `WF`: exact inverse and position bound; separate `Agrees`: associated write domain | snapshot-reachable | required analytical bounds: O(log n) tree-path work for record/erase, O(n) live-entry extraction, O(1) saved-root selection (excluding comparison and reclamation costs); no range(next) scan; C1/C4 integration measurements open |
 | `MathState` | nested `ExtTreeMap`s | finite maps with defaults | `account?`, `storageAt`, `code?` | `WF` | value | O(log n) lookups |
 | `TxRevertible` | nested persistent `ExtTreeMap`/`ExtTreeSet` (D22) | a `BlockDiff` layered over the block view, plus transient map | `asDiff`, `transient` | WriteOrder observers enumerate live first writes for accounts, storage addresses and slots; clears ⊆ addresses; inner maps are post-clear writes only | **snapshot-reachable: worst-case persistent** | read O(log A + log S); write O(log A + log S) path copy; snapshot O(1); revert O(1) plus reclamation of the discarded version; `destroyStorage` O(s) for `s` pending writes of that address |
@@ -414,6 +419,30 @@ reserved-hash bypass hides raw code entries even under `WF`. Missing nonreserved
 mathematical code is `none`, distinct from `some ByteArray.empty` and from B2's
 provider failure. There is no public empty-state operation, setter, normalization or
 new equality/order instance. Mutation, `apply` and reachable preservation remain open.
+
+### Raw BlockDiff value seam (R4, B1)
+
+`State/BlockDiff.lean` supplies exactly seven fields in §5 order. Every finite raw input is
+admitted: account-map absence is no change, stored `none` is deletion and stored `some Account`
+is complete replacement; zero writes, present empty inner maps, arbitrary code and every
+supplied metadata occurrence are retained. `storageClears` supplies membership only, without a
+replay order. No raw constructor promises §7.4 WF, account-read history, hash authenticity or a
+first-write trace.
+
+The ordinary public laws retain arbitrary supplied fields:
+
+| Laws | Claim and premises |
+|---|---|
+| `BlockDiff.{accountChanges,accountOrder,storageChanges,storageAddressOrder,storageSlotOrder,codeChanges,storageClears}_mk` | Each constructor projection preserves its complete supplied field. |
+| `eta` | Reconstruction from every raw field preserves the diff. |
+| `ext` | Equality of every complete raw field determines diff equality. |
+| `ext_lookup` | Equality of whole optional account, inner-storage-map, slot-list and code lookups, exact global order lists and clear membership determines diff equality. |
+| `{accountChanges,storageChanges,storageSlotOrder,codeChanges}_mk_lookup` | Construction preserves each whole optional lookup. |
+| `storageClears_mk_mem` | Constructor clear membership is exactly supplied set membership. |
+
+All constructor laws quantify arbitrary supplied fields. `ext_lookup` imposes no
+validity or history premises and no payload equality instance. Existing public Std
+extensionality uses the lawful complete Address/Bytes32/Hash32 comparison providers.
 
 ### 7.1 Model and commuting equations
 
@@ -522,12 +551,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** Account and supplied empty-account values,
-  internal WriteOrder support, and raw MathState with its pure observers and
-  structural WF are supplied (§3/§7). The owning laws and test rows specify their
-  domains. MathState mutation/application, all BlockDiff, provider/PreState,
-  tracker effects/errors, ordered-write integration, reachability, snapshot and
-  operational source-refinement obligations remain open; these component contracts
-  do not change whole-State readiness.
+  internal WriteOrder support, raw MathState with its pure observers and structural
+  WF, and raw BlockDiff values are supplied (§3/§7). The owning laws and test rows
+  specify their domains. MathState mutation/application, BlockDiff application/WF/
+  history, provider/PreState, tracker effects/errors, ordered-write integration,
+  reachability, snapshot and operational source-refinement obligations remain open.
+  The EELS default-empty BlockDiff convenience constructor remains deferred. These
+  component contracts do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and

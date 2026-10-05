@@ -102,6 +102,9 @@ import STFSpec.Conformance.State.WriteOrderGuards
 import STFSpec.Conformance.State.MathStateCallerProofs
 import STFSpec.Conformance.State.MathStateGuards
 
+import STFSpec.Conformance.State.BlockDiffCallerProofs
+import STFSpec.Conformance.State.BlockDiffGuards
+
 /-!
 # STFSpec.Conformance
 
