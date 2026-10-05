@@ -516,6 +516,15 @@ a hash-only cycle-error table is not justified. Generic backend result ownership
 lifetime and F6 remain open. Coherent F20 constants are caller supplied; Q55 adds
 no local constant acquisition, host policy, production cost exception or readiness.
 
+**Logical Patricia RLP-domain options (Q56).** Total noncomputable logical folds
+state exact widths and descendant/complete domains without executable extraction.
+Executable width or certificate construction would require a separate implementation,
+model equality and consumer/resource evidence. A domain-restricted or rejecting
+interface would change the all-finite logical domain and API. DECISIONS Q56 owns
+the disposition and precise interface. Revisit when a consumer requires executable
+extraction/construction or public provider/domain laws change, retaining Q47's
+separation of total completion from standard encodable scope.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
