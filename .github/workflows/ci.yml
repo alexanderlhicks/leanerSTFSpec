@@ -39,6 +39,11 @@ jobs:
           lake build bytes-native-tests --wfail
           lake exe check-decls BytesNativeTests
           lake exe bytes-native-tests
+      - name: Compiled first-write order regressions
+        run: |
+          lake build write-order-native-tests --wfail
+          lake exe check-decls WriteOrderNativeTests
+          lake exe write-order-native-tests
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

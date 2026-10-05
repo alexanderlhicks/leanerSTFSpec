@@ -136,6 +136,8 @@ Run before opening a pull request (CI runs the same):
 lake build --wfail
 lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
+lake build write-order-native-tests --wfail
+lake exe check-decls WriteOrderNativeTests && lake exe write-order-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py
