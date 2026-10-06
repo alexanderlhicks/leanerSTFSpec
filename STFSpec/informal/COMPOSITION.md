@@ -260,6 +260,14 @@ and failure/observation demonstration before semantic adoption; constructors and
 structural clients do not establish it. Remaining admission, operation and cache
 representation/refinement gates are owned by [EthCommit §10](modules/EthCommit.md#10-gaps).
 
+### Completed fresh-leaf premise
+
+[EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map) owns the supplied
+constructor, literal effects, private all-finite-input reference equality and successful
+fresh-source domain. Consumers retain the complete assembled Encodable/class/Id/hash/host
+premises; arbitrary caches and mutable failure states are outside that relation. Whole
+update/root scheduling and its effect/lifetime/refinement obligations remain open under B15.
+
 ### Pure lookup premise (Q59; supplied local operation)
 
 [EthCommit C20/§§5/7](modules/EthCommit.md#5-interface) owns the supplied total pure

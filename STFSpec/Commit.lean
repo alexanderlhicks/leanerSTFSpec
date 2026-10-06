@@ -7,6 +7,7 @@ import STFSpec.Commit.Node
 import STFSpec.Commit.IncrementalMPT
 import STFSpec.Commit.Compact
 import STFSpec.Commit.InternalNode
+import STFSpec.Commit.Leaf
 import STFSpec.Commit.Root
 import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Decoder
@@ -26,7 +27,8 @@ nonrecursive internal-node encoding and raw NodeDB construction and generic type
 storage/safety, pure unsecured preparation and typed root composition are implemented.
 Mathematical-root domain, prefix, ordered branches, recursive construction and
 the total local root are implemented. Nominal Enc/Node/Ref and IncrementalMPT carriers
-are supplied. Complete generic eager witness decoding and total pure bare lookup are
-supplied; remaining representation and operation gates are owned by EthCommit §10.
+are supplied. Complete generic eager witness decoding, total pure bare lookup and
+strict fresh-leaf completion are supplied; remaining representation and operation
+gates are owned by EthCommit §10.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md`.
 -/

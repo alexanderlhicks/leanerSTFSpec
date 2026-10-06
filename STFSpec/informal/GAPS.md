@@ -338,15 +338,24 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   decoder/WF/cache/update/root/security/generic coupling/lifetime/whole W1/S2/C1–C4/O12 and guest
   readiness obligations remain open.
 
+- **Completed fresh-leaf scope:** mkLeaf and its two plain-Monad threshold/cache equations are
+  supplied in §3/§7.0.6 with private total List equality and complete-field/generic/fresh-
+  source/parser controls. The successful source relation starts from both caches None followed by
+  materialization, not arbitrary stale states or a lazy schedule. Complete Encodable/class/Id/host
+  premises remain explicit; whole mutable-cache, WF, map/root/authentication/security/witness,
+  generic coupling/lifetime, mutation/contextual-consumer and resource/readiness obligations
+  remain open under their §10 owners. Empty constructor value selects no setter/default rule.
+
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, smart constructors and update/delete/root operations remain
-  unimplemented. Complete generic decoding and pure bare lookup are supplied separately in §3. Bare arbitrary
+  meaning, childRef, mkExt/mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup and strict fresh-leaf completion are
+  supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
-  discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; no cache
-  or host policy is selected.
+  discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole
+  update/root cache scheduling remains open under §6/B15, and no host policy is selected.
 
 - **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 
