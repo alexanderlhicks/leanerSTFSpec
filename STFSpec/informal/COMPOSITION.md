@@ -21,7 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | Enc, Node, Ref | EthCommit | Preserve complete fields and recursive Array/Option children (EthCommit §3); semantic adoption remains conditional on B3/NEW-COMMIT-1/DISC-003, with remaining gates owned by EthCommit §10. |
-| IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 complete decoder action is supplied separately (EthCommit §3/§5). Mutation/root and representation/admission obligations remain owned by §10 (B3). |
+| IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 decoder and local rootHash/mptRoot actions are supplied separately (EthCommit §3/§5/§7.0.9). Mutation, whole root/cache refinement and representation/admission obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
@@ -269,6 +269,15 @@ hashless-short reconstruction requires Enc.hash? = none. Inline output rebuilds 
 fields, including canonical HP and the interpreted C16 ending, rather than original raw
 provenance. Input Enc retains raw bytes; the stored-hash shortcut retains its supplied hash.
 B3/DISC-003 adoption and dirty-cache/query/write/whole-operation obligations remain open.
+
+### Supplied incremental-root premise
+
+[EthCommit §3/§7.0.9](modules/EthCommit.md#3-eels-source-map) owns rootHash/mptRoot,
+six plain-Monad equations, ordinary whole-action reference equality and conditional
+source evidence. Consumers pass coherent F20 constants and preserve the relevant
+accessed-cache/child embedding, complete assembly/class/Id/hash/finite-host premises.
+Clean stored-hash roots bypass descendants; dirty caches and mutable source query
+stages remain distinct. This supplies no whole root/map/action/adoption/readiness gate.
 
 ### Completed immediate-extension premise
 

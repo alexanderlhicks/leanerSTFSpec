@@ -17,6 +17,8 @@ import STFSpec.Commit.Lookup
 import STFSpec.Commit.Trie
 import STFSpec.Commit.Preparation
 
+import STFSpec.Commit.IncrementalRoot
+
 /-!
 # STFSpec.Commit
 
