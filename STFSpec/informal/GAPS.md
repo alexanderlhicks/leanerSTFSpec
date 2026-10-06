@@ -327,15 +327,18 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
-- **Bare mutation completion (Q60; constructor support only):** collapseIndex and
-  complete ordinary observer/parser support are supplied in §3; implement explicit
-  branchIndex mutation scope, reached occupancy 0 and collapseIndex emission after witnessing;
-  update/delete/mptSet and four local laws (§7.0.10) remain UNSUPPLIED. Freeze private
-  proper-child/reference/effect laws and compatible finite nonaliasing dirty/cache/source
-  premises before implementation. Preserve source construction/empty dispatch and full
-  field/error/state tests (§4). B15/Q33 strict/lazy/private cache choice remains internal;
-  no arbitrary dirty-source shape, generic action, map/root/backend/security/witness,
-  W1/S2/R2/O12/resource/cost/EEST or guest readiness obligation is discharged.
+- **Bare mutation completion (Q60; local reached mkBranch supplied):** collapseIndex,
+  ordinary observer/parser support, reached occupancy 0/collapseIndex emission and
+  private all-input mkBranch reference/effect/field controls are supplied in §3.
+  BranchIndex mutation emission, update/delete/mptSet and four public laws (§7.0.10)
+  remain UNSUPPLIED. Future workers need private proper-child/reference/effect laws
+  and compatible finite nonaliasing dirty/cache/source premises. The local comparison
+  requires the consulted source raw-presence/hash/current-field and embedding premises
+  in §3, plus cacheless parent top for retained branch completion; it supplies no
+  recursive history realization.
+  Preserve source construction/empty dispatch and full field/error/state tests (§4).
+  B15/Q33 strict/lazy/private cache choice stays internal; whole mutation, generic
+  coupling, WF/map/root/backend/security/witness and readiness gates remain open.
 
 - **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
   are supplied in §3/§7.0.9, with private total List-byte/action equality and
@@ -392,8 +395,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkBranch and update/delete operations remain
-  unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
+  meaning remain open; local reached mkBranch is supplied separately in §3, while
+  update/delete operations remain unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. Supplied local

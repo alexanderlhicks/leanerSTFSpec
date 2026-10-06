@@ -165,7 +165,8 @@ realization and supplies no public witness table or complete source mutable-stat
 
 - C29. Typed decoding, lookup and mutations use `TrieError`. Q60 explicitly extends prospective
   branchIndex/occupancy mutation emission sites and supplies the collapseIndex constructor without
-  changing Q59 lookup or C14 decoding; collapse emission remains future. Fields are unrestricted
+  changing Q59 lookup or C14 decoding; local reached mkBranch emission is supplied
+  in §3, while frontend mutation emission remains future. Fields are unrestricted
   Nat; reached bounds derive the actual key digit/arity, collapseIndex the actual survivor
   position. Only established reachable failures may be projected by a witness/guest adapter
   through WitnessError under CONTRACT O4/O13: bare diagnostics prove no block reachability, first
@@ -368,6 +369,51 @@ no deriving, instance, public helper or hand-written public law is added. Field
 correspondence needs no Python oracle because this item implements no executable
 trie operation. Remaining representation/admission/operation gates are owned by §10
 and REVIEW §3.
+
+### Supplied reached-branch construction
+
+`STFSpec/Commit/Branch.lean`, reexported by `STFSpec.Commit`, supplies only mkBranch. Every finite
+bare Array Ref and value is accepted, without an arity, shape, cache, availability or WF admission
+check. Count actual present slots: zero/empty returns reached occupancy 0; zero/nonempty
+constructs a completed empty-path leaf. Multiple children or a nonempty terminal with at least one
+present child retain every slot in a completed branch. A sole empty-terminal survivor is witnessed
+before checking its actual position. Stub unresolved and underlying query failure precede
+collapseIndex at position ≥ 16. A valid position constructs a single-prefix extension through the
+supplied mkExt, with its immediate splice and retained grandchildren. This worker is the reached
+collapse site; update/delete dispatch and their no-change guard remain future work.
+
+| Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Reference/proofs | Complete-field/generic/source controls |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:240–254,316–346,787–828`, C18/C19/C25/Q60 | `mkBranch : Array Ref → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, all finite bare inputs | Reached census/terminal dispatch, witness-before-index, strict fresh completion; actual query answers retained; no public witness table or partial mutable-state result | Private all-input ordinary Array/List census and complete List-wire literal action equality beside the operation; all support and laws private | BranchCallerProofs ordinary public-import clients; BranchGuards complete recursive fields/raw/cache, arbitrary seeded answers, repeated calls, both transformer failure orders and a nonlawful Monad bind-shape control; branch_differential.py full typed original images, staged source observations and strict full-frame parser normal/-O |
+
+The nominal witnessing action uses supplied raw/hash, then current fields when its cache gates
+require them. A present hash bypasses all current fields. Hashless supplied raw ≥ 32 is queried without
+installing the answer; hashless short raw reconstructs the current node and updates its survivor
+top raw/hash. Retained branch-child collapse keeps that updated top Enc; leaf/ext splice discards
+only the immediate top Enc. CPS continuations preserve exact query/preimage/answer/failure order
+under plain Monad, without using lawful rewriting or memoizing repeated answers. Fresh own
+completion retains its complete raw and has zero queries below 32 or one at ≥ 32.
+
+`branch_differential.py` supplies conditional differential evidence, separate from the all-input
+ordinary literal reference equality. Start with a finite acyclic nonaliasing clean source entry
+image interpreting each supplied raw/hash field, and require compatible embedding only at
+actually consulted descendants. At a reached source witness/compute gate
+(`inc:240–254,316–346`), a consulted stored hash additionally requires present source `_rlp`
+matching the supplied raw: source checks `_rlp is not None` before its stored-hash shortcut.
+Nominal Enc does not distinguish absent source raw from present empty bytes. A touched hashless
+current reconstruction must have no source stored hash and compatible raw-presence/current-field
+interpretation; clean alone does not supply these premises. For terminal/multiple retained
+branch completion, the original parent top raw/hash must both be absent, independently of dirty
+(fresh construction or C19 invalidation). Immediate source collapse and subsequent strict
+completion are separately named stages; fresh source dirty state is not nominal Enc metadata.
+Source indices 16–255 can successfully construct an unbounded byte path outside Nibbles; a later
+HP completion can fail independently, while index ≥ 256 can fail byte construction at collapse.
+These observations do not change the approved bare collapseIndex completion. Complete assembly
+Encodable, actual classes/Id/hash/finite-host premises remain explicit. Cached-long hashless
+retained descendants, initially dirty shapes, aliases, descendant/history observers, heap writes
+before a failure and arbitrary generic source-action coupling are not closed by equal completed
+values. No new public law/domain or whole mutation,
+WF/cache/map/root/witness/security/resource/cost/EEST/guest gate is discharged.
 
 ### Implemented pure path operations
 
@@ -1154,21 +1200,22 @@ input grammar permits every finite arity. Decoding itself never manufactures `br
 
 ### Implemented Q60 collapse diagnostic declaration support
 
-`STFSpec/Commit/TrieError.lean` supplies only `Malformed.collapseIndex (index : Nat)`,
-naming the prospective C25 failure after applicable witnessing. No mutation operation
-or emission is supplied. `DecoderDiagnosticCallerProofs.lean` adds private ordinary
-full-Nat/wrapper injection and branchIndex/occupancy disjointness clients; no public
-law/helper is added. `DecoderDiagnosticGuards.lean` preserves every old diagnostic
-and wrapper and adds indices 0/1/15/16/255/256 and a large Nat. The exhaustive private
-`malformedWire` appends tag 12 with exactly one Nat, retaining all old tags/payloads.
-The strict decoder output parser accepts that nominal representation and rejects
-malformed/truncated/extra/unknown/nonfinite/Bool/float/negative frames normally and
-under `-O`. The imported lookup Reader/parser is exercised unchanged; decoder/lookup
-behavior and existing first-error order stay separate from future collapse semantics.
+`STFSpec/Commit/TrieError.lean` supplies only `Malformed.collapseIndex (index : Nat)`, naming the
+C25 failure after applicable witnessing. Local reached mkBranch emission is supplied separately
+above; this declaration support adds no frontend mutation operation.
+`DecoderDiagnosticCallerProofs.lean` adds private ordinary full-Nat/wrapper injection and
+branchIndex/occupancy disjointness clients; no public law/helper is added.
+`DecoderDiagnosticGuards.lean` preserves every old diagnostic and wrapper and adds indices
+0/1/15/16/255/256 and a large Nat. The exhaustive private `malformedWire` appends tag 12 with
+exactly one Nat, retaining all old tags/payloads. The strict decoder output parser accepts that
+nominal representation and rejects malformed/truncated/extra/unknown/nonfinite/Bool/float/negative
+frames normally and under `-O`. The imported lookup Reader/parser is exercised unchanged;
+decoder/lookup behavior and first-error order stay separate from local collapse and future
+frontend semantics.
 
 | Source branch / contract | Supplied support | Ordinary complete controls |
 |---|---|---|
-| Q60/C25 actual sole survivor index after applicable witnessing (`inc:797–798`); prospective mutation emission | `Malformed.collapseIndex (index : Nat)` constructor only; no source operation/emission | Private full-Nat/wrapper/disjointness clients; all old/new reason 12 wire fields; strict decoder/imported lookup parser normal/-O; unchanged actual decoder comparison |
+| Q60/C25 actual sole survivor index after applicable witnessing (`inc:797–798`); local mkBranch emission supplied separately above | `Malformed.collapseIndex (index : Nat)` declaration support; no frontend operation | Private full-Nat/wrapper/disjointness clients; all old/new reason 12 wire fields; strict decoder/imported lookup parser normal/-O; unchanged actual decoder comparison |
 
 ### Implemented completed fresh-leaf construction
 
@@ -1210,7 +1257,19 @@ python3 -B -O STFSpec/Conformance/Commit/leaf_differential.py --self-test
 
 ## 4. Tests
 
-**Future bare mutation controls (Q60; UNSUPPLIED).** Preserve every old diagnostic
+**Local reached-branch controls (Q60; supplied).** BranchCallerProofs/BranchGuards
+and branch_differential.py cover actual census/terminal dispatch, complete every-slot
+wire construction, witness raw/hash/cache gates, updated survivor top Enc, immediate
+splice and retained descendants. Seeded arbitrary/repeated answers and both
+transformer failure orders retain full preimages/results/state; a nonlawful Monad
+control distinguishes literal bind shape. The strict frame parser is exercised
+normally and under `-O`. Concrete source images retain original immediate/strict-
+completion/error stages, source-only first-entry witness contents and dirty/cache boundaries.
+The Lean operation supplies no witness map/ledger contract.
+Original `_compute` can bypass a completed cached pair even when dirty remains true;
+this local observation supplies no public history or dirty-reentry action law.
+
+**Future frontend mutation controls (Q60; UNSUPPLIED).** Preserve every old diagnostic
 and full recursive path/value/raw/hash field. Cover terminal-before-bounds;
 missing and valid short/oversized selected accesses; skipped already-empty/no-change
 zero occupancy versus changed zero collapse; actual survivor 15/16/255/256;
@@ -1444,7 +1503,7 @@ inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | le
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
   | branchIndex (index : Nat) (arity : Nat)    -- Q59 supplied; Q60 mutation scope future
-  | collapseIndex (index : Nat)                -- Q60 constructor supplied; emission future
+  | collapseIndex (index : Nat)                -- Q60 local mkBranch emission (§3)
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
 -- Completed constructors have public laws; private mutation workers retain source-case shapes.
@@ -1452,7 +1511,7 @@ inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | u
 -- They compute Enc, which may hash, so they are monadic (F4).
 def mkLeaf (path : Nibbles) (value : ByteArray) : m Node  -- supplied strict fresh completion (§3/§7.0.6)
 def mkExt (path : Nibbles) (child : Node) : m Node          -- supplied immediate splice (§3/§7.0.8)
--- C25 reached collapse; bare arity unrestricted, future
+-- Supplied C25 reached collapse; bare arity unrestricted (§3)
 def mkBranch (children : Array (Option Node)) (value : ByteArray) :
     m (Except TrieError Ref)
 
@@ -1948,11 +2007,11 @@ in §3; whole map/WF/cache/generic coupling remains separate.
 ### 7.0.10 Bare mutation local equations (Q60; UNSUPPLIED)
 
 These four prospective ordinary public types retain plain Monad/KeccakQuery and
-all displayed inputs. They are guidance only: no mutation operation, theorem or
-mutation test is supplied. Q60 collapseIndex constructor/observer support is supplied
-separately in §3; its emission remains future. The complete future
+all displayed inputs. They are guidance only: no frontend operation or theorem for
+these four types is supplied. Local reached mkBranch, its private reference/controls
+and collapseIndex emission are supplied separately in §3. The complete future
 success/first-error/reference catalog and private worker realization must be frozen
-in bounded implementation briefs. The existing prospective public mkBranch seam in §5
+in bounded implementation briefs. The supplied public mkBranch seam in §5
 is reviewed separately; this disposition adds no additional collapse/domain/model API.
 
 ```lean
@@ -2137,7 +2196,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete
   generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup`
   and seven constructor equations (§3); pure completed-cache `childRef` and five constructor
-  equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8); supplied
+  equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8);
+  local reached mkBranch with private all-input literal reference equality (§3); supplied
   local rootHash/mptRoot and six constructor/wrapper equations (§3/§7.0.9); the following trie
   seams remain unimplemented: `mptSet` (the partial trie behind the witness backend; replacement
   exercise 2 replaces exactly this), `represents` and the agreement theorem (for
@@ -2148,9 +2208,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
-  own its reached-site/dirty-state/source/empty-value contract. Mutation emission,
-  operations, four local laws, full future catalog and private realization/mutation
-  tests remain UNSUPPLIED; collapseIndex declaration/observer/parser support is in §3;
+  own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its
+  reached occupancy/collapseIndex emission and private reference/controls are in §3.
+  Update/delete/mptSet, mutation branchIndex emission, four local public laws and the
+  full frontend catalog remain UNSUPPLIED; constructor/observer/parser support is in §3;
   no new public proof domain or broad WF premise, cache strategy or readiness follows.
 
 - D4: keccak dominates decode/root cost; the reference or a proved fast path.
@@ -2178,15 +2239,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bare mutation completion (Q60; constructor support only):** collapseIndex and
-  complete ordinary observer/parser support are supplied in §3; implement explicit
-  branchIndex mutation scope, reached occupancy 0 and collapseIndex emission after witnessing;
-  update/delete/mptSet and four local laws (§7.0.10) remain UNSUPPLIED. Freeze private
-  proper-child/reference/effect laws and compatible finite nonaliasing dirty/cache/source
-  premises before implementation. Preserve source construction/empty dispatch and full
-  field/error/state tests (§4). B15/Q33 strict/lazy/private cache choice remains internal;
-  no arbitrary dirty-source shape, generic action, map/root/backend/security/witness,
-  W1/S2/R2/O12/resource/cost/EEST or guest readiness obligation is discharged.
+- **Bare mutation completion (Q60; local reached mkBranch supplied):** collapseIndex,
+  ordinary observer/parser support, reached occupancy 0/collapseIndex emission and
+  private all-input mkBranch reference/effect/field controls are supplied in §3.
+  BranchIndex mutation emission, update/delete/mptSet and four public laws (§7.0.10)
+  remain UNSUPPLIED. Future workers need private proper-child/reference/effect laws
+  and compatible finite nonaliasing dirty/cache/source premises. The local comparison
+  requires the consulted source raw-presence/hash/current-field and embedding premises
+  in §3, plus cacheless parent top for retained branch completion; it supplies no
+  recursive history realization.
+  Preserve source construction/empty dispatch and full field/error/state tests (§4).
+  B15/Q33 strict/lazy/private cache choice stays internal; whole mutation, generic
+  coupling, WF/map/root/backend/security/witness and readiness gates remain open.
 
 - **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
   are supplied in §3/§7.0.9, with private total List-byte/action equality and
@@ -2243,8 +2307,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkBranch and update/delete operations remain
-  unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
+  meaning remain open; local reached mkBranch is supplied separately in §3, while
+  update/delete operations remain unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. Supplied local
