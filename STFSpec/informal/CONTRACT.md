@@ -1,6 +1,6 @@
 # Guest protocol contract
 
-*Status: draft guest contract. Date: 2026-10-01.*
+*Status: draft guest contract. Date: 2026-10-06.*
 
 Pinned by [`reference.toml`](../../reference.toml): execution-specs `tests-zkevm@v21.0.0`, commit `e1a316a0`, branch `projects/zkevm-releases`. Source observations below refer to that commit; line references are under `src/ethereum/forks/amsterdam/`. **Status:** draft specification contract. D14 is accepted (structure and guidelines). The row set is complete only once the failure ledger (maintained outside this repository; X1) closes. The public signature is the target, not an implemented function. No O12 deviation has been accepted or reported upstream by this repository.
 
@@ -49,6 +49,15 @@ EELS has two nested catch-all handlers:
 - The **inner** one is in `verify_stateless_new_payload`. It surrounds everything *after* `compute_new_payload_request_root`.
 
 In the spec, each row below becomes one or more explicit constructors; there is no catch-all. Classification follows the **first reference handler that consumes the exception** (D14). A local handler can consume a failure before either catch-all sees it: for example, `is_valid_versioned_hashes` (`execution_engine/new_payload.py:60–68`) turns every payload-transaction decode failure into `False` (O6).
+
+**Bare helper diagnostics.** Q59's prospective pure lookup `branchIndex` diagnostic
+does not by itself establish a block-reachable failure, its first consuming handler,
+or an output projection. The original selected list access has a defined IndexError
+(`witness_state.py:53–100`), but the source decoder constructs sixteen branch children
+(`incremental_mpt.py:972–974`) before ordinary secure-root lookup
+(`witness_state.py:148–205`). Reachable decoder/mutation invariants and any guest adapter
+remain separate obligations. O4(c)'s unresolved stub and O4(e)'s downstream leaf failures,
+O13's reachability/classification rule and the output bytes below are unchanged.
 
 | # | Situation | Raised where (reference) | Output |
 |---|---|---|---|

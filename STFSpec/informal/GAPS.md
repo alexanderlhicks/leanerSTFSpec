@@ -327,6 +327,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
+- **Pure lookup (Q59; guidance only):** the selected-slot diagnostic, total operation and §7.0.5
+  constructor equations remain unimplemented. Supply private structural proper-child
+  Node/Array/Option support, public-only clients and §4 complete optional-value/first-error/cache-
+  independent cases. Source value/stub agreement requires valid selected accesses and actual
+  Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles and the typed out-of-
+  range selected-slot adaptation are separate law/test domains. No reachable decoder/mutation
+  invariant or guest outcome adapter follows. D18/D25 executable/reference equality and copy/scan
+  costs remain future; decoder/WF/cache/update/root/security/generic coupling/lifetime/whole
+  W1/S2/C1–C4/O12 and guest readiness obligations remain open.
+
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
