@@ -1097,8 +1097,8 @@ Cover none/stub with empty and nonempty keys; present empty leaf versus terminal
 branch; full suffix equality/mismatch; clipped/overlong/mismatched extensions stopping
 before a stub; matched empty-extension chains and ext-to-ext/leaf; every nibble index;
 arities 0/1/15/16/17 with valid selected slots and extra ignored children; terminal short
-branches before bounds; exact index/actual-arity fields only for out-of-range selected slots; selected
-versus off-path stubs and arbitrary complete Enc/cache fields. Fresh original source
+branches before bounds; exact index/actual-arity fields only for out-of-range selected slots;
+selected versus off-path stubs and arbitrary complete Enc/cache fields. Fresh original source
 comparisons cover valid selected accesses with actual Hash32/source-class/host premises;
 assert the adopted bounds diagnostic separately. Empty/odd generalized Nibbles are Lean
 law cases, not direct original Hash32 byte-entry observations. The scoped controls

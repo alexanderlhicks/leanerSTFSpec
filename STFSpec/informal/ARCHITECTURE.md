@@ -574,7 +574,7 @@ to take a key-dependent selected-access domain proof or certified input: extensi
 require child coverage only on a prefix match, terminal branches require no bound,
 and nonterminal branches require the actual selected bound and child's coverage.
 Merely adding a theorem premise to an unchanged total bare API leaves its outside-domain
-behavior unselected. Eager size16/WF admission, out-of-range-slot absence and off-path scans
+behavior unselected. Eager size 16/WF admission, out-of-range-slot absence and off-path scans
 change bare behavior and are not variants of the same contract.
 
 Python's `witness_state.py:53–100` list access has a defined IndexError; the choice

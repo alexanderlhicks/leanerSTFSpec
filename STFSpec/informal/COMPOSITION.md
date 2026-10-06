@@ -125,9 +125,9 @@ then nonce → balance → root → code. The public contracts characterize all
 accepted values and the sole coarse malformed-leaf rejection, raw empty input,
 relevant-constants congruence and account SC10. The roundtrip takes **complete
 assembled** `Rlp.Encodable`, exactly as account binding does under Q47; callers
-must establish child and joined encoded-payload bounds. The private
-`AccountDecodeCallerProofs.empty_domain` and `empty_account_roundtrip` clients
-discharge and consume this premise for every supplied emptyAccount and Hash32 root.
+must establish child and joined encoded-payload bounds. The shared conformance
+`AccountDomain.empty_domain` helper discharges this premise for every supplied
+emptyAccount and Hash32 root; the private `empty_account_roundtrip` client consumes it.
 Explicit 32-byte hashes, including all-zero, are never replaced by defaults.
 The private bounded balance fold equals its unsigned checked reference on every
 finite input; nonce stays
