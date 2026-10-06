@@ -327,8 +327,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
-- **Bare mutation completion (Q60; guidance only):** implement explicit branchIndex
-  mutation scope, reached occupancy 0 and prospective collapseIndex after witnessing;
+- **Bare mutation completion (Q60; constructor support only):** collapseIndex and
+  complete ordinary observer/parser support are supplied in §3; implement explicit
+  branchIndex mutation scope, reached occupancy 0 and collapseIndex emission after witnessing;
   update/delete/mptSet and four local laws (§7.0.10) remain UNSUPPLIED. Freeze private
   proper-child/reference/effect laws and compatible finite nonaliasing dirty/cache/source
   premises before implementation. Preserve source construction/empty dispatch and full

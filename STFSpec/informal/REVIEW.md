@@ -86,10 +86,12 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthSecurity | Consume bounded local ToVCVio RLP/reference laws without inferring whole-map binding; establish nonvacuous directional simulation, whole-trie extractors, oracle closure and budgets; keep chain anchoring and cryptographic security assumptions explicit. |
 | ToVCVio | Certified RLP facade, child-reference threshold/effect laws, explicit query-morphism transport, local same-h raw-pair extraction and same-query InternalNode adapter are supplied (own guidance §7). Faithful Patricia shell/assembly/preimage injection, separate finite resolved canonical shape facts and a pure nonempty safe prepared-image bridge are supplied (own guidance §§5/7); total finite resolved lookup, packed/List join equality and one-step prefix lookup/canonical preservation and complete-key support for actual canonical trees/two distinct keys for canonical branches are also supplied, together with canonical resolved-tree observational extensionality under both actual canonicality premises and all-finite full-value/byte observations; ordinary Prop finite resolved-map existence for actual maps satisfying `NonemptyValues`, including the empty map, with complete optional bytes at every finite key is also supplied (own guidance §§5/7); conditional structural node/reference Prop derivations also supply admissibility, exact presence occupancy and canonical-to-local-shell laws under the complete present-shell certificate and fixed pure-h premises (own guidance §§5/7); top Fits remains separate from bare node derivation, while logical C/D width and exact inhabitation support is supplied by PatriciaRlpDomain (Q56; own guidance §§5/7). All complete domain/action premises remain explicit. Installed VCV-io pin/QueryHom adapter/import audit, a public resolved-map uniqueness corollary, executable C7/C6 reference/effect realization, C8 hashing/source agreement, recursive binding, witness agreement, whole-kernel coupling and consumer/cost gates remain open. |
 
-The Q60 bare mutation disposition is guidance only, owned by
+The Q60 bare mutation operations/laws remain unsupplied, owned by
 [EthCommit C18/C19/C22–C25/C29/§§4/5/7.0.10/10](modules/EthCommit.md#5-interface).
-Its prospective operation/law catalog, clean-entry private change/cache rules,
-ordered reached-site diagnostics and complete future controls remain unsupplied.
+EthCommit §3 supplies only collapseIndex declaration/complete observer support and
+strict reason 12 parser controls; decoder and lookup never emit it. Clean-entry
+private change/cache realization, reached mutation emission and the complete
+future operation/law/test catalog remain unsupplied.
 The displayed law types are not proofs or implementation rows. Later bounded
 items must freeze private literal reference/effect/first-error catalogs and precise
 source-state/cache premises. Existing readiness and source-to-Lean statuses are unchanged.

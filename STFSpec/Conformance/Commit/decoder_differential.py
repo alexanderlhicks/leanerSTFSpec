@@ -108,8 +108,8 @@ class WireReader:
                 self.octets(32)
             elif error == 1:
                 why = self.take()
-                require(why <= 11, "bad malformed tag")
-                if why in (6, 7, 9):
+                require(why <= 12, "bad malformed tag")
+                if why in (6, 7, 9, 12):
                     self.take()
                 elif why == 11:
                     self.take()
@@ -129,12 +129,18 @@ def object_pairs(pairs):
     return result
 
 
+def reject_constant(value):
+    raise ValueError("nonfinite JSON constant " + value)
+
+
 def parse_records(text, count):
     lines = text.splitlines()
     require(len(lines) == count, "missing or trailing output records")
     result = []
     for index, line in enumerate(lines):
-        row = json.loads(line, object_pairs_hook=object_pairs)
+        row = json.loads(
+            line, object_pairs_hook=object_pairs, parse_constant=reject_constant
+        )
         require(
             type(row) is dict
             and set(row) == {"case", "input_secured", "id", "result", "queries"},
@@ -214,6 +220,24 @@ def parser_tests():
             [0, 1, 11, 0, 0.0],
             [0, 1, 11, -1, 0],
             [0, 1, 11, 0, -1],
+        ):
+            row = dict(good)
+            row[field] = wire
+            probes.append((json.dumps(row), 1))
+    for field in ("id", "result"):
+        for index in (0, 1, 15, 16, 255, 256, 10**200):
+            row = dict(good)
+            row[field] = [0, 1, 12, index]
+            require(
+                parse_records(json.dumps(row), 1) == [row],
+                "collapse index rejected",
+            )
+        for wire in (
+            [0, 1, 12], [0, 1, 12, 0, 0], [0, 1, 13, 0],
+            [0, 1, 12, True], [0, 1, 12, False], [0, 1, 12, 0.0],
+            [0, 1, 12, -1], [0, 1, 12, None], [0, 1, 12, []],
+            [0, 1, 12, float("nan")], [0, 1, 12, float("inf")],
+            [0, 1, 12, -float("inf")],
         ):
             row = dict(good)
             row[field] = wire
