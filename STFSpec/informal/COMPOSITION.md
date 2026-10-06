@@ -102,9 +102,10 @@ with the caller's existing F20 empty root. Local composition/empty equations nee
 EthBlock must supply valid concrete legacy records, nonempty typed envelope Bytes and
 already-RLP withdrawal Bytes, with lawful byte keys and default `None` semantics. Its
 dense arrays use the same EthCommit root operations (§5 of EthBlock), encoding each value once.
-EthStateCommit must supply U256 validity independently of zero deletion and the contextual
-Account/storage-root integration; no context-free Account instance follows from this
-class. Source bridges additionally supply Python equality/dispatch agreement, valid
+EthStateCommit supplies the total U256 encoder, all-value validity/nonempty laws and
+wire injectivity (EthStateCommit §3), independently of supplied-default deletion.
+Its contextual Account/storage-root integration remains unimplemented; no context-free
+Account instance follows from this class. Source bridges additionally supply Python equality/dispatch agreement, valid
 supported non-`None` values, complete schema/assembled-node `Encodable` (Q47), coherent
 F20 constants and pinned host compatibility. Total invalid encodings imply no Python
 success. Secure traversal, collisions, source history and generic coupling remain open;

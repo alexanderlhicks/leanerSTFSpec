@@ -114,6 +114,9 @@ import STFSpec.Conformance.State.StructuralGuards
 import STFSpec.Conformance.State.ModelsLookupsCallerProofs
 import STFSpec.Conformance.State.ModelsLookupsGuards
 
+import STFSpec.Conformance.StateCommit.StorageCallerProofs
+import STFSpec.Conformance.StateCommit.StorageGuards
+
 /-!
 # STFSpec.Conformance
 

@@ -356,7 +356,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Typed encoding integration (Q53):** implement U256 `Valid`/nonempty encoding, including zero, independently of no-default storage; design and prove the contextual Account/storage-root bridge without assuming a bare Account instance. Exact source equality/schema/dispatch, assembled `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
+- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity are discharged in §3; design and prove the contextual Account/storage-root bridge without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
 - **Lenient leaf decodings** (SC5, SC6) are verified by execution on examples only; CONTRACT O4(e) lists their failure classes, but constructor/precedence proofs and malformed-leaf regressions remain required (X1).
 - **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
