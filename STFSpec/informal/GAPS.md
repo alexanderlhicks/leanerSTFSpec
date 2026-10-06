@@ -327,6 +327,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
+- **Bare mutation completion (Q60; guidance only):** implement explicit branchIndex
+  mutation scope, reached occupancy 0 and prospective collapseIndex after witnessing;
+  update/delete/mptSet and four local laws (§7.0.10) remain UNSUPPLIED. Freeze private
+  proper-child/reference/effect laws and compatible finite nonaliasing dirty/cache/source
+  premises before implementation. Preserve source construction/empty dispatch and full
+  field/error/state tests (§4). B15/Q33 strict/lazy/private cache choice remains internal;
+  no arbitrary dirty-source shape, generic action, map/root/backend/security/witness,
+  W1/S2/R2/O12/resource/cost/EEST or guest readiness obligation is discharged.
+
 - **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
   are supplied in §3/§7.0.9, with private total List-byte/action equality and
   public-law/domain/seeded state/failure/source/parser controls. Supplied emptyRoot, stored hash
