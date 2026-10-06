@@ -104,8 +104,10 @@ already-RLP withdrawal Bytes, with lawful byte keys and default `None` semantics
 dense arrays use the same EthCommit root operations (§5 of EthBlock), encoding each value once.
 EthStateCommit supplies the total U256 encoder, all-value validity/nonempty laws and
 wire injectivity (EthStateCommit §3), independently of supplied-default deletion.
-Its contextual Account/storage-root integration remains unimplemented; no context-free
-Account instance follows from this class. Source bridges additionally supply Python equality/dispatch agreement, valid
+It also supplies contextual Account encoding, unconditional nonempty and pair binding
+under both complete assembled Q47 domains (EthStateCommit §3). The callback/root
+integration remains open; no context-free Account instance follows from this class.
+Source bridges additionally supply Python equality/dispatch agreement, valid
 supported non-`None` values, complete schema/assembled-node `Encodable` (Q47), coherent
 F20 constants and pinned host compatibility. Total invalid encodings imply no Python
 success. Secure traversal, collisions, source history and generic coupling remain open;
