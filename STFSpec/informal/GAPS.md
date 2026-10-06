@@ -295,11 +295,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
-- **Lookup constants context:** ModelsLookups remains unimplemented. Its displayed
-  `(ps : PreState Id) (σ : MathState)` interface does not identify the HashConsts
-  context needed by MathState.code?. Resolving the successful code-answer clause
-  requires guidance for the matching provider/constants premise; the carrier adds
-  no constants field, argument, literal substitution or policy.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and
@@ -311,6 +306,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **State errors under O13** (R29): `balanceOverflow` is argued reachable in the ledger from the pinned `U256` semantics [verified by execution] but has no fixture; honest-chain unreachability is an argument, not a proof. `balanceUnderflow` and `storageOnMissingAccount` are unresolved failure-ledger entries. `StateError` cannot be frozen (B14) until they close.
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
+- **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
+- **Bounded structural target (Q58):** implement StructuralPremises and its §7.4 laws on all finite raw inputs. Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.

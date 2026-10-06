@@ -1,7 +1,7 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
 *Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7.*
+*Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
 
@@ -26,7 +26,7 @@ Line references are to the pinned source under `src/ethereum/` (`state.py`, and 
 ### 2.3 The `PreState` record and `ModelsLookups`
 
 - R7. `PreState m` is a record of four operations (`state.py:92–139`; D9), generic in the hash monad `m` (D5): `getAccount?`, `getStorage`, `getCode`, `stateRoot`, each returning `m (Except WitnessError _)` (D8). A witness lookup hashes its key, so the pre-state lives in the oracle monad (F1). The raw record accepts any `m : Type → Type` without a Monad premise. Downstream sequencing operations require `[Monad m]`; `EthState` never needs `KeccakQuery`, which stays in `EthHash`. Public entry points use `m := Id`. `getStorage` returns `0` for an unset key (`state.py:108–114`); `getCode` returns the empty byte array for `emptyCodeHash` (`state.py:116–122`); `stateRoot d` computes the post-root without changing the pre-state (`state.py:124–139`): the record is immutable, and `m` carries only keccak queries.
-- R8. `ModelsLookups ps σ` is stated for `ps : PreState Id` (D5); the coupling for a generic `m` is open (D5, `EthSecurity`). Every `.ok` answer of `getAccount?`, `getStorage` and `getCode` agrees with `σ`, **including absence** (for accounts, `.ok none` means σ has no account; code has no absent case, R9). Errors are unconstrained (they are the backend's progress obligation, ARCHITECTURE §5.3). The code clause is lookup agreement only; hash agreement (`ModelsCode`) and the root clause (`ModelsRoot`) are in `EthStateCommit`.
+- R8. `ModelsLookups consts ps σ` is stated for `ps : PreState Id` and an explicit caller-supplied `consts : HashConsts` (Q57). Every successful account, storage and code answer agrees with the corresponding mathematical observer, **including account absence**; code has no successful absent case (R9). The code clause uses `σ.code? consts h`, including the supplied reserved hash. Arbitrary supplied records and raw MathStates are admitted: no WF, authenticity, availability, root or constants/oracle coherence premise is imposed. Errors are unconstrained; backend progress is separate (ARCHITECTURE §5.3). `ModelsCode` and `ModelsRoot` remain in `EthStateCommit`; generic-monad coupling remains open under D5.
 - R9. The EELS `get_code` protocol method has **no absent result**: missing code is a `KeyError` in both backends (`state_mpt.py:57`, `witness_state.py:213`). So (B2, adopted 2026-09-28; a revision of D9) `getCode : Hash32 → m (Except WitnessError ByteArray)`. **Missing code is an error; empty code is a successful value** (`emptyCodeHash` ↦ the empty byte array). There is no `.ok none` case.
 - R10. The tracker **does not cache pre-state answers**: every read that falls through the overlays calls the provider again (`st:150`, `st:278`, `st:314`, `st:343`). With a deterministic provider (any `PreState Id`), a repeated call returns the same result, so this is a cost question only. The witness provider nonetheless has side effects in EELS (decoding and a storage-root cache); `EthStateWitness` shows they are not observable except through the history condition of R32.
 
@@ -211,7 +211,7 @@ Lean-only nominal shapes of §5. Source attribution does not assert lookup/root 
 `State/WitnessError.lean` imports Base.FixedBytes only. Arbitrary-m action equality is ordinary
 Lean equality, without an effect-equivalence interpretation. The coarse errors are not frozen;
 their §10 refinement obligations remain open. `StateError` and `ModelsLookups` remain
-unimplemented, including the latter's missing code-observer constants context.
+unimplemented; Q57 specifies the latter's supplied code-observer constants context.
 
 ## 4. Tests
 
@@ -243,6 +243,13 @@ unimplemented, including the latter's missing code-observer constants context.
   and unusual metadata, and retained parent/sibling callbacks. These carrier tests
   execute no pinned Protocol body or backend/root/hash semantics.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
+- **Future Q57/Q58 cases (unimplemented):** successful/absent account answers,
+  reserved/nonreserved code at arbitrary supplied records and an always-error provider;
+  unchanged surviving storage, deletion with/without clear, clear plus nonzero reintroduction
+  with a present account, zero last-slot deletion, empty patches, arbitrary code/metadata,
+  and an initially absent account made present by replacement. Symbolic public-law clients
+  must cover the structural laws in §7.4. Slot-order missing/present-empty/extra cases await
+  a full-WF policy; these planned checks establish no history or release gate.
 
 ## 5. Interface
 
@@ -303,8 +310,14 @@ def MathState.storageAt (σ) (a : Address) (k : Bytes32) : U256        -- defaul
 def MathState.code? (σ) (consts : HashConsts) (h : Hash32) : Option ByteArray  -- consts.emptyCodeHash ↦ some empty
 def MathState.WF (σ) : Prop           -- no zero values, no empty inner maps, storage keys ⊆ account keys
 def MathState.apply (σ) (d : BlockDiff) : MathState                  -- R5
-def BlockDiff.WF (σ) (d) : Prop       -- §7.4
-def ModelsLookups (ps : PreState Id) (σ : MathState) : Prop          -- R8; generic-m coupling open (D5)
+def BlockDiff.StructuralPremises (σ : MathState) (d : BlockDiff) : Prop := -- Q58
+  (∀ a : Address, d.accountChanges[a]? = some none → a ∈ d.storageClears) ∧
+  (∀ a : Address, d.storageChanges[a]?.isSome = true → (σ.apply d).account? a ≠ none)
+def BlockDiff.WF (σ) (d) : Prop       -- §7.4; optional slot-order-map domain still open
+def ModelsLookups (consts : HashConsts) (ps : PreState Id) (σ : MathState) : Prop := -- R8/Q57
+  (∀ a o, ps.getAccount? a = .ok o → σ.account? a = o) ∧
+  (∀ a k v, ps.getStorage a k = .ok v → σ.storageAt a k = v) ∧
+  (∀ h code, ps.getCode h = .ok code → σ.code? consts h = some code)
 
 -- Internal persistent order index: replacing it changes only this component's laws.
 structure WriteOrder (K : Type) [Ord K] [Std.TransOrd K] where
@@ -525,7 +538,14 @@ The nominal WitnessItem/WitnessError constructors add no backend or diagnostic a
 
 ### 7.1 Model and commuting equations
 
-Fix σ₀ with `MathState.WF σ₀` and `ModelsLookups ps σ₀` (so the laws are stated at `m := Id`, R8). The model of a transaction state `t` is the triple (`t.view σ₀`, `t.originalAt σ₀`, `t.rev.transient`) together with the observation sets. Define `TxRevertible.asDiff` as the diff whose clears are `storageClears` and whose changes are the writes; then **both layers use the same `apply`**, and R11 is a consequence of the definition of `apply` rather than a separate axiom. Per operation, under success (`op t = .ok (x, t')`) [C]:
+Fix `t : TxState Id` and σ₀ with `MathState.WF σ₀` and
+`ModelsLookups t.block.consts t.block.preState σ₀` (R8/Q57). All participating
+transaction/block contexts retain that same initial supplied record and provider;
+constructor/context preservation remains F20. The model of `t` is the triple
+(`t.view σ₀`, `t.originalAt σ₀`, `t.rev.transient`) together with the observation sets.
+Define `TxRevertible.asDiff` as the diff whose clears are `storageClears` and whose changes
+are the writes; then **both layers use the same `apply`**, and R11 is a consequence of
+that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
 
 - `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
 - `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
@@ -550,12 +570,37 @@ Fix σ₀ with `MathState.WF σ₀` and `ModelsLookups ps σ₀` (so the laws ar
 
 ### 7.3 Pre-state contract obligations
 
-- [C] `ModelsLookups` is preserved by nothing (it is about the provider) but is *used* by every read equation above.
-- [R] Callers never see `PreState` internals; backends prove the full `Models` (`EthStateCommit`), plus progress (ARCHITECTURE §5.3). An always-error provider satisfies `ModelsLookups` vacuously; the tests use one to show that progress is a separate obligation.
+- [C] `ModelsLookups consts ps σ₀` concerns one fixed record/provider and is *used* by every read equation above; it does not quantify a provider's answers over unrelated records.
+- [R] Callers never see `PreState` internals; backends prove full binary `Models` (`EthStateCommit`), plus progress (ARCHITECTURE §5.3). Its lookup conjunct supplies the contextual premise when the execution record is coherent with the concrete Id record. An always-error provider satisfies `ModelsLookups consts ps σ₀` vacuously; planned tests use one to distinguish progress.
 
 ### 7.4 Invariants exported to other libraries
 
-- `BlockDiff.WF σ₀ d` [C]: (i) `d.accountChanges a = some none → a ∈ d.storageClears`; (ii) `a ∈ dom d.storageChanges → (σ₀.apply d).account? a ≠ none`; (iii) account, storage-address and slot order lists enumerate the corresponding domains without duplicates. With (i)–(ii), `σ₀.apply d` is structurally `WF`. Preservation is for **reachable block execution**, not arbitrary raw helper calls: EELS `set_account(..., None)` alone does not clear storage, and `set_account` alone does not read the account. Callers must establish these premises before exporting a WF diff or using the history theorem.
+- **Bounded structural contract (Q58; unimplemented).** `BlockDiff.StructuralPremises σ₀ d` consists exactly of (i) every raw deletion tombstone clearing storage, and (ii) a present post-account at every raw `storageChanges` address. Raw presence includes empty patches and explicit zero writes. For every finite raw σ₀ and d, initial `MathState.WF σ₀` plus these premises suffices for `MathState.WF (σ₀.apply d)`. Metadata, code bytes and account fields are arbitrary. The premises are sufficient, not necessary: deleting an account with no initial storage can preserve WF without a clear; an empty patch at an absent account violates (ii) even when the output has no storage there.
+
+Exactly five ordinary structural laws are specified below as informal targets,
+with no proof bodies or implementation claim:
+
+```lean
+theorem BlockDiff.structuralPremises_iff (σ : MathState) (d : BlockDiff) :
+  BlockDiff.StructuralPremises σ d ↔
+    (∀ a : Address, d.accountChanges[a]? = some none → a ∈ d.storageClears) ∧
+    (∀ a : Address, d.storageChanges[a]?.isSome = true → (σ.apply d).account? a ≠ none)
+theorem BlockDiff.structuralPremises_storage_clear (σ : MathState) (d : BlockDiff)
+    (hp : BlockDiff.StructuralPremises σ d) (a : Address)
+    (hd : d.accountChanges[a]? = some none) : a ∈ d.storageClears
+theorem BlockDiff.structuralPremises_account_present (σ : MathState) (d : BlockDiff)
+    (hp : BlockDiff.StructuralPremises σ d) (a : Address)
+    (hs : d.storageChanges[a]?.isSome = true) : (σ.apply d).account? a ≠ none
+theorem MathState.wf_apply_of_structuralPremises (σ : MathState) (d : BlockDiff)
+    (hwf : MathState.WF σ) (hp : BlockDiff.StructuralPremises σ d) :
+    MathState.WF (σ.apply d)
+theorem BlockDiff.structuralPremises_congr_effects (σ : MathState) (d e : BlockDiff)
+    (ha : d.accountChanges = e.accountChanges) (hs : d.storageChanges = e.storageChanges)
+    (hc : d.codeChanges = e.codeChanges) (hcl : d.storageClears = e.storageClears) :
+    BlockDiff.StructuralPremises σ d ↔ BlockDiff.StructuralPremises σ e
+```
+
+- **Full diff WF remains open.** `BlockDiff.WF σ₀ d` [C] requires the structural clauses above and account, storage-address and per-address slot lists enumerating raw write domains without duplicate actual keys. Account enumeration includes tombstones, storage-address enumeration includes empty patches, and slot enumeration includes zero writes. The optional `storageSlotOrder` map's missing/extra-entry policy remains unspecified; no defaulted or exact-domain completion is selected by Q58. Enumeration also does not establish actual first-live-write history (§7.5). Reachable extraction must establish full WF separately; EELS `set_account(..., None)` alone does not clear storage or read the account. Neither StructuralPremises nor full static WF proves the history condition below.
 - `AccountWritesLookedUp` [R] (R32): every address in `accountChanges` was the argument of a successful `preState.getAccount?` call during the block. As a Lean statement it is the equivalent observable property "every address in `b.accountWrites` is in `b.accountReads` and its first read fell through to the provider"; it is stated over an instrumented execution in the proof library, since a pure provider cannot record calls.
 
 ### 7.5 Internal order-index laws and State order
@@ -592,9 +637,9 @@ supply component examples only.
 
 **Claim.** For reachable execution traces, overlay operations refine the reference's state lifetimes, preserve observations across rollback, and extract a diff with the ordering and invariants required by the backends.
 
-**Premises.** Initial structural well-formedness; successful provider answers where requested; the caller protocol that reads accounts before changing them; invariant-preserving storage/account updates; ordered-container observer laws.
+**Premises.** Initial structural well-formedness and `ModelsLookups` for the fixed initial supplied record/provider (§7.1); successful provider answers where requested; the caller protocol that reads accounts before changing them; invariant-preserving storage/account updates; ordered-container observer laws.
 
-**Argument.** Induct on the sequence of state operations. A lookup first checks the top overlay; a storage clear suppresses every lower layer, including the pre-state. Each branch therefore has the specified logical value. A write records its first live position using WriteOrder; repeated writes update only the value, while clearing storage removes its write positions and converts pending writes to observations. Snapshots retain precisely TxRevertible, so restoring them reverts writes, clears, order metadata and transient storage but leaves TxObs intact. Incorporation applies clears before the recorded incoming writes and keeps the block's first-write positions. Induction on these ordered folds establishes the extracted diff equation and each list/map consistency invariant. The separate read-before-write induction is on callers' reachable traces: raw setAccount does not establish it by itself.
+**Argument.** Induct on the sequence of state operations. A lookup first checks the top overlay; a storage clear suppresses every lower layer, including the pre-state. Each branch therefore has the specified logical value. A write records its first live position using WriteOrder; repeated writes update only the value, while clearing storage removes its write positions and converts pending writes to observations. Snapshots retain precisely TxRevertible, so restoring them reverts writes, clears, order metadata and transient storage but leaves TxObs intact. Incorporation applies clears before the recorded incoming writes and keeps the block's first-write positions. Induction on these ordered folds establishes the extracted diff equation and each list/map consistency invariant. For Q58's separate raw structural claim, zero writes erase slots and touched empty maps are pruned; untouched maps retain initial WF. Changed-storage addresses have post-accounts by clause (ii); at an untouched, uncleared storage address, clause (i) rules out account deletion. This establishes the three structural WF clauses without metadata or code assumptions. The separate read-before-write induction is on callers' reachable traces: raw setAccount does not establish it by itself.
 
 **Open obligations.** Formalise reachability, every caller's read-before-write and balance preconditions, and storage-order metadata through all clear/restore/merge paths. An arbitrary raw diff or raw deletion need not satisfy BlockDiff.WF. Snapshot persistence requires worst-case bounds independently of these semantic laws.
 
@@ -607,7 +652,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
 - **Constants context (F20).** `BlockState.new` preserves the supplied record: `(BlockState.new ps consts).consts = consts`. State operations read it through their existing `TxState`/`BlockState` context; they receive no parallel constants argument. Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their necessary data parameter and EELS-named local notation. This constructor/context law remains an implementation obligation.
-- **Relies on:** every `PreState Id` passed to execution satisfies `ModelsLookups` for some WF σ₀ (proved by backends via `Models`); `EthBase` supplies checked `U256` add/sub, lawful `compare` on `Address`/`Bytes32`/`Hash32` keys (D2), the orderings for `(Address × Bytes32)` keys and `LawfulEqCmp Address` (F19), and the `HashConsts` record (R2).
+- **Relies on:** execution's supplied `consts` and `ps : PreState Id` satisfy `ModelsLookups consts ps σ₀` for an appropriate structurally WF σ₀. Concrete full `Models ps σ₀` supplies this lookup premise when the execution record is coherent with its concrete Id record; the provider-factory type alone does not establish F20 coherence. `EthBase` supplies checked `U256` add/sub, lawful `compare` on `Address`/`Bytes32`/`Hash32` keys (D2), the orderings for `(Address × Bytes32)` keys and `LawfulEqCmp Address` (F19), and the `HashConsts` record (R2).
 - **Guarantees:** the laws of §7; `BlockDiff.WF` and `AccountWritesLookedUp` for `EthStateCommit`/`EthStateWitness`; the first-write order in `BlockDiff.accountOrder`.
 - **Ordering contract with `EthBlock`:** `update_builder_from_tx` runs on the unmerged states immediately before `incorporateTxIntoBlock` (R25(1)); `EthState` does not import the builder.
 
@@ -626,6 +671,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-STATE-2: resolved: DECISIONS B2 (Q30).
 - NEW-STATE-3: resolved: CONTRACT O13 (DECISIONS §3); constructors freeze per B14 (Q31) (R29).
 - F7 (open): clear iteration order in the witness root replay (§7.5).
+- Q57: supplied-record lookup agreement follows R8/§5/§7.1; full Models stays at the concrete Id interpretation in EthStateCommit. Generic D5/X7 coupling remains open.
+- Q58: the bounded structural predicate and laws in §7.4; full optional slot-order-map policy, replay history and reachability remain open.
 
 ## 10. Gaps
 
@@ -640,11 +687,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
-- **Lookup constants context:** ModelsLookups remains unimplemented. Its displayed
-  `(ps : PreState Id) (σ : MathState)` interface does not identify the HashConsts
-  context needed by MathState.code?. Resolving the successful code-answer clause
-  requires guidance for the matching provider/constants premise; the carrier adds
-  no constants field, argument, literal substitution or policy.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and
@@ -656,6 +698,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **State errors under O13** (R29): `balanceOverflow` is argued reachable in the ledger from the pinned `U256` semantics [verified by execution] but has no fixture; honest-chain unreachability is an argument, not a proof. `balanceUnderflow` and `storageOnMissingAccount` are unresolved failure-ledger entries. `StateError` cannot be frozen (B14) until they close.
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
+- **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
+- **Bounded structural target (Q58):** implement StructuralPremises and its §7.4 laws on all finite raw inputs. Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.

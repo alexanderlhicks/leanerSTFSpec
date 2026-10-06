@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-10-04. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-10-06. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -128,6 +128,8 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 | Q54 | Existing variable-length Bytes content order and packed/List provider seam | **Accepted by the maintainer (2026-10-02), recorded in [issue #41](https://github.com/alexanderlhicks/leanerSTFSpec/issues/41).** EthBase owns exactly `Bytes.compareReference`, direct bounded packed `Bytes.compare`, ordinary all-input `compare_eq_reference`, `Ord Bytes`, `Std.TransOrd Bytes`, `Std.LawfulEqOrd Bytes`, `compare_toList`, `compare_eq_eq_iff` on actual existing equality, and `toByteArray_toList` through core ByteArray `toList`. The model is unsigned UInt8 lexicographic order, proper prefix first, on every finite existing Bytes including empty values and significant leading zeros, with no maximum-domain or canonicality premise. The executable sits beside its legible List reference; scanner/helper details stay private and existing DecidableEq is retained. No additional container, raw ByteArray order, new BEq/LT/LE/Hashable/coercion, replacement DecidableEq, dependency, hash, error or secured-policy change. This authorizes guidance and a subsequently separately reviewed implementation, not proofs, costs or readiness. Q53 is unchanged: a future EthCommit-owned `KeyBytes Bytes` adapter is conditional on choosing existing Bytes and uses public export/inverse/order laws; generic preparation/storage contracts remain independently feasible. Consumer encoders, source equality/dispatch/schema, F20 coherence, host premises, secure traversal/collisions and actual map/preparation/root/retention/replacement/C1–C4 measurements remain open. Reassess under D18/D25 when consumer costs reveal a material limitation. |
 | Q55 | Decoder cached-hash acquisition seam | **Accepted by the maintainer (2026-10-02), recorded in [issue #44](https://github.com/alexanderlhicks/leanerSTFSpec/issues/44).** Clarify the unimplemented `decodeRoot emptyRoot db r : m (Except TrieError Ref)` and `decodeWitnessToMpt emptyRoot db r secured : m (Except TrieError IncrementalMPT)` targets under `Monad`/`KeccakQuery`. Each newly entered raw-node occurrence of at least 32 bytes queries its complete preimage exactly once before whole RLP parsing; retain the actual answer, never substitute an incoming DB key. Short raw nodes have no query/cache hash. Preserve eager B4/W2 triggers, current-path cycle diagnostics, C14/Q48/Q52 ordering, raw inline/HP provenance and C16/C18/C19; lookup and childRef stay pure, with no authentication or inline-width admission guard. Empty-root, missing-root and absent-child paths issue no local query. Forward underlying monadic failures unchanged; typed decoder failures preserve prior successful query effects and stop later traversal. Concrete agreement uses `Id.run` with coherent supplied F20 constants; cache equality to a reference requires authenticity and eligible raw length. Generic action/result-cache lifetime, oracle interpretation/coupling and B15/F6 memo refinements remain open. The traversal baseline has no completed-node memo, without adopting a production cost exception. Pure preimage-context and deferred-digest alternatives are not selected. D5 status/scope, F20 acquisition, B4/D19/B15, outcomes and host policy are unchanged; no implementation, proof, readiness or W1/S2/R2/C1–C4 gate is discharged. Revisit for a different representation, cache lifetime or interpretation bridge. |
 | Q56 | Logical Patricia RLP-domain/width/inhabitation API | **Accepted by the maintainer (2026-10-04), recorded in [issue #61](https://github.com/alexanderlhicks/leanerSTFSpec/issues/61).** Security-only `ToVCVio.Trie` owns exactly five total noncomputable logical definitions `rlpPayloadWidth`, `rlpNodeWidth`, `rlpReferenceWidth`, `CompleteRlpDomain`, `DescendantRlpDomain`, and six ordinary laws `node_interprets_payload_width`, `node_interprets_encoded_width`, `ref_interprets_wire_width`, `descendantRlpDomain_iff_nodeInterprets`, `completeRlpDomain_iff_nodeInterprets_fits`, `completeRlpDomain_iff_refInterprets`, with the exact types/domains in ToVCVio §§5/7. Private total FullTree.rec/rec_1 support retains separate exact HP leaf/extension expressions, full values, terminal tags, all original numeric slots and joined payload bounds. D omits own bounds and is exactly bare Node inhabitation; C includes every present child's complete certificate plus own raw/joined bounds and is exactly Node+Fits or present Ref inhabitation for every fixed pure h, without canonicality/hash injectivity/key-length premises. C imposes no complete encoded-width cap. All scalar/Fits/vector/choice/induction support stays private. Executable scalar/tree width extraction, general HP flag-width simplification and runtime witness construction are unproved/unclaimed; no constructor/selector/normalizer or new executable consumer interface is adopted. Actual map/C7/C6/effect/C8/empty-root/F20/D5/witness/admission/security/budget/nonvacuity/cost/guest-readiness and Q47 total/standard-domain obligations remain separate. This approves the precise additive logical API and subsequent independently reviewed implementation, not protocol/policy/pin/dependency/status changes or a completed release gate. Revisit if a consumer requires executable extraction/construction or the public provider/domain changes. |
+| Q57 | Supplied constants in Id lookup agreement | **Accepted by the maintainer (2026-10-05), recorded in [issue #74](https://github.com/alexanderlhicks/leanerSTFSpec/issues/74).** EthState owns `ModelsLookups consts ps σ` with explicit caller-supplied HashConsts and success-only account/storage/code observer agreement, including account absence and the supplied reserved code hash. Tracker premises use BlockState.consts. Models and ModelsRoot remain binary and ModelsCode remains unary, at the existing coherent concrete Id interpretation, with EthStateCommit binding its lookup conjunct to `Id.run (HashConsts.query (m := Id))`. Arbitrary-record lookup agreement imposes no WF, authenticity, availability, root or coherence premise. No provider field, runtime acquisition/default or generic-oracle closure; all full-model authentication/collision/progress premises remain. This authorizes guidance adoption only; implementation and proof are separate. Revisit for a wider model interface or a generic interpretation bridge (§7). |
+| Q58 | Bounded structural diff premises | **Accepted by the maintainer (2026-10-05), recorded in [issue #74](https://github.com/alexanderlhicks/leanerSTFSpec/issues/74).** EthState owns `BlockDiff.StructuralPremises : MathState → BlockDiff → Prop` and exactly five ordinary laws in §7.4: selected-clause iff, deletion-to-clear elimination, raw storage-change address-to-post-account-presence elimination, conditional MathState.WF preservation and congruence under equal four effect fields. Deletion tombstones must clear; every raw storageChanges address must have a present post-account, including empty patches/explicit zero. All finite raw inputs, arbitrary metadata/code/account fields; initial WF plus these sufficient, non-necessary premises preserves structural WF. Full optional slot-order-map missing/extra-entry policy, replay history/reachability, AccountWritesLookedUp and F7 remain open. No account-reformulation or additional public law. This authorizes guidance adoption only; no implementation, proof or readiness/gate result (§7). Revisit when a consumer needs full WF or history policy. |
 
 ## 5. Adding or changing a decision
 
@@ -202,3 +204,46 @@ reference's failure precedence.
 shows it cannot preserve reference failure order or support a coherent generic oracle
 interpretation. Such evidence belongs with X7 and the affected component laws; a
 performance claim requires its own measurement and decision under CONTRIBUTING §3.
+
+## 7. Q57–Q58: lookup context and bounded structural premises
+
+**Authorization and scope.** The dispositions and authorization date are owned by
+the Q57/Q58 rows in §4, with public authorization in issue #74. They adopt informal
+guidance only. EthState owns the lookup predicate and structural API; EthStateCommit
+owns full model/code/root interpretation; Full and Witness consume those contracts.
+D9/D16/D20 keep provider, state and commitment ownership; F20 keeps caller acquisition.
+
+**Sources.** At the `reference.toml` release/dependency pins, EELS
+`src/ethereum/state.py:36,61–139` defines the shared empty-code hash and raw provider/
+diff shape. `src/ethereum/state_mpt.py:29,49–80` supplies concrete lookups, while
+`:93–111,133–161` applies clears before storage writes and prunes touched empty maps.
+`src/ethereum/forks/amsterdam/witness_state.py:205–213` and
+`src/ethereum/forks/amsterdam/state_tracker.py:271–278` use the shared empty-code
+bypass. Tracker deletion/clear sequencing is at
+`src/ethereum/forks/amsterdam/state_tracker.py:503–520,547–568`.
+The existing public MathState observer takes supplied HashConsts; structural WF
+contains exactly nonzero slots, nonempty inner maps and storage-account inclusion.
+
+**Options and contract.** ARCHITECTURE §11 records lookup-record alternatives and
+the separate structural versus full-WF/history options. EthState R8/§5/§7.1 binds
+Id lookup agreement to the execution record, without quantifying one provider over
+unrelated records. EthStateCommit §5/§7.3 retains binary Models/ModelsRoot, unary
+ModelsCode and every universal WF-diff root, authentication, collision and progress
+premise. EthState §5/§7.4 owns the structural predicate and ordinary law targets;
+it does not select an optional slot-order-map policy or imply first-write/read-before-write
+history.
+There is no runtime error, normalization, hash, pin, dependency, guest outcome or
+resource-policy change. D5/X7 generic coupling remains open.
+
+**Validation and limits.** The signatures and structural preservation argument are
+informal, unimplemented and unproved. EthState §4 lists future symbolic-law and
+edge-case checks; existing operation/source-to-Lean rows are unchanged. Document
+checks validate consistency/freshness, not typing, semantic theorems, conformance,
+readiness or S1/S2/W1/resource gates. Supplied carrier support is owned by EthState
+§3/§7; actual providers and StateError remain separate work.
+
+**Change procedure and revisit.** Direct lookup consumers use the supplied record;
+full-model owners expose the existing concrete binding. Implementation follows
+CONTRIBUTING §6.4–§6.5. Revisit Q57 for a wider model API or generic interpretation
+bridge, and Q58 for a consumer needing full
+optional-map WF, replay history or reachability; propose that policy through §5.

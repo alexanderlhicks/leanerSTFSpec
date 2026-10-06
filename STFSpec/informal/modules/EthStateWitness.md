@@ -1,7 +1,7 @@
 # `EthStateWitness`: the witness-state backend
 
-*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7, Q55; DISC-001, DISC-004.*
+*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7, Q55, Q57; DISC-001, DISC-004.*
 
 `ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only.
 
@@ -90,6 +90,13 @@ theorem WitnessBackend.refines_eels : ...   -- under AccountWritesLookedUp, same
 
 The provider factory receives `consts` from its caller (F20); it does not acquire it. `WitnessBackend.build` stores that record, and `toPreState`/root/lookup consumers read `w.consts` through their existing backend argument, with local EELS notation rather than an additional constants argument. Establishing DB authenticity and constants/oracle coherence is still W1, not a consequence of the factory parameter alone.
 
+Q57 binds the contextual lookup agreement to `ModelsLookups w.consts w.toPreState σ`.
+The binary full `Models` theorem retains EthStateCommit's concrete `constsId`
+interpretation; `WitnessBackend.WF` supplies `w.consts = constsId` to rewrite its
+lookup conjunct to the stored record. This does not weaken authentication, the
+Id-run decoder/thunk premise, arbitrary structurally WF/code-authentic model
+quantification, root agreement or the collision alternative.
+
 **Generic decoder action lifetime (Q55; unimplemented).** The displayed
 `WitnessBackend` record is only the Id prototype, not a representation of a
 generic `PreState m`. Its full WF contract requires `NodeDB.Authentic keccak256 w.nodes`,
@@ -132,7 +139,7 @@ Per-query storage decoding repeats work that EELS caches by root (`ws:152–160`
 
 ## 7. Contract and laws
 
-- [C] **Agreement up to collision:** `WitnessBackend.models` — from `EthCommit.decode_agreement` on the account trie and on each storage trie, plus `EthStateCommit`'s leaf round trips; `WitnessBackend.WF` supplies node/code authentication, coherent constants and the Id-run decoder/thunk agreement through the existing error adapter; `ModelsCode` follows from its code-DB clause. These premises apply to arbitrary backend records, not only to records returned by `build`.
+- [C] **Agreement up to collision:** `WitnessBackend.models` — from `EthCommit.decode_agreement` on the account trie and on each storage trie, plus `EthStateCommit`'s leaf round trips; `WitnessBackend.WF` supplies node/code authentication, coherent constants and the Id-run decoder/thunk agreement through the existing error adapter; `ModelsCode` follows from its code-DB clause. Q57's stored-record lookup conjunct follows by the §5 coherence rewrite on the Models branch. These premises apply to arbitrary backend records, not only to records returned by `build`.
 - [C] **Progress / data availability:** `LookupAvailable w a` requires successful eager account-root decoding (including off-path nodes), a resolved lookup path and successful account-leaf decoding. Storage lookup additionally requires successful eager decoding of its triggered storage root, a resolved slot path and successful storage-leaf decoding. `UpdatesAvailable w d` requires `BlockDiff.WF`, read-before-write, successful eager decoding at each W2 root trigger, every insertion/deletion path and every collapsing branch's remaining sibling resolved, and successful leaf decoding for every value inspected, **in the W6 replay order**. A resolved path alone is insufficient when malformed off-path nodes are eagerly decoded. Authenticated absence is success (ARCHITECTURE §5.3).
 - [R] **Concrete Id refinement to EELS:** under concrete Id, coherent constants and pinned-host premises, for any sequence of provider calls made by `EthBlock` execution satisfying `AccountWritesLookedUp`, each call's result (value, or failure) equals EELS's; hence the guest's boolean is the same (W9, W11).
 - [C] **Id cache laws:** the account-trie thunk's value equals the adapted Id-run on-demand decoding; re-lookup equals the cached storage root under W7. Any storage-trie memo (F6, open) must equal per-query decoding under its stated interpretation, including error precedence (B15); generic action/result reuse additionally proves Q55 effects and ownership/lifetime.

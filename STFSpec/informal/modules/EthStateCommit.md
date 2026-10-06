@@ -1,11 +1,11 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55.*
+*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55, Q57.*
 
 ## 1. Purpose
 
-`EthStateCommit` is the small integration component (ARCHITECTURE §3, v2.1; D20) between state semantics (`EthState`) and the generic trie (`EthCommit`). It owns the account and storage leaf encodings and their (lenient) witness decodings, the state root of a mathematical state `mathStateRoot`, code-hash agreement, and the full backend contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`. Both backends prove `Models` against these definitions; neither `EthState` nor `EthCommit` imports the other.
+`EthStateCommit` is the small integration component (ARCHITECTURE §3, v2.1; D20) between state semantics (`EthState`) and the generic trie (`EthCommit`). It owns the account and storage leaf encodings and their (lenient) witness decodings, the state root of a mathematical state `mathStateRoot`, code-hash agreement, and the binary full backend contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups constsId ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`. Here `constsId` names `Id.run (HashConsts.query (m := Id))`, the existing concrete interpretation in SC7/§7.3 (Q57). Both backends prove `Models` against these definitions; neither `EthState` nor `EthCommit` imports the other.
 
 ## 2. Requirements
 
@@ -16,7 +16,7 @@
 - SC5. **Account leaf decoding** (`witness_state.py:103–127`), lenient [executed against pinned `ethereum_rlp`]: the leaf must RLP-decode to a list of exactly 4 items (else malformed); each field that is falsy (the empty string **or the empty list**) takes its default (`0`, `0`, `EMPTY_TRIE_ROOT`, `EMPTY_CODE_HASH`, i.e. the `HashConsts` fields, which the decoder therefore takes as a parameter); otherwise nonce and balance are big-endian with **leading zeros accepted**, nonce unbounded, balance ≥ 2²⁵⁶ fails (`OverflowError`); a non-empty storage root or code hash of length ≠ 32 fails (`ValueError`); a non-empty list in any field fails (`TypeError`). An empty leaf value fails (`rlp.decode(b"")`). All failures are witness failures (O4).
 - SC6. **Storage leaf decoding** (`witness_state.py:198–203`): RLP-decode; a string → its big-endian value (leading zeros accepted; > 32 significant bytes fails with `OverflowError`); the empty string → `0`; **a list → `0`** silently. RLP failure → witness failure.
 - SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:36`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:45–50`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
-- SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = mathStateRoot (σ.apply d)`. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:129–135`).
+- SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = Id.run (mathStateRoot (m := Id) constsId (σ.apply d))`. This spells out the existing concrete root interpretation. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:129–135`).
 - SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified Id-run decoder/thunk agreement via the existing error-adapter obligation (WitnessBackend.WF, Q55), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
 - SC10. The encodings are canonical: `decodeAccountLeaf (encodeAccount a r) = .ok (a, r)` and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
 
@@ -56,10 +56,17 @@ def accountTrieMap (consts : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Ni
 def mathStateRoot (consts : HashConsts) (σ : MathState) : m Hash32
 def CodeAuthentic (σ : MathState) : Prop -- every stored (h,c) has keccak256 c = h; no availability claim
 def CodeChangesAuthentic (d : BlockDiff) : Prop -- same property for codeChanges
-def ModelsCode (ps : PreState Id) : Prop                        -- SC7
-def ModelsRoot (ps : PreState Id) (σ : MathState) : Prop        -- SC8
+-- constsId names Id.run (HashConsts.query (m := Id)); a proof interpretation,
+-- not State execution-time acquisition or a new public constants definition (Q57).
+def ModelsCode (ps : PreState Id) : Prop :=                    -- SC7
+  ps.getCode constsId.emptyCodeHash = .ok ByteArray.empty ∧
+  (∀ h code, ps.getCode h = .ok code → keccak256 code = h)
+def ModelsRoot (ps : PreState Id) (σ : MathState) : Prop :=     -- SC8
+  ∀ d r, BlockDiff.WF σ d → ps.stateRoot d = .ok r →
+    r = Id.run (mathStateRoot (m := Id) constsId (σ.apply d))
 def Models (ps : PreState Id) (σ : MathState) : Prop :=
-  MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ
+  MathState.WF σ ∧ CodeAuthentic σ ∧
+  ModelsLookups constsId ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ
 -- The Id check HashConsts.query (m := Id) = HashConsts.literals is EthHash's (EthHash §7).
 -- for the witness backend and EthSecurity
 def StateCollision (db : NodeDB) (codes : List (Hash32 × ByteArray)) (σ : MathState)
@@ -69,6 +76,13 @@ instance : TrieValue U256   -- unimplemented Q53: encodeStorage; Valid v := True
 ```
 
 These decoding and model-root helpers receive the caller's record (F20), using `variable (consts : HashConsts)` and local EELS notation for defaults. Backend callers with an existing constants field project that field; the helpers never acquire constants or substitute `HashConsts.literals` in generic execution. The Id laws here keep their concrete interpretation premise; F20 does not discharge generic oracle coupling.
+
+Q57 leaves full `Models` and `ModelsRoot` binary and `ModelsCode` unary at this
+concrete Id interpretation. When the execution record equals `constsId`, rewriting its lookup
+conjunct supplies `ModelsLookups` at that record. Only `emptyCodeHash` affects the
+local lookup predicate; equality of that field alone cannot establish the full
+record/root/decoder coherence premises. Arbitrary-record lookup agreement gives
+no concrete root/hash agreement for a noncoherent record.
 
 Q53's future U256 instance proves `encodeStorage v ≠ empty` for every value: zero
 encodes as `80`, independently of supplied-default deletion. Actual storage maps omit
@@ -132,7 +146,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthState`, `EthCommit`
 - **Used by:** `EthStateFull`, `EthStateWitness`, `EthSecurity` (proofs).
 - **Seams:** the `Models` predicate is the contract every backend proves and every refinement theorem over `executeBlock` assumes; `mathStateRoot` is what `EthBlock`'s state-root check means semantically.
-- **Relies on:** `EthCommit`'s `mathRoot`, `represents` and `decode_agreement`; `EthState`'s `apply`, `BlockDiff.WF` and `ModelsLookups`; RLP injectivity from `EthCodec`.
+- **Relies on:** `EthCommit`'s `mathRoot`, `represents` and `decode_agreement`; `EthState`'s `apply`, full `BlockDiff.WF` and `ModelsLookups constsId ps σ`; RLP injectivity from `EthCodec`. Q58's structural-only premise does not replace full WF in the root law.
 - **Typed encoding seam (Q53; unimplemented):** own U256 `Valid`/nonempty laws independently of zero deletion, and contextual Account/storage-root encoding. The initial unsecured typed root domain supplies no secured state/storage root implementation; secure traversal, collisions, source history and generic coupling retain their existing obligations.
 
 ## 9. Open decisions
@@ -142,6 +156,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D16 (accepted): this is the only place encodings meet semantics.
 - NEW-STATE-2 (from `EthState`): resolved: DECISIONS B2 (Q30); SC7 has no `.ok none` case.
 - Q53: U256 preparation validity and contextual Account integration follow §5/§8, with no bare Account instance or secured policy supplied.
+- Q57: the explicit lookup record follows §5; full model/code/root contracts retain the existing concrete Id interpretation and all authentication/collision/progress premises.
 
 ## 10. Gaps
 
