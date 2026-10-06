@@ -190,6 +190,12 @@ and whole witness agreement remain open. The no-completed-memo baseline supplies
 no production cost exception, host/O12 resolution, whole W1/S2/R2/C1–C4 gate or
 guest readiness change.
 
+The pure completed-cache child-reference contract and conditional differential
+evidence are owned by [EthCommit §3/§7.0.7](modules/EthCommit.md#3-eels-source-map).
+Public-law callers, complete nested-item and strict parser controls are supplied there.
+Pure all-input List/HP equality is distinct from source-value evidence; dirty-cache,
+query/write boundaries and whole B3/DISC-003/cache/mutation/resource gates remain open.
+
 The bounded completed fresh-leaf contract is owned by
 [EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map). Public-import clients
 and complete-field/query/failure controls are supplied there. The committed source

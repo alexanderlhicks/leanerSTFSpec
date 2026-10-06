@@ -72,6 +72,8 @@ import STFSpec.Conformance.Commit.LookupCallerProofs
 import STFSpec.Conformance.Commit.LookupGuards
 import STFSpec.Conformance.Commit.LeafCallerProofs
 import STFSpec.Conformance.Commit.LeafGuards
+import STFSpec.Conformance.Commit.ChildRefCallerProofs
+import STFSpec.Conformance.Commit.ChildRefGuards
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

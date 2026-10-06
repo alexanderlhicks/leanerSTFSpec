@@ -8,6 +8,7 @@ import STFSpec.Commit.IncrementalMPT
 import STFSpec.Commit.Compact
 import STFSpec.Commit.InternalNode
 import STFSpec.Commit.Leaf
+import STFSpec.Commit.ChildRef
 import STFSpec.Commit.Root
 import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Decoder
