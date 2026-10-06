@@ -196,6 +196,12 @@ Public-law callers, complete nested-item and strict parser controls are supplied
 Pure all-input List/HP equality is distinct from source-value evidence; dirty-cache,
 query/write boundaries and whole B3/DISC-003/cache/mutation/resource gates remain open.
 
+The completed immediate-extension contract and source-value evidence are owned by
+[EthCommit §3/§7.0.8](modules/EthCommit.md#3-eels-source-map). Committed operational
+recording-state guards exercise fresh extension widths 31/32/33 for branch and immediate
+extension inputs; Id source comparisons record source stages/queries separately. Keep
+child embedding/cache premises, one-splice scope and whole integration obligations.
+
 The bounded completed fresh-leaf contract is owned by
 [EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map). Public-import clients
 and complete-field/query/failure controls are supplied there. The committed source
