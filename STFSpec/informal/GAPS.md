@@ -287,12 +287,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application and the raw four-operation
-  PreState carrier with coarse nominal WitnessItem/WitnessError values are supplied
-  (§3/§7). The owning laws and test rows specify their domains. MathState mutation,
-  diff WF/history/reachable preservation, actual provider operations/ModelsLookups,
-  StateError, witness diagnostic refinement, tracker effects/errors, ordered-write
-  integration, reachability, snapshot and operational source-refinement obligations
-  remain open.
+  PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
+  are supplied (§3/§5/§7). The owning laws and test rows specify their domains.
+  MathState mutation, diff WF/history/reachable preservation, actual provider operations/
+  ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
+  refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
+  and operational source-refinement obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);

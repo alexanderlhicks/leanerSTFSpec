@@ -240,7 +240,7 @@ informal, unimplemented and unproved. EthState §4 lists future symbolic-law and
 edge-case checks; existing operation/source-to-Lean rows are unchanged. Document
 checks validate consistency/freshness, not typing, semantic theorems, conformance,
 readiness or S1/S2/W1/resource gates. Supplied carrier support is owned by EthState
-§3/§7; actual providers and StateError remain separate work.
+§3/§7; actual providers and StateError operation/adapter semantics remain separate work.
 
 **Change procedure and revisit.** Direct lookup consumers use the supplied record;
 full-model owners expose the existing concrete binding. Implementation follows
