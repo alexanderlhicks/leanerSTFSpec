@@ -118,8 +118,9 @@ callback/root integration remain open.
 The exact `encodeAccount_eq` equation exposes all four complete fields in source
 order. Its adjacent private List-wire reference has an ordinary all-input equality
 proof using public Base/Codec laws. `AccountEncodingCallerProofs.lean` consumes that
-equation; `AccountEncodingGuards.lean` checks independent assembled framing, all
-integer width transitions, complete asymmetric hashes and an 8,193-bit nonce.
+equation; `AccountEncodingGuards.lean` checks independent assembled framing, balance
+widths 1–32, selected nonce/RLP boundaries, complete asymmetric hashes and an
+8,193-bit nonce.
 The committed `account_encoding_differential.py` compares complete frames with both
 unchanged pinned account encoders and independent unsigned/RLP framing, with live
 function/class/alias, loaded source and raw locked-wheel snapshots before and after.
@@ -334,7 +335,7 @@ root API or secured traversal/collision policy. Concrete source agreement retain
 supported non-`None` interpretation, exact equality/dispatch, complete source-schema
 and assembled-node `Encodable` (Q47), coherent F20 constants and host premises.
 
-Q55's unimplemented complete decoder is a generic `KeccakQuery` action, with
+Q55's supplied complete decoder is a generic `KeccakQuery` action, with
 its cache/acquisition contract owned by EthCommit C13–C14/§7.6. Concrete witness
 agreement uses `Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t` and the
 actual Id interpretation with coherent caller-supplied F20 constants. A decoded
