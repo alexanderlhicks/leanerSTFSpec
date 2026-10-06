@@ -152,6 +152,43 @@ answers; source queries and cache writes remain distinct. Complete recursive Enc
 every field/child and joined payload, with actual class/finite acyclic host/hash premises. The
 total Lean equations need none of these premises and add no public WF predicate.
 
+### Supplied incremental-root commitment
+
+`STFSpec/Commit/IncrementalRoot.lean`, reexported by `STFSpec.Commit`, supplies
+rootHash and mptRoot with the caller's F20 emptyRoot. Absence returns that exact
+parameter; a stub or any resolved stored hash returns its full Hash32 immediately,
+bypassing raw/fields/descendants. A hashless resolved root forwards the original
+query action on complete `Rlp.encode (childRef root)` once, at every width. There
+is no top threshold, second digest, constant acquisition, parse, guard, fallback,
+cache installation or descendant query. The wrapper forwards trie.root independently
+of secured. All finite bare carriers remain admitted.
+
+| Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failures | Laws/reference | Complete-field/generic/source evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:831–856,257–313`; C5/C18/C27/F20 | `rootHash : Hash32 → Ref → m Hash32`, `mptRoot : Hash32 → IncrementalMPT → m Hash32`; Monad/KeccakQuery; **supplied**, every finite bare input | Supplied absence constant or stored hash with zero queries; otherwise exact complete top query/actual answer, no added error/handler; original underlying failure/effects forward unchanged | Six plain-Monad literal constructor/wrapper equations (§7.0.9); private ordinary full-byte/action equality to total List-wire reference, using public childRef/RLP laws | IncrementalRootCallerProofs uses all public cases, raw/secured invariance, explicit lawful run/bind and complete Encodable domains; IncrementalRootGuards records complete fields/seeded state/arbitrary distinct answers/full preimages/zero-or-one queries and both failure transformer orders; authenticated incremental_root_differential.py observes actual original mpt_root/cache/dirty/query stages and strict parser normal/-O |
+
+Source correspondence is conditional differential evidence, distinct from private
+ordinary whole-action equality with the total RLP model. Absence needs a coherent
+supplied constant. Clean matching stored hashes shortcut without raw/descendant
+coherence: recursive short-embedding premises apply only where source encoding is
+actually reached. A clean cached root can bypass a hashless 35-byte descendant.
+Otherwise require actual source classes/Root/Bytes/full 32-byte hashes, bounded
+paths/current fields, relevant recursively compatible child embedding, complete
+assembly Encodable and concrete Id/hash/finite acyclic nonaliasing host/crypto
+premises. Each accessed hashless non-root embedding must encode below 32 bytes;
+a dirty stored hash separately needs current commitment compatibility, even for
+value agreement. Hashless long descendants can change source embedding to a digest,
+outside arbitrary bare inline projection. No public admission predicate is added.
+
+Source uses `_encode_mutable_node_to_extended`, not `_compute_node_hash_and_rlp`.
+Top-short wrapper and top-long materialization are distinct single-query sites;
+the committed driver asserts descendant queries precede top and short wrapper
+answers are not installed in _hash. Dirty is not cleared: dirty-long calls can
+query repeatedly, clean-long newly cached calls can shortcut. Complete before/after
+optional raw/hash/dirty/call/query/exception fields remain recorded; equal values
+imply neither mutable after-cache nor generic action equivalence. Remaining whole
+WF/map/mathRoot/W1/S2/R2/security/resource/guest obligations are owned by §10.
+
 ### Supplied completed immediate-extension construction
 
 `STFSpec/Commit/Extension.lean`, reexported by `STFSpec.Commit`, supplies mkExt and
@@ -1276,13 +1313,13 @@ def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
 def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20/Q59, supplied
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref)    -- C23, value ≠ empty
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)                        -- C24–C25
-def rootHash (emptyRoot : Hash32) (t : Ref) : m Hash32                                 -- C27
+def rootHash (emptyRoot : Hash32) (root : Ref) : m Hash32  -- supplied (§3/§7.0.9), C27
 
 structure IncrementalMPT where secured : Bool; root : Ref  -- supplied nominal carrier only
 def decodeWitnessToMpt (emptyRoot : Hash32) (db : NodeDB)
     (r : Hash32) (secured : Bool) : m (Except TrieError IncrementalMPT)
 def mptSet (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) : m (Except TrieError IncrementalMPT)  -- hashes the key iff secured
-def mptRoot (emptyRoot : Hash32) (t : IncrementalMPT) : m Hash32
+def mptRoot (emptyRoot : Hash32) (trie : IncrementalMPT) : m Hash32  -- supplied (§3/§7.0.9)
 
 -- host-side (public, not on the guest path; C28)
 def buildMpt (t : Std.ExtTreeMap Nibbles ByteArray) : m Ref
@@ -1711,6 +1748,50 @@ all-input literal action equality via public mkLeaf threshold equations and
 InternalNode wire/width laws. No recursion/runtime sizeOf/fuel is needed by mkExt;
 retained-child projection uses the separately supplied total childRef.
 
+### 7.0.9 Supplied incremental-root equations (discharged locally)
+
+These literal action equations need plain Monad/KeccakQuery only. Hashless cases
+forward the query directly, without a `query >>= pure` simplification. The private
+full-byte List-wire reference equals the operation for every finite input through
+public providers; additional support and derived observations stay private.
+
+```lean
+variable {m : Type → Type} [Monad m] [KeccakQuery m]
+
+theorem rootHash_none (e : Hash32) :
+  rootHash (m := m) e none = pure e
+theorem rootHash_hashed (e h : Hash32) :
+  rootHash (m := m) e (some (.hashed h)) = pure h
+theorem rootHash_leaf (e : Hash32) (p : Nibbles) (v : ByteArray) (enc : Enc) :
+  rootHash (m := m) e (some (.leaf p v enc)) =
+    match enc.hash? with
+    | some h => pure h
+    | none => KeccakQuery.keccak
+        (Rlp.encode (.list [.bytes (nibbleListToCompact p true), .bytes v]))
+theorem rootHash_ext (e : Hash32) (p : Nibbles) (child : Node) (enc : Enc) :
+  rootHash (m := m) e (some (.ext p child enc)) =
+    match enc.hash? with
+    | some h => pure h
+    | none => KeccakQuery.keccak
+        (Rlp.encode (.list [.bytes (nibbleListToCompact p false), childRef (some child)]))
+theorem rootHash_branch (e : Hash32) (cs : Array Ref) (v : ByteArray) (enc : Enc) :
+  rootHash (m := m) e (some (.branch cs v enc)) =
+    match enc.hash? with
+    | some h => pure h
+    | none => KeccakQuery.keccak
+        (Rlp.encode (.list (cs.toList.map childRef ++ [.bytes v])))
+theorem mptRoot_eq (e : Hash32) (t : IncrementalMPT) :
+  mptRoot (m := m) e t = rootHash (m := m) e t.root
+```
+
+There is no top-level 32-byte threshold: hashless roots of 31/32/33 encoded bytes
+each query once. None is distinct from a present empty leaf. Raw and secured are irrelevant; all actual
+branch slots/value and all 32 supplied/answer bytes are observed. Derived run/bind
+clients state LawfulMonad only where needed. Concrete standard/source assembly
+requires complete recursive Encodable, not only a root path/value bound. The
+conditional source premises and dirty/recursive-child/query boundaries are listed
+in §3; whole map/WF/cache/generic coupling remains separate.
+
 ### 7.1 Totality [T]
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
@@ -1807,10 +1888,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete
   generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup`
   and seven constructor equations (§3); pure completed-cache `childRef` and five constructor
-  equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8); the
-  following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the
-  witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement
-  theorem (for `EthStateCommit` and `EthSecurity`).
+  equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8); supplied
+  local rootHash/mptRoot and six constructor/wrapper equations (§3/§7.0.9); the following trie
+  seams remain unimplemented: `mptSet` (the partial trie behind the witness backend; replacement
+  exercise 2 replaces exactly this), `represents` and the agreement theorem (for
+  `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -1840,6 +1922,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-COMMIT-4: DECISIONS B15 (Q35) and DISC-004: memoised decoding needs a proof that it preserves accept/reject, error precedence and observations (§7.6); host-resource interaction is DISC-001 (O12 unresolved).
 
 ## 10. Gaps
+
+- **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
+  are supplied in §3/§7.0.9, with private total List-byte/action equality and
+  public-law/domain/seeded state/failure/source/parser controls. Supplied emptyRoot, stored hash
+  and hashless full item select zero/zero/one local query respectively; no top threshold,
+  constant acquisition, cache installation or descendant query is added. Conditional source
+  evidence uses the relevant accessed-cache/embedding, complete assembled
+  Encodable/class/coherent constant/concrete Id/hash/finite-host premises listed in §3. A clean
+  stored-hash root bypasses arbitrary descendants. Dirty stale hashes and accessed hashless-long
+  descendants have explicit boundary controls; equal values do not identify mutable query/cache
+  history. Whole root/source/action/adoption and readiness obligations remain open under the
+  owners below.
 
 - **Pure lookup (Q59; supplied local operation):** the selected-slot diagnostic, total operation
   and exactly seven constructor equations are supplied in §3, with private structural proper-child
@@ -1884,11 +1978,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkBranch and update/delete/root operations remain
+  meaning, mkBranch and update/delete operations remain
   unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
-  provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
+  provenance sufficiency and eventual representation hiding remain unproved. Supplied local
+  rootHash/mptRoot is separate from whole root/cache agreement. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole
   update/root cache scheduling remains open under §6/B15, and no host policy is selected.
 

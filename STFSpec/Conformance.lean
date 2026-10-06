@@ -135,6 +135,9 @@ import STFSpec.Conformance.StateCommit.AccountGuards
 import STFSpec.Conformance.StateCommit.AccountDecodeCallerProofs
 import STFSpec.Conformance.StateCommit.AccountDecodeGuards
 
+import STFSpec.Conformance.Commit.IncrementalRootCallerProofs
+import STFSpec.Conformance.Commit.IncrementalRootGuards
+
 /-!
 # STFSpec.Conformance
 

@@ -327,6 +327,18 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
+- **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
+  are supplied in §3/§7.0.9, with private total List-byte/action equality and
+  public-law/domain/seeded state/failure/source/parser controls. Supplied emptyRoot, stored hash
+  and hashless full item select zero/zero/one local query respectively; no top threshold,
+  constant acquisition, cache installation or descendant query is added. Conditional source
+  evidence uses the relevant accessed-cache/embedding, complete assembled
+  Encodable/class/coherent constant/concrete Id/hash/finite-host premises listed in §3. A clean
+  stored-hash root bypasses arbitrary descendants. Dirty stale hashes and accessed hashless-long
+  descendants have explicit boundary controls; equal values do not identify mutable query/cache
+  history. Whole root/source/action/adoption and readiness obligations remain open under the
+  owners below.
+
 - **Pure lookup (Q59; supplied local operation):** the selected-slot diagnostic, total operation
   and exactly seven constructor equations are supplied in §3, with private structural proper-child
   Node/Array/Option support, all-bare offset/reference equality, public-only clients and §4
@@ -370,11 +382,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkBranch and update/delete/root operations remain
+  meaning, mkBranch and update/delete operations remain
   unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
-  provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
+  provenance sufficiency and eventual representation hiding remain unproved. Supplied local
+  rootHash/mptRoot is separate from whole root/cache agreement. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole
   update/root cache scheduling remains open under §6/B15, and no host policy is selected.
 
