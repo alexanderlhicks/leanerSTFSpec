@@ -8,8 +8,9 @@ import STFSpec.Commit
 # Imported preparation clients
 
 Library `EthConformance`. Public owner/model/provider contracts only. Clients do
-not unfold preparation, Nibbles or Std map representations.
-Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/7.0.3; Q53.
+not unfold preparation, Nibbles or Std map representations. Existing Bytes clients
+consume the exact packed-export adapter law and Q54 provider contracts.
+Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/7.0.3; Q53/Q54.
 -/
 
 namespace STFSpec.Conformance.Commit.PreparationCallerProofs
@@ -60,5 +61,103 @@ theorem cardinality_and_empty (t : Trie K V) :
     (prepareTrieModel t).size = t.data.size ∧
       (prepareTrieModel t = ∅ ↔ t.data = ∅) :=
   ⟨prepareTrieModel_size t, prepareTrieModel_empty_iff t⟩
+
+section BytesKeys
+
+open STFSpec.Base STFSpec.Hash
+
+-- No local Bytes instance: these clients resolve the production public import.
+private theorem bytes_key_instance :
+    (inferInstance : KeyBytes Bytes) = instKeyBytesBytes := rfl
+
+private theorem bytes_key_export (k : Bytes) :
+    KeyBytes.toBytes k = k.toByteArray := toBytes_bytes k
+
+private theorem bytes_key_exact_path (k : Bytes) :
+    bytesToNibbleList (KeyBytes.toBytes k) = bytesToNibbleList k.toByteArray :=
+  congrArg bytesToNibbleList (toBytes_bytes k)
+
+private theorem bytes_key_injective (a b : Bytes)
+    (h : KeyBytes.toBytes a = KeyBytes.toBytes b) : a = b :=
+  KeyBytes.toBytes_injective h
+
+private theorem bytes_key_order (a b : Bytes) :
+    compare a b = compare (KeyBytes.toBytes a).toList (KeyBytes.toBytes b).toList :=
+  KeyBytes.compare_toBytes a b
+
+private theorem bytes_key_compare_eq_iff (a b : Bytes) :
+    compare (KeyBytes.toBytes a).toList (KeyBytes.toBytes b).toList = .eq ↔ a = b := by
+  rw [← bytes_key_order]
+  exact Bytes.compare_eq_eq_iff a b
+
+private theorem bytes_key_path_eq (a b : Bytes)
+    (h : bytesToNibbleList (KeyBytes.toBytes a) =
+      bytesToNibbleList (KeyBytes.toBytes b)) : a = b := keyBytes_path_injective h
+
+-- Caller-supplied value encoding is retained for each complete generic map.
+private theorem bytes_prepared_lookup (t : Trie Bytes V) (k : Bytes) :
+    (prepareTrieModel t)[bytesToNibbleList k.toByteArray]? =
+      (t.data[k]?).map TrieValue.encode := prepareTrieModel_lookup t k
+
+private theorem bytes_prepared_full_image (t : Trie Bytes V) (q : Nibbles)
+    (b : ByteArray) :
+    (prepareTrieModel t)[q]? = some b ↔
+      ∃ (k : Bytes) (v : V), t.data[k]? = some v ∧
+        q = bytesToNibbleList k.toByteArray ∧ b = TrieValue.encode v :=
+  prepareTrieModel_lookup_some_iff t q b
+
+private theorem bytes_prepared_cardinality (t : Trie Bytes V) :
+    (prepareTrieModel t).size = t.data.size := prepareTrieModel_size t
+
+private theorem bytes_prepared_empty (t : Trie Bytes V) :
+    prepareTrieModel t = ∅ ↔ t.data = ∅ := prepareTrieModel_empty_iff t
+
+private theorem bytes_prepared_insert (t : Trie Bytes V) (k : Bytes) (v : V) :
+    prepareTrieModel { t with data := t.data.insert k v } =
+      (prepareTrieModel t).insert (bytesToNibbleList k.toByteArray) (TrieValue.encode v) :=
+  prepareTrieModel_insert t k v
+
+private theorem bytes_prepared_overwrite (t : Trie Bytes V) (k : Bytes) (old new : V) :
+    prepareTrieModel { t with data := (t.data.insert k old).insert k new } =
+      (prepareTrieModel t).insert (bytesToNibbleList k.toByteArray)
+        (TrieValue.encode new) := by
+  have storage : (t.data.insert k old).insert k new = t.data.insert k new := by
+    apply Std.ExtTreeMap.ext_getElem?
+    intro q
+    simp only [Std.ExtTreeMap.getElem?_insert]
+    split <;> rfl
+  rw [storage]
+  exact bytes_prepared_insert t k new
+
+private theorem bytes_preparation_action {m : Type → Type} [Monad m]
+    (t : Trie Bytes V) (unsecured : t.secured = false) (safe : t.PrepareSafe) :
+    prepareTrie (m := m) t unsecured safe = pure (prepareTrieModel t) :=
+  prepareTrie_eq t unsecured safe
+
+private theorem bytes_preparation_empty_action {m : Type → Type} [Monad m]
+    (t : Trie Bytes V) (unsecured : t.secured = false) (safe : t.PrepareSafe)
+    (empty : t.data = ∅) : prepareTrie (m := m) t unsecured safe = pure ∅ :=
+  prepareTrie_empty t unsecured safe empty
+
+private theorem bytes_root_action {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (t : Trie Bytes V) (unsecured : t.secured = false)
+    (safe : t.PrepareSafe) :
+    root (m := m) emptyRoot t unsecured safe = mathRoot emptyRoot (prepareTrieModel t) :=
+  root_eq_mathRoot emptyRoot t unsecured safe
+
+private theorem bytes_root_empty {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (t : Trie Bytes V) (unsecured : t.secured = false)
+    (safe : t.PrepareSafe) (empty : t.data = ∅) :
+    root (m := m) emptyRoot t unsecured safe = pure emptyRoot :=
+  root_empty emptyRoot t unsecured safe empty
+
+private theorem bytes_root_sequenced {m : Type → Type} [Monad m] [KeccakQuery m]
+    [LawfulMonad m] (emptyRoot : Hash32) (t : Trie Bytes V)
+    (unsecured : t.secured = false) (safe : t.PrepareSafe) :
+    root (m := m) emptyRoot t unsecured safe = (do
+      let prepared ← prepareTrie (m := m) t unsecured safe
+      mathRoot emptyRoot prepared) := root_eq_reference emptyRoot t unsecured safe
+
+end BytesKeys
 
 end STFSpec.Conformance.Commit.PreparationCallerProofs

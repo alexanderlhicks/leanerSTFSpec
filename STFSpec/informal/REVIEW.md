@@ -141,8 +141,10 @@ fields. Root, backend, full-WF/history and whole-State gates remain separate.
 Q53's [EthCommit](modules/EthCommit.md#3-eels-source-map) and
 [EthBlock](modules/EthBlock.md#3-eels-source-map) rows describe scoped seams.
 Generic C11 storage/safety, the Q53 byte-key contract and pure unsecured preparation
-and typed root composition are supplied by EthCommit §3; concrete encoding/key adapters and consumer
-seams remain **unimplemented**. Before any implementation claim, validate arbitrary supplied defaults, unsafe
+and typed root composition, plus the conditional existing-Bytes key instance below,
+are supplied by EthCommit §3; concrete consumer encoding and Python key/equality/alias
+bridges remain **unimplemented**. Before any implementation claim, validate arbitrary
+supplied defaults, unsafe
 nondefault insertion versus safe default deletion, exact safety iff, direct valid stored
 defaults, empty Bytes versus RLP zero/empty collections, lawful byte-key alias exclusion,
 encoding exactly once, whole prepared maps and zero preparation queries. Root validation
@@ -165,9 +167,13 @@ retain existing equality and reject unapproved container/instance scope. Any loc
 comparator cost evidence has a correctness gate, no checksum in timed loops, and
 explicit conversions/allocation/provenance. Actual map construction, preparation,
 root composition, retained versions, replacement and C1–C4 remain separate gates;
-reassess material limitations under D18/D25. A conditional future `KeyBytes Bytes`
-adapter uses the public inverse/order/core-list export laws; it supplies no encoder,
-schema, source equality, F20, host, secure-policy or guest-readiness result.
+reassess material limitations under D18/D25. The existing-Bytes adapter mechanism
+and exact-export law are owned by
+[EthCommit §3/§7.0.3](modules/EthCommit.md#pure-unsecured-typed-preparation-q53).
+Its complete public-import preparation/root clients retain caller value/safety,
+unsecured, empty-root and query premises; the sequenced reference additionally
+requires `LawfulMonad`. Consumer schema/source/F20/host/secure-policy and guest
+readiness obligations remain separate.
 
 Q55's [EthCommit](modules/EthCommit.md#5-interface) complete decoder signatures
 are clarified **unimplemented** targets. Future ordinary laws/public clients must

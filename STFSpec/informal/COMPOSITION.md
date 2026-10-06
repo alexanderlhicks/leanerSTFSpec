@@ -90,7 +90,9 @@ AccountWritesLookedUp or F7; those obligations remain with their existing produc
 arbitrary-default storage and separate `NoDefault`/`PrepareSafe` laws. Its
 `TrieValue` class specifies total encoding with nonemptiness under validity;
 the generic lawful injective byte-key contract and pure preparation are supplied in
-EthCommit §3. Typed root composition is supplied; concrete encoding/key adapters remain unimplemented.
+EthCommit §3. Typed root composition and the conditional existing-Bytes key adapter
+below are supplied;
+concrete consumer encoding and Python key/equality/alias bridges remain unimplemented.
 Empty construction supplies both predicates for any
 default; an all-value setter preserves safety from a safe input exactly when it deletes
 by equality with that default or inserts a valid value. Preparation/root require safety
@@ -148,18 +150,14 @@ for SC10 follows the public U256 width bound; no stored-zero policy follows.
 
 ### Conditional existing Bytes key provider (Q54)
 
-When a concrete Q53 consumer chooses existing Base `Bytes`, [EthBase
-§5/§7](modules/EthBase.md#5-interface) specifies its all-finite unsigned byte-lex
-order, proper-prefix behavior, ordinary packed/reference equality, lawful actual
-comparison equality and `toByteArray_toList` observation. These functional
-providers are supplied by EthBase §3. The future EthCommit-owned `KeyBytes Bytes` adapter uses exactly
-`Bytes.toByteArray`: the existing inverse proves injectivity, and `compare_toList`
-plus `toByteArray_toList` proves comparison agreement with core ByteArray `toList`.
-Generic Q53 preparation/storage contracts remain independently feasible. Actual
-RLP ordinal bytes use byte order (zero `[128]` follows one `[1]`); EthBlock retains
-concrete encoder, source equality/schema, safety and coherent F20 empty-root
-premises. Adapter implementation, consumer composition/costs, host compatibility,
-secured-policy and generic coupling remain open with their existing owners.
+When a concrete Q53 consumer chooses existing Base `Bytes`,
+[EthCommit §3/§7.0.3](modules/EthCommit.md#pure-unsecured-typed-preparation-q53)
+owns the adapter and named exact-export law, relying on EthBase's Q54 provider.
+RLP ordinal bytes retain byte order (zero `[128]` follows one `[1]`); EthBlock retains
+concrete encoder, source equality/schema, safety and coherent F20 empty-root premises.
+Public-import preparation/root clients retain those premises; the sequential reference
+additionally requires `LawfulMonad`. Concrete consumer costs, host compatibility,
+secured policy and generic coupling remain open with their existing owners.
 
 ### SHA-256 digest premise
 
