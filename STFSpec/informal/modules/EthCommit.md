@@ -933,7 +933,57 @@ rejects invalid/truncated/extra records in ordinary and optimized Python. Its de
 sixteen-child grammar is retained; the separate bare lookup input grammar permits every finite
 arity. Decoding itself never manufactures `branchIndex`.
 
+### Implemented completed fresh-leaf construction
+
+`STFSpec/Commit/Leaf.lean` supplies strict mkLeaf and exactly two ordinary public
+constructor/cache equations, mkLeaf_inline and mkLeaf_hash (§7.0.6). All support, including the
+legible List reference and all-input equality, remains private. The operation assembles through
+the public InternalNode provider and encodes once; short raw retains no hash, while long raw
+retains its actual complete query answer. Paths and values may be empty. This selects no
+update/mptSet/default dispatch, recursive realization, new Enc/WF API or whole mutation/cache
+strategy.
+
+| Pinned source | Lean declaration/type and domain | Complete value/effects | Ordered failures and source boundary | Laws and controls |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–57,267–271,316–346,486–488`; HP `src/ethereum/merkle_patricia_trie.py:360–392`; locked `ethereum_rlp/rlp.py:66–135` (0.1.6) | `mkLeaf : Nibbles → ByteArray → m Node`, with Monad/KeccakQuery; every finite bounded-digit path and byte value | Retain path/value and complete encoded two-field leaf; raw size<32 returns pure with hash None; otherwise one local query on full raw and its actual answer cached verbatim | No typed error or handler; underlying long-query failure follows its monad. Source comparison starts from an original fresh leaf with both caches None followed by `_compute_node_hash_and_rlp`, with either dirty flag. Python assigns `_rlp` before hashing, so partial failure object state is outside completed-result correspondence | **Discharged local equations:** mkLeaf_inline, mkLeaf_hash, both plain Monad; private ordinary total packed/List equality; private public-import LeafCallerProofs, complete-field seeded-state/both-transformer failure LeafGuards, fresh original leaf_differential.py and strict ordinary/optimized parser controls |
+
+Concrete source success uses Id, actual MutableLeafNode/Bytes/Hash32 classes, bounded digits,
+identical bytes and complete assembled Encodable/finite-host/crypto premises. Encodable includes
+HP width `path.size/2+1<2^64`, value width `<2^64`, **and** joined encoded payload width `<2^64`,
+not merely field bounds or a whole-wire cap. Q47 total model equality outside that domain supplies
+no standard/source/host equivalence or Python 2^64 rejection. No F20, DB/authenticity or collision
+premise is needed here. Generic answers remain verbatim and need not be concrete digests.
+
+The source driver freshly authenticates original pin/wheels/imported bytes and callable/class
+identities before/after, retaining complete before/after fields, raw/hash results and observed
+original full preimages/answers; it never replaces reference helpers or injects source failures.
+Arbitrary stale caches, aliases/repeated schedules and partial host failures are excluded.
+Interpreter/startup/frozen installation and host remain trust inputs. Whole mutable-cache/WF/canonicality/map/root/security/witness agreement, generic
+coupling/lifetime, mutation, resource and readiness obligations remain open.
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
+  --eels EELS --output EXTERNAL.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+# Separate additional HP-field and joined-payload boundaries:
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
+  --eels EELS --output EXTRA.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL --extra-boundaries
+python3 -B STFSpec/Conformance/Commit/leaf_differential.py --self-test
+python3 -B -O STFSpec/Conformance/Commit/leaf_differential.py --self-test
+```
+
 ## 4. Tests
+
+Completed-leaf controls observe every path/value/raw/hash-presence field and all
+32 answer bytes:
+empty/odd/even paths, significant zeros/all 16 digits, lengths 1/2/63/64/65, HP and
+value/joined payload prefix boundaries 55/56 and 255/256, empty/low/high/full values,
+and actual complete raw widths 31/32/33. Seeded nonempty traces retain zero short
+or one whole-preimage long query, distinct arbitrary answers and independent calls.
+ExceptT-over-State retains effects before failure; StateT-over-Except returns the
+original failure without final state; short leaves bypass a failing oracle. A
+sequential first-failure control excludes later queries. These do not claim Python
+intermediate mutable-state or whole update timing equivalence. Full reply parser
+controls reject truncated/invalid/trailing and reordered records under ordinary/-O.
 
 **Pure lookup cases (Q59; supplied locally).** `LookupCallerProofs.lean` consumes
 the seven equations in §7 through ordinary public imports; `LookupGuards.lean` and
@@ -1148,7 +1198,7 @@ inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | u
 
 -- smart constructors (the only way ops build nodes; internal but with public laws).
 -- They compute Enc, which may hash, so they are monadic (F4).
-def mkLeaf (path : Nibbles) (value : ByteArray) : m Node
+def mkLeaf (path : Nibbles) (value : ByteArray) : m Node  -- supplied strict fresh completion (§3/§7.0.6)
 def mkExt (path : Nibbles) (child : Node) : m Node          -- merges ext/leaf children (C24)
 def mkBranch (children : Array (Option Node)) (value : ByteArray) : m (Except TrieError Ref)  -- size 16; collapse, C25
 
@@ -1236,6 +1286,13 @@ reachable output invariant/guest adapter.
 | `NodeDB` | `Std.HashMap Hash32 ByteArray` | finite map | `get?` | `NodeDB.Authentic keccak256` (established by `NodeDB.build` at `Id`; a predicate, not a field, F4) | built linearly, then **read-only shared** | build expected O(n) plus one keccak per entry; lookup expected O(1) (not worst-case; ARCHITECTURE §5.0) |
 | `Node`/`Ref` | inductive with immutable `Enc` per resolved node | a set of maps (`represents` is a relation, D25) | `represents` | `Enc` agrees with C18/C19; ext child is a branch or stub; every branch has exactly 16 children (F5) and occupancy ≥ 2 | functional; tries are not snapshot-reachable (built once per root computation), so path copying suffices | lookup O(d) node steps (d ≤ 64 branch levels for secured keys) plus path comparisons; update/delete O(d) nodes rebuilt, each with one RLP encoding and ≤ one keccak; `rootHash` O(1) (cached at the root) |
 
+Fresh `mkLeaf` completion is strict: its supplied §3/§7.0.6 equations retain
+complete raw bytes, make no local query below 32 bytes and otherwise make exactly
+one local query on the whole raw and cache its actual answer. This realizes the
+Node row's per-node at-most-one-query requirement for this helper. The whole
+update/root strict-versus-lazy schedule, cache invalidation/history and their
+semantic/effect/lifetime/cost refinement remain open under B15.
+
 The §3 carriers supply none of this row's semantic or cost guarantees; its
 outstanding admission/provenance gates are owned by §10. `Enc` stores completed
 raw/cache values. No update/root cache schedule is implemented. Mutable dirty or
@@ -1259,7 +1316,12 @@ rows in §3; Keccak keys come from KeccakQuery (D5/F4). Expected table bounds re
 conditional on a suitable distribution; adversarial-distribution, allocation and
 composed cost measurements remain open (ARCHITECTURE §5.0, C1–C4).
 
-Computing `Enc` strictly in the smart constructor re-hashes the whole path on every update (O(u·d) keccaks for `u` updates), whereas EELS hashes each dirty node once at root time. A concrete-value comparison may justify either under its representation/cache premises; whole generic update/root query-trace equivalence is a separate obligation. The choice is internal to this module (DECISIONS B15, Q33) and remains unselected by Q55.
+Computing `Enc` strictly at every update would rehash the whole path (O(u·d) keccaks
+for `u` updates), whereas EELS hashes each dirty node once at root time. A concrete-value
+comparison may justify either under its representation/cache premises; whole generic
+update/root query-trace equivalence is a separate obligation. This whole update/root
+choice remains open under B15/Q33; supplied strict fresh-leaf completion selects only
+its local helper behavior.
 
 ## 7. Contract and laws
 
@@ -1477,6 +1539,33 @@ nominal/source field correspondence, the actual Hash32-to-64-nibble bridge and h
 premises. Python IndexError on an out-of-range selected slot is documented separately from the selected
 typed adaptation; neither supplies a reachable guest fault/output (CONTRACT O4/O13).
 
+### 7.0.6 Completed fresh-leaf equations (discharged locally)
+
+Both laws quantify `{m : Type → Type} [Monad m] [KeccakQuery m]` and arbitrary
+path/value. The raw is a local RHS let; no extra public helper, projection, model
+or realization predicate is added.
+
+```lean
+theorem mkLeaf_inline (path : Nibbles) (value : ByteArray)
+    (h : (Rlp.encode (assembleInternalNode (some (.leaf path (.bytes value))))).size < 32) :
+    mkLeaf (m := m) path value =
+      let raw := Rlp.encode (assembleInternalNode (some (.leaf path (.bytes value))))
+      pure (Node.leaf path value (Enc.mk raw none))
+theorem mkLeaf_hash (path : Nibbles) (value : ByteArray)
+    (h : 32 ≤ (Rlp.encode (assembleInternalNode (some (.leaf path (.bytes value))))).size) :
+    mkLeaf (m := m) path value =
+      let raw := Rlp.encode (assembleInternalNode (some (.leaf path (.bytes value))))
+      (KeccakQuery.keccak raw >>= fun answer =>
+        pure (Node.leaf path value (Enc.mk raw (some answer))))
+```
+
+The literal bind shapes need only Monad and imply no universal effect semantics
+for nonlawful instances. Private pure-answer/transformer simplifications retain
+LawfulMonad. Private ordinary all-input equality uses internalNodeWireModel,
+List.toByteArray and public exact wire/width laws, with the same threshold/bind;
+no Encodable/WF/source/authenticity/injectivity premise is needed. B15/Q33 permits
+strict local completion but supplies no whole mutable-cache/source schedule proof.
+
 ### 7.1 Totality [T]
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
@@ -1526,7 +1615,7 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 
 ### 7.5 Data availability (progress) [C]
 
-- Q59: on finite bare inputs, `lookup t k` fails iff the walk reaches a stub or a nonterminal branch with a out-of-range selected slot. On the explicit valid-selected-access domain it fails iff a stub is reached; this premise is not a runtime key/WF restriction. Source correspondence retains C20’s Hash32/source-class/host premises. The seven defining lookup equations and all-bare reference equality are supplied in §3;
+- Q59: on finite bare inputs, `lookup t k` fails iff the walk reaches a stub or a nonterminal branch with an out-of-range selected slot. On the explicit valid-selected-access domain it fails iff a stub is reached; this premise is not a runtime key/WF restriction. Source correspondence retains C20’s Hash32/source-class/host premises. The seven defining lookup equations and all-bare reference equality are supplied in §3;
   whole map/source agreement remains open. `update` fails iff the insertion path reaches a stub; `delete` fails iff its path reaches a stub or a collapse leaves exactly one child that is a stub. For a pruning `t` of `canonTrie m`, "all nodes on the path of `k` resolved" implies success of `lookup`/`update`; for `delete` additionally "the sibling of every collapsing branch resolved". Authenticated absence (a mismatching leaf or empty child on a resolved path) is success.
 - Conjectures to settle: success of an insert-only (resp. delete-only) sequence is independent of its order.
 
@@ -1582,7 +1671,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q52: two-item path-list and leaf-value-list diagnostics follow C14/§5; complete dispatcher ordering and source acceptance controls are supplied in §3/§4, while WitnessError/guest adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
 - NEW-COMMIT-1: DECISIONS B3 (Q32): `Ref` hidden behind the trie API; `Option Node` only if it keeps the provenance DISC-003 needs (decode-side committed conformance in §3; full representation/root/mutation gate remains open).
-- NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict versus lazy `Enc` still open (§6).
+- NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict fresh-leaf completion is supplied in §3, while whole working update/cache strategy and refinement remain open (§6).
 - NEW-COMMIT-3: DECISIONS B3 (Q34) and DISC-003: reproduce the reference's non-canonical acceptances (C16, C19); a deviation needs an accepted decision record.
 - NEW-COMMIT-4: DECISIONS B15 (Q35) and DISC-004: memoised decoding needs a proof that it preserves accept/reject, error precedence and observations (§7.6); host-resource interaction is DISC-001 (O12 unresolved).
 
@@ -1599,15 +1688,24 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   decoder/WF/cache/update/root/security/generic coupling/lifetime/whole W1/S2/C1–C4/O12 and guest
   readiness obligations remain open.
 
+- **Completed fresh-leaf scope:** mkLeaf and its two plain-Monad threshold/cache equations are
+  supplied in §3/§7.0.6 with private total List equality and complete-field/generic/fresh-
+  source/parser controls. The successful source relation starts from both caches None followed by
+  materialization, not arbitrary stale states or a lazy schedule. Complete Encodable/class/Id/host
+  premises remain explicit; whole mutable-cache, WF, map/root/authentication/security/witness,
+  generic coupling/lifetime, mutation/contextual-consumer and resource/readiness obligations
+  remain open under their §10 owners. Empty constructor value selects no setter/default rule.
+
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, smart constructors and update/delete/root operations remain
-  unimplemented. Complete generic decoding and pure bare lookup are supplied separately in §3. Bare arbitrary
+  meaning, childRef, mkExt/mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup and strict fresh-leaf completion are
+  supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
-  discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; no cache
-  or host policy is selected.
+  discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole
+  update/root cache scheduling remains open under §6/B15, and no host policy is selected.
 
 - **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 

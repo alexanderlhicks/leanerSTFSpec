@@ -190,6 +190,13 @@ and whole witness agreement remain open. The no-completed-memo baseline supplies
 no production cost exception, host/O12 resolution, whole W1/S2/R2/C1–C4 gate or
 guest readiness change.
 
+The bounded completed fresh-leaf contract is owned by
+[EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map). Public-import clients
+and complete-field/query/failure controls are supplied there. The committed source
+driver compares fresh successful Id results; seeded recording-state and transformer
+controls are separate. Preserve the full assembled Encodable/class/Id/hash/host domain
+and every open whole-cache/update/root/effect/lifetime/resource/guest obligation.
+
 Q59's [EthCommit C20/§§4/5/7](modules/EthCommit.md#5-interface) lookup seam is
 **supplied locally**: constructor, operation and seven public equations, private
 structural descent and all-bare offset/reference equality are implemented.
