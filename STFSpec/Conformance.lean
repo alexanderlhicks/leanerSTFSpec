@@ -141,6 +141,9 @@ import STFSpec.Conformance.Commit.IncrementalRootGuards
 import STFSpec.Conformance.StateCommit.StorageEncodingCallerProofs
 import STFSpec.Conformance.StateCommit.StorageEncodingGuards
 
+import STFSpec.Conformance.StateCommit.AccountEncodingCallerProofs
+import STFSpec.Conformance.StateCommit.AccountEncodingGuards
+
 /-!
 # STFSpec.Conformance
 

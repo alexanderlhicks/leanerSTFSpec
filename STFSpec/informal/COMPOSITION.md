@@ -111,7 +111,8 @@ wire injectivity (EthStateCommit §3), independently of supplied-default deletio
 Its exact integer equation and complete-wire source controls are owned there;
 they do not supply a root or backend bridge.
 It also supplies contextual Account encoding, unconditional nonempty and pair binding
-under both complete assembled Q47 domains (EthStateCommit §3). The callback/root
+under both complete assembled Q47 domains (EthStateCommit §3). That owner also
+supplies the exact four-field equation and local original-source controls. The callback/root
 integration remains open; no context-free Account instance follows from this class.
 Source bridges additionally supply Python equality/dispatch agreement, valid
 supported non-`None` values, complete schema/assembled-node `Encodable` (Q47), coherent

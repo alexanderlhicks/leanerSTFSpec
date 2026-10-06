@@ -73,7 +73,7 @@ they add no callback, secured-root, whole-source or guest conformance claim.
 
 ### Implemented contextual account encoder (SC1, Q47, Q53)
 
-`STFSpec/StateCommit/Account.lean` supplies exactly `encodeAccount`,
+`STFSpec/StateCommit/Account.lean` supplies exactly `encodeAccount`, `encodeAccount_eq`,
 `encodeAccount_ne_empty` and `encodeAccount_inj`; all proof support is private.
 One definition implements both shared and Amsterdam source functions.
 
@@ -114,6 +114,21 @@ These committed guards compare complete wires; the private symbolic clients comp
 the public laws with their exact assembled premises. The lenient account decoder
 and conditional SC10 are supplied below. Whole-source/host agreement and contextual
 callback/root integration remain open.
+
+The exact `encodeAccount_eq` equation exposes all four complete fields in source
+order. Its adjacent private List-wire reference has an ordinary all-input equality
+proof using public Base/Codec laws. `AccountEncodingCallerProofs.lean` consumes that
+equation; `AccountEncodingGuards.lean` checks independent assembled framing, all
+integer width transitions, complete asymmetric hashes and an 8,193-bit nonce.
+The committed `account_encoding_differential.py` compares complete frames with both
+unchanged pinned account encoders and independent unsigned/RLP framing, with live
+function/class/alias, loaded source and raw locked-wheel snapshots before and after.
+Strict parser controls run normally and with `-O`; code-content digests use explicit
+marshal format 2 within the authenticated runtime. Source agreement retains actual
+typed field construction, complete standard assembly and finite-host premises.
+The existing unconditional nonempty, complete-domain binding and conditional
+account SC10 laws remain supplied. This pure operation acquires no defaults or
+storage root and supplies no callback, secured-root or whole-backend bridge.
 
 ### Implemented lenient storage decoder (SC6, storage SC10)
 
@@ -261,6 +276,10 @@ remain open.
 -- mathStateRoot etc. abbreviate their Id.run values; Models is stated at PreState Id.
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
 def encodeAccount (acc : Account) (storageRoot : Hash32) : ByteArray
+theorem encodeAccount_eq (acc : Account) (storageRoot : Hash32) :
+  encodeAccount acc storageRoot =
+    Rlp.encode (.list [Rlp.ofNat acc.nonce, .bytes (U256.toBeBytes acc.balance).toByteArray,
+      .bytes storageRoot.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray])
 def encodeStorage (v : U256) : ByteArray                      -- total; storage maps omit zero
 theorem encodeStorage_eq (v : U256) :
   encodeStorage v = Rlp.encode (Rlp.ofNat v.toNat)
