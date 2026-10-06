@@ -286,13 +286,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Bounded component support:** Account and supplied empty-account values,
   internal WriteOrder support, raw MathState with its pure observers and structural
-  WF, raw BlockDiff values and raw mathematical application are supplied (§3/§7).
-  The owning laws and test rows specify their domains. MathState mutation, diff WF/
-  history/reachable preservation, provider/PreState, tracker effects/errors,
-  ordered-write integration, reachability, snapshot and operational source-refinement
-  obligations remain open.
+  WF, raw BlockDiff values, raw mathematical application and the raw four-operation
+  PreState carrier with coarse nominal WitnessItem/WitnessError values are supplied
+  (§3/§7). The owning laws and test rows specify their domains. MathState mutation,
+  diff WF/history/reachable preservation, actual provider operations/ModelsLookups,
+  StateError, witness diagnostic refinement, tracker effects/errors, ordered-write
+  integration, reachability, snapshot and operational source-refinement obligations
+  remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
+- **Lookup constants context:** ModelsLookups remains unimplemented. Its displayed
+  `(ps : PreState Id) (σ : MathState)` interface does not identify the HashConsts
+  context needed by MathState.code?. Resolving the successful code-answer clause
+  requires guidance for the matching provider/constants premise; the carrier adds
+  no constants field, argument, literal substitution or policy.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and

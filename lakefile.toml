@@ -148,3 +148,8 @@ root = "BlockDiffNativeTests"
 name = "apply-native-tests"
 srcDir = "scripts"
 root = "ApplyNativeTests"
+# Complete raw provider callback observations, outside the public state library.
+[[lean_exe]]
+name = "pre-state-native-tests"
+srcDir = "scripts"
+root = "PreStateNativeTests"

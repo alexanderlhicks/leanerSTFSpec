@@ -106,6 +106,8 @@ import STFSpec.Conformance.State.BlockDiffCallerProofs
 import STFSpec.Conformance.State.BlockDiffGuards
 import STFSpec.Conformance.State.ApplyCallerProofs
 import STFSpec.Conformance.State.ApplyGuards
+import STFSpec.Conformance.State.PreStateCallerProofs
+import STFSpec.Conformance.State.PreStateGuards
 
 /-!
 # STFSpec.Conformance

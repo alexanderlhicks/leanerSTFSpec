@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-10-05.*
+*Status: current contributor guidance. Date: 2026-10-06.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -146,6 +146,9 @@ lake exe block-diff-native-tests
 lake build apply-native-tests --wfail
 lake exe check-decls ApplyNativeTests
 lake exe apply-native-tests
+lake build pre-state-native-tests --wfail
+lake exe check-decls PreStateNativeTests
+lake exe pre-state-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 python3 scripts/check_boundaries.py
