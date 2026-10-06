@@ -32,6 +32,11 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def _code_digest(code):
+    """Reference-count-independent content identity within the authenticated runtime."""
+    return hashlib.sha256(marshal.dumps(code, 2)).hexdigest()
+
+
 def natural(value):
     require(type(value) is int and value >= 0, "non-natural field")
     return value
@@ -457,9 +462,7 @@ def main():
                     class_id=ci,
                     init_id=ii,
                     code_id=co,
-                    code_sha256=hashlib.sha256(
-                        marshal.dumps(c.__init__.__code__)
-                    ).hexdigest(),
+                    code_sha256=_code_digest(c.__init__.__code__),
                 )
                 for c, (ci, ii, co) in zip(classes + [original_mpt], constructor_ids)
             ],
@@ -489,7 +492,7 @@ def main():
                     first_line=f.__code__.co_firstlineno,
                     function_id=x[0],
                     code_id=x[1],
-                    code_sha256=hashlib.sha256(marshal.dumps(f.__code__)).hexdigest(),
+                    code_sha256=_code_digest(f.__code__),
                 )
                 for f, x in zip(functions, identities)
             ],
