@@ -9,6 +9,7 @@ import STFSpec.State.BlockDiff
 import STFSpec.State.Apply
 import STFSpec.State.PreState
 import STFSpec.State.StateError
+import STFSpec.State.Structural
 
 /-!
 # STFSpec.State
@@ -21,7 +22,7 @@ Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.t
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values and the nominal
-StateError carrier are supplied.
+StateError carrier are supplied, together with bounded structural preservation.
 Lookup providers, model mutation, state overlays, tracker effects and lifecycle laws
 remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.

@@ -215,7 +215,7 @@ Mathematical correctness and cryptographic security are separate deliverables (D
 
 Extensional maps (`ExtTreeMap`) give `=`-reasoning. They do *not* by themselves make snapshots cheap or establish storage semantics. Snapshot cost comes from persistence, and correctness from the laws above; key ordering still matters for speed (D2).
 
-Q58's separate unimplemented `BlockDiff.StructuralPremises` and ordinary laws
+Q58's supplied `BlockDiff.StructuralPremises` and ordinary laws
 are owned by EthState §5/§7.4: deletion tombstones clear storage, and every raw
 storage-change address has a present post-account, including empty patches and zero
 writes. With initial MathState.WF this suffices for structural output WF on all finite

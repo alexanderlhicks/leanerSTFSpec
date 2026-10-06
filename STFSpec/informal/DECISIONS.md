@@ -235,12 +235,15 @@ history.
 There is no runtime error, normalization, hash, pin, dependency, guest outcome or
 resource-policy change. D5/X7 generic coupling remains open.
 
-**Validation and limits.** The signatures and structural preservation argument are
-informal, unimplemented and unproved. EthState §4 lists future symbolic-law and
-edge-case checks; existing operation/source-to-Lean rows are unchanged. Document
-checks validate consistency/freshness, not typing, semantic theorems, conformance,
-readiness or S1/S2/W1/resource gates. Supplied carrier support is owned by EthState
-§3/§7; actual providers and StateError operation/adapter semantics remain separate work.
+**Validation and limits.** Supplied-record lookup agreement and tracker laws remain
+informal, unimplemented and unproved. EthState §3/§7.4 owns the supplied structural
+predicate and ordinary laws; §4 identifies their private public-law clients,
+independent omission proofs and complete finite guards. Their preservation theorem
+requires initial structural WF and both selected premises; it does not supply full
+metadata-domain policy or reachable history. Document checks validate consistency/
+freshness, not typing, semantic theorems, conformance, readiness or S1/S2/W1/resource
+gates. Supplied carrier support is owned by EthState §3/§7; actual providers and
+StateError operation/adapter semantics remain separate work.
 
 **Change procedure and revisit.** Direct lookup consumers use the supplied record;
 full-model owners expose the existing concrete binding. Implementation follows

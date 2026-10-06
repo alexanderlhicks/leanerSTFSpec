@@ -216,6 +216,19 @@ their §10 refinement obligations remain open. `State/StateError.lean` imports o
 operation uses, without implementing them. `ModelsLookups` remains unimplemented;
 Q57 specifies its supplied code-observer constants context.
 
+### Implemented bounded structural preservation (Q58)
+
+`State/Structural.lean` supplies one logical predicate and the ordinary
+laws in §7.4, exported through `State.lean`. The laws quantify every finite raw state
+and diff; only the preservation law assumes initial structural WF. There is no
+runtime enumeration, decision procedure, effect, failure or metadata normalization.
+
+| Source / model item | Lean declaration and public type | Domain, effect and status | Laws and deterministic validation |
+|---|---|---|---|
+| Sufficient structural premises motivated by `state_mpt.py:133–161,187–206` and `merkle_patricia_trie.py:325–347`; not a separate EELS operation | `BlockDiff.StructuralPremises : MathState → BlockDiff → Prop` | **Discharged:** exactly deletion-tombstone-to-clear and raw storage-change-address-to-post-account presence, including empty patches and zero writes. No initial WF, code, account-value or metadata restriction. Pure logical contract; no failure/handler. | `structuralPremises_iff`, `structuralPremises_storage_clear`, `structuralPremises_account_present`; private arbitrary clients in `StructuralCallerProofs.lean`, omission/empty/zero counterexamples in `StructuralGuards.lean`. |
+| Structural consequence of clear-before-write, zero deletion and touched-empty pruning at those sources | `MathState.wf_apply_of_structuralPremises` | **Discharged:** initial `MathState.WF σ` and `BlockDiff.StructuralPremises σ d` imply all three output WF clauses. Callers establish both premises; this is not reachable extraction. | Public Apply slot/account/inner-map laws and MathState WF laws; private proofs of independent premise omissions, malformed initial zero/empty/orphan states, deletion with clear and clear/reintroduction. |
+| Effect-only predicate congruence; replay metadata is B1 guidance | `BlockDiff.structuralPremises_congr_effects` | **Discharged:** equality of accountChanges, storageChanges, codeChanges and storageClears implies predicate iff, with no metadata equality premise. | Public `apply_congr_effects`; private arbitrary clients and complete finite observations for missing/present-empty/extra/duplicate/foreign metadata. No full optional-map policy is selected. |
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (202 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -257,13 +270,16 @@ Q57 specifies its supplied code-observer constants context.
   observers stay in EthConformance; no production equality/repr/default/order/hash/coercion
   instance is installed for the carrier. There is no nominal EELS operation to differentially run.
 - **Property tests:** random operation sequences against the reference model of §7.1 (the commuting equations as executable checks); snapshot/revert against a naive deep-copy implementation; differential comparison with EELS `state_tracker` through a Python harness on random sequences (bug-finding only).
-- **Future Q57/Q58 cases (unimplemented):** successful/absent account answers,
-  reserved/nonreserved code at arbitrary supplied records and an always-error provider;
-  unchanged surviving storage, deletion with/without clear, clear plus nonzero reintroduction
-  with a present account, zero last-slot deletion, empty patches, arbitrary code/metadata,
-  and an initially absent account made present by replacement. Symbolic public-law clients
-  must cover the structural laws in §7.4. Slot-order missing/present-empty/extra cases await
-  a full-WF policy; these planned checks establish no history or release gate.
+- **Future Q57 cases (unimplemented):** successful/absent account answers,
+  reserved/nonreserved code at arbitrary supplied records and an always-error provider.
+- **Implemented Q58 cases:** private symbolic clients cover the §7.4 laws.
+  `StructuralGuards.lean` proves independent premise omissions and initial-WF necessity
+  for zero/empty-inner/orphan states, raw empty/zero patch presence at absent accounts,
+  and sufficient-but-not-necessary premises. Complete raw guards cover surviving storage,
+  deletion with/without clear, clear/reintroduction, zero last-slot pruning, empty patches
+  with/without clear, account replacement before writes, arbitrary code and unusual metadata.
+  These logical/finite cases do not execute tracker, backend/root or guest operations.
+
 
 ## 5. Interface
 
@@ -275,6 +291,7 @@ BlockDiff values and raw mathematical application are implemented and pure; the 
 MathState record and structural `WF` are also supplied. The raw PreState carrier and
 coarse nominal WitnessItem/WitnessError values are supplied without a Monad premise.
 The nominal StateError carrier in §5/R29 is also supplied, without operations or adapters.
+The bounded structural predicate and preservation laws are supplied (§3/§7.4).
 MathState mutation, diff WF/history/reachable preservation, actual PreState providers/
 ModelsLookups and tracker operations remain unimplemented targets. The EELS
 default-empty BlockDiff convenience constructor remains deferred (§10).
@@ -590,10 +607,10 @@ that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
 
 ### 7.4 Invariants exported to other libraries
 
-- **Bounded structural contract (Q58; unimplemented).** `BlockDiff.StructuralPremises σ₀ d` consists exactly of (i) every raw deletion tombstone clearing storage, and (ii) a present post-account at every raw `storageChanges` address. Raw presence includes empty patches and explicit zero writes. For every finite raw σ₀ and d, initial `MathState.WF σ₀` plus these premises suffices for `MathState.WF (σ₀.apply d)`. Metadata, code bytes and account fields are arbitrary. The premises are sufficient, not necessary: deleting an account with no initial storage can preserve WF without a clear; an empty patch at an absent account violates (ii) even when the output has no storage there.
+- **Bounded structural contract (Q58; supplied).** `BlockDiff.StructuralPremises σ₀ d` consists exactly of (i) every raw deletion tombstone clearing storage, and (ii) a present post-account at every raw `storageChanges` address. Raw presence includes empty patches and explicit zero writes. For every finite raw σ₀ and d, initial `MathState.WF σ₀` plus these premises suffices for `MathState.WF (σ₀.apply d)`. Metadata, code bytes and account fields are arbitrary. The premises are sufficient, not necessary: deleting an account with no initial storage can preserve WF without a clear; an empty patch at an absent account violates (ii) even when the output has no storage there.
 
-Exactly five ordinary structural laws are specified below as informal targets,
-with no proof bodies or implementation claim:
+Exactly five ordinary structural laws are supplied in `State/Structural.lean`.
+The signatures below summarize their contract without reproducing Lean proofs:
 
 ```lean
 theorem BlockDiff.structuralPremises_iff (σ : MathState) (d : BlockDiff) :
@@ -695,7 +712,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application and the raw four-operation
   PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
-  are supplied (§3/§5/§7). The owning laws and test rows specify their domains.
+  and bounded structural preservation are supplied (§3/§5/§7). The owning laws and
+  test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
   refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
@@ -714,7 +732,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
-- **Bounded structural target (Q58):** implement StructuralPremises and its §7.4 laws on all finite raw inputs. Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay history/reachability, AccountWritesLookedUp and F7 remain open.
+- **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
+  (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
+  history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.

@@ -288,7 +288,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application and the raw four-operation
   PreState carrier with coarse nominal WitnessItem/WitnessError and StateError values
-  are supplied (§3/§5/§7). The owning laws and test rows specify their domains.
+  and bounded structural preservation are supplied (§3/§5/§7). The owning laws and
+  test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   ModelsLookups, StateError operation/adapter semantics and freezing, witness diagnostic
   refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
@@ -307,7 +308,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup target (Q57):** implement R8/§5 and contextual read laws at the retained BlockState record; prove full-model lookup projection under concrete Id coherence. No new provider field or local acquisition is specified.
-- **Bounded structural target (Q58):** implement StructuralPremises and its §7.4 laws on all finite raw inputs. Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay history/reachability, AccountWritesLookedUp and F7 remain open.
+- **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
+  (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
+  history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.
