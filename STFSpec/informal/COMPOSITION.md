@@ -270,6 +270,16 @@ fields, including canonical HP and the interpreted C16 ending, rather than origi
 provenance. Input Enc retains raw bytes; the stored-hash shortcut retains its supplied hash.
 B3/DISC-003 adoption and dirty-cache/query/write/whole-operation obligations remain open.
 
+### Completed immediate-extension premise
+
+[EthCommit §3/§7.0.8](modules/EthCommit.md#3-eels-source-map) owns the supplied
+constructor, four plain-Monad cases, private reference equality and conditional
+source-value domain. Consumers preserve one immediate splice and whole retained
+children; final Encodable/cache/embedding/class/Id/hash/host premises remain explicit.
+Source witness/child/own effects are distinct from Id node-image comparison; committed
+recording-state/transformer controls supply separate generic-effect evidence. Whole
+update/root scheduling, canonicality and guest/resource obligations remain open.
+
 ### Completed fresh-leaf premise
 
 [EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map) owns the supplied

@@ -356,12 +356,23 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   agreement. Whole WF/cache/mutation/root/security/generic coupling/lifetime/contextual-
   consumer/O12/resource/cost/W1/S2/EEST/guest readiness obligations remain open.
 
+- **Completed immediate-extension scope:** mkExt and four plain-Monad literal immediate-case
+  equations are supplied in §3/§7.0.8, with private packed concat/List-wire equality, complete
+  retained-child fields/cache and seeded state/failure/source/parser controls. One splice
+  discards only immediate leaf/ext Enc, retains the entire grandchild/branch/stub, and completes
+  only fresh own raw/hash; no empty-prefix identity or transitive normalization. Source joins
+  use actual unstubbed deletion/collapse stages; C23/C19 matched insertion/split workers
+  preserve actual shapes. Witness/child cache/query stages remain distinct from immutable
+  retention and own completion. Complete assembly Encodable/class/Id/hash/acyclic nonaliasing
+  host premises and whole cache/WF/canonicality/map/root/mutation/generic
+  coupling/lifetime/host/O12/cost/resource/security/witness/contextual/W1/S2/EEST/guest
+  readiness obligations remain open.
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkExt/mkBranch and update/delete/root operations remain
-  unimplemented. Complete generic decoding, pure bare lookup strict fresh-leaf completion and pure childRef are
-  supplied separately in §3. Bare arbitrary
+  meaning, mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
+  completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole

@@ -57,7 +57,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 - C22. `mpt_set m key value` (`inc:417–470`): the default value deletes; otherwise the value is encoded (C10) and inserted; a key is hashed iff `secured`. The Lean generic API takes the already-encoded value (`Option ByteArray`, `none` = delete).
 - C23. **Insert** (`inc:473–677`): empty → new leaf; a stub on the path → failure (`assert` in `_invalidate_hash`, O4(c)); leaf with equal remaining key → replace value; otherwise split into (extension over the common prefix, if non-empty, of) a branch built from the two remainders, a remainder of length 0 becoming the branch value (`_create_branch_from_two_leaves`); extension: full prefix match → recurse into the child, partial → `_split_extension` (the old child is reused unchanged when one nibble of the segment remains, else wrapped in a shorter extension; the "unexpected collision" `assert` at `inc:644` is unreachable [inference: the remainders differ at `prefix_len`]); branch → set value at an empty remainder, else recurse into child `remaining[0]`.
-- C24. **Delete** (`inc:680–784`): empty → empty; a stub on the path → failure; leaf → removed iff its path equals the remainder, else unchanged; extension with a mismatching segment → unchanged; extension → recurse and **merge** a resulting extension or leaf child into it (segment concatenation), drop it if the child vanishes; branch → clear the value or recurse into the child; if nothing changed return the branch, otherwise collapse (C25).
+- C24. **Delete** (`inc:680–784`): empty → empty; a stub on the path → failure; leaf → removed iff its path equals the remainder, else unchanged; extension with a mismatching segment → unchanged; extension → recurse and **merge** a resulting extension or leaf child into it (one immediate segment concatenation), drop it if the child vanishes; branch → clear the value or recurse into the child; if nothing changed return the branch, otherwise collapse (C25). The supplied mkExt (§3/§7.0.8) implements this immediate splice/completion pattern, not all C23/C19 extension mutation sites: matched insertion and split suffix construction preserve their actual extension/old-child shapes (`inc:585–596,621–630`).
 - C25. **Collapse** (`_collapse_branch`, `inc:787–828`): with exactly one child and no value, the sole child is first passed to `_record_witness`, which **fails on a stub** (`inc:245`): deleting a key whose only remaining sibling is unresolved is a witness failure (EELS unit test `test_partial_witness_delete_collapses_to_hashed_node`; fixture `test_validation_state_missing_delete_auxiliary_node`). Otherwise leaf child → leaf with the nibble prepended; extension child → extension with the nibble prepended; branch child → one-nibble extension. With no children and a value → leaf with **empty path**. The `assert` at `inc:793` (a branch with nothing left) is unreachable from a branch with ≥ 2 occupied entries [inference].
 - C26. **Order sensitivity.** Because C25 fails only when the sibling set has shrunk to a single stub, the success of a mixed sequence of inserts and deletes depends on order [executed: delete-then-insert fails, insert-then-delete succeeds on the same trie]. Whoever sequences updates (`EthStateWitness`) must reproduce EELS's order.
 - C27. `mpt_root` (`inc:831–856`): empty → `EMPTY_TRIE_ROOT`; if the root's reference (C18) is bytes it is the root, else `keccak256(rlp ·)` of the inline structure — the same rule as C8.
@@ -151,6 +151,44 @@ long source-value agreement additionally needs relevant field/hash/child coheren
 answers; source queries and cache writes remain distinct. Complete recursive Encodable covers
 every field/child and joined payload, with actual class/finite acyclic host/hash premises. The
 total Lean equations need none of these premises and add no public WF predicate.
+
+### Supplied completed immediate-extension construction
+
+`STFSpec/Commit/Extension.lean`, reexported by `STFSpec.Commit`, supplies mkExt and
+four literal case equations under plain Monad/KeccakQuery. Match the immediate
+child once: leaf joins paths and rebuilds through public mkLeaf; extension joins
+once and retains the whole grandchild; branch/stub retains the entire supplied
+child. Only the immediate leaf/ext Enc is discarded. Empty prefix follows the
+same cases, without an identity shortcut or transitive normalization. Strict fresh
+own completion binds raw once, retains it, and makes no local query below 32 or one
+full query at or above that threshold with the actual answer. There is no new public
+append/helper/WF predicate, shape/cache admission, error or mutation policy.
+
+| Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Laws/reference | Complete-field/generic/source evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:719–750,795–819`, C18/C19/C24/C25; fresh completion `:316–346` | `mkExt : Nibbles → Node → m Node` under Monad/KeccakQuery; **supplied**, all finite bare inputs | One immediate splice; fresh own raw/hash completion; retained descendants unchanged; one own query iff complete raw ≥ 32; underlying failure forwards at that query | mkExt_leaf/ext/branch/hashed (§7.0.8); private packed-concat unconditional List equality and plain-Monad immediate List/wire equality through public mkLeaf/provider laws | ExtensionCallerProofs public-law/full-field/domain/StateT/ExceptT clients; ExtensionGuards full recursive fields/caches, seeded arbitrary/distinct answers, independent calls, both failure orders/no later query, all arities/empty paths/31–33 and field/joined-prefix boundaries; extension_differential.py compares complete Id node images from actual deletion/collapse/fresh stages; source witness/child/own queries and mutable after-state are recorded separately and strict recursive parser normal/-O |
+
+Source correspondence is conditional differential evidence: actual returned new_child from
+unstubbed deletion or post-witness collapse, matching bounded source paths/Bytes,
+fresh or invalidated outer caches None, and the relevant retained-child embedding
+premises of C18. Observe whole returned child and original mutable after-state,
+not only a root digest. Witness/child helper queries and child cache writes are
+separate from fresh own completion; immutable retained child fields do not promise
+the mutable child's after-cache identity or generic action simulation. Standard
+success retains concrete Id/hash/class, finite acyclic nonaliasing host/crypto and
+complete final Encodable (HP/child/joined payload or merged leaf) premises. Stub
+witness failure precedes collapse construction and adds no local mkExt error.
+Q47 total model equality selects no outside-domain host outcome or Python 2^64 guard.
+
+The committed source driver compares complete node images at Id; it does not export
+Lean query traces. Recording-state/arbitrary-answer/transformer/first-failure guards are
+separate effect evidence. Operational guards and source descriptors now exercise fresh
+branch and immediate-extension encoding widths 31/32/33. Changed-branch deletion removes
+one of three occupied children, retains two and reaches the parent join at inc:748–750.
+Source agreement is derived from explicit retained-child embedding premises: a clean
+stored hash shortcuts; a hashless current item must be short with recursively compatible
+children; dirty stored hashes additionally require matching current materialization.
+Long hashless retained children remain explicit boundaries, independent of descriptors.
 
 ### Supplied nominal incremental-trie carrier
 
@@ -1229,7 +1267,7 @@ inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | u
 -- smart constructors (the only way ops build nodes; internal but with public laws).
 -- They compute Enc, which may hash, so they are monadic (F4).
 def mkLeaf (path : Nibbles) (value : ByteArray) : m Node  -- supplied strict fresh completion (§3/§7.0.6)
-def mkExt (path : Nibbles) (child : Node) : m Node          -- merges ext/leaf children (C24)
+def mkExt (path : Nibbles) (child : Node) : m Node          -- supplied immediate splice (§3/§7.0.8)
 def mkBranch (children : Array (Option Node)) (value : ByteArray) : m (Except TrieError Ref)  -- size 16; collapse, C25
 
 -- Q55: complete generic decoders are supplied in §3; pure lookup is supplied separately in §3.
@@ -1629,6 +1667,50 @@ equality covers every finite input. Proof-only Node/Option/Array size decreases
 justify proper-child recursion, including empty extensions; no runtime fuel,
 size measure or shape check is introduced. No cost/resource claim is discharged.
 
+### 7.0.8 Completed immediate-extension equations (discharged locally)
+
+The following four laws quantify `{m : Type → Type} [Monad m] [KeccakQuery m]`.
+All extra concat/completion/reference/observation support is private. Literal
+let/bind shapes need no LawfulMonad; transformer/pure-bind clients state it explicitly.
+
+```lean
+theorem mkExt_leaf (p q : Nibbles) (v : ByteArray) (old : Enc) :
+  mkExt (m := m) p (.leaf q v old) =
+    mkLeaf (m := m) (Nibbles.ofList (p.toList ++ q.toList)) v
+theorem mkExt_ext (p q : Nibbles) (c : Node) (old : Enc) :
+  mkExt (m := m) p (.ext q c old) =
+    let joined := Nibbles.ofList (p.toList ++ q.toList)
+    let raw := Rlp.encode (assembleInternalNode
+      (some (.extension joined (childRef (some c)))))
+    if raw.size < 32 then pure (Node.ext joined c (Enc.mk raw none))
+    else KeccakQuery.keccak raw >>= fun answer =>
+      pure (Node.ext joined c (Enc.mk raw (some answer)))
+theorem mkExt_branch (p : Nibbles) (children : Array Ref)
+    (v : ByteArray) (childEnc : Enc) :
+  mkExt (m := m) p (.branch children v childEnc) =
+    let c := Node.branch children v childEnc
+    let raw := Rlp.encode (assembleInternalNode
+      (some (.extension p (childRef (some c)))))
+    if raw.size < 32 then pure (Node.ext p c (Enc.mk raw none))
+    else KeccakQuery.keccak raw >>= fun answer =>
+      pure (Node.ext p c (Enc.mk raw (some answer)))
+theorem mkExt_hashed (p : Nibbles) (h : Hash32) :
+  mkExt (m := m) p (.hashed h) =
+    let c := Node.hashed h
+    let raw := Rlp.encode (assembleInternalNode
+      (some (.extension p (childRef (some c)))))
+    if raw.size < 32 then pure (Node.ext p c (Enc.mk raw none))
+    else KeccakQuery.keccak raw >>= fun answer =>
+      pure (Node.ext p c (Enc.mk raw (some answer)))
+```
+
+Private concat uses public generate/size/get and has unconditional ordinary
+equality to ofList(p.toList++q.toList), without foreign representation unfolding
+or a new public seam. The private immediate List/wire reference has ordinary
+all-input literal action equality via public mkLeaf threshold equations and
+InternalNode wire/width laws. No recursion/runtime sizeOf/fuel is needed by mkExt;
+retained-child projection uses the separately supplied total childRef.
+
 ### 7.1 Totality [T]
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
@@ -1638,6 +1720,8 @@ size measure or shape check is introduced. No cost/resource claim is discharged.
 - C18 childRef is total on every finite bare Ref by proper-child Node/Option/Array
   size descent; cached parents bypass recursion, and every hashless actual child
   is visited in order. Its private List/HP reference has ordinary all-input equality.
+- mkExt matches exactly one immediate constructor, with finite packed concatenation
+  and one strict own completion; no recursive normalization/descent budget is added.
 
 - `compactToNibbles`, `mathRoot` (empty dispatch or actual C7 then one query), `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup` (Q59 finite proper-child Node-size descent, including zero-key-consumption empty extensions; private Array/Option child decrease), `update`/`delete` (their separate mutation domains/descent proofs; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions. Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its decreases and full path invariant, rather than assuming hash injectivity. This cycle totalization makes no claim about Python's finite host-limit query trace.
 
@@ -1651,7 +1735,10 @@ with its concrete interpretation; complete decoder premises explicitly use
 belongs to `EthSecurity` and remains open (D5).
 
 - Typed get/set and storage/safety equations are discharged in §3. Generic preparation equations are discharged in §3; typed-root equations are discharged with the exact domains and monad-law premises in §7.0.3.
-- Invariant preservation: `update`/`delete`/`mkBranch`/`mkExt` preserve `Canonical` and the `Enc` rule.
+- Invariant preservation remains open: `update`/`delete`/`mkBranch` preserve
+  `Canonical` and the `Enc` rule on their admitted domains. A corresponding `mkExt`
+  sketch needs canonical retained-child/embedding premises and a nonempty prefix
+  for branch/stub children: an empty prefix creates an empty-path extension.
 - Simulation for the **root-compatible** abstraction relation (which includes canonical encoding/commitment compatibility, not just matching lookups): `represents t m → update t k v = .ok t' → represents t' (m.insert k v)`; `represents t m → delete t k = .ok t' → represents t' (m.erase k)`; `represents t m → lookup t k = .ok r → r = m[k]?`; `represents t m → rootHash t = mathRoot m`. No collision assumption is needed for these: they are structural, because the smart constructors mirror `patricialize` (Nipkow et al. Ch. 12 `nodeP` pattern).
 - `rootHash (canonTrie m) = mathRoot m`; `represents (buildMpt m) m`.
 
@@ -1716,7 +1803,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
 - **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied; concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
-- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup` and seven constructor equations (§3); pure completed-cache `childRef` and five constructor equations (§3/§7.0.7); the following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
+- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7
+  `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete
+  generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup`
+  and seven constructor equations (§3); pure completed-cache `childRef` and five constructor
+  equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8); the
+  following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the
+  witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement
+  theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -1741,7 +1835,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q52: two-item path-list and leaf-value-list diagnostics follow C14/§5; complete dispatcher ordering and source acceptance controls are supplied in §3/§4, while WitnessError/guest adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
 - NEW-COMMIT-1: DECISIONS B3 (Q32): `Ref` hidden behind the trie API; `Option Node` only if it keeps the provenance DISC-003 needs (decode-side committed conformance in §3; full representation/root/mutation gate remains open).
-- NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict fresh-leaf completion is supplied in §3, while whole working update/cache strategy and refinement remain open (§6).
+- NEW-COMMIT-2: DECISIONS B15 (Q33): internal and interface-neutral; strict fresh-leaf and immediate-extension completion are supplied in §3, while whole working update/cache strategy and refinement remain open (§6).
 - NEW-COMMIT-3: DECISIONS B3 (Q34) and DISC-003: reproduce the reference's non-canonical acceptances (C16, C19); a deviation needs an accepted decision record.
 - NEW-COMMIT-4: DECISIONS B15 (Q35) and DISC-004: memoised decoding needs a proof that it preserves accept/reject, error precedence and observations (§7.6); host-resource interaction is DISC-001 (O12 unresolved).
 
@@ -1776,12 +1870,23 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   agreement. Whole WF/cache/mutation/root/security/generic coupling/lifetime/contextual-
   consumer/O12/resource/cost/W1/S2/EEST/guest readiness obligations remain open.
 
+- **Completed immediate-extension scope:** mkExt and four plain-Monad literal immediate-case
+  equations are supplied in §3/§7.0.8, with private packed concat/List-wire equality, complete
+  retained-child fields/cache and seeded state/failure/source/parser controls. One splice
+  discards only immediate leaf/ext Enc, retains the entire grandchild/branch/stub, and completes
+  only fresh own raw/hash; no empty-prefix identity or transitive normalization. Source joins
+  use actual unstubbed deletion/collapse stages; C23/C19 matched insertion/split workers
+  preserve actual shapes. Witness/child cache/query stages remain distinct from immutable
+  retention and own completion. Complete assembly Encodable/class/Id/hash/acyclic nonaliasing
+  host premises and whole cache/WF/canonicality/map/root/mutation/generic
+  coupling/lifetime/host/O12/cost/resource/security/witness/contextual/W1/S2/EEST/guest
+  readiness obligations remain open.
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, mkExt/mkBranch and update/delete/root operations remain
-  unimplemented. Complete generic decoding, pure bare lookup strict fresh-leaf completion and pure childRef are
-  supplied separately in §3. Bare arbitrary
+  meaning, mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
+  completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; whole
