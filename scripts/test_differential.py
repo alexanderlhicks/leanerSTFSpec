@@ -7,6 +7,7 @@ import hashlib
 from contextlib import contextmanager, redirect_stderr
 import importlib.machinery
 import importlib.metadata
+import importlib.util
 import io
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ import py_compile
 import shutil
 import subprocess
 import sys
-from types import ModuleType, SimpleNamespace
+from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -534,6 +535,141 @@ class DifferentialTests(unittest.TestCase):
         installed.mkdir(parents=True)
         shutil.copy2(spec.origin, installed / Path(spec.origin).name)
         self.assertIsNone(FreshSourceFinder(self.driver).find_spec("_json", [str(installed)]))
+
+
+class CodeIdentityTests(unittest.TestCase):
+    """Offline code-content checks; no oracle imports or Git fixture setup."""
+
+    @classmethod
+    def setUpClass(cls):
+        path = (Path(__file__).resolve().parents[1] /
+                "STFSpec/Conformance/Commit/incremental_root_differential.py")
+        spec = importlib.util.spec_from_file_location("incremental_root_identity_tests", path)
+        cls.driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.driver)
+
+    def function(self):
+        scope = {}
+        exec(compile("def target(x=5):\n"
+                     "    return (x, (938271, 813791), 'long-synthetic-constant-abcdef')\n",
+                     "<code identity fixture>", "exec"), scope)
+        return scope["target"]
+
+    def code(self):
+        module = compile("def outer(x=5, *, y=6):\n"
+                         "    def nested(z):\n"
+                         "        return (z, (747481, 813791))\n"
+                         "    return (x, y, nested)\n",
+                         "<nested identity fixture>", "exec")
+        return next(value for value in module.co_consts if type(value) is CodeType)
+
+    def test_unchanged_constants_reference(self):
+        function = self.function()
+        code = function.__code__
+        before = self.driver._code_digest(code)
+        held = code.co_consts
+        self.assertEqual(before, self.driver._code_digest(code))
+        self.assertIs(function.__code__, code)
+        self.assertIs(held, code.co_consts)
+
+    def test_unchanged_result_reference(self):
+        function = self.function()
+        code = function.__code__
+        before = self.driver._code_digest(code)
+        function(8)  # Discarded result.
+        self.assertEqual(before, self.driver._code_digest(code))
+        held = function(8)
+        self.assertEqual(before, self.driver._code_digest(code))
+        self.assertIs(function.__code__, code)
+        self.assertEqual(held[0], 8)
+        held = None
+        self.assertEqual(before, self.driver._code_digest(code))
+
+    def test_unchanged_constructor_reference(self):
+        scope = {}
+        exec(compile("class Fixture:\n"
+                     "    def __init__(self):\n"
+                     "        self.value = (938271, 813791)\n",
+                     "<constructor identity fixture>", "exec"), scope)
+        constructor = scope["Fixture"].__init__
+        code = constructor.__code__
+        before = self.driver._code_digest(code)
+        instance = scope["Fixture"]()
+        self.assertEqual(before, self.driver._code_digest(code))
+        self.assertIs(constructor.__code__, code)
+        self.assertEqual(instance.value, (938271, 813791))
+
+    def test_changed_code_fields(self):
+        code = self.code()
+        changes = [
+            dict(co_argcount=0), dict(co_posonlyargcount=1), dict(co_kwonlyargcount=0),
+            dict(co_nlocals=code.co_nlocals + 1, co_varnames=code.co_varnames + ("extra",)),
+            dict(co_stacksize=code.co_stacksize + 1), dict(co_flags=code.co_flags ^ 64),
+            dict(co_code=code.co_code + code.co_code[-2:]),
+            dict(co_consts=code.co_consts + (938271,)),
+            dict(co_names=code.co_names + ("new_name",)),
+            dict(co_varnames=("renamed",) + code.co_varnames[1:]),
+            dict(co_freevars=("new_free",)), dict(co_cellvars=("new_cell",)),
+            dict(co_filename=code.co_filename + "x"), dict(co_name=code.co_name + "x"),
+            dict(co_qualname=code.co_qualname + "x"), dict(co_firstlineno=code.co_firstlineno + 1),
+            dict(co_linetable=code.co_linetable + bytes([0])),
+            dict(co_exceptiontable=code.co_exceptiontable + bytes([0])),
+        ]
+        before = self.driver._code_digest(code)
+        for change in changes:
+            with self.subTest(fields=tuple(change)):
+                self.assertNotEqual(before, self.driver._code_digest(code.replace(**change)))
+
+    def test_changed_nested_code(self):
+        code = self.code()
+        nested = next(value for value in code.co_consts if type(value) is CodeType)
+        changed = nested.replace(co_consts=nested.co_consts + ("changed",))
+        outer = code.replace(co_consts=tuple(
+            changed if value is nested else value for value in code.co_consts))
+        self.assertNotEqual(self.driver._code_digest(code), self.driver._code_digest(outer))
+
+    def test_typed_constants(self):
+        code = self.code()
+        for left, right in [(False, 0), (True, 1), (1, 1.0), (b"abc", "abc"),
+                            ((1, 2), frozenset((1, 2)))]:
+            with self.subTest(left=type(left), right=type(right)):
+                self.assertNotEqual(
+                    self.driver._code_digest(code.replace(co_consts=(None, left))),
+                    self.driver._code_digest(code.replace(co_consts=(None, right))))
+
+    def test_supported_constants_roundtrip(self):
+        import marshal
+        import struct
+        code = self.code()
+        values = [frozenset(("abc", "def", 3)), -0.0, float("inf"),
+                  complex(2.5, -0.0), b"\x00\xff"]
+        for value in values:
+            with self.subTest(kind=type(value)):
+                original = code.replace(co_consts=(None, value))
+                restored = marshal.loads(marshal.dumps(original, 2))
+                self.assertEqual(self.driver._code_digest(original),
+                                 self.driver._code_digest(restored))
+                self.assertIs(type(value), type(restored.co_consts[1]))
+                if type(value) is float:
+                    self.assertEqual(struct.pack(">d", value),
+                                     struct.pack(">d", restored.co_consts[1]))
+                elif type(value) is complex:
+                    self.assertEqual(
+                        struct.pack(">dd", value.real, value.imag),
+                        struct.pack(">dd", restored.co_consts[1].real, restored.co_consts[1].imag))
+                else:
+                    self.assertEqual(value, restored.co_consts[1])
+
+    def test_content_clone_keeps_distinct_live_identity(self):
+        function = self.function()
+        code = function.__code__
+        clone = code.replace()
+        self.assertEqual(self.driver._code_digest(code), self.driver._code_digest(clone))
+        self.assertIsNot(code, clone)
+        replacement = FunctionType(
+            clone, function.__globals__, function.__name__, function.__defaults__)
+        self.assertNotEqual((id(function), id(code)),
+                            (id(replacement), id(replacement.__code__)))
 
 
 if __name__ == "__main__":
