@@ -13,6 +13,7 @@ ToVCVio = ["EthBase", "EthCodec", "EthCommit"]
 HashConsts = "EthBase"
 KeccakQuery = "EthHash"
 InternalNode = "EthCommit"
+IncrementalMPT = "EthCommit"
 Trie = "EthCommit"
 TrieValue = "EthCommit"
 KeyBytes = "EthCommit"
