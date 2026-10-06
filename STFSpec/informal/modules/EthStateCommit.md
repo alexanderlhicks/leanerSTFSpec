@@ -84,8 +84,9 @@ and Account extensionality. Neither law unfolds foreign provider internals.
 
 `AccountCallerProofs.lean` consumes both laws on arbitrary accounts/roots and
 independently varies nonce, balance, root and code hash under the explicit domains.
-A private client also discharges the complete domain for every supplied emptyAccount
-and Hash32 root, then consumes the binding law without a domain hypothesis.
+The shared conformance helper `AccountDomain.empty_domain` proves the complete
+assembled domain for every supplied emptyAccount and Hash32 root. The private
+`empty_account_binding` client consumes it without a domain hypothesis.
 `AccountGuards.lean` compares complete bytes to an independent unsigned division
 and RLP-prefix model, plus literal exact expansions: supplied/literal emptyAccount,
 zero/max balance, separate 127/128 fields, nonce 2^256 and 2^1024+17, nonce payload
@@ -161,7 +162,7 @@ retain their owners.
 | Source at the pin | Declaration/type and status | Domain, success and effects | Ordered failures | Laws and evidence |
 |---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/witness_state.py:103–127`; `ethereum_rlp/rlp.py:143–156,387–543` (0.1.6); `ethereum_types/numeric.py:44–48,523,611–612,690–712` and `ethereum_types/bytes.py:29–51,109–112` (0.4.1) | `decodeAccountLeaf : HashConsts → ByteArray → Except WitnessError (Account × Hash32)`; **discharged local composition** | Every finite raw leaf; complete strict RLP followed by exact list-of-four shape. Empty bytes/lists take 0/0/supplied empty root/supplied empty code. Nonce is complete unbounded unsigned; balance accepts exactly the numerical U256 range, regardless of length/leading zeros. Explicit hashes retain all 32 bytes, including zero. Pure, no state/hash/cache effects | Strict RLP error; wrong outer shape/arity; nonce nonempty list; balance nonempty list/overflow; root nonempty list/wrong nonempty width; code nonempty list/wrong nonempty width. Helpers execute sequentially nonce → balance → root → code. All map only to `.malformed .leaf` (local O4(e)); this coarse value exposes no failed-field diagnostics | `decodeAccountLeaf_eq_ok_iff`, `_eq_error_iff`, `_empty`, `_encodeAccount`, `_congr_consts`; ordinary private bounded/reference equality and prefix/absorbing/retained-bound proofs, public-contract clients and complete-wire guards |
-| Conditional account SC10 | `decodeAccountLeaf_encodeAccount consts acc storageRoot h`; **discharged on complete assembled Q47 domain** | Every supplied constants record; caller supplies the complete four-field `Encodable` below; the private empty-account client named below discharges it for that family. Explicit hashes never default. Nonce has no cap or runtime domain guard | None on that domain; no inverse claim outside Q47 | Arbitrary-input symbolic roundtrip client, huge nonce and explicit zero hashes; canonical execution pairs |
+| Conditional account SC10 | `decodeAccountLeaf_encodeAccount consts acc storageRoot h`; **discharged on complete assembled Q47 domain** | Every supplied constants record; caller supplies the complete four-field `Encodable` below; the shared conformance empty-account helper named below discharges it for that family. Explicit hashes never default. Nonce has no cap or runtime domain guard | None on that domain; no inverse claim outside Q47 | Arbitrary-input symbolic roundtrip client, huge nonce and explicit zero hashes; canonical execution pairs |
 
 The exact five statement types are:
 
@@ -213,11 +214,12 @@ integer work; this supplies no parser-allocation, measured throughput or C1–C4
 
 `AccountDecodeCallerProofs.lean` consumes all five contracts on arbitrary leaves,
 accounts, supplied defaults and irrelevant constants, with explicit whole-domain
-roundtrips and nonce 2^1024+17. Its private `empty_domain` proves the complete
-assembled domain for every supplied emptyAccount and Hash32 root, and
-`empty_account_roundtrip` consumes that proof for every decoder constants record. `AccountDecodeGuards.lean` observes full parser trees,
-all returned values, all 16 falsy mixtures, outer shape/arity 0/1/3/5, every nonempty
-list field/nested empty list, huge/leading-zero nonce, fitting/overflow balances,
+roundtrips and nonce 2^1024+17. The shared conformance helper
+`AccountDomain.empty_domain` proves the complete assembled domain for every supplied
+emptyAccount and Hash32 root. The private `empty_account_roundtrip` consumes that
+proof for every decoder constants record. `AccountDecodeGuards.lean` observes full
+parser trees, all returned values, all 16 falsy mixtures, outer shape/arity 0/1/3/5,
+every nonempty list field/nested empty list, huge/leading-zero nonce, fitting/overflow balances,
 long zero prefixes/absorbing suffixes, hash widths 0/1/31/32/33/long, explicit all-zero
 hashes, asymmetric bytes and canonical pairs. Competing invalid early fields and
 malformed late children retain the complete parser error before coarse mapping.
