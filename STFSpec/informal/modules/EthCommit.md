@@ -122,6 +122,35 @@ nested-inductive support as well. Field correspondence is not whole source-runti
 refinement. No Python oracle is required for this item, which adds no executable trie
 operation. Remaining provenance/admission/operation gates are owned by §10.
 
+### Supplied nominal incremental-trie carrier
+
+`STFSpec/Commit/IncrementalMPT.lean` supplies exactly the §5 guest record
+`IncrementalMPT { secured : Bool, root : Ref }`, reexported by `STFSpec.Commit`.
+The root uses the existing nominal Ref; every supplied Bool/Ref is retained without
+validation, hashing, normalization or a default constructor. This is the existing
+§5 guest projection. Semantic representation adoption remains conditional on
+B3/NEW-COMMIT-1/DISC-003 provenance, failure and observation sufficiency; field
+retention establishes none of that obligation.
+
+The source's omitted flat `_data` follows C21. Omitted `default` follows C22's
+caller-owned default comparison and already-encoded Option policy
+(`inc:441/452`). Omitted `witness` follows C28/C25: recorded contents are host
+support, but collapse calls `_record_witness` (`inc:797`) and its stub assertion
+(`inc:245`) remains a required future guest failure. This carrier implements no
+such update, recording or collapse operation.
+
+| Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:111–123,1024–1040`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:797/:245`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
+
+`STFSpec/Conformance/Commit/IncrementalMPTCallerProofs.lean` supplies ordinary
+private full-field clients through the public owner. Only the structure's generated
+constructor, projections, eliminators and equations accompany its declaration;
+no deriving, instance, public helper or hand-written public law is added. Field
+correspondence needs no Python oracle because this item implements no executable
+trie operation. Remaining representation/admission/operation gates are owned by §10
+and REVIEW §3.
+
 ### Implemented pure path operations
 
 The following operations and their public model laws are implemented on the stated typed domains
@@ -1016,7 +1045,7 @@ def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError R
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)                        -- C24–C25
 def rootHash (emptyRoot : Hash32) (t : Ref) : m Hash32                                 -- C27
 
-structure IncrementalMPT where secured : Bool; root : Ref
+structure IncrementalMPT where secured : Bool; root : Ref  -- supplied nominal carrier only
 def decodeWitnessToMpt (emptyRoot : Hash32) (db : NodeDB)
     (r : Hash32) (secured : Bool) : m (Except TrieError IncrementalMPT)
 def mptSet (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) : m (Except TrieError IncrementalMPT)  -- hashes the key iff secured
@@ -1034,7 +1063,20 @@ def represents (t : Ref) (m : Std.ExtTreeMap Nibbles ByteArray) : Prop   -- t is
 def collisionWitness (db : NodeDB) (m) : Option (ByteArray × ByteArray)  -- computable
 ```
 
-Mapping of `incremental_mpt.py` items: `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` → `Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (the flat `_data` is dropped: it is unused on the guest path, C21); `_encode_mutable_node`, `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc` construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`, `_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`, `_insert_into_branch` → `update`/`mptSet`; `_mpt_delete_node`, `_delete_from_extension`, `_delete_from_branch`, `_collapse_branch` → `delete`/`mkBranch`/`mkExt`; `mpt_root` → `mptRoot`; `compact_to_nibbles` → `compactToNibbles`; `_resolve_child_ref`, `_decode_witness_node`, `decode_witness_to_mpt` → `decodeRoot`/`decodeWitnessToMpt`; `_build_mutable_tree`, `build_mpt` → `buildMpt`; `Witness`, `_record_witness`, `_mpt_traverse_for_witness`, `mpt_get` → `Witness`/`mptGetRecording`.
+Mapping of `incremental_mpt.py` items:
+`MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` →
+`Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (guest projection omits flat `_data` under C21,
+caller `default` under C22 (`inc:441/452`), and recorded `witness` under C28/C25; the future
+collapse stub failure at `inc:797/:245` is retained); `_encode_mutable_node`,
+`_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc`
+construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`,
+`_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`,
+`_insert_into_branch` → `update`/`mptSet`; `_mpt_delete_node`, `_delete_from_extension`,
+`_delete_from_branch`, `_collapse_branch` → `delete`/`mkBranch`/`mkExt`; `mpt_root` → `mptRoot`;
+`compact_to_nibbles` → `compactToNibbles`; `_resolve_child_ref`, `_decode_witness_node`,
+`decode_witness_to_mpt` → `decodeRoot`/`decodeWitnessToMpt`; `_build_mutable_tree`, `build_mpt` →
+`buildMpt`; `Witness`, `_record_witness`, `_mpt_traverse_for_witness`, `mpt_get` →
+`Witness`/`mptGetRecording`.
 
 For a consumer choosing existing Base `Bytes`, §3/§5 owns the supplied adapter
 and named exact-export equation. Generic preparation/storage contracts do not
@@ -1371,7 +1413,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Nominal partial-node scope:** exactly Enc/Node/Ref are supplied in §3, with private public-import full-field/variant/recursive-array clients and declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing meaning, childRef, smart constructors, IncrementalMPT and all decoder/lookup/update/delete/root operations remain unimplemented. Bare arbitrary arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003 provenance sufficiency and eventual representation hiding remain unproved. No C18/C19/Q55 decoder/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate is discharged; no cache or host policy is selected.
+- **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
+  supplied in §3, with private public-import full-field/variant/recursive-array clients and
+  declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
+  meaning, childRef, smart constructors and all decoder/lookup/update/delete/root operations
+  remain unimplemented. Bare arbitrary arity/malformed cache/path/child expressibility is not
+  admission. B3/NEW-COMMIT-1/DISC-003 provenance sufficiency and eventual representation hiding
+  remain unproved. No C18/C19/Q55
+  decoder/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate is discharged; no cache
+  or host policy is selected.
 
 - **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 

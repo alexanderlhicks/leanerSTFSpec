@@ -327,7 +327,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
-- **Nominal partial-node scope:** exactly Enc/Node/Ref are supplied in §3, with private public-import full-field/variant/recursive-array clients and declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing meaning, childRef, smart constructors, IncrementalMPT and all decoder/lookup/update/delete/root operations remain unimplemented. Bare arbitrary arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003 provenance sufficiency and eventual representation hiding remain unproved. No C18/C19/Q55 decoder/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate is discharged; no cache or host policy is selected.
+- **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
+  supplied in §3, with private public-import full-field/variant/recursive-array clients and
+  declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
+  meaning, childRef, smart constructors and all decoder/lookup/update/delete/root operations
+  remain unimplemented. Bare arbitrary arity/malformed cache/path/child expressibility is not
+  admission. B3/NEW-COMMIT-1/DISC-003 provenance sufficiency and eventual representation hiding
+  remain unproved. No C18/C19/Q55
+  decoder/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate is discharged; no cache
+  or host policy is selected.
 
 - **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 

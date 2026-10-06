@@ -21,6 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | Enc, Node, Ref | EthCommit | Preserve complete fields and recursive Array/Option children (EthCommit §3); semantic adoption remains conditional on B3/NEW-COMMIT-1/DISC-003, with remaining gates owned by EthCommit §10. |
+| IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref of the nominal secured/root record (EthCommit §3/§5); representation and operation obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
@@ -253,7 +254,8 @@ CONTRACT O4 owns the unchanged output projection.
 ### Nominal partial-node carrier support
 
 [EthCommit §3](modules/EthCommit.md#3-eels-source-map) owns the nominal
-Enc/Node/Ref field/client contract. B3/NEW-COMMIT-1 requires the DISC-003 provenance
+Enc/Node/Ref and secured/root IncrementalMPT field contracts. Consumers preserve the
+supplied flag and complete root. B3/NEW-COMMIT-1 requires the DISC-003 provenance
 and failure/observation demonstration before semantic adoption; constructors and
 structural clients do not establish it. Remaining admission, operation and cache
 representation/refinement gates are owned by [EthCommit §10](modules/EthCommit.md#10-gaps).
