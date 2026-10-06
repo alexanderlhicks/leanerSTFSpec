@@ -237,12 +237,15 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 |---|---|---|---|
 | Witness/code DBs | read-only `Std.HashMap Hash32 ByteArray` after construction, built through the hash oracle | `lookup`, and the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic` ("a stored value hashes to its key", F4) | [C] authenticated-content invariant |
 | Witness decoding | **eager**, matching the reference: decoding a root decodes everything reachable from it through the node DB (`incremental_mpt.py` `decode_witness_to_mpt`/`_decode_witness_node`/`_resolve_child_ref` at e1a316a0). It is triggered where the reference triggers it: the account trie at first account access; each storage trie at first access to that account's storage; and, in state-root computation, the storage trie of every account with storage changes and the account trie (`witness_state.py` `_get_decoded_secure_root`, `compute_state_root_and_trie_changes`). The source caches read decodings by root hash; Q55 leaves generic successful-result ownership/lifetime and F6 open, and root computation decodes afresh. A malformed node *anywhere* reachable makes validation fail (O4), even if no lookup would reach it; a lazy path walk would accept witnesses the reference rejects. | `decodeRoot {m} [Monad m] [KeccakQuery m] (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : m (Except TrieError Ref)` (Q55 local operation/laws owned by EthCommit §3; witness adapter separate; empty root short-circuits without a local query, `incremental_mpt.py:1024–1030`) | [T] see "Termination of witness decoding" below; [C] actual raw-preimage answer/cache provenance; equality to a DB reference only under `Authentic keccak256` and raw length ≥32 at concrete Id |
-| Partial trie | explicit `Node.leaf/ext/branch/hashed` carriers and `Ref := Option Node` (EthCommit §3/§5): `none` is absence, and inline/cached references retain encoding context rather than separate Ref variants. B3 requires representation hiding and demonstrated DISC-003 provenance sufficiency before semantic adoption (EthCommit §10). Branch children are an `Array (Option Node)` with a separately stated size-16 invariant, because the kernel rejects `Vector` in this nested inductive (F5, [DECISIONS §3](DECISIONS.md)). Each resolved node carries completed immutable `Enc` fields; acquisition/cache interpretation and operational refinement are owned by EthCommit §5/§6/§7.6. geth, remerkleable and milhouse do the same, and snapshots never invalidate it. | `lookup`/`update`/`delete`/`root`, with **agreement with the mathematical root** | [T] bare lookup descends by proper-child Node size (Q59); admitted update/delete use their separate nonempty-path remaining-key descent; [C] **agreement theorem** (shape below); [S] ROM lift |
+| Partial trie | explicit `Node.leaf/ext/branch/hashed` carriers and `Ref := Option Node` (EthCommit §3/§5): `none` is absence, and inline/cached references retain encoding context rather than separate Ref variants. B3 requires representation hiding and demonstrated DISC-003 provenance sufficiency before semantic adoption (EthCommit §10). Branch children are an `Array (Option Node)` with a separately stated size-16 invariant, because the kernel rejects `Vector` in this nested inductive (F5, [DECISIONS §3](DECISIONS.md)). Each resolved node carries completed immutable `Enc` fields; acquisition/cache interpretation and operational refinement are owned by EthCommit §5/§6/§7.6. geth, remerkleable and milhouse do the same, and snapshots never invalidate it. | `lookup`/`update`/`delete`/`root`, with **agreement with the mathematical root** | [T] bare lookup uses supplied proper-child descent (Q59); total bare mutations target private proper-child descent (Q60), with a separate canonical nonempty-path key measure; [C] **agreement theorem** (shape below); [S] ROM lift |
 
 **MPT proof pattern.**
 - **Canonical form, after Nipkow et al. Ch. 12 (Patricia tries).**
   - An invariant `Canonical` states the node-shape rules: no empty extension, a branch with at least 2 occupied entries, an extension child that is a branch, and a leaf with any remaining path.
-  - A **single normalising smart constructor** (the book's `nodeP`) is the only way updates and deletes build nodes, including branch collapse and extension merge. So canonicity is preserved by construction.
+  - The normalizing `nodeP` pattern is a conditional canonical proof route. Bare mutation workers
+    retain C23 matched/split extension constructors and merge/collapse only at C24/C25 sites
+    (Q60); a universal smart-constructor rule must not eagerly normalize those source cases.
+    Canonical/cache preservation remains a separate proof with its actual premises.
   - "Canonical tries are equal iff they represent the same map" (book Exercise 12.1) gives order-independence of the mathematical root.
 - **Abstraction relation, not a function** (§4): `represents t M`.
 - **Theorem statement shape, after Kestrel's ACL2 `books/kestrel/ethereum/mmp-trees.lisp` (Coglio).**
@@ -265,10 +268,10 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
   of key consumption. A matched empty extension still moves to a proper child;
   branch terminal values precede bounds, and only an in-bounds selected child is
   traversed. EthCommit §7.0.5 owns the supplied equations.
-- **Admitted mutation traversal** (update/delete) has a separate remaining-key
-  measure under the nonempty-extension path invariant. A branch consumes one nibble
-  and an admitted extension at least one; a leaf is terminal and consumes nothing.
-  This measure does not establish termination for arbitrary bare lookup inputs.
+- **Bare mutation traversal** (Q60) targets private proper-child Node descent and
+  finite array/path loops, including matched empty extensions; these proofs remain
+  future. The remaining-key measure is a separate canonical/source-shaped argument
+  under the nonempty-extension invariant, not total bare-input termination.
 - **Reference resolution** (hash → node through the DB, or an inline RLP list → node) doesn't consume nibbles, so it is bounded separately:
   - Inline references recurse on strictly smaller RLP subterms.
   - Hashed references recurse through the DB. Eager decoding is a depth-first traversal that tracks the hashes on the current path; meeting one again is `WitnessError.malformed`. The proposed measure is (number of DB entries not on the current path, size of the inline subterm), to be checked under [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) W1.
@@ -585,6 +588,29 @@ consumption. Private cursor/reference/child-size support and ordinary all-bare-i
 fast/reference equality are supplied under D18/D25 (EthCommit §3). No compiled feasibility,
 speed, guest reachability/output, host resource or readiness result follows; decoder,
 mutation, cache, root and security obligations retain their owners.
+
+**Bare mutation completion options (Q60).** DECISIONS Q60 owns the approved
+Candidate A. Keep total generic update/delete/mptSet and explicitly extend the
+existing branchIndex(index,arity) to reached missing mutation slots and occupancy(n)
+to actual changed zero collapse; add only collapseIndex(index) after successful
+applicable survivor witnessing. Candidate B instead adds mutationBranchIndex,
+emptyCollapse and collapseIndex as three distinct reasons. Candidate C changes the
+public API to key/operation-dependent source-domain proof binders; a secured prequery
+caller would need coverage for every possible Hash32 answer. B/C are not selected.
+Restricting source-agreement laws alone cannot choose a total bare operation's result.
+
+EthCommit C18/C19/C22–C25/C29/§7.0.10 owns exact reached-site order, clean-entry
+private change/cache separation, applicable survivor witnessing and prospective law
+contracts. Source-state/cache and canonical-progress premises remain distinct from
+total runtime admission; internal realization does not expose a new public dirty API.
+
+No eager WF/arity 16/occupancy admission, off-path rejection/renumbering, global
+normalization, new public predicate/provider or guest outcome follows. Consumers
+use public operations/model laws; structural/reference support stays private.
+Proof-premised canonical/source progress is separate from total runtime interfaces.
+Strict/lazy/private cache realization remains internal under B15/Q33; Id value
+agreement supplies no arbitrary generic trace or source mutable-state equality.
+Implementation, laws/tests, coupling, resources/costs and readiness remain open.
 
 ## 12. Not yet decided
 

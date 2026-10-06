@@ -300,6 +300,32 @@ fresh-source domain. Consumers retain the complete assembled Encodable/class/Id/
 premises; arbitrary caches and mutable failure states are outside that relation. Whole
 update/root scheduling and its effect/lifetime/refinement obligations remain open under B15.
 
+### Bare mutation handoff (Q60; guidance only, UNSUPPLIED)
+
+[EthCommit C18/C19/C22–C25/C29/§7.0.10](modules/EthCommit.md#5-interface) owns
+approved total update/delete/mptSet completion and four future local equations.
+Callers preserve actual key/value/secured/root fields and operation order: direct
+empty update inserts, while frontend none/some empty deletes after secure key
+acquisition. This action equality concerns only the nominal root/secured carrier;
+source `_data`, default/witness records and mutable partial state are not equated.
+No bare Account instance or contextual root callback is supplied.
+
+C19/C24/C25 own the clean-entry private change/cache rule and exact reached-site
+failures. Callers preserve actual positions and action order, including a sole stub
+or underlying query failure before index classification. Bare diagnostics alone
+supply no O4/O13 reachability or projection.
+
+Source agreement needs compatible finite nonaliasing represented dirty/cache/current
+fields, bounded paths, selected accesses and reached-collapse correspondence domains,
+complete assembly Encodable, exact class/hash/Id and host premises. Canonical progress
+additionally carries its real value/shape/availability premises. These are theorem
+premises, not new runtime/public WF predicates. Consumers use public operation/model
+laws; private worker/structural/reference proofs may change internally under B15/Q33.
+An Id value equation does not license stateful/failing generic action reordering,
+cache/witness/lifetime equivalence or arbitrary initially dirty source shape.
+Diagnostics/support, full catalog/tests, mutations, root/map/backend/security/witness,
+W1/S2/R2/O12/resources/costs and guest readiness remain open.
+
 ### Pure lookup premise (Q59; supplied local operation)
 
 [EthCommit C20/§§5/7](modules/EthCommit.md#5-interface) owns the supplied total pure
