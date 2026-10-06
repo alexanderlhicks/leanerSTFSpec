@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-07. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55, Q59, Q60; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
@@ -174,8 +174,8 @@ realization and supplies no public witness table or complete source mutable-stat
 
 - C29. Typed decoding, lookup and mutations use `TrieError`. Q60 explicitly extends prospective
   branchIndex/occupancy mutation emission sites and supplies the collapseIndex constructor without
-  changing Q59 lookup or C14 decoding; local reached mkBranch emission is supplied
-  in §3, while frontend mutation emission remains future. Fields are unrestricted
+  changing Q59 lookup or C14 decoding; local reached mkBranch and update branchIndex emission are supplied
+  in §3, while delete/frontend emission remains future. Fields are unrestricted
   Nat; reached bounds derive the actual key digit/arity, collapseIndex the actual survivor
   position. Only established reachable failures may be projected by a witness/guest adapter
   through WitnessError under CONTRACT O4/O13: bare diagnostics prove no block reachability, first
@@ -379,6 +379,83 @@ correspondence needs no Python oracle because this item implements no executable
 trie operation. Remaining representation/admission/operation gates are owned by §10
 and REVIEW §3.
 
+### Supplied total bare insertion (C23/Q60)
+
+`STFSpec/Commit/Update.lean`, reexported by `STFSpec.Commit`, supplies update on
+all finite bare Ref, Nibbles and byte values, including direct empty insertion.
+Only update and the existing approved update_branch_oob law are public. Private
+freshExt/freshBranch preserve constructors, paths, entire children, actual arity
+and terminal bytes. They never call the collapsing mkBranch or splicing mkExt.
+Every fresh own encoding uses current fields and the complete total RLP wire:
+no query below 32; one exact preimage query and its actual full answer at or above 32.
+
+| Exact pinned EELS source | Public declaration/domain and status | Success/effects and ordered failures | Ordinary proof | Complete controls |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:473–677`, C19/C23/Q60 | `update : Ref → Nibbles → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None/equal leaf rebuild; unequal leaf completes old side, new side, exactly 16 branch, optional preserving prefix; matched ext descends into original child even with empty path; split suffix 1 retains original child, longer suffix wraps it; terminal branch retains all actual slots; nonterminal bounds precede selected original-child recursion and fresh parent; reached stub/bounds return bare typed error; underlying query failure is forwarded | Private bounded packed offset scan, independent copying List/HP/RLP/CPS reference and all-input full literal action equality; proper-child structural totality, maximal-prefix digit distinction and nonempty extension split; no LawfulMonad/WF/source premise | UpdateCallerProofs uses only public update_branch_oob; UpdateGuards U01–31 observes full recursive fields/errors/raw/cache/preimages/answers/state, arbitrary actual arity, empty-extension descent, all own widths 31/32/33 and joined-prefix boundaries, seeded distinct/repeated/constant full 32-byte answers, each first-query failure in both transformer orders and Count 38 versus 27; direct private helper controls colocated in Update |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:668–677`, Q60 typed IndexError adaptation | `update_branch_oob` with actual bounded key digit and unrestricted supplied arity; **supplied** (§7.0.10) | Exact `.malformed (.branchIndex index arity)` at a reached root nonterminal missing slot, with no completion/query/continuation or extra bind | Ordinary literal equation under plain Monad/KeccakQuery | Generic public-import caller; complete bounds precedence and nonlawful pure-count 1 cases |
+
+The offset worker retains the original key and offset while traversing branches,
+scans only the bounded extension/leaf window, and copies suffix/prefix paths when
+constructing fresh outputs. Recursion measures only original Node/Ref proper
+children, including empty extensions with zero key consumption; fresh split trees
+are never recursive inputs. The List reference copies tails and uses List.set;
+its independent wire helpers use the public HP/RLP models and whole childRef
+provider. Equality rewrites pure path/wire/set data and retains every CPS
+continuation and bind parenthesis, so plain Monad suffices. No structural equality
+serves as source changedness, and no origin/dirty metadata or provider is added.
+
+The source driver `STFSpec/Conformance/Commit/update_differential.py` freezes a
+complete concrete U01–31/O-A–G catalog and authenticates actual original/runtime/
+wheel/class/callable/crypto inputs before observation. Original insertion and its
+immediate invalidated/dirty/object-origin/first-exception image precede an explicitly
+separate fresh own completion schedule, retaining every materialization and
+consulted off-path before/after cache field. Original dirty-child embedding may
+repeat queries; those traces are source observations, never generic strict Lean
+history equivalence. Full concrete value/cache comparison needs finite acyclic
+nonaliasing actual classes and bounded paths/offsets, represented non-None extension
+children, complete assembled Encodable and actual Id/Keccak/finite-host premises.
+At each consulted retained child, a cached hash must be clean; otherwise its
+hashless current encoding is coherent short inline recursively. Full retained-cache
+comparison additionally requires present matching source raw/hash fields. Missing/
+stale raw, dirty cached hashes, hashless-long children, extension-None and aliases
+are explicit boundary rows, without restricting the total nominal API.
+
+The exact recursive reply grammar retains all diagnostic Nat payloads and complete
+query/answer bytes; normal/-O controls reject Bool-as-Nat, floats, negative/nonfinite,
+unknown/missing/duplicate/extra/truncated fields and absent extension children.
+Per-row journals retain the original and Lean phases for an uninterrupted fresh run.
+Resumption is unsupported; each invocation requires a fresh evidence destination. Reproduce with a fresh evidence destination outside both
+repositories and the pinned raw dependency wheels:
+
+```sh
+python3 -I -B STFSpec/Conformance/Commit/update_differential.py --write-catalog CATALOG.json
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/update_differential.py \
+  --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/update_differential.py \
+  --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+python3 -I -B STFSpec/Conformance/Commit/update_differential.py --self-test
+python3 -I -B -O STFSpec/Conformance/Commit/update_differential.py --self-test
+```
+
+The bounded source protocol completed all 402 concrete rows: 400 complete nominal
+Id/State frames, 351 successful whole-value/cache comparisons under the stated local
+premises, 19 actual immediate AssertionError/stub and 26 IndexError/bounds adaptations,
+four cache-boundary observations and two source-only extension-None/alias observations.
+The 818 separately scheduled own materializations made 999 actual original queries;
+immediate insertion made none. Full stage/query histories and before/after identities
+are retained, with actual loaded runtime/source/crypto and focused inputs unchanged.
+The ordinary proofs, U01–31 Lean controls, parser controls and identity-only preflight
+are supplied. Static retained-root premise enumeration is conservative on failed
+rows: parent off-path slots may never be consulted after a selected-child failure;
+actual failure histories govern dynamic claims.
+Interpreter/startup/frozen RECORD and
+finite host remain trust inputs. Whole mutable history/partial heap/error state,
+cache/WF/canonical/map/root/backend/witness/security/generic coupling/lifetime,
+O12/C1–C4/W1/S2/R2/EEST and guest readiness remain open. Delete, mptSet and their
+three remaining §7.0.10 equations are unsupplied.
+
 ### Supplied reached-branch construction
 
 `STFSpec/Commit/Branch.lean`, reexported by `STFSpec.Commit`, supplies only mkBranch. Every finite
@@ -389,7 +466,8 @@ present child retain every slot in a completed branch. A sole empty-terminal sur
 before checking its actual position. Stub unresolved and underlying query failure precede
 collapseIndex at position ≥ 16. A valid position constructs a single-prefix extension through the
 supplied mkExt, with its immediate splice and retained grandchildren. This worker is the reached
-collapse site; update/delete dispatch and their no-change guard remain future work.
+collapse site; delete dispatch and its no-change guard remain future work.
+Supplied insertion uses the preserving completions described above.
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Reference/proofs | Complete-field/generic/source controls |
 |---|---|---|---|---|
@@ -769,7 +847,7 @@ child without repeated filtering.
 | Exact pinned EELS context | Lean private support and domain | Success/effects and failures | Ordinary proof | Deterministic/source evidence |
 |---|---|---|---|---|
 | `merkle_patricia_trie.py:564–572` | Existing `childPartition`; `branchParts : ExtTreeMap Nibbles ByteArray → Nat → Nibbles → BranchParts`; full finite maps | Whole keys/values retained; guarded digit reads; optional ending bytes including empty; pure | `inChild_reference`, `childPartition_model`, `mem_child`, `child_lookup_model`, `child_disjoint`, `child_coverage`, `ending_excluded`, `childPartition_domain`, `branchParts_get/ending_present/ending_none_iff/ending_representative` | Owner-local universal partition/lookup/index/ending examples; all16 groups, empty map/depth999, ending and continuing keys, long odd full paths, member/insertion alternatives, wrong-domain negatives |
-| `merkle_patricia_trie.py:574–577` | `childAction`, `childReferences`; supplied child callback with actual-partition equality and next-depth proof | Construct then actual C6 encode for each digit; the first-callback error theorem assumes its run is pure error; finite guards cover later failure positions | `childReferences_first/list/pure`, `childAction_construct_error`, `branchStage_first_error`; reassociation/list equations explicitly require `LawfulMonad`; query instance on `ExceptT ε m` needs no underlying query instance | Complete State/ExceptT traces, all16 constructor-failure positions and all10 queried encoding failures, actual31/32/33 preimages and full32-byte answers; genuine pinned ascending construct/encode observations |
+| `merkle_patricia_trie.py:574–577` | `childAction`, `childReferences`; supplied child callback with actual-partition equality and next-depth proof | Construct then actual C6 encode for each digit; the first-callback error theorem assumes its run is pure error; finite guards cover later failure positions | `childReferences_first/list/pure`, `childAction_construct_error`, `branchStage_first_error`; reassociation/list equations explicitly require `LawfulMonad`; query instance on `ExceptT ε m` needs no underlying query instance | Complete State/ExceptT traces, all16 constructor-failure positions and all10 queried encoding failures, actual31/32/33 preimages and full 32-byte answers; genuine pinned ascending construct/encode observations |
 | `merkle_patricia_trie.py:578–581` | `branchStage : ... → m InternalNode`; private callback support only | Sixteen references then defaulted ending bytes; no parent query; retains empty values | `branchStage_assembled`, `branchStage_representative`, `branch_reference_position`, `branch_value_position`; representative rewriting needs no `LawfulMonad` assumption | Whole assembled wire/state, empty and nonempty ending fields, all members and insertion permutations; one-child/empty-value example preserves Q50 and supplies no canonical occupancy theorem |
 
 `RootBranchGuards` uses explicitly labeled test instrumentation of verified actual
@@ -1278,7 +1356,7 @@ The Lean operation supplies no witness map/ledger contract.
 Original `_compute` can bypass a completed cached pair even when dirty remains true;
 this local observation supplies no public history or dirty-reentry action law.
 
-**Future frontend mutation controls (Q60; UNSUPPLIED).** Preserve every old diagnostic
+**Remaining deletion/frontend controls (Q60; UNSUPPLIED).** Preserve every old diagnostic
 and full recursive path/value/raw/hash field. Cover terminal-before-bounds;
 missing and valid short/oversized selected accesses; skipped already-empty/no-change
 zero occupancy versus changed zero collapse; actual survivor 15/16/255/256;
@@ -1511,7 +1589,7 @@ def childRef : Ref → RlpItem                -- C18: "" · stub hash · cached 
 inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | leafValueList
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
-  | branchIndex (index : Nat) (arity : Nat)    -- Q59 supplied; Q60 mutation scope future
+  | branchIndex (index : Nat) (arity : Nat)    -- Q59 lookup/Q60 update supplied; delete future
   | collapseIndex (index : Nat)                -- Q60 local mkBranch emission (§3)
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
@@ -1529,7 +1607,7 @@ def mkBranch (children : Array (Option Node)) (value : ByteArray) :
 def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
     m (Except TrieError Ref)   -- eager, C13–C17; pre-RLP query on each eligible raw occurrence
 def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20/Q59, supplied
--- C23/Q60, every finite value including empty; future
+-- C23/Q60, every finite value including empty; supplied
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref)
 -- C24–C25/Q60, every finite bare input; future
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)
@@ -2014,15 +2092,15 @@ requires complete recursive Encodable, not only a root path/value bound. The
 conditional source premises and dirty/recursive-child/query boundaries are listed
 in §3; whole map/WF/cache/generic coupling remains separate.
 
-### 7.0.10 Bare mutation local equations (Q60; UNSUPPLIED)
+### 7.0.10 Bare mutation local equations (Q60; update supplied, delete/frontend unsupplied)
 
-These four prospective ordinary public types retain plain Monad/KeccakQuery and
-all displayed inputs. They are guidance only: no frontend operation or theorem for
-these four types is supplied. Local reached mkBranch, its private reference/controls
-and collapseIndex emission are supplied separately in §3. The complete future
-success/first-error/reference catalog and private worker realization must be frozen
-in bounded implementation briefs. The supplied public mkBranch seam in §5
-is reviewed separately; this disposition adds no additional collapse/domain/model API.
+These four ordinary public types retain plain Monad/KeccakQuery and all displayed
+inputs. update_branch_oob and update are supplied in §3; the other three equations
+and delete/mptSet remain prospective guidance. Local reached mkBranch and its
+collapseIndex emission are separate supplied workers. The private update realization
+and complete success/first-error/reference controls are described in §3. Remaining
+workers must freeze their own bounded catalogs; no public collapse/domain/model
+helper is added.
 
 ```lean
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
@@ -2079,14 +2157,14 @@ progress theorems, not total runtime admission.
   reachable domain; private Σ remaining full-key lengths support strictly decreases through each
   child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP
   and one monadic query), `lookup` (Q59 finite proper-child Node-size descent, including
-  zero-key-consumption empty extensions; private Array/Option child decrease), `update`/`delete`
-  (Q60 all finite bare inputs by private proper-child Node descent and finite array/path loops;
-  leaves terminal, including empty-extension descent; proof UNSUPPLIED), `decodeRoot`
-  (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE
-  §5.4). All are total on arbitrary DBs without collision assumptions. Q55 adds a finite
-  acquisition/parse/admission stage before recursive continuation; prove its decreases and full
-  path invariant, rather than assuming hash injectivity. This cycle totalization makes no claim
-  about Python's finite host-limit query trace.
+  zero-key-consumption empty extensions; private Array/Option child decrease), `update` (Q60 all
+  finite bare inputs, supplied private original proper-child Node descent and finite bounded
+  loops; empty-extension descent consumes no key), `delete` (same prospective structural contract;
+  proof UNSUPPLIED), `decodeRoot` (lexicographic: DB entries not on the current path, then inline
+  subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
+  Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its
+  decreases and full path invariant, rather than assuming hash injectivity. This cycle
+  totalization makes no claim about Python's finite host-limit query trace.
 
 ### 7.2 Per-operation commuting obligations (D25) [C]
 
@@ -2179,18 +2257,19 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 **Argument.** Induct on the existing construction domains for canonical construction and on finite
 proper-child Node size for Q59 bare lookup; an empty extension still moves into a proper child.
 Terminal branch dispatch precedes selected-slot bounds, and only the selected child is visited.
-The valid-selected-access source bridge is separate from the typed out-of-range selected-slot
-adaptation. Extension/branch/leaf cases partition keys; source-case workers preserve C23
-constructors and compress only at reached C24/C25 sites. The compatible source
-identity/dirty-state premise is separate from nominal Enc equality. For incremental updates, the
-same cases prove lookup preservation and the new value at the updated key. A collapse onto a stub
-must resolve that stub or fail, which explains order-dependent success. Witness decoding tracks
-the current path: an on-path repeat rejects a cycle. Q55's baseline enters each shared sibling
-occurrence separately and obtains its eligible raw digest before parsing; completed-node reuse is
-a separate B15 refinement. Preserve the source encoding of unchanged nodes and re-encode only
-dirtied paths. Consequently canonical root uniqueness and successful update order independence
-apply only under canonical-representation hypotheses. They are false for general accepted
-witnesses: even a no-op delete can canonicalise an accepted noncanonical leaf and change its root.
+The valid-selected-access source bridge is separate from the typed missing-slot adaptation.
+Extension/branch/leaf cases partition keys; the supplied update preserves C23 constructors; future
+deletion workers compress only the reached C24/C25 cases. The compatible source
+identity/dirty-state premise is separate from nominal Enc equality. Map-level lookup preservation
+and the updated value law remain separate obligations; the local update reference equality does
+not prove them. A collapse onto a stub must resolve that stub or fail, which explains
+order-dependent success. Witness decoding tracks the current path: an on-path repeat rejects a
+cycle. Q55's baseline enters each shared sibling occurrence separately and obtains its eligible
+raw digest before parsing; completed-node reuse is a separate B15 refinement. Preserve the source
+encoding of unchanged nodes and re-encode only dirtied paths. Consequently canonical root
+uniqueness and successful update order independence apply only under canonical-representation
+hypotheses. They are false for general accepted witnesses: even a no-op delete can canonicalise an
+accepted noncanonical leaf and change its root.
 
 **Open obligations.** Define canonicality separately from lookup agreement, prove cached-encoding and memoization refinement, and resolve host RecursionError differences. Hash-relative full-root folding also needs an explicit secure-key collision/order convention. Totality must not assume hash injectivity.
 
@@ -2218,10 +2297,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
-  own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its
-  reached occupancy/collapseIndex emission and private reference/controls are in §3.
-  Update/delete/mptSet, mutation branchIndex emission, four local public laws and the
-  full frontend catalog remain UNSUPPLIED; constructor/observer/parser support is in §3;
+  own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its reached
+  occupancy/collapseIndex emission and private reference/controls are supplied in §3.
+  Update and exact update_branch_oob are supplied locally in §3; delete/mptSet, their
+  three local laws and the remaining frontend catalog remain UNSUPPLIED. Complete
+  constructor/observer/parser support is supplied;
   no new public proof domain or broad WF premise, cache strategy or readiness follows.
 
 - D4: keccak dominates decode/root cost; the reference or a proved fast path.
@@ -2250,17 +2330,19 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bare mutation completion (Q60; local reached mkBranch supplied):** collapseIndex,
-  ordinary observer/parser support, reached occupancy 0/collapseIndex emission and
-  private all-input mkBranch reference/effect/field controls are supplied in §3.
-  BranchIndex mutation emission, update/delete/mptSet and four public laws (§7.0.10)
-  remain UNSUPPLIED. Future workers need private proper-child/reference/effect laws
-  and compatible finite nonaliasing dirty/cache/source premises. The local comparison
-  requires the consulted source raw-presence/hash/current-field and embedding premises
-  in §3, plus cacheless parent top for retained branch completion; it supplies no
-  recursive history realization.
-  Preserve source construction/empty dispatch and full field/error/state tests (§4).
-  B15/Q33 strict/lazy/private cache choice stays internal; whole mutation, generic
-  coupling, WF/map/root/backend/security/witness and readiness gates remain open.
+  complete ordinary observer/parser support, reached occupancy 0/collapseIndex emission
+  and private all-input mkBranch reference/effect/field controls are supplied in §3.
+  Update and exact update_branch_oob are supplied, with private all-input plain-Monad
+  List/CPS equality, original-child totality and U01–31 complete-field/effect/parser
+  controls. Delete/mptSet and three §7.0.10 equations remain UNSUPPLIED; future workers
+  need their own proper-child/reference/effect laws and compatible finite nonaliasing
+  dirty/cache/source premises. The local bridge
+  requires clean supplied-field entry images/consulted embedding and cacheless parent
+  top for retained branch completion; it supplies no recursive history realization.
+  Preserve source construction/empty dispatch and full
+  field/error/state tests (§4). B15/Q33 strict/lazy/private cache choice remains internal;
+  no arbitrary dirty-source shape, generic action, map/root/backend/security/witness,
+  W1/S2/R2/O12/resource/cost/EEST or guest readiness obligation is discharged.
 
 - **Supplied incremental-root scope:** rootHash/mptRoot and six plain-Monad literal equations
   are supplied in §3/§7.0.9, with private total List-byte/action equality and
@@ -2318,7 +2400,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
   meaning remain open; local reached mkBranch is supplied separately in §3, while
-  update/delete operations remain unimplemented. Complete generic decoding, pure bare lookup, strict fresh-leaf/immediate-extension
+  update is supplied separately above; delete/mptSet remain unimplemented. Complete generic
+  decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. Supplied local

@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-06.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-07.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -86,15 +86,22 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthSecurity | Consume bounded local ToVCVio RLP/reference laws without inferring whole-map binding; establish nonvacuous directional simulation, whole-trie extractors, oracle closure and budgets; keep chain anchoring and cryptographic security assumptions explicit. |
 | ToVCVio | Certified RLP facade, child-reference threshold/effect laws, explicit query-morphism transport, local same-h raw-pair extraction and same-query InternalNode adapter are supplied (own guidance §7). Faithful Patricia shell/assembly/preimage injection, separate finite resolved canonical shape facts and a pure nonempty safe prepared-image bridge are supplied (own guidance §§5/7); total finite resolved lookup, packed/List join equality and one-step prefix lookup/canonical preservation and complete-key support for actual canonical trees/two distinct keys for canonical branches are also supplied, together with canonical resolved-tree observational extensionality under both actual canonicality premises and all-finite full-value/byte observations; ordinary Prop finite resolved-map existence for actual maps satisfying `NonemptyValues`, including the empty map, with complete optional bytes at every finite key is also supplied (own guidance §§5/7); conditional structural node/reference Prop derivations also supply admissibility, exact presence occupancy and canonical-to-local-shell laws under the complete present-shell certificate and fixed pure-h premises (own guidance §§5/7); top Fits remains separate from bare node derivation, while logical C/D width and exact inhabitation support is supplied by PatriciaRlpDomain (Q56; own guidance §§5/7). All complete domain/action premises remain explicit. Installed VCV-io pin/QueryHom adapter/import audit, a public resolved-map uniqueness corollary, executable C7/C6 reference/effect realization, C8 hashing/source agreement, recursive binding, witness agreement, whole-kernel coupling and consumer/cost gates remain open. |
 
-The Q60 frontend update/delete/mptSet and four public laws remain unsupplied,
-owned by [EthCommit C18/C19/C22–C25/C29/§§4/5/7.0.10/10](modules/EthCommit.md#5-interface).
+The Q60 direct insertion slice is supplied locally: update and exactly the approved
+update_branch_oob law under plain Monad/KeccakQuery, with private proper-child
+totality and ordinary all-input offset/List CPS equality.
+[EthCommit §3](modules/EthCommit.md#3-eels-source-map) owns its complete-field,
+query-answer, failure, nonlawful-monad, parser and conditional pinned-source
+controls, including the source cache/embedding premises and history boundaries.
+All helper/reference/test support remains private. Direct empty values remain
+insertions. Delete/mptSet and their three remaining public equations are unsupplied.
+
 EthCommit §3 supplies local reached mkBranch, its occupancy/collapseIndex emission,
 private all-input ordinary List/wire literal action equality under plain Monad and
 complete-field public-import/generic/source/parser controls. All support remains
 private. Declaration/strict reason 12 parser controls retain old tags/full Nat fields;
 decoder and lookup never emit collapseIndex. Source comparison retains the exact
 clean/cache/consulted-embedding/retained-parent premises owned by EthCommit §3.
-Future frontend worker/law/test catalogs, proper-child descent and clean-entry
+Remaining deletion/frontend worker/law/test catalogs, proper-child descent and clean-entry
 change/cache realization remain unsupplied. No broader gate or readiness closes.
 
 ## 4. Agent implementation contract
