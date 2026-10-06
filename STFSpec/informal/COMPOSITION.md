@@ -24,7 +24,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 decoder and local rootHash/mptRoot actions are supplied separately (EthCommit §3/§5/§7.0.9). Mutation, whole root/cache refinement and representation/admission obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
-| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
+| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; Q60 supplies the collapseIndex constructor and complete observers, with mutation emission future (EthCommit §3); witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
@@ -300,7 +300,12 @@ fresh-source domain. Consumers retain the complete assembled Encodable/class/Id/
 premises; arbitrary caches and mutable failure states are outside that relation. Whole
 update/root scheduling and its effect/lifetime/refinement obligations remain open under B15.
 
-### Bare mutation handoff (Q60; guidance only, UNSUPPLIED)
+### Bare mutation handoff (Q60; mutation operations/laws UNSUPPLIED)
+
+EthCommit §3 owns supplied collapseIndex declaration/complete observer support and
+strict reason 12 parser controls. Decoder and lookup never emit it; mutation
+operations/laws remain future. Existing tags and complete Nat fields are retained
+in normal/-O decoder and imported lookup parser controls.
 
 [EthCommit C18/C19/C22–C25/C29/§7.0.10](modules/EthCommit.md#5-interface) owns
 approved total update/delete/mptSet completion and four future local equations.
@@ -323,7 +328,7 @@ premises, not new runtime/public WF predicates. Consumers use public operation/m
 laws; private worker/structural/reference proofs may change internally under B15/Q33.
 An Id value equation does not license stateful/failing generic action reordering,
 cache/witness/lifetime equivalence or arbitrary initially dirty source shape.
-Diagnostics/support, full catalog/tests, mutations, root/map/backend/security/witness,
+Mutation emission, full mutation catalog/tests, operations, root/map/backend/security/witness,
 W1/S2/R2/O12/resources/costs and guest readiness remain open.
 
 ### Pure lookup premise (Q59; supplied local operation)

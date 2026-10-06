@@ -163,16 +163,17 @@ realization and supplies no public witness table or complete source mutable-stat
 
 ### 2.7 Failure behaviour
 
-- C29. Typed decoding, lookup and mutations use `TrieError`. Q60 explicitly extends
-  branchIndex/occupancy emission sites and adds prospective collapseIndex without changing Q59
-  lookup or C14 decoding. Fields are unrestricted Nat; reached bounds derive the actual key
-  digit/arity, collapseIndex the actual survivor position. Only established reachable failures may
-  be projected by a witness/guest adapter through WitnessError under CONTRACT O4/O13: bare
-  diagnostics prove no block reachability, first handler or output. Unresolved-stub and
-  downstream-leaf failures remain distinct. Underlying query-monad failures are forwarded
-  unchanged, retaining preceding effects and stopping later actions; they are not converted to
-  structural diagnostics. Mathematical-root premises remain proof-level. No host recursion limit
-  or hash injectivity establishes totality (§7.1); no new host/resource/outcome policy follows.
+- C29. Typed decoding, lookup and mutations use `TrieError`. Q60 explicitly extends prospective
+  branchIndex/occupancy mutation emission sites and supplies the collapseIndex constructor without
+  changing Q59 lookup or C14 decoding; collapse emission remains future. Fields are unrestricted
+  Nat; reached bounds derive the actual key digit/arity, collapseIndex the actual survivor
+  position. Only established reachable failures may be projected by a witness/guest adapter
+  through WitnessError under CONTRACT O4/O13: bare diagnostics prove no block reachability, first
+  handler or output. Unresolved-stub and downstream-leaf failures remain distinct. Underlying
+  query-monad failures are forwarded unchanged, retaining preceding effects and stopping later
+  actions; they are not converted to structural diagnostics. Mathematical-root premises remain
+  proof-level. No host recursion limit or hash injectivity establishes totality (§7.1); no new
+  host/resource/outcome policy follows.
 
 Source failures at the reached mutation sites include IndexError at `inc:671/768`,
 AssertionError at empty collapse `:793` and stub witnessing `:245`, and ValueError at
@@ -1143,12 +1144,31 @@ python3 -B STFSpec/Conformance/Commit/lookup_differential.py --self-test
 python3 -B -O STFSpec/Conformance/Commit/lookup_differential.py --self-test
 ```
 
-The exhaustive decoder diagnostic encoder preserves tags 0–10 and appends tag 11 with both
-unrestricted Nat fields. `DecoderDiagnosticGuards.lean` varies both fields independently and
-preserves wrappers/old distinctness; the complete decoder parser accepts nominal large fields and
-rejects invalid/truncated/extra records in ordinary and optimized Python. Its decoder-output
-sixteen-child grammar is retained; the separate bare lookup input grammar permits every finite
-arity. Decoding itself never manufactures `branchIndex`.
+The exhaustive decoder diagnostic encoder preserves tags 0–11, including both unrestricted Nat
+fields of tag 11, and appends Q60 tag 12 with one unrestricted Nat. `DecoderDiagnosticGuards.lean`
+varies both fields independently and preserves wrappers/old distinctness; the complete decoder
+parser accepts nominal large fields and rejects invalid/truncated/extra records in ordinary and
+optimized Python. Its decoder-output sixteen-child grammar is retained; the separate bare lookup
+input grammar permits every finite arity. Decoding itself never manufactures `branchIndex` or
+`collapseIndex`.
+
+### Implemented Q60 collapse diagnostic declaration support
+
+`STFSpec/Commit/TrieError.lean` supplies only `Malformed.collapseIndex (index : Nat)`,
+naming the prospective C25 failure after applicable witnessing. No mutation operation
+or emission is supplied. `DecoderDiagnosticCallerProofs.lean` adds private ordinary
+full-Nat/wrapper injection and branchIndex/occupancy disjointness clients; no public
+law/helper is added. `DecoderDiagnosticGuards.lean` preserves every old diagnostic
+and wrapper and adds indices 0/1/15/16/255/256 and a large Nat. The exhaustive private
+`malformedWire` appends tag 12 with exactly one Nat, retaining all old tags/payloads.
+The strict decoder output parser accepts that nominal representation and rejects
+malformed/truncated/extra/unknown/nonfinite/Bool/float/negative frames normally and
+under `-O`. The imported lookup Reader/parser is exercised unchanged; decoder/lookup
+behavior and existing first-error order stay separate from future collapse semantics.
+
+| Source branch / contract | Supplied support | Ordinary complete controls |
+|---|---|---|
+| Q60/C25 actual sole survivor index after applicable witnessing (`inc:797–798`); prospective mutation emission | `Malformed.collapseIndex (index : Nat)` constructor only; no source operation/emission | Private full-Nat/wrapper/disjointness clients; all old/new reason 12 wire fields; strict decoder/imported lookup parser normal/-O; unchanged actual decoder comparison |
 
 ### Implemented completed fresh-leaf construction
 
@@ -1201,7 +1221,7 @@ frontend dispatch; actual arbitrary/stateful/failing query prefixes under the ch
 private generic reference. Observer controls retain unrestricted nominal Nat fields
 and full framing: reject bool/float/negative/wrong arity/unknown/truncated/extra records,
 accept large fields, and run normal/-O. These are future test obligations, not tests
-or diagnostic support added by this guidance.
+added by the guidance. Constructor-only diagnostic controls are supplied separately in §3.
 
 Completed-leaf controls observe every path/value/raw/hash-presence field and all
 32 answer bytes:
@@ -1424,7 +1444,7 @@ inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | le
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
   | branchIndex (index : Nat) (arity : Nat)    -- Q59 supplied; Q60 mutation scope future
-  | collapseIndex (index : Nat)                -- Q60 prospective, UNSUPPLIED
+  | collapseIndex (index : Nat)                -- Q60 constructor supplied; emission future
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
 -- Completed constructors have public laws; private mutation workers retain source-case shapes.
@@ -1928,8 +1948,9 @@ in §3; whole map/WF/cache/generic coupling remains separate.
 ### 7.0.10 Bare mutation local equations (Q60; UNSUPPLIED)
 
 These four prospective ordinary public types retain plain Monad/KeccakQuery and
-all displayed inputs. They are guidance only: no diagnostic extension, mutation
-operation, theorem or test is supplied by this disposition. The complete future
+all displayed inputs. They are guidance only: no mutation operation, theorem or
+mutation test is supplied. Q60 collapseIndex constructor/observer support is supplied
+separately in §3; its emission remains future. The complete future
 success/first-error/reference catalog and private worker realization must be frozen
 in bounded implementation briefs. The existing prospective public mkBranch seam in §5
 is reviewed separately; this disposition adds no additional collapse/domain/model API.
@@ -2127,8 +2148,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
-  own its reached-site/dirty-state/source/empty-value contract. Diagnostics, operations,
-  four local laws, full future catalog and private realization/tests remain UNSUPPLIED;
+  own its reached-site/dirty-state/source/empty-value contract. Mutation emission,
+  operations, four local laws, full future catalog and private realization/mutation
+  tests remain UNSUPPLIED; collapseIndex declaration/observer/parser support is in §3;
   no new public proof domain or broad WF premise, cache strategy or readiness follows.
 
 - D4: keccak dominates decode/root cost; the reference or a proved fast path.
@@ -2156,8 +2178,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bare mutation completion (Q60; guidance only):** implement explicit branchIndex
-  mutation scope, reached occupancy 0 and prospective collapseIndex after witnessing;
+- **Bare mutation completion (Q60; constructor support only):** collapseIndex and
+  complete ordinary observer/parser support are supplied in §3; implement explicit
+  branchIndex mutation scope, reached occupancy 0 and collapseIndex emission after witnessing;
   update/delete/mptSet and four local laws (§7.0.10) remain UNSUPPLIED. Freeze private
   proper-child/reference/effect laws and compatible finite nonaliasing dirty/cache/source
   premises before implementation. Preserve source construction/empty dispatch and full

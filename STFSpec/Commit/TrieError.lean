@@ -13,7 +13,9 @@ Library `EthCommit`. The diagnostic constructors are owned by EthCommit §5.
 Q52 names the two-item node's path-list check before compact decoding and its
 leaf-value-list check after successful leaf compact decoding. The complete generic
 node decoder and pure bare lookup are supplied; WitnessError/guest adapters remain
-unimplemented. Q59 branchIndex records only the reached selected-slot diagnostic.
+unimplemented. Q59 branchIndex is supplied for pure lookup; Q60 also approves its
+future mutation scope, reached occupancy 0 and collapseIndex after applicable witnessing.
+Only the collapseIndex constructor is supplied here; mutation emission remains future.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/2.7/5.
 -/
 
@@ -40,12 +42,15 @@ inductive Malformed where
   | refLength (n : Nat)
   /-- An extension child is neither a branch nor a hashed stub. -/
   | extChild
-  /-- A branch has fewer than two occupied entries. -/
+  /-- Decoder occupancy is below two; Q60 additionally names future changed zero collapse. -/
   | occupancy (n : Nat)
   /-- Witness traversal revisits a node on the current path. -/
   | cycle
-  /-- Pure bare lookup reached a missing selected slot; no guest projection is supplied. -/
+  /-- A reached selected slot is missing: supplied Q59 lookup, future Q60 mutation. -/
   | branchIndex (index : Nat) (arity : Nat)
+  /-- Q60 sole collapse survivor has a nonnibble index, after applicable witnessing.
+  Constructor supplied; mutation emission and guest projection remain future. -/
+  | collapseIndex (index : Nat)
   deriving DecidableEq
 
 

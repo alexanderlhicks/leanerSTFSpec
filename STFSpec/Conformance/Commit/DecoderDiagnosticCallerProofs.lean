@@ -11,7 +11,7 @@ import STFSpec.Commit.Compact
 Library `EthConformance`. Symbolic clients preserve exact error identity and
 compose public codec and compact laws without unfolding provider storage.
 No whole node decoder or witness/outcome adapter is implemented here.
-Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/5/7 (Q52).
+Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/5/7 (Q52/Q60).
 -/
 
 namespace STFSpec.Conformance.Commit.DecoderDiagnosticCallerProofs
@@ -55,5 +55,30 @@ theorem failed_rlp_no_item (wire : ByteArray) (e : RlpError)
   intro item hi
   rw [h] at hi
   cases hi
+
+/- Q60 constructor-only clients: no mutation emission or public helper/law. -/
+private theorem collapseIndex_inj (i j : Nat) :
+    Malformed.collapseIndex i = .collapseIndex j ↔ i = j := by
+  constructor
+  · intro h
+    cases h
+    rfl
+  · intro h
+    cases h
+    rfl
+
+private theorem collapseIndex_wrapped_inj (i j : Nat) :
+    TrieError.malformed (.collapseIndex i) = .malformed (.collapseIndex j) ↔ i = j := by
+  rw [malformed_inj, collapseIndex_inj]
+
+private theorem collapseIndex_not_branchIndex (i j arity : Nat) :
+    Malformed.collapseIndex i ≠ .branchIndex j arity := by
+  intro h
+  cases h
+
+private theorem collapseIndex_not_occupancy (i n : Nat) :
+    Malformed.collapseIndex i ≠ .occupancy n := by
+  intro h
+  cases h
 
 end STFSpec.Conformance.Commit.DecoderDiagnosticCallerProofs
