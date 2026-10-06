@@ -120,6 +120,8 @@ import STFSpec.Conformance.StateCommit.StorageDecodeCallerProofs
 import STFSpec.Conformance.StateCommit.StorageDecodeGuards
 import STFSpec.Conformance.StateCommit.AccountCallerProofs
 import STFSpec.Conformance.StateCommit.AccountGuards
+import STFSpec.Conformance.StateCommit.AccountDecodeCallerProofs
+import STFSpec.Conformance.StateCommit.AccountDecodeGuards
 
 /-!
 # STFSpec.Conformance
