@@ -150,6 +150,15 @@ A precise correspondence theorem relates this clean-input realization to source
 identity and dirty state; arbitrary initially dirty source trees/history are not covered.
 Private working cache/timing choices under B15/Q33 remain explicit future obligations.
 
+Before future deletion passes a survivor to supplied mkBranch, its private realization
+must preserve the source's consulted descendant encodings and query effects
+(`inc:302–313`). Representing visited-cache invalidation merely as a hashless Enc
+with empty raw on retained descendants does not establish that relation: the source
+can recompute and hash a long descendant, while childRef uses its supplied Enc.
+The B15/Q33 cache/dirty realization and its ordinary correspondence proof must account
+for this before composing C24 with C25. Clean input or a no-change result alone is
+insufficient. This is a future worker obligation, with no new mkBranch admission check.
+
 The standalone public mkBranch witness realization treats its supplied survivor as
 clean, matching `inc:240–254` before index classification. A stub fails first.
 A resolved stored hash bypasses current fields. Hashless supplied raw of at least
@@ -384,7 +393,7 @@ collapse site; update/delete dispatch and their no-change guard remain future wo
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Reference/proofs | Complete-field/generic/source controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:240–254,316–346,787–828`, C18/C19/C25/Q60 | `mkBranch : Array Ref → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, all finite bare inputs | Reached census/terminal dispatch, witness-before-index, strict fresh completion; actual query answers retained; no public witness table or partial mutable-state result | Private all-input ordinary Array/List census and complete List-wire literal action equality beside the operation; all support and laws private | BranchCallerProofs ordinary public-import clients; BranchGuards complete recursive fields/raw/cache, arbitrary seeded answers, repeated calls, both transformer failure orders and a nonlawful Monad bind-shape control; branch_differential.py full typed original images, staged source observations and strict full-frame parser normal/-O |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:240–254,316–346,787–828`, C18/C19/C25/Q60 | `mkBranch : Array Ref → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, all finite bare inputs | Reached census/terminal dispatch, witness-before-index, strict fresh completion; actual query answers retained; no public witness table or partial mutable-state result | Private all-input ordinary Array/List census and complete List-wire literal action equality beside the operation; all support and laws private | BranchCallerProofs ordinary public-import clients; BranchGuards zero occupancy at arity 16, sole survivors with trailing empty slots, complete recursive fields/raw/cache, arbitrary seeded answers, repeated calls, both transformer failure orders and a nonlawful Monad bind-shape control; branch_differential.py full typed original images, staged source observations and strict full-frame parser normal/-O |
 
 The nominal witnessing action uses supplied raw/hash, then current fields when its cache gates
 require them. A present hash bypasses all current fields. Hashless supplied raw ≥ 32 is queried without
@@ -1506,7 +1515,8 @@ inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | le
   | collapseIndex (index : Nat)                -- Q60 local mkBranch emission (§3)
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
--- Completed constructors have public laws; private mutation workers retain source-case shapes.
+-- mkLeaf/mkExt have public laws; mkBranch has its private all-input reference (§3).
+-- Private mutation workers retain source-case shapes.
 -- In particular C23 matched/split extensions do not normalize through mkExt.
 -- They compute Enc, which may hash, so they are monadic (F4).
 def mkLeaf (path : Nibbles) (value : ByteArray) : m Node  -- supplied strict fresh completion (§3/§7.0.6)
