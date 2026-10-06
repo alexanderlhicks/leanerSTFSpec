@@ -112,7 +112,7 @@ none of that gate. Outstanding operation and admission obligations are owned by 
 |---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/incremental_mpt.py:48–81,287–346,932–968,985–988` | `Enc`, `Enc.mk`, `Enc.rlp`, `Enc.hash?`; **supplied carrier** for every finite ByteArray and optional Hash32 | Retain complete raw/cached values; no query/effect | No error or admission API; completed caches do not model every intermediate mutable Python cache state | Private arbitrary full-field projections and both cache-presence choices at widths 31/32/33; no threshold/provenance/hash theorem |
 | `src/ethereum/forks/amsterdam/incremental_mpt.py:48–98` | `Node.leaf/ext/branch/hashed`; **supplied recursive carrier** | Exact §5 fields, recursive Node child and Array (Option Node) children; no effect | Arbitrary arity/cache/path/child shape is expressible; constructors supply no decoder acceptance or Node.WF | Private variant discrimination, arbitrary complete-field matches, arities 0/15/16/17 and two-level recursive-array consumers |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:92–98,892–914`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | No lookup/child realization/admission/error behavior is implemented | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:92–98,892–914`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | The alias itself supplies no operation/admission/error behavior; lookup and childRef are supplied separately | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
 
 `STFSpec/Conformance/Commit/NodeCallerProofs.lean` imports the public owning module;
 all its hand-written support is private. Ordinary kernel proofs check full retention
@@ -121,6 +121,36 @@ independent executable trie traversal. The compiled declaration audit covers gen
 nested-inductive support as well. Field correspondence is not whole source-runtime
 refinement. No Python oracle is required for this item, which adds no executable trie
 operation. Remaining provenance/admission/operation gates are owned by §10.
+
+### Supplied pure completed-cache child references
+
+`STFSpec/Commit/ChildRef.lean`, reexported by `STFSpec.Commit`, supplies the C18 pure observer for
+every finite bare Ref. Stored hash presence wins immediately; otherwise reconstruct current
+HP/value/child fields, preserving all actual branch slots in order and the whole ending value.
+Enc.rlp is ignored: no parse, hash query, width/shape/arity guard, admission or fallback. HP
+encoding rebuilds current fields. A cached parent bypasses descendants; a hashless incoherent long
+item remains an inline list in this total representation observer. B15/Q33 and Q55 govern the
+existing interface.
+
+| Exact pinned EELS source | Declaration/domain and status | Success/effects/failures | Laws/reference | Ordinary/source/parser evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:257–284,287–313`; C18/C16, B3/DISC-003 | `childRef : Ref → RlpItem`; **supplied**, all finite bare carriers | Empty/stub/cached hash bytes or complete current-field item; pure, no error/query/cache mutation | Five exact constructor equations (§7.0.7); private List/HP reference and ordinary all-input equality, public proper-child size/HP/Array contracts | ChildRefCallerProofs uses all five laws without production/provider unfolding; ChildRefGuards observes complete nested items/cache fields/all 32 hash bytes, arbitrary raw/arities/empty extensions; child_ref_differential.py distinguishes source-value domains and dirty/query boundaries; strict full recursive framing normal/-O |
+
+The committed source driver supplies conditional differential evidence, distinct from private
+ordinary List/HP equality. It compares actual absence and complete stub bytes; resolved clean
+matching stored hashes shortcut without inspecting raw/descendants. Short reconstruction agreement
+requires Enc.hash? = none, actual source class/Bytes/bounded paths/current fields, recursively
+compatible child references and complete assembled encoded width below 32. A dirty short node with
+a stale stored hash can diverge.
+
+Inline reconstruction canonicalizes HP and uses the already interpreted C16 branch ending; it does
+not return original noncanonical HP or list-ending raw bytes. Input Enc retains accepted raw
+provenance, and a stored-hash shortcut returns the supplied hash unchanged. These scoped
+observations are B3/DISC-003 evidence; they do not discharge the full adoption gate. Dirty cached-
+long source-value agreement additionally needs relevant field/hash/child coherence and concrete
+answers; source queries and cache writes remain distinct. Complete recursive Encodable covers
+every field/child and joined payload, with actual class/finite acyclic host/hash premises. The
+total Lean equations need none of these premises and add no public WF predicate.
 
 ### Supplied nominal incremental-trie carrier
 
@@ -1566,12 +1596,48 @@ List.toByteArray and public exact wire/width laws, with the same threshold/bind;
 no Encodable/WF/source/authenticity/injectivity premise is needed. B15/Q33 permits
 strict local completion but supplies no whole mutable-cache/source schedule proof.
 
+### 7.0.7 Pure child-reference equations (discharged locally)
+
+Exactly five ordinary public laws quantify all finite bare fields, with no monad,
+admission/coherence premise or support API. All other operational/reference and
+structural support is private:
+
+```lean
+theorem childRef_none : childRef none = .bytes ByteArray.empty
+theorem childRef_hashed (h : Hash32) :
+  childRef (some (.hashed h)) = .bytes h.toBytes.toByteArray
+theorem childRef_leaf (p : Nibbles) (v : ByteArray) (enc : Enc) :
+  childRef (some (.leaf p v enc)) =
+    match enc.hash? with
+    | some h => .bytes h.toBytes.toByteArray
+    | none => .list [.bytes (nibbleListToCompact p true), .bytes v]
+theorem childRef_ext (p : Nibbles) (child : Node) (enc : Enc) :
+  childRef (some (.ext p child enc)) =
+    match enc.hash? with
+    | some h => .bytes h.toBytes.toByteArray
+    | none => .list [.bytes (nibbleListToCompact p false), childRef (some child)]
+theorem childRef_branch (children : Array Ref) (v : ByteArray) (enc : Enc) :
+  childRef (some (.branch children v enc)) =
+    match enc.hash? with
+    | some h => .bytes h.toBytes.toByteArray
+    | none => .list (children.toList.map childRef ++ [.bytes v])
+```
+
+Production builds the ordered output list directly from bounded packed-array
+indices. The private reference maps the public child List and HP model; ordinary
+equality covers every finite input. Proof-only Node/Option/Array size decreases
+justify proper-child recursion, including empty extensions; no runtime fuel,
+size measure or shape check is introduced. No cost/resource claim is discharged.
+
 ### 7.1 Totality [T]
 
 - C12 construction is a total finite Array fold, with a total structural List reference/model.
 - Q53 preparation is a total stored-map fold; its mapped-list reference has ordinary equality.
   The safe/unsecured preparation frontend wraps that complete map in `pure`; typed root
   directly calls total C8 on the pure map without another bind.
+- C18 childRef is total on every finite bare Ref by proper-child Node/Option/Array
+  size descent; cached parents bypass recursion, and every hashless actual child
+  is visited in order. Its private List/HP reference has ordinary all-input equality.
 
 - `compactToNibbles`, `mathRoot` (empty dispatch or actual C7 then one query), `patricialize` (Q50 reachable domain; private Σ remaining full-key lengths support strictly decreases through each child and positive shared extension), `encodeInternalNode` (nonrecursive assembly plus total RLP and one monadic query), `lookup` (Q59 finite proper-child Node-size descent, including zero-key-consumption empty extensions; private Array/Option child decrease), `update`/`delete` (their separate mutation domains/descent proofs; leaves terminal), `decodeRoot` (lexicographic: DB entries not on the current path, then inline subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions. Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its decreases and full path invariant, rather than assuming hash injectivity. This cycle totalization makes no claim about Python's finite host-limit query trace.
 
@@ -1627,6 +1693,10 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 - A pure hash-relative value model under `H` can compare with the generic action only under explicit relevant-occurrence equations `KeccakQuery.keccak b = pure (H b)` and `LawfulMonad` for sequencing. This conditional value theorem supplies no failing/stateful trace equality or whole-trie coupling.
 - B15 DAG memoization is unselected. Successful-node sharing may suppress repeated queries or reuse a stateful first answer; it needs mathematical/cache, path, effect and first-error refinement. Hash-only cached cycle failures are not justified by accept/reject agreement. F6 has a different per-root backend lifetime. Python's unmemoised host behavior remains DISC-001/DISC-004; no production cost/resource gate follows from this baseline.
 - [R] Exact reproduction of C18/C19 on non-canonical witnesses is a conformance obligation (checked by the adversarial `#guard`s against EELS), not a theorem about the model.
+- C18's supplied pure completed-cache projection is documented in §3/§7.0.7.
+  Conditional source-value controls distinguish clean stored-hash shortcuts, short
+  current-field reconstruction and dirty/long query boundaries. Arbitrary stale/
+  dirty states, generic query actions and whole mutation/cache simulation stay open.
 
 ### Informal correctness argument
 
@@ -1646,7 +1716,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
 - **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied; concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
-- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup` and seven constructor equations (§3); the following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
+- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup` and seven constructor equations (§3); pure completed-cache `childRef` and five constructor equations (§3/§7.0.7); the following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -1696,11 +1766,21 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   generic coupling/lifetime, mutation/contextual-consumer and resource/readiness obligations
   remain open under their §10 owners. Empty constructor value selects no setter/default rule.
 
+- **Pure child-reference scope:** childRef and five ordinary cache-first/current-field equations
+  are supplied in §3/§7.0.7, with private all-finite List/HP equality, ordinary public-law clients
+  and complete nested-item/source/parser controls. Cached parents bypass descendants; hashless
+  branches retain every actual ordered slot and complete value; raw is ignored without query,
+  parse, guard or fallback. Conditional source correspondence retains actual class/Bytes/bounded
+  paths/recursive Encodable/concrete hash/finite-host and relevant completed-cache premises. Bare
+  hashless-long and dirty-short-cached states do not acquire unconditional source/action/cache
+  agreement. Whole WF/cache/mutation/root/security/generic coupling/lifetime/contextual-
+  consumer/O12/resource/cost/W1/S2/EEST/guest readiness obligations remain open.
+
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, mkExt/mkBranch and update/delete/root operations remain
-  unimplemented. Complete generic decoding, pure bare lookup and strict fresh-leaf completion are
+  meaning, mkExt/mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup strict fresh-leaf completion and pure childRef are
   supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone

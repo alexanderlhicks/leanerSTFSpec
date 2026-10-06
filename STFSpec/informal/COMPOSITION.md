@@ -260,6 +260,16 @@ and failure/observation demonstration before semantic adoption; constructors and
 structural clients do not establish it. Remaining admission, operation and cache
 representation/refinement gates are owned by [EthCommit §10](modules/EthCommit.md#10-gaps).
 
+### Pure completed-cache child-reference premise
+
+[EthCommit §3/§7.0.7](modules/EthCommit.md#3-eels-source-map) owns the supplied pure
+observer, five all-bare equations and private ordinary List/HP equality. Its conditional
+source-value differential evidence requires the §3 cache/class/recursive assembly premises;
+hashless-short reconstruction requires Enc.hash? = none. Inline output rebuilds current
+fields, including canonical HP and the interpreted C16 ending, rather than original raw
+provenance. Input Enc retains raw bytes; the stored-hash shortcut retains its supplied hash.
+B3/DISC-003 adoption and dirty-cache/query/write/whole-operation obligations remain open.
+
 ### Completed fresh-leaf premise
 
 [EthCommit §3/§6/§7.0.6](modules/EthCommit.md#3-eels-source-map) owns the supplied
@@ -290,7 +300,7 @@ complete decoder operations and query-before-whole-RLP acquisition on newly ente
 eligible raw occurrences, with private actual-key cycle/remaining-key and parsed
 inline-subterm totality support, three public plain-Monad equations, and complete
 finite Id/state/failure/source conformance. Consumer/error/lifetime and whole W1
-composition remain open. Pure lookup (supplied separately under Q59), childRef, raw cache shape, lenient
+composition remain open. Pure lookup (supplied separately under Q59), childRef (supplied separately), raw cache shape, lenient
 admission,
 ordered diagnostics and current-path cycle behavior retain their contracts.
 Concrete agreement premises are `Id.run (decodeRoot consts.emptyTrieRoot db r) =

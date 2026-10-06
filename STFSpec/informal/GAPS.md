@@ -346,11 +346,21 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   generic coupling/lifetime, mutation/contextual-consumer and resource/readiness obligations
   remain open under their §10 owners. Empty constructor value selects no setter/default rule.
 
+- **Pure child-reference scope:** childRef and five ordinary cache-first/current-field equations
+  are supplied in §3/§7.0.7, with private all-finite List/HP equality, ordinary public-law clients
+  and complete nested-item/source/parser controls. Cached parents bypass descendants; hashless
+  branches retain every actual ordered slot and complete value; raw is ignored without query,
+  parse, guard or fallback. Conditional source correspondence retains actual class/Bytes/bounded
+  paths/recursive Encodable/concrete hash/finite-host and relevant completed-cache premises. Bare
+  hashless-long and dirty-short-cached states do not acquire unconditional source/action/cache
+  agreement. Whole WF/cache/mutation/root/security/generic coupling/lifetime/contextual-
+  consumer/O12/resource/cost/W1/S2/EEST/guest readiness obligations remain open.
+
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, mkExt/mkBranch and update/delete/root operations remain
-  unimplemented. Complete generic decoding, pure bare lookup and strict fresh-leaf completion are
+  meaning, mkExt/mkBranch and update/delete/root operations remain
+  unimplemented. Complete generic decoding, pure bare lookup strict fresh-leaf completion and pure childRef are
   supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
