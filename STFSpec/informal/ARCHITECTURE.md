@@ -236,8 +236,8 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
 | Witness/code DBs | read-only `Std.HashMap Hash32 ByteArray` after construction, built through the hash oracle | `lookup`, and the separate predicates `NodeDB.Authentic`/`CodeDB.Authentic` ("a stored value hashes to its key", F4) | [C] authenticated-content invariant |
-| Witness decoding | **eager**, matching the reference: decoding a root decodes everything reachable from it through the node DB (`incremental_mpt.py` `decode_witness_to_mpt`/`_decode_witness_node`/`_resolve_child_ref` at e1a316a0). It is triggered where the reference triggers it: the account trie at first account access; each storage trie at first access to that account's storage; and, in state-root computation, the storage trie of every account with storage changes and the account trie (`witness_state.py` `_get_decoded_secure_root`, `compute_state_root_and_trie_changes`). The source caches read decodings by root hash; Q55 leaves generic successful-result ownership/lifetime and F6 open, and root computation decodes afresh. A malformed node *anywhere* reachable makes validation fail (O4), even if no lookup would reach it; a lazy path walk would accept witnesses the reference rejects. | `decodeRoot {m} [Monad m] [KeccakQuery m] (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : m (Except TrieError Ref)` (Q55 unimplemented target; witness adapter separate; empty root short-circuits without a local query, `incremental_mpt.py:1024–1030`) | [T] see "Termination of witness decoding" below; [C] actual raw-preimage answer/cache provenance; equality to a DB reference only under `Authentic keccak256` and raw length ≥32 at concrete Id |
-| Partial trie | explicit `Node.leaf/ext/branch/hashed` carriers and `Ref := Option Node` (EthCommit §3/§5): `none` is absence, and inline/cached references retain encoding context rather than separate Ref variants. B3 requires representation hiding and demonstrated DISC-003 provenance sufficiency before semantic adoption (EthCommit §10). Branch children are an `Array (Option Node)` with a separately stated size-16 invariant, because the kernel rejects `Vector` in this nested inductive (F5, [DECISIONS §3](DECISIONS.md)). Each resolved node carries completed immutable `Enc` fields; acquisition/cache interpretation and operational refinement are owned by EthCommit §5/§6/§7.6. geth, remerkleable and milhouse do the same, and snapshots never invalidate it. | `lookup`/`update`/`delete`/`root`, with **agreement with the mathematical root** | [T] lookup/update/delete recurse on the remaining key nibbles; [C] **agreement theorem** (shape below); [S] ROM lift |
+| Witness decoding | **eager**, matching the reference: decoding a root decodes everything reachable from it through the node DB (`incremental_mpt.py` `decode_witness_to_mpt`/`_decode_witness_node`/`_resolve_child_ref` at e1a316a0). It is triggered where the reference triggers it: the account trie at first account access; each storage trie at first access to that account's storage; and, in state-root computation, the storage trie of every account with storage changes and the account trie (`witness_state.py` `_get_decoded_secure_root`, `compute_state_root_and_trie_changes`). The source caches read decodings by root hash; Q55 leaves generic successful-result ownership/lifetime and F6 open, and root computation decodes afresh. A malformed node *anywhere* reachable makes validation fail (O4), even if no lookup would reach it; a lazy path walk would accept witnesses the reference rejects. | `decodeRoot {m} [Monad m] [KeccakQuery m] (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : m (Except TrieError Ref)` (Q55 local operation/laws owned by EthCommit §3; witness adapter separate; empty root short-circuits without a local query, `incremental_mpt.py:1024–1030`) | [T] see "Termination of witness decoding" below; [C] actual raw-preimage answer/cache provenance; equality to a DB reference only under `Authentic keccak256` and raw length ≥32 at concrete Id |
+| Partial trie | explicit `Node.leaf/ext/branch/hashed` carriers and `Ref := Option Node` (EthCommit §3/§5): `none` is absence, and inline/cached references retain encoding context rather than separate Ref variants. B3 requires representation hiding and demonstrated DISC-003 provenance sufficiency before semantic adoption (EthCommit §10). Branch children are an `Array (Option Node)` with a separately stated size-16 invariant, because the kernel rejects `Vector` in this nested inductive (F5, [DECISIONS §3](DECISIONS.md)). Each resolved node carries completed immutable `Enc` fields; acquisition/cache interpretation and operational refinement are owned by EthCommit §5/§6/§7.6. geth, remerkleable and milhouse do the same, and snapshots never invalidate it. | `lookup`/`update`/`delete`/`root`, with **agreement with the mathematical root** | [T] bare lookup descends by proper-child Node size (Q59); admitted update/delete use their separate nonempty-path remaining-key descent; [C] **agreement theorem** (shape below); [S] ROM lift |
 
 **MPT proof pattern.**
 - **Canonical form, after Nipkow et al. Ch. 12 (Patricia tries).**
@@ -256,12 +256,19 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 
 **Termination of witness decoding and traversal.** Valid empty-path leaves must be accepted. Node decoding, reference resolution and key traversal are separate:
 
-- **Node shapes, following the reference's checks.**
+- **Decoded node shapes, following the reference's checks.**
   - A **leaf may have an empty remaining path.** This is valid, for example after a branch consumes the final differing nibble, and the reference accepts it.
   - An **extension must have a non-empty path**, and its child must be a branch or a hashed reference (asserted by the reference).
   - A **branch must have at least 2 occupied entries**, counting its value.
   - Any other list length is malformed.
-- **Key traversal** (lookup/update/delete) recurses on the remaining key nibbles. A branch consumes one nibble and an extension at least one, and a leaf is terminal and consumes nothing. So the measure strictly decreases on every *recursive continuation*, and terminal empty-path leaves are allowed.
+- **Bare lookup traversal** (Q59) descends by proper-child Node size, independently
+  of key consumption. A matched empty extension still moves to a proper child;
+  branch terminal values precede bounds, and only an in-bounds selected child is
+  traversed. EthCommit §7.0.5 owns the prospective equations.
+- **Admitted mutation traversal** (update/delete) has a separate remaining-key
+  measure under the nonempty-extension path invariant. A branch consumes one nibble
+  and an admitted extension at least one; a leaf is terminal and consumes nothing.
+  This measure does not establish termination for arbitrary bare lookup inputs.
 - **Reference resolution** (hash → node through the DB, or an inline RLP list → node) doesn't consume nibbles, so it is bounded separately:
   - Inline references recurse on strictly smaller RLP subterms.
   - Hashed references recurse through the DB. Eager decoding is a depth-first traversal that tracks the hashes on the current path; meeting one again is `WitnessError.malformed`. The proposed measure is (number of DB entries not on the current path, size of the inline subterm), to be checked under [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) W1.
@@ -557,6 +564,27 @@ extra entries. None of those completions follows from the structural contract. F
 write order, reachable extraction, AccountWritesLookedUp and F7 need separate history
 and operational contracts. DECISIONS Q58 owns the bounded disposition; EthState §7.4
 owns its law targets, without an additional account-reformulation law.
+
+**Pure lookup selected-access options (Q59).** DECISIONS Q59 owns the disposition;
+EthCommit C20/§§5/7 owns its exact future diagnostic and §7.0.5 constructor equations.
+Candidate A retains the total bare `Ref → Nibbles → Except TrieError (Option ByteArray)`
+API and names only a reached nonterminal out-of-range selected slot with
+`Malformed.branchIndex (index : Nat) (arity : Nat)`. Candidate B changes that API
+to take a key-dependent selected-access domain proof or certified input: extensions
+require child coverage only on a prefix match, terminal branches require no bound,
+and nonterminal branches require the actual selected bound and child's coverage.
+Merely adding a theorem premise to an unchanged total bare API leaves its outside-domain
+behavior unselected. Eager size16/WF admission, out-of-range-slot absence and off-path scans
+change bare behavior and are not variants of the same contract.
+
+Python's `witness_state.py:53–100` list access has a defined IndexError; the choice
+is the typed diagnostic/domain adaptation. Source value/stub correspondence is limited
+to valid selected accesses and actual Hash32-to-64-nibble/source-class/host premises.
+Proper-child Node-size descent handles matched empty extensions independently of key
+consumption. Private cursor/reference/child-size support and ordinary all-bare-input
+fast/reference equality remain future D18/D25 implementation work. No compiled feasibility,
+speed, guest reachability/output, host resource or readiness result follows; decoder,
+mutation, cache, root and security obligations retain their owners.
 
 ## 12. Not yet decided
 
