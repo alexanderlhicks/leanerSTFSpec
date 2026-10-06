@@ -108,8 +108,11 @@ class WireReader:
                 self.octets(32)
             elif error == 1:
                 why = self.take()
-                require(why <= 10, "bad malformed tag")
+                require(why <= 11, "bad malformed tag")
                 if why in (6, 7, 9):
+                    self.take()
+                elif why == 11:
+                    self.take()
                     self.take()
             else:
                 raise ValueError("bad error tag")
@@ -133,7 +136,8 @@ def parse_records(text, count):
     for index, line in enumerate(lines):
         row = json.loads(line, object_pairs_hook=object_pairs)
         require(
-            type(row) is dict and set(row) == {"case", "input_secured", "id", "result", "queries"},
+            type(row) is dict
+            and set(row) == {"case", "input_secured", "id", "result", "queries"},
             "wrong output fields",
         )
         require(natural(row["case"]) == index, "duplicate/out-of-order case")
@@ -191,13 +195,40 @@ def parser_tests():
     ]
     row = dict(good, extra=0)
     probes.append((json.dumps(row), 1))
+    for field in ("id", "result"):
+        for payload in ([0, 0], [15, 3], [10**100, 10**200]):
+            row = dict(good)
+            row[field] = [0, 1, 11] + payload
+            require(
+                parse_records(json.dumps(row), 1) == [row],
+                "two-field diagnostic rejected",
+            )
+        for wire in (
+            [0, 1, 11],
+            [0, 1, 11, 0],
+            [0, 1, 11, 0, 0, 0],
+            [0, 1, 12, 0, 0],
+            [0, 1, 11, True, 0],
+            [0, 1, 11, 0, True],
+            [0, 1, 11, 0.0, 0],
+            [0, 1, 11, 0, 0.0],
+            [0, 1, 11, -1, 0],
+            [0, 1, 11, 0, -1],
+        ):
+            row = dict(good)
+            row[field] = wire
+            probes.append((json.dumps(row), 1))
     for text, count in probes:
         try:
             parse_records(text, count)
         except (ValueError, TypeError, json.JSONDecodeError):
             continue
         raise RuntimeError("invalid framing probe accepted: " + text)
-    print(json.dumps({"parser_rejection_controls": len(probes), "optimized": sys.flags.optimize}))
+    print(
+        json.dumps(
+            {"parser_rejection_controls": len(probes), "optimized": sys.flags.optimize}
+        )
+    )
 
 
 def main():
@@ -233,8 +264,12 @@ def main():
         start = datetime.datetime.now(datetime.timezone.utc).isoformat()
         if input is not None:
             (directory / "stdin").write_bytes(input)
-        (directory / "argv.nul").write_bytes(b"\0".join(os.fsencode(a) for a in argv) + b"\0")
-        result = subprocess.run(argv, cwd=cwd, input=input, env=env, capture_output=True)
+        (directory / "argv.nul").write_bytes(
+            b"\0".join(os.fsencode(a) for a in argv) + b"\0"
+        )
+        result = subprocess.run(
+            argv, cwd=cwd, input=input, env=env, capture_output=True
+        )
         (directory / "stdout").write_bytes(result.stdout)
         (directory / "stderr").write_bytes(result.stderr)
         (directory / "command.json").write_text(
@@ -279,7 +314,8 @@ def main():
         locked_package = [
             row
             for row in lock["package"]
-            if row["name"] == package.replace("_", "-") and row["version"] == distribution.version
+            if row["name"] == package.replace("_", "-")
+            and row["version"] == distribution.version
         ]
         require(len(locked_package) == 1, "dependency version absent from pinned lock")
         raw_hash = "sha256:" + hashlib.sha256(data).hexdigest()
@@ -288,7 +324,9 @@ def main():
             for row in locked_package[0].get("wheels", [])
             if row["hash"] == raw_hash and row["size"] == len(data)
         ]
-        require(len(matching_wheels) == 1, "raw dependency wheel differs from pinned lock")
+        require(
+            len(matching_wheels) == 1, "raw dependency wheel differs from pinned lock"
+        )
         with zipfile.ZipFile(wheel) as archive:
             files = {
                 name: archive.read(name)
@@ -315,7 +353,8 @@ def main():
                 size=len(data),
                 locked_url=matching_wheels[0]["url"],
                 sources={
-                    name: hashlib.sha256(contents).hexdigest() for name, contents in files.items()
+                    name: hashlib.sha256(contents).hexdigest()
+                    for name, contents in files.items()
                 },
             )
         )
@@ -340,7 +379,9 @@ def main():
             )
             contents = source.read_bytes()
             digest = (
-                base64.urlsafe_b64encode(hashlib.sha256(contents).digest()).decode().rstrip("=")
+                base64.urlsafe_b64encode(hashlib.sha256(contents).digest())
+                .decode()
+                .rstrip("=")
             )
             require(
                 (digest, len(contents)) == (file.hash.value, file.size),
@@ -355,33 +396,42 @@ def main():
         for wheel in wheel_rows:
             data = Path(wheel["path"]).read_bytes()
             require(
-                hashlib.sha256(data).hexdigest() == wheel["sha256"] and len(data) == wheel["size"],
+                hashlib.sha256(data).hexdigest() == wheel["sha256"]
+                and len(data) == wheel["size"],
                 "locked wheel changed during comparisons",
             )
         context.check_clean()
         context.check_dependency()
         auth.check()
-        require(crypto_records[0].read_bytes() == crypto_record, "crypto RECORD changed")
         require(
-            set(crypto_package.rglob("*.py")) == {p for p in crypto_files if p.suffix == ".py"},
+            crypto_records[0].read_bytes() == crypto_record, "crypto RECORD changed"
+        )
+        require(
+            set(crypto_package.rglob("*.py"))
+            == {p for p in crypto_files if p.suffix == ".py"},
             "crypto Python inventory changed",
         )
         for source, digest in crypto_files.items():
             require(
-                hashlib.sha256(source.read_bytes()).hexdigest() == digest, "crypto source changed"
+                hashlib.sha256(source.read_bytes()).hexdigest() == digest,
+                "crypto source changed",
             )
         return dict(
             pin=context.head,
             source_lock={
                 name: dict(
                     blob=blob,
-                    sha256=hashlib.sha256((context.eels / name).read_bytes()).hexdigest(),
+                    sha256=hashlib.sha256(
+                        (context.eels / name).read_bytes()
+                    ).hexdigest(),
                 )
                 for name, blob in context.oracle_blobs.items()
             },
             wheels=wheel_rows,
             types_sources=context.dependency_sources(),
-            types_record_sha256=hashlib.sha256(context.dependency_record_bytes).hexdigest(),
+            types_record_sha256=hashlib.sha256(
+                context.dependency_record_bytes
+            ).hexdigest(),
             rlp_sources={str(p): digest for p, digest in auth.expected.items()},
             rlp_record_sha256=hashlib.sha256(auth.record_bytes).hexdigest(),
             crypto_sources={str(p): digest for p, digest in crypto_files.items()},
@@ -417,10 +467,13 @@ def main():
 
     def enc_wire(node):
         require(
-            type(node._dirty) is bool and node._dirty is False, "unexpected source dirty state"
+            type(node._dirty) is bool and node._dirty is False,
+            "unexpected source dirty state",
         )
         require(node._rlp is not None, "source completed node lacks raw bytes")
-        return byte_wire(node._rlp) + ([0] if node._hash is None else [1] + octets(node._hash))
+        return byte_wire(node._rlp) + (
+            [0] if node._hash is None else [1] + octets(node._hash)
+        )
 
     def node_wire(node):
         if node is None:
@@ -436,7 +489,8 @@ def main():
             return [3, len(path)] + path + enc_wire(node) + node_wire(node.child)
         if type(node) is inc.MutableBranchNode:
             require(
-                type(node.children) is list and len(node.children) == 16, "source children width"
+                type(node.children) is list and len(node.children) == 16,
+                "source children width",
             )
             return (
                 [4]
@@ -463,7 +517,8 @@ def main():
             return dict(
                 class_name=cls.__module__ + "." + cls.__qualname__,
                 fields={
-                    name: source_raw(getattr(value, name)) for name in value.__dataclass_fields__
+                    name: source_raw(getattr(value, name))
+                    for name in value.__dataclass_fields__
                 },
             )
         if cls is dict:
@@ -485,7 +540,10 @@ def main():
             sites.append((tb.tb_frame.f_code, tb.tb_lineno, tb.tb_frame.f_locals))
             tb = tb.tb_next
         if type(exc) is IndexError:
-            require(sites[-1][0] is inc.compact_to_nibbles.__code__, "unexpected IndexError site")
+            require(
+                sites[-1][0] is inc.compact_to_nibbles.__code__,
+                "unexpected IndexError site",
+            )
             return [0, 1, 3]
         require(type(exc) is AssertionError, "unexpected source failure")
         message = str(exc)
@@ -508,7 +566,10 @@ def main():
         # The original failing assertion line, rather than a second decoder model,
         # distinguishes the two empty-message field-shape assertions.
         source_line = (
-            Path(sites[-1][0].co_filename).read_text().splitlines()[sites[-1][1] - 1].strip()
+            Path(sites[-1][0].co_filename)
+            .read_text()
+            .splitlines()[sites[-1][1] - 1]
+            .strip()
         )
         if source_line == "assert isinstance(path_bytes, (bytes, bytearray))":
             return [0, 1, 2]
@@ -548,7 +609,8 @@ def main():
         finally:
             sys.settrace(None)
         require(
-            all(fn.__code__ is code for fn, code in codes), "original source function replaced"
+            all(fn.__code__ is code for fn, code in codes),
+            "original source function replaced",
         )
         return result, queries, raw
 
@@ -623,7 +685,10 @@ def main():
             rlp.encode(branch([key(2), key(3)] + [b""] * 14)),
             [(2, rlp.encode(leaf(width)))],
         )
-        add(f"inline-width-{width}", rlp.encode(branch([leaf(width), key(3)] + [b""] * 14)))
+        add(
+            f"inline-width-{width}",
+            rlp.encode(branch([leaf(width), key(3)] + [b""] * 14)),
+        )
     raw = rlp.encode(branch([empty, key(2)] + [b""] * 14))
     add("empty-child-absent", raw)
     add("empty-child-present-80", raw)
@@ -631,25 +696,41 @@ def main():
     for position in range(16):
         add(
             f"first-error-{position}",
-            rlp.encode(branch([leaf(29)] * position + [b"x"] + [leaf(29)] * (15 - position))),
+            rlp.encode(
+                branch([leaf(29)] * position + [b"x"] + [leaf(29)] * (15 - position))
+            ),
         )
         add(
             f"nested-error-{position}",
-            rlp.encode(branch([leaf(29)] * position + [ext([])] + [leaf(29)] * (15 - position))),
+            rlp.encode(
+                branch([leaf(29)] * position + [ext([])] + [leaf(29)] * (15 - position))
+            ),
         )
-    add("repeated-sixteen", rlp.encode(branch([key(2)] * 16)), [(2, rlp.encode(leaf(29)))])
+    add(
+        "repeated-sixteen",
+        rlp.encode(branch([key(2)] * 16)),
+        [(2, rlp.encode(leaf(29)))],
+    )
     shared = branch([key(2), key(2)] + [b""] * 14)
-    add("diamond", rlp.encode(branch([shared, shared] + [b""] * 14)), [(2, rlp.encode(leaf(29)))])
+    add(
+        "diamond",
+        rlp.encode(branch([shared, shared] + [b""] * 14)),
+        [(2, rlp.encode(leaf(29)))],
+    )
     rng = random.Random(context.seed)
 
     def tree(depth):
         if depth == 0 or rng.randrange(3) == 0:
-            return leaf(rng.choice([0, 1, 29, 32]), rng.choice([0x20, 0x2F, 0x31, 0xF1]))
+            return leaf(
+                rng.choice([0, 1, 29, 32]), rng.choice([0x20, 0x2F, 0x31, 0xF1])
+            )
         if rng.randrange(2) == 0:
             return ext(tree(depth - 1))
         children = [b""] * 16
         for index in rng.sample(range(16), rng.randrange(1, 4)):
-            children[index] = tree(depth - 1) if rng.randrange(2) else key(rng.randrange(2, 10))
+            children[index] = (
+                tree(depth - 1) if rng.randrange(2) else key(rng.randrange(2, 10))
+            )
         return branch(children, rng.choice([b"", b"v", []]))
 
     for index in range(24):
@@ -658,7 +739,9 @@ def main():
     observations, expected, guards = [], [], []
     # Reuse only the observer source definitions; their old outcomes are not inputs.
     source = (ROOT / "STFSpec/Conformance/Commit/DecoderGuards.lean").read_text()
-    observer = source[source.index("private def byteWire") : source.index("private abbrev Trace")]
+    observer = source[
+        source.index("private def byteWire") : source.index("private abbrev Trace")
+    ]
     guards = [
         "import STFSpec.Commit",
         "import Lean",
@@ -700,13 +783,21 @@ def main():
             result, queries, raw = observe(db, root, secured)
             # A fresh original replay without tracing verifies that the trace hook
             # leaves the returned complete source value/first failure unchanged.
-            replay, replay_queries, replay_raw = observe(db, root, secured, traced=False)
+            replay, replay_queries, replay_raw = observe(
+                db, root, secured, traced=False
+            )
             require(
                 (result, raw) == (replay, replay_raw) and replay_queries == [],
                 "source replay differs",
             )
             expected.append(
-                dict(case=index, input_secured=secured, id=result, result=result, queries=queries)
+                dict(
+                    case=index,
+                    input_secured=secured,
+                    id=result,
+                    result=result,
+                    queries=queries,
+                )
             )
             observations.append(
                 dict(
@@ -736,15 +827,22 @@ def main():
     context.output.with_suffix(".source.json").write_text(
         json.dumps(observations, indent=2) + "\n"
     )
-    context.output.with_suffix(".identities.json").write_text(json.dumps(before, indent=2) + "\n")
+    context.output.with_suffix(".identities.json").write_text(
+        json.dumps(before, indent=2) + "\n"
+    )
     result = command(["lake", "env", "lean", str(context.output)], ROOT)
     require(result.returncode == 0, "generated complete decoder driver failed")
     actual = parse_records(result.stdout.decode(), len(expected))
     require(actual == expected, "complete source/Id/state/query observations differ")
     after = snapshot()
     require(before == after, "reference inputs changed during comparisons")
-    require(all(fn.__code__ is code for fn, code in codes), "original decoder function changed")
-    context.output.with_suffix(".actual.json").write_text(json.dumps(actual, indent=2) + "\n")
+    require(
+        all(fn.__code__ is code for fn, code in codes),
+        "original decoder function changed",
+    )
+    context.output.with_suffix(".actual.json").write_text(
+        json.dumps(actual, indent=2) + "\n"
+    )
     print(
         json.dumps(
             dict(

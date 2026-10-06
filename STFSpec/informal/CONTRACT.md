@@ -50,7 +50,7 @@ EELS has two nested catch-all handlers:
 
 In the spec, each row below becomes one or more explicit constructors; there is no catch-all. Classification follows the **first reference handler that consumes the exception** (D14). A local handler can consume a failure before either catch-all sees it: for example, `is_valid_versioned_hashes` (`execution_engine/new_payload.py:60–68`) turns every payload-transaction decode failure into `False` (O6).
 
-**Bare helper diagnostics.** Q59's prospective pure lookup `branchIndex` diagnostic
+**Bare helper diagnostics.** Q59's supplied pure lookup `branchIndex` diagnostic (EthCommit §3)
 does not by itself establish a block-reachable failure, its first consuming handler,
 or an output projection. The original selected list access has a defined IndexError
 (`witness_state.py:53–100`), but the source decoder constructs sixteen branch children

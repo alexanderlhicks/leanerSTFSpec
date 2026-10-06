@@ -12,13 +12,15 @@ Library `EthCommit`. The diagnostic constructors are owned by EthCommit §5.
 `pathEmpty` names the later decoded extension-path check (Q48, CONTRACT O4).
 Q52 names the two-item node's path-list check before compact decoding and its
 leaf-value-list check after successful leaf compact decoding. The complete generic
-node decoder is supplied; WitnessError/guest adapters remain unimplemented.
+node decoder and pure bare lookup are supplied; WitnessError/guest adapters remain
+unimplemented. Q59 branchIndex records only the reached selected-slot diagnostic.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/2.7/5.
 -/
 
 namespace STFSpec.Commit
 
-/-- Enumerated malformed witness diagnostics; there is no generic catch-all. -/
+
+/-- Enumerated malformed trie diagnostics; there is no generic catch-all. -/
 inductive Malformed where
   /-- Strict RLP decoding failed. -/
   | rlp
@@ -42,9 +44,13 @@ inductive Malformed where
   | occupancy (n : Nat)
   /-- Witness traversal revisits a node on the current path. -/
   | cycle
+  /-- Pure bare lookup reached a missing selected slot; no guest projection is supplied. -/
+  | branchIndex (index : Nat) (arity : Nat)
   deriving DecidableEq
 
-/-- Trie failures are projected through the witness channel to CONTRACT O4. -/
+
+/-- Trie diagnostics. Witness/guest projection, including reachability of bare
+lookup bounds failures, remains separate (CONTRACT O4/O13). -/
 inductive TrieError where
   /-- The node database has no preimage for a required root. -/
   | missingRoot (h : STFSpec.Base.Hash32)

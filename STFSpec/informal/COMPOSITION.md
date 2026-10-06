@@ -24,7 +24,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 complete decoder action is supplied separately (EthCommit §3/§5). Mutation/root and representation/admission obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
-| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 adds guidance only for a bare selected-slot diagnostic; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
+| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
@@ -260,17 +260,18 @@ and failure/observation demonstration before semantic adoption; constructors and
 structural clients do not establish it. Remaining admission, operation and cache
 representation/refinement gates are owned by [EthCommit §10](modules/EthCommit.md#10-gaps).
 
-### Pure lookup premise (Q59; guidance only)
+### Pure lookup premise (Q59; supplied local operation)
 
-[EthCommit C20/§§5/7](modules/EthCommit.md#5-interface) owns the future total pure
-lookup and its §7.0.5 constructor equations on finite bare Ref/Nibbles inputs, with all Enc
+[EthCommit C20/§§5/7](modules/EthCommit.md#5-interface) owns the supplied total pure
+lookup and seven constructor equations on finite bare Ref/Nibbles inputs, with all Enc
 fields unconstrained. Only the reached nonterminal selected-slot bound is checked;
 terminal value/absence precedes bounds. Lookup takes no Node.WF/cache/admission premise.
 Source value/stub correspondence needs valid selected accesses, the actual
 Hash32-to-64-nibble/source-class bridge and host premises. The bare bounds diagnostic
 supplies no guest reachability/handler/output claim (CONTRACT O4/O13).
-Constructor/lookup implementation, structural proper-child proofs, public-only clients
-and complete-value/first-error tests remain future. Q59 supplies no decoder/WF/cache/
+The diagnostic, operation, seven equations, private structural proper-child and
+all-bare offset/reference proofs, public-only clients and complete-value/first-error
+controls are supplied there. Q59 supplies no decoder/WF/cache/
 mutation/root/security agreement, generic coupling/action-result lifetime, whole W1/S2,
 C1–C4/O12 or guest readiness premise.
 
@@ -281,7 +282,8 @@ complete decoder operations and query-before-whole-RLP acquisition on newly ente
 eligible raw occurrences, with private actual-key cycle/remaining-key and parsed
 inline-subterm totality support, three public plain-Monad equations, and complete
 finite Id/state/failure/source conformance. Consumer/error/lifetime and whole W1
-composition remain open. Pure lookup/childRef, raw cache shape, lenient admission,
+composition remain open. Pure lookup (supplied separately under Q59), childRef, raw cache shape, lenient
+admission,
 ordered diagnostics and current-path cycle behavior retain their contracts.
 Concrete agreement premises are `Id.run (decodeRoot consts.emptyTrieRoot db r) =
 .ok t`, using the actual Id interpretation and coherent supplied F20 constants.

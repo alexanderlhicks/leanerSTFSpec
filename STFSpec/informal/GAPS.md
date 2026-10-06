@@ -327,21 +327,22 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCommit`](modules/EthCommit.md)
 
-- **Pure lookup (Q59; guidance only):** the selected-slot diagnostic, total operation and §7.0.5
-  constructor equations remain unimplemented. Supply private structural proper-child
-  Node/Array/Option support, public-only clients and §4 complete optional-value/first-error/cache-
-  independent cases. Source value/stub agreement requires valid selected accesses and actual
-  Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles and the typed out-of-
-  range selected-slot adaptation are separate law/test domains. No reachable decoder/mutation
-  invariant or guest outcome adapter follows. D18/D25 executable/reference equality and copy/scan
-  costs remain future; decoder/WF/cache/update/root/security/generic coupling/lifetime/whole
-  W1/S2/C1–C4/O12 and guest readiness obligations remain open.
+- **Pure lookup (Q59; supplied local operation):** the selected-slot diagnostic, total operation
+  and exactly seven constructor equations are supplied in §3, with private structural proper-child
+  Node/Array/Option support, all-bare offset/reference equality, public-only clients and §4
+  complete optional-value/first-error/cache-independent cases. Source value/stub agreement
+  requires valid selected accesses and actual Hash32-to-64-nibble/source-class/host premises; odd
+  generalized Nibbles and the typed out-of-range-slot adaptation are separate law/test domains. No
+  reachable decoder/mutation invariant or guest outcome adapter follows. D18/D25
+  executable/reference equality is supplied; aggregate copy/scan/resource costs remain unmeasured;
+  decoder/WF/cache/update/root/security/generic coupling/lifetime/whole W1/S2/C1–C4/O12 and guest
+  readiness obligations remain open.
 
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, smart constructors and lookup/update/delete/root operations remain
-  unimplemented. Complete generic decoding is supplied separately in §3. Bare arbitrary
+  meaning, childRef, smart constructors and update/delete/root operations remain
+  unimplemented. Complete generic decoding and pure bare lookup are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; no cache
