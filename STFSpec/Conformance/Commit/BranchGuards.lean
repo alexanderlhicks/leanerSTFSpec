@@ -168,6 +168,16 @@ private def retainedThreshold (valueWidth expectedWidth : Nat) : Bool :=
 #guard retainedThreshold 24 32
 #guard retainedThreshold 25 33
 
+-- Census must retain a sole position even when later slots are absent.
+private def paddedSole (i : Nat) (n : Node) : Array Ref :=
+  ((List.range 16).map fun j => if j == i then some n else none).toArray
+private def trailingSlotChecks : Bool :=
+  check (Array.replicate 16 none) (bytes []) &&
+    [0,3,15].all fun i =>
+      check (paddedSole i (leaf 0 0 (some (answer 91)))) (bytes []) &&
+      check (paddedSole i (.hashed (answer 9))) (bytes [])
+#guard trailingSlotChecks
+
 -- Repeat exactly the same input: answers at each occurrence remain independent.
 private def repeated : Bool :=
   let xs := sole 0 (leaf 40 33 none)
