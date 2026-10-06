@@ -100,6 +100,12 @@ At module completion record which obligations are actually discharged and how. T
 
 For each implemented EELS operation, keep a reviewable source-to-Lean row in the owning module's §3 or in the implementation change: exact EELS `file:line` and dependency version if relevant; Lean declaration and public type; accepted-input/precondition domain; success value and state effects; ordered failure conditions and their first consuming handler/O-row; model equation or theorem; and at least one deterministic case or named fixture area. Grouped inventory claims in §3 establish ownership only. Mark an item **unimplemented**, **implemented but unproved**, or **discharged**, and name any caller that must establish a precondition. A passing fixture is evidence for the specific path it executes, not for every branch of the claimed operation.
 
+The exact SC1 four-field equation and ordinary complete-wire reference are owned
+by EthStateCommit §3. Its account-encoding driver compares both unchanged original
+functions under explicit typed-field, complete-domain and runtime premises. Existing
+account binding and conditional SC10 remain separate supplied laws; these controls
+add no callback, secured-root or whole-backend result.
+
 The exact SC2 integer equation and adjacent ordinary complete-wire reference are
 owned by EthStateCommit §3. Its storage-encoding driver checks complete original
 U256/RLP dispatch under the stated local source/runtime premises, with strict

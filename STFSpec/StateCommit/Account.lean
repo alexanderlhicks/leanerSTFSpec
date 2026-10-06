@@ -27,6 +27,12 @@ def encodeAccount (acc : Account) (storageRoot : Hash32) : ByteArray :=
   Rlp.encode (.list [Rlp.ofNat acc.nonce, Rlp.ofNat acc.balance.toNat,
     .bytes storageRoot.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray])
 
+/-- Encode the entire nonce, balance, supplied storage root and code hash in source order. -/
+theorem encodeAccount_eq (acc : Account) (storageRoot : Hash32) :
+    encodeAccount acc storageRoot =
+      Rlp.encode (.list [Rlp.ofNat acc.nonce, .bytes (U256.toBeBytes acc.balance).toByteArray,
+        .bytes storageRoot.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray]) := rfl
+
 /-- The complete account-list wire is nonempty on every account and supplied root. -/
 theorem encodeAccount_ne_empty (acc : Account) (storageRoot : Hash32) :
     encodeAccount acc storageRoot ≠ ByteArray.empty := by
@@ -63,5 +69,16 @@ theorem encodeAccount_inj (acc₁ acc₂ : Account) (root₁ root₂ : Hash32)
       (hash_eq_of_bytes_eq _ _ hl.2.2.2), hash_eq_of_bytes_eq _ _ hl.2.2.1⟩
   · rintro ⟨rfl, rfl⟩
     rfl
+
+private def reference (acc : Account) (storageRoot : Hash32) : List UInt8 :=
+  Rlp.encodeModel (.list [
+    .bytes (Uint.toBeBytesReference acc.nonce).toByteArray,
+    .bytes (Uint.toBeBytesReference acc.balance.toNat).toByteArray,
+    .bytes storageRoot.toBytes.toByteArray, .bytes acc.codeHash.toBytes.toByteArray])
+
+private theorem toList_reference (acc : Account) (storageRoot : Hash32) :
+    (encodeAccount acc storageRoot).data.toList = reference acc storageRoot := by
+  rw [encodeAccount_eq, Rlp.toList_encode]
+  simp only [Rlp.ofNat, U256.toBeBytes_eq, Uint.toBeBytes_eq_reference, reference]
 
 end STFSpec.StateCommit
