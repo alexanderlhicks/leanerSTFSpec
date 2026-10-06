@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-10-03. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
@@ -96,6 +96,31 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 | `forks/amsterdam/incremental_mpt.py::*` | 50–1040 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, host-side `buildMpt`/`mptGet`/`Witness` | whole file; per-item mapping in §5 |
 | `forks/amsterdam/witness_state.py::_trie_lookup` | 53 | `lookup` | generic walk |
 | `forks/amsterdam/witness_state.py::build_node_db` | 37 | `NodeDB.build` | |
+
+### Supplied nominal partial-node carriers
+
+`STFSpec/Commit/Node.lean` supplies exactly `Enc`, recursive `Node` with four
+constructors, and `Ref := Option Node`, reexported by `STFSpec.Commit`. This is
+**type-only support**, separate from nonrecursive encoded `InternalNode` and generic
+`Trie`. Existing Nibbles/Hash32 and core ByteArray/Array/Option providers supply the
+fields. No deriving, instance, default, hand-written public law or operation is added.
+B3/NEW-COMMIT-1 keeps semantic adoption conditional on demonstrating DISC-003
+provenance, failure and observation sufficiency; bare carrier clients discharge
+none of that gate. Outstanding operation and admission obligations are owned by §10.
+
+| Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–81,287–346,932–968,985–988` | `Enc`, `Enc.mk`, `Enc.rlp`, `Enc.hash?`; **supplied carrier** for every finite ByteArray and optional Hash32 | Retain complete raw/cached values; no query/effect | No error or admission API; completed caches do not model every intermediate mutable Python cache state | Private arbitrary full-field projections and both cache-presence choices at widths 31/32/33; no threshold/provenance/hash theorem |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–98` | `Node.leaf/ext/branch/hashed`; **supplied recursive carrier** | Exact §5 fields, recursive Node child and Array (Option Node) children; no effect | Arbitrary arity/cache/path/child shape is expressible; constructors supply no decoder acceptance or Node.WF | Private variant discrimination, arbitrary complete-field matches, arities 0/15/16/17 and two-level recursive-array consumers |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:92–98,892–914`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | No lookup/child realization/admission/error behavior is implemented | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
+
+`STFSpec/Conformance/Commit/NodeCallerProofs.lean` imports the public owning module;
+all its hand-written support is private. Ordinary kernel proofs check full retention
+and structural consumption without a new nested equality/printing instance or
+independent executable trie traversal. The compiled declaration audit covers generated
+nested-inductive support as well. Field correspondence is not whole source-runtime
+refinement. No Python oracle is required for this item, which adds no executable trie
+operation. Remaining provenance/admission/operation gates are owned by §10.
 
 ### Implemented pure path operations
 
@@ -937,16 +962,18 @@ def NodeDB.Authentic (H : ByteArray → Hash32) (db : NodeDB) : Prop :=   -- F4:
   ∀ h b, db.map[h]? = some b → H b = h
 def NodeDB.build (entries : Array ByteArray) : m NodeDB       -- keys through the oracle; Authentic keccak256 at Id
 
-structure Enc where                         -- immutable cached encoding (C18)
+-- Supplied bare Enc/Node/Ref carriers; the admission/cache obligations below remain future.
+structure Enc where                         -- completed raw/cached values; C18 coherence separate
   rlp : ByteArray
-  hash? : Option Hash32                     -- some iff rlp.size ≥ 32
-inductive Node
+  hash? : Option Hash32                     -- some iff rlp.size ≥ 32 is a future admission law
+inductive Node where
   | leaf (path : Nibbles) (value : ByteArray) (enc : Enc)
   | ext (path : Nibbles) (child : Node) (enc : Enc)
   | branch (children : Array (Option Node)) (value : ByteArray) (enc : Enc)   -- size 16, stated separately (F5)
   | hashed (h : Hash32)                     -- unresolved stub (EELS HashedNode)
 abbrev Ref := Option Node                   -- none = empty; inline vs hashed is a property of Enc (B3; provenance, DISC-003)
-def Node.WF : Node → Prop                   -- every branch has exactly 16 children, plus the §6 invariants
+def Node.WF : Node → Prop                   -- every branch has 16 children, plus §6 invariants
+                                          -- unimplemented; exact cache/provenance interpretation open (Q55)
 def childRef : Ref → RlpItem                -- C18: "" · stub hash · cached hash · inline RLP item
 inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | leafValueList
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
@@ -1023,6 +1050,12 @@ pure cache-bearing decoder and cannot skip malformed-preimage queries.
 | `Trie K V` | `ExtTreeMap K V` | finite map with arbitrary default | `trieGet` | `NoDefault` is a separate setter-reachable predicate; preparation/root require distinct `PrepareSafe`, not `NoDefault` (Q53) | value | O(log n) |
 | `NodeDB` | `Std.HashMap Hash32 ByteArray` | finite map | `get?` | `NodeDB.Authentic keccak256` (established by `NodeDB.build` at `Id`; a predicate, not a field, F4) | built linearly, then **read-only shared** | build expected O(n) plus one keccak per entry; lookup expected O(1) (not worst-case; ARCHITECTURE §5.0) |
 | `Node`/`Ref` | inductive with immutable `Enc` per resolved node | a set of maps (`represents` is a relation, D25) | `represents` | `Enc` agrees with C18/C19; ext child is a branch or stub; every branch has exactly 16 children (F5) and occupancy ≥ 2 | functional; tries are not snapshot-reachable (built once per root computation), so path copying suffices | lookup O(d) node steps (d ≤ 64 branch levels for secured keys) plus path comparisons; update/delete O(d) nodes rebuilt, each with one RLP encoding and ≤ one keccak; `rootHash` O(1) (cached at the root) |
+
+The §3 carriers supply none of this row's semantic or cost guarantees; its
+outstanding admission/provenance gates are owned by §10. `Enc` stores completed
+raw/cache values. No update/root cache schedule is implemented. Mutable dirty or
+missing-cache intermediates require a separate representation/refinement design
+under B15/Q33/D25; they have no representation in these mandatory `Enc.rlp` fields.
 
 **DAG decode memo (DISC-004, B15; distinct from F6).** Not selected; Q55 baseline has no completed-node memo. Any future sharing must preserve raw/cache values, path-dependent errors and observations under explicit oracle premises. Lifetime and effect refinement remain open. No adopted bound or D18 exception; measure any candidate.
 
@@ -1314,6 +1347,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-COMMIT-4: DECISIONS B15 (Q35) and DISC-004: memoised decoding needs a proof that it preserves accept/reject, error precedence and observations (§7.6); host-resource interaction is DISC-001 (O12 unresolved).
 
 ## 10. Gaps
+
+- **Nominal partial-node scope:** exactly Enc/Node/Ref are supplied in §3, with private public-import full-field/variant/recursive-array clients and declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing meaning, childRef, smart constructors, IncrementalMPT and all decoder/lookup/update/delete/root operations remain unimplemented. Bare arbitrary arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003 provenance sufficiency and eventual representation hiding remain unproved. No C18/C19/Q55 decoder/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate is discharged; no cache or host policy is selected.
 
 - **Implemented slice:** C12 raw construction, ordered reference/model laws, full last-write lookup and concrete Id authenticity (§3). Decoder/root/cache/security composition and generic oracle coupling remain open; the finite complete-map and sibling tests do not discharge C1–C4 or R4.
 
