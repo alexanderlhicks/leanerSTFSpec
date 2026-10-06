@@ -424,7 +424,7 @@ def main():
                     q.write_bytes(data)
                     rows.append(
                         dict(
-                            path=p.name + "/" + info.filename,
+                            path=p.stem + "/" + info.filename,
                             size=len(data),
                             sha256=hashlib.sha256(data).hexdigest(),
                             zip_external_attr=info.external_attr,
