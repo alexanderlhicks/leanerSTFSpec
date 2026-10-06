@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.StateCommit.Storage
 import STFSpec.StateCommit.Account
+import STFSpec.StateCommit.StorageDecode
 
 /-!
 # STFSpec.StateCommit
@@ -17,7 +18,8 @@ backends build on it.
 
 Library `EthStateCommit`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Total storage encoding and its all-value
-laws, plus contextual account encoding and its complete-domain binding law, are
-implemented; other integration operations remain specified in the guidance document.
+laws, contextual account encoding and its complete-domain binding law, and lenient
+storage-leaf decoding are implemented; other integration operations remain specified
+in the guidance document.
 Spec guidance: `STFSpec/informal/modules/EthStateCommit.md`.
 -/

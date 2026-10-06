@@ -51,9 +51,9 @@ explicit unsigned radix-256 patterns and independently constructed RLP tags.
 from wire equality, and proves the 33-byte bound through public provider sizes.
 These committed guards compare complete wires; the symbolic clients consume public
 provider laws on every U256. They supply component encoding and typed-trie evidence.
-EEST guest and assembled-root coverage, whole-source/host agreement and SC10 remain
-open. No strict typed RLP/U256 decoder substitutes for the separately specified
-lenient witness decoder.
+EEST guest and assembled-root coverage and whole-source/host agreement remain open.
+The lenient storage decoder and storage SC10 are supplied below; a strict typed
+RLP/U256 decoder does not substitute for that witness behavior.
 
 ### Implemented contextual account encoder (SC1, Q47, Q53)
 
@@ -95,7 +95,60 @@ roots/hashes and asymmetric/interior/leading/trailing zeros. Both hash items
 contribute 66 bytes, so account payload ≥68; outer 55/56 is impossible here.
 These committed guards compare complete wires; the private symbolic clients compose
 the public laws with their exact assembled premises. Whole-source/host agreement,
-SC10's lenient decoder and contextual callback/root integration remain open.
+SC5/account SC10 and contextual callback/root integration remain open.
+
+### Implemented lenient storage decoder (SC6, storage SC10)
+
+`STFSpec/StateCommit/StorageDecode.lean` supplies exactly `decodeStorageLeaf`
+and four public laws below (five declarations); all numeric/reference/domain support
+is private. The nominal `State.WitnessError` carrier is owned by
+[EthState §3/§5](EthState.md#3-eels-source-map).
+
+| Source at the pin | Public declaration/type and status | Domain, success and effects | Ordered failures | Laws and tests |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/witness_state.py:198–203`; `ethereum_rlp/rlp.py:143–156,387–543` (0.1.6); `ethereum_types/numeric.py:44–48,690–712` (0.4.1) | `decodeStorageLeaf : ByteArray → Except State.WitnessError U256`; **discharged local composition** | Every finite raw leaf; complete strict RLP first, then every list → zero or complete unsigned byte payload checked against 2^256; empty payload → zero; unrestricted leading zeros. Pure, no state/hash/cache effects | RLP error first → `.malformed .leaf`; only successfully parsed bytes can then overflow → `.malformed .leaf`. These enumerate two local O4(e) classes, not a global adapter or diagnostic freeze | `decodeStorageLeaf_of_rlp_error`, `_of_rlp_list`, `_of_rlp_bytes`; private ordinary all-Bytes packed/reference equality, prefix invariant, absorbing overflow and candidate <2^264; complete parser/local-result guards and public-law clients |
+| SC10 of the same operation | `decodeStorageLeaf_encodeStorage (v : U256) (h : v ≠ U256.zero) : decodeStorageLeaf (encodeStorage v) = .ok v`; **discharged** | Exactly nonzero words; local Q47 byte domain proved from public 32-byte width bound | None on this domain | Public-contract symbolic client and full values at 1/127/128/255/256, every bit, maximum; no new stored-zero policy or instance |
+
+The three behavior statement types are:
+
+```lean
+theorem decodeStorageLeaf_of_rlp_error (leaf : ByteArray) (e : RlpError)
+    (h : Rlp.decode leaf = .error e) :
+    decodeStorageLeaf leaf = .error (.malformed .leaf)
+theorem decodeStorageLeaf_of_rlp_list (leaf : ByteArray) (items : List RlpItem)
+    (h : Rlp.decode leaf = .ok (.list items)) :
+    decodeStorageLeaf leaf = .ok U256.zero
+theorem decodeStorageLeaf_of_rlp_bytes (leaf payload : ByteArray)
+    (h : Rlp.decode leaf = .ok (.bytes payload)) :
+    decodeStorageLeaf leaf =
+      match U256.ofNat? (Uint.ofBeBytes (Bytes.ofByteArray payload)) with
+      | some v => .ok v
+      | none => .error (.malformed .leaf)
+```
+
+The executable numeric path is `Bytes.foldl` over `Option U256`, initialized
+at `some zero`: success checks `256 * acc.toNat + byte.toNat`, overflow retains
+`none` over every suffix. Each candidate is <2^264; retained values are <2^256.
+The legible reference `U256.ofNat? (Uint.ofBeBytes payload)` is proof-facing;
+ordinary public-model fold commutation proves equality on every finite Bytes.
+No numeric-path list conversion, growing overflowing Nat, byte-count/minimality
+cap, wrapping, clipping or child numeric traversal occurs. Full parser allocations
+and traversal remain upstream; fixed numeric bounds establish no measured
+allocation/throughput, host/resource or composed C1–C4 result.
+
+`StorageDecodeCallerProofs.lean` derives arbitrary-input success iff the complete
+integer fits, exact full success values, overflow iff ≥2^256, list/error equations
+and nonzero SC10 solely through public contracts. `StorageDecodeGuards.lean`
+retains exact parser errors and complete local results, including raw empty versus
+empty payload, canonical framing, malformed nested children, trailing wire bytes,
+33-significant-byte list children, 55/56/57 and 255/256/257 length thresholds,
+long leading zeros/late digits, every significant position, maximum, overflow and
+absorbing arbitrary suffix patterns. The nonzero fitting-byte and empty-list
+trailing cases check exact parser errors before otherwise successful value branches.
+These committed component cases preserve parser/local-result failure order. The
+ordinary all-Bytes packed/reference proof is separate from finite guard coverage.
+SC5/account SC10, secure roots/callbacks, authentication, backend progress, generic
+coupling and global errors/resources remain open.
 
 ## 4. Tests
 
@@ -176,13 +229,14 @@ Q55 chooses none and adds no local constants acquisition.
 
 ## 6. Data structures
 
-No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
+The storage decoder uses a private packed `Option U256` fold; its reference is
+proof-facing and its fixed numeric bound is specified in §3. No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
 
 ## 7. Contract and laws
 
 ### 7.1 Encoding laws [C], feeds [S]
 
-- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Account-wire nonempty is unconditional; injectivity in `(acc, root)` is discharged under both exact assembled Q47 premises in §3. Round trips SC10 remain open.
+- Storage-wire nonempty and injectivity laws are discharged in §3 on every U256, with the Q47 domain proved from the public 32-byte payload bound. Account-wire nonempty is unconditional; injectivity in `(acc, root)` is discharged under both exact assembled Q47 premises in §3. Storage SC10 is discharged above on nonzero words; account SC10 remains open.
 - `storageRoot σ a = emptyTrieRoot ↔ σ.storage a` is empty (given `WF`; ⇐ by definition, ⇒ needs collision freedom and is stated as "or collision").
 - `mathStateRoot` depends only on `σ.accounts` and the storage of existing accounts; it ignores `σ.code`.
 
@@ -234,7 +288,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
-- **Lenient leaf decodings** (SC5, SC6) are verified by execution on examples only; CONTRACT O4(e) lists their failure classes, but constructor/precedence proofs and malformed-leaf regressions remain required (X1).
+- **Lenient account decoding** (SC5/account SC10) remains open, including constructor/precedence proofs and malformed-leaf regressions (X1). SC6 and nonzero storage SC10 are discharged locally in §3; backend/authentication/progress, collision-guarded agreement and the shared error-adapter/granularity obligations remain open.
 - **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
