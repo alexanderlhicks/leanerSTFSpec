@@ -138,6 +138,9 @@ import STFSpec.Conformance.StateCommit.AccountDecodeGuards
 import STFSpec.Conformance.Commit.IncrementalRootCallerProofs
 import STFSpec.Conformance.Commit.IncrementalRootGuards
 
+import STFSpec.Conformance.StateCommit.StorageEncodingCallerProofs
+import STFSpec.Conformance.StateCommit.StorageEncodingGuards
+
 /-!
 # STFSpec.Conformance
 
@@ -150,3 +153,4 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 Base guards, public-law callers and differential drivers are owned by
 `STFSpec/informal/modules/EthBase.md` §3.
 -/
+
