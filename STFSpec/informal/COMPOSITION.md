@@ -108,6 +108,8 @@ already-RLP withdrawal Bytes, with lawful byte keys and default `None` semantics
 dense arrays use the same EthCommit root operations (§5 of EthBlock), encoding each value once.
 EthStateCommit supplies the total U256 encoder, all-value validity/nonempty laws and
 wire injectivity (EthStateCommit §3), independently of supplied-default deletion.
+Its exact integer equation and complete-wire source controls are owned there;
+they do not supply a root or backend bridge.
 It also supplies contextual Account encoding, unconditional nonempty and pair binding
 under both complete assembled Q47 domains (EthStateCommit §3). The callback/root
 integration remains open; no context-free Account instance follows from this class.

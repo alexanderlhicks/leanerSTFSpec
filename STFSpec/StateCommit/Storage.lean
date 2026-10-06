@@ -3,6 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Base.IntegerBytes
+import STFSpec.Codec.RlpTyped
 import STFSpec.Codec.RlpCanonical
 import STFSpec.Commit.Trie
 
@@ -23,6 +24,10 @@ open Base Codec Commit
 EELS `src/ethereum/merkle_patricia_trie.py:268–269` at the pin. -/
 def encodeStorage (v : U256) : ByteArray :=
   Rlp.encodeBytes v.toBeBytes.toByteArray
+
+/-- The complete storage wire is the RLP encoding of the minimal unsigned integer. -/
+theorem encodeStorage_eq (v : U256) :
+    encodeStorage v = Rlp.encode (Rlp.ofNat v.toNat) := rfl
 
 /-- All word payloads are inside the standard RLP domain (Q47). -/
 private theorem storage_encodable (v : U256) :
@@ -64,5 +69,13 @@ instance : TrieValue U256 where
   encode := encodeStorage
   Valid := fun _ ↦ True
   encode_ne_empty := fun v _ ↦ encodeStorage_ne_empty v
+
+private def reference (v : U256) : List UInt8 :=
+  Rlp.encodeModel (.bytes (Uint.toBeBytesReference v.toNat).toByteArray)
+
+private theorem toList_reference (v : U256) :
+    (encodeStorage v).data.toList = reference v := by
+  rw [encodeStorage_eq, Rlp.toList_encode]
+  simp only [Rlp.ofNat, Uint.toBeBytes_eq_reference, reference]
 
 end STFSpec.StateCommit

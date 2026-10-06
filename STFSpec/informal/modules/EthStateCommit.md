@@ -35,7 +35,8 @@ Also specified here without their own inventory items: the storage-leaf decoding
 ### Implemented total storage encoder (SC2, Q53)
 
 `STFSpec/StateCommit/Storage.lean` supplies exactly `encodeStorage`,
-`encodeStorage_ne_empty`, `encodeStorage_inj` and `TrieValue U256`. All supporting
+`encodeStorage_eq`, `encodeStorage_ne_empty`, `encodeStorage_inj` and
+`TrieValue U256`. All supporting
 codec-domain/composition proofs are private and consume public provider laws.
 
 | Source at the pin | Public declaration/type and status | Domain, success and effects | Ordered failures | Public laws and evidence |
@@ -54,6 +55,21 @@ provider laws on every U256. They supply component encoding and typed-trie evide
 EEST guest and assembled-root coverage and whole-source/host agreement remain open.
 The lenient storage decoder and storage SC10 are supplied below; a strict typed
 RLP/U256 decoder does not substitute for that witness behavior.
+
+`encodeStorage_eq` states the exact `Rlp.encode (Rlp.ofNat v.toNat)` equation.
+The adjacent private List-wire reference has an ordinary equality proof on every
+U256 using public Base/Codec laws. `StorageEncodingCallerProofs.lean` consumes the
+equation and existing instance/nonempty/injectivity contracts without exposing the
+encoder's implementation. `StorageEncodingGuards.lean` checks complete boundary
+and patterned wires and emits JSONL frames. The committed
+`storage_encoding_differential.py` compares those complete frames with unchanged
+pinned `encode_node(U256)` and locked integer RLP dispatch. Its strict parser controls
+run normally and with `-O`; source snapshots bind live functions/classes/aliases,
+source bytes and locked raw wheels before and after each finite comparison.
+Code-content digests use explicit marshal format 2 within that authenticated runtime.
+These comparisons retain actual U256 construction/dispatch and finite-host premises;
+they add no callback, secured-root, whole-source or guest conformance claim.
+
 
 ### Implemented contextual account encoder (SC1, Q47, Q53)
 
@@ -246,6 +262,8 @@ remain open.
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
 def encodeAccount (acc : Account) (storageRoot : Hash32) : ByteArray
 def encodeStorage (v : U256) : ByteArray                      -- total; storage maps omit zero
+theorem encodeStorage_eq (v : U256) :
+  encodeStorage v = Rlp.encode (Rlp.ofNat v.toNat)
 def decodeAccountLeaf (consts : HashConsts) (leaf : ByteArray) : Except WitnessError (Account × Hash32)  -- SC5 defaults from consts
 def decodeStorageLeaf (leaf : ByteArray) : Except WitnessError U256                 -- SC6
 def storageTrieMap (σ : MathState) (a : Address) : m (Std.ExtTreeMap Nibbles ByteArray)   -- secure keys
