@@ -11,8 +11,8 @@ Library `EthCommit`. The diagnostic constructors are owned by EthCommit §5.
 `compactEmpty` names the first-byte failure in the pinned compact decoder;
 `pathEmpty` names the later decoded extension-path check (Q48, CONTRACT O4).
 Q52 names the two-item node's path-list check before compact decoding and its
-leaf-value-list check after successful leaf compact decoding. The whole node
-decoder and the WitnessError/guest adapters remain unimplemented.
+leaf-value-list check after successful leaf compact decoding. The complete generic
+node decoder is supplied; WitnessError/guest adapters remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/2.7/5.
 -/
 

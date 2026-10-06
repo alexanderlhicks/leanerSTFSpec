@@ -21,7 +21,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | HashConsts | EthBase | Acquisition/threading follows F20; existing state/backend contexts retain the same record. |
 | Nibbles | EthCommit | Consumers use public bounded digits, List abstraction, pure path laws and Q49 generation/clipped copies/lawful lexical map order; slices copy O(k). |
 | Enc, Node, Ref | EthCommit | Preserve complete fields and recursive Array/Option children (EthCommit §3); semantic adoption remains conditional on B3/NEW-COMMIT-1/DISC-003, with remaining gates owned by EthCommit §10. |
-| IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref of the nominal secured/root record (EthCommit §3/§5); representation and operation obligations remain owned by §10 (B3). |
+| IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 complete decoder action is supplied separately (EthCommit §3/§5). Mutation/root and representation/admission obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty; witness/guest adapters preserve CONTRACT O4. |
@@ -242,13 +242,13 @@ decoder allocation exception is recorded in DEBT-COMPACT-DECODE.
 ### Decoder field diagnostic premise
 
 [EthCommit §3/§7.0.4](modules/EthCommit.md#3-eels-source-map) supplies Q52's
-nominal diagnostic declarations and public codec/compact seam clients. Future C14
-consumers must parse the whole RLP before shape dispatch, after any Q55 preparse
-query, check a two-item path field before
-compact decoding, and check a list-valued leaf value only after successful leaf
+nominal diagnostic declarations and public codec/compact seam clients. The complete
+C14 decoder parses the whole RLP before shape dispatch, after any Q55 preparse
+query, checks a two-item path field before
+compact decoding, and checks a list-valued leaf value only after successful leaf
 compact decoding. Extension path/child checks, original descendant-error
-propagation and branch-list ending leniency remain dispatcher obligations.
-No whole node decoder or WitnessError/guest adapter has been implemented;
+propagation and branch-list ending leniency are supplied in the complete dispatcher.
+WitnessError/guest adapters remain unimplemented;
 CONTRACT O4 owns the unchanged output projection.
 
 ### Nominal partial-node carrier support
@@ -260,11 +260,14 @@ and failure/observation demonstration before semantic adoption; constructors and
 structural clients do not establish it. Remaining admission, operation and cache
 representation/refinement gates are owned by [EthCommit §10](modules/EthCommit.md#10-gaps).
 
-### Complete decoder action premise (Q55; unimplemented)
+### Complete decoder action premise (Q55; supplied local operation, partial W1)
 
 [EthCommit C13–C14/§5/§7.6](modules/EthCommit.md#5-interface) owns the two generic
-complete decoder targets and query-before-whole-RLP acquisition on newly entered
-eligible raw occurrences. Pure lookup/childRef, raw cache shape, lenient admission,
+complete decoder operations and query-before-whole-RLP acquisition on newly entered
+eligible raw occurrences, with private actual-key cycle/remaining-key and parsed
+inline-subterm totality support, three public plain-Monad equations, and complete
+finite Id/state/failure/source conformance. Consumer/error/lifetime and whole W1
+composition remain open. Pure lookup/childRef, raw cache shape, lenient admission,
 ordered diagnostics and current-path cycle behavior retain their contracts.
 Concrete agreement premises are `Id.run (decodeRoot consts.emptyTrieRoot db r) =
 .ok t`, using the actual Id interpretation and coherent supplied F20 constants.
