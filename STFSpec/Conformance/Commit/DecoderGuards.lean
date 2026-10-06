@@ -60,6 +60,12 @@ private def malformedWire : Malformed → List Nat
   | .extChild => [8]
   | .occupancy n => [9, n]
   | .cycle => [10]
+  | .branchIndex index arity => [11, index, arity]
+
+#guard malformedWire (.branchIndex 0 0) = [11, 0, 0]
+#guard malformedWire (.branchIndex 1 0) = [11, 1, 0]
+#guard malformedWire (.branchIndex 0 1) = [11, 0, 1]
+#guard malformedWire (.branchIndex (10^100) (10^200)) = [11, 10^100, 10^200]
 
 private def errorWire : TrieError → List Nat
   | .missingRoot h => 0 :: hashWire h

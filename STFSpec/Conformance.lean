@@ -68,6 +68,8 @@ import STFSpec.Conformance.Commit.NodeCallerProofs
 import STFSpec.Conformance.Commit.IncrementalMPTCallerProofs
 import STFSpec.Conformance.Commit.DecoderCallerProofs
 import STFSpec.Conformance.Commit.DecoderGuards
+import STFSpec.Conformance.Commit.LookupCallerProofs
+import STFSpec.Conformance.Commit.LookupGuards
 import STFSpec.Conformance.Fixtures.Extract
 import STFSpec.Conformance.Fixtures.Index
 import STFSpec.Conformance.Fixtures.Tests

@@ -50,7 +50,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.4 Lookup (guest path)
 
-- C20. `_trie_lookup root keyHash` (`ws:53–100`) is pure tree lookup; guest callers (`ws:148–205`) supply a Hash32 split into 64 nibbles and own hashing, root decoding/caching and later leaf decoding/defaults. Q59 preserves a total `lookup` on every finite bare Ref/Nibbles input: none → absence; stub → `.unresolved h` before key exhaustion; leaf → its complete value, including empty as present, iff its complete path equals the remaining key; extension → compare its complete path to the clipped remaining prefix and descend/drop path length only on match, including empty paths and ext-to-leaf/ext; terminal branch → nonempty value or absence before child bounds; nonterminal in-bounds branch → exactly the selected child/drop1. Only a reached out-of-range selected slot returns `.malformed (.branchIndex i children.size)`, where `i < 16` and `children.size ≤ i`. No size16/occupancy/cache/WF check, out-of-range-slot absence, off-path scan or normalization enters lookup. Raw/cache fields are ignored and unconstrained. The source invalid list access has a defined IndexError; the typed adaptation is Q59's disposition, not a demonstrated guest outcome. Source value/stub correspondence uses valid selected accesses and explicit actual Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles are governed by Lean equations, not direct byte-entry observations. Structural proper-child Node-size descent handles matched empty extensions without requiring key consumption; implementation remains future.
+- C20. `_trie_lookup root keyHash` (`ws:53–100`) is pure tree lookup; guest callers (`ws:148–205`) supply a Hash32 split into 64 nibbles and own hashing, root decoding/caching and later leaf decoding/defaults. Q59 preserves a total `lookup` on every finite bare Ref/Nibbles input: none → absence; stub → `.unresolved h` before key exhaustion; leaf → its complete value, including empty as present, iff its complete path equals the remaining key; extension → compare its complete path to the clipped remaining prefix and descend/drop path length only on match, including empty paths and ext-to-leaf/ext; terminal branch → nonempty value or absence before child bounds; nonterminal in-bounds branch → exactly the selected child/drop1. Only a reached out-of-range selected slot returns `.malformed (.branchIndex i children.size)`, where `i < 16` and `children.size ≤ i`. No size16/occupancy/cache/WF check, out-of-range-slot absence, off-path scan or normalization enters lookup. Raw/cache fields are ignored and unconstrained. The source invalid list access has a defined IndexError; the typed adaptation is Q59's disposition, not a demonstrated guest outcome. Source value/stub correspondence uses valid selected accesses and explicit actual Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles are governed by Lean equations, not direct byte-entry observations. Structural proper-child Node-size descent handles matched empty extensions without requiring key consumption; the local operation/proofs are supplied in §3.
 - C21. `mpt_get` (`inc:349–378`) answers from the flat `_data` map and only *records* the traversal; `_data` is empty for decoded tries. It is host-side witness construction (`stateless_host_exec_witness.py:82`, `:120`), not the guest lookup.
 
 ### 2.5 Update, delete, root (guest path)
@@ -94,7 +94,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 | `merkle_patricia_trie.py::root` | 478 | `root`, `mathRoot` | |
 | `merkle_patricia_trie.py::patricialize` | 507 | `patricialize` | |
 | `forks/amsterdam/incremental_mpt.py::*` | 50–1040 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, host-side `buildMpt`/`mptGet`/`Witness` | whole file; per-item mapping in §5 |
-| `forks/amsterdam/witness_state.py::_trie_lookup` | 53–100 | `lookup` | unimplemented pure Q59 bare walk; source value/stub bridge restricted to valid selected accesses and actual Hash32 keys; typed out-of-range selected-slot adaptation separate |
+| `forks/amsterdam/witness_state.py::_trie_lookup` | 53–100 | `lookup` | supplied pure Q59 bare walk/seven equations; source value/stub bridge restricted to valid selected accesses and actual Hash32 keys; typed out-of-range-slot adaptation separate |
 | `forks/amsterdam/witness_state.py::build_node_db` | 37 | `NodeDB.build` | |
 
 ### Supplied nominal partial-node carriers
@@ -276,8 +276,8 @@ EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibble_operations_differe
 
 The pure decoder is **discharged** in `STFSpec/Commit/Compact.lean`. Its narrowly
 owned diagnostics live in `STFSpec/Commit/TrieError.lean`; the other constructors
-implement the existing §5 type. Complete decoding is supplied in the subsection
-below; later lookup/mutation consumers remain unimplemented.
+implement the existing §5 type. Complete decoding and pure bare lookup are supplied
+in the subsections below; mutation and witness consumers remain unimplemented.
 
 | Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Model law | Deterministic/differential evidence |
 |---|---|---|---|---|---|
@@ -894,20 +894,60 @@ observations supply no unconditional Python theorem, concrete production adapter
 secure traversal/collision/history policy, D5 coupling, canonicality, W1/S2,
 C1–C4, fuel or guest/security readiness result.
 
+### Implemented pure bare lookup
+
+`STFSpec/Commit/Lookup.lean` supplies total pure `lookup` and exactly the seven constructor
+equations in §7.0.5. All scanner, copying reference, offset traversal, proper-child decreases and
+refinement theorems stay private. The ordinary private all-bare-input equality relates the offset
+worker at every natural offset to the copying reference on the clipped suffix; no Node.WF, cache
+or arity premise is used. Structural Node/Option/Array descent permits empty extensions. Execution
+retains the original key, compares bounded digits and accesses only the selected child; it copies
+no whole remaining suffix at a branch and never scans off-path children.
+
+| Pinned source | Lean declaration/type and domain | Complete value/effects | Ordered failures and consumer boundary | Laws and controls |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/witness_state.py:53–100`; nominal classes `incremental_mpt.py:48–98` | `lookup : Ref → Nibbles → Except TrieError (Option ByteArray)` on every finite bare tree/key with arbitrary Enc/arity | Pure; exact complete optional bytes, including present empty leaf values; no query, codec, DB/default or mutation | Reached stub before exhaustion; mismatched extension stops before child; terminal branch value before bounds; only a reached out-of-range selected slot gives exact Q59 `(index, actual arity)`. Guest reachability/adapters remain open under CONTRACT O4/O13 | **Discharged local constructor equations:** `lookup_none`, `lookup_hashed`, `lookup_leaf`, `lookup_ext`, `lookup_branch_emptyKey`, `lookup_branch_index`, `lookup_branch_oob`; private public-import `LookupCallerProofs.lean`, complete-result `LookupGuards.lean`, fresh original `lookup_differential.py` |
+
+The source driver authenticates original pin/physical source and existing types/RLP
+wheel/installed-source inputs before and after execution, retaining original function identities,
+complete dataclass fields and actual Hash32 keys, full optional values, exception
+class/message/args/throw site, and absence of local hash/codec/state calls. Value/stub comparisons
+use valid selected accesses and explicit source-class/host premises. Missing-slot Python
+IndexError is recorded separately; its exact selected index/arity tests the approved typed
+adaptation, never source exception-payload or guest-output equivalence. Odd generalized paths
+remain ordinary Lean controls. No whole Python theorem, authentication, WF/cache admission,
+mutation/root, security/witness agreement, generic coupling/lifetime, resource or readiness result
+follows. Interpreter/startup/frozen installation and host remain trusted inputs.
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/lookup_differential.py \
+  --eels EELS --output EXTERNAL.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+python3 -B STFSpec/Conformance/Commit/lookup_differential.py --self-test
+python3 -B -O STFSpec/Conformance/Commit/lookup_differential.py --self-test
+```
+
+The exhaustive decoder diagnostic encoder preserves tags 0–10 and appends tag 11 with both
+unrestricted Nat fields. `DecoderDiagnosticGuards.lean` varies both fields independently and
+preserves wrappers/old distinctness; the complete decoder parser accepts nominal large fields and
+rejects invalid/truncated/extra records in ordinary and optimized Python. Its decoder-output
+sixteen-child grammar is retained; the separate bare lookup input grammar permits every finite
+arity. Decoding itself never manufactures `branchIndex`.
+
 ## 4. Tests
 
-**Future pure lookup cases (Q59; unimplemented).** Prove the §7.0.5 equations
-through ordinary public-import clients and compare complete optional bytes/diagnostics.
+**Pure lookup cases (Q59; supplied locally).** `LookupCallerProofs.lean` consumes
+the seven equations in §7 through ordinary public imports; `LookupGuards.lean` and
+`lookup_differential.py` compare complete optional bytes/diagnostics.
 Cover none/stub with empty and nonempty keys; present empty leaf versus terminal empty
 branch; full suffix equality/mismatch; clipped/overlong/mismatched extensions stopping
 before a stub; matched empty-extension chains and ext-to-ext/leaf; every nibble index;
-arities0/1/15/16/17 with valid selected slots and extra ignored children; terminal short
+arities 0/1/15/16/17 with valid selected slots and extra ignored children; terminal short
 branches before bounds; exact index/actual-arity fields only for out-of-range selected slots; selected
 versus off-path stubs and arbitrary complete Enc/cache fields. Fresh original source
 comparisons cover valid selected accesses with actual Hash32/source-class/host premises;
 assert the adopted bounds diagnostic separately. Empty/odd generalized Nibbles are Lean
-law cases, not direct original Hash32 byte-entry observations. No lookup tests are supplied
-by this guidance change, and no source agreement theorem or benchmark is claimed.
+law cases, not direct original Hash32 byte-entry observations. The scoped controls
+are supplied in §3; no whole source agreement theorem or benchmark is claimed.
 
 C11 storage/safety and generic unsecured preparation validation are supplied in §3.
 Concrete consumer/root seams still require cases distinguishing
@@ -1103,7 +1143,7 @@ def childRef : Ref → RlpItem                -- C18: "" · stub hash · cached 
 inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | leafValueList
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
-  | branchIndex (index : Nat) (arity : Nat)    -- Q59 adopted target only; unimplemented
+  | branchIndex (index : Nat) (arity : Nat)    -- Q59 selected-slot diagnostic supplied
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
 -- smart constructors (the only way ops build nodes; internal but with public laws).
@@ -1112,10 +1152,10 @@ def mkLeaf (path : Nibbles) (value : ByteArray) : m Node
 def mkExt (path : Nibbles) (child : Node) : m Node          -- merges ext/leaf children (C24)
 def mkBranch (children : Array (Option Node)) (value : ByteArray) : m (Except TrieError Ref)  -- size 16; collapse, C25
 
--- Q55: complete generic decoders are supplied in §3; lookup stays pure and unimplemented.
+-- Q55: complete generic decoders are supplied in §3; pure lookup is supplied separately in §3.
 def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
     m (Except TrieError Ref)   -- eager, C13–C17; pre-RLP query on each eligible raw occurrence
-def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20/Q59, unimplemented
+def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20/Q59, supplied
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref)    -- C23, value ≠ empty
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)                        -- C24–C25
 def rootHash (emptyRoot : Hash32) (t : Ref) : m Hash32                                 -- C27
@@ -1178,8 +1218,8 @@ pure admission kernel may consume raw bytes and the already acquired optional
 answer, with length/cache and recursive-domain proofs; it is not another public
 pure cache-bearing decoder and cannot skip malformed-preimage queries.
 
-**Pure lookup contract (Q59; unimplemented).** C20 and the §7.0.5 prospective
-equations determine every finite bare input, with no Enc/WF/path/child-kind/arity premise.
+**Pure lookup contract (Q59; supplied locally).** C20 and the seven supplied equations
+in §7 determine every finite bare input, with no Enc/WF/path/child-kind/arity premise.
 Bounds are checked only for the actual selected slot of a nonterminal branch. Stub
 failure precedes exhaustion; terminal branch value precedes bounds. Lookup never hashes,
 encodes, decodes, consults a DB/default or mutates its inputs. Source correspondence is
@@ -1201,13 +1241,13 @@ outstanding admission/provenance gates are owned by §10. `Enc` stores completed
 raw/cache values. No update/root cache schedule is implemented. Mutable dirty or
 missing-cache intermediates require a separate representation/refinement design
 under B15/Q33/D25; they have no representation in these mandatory `Enc.rlp` fields.
-Q59's future bare lookup ignores every raw/cache field and imposes no admission invariant.
+Q59's supplied bare lookup ignores every raw/cache field and imposes no admission invariant.
 Its selected-access source domain is key-dependent; F5's future admitted size16 invariant
 is sufficient but stronger. Proper-child traversal, not remaining-key-only descent,
-terminates finite empty-extension chains. Future production traversal must avoid copying
+terminates finite empty-extension chains. The supplied offset traversal avoids copying
 the complete remaining suffix at every branch or scanning off-path children (D18);
-private cursor/reference designs need ordinary all-bare-input equality (D25). No speed,
-allocation, compiled feasibility or resource bound follows from this guidance.
+its private copying reference has ordinary all-bare-input equality (D25). Aggregate
+allocation, speed and composed resource bounds remain unmeasured.
 
 **DAG decode memo (DISC-004, B15; distinct from F6).** Not selected; Q55 baseline has no completed-node memo. Any future sharing must preserve raw/cache values, path-dependent errors and observations under explicit oracle premises. Lifetime and effect refinement remain open. No adopted bound or D18 exception; measure any candidate.
 
@@ -1396,11 +1436,11 @@ Public codec success binds the whole wire and supplies `Encodable`;
 clients support ordering arguments; complete C14 dispatch is separately owned by
 §3, while the WitnessError/O4 adapter remains unimplemented.
 
-### 7.0.5 Pure lookup equations (Q59; prospective, unimplemented)
+### 7.0.5 Pure lookup equations (Q59; discharged locally)
 
-Exactly these seven public laws are planned. They expose complete inputs/results and
-unconstrained Enc; no proof or public offset/reference/prefix/domain/measure helper is
-provided by this informal guidance. All operational and structural support stays private.
+Exactly these seven public laws are supplied in `Lookup.lean`. They expose complete
+inputs/results and unconstrained Enc; no public offset/reference/prefix/domain/measure
+helper is added. All operational and structural support stays private.
 
 ```lean
 theorem lookup_none (key : Nibbles) : lookup none key = .ok none
@@ -1486,7 +1526,8 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 
 ### 7.5 Data availability (progress) [C]
 
-- Q59: on finite bare inputs, `lookup t k` fails iff the walk reaches a stub or a nonterminal branch with an out-of-range selected slot. On the explicit valid-selected-access domain it fails iff a stub is reached; this premise is not a runtime key/WF restriction. Source correspondence retains C20’s Hash32/source-class/host premises. These lookup laws remain unimplemented. `update` fails iff the insertion path reaches a stub; `delete` fails iff its path reaches a stub or a collapse leaves exactly one child that is a stub. For a pruning `t` of `canonTrie m`, "all nodes on the path of `k` resolved" implies success of `lookup`/`update`; for `delete` additionally "the sibling of every collapsing branch resolved". Authenticated absence (a mismatching leaf or empty child on a resolved path) is success.
+- Q59: on finite bare inputs, `lookup t k` fails iff the walk reaches a stub or a nonterminal branch with a out-of-range selected slot. On the explicit valid-selected-access domain it fails iff a stub is reached; this premise is not a runtime key/WF restriction. Source correspondence retains C20’s Hash32/source-class/host premises. The seven defining lookup equations and all-bare reference equality are supplied in §3;
+  whole map/source agreement remains open. `update` fails iff the insertion path reaches a stub; `delete` fails iff its path reaches a stub or a collapse leaves exactly one child that is a stub. For a pruning `t` of `canonTrie m`, "all nodes on the path of `k` resolved" implies success of `lookup`/`update`; for `delete` additionally "the sibling of every collapsing branch resolved". Authenticated absence (a mismatching leaf or empty child on a resolved path) is success.
 - Conjectures to settle: success of an insert-only (resp. delete-only) sequence is independent of its order.
 
 ### 7.6 Caches [C]
@@ -1516,7 +1557,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
 - **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied; concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
-- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); the following trie seams remain unimplemented: `lookup`/`mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
+- **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7 `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup` and seven constructor equations (§3); the following trie seams remain unimplemented: `mptSet`/`mptRoot` (the partial trie behind the witness backend; replacement exercise 2 replaces exactly this), `represents` and the agreement theorem (for `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
 
@@ -1528,7 +1569,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - D18: HashMap expected bounds for `NodeDB`; any future memo requires measured/refined costs. Q55 adopts no production exception.
 - D19 (accepted): eager decoding at B4 triggers; B15 sharing remains unselected, with the additional Q55 effect/path obligations in §7.6.
 - D25 (accepted): `represents` as the abstraction relation.
-- Q59: the accepted disposition is owned by DECISIONS; C20/§§5/7 specify the future pure bare lookup, exact selected-slot diagnostic and §7.0.5 equations. Constructor/lookup proofs, complete-value/source tests and guest adapters remain unimplemented; no WF/cache/mutation/root/security/resource/readiness claim follows.
+- Q59: the approved disposition is owned by DECISIONS; C20/§§5/7 specify the supplied pure bare lookup, exact selected-slot diagnostic and seven equations. Private structural/reference proofs and complete-value/source controls are supplied locally; guest adapters remain unimplemented; no WF/cache/mutation/root/security/resource/readiness claim follows.
 - Q55: complete generic operations, three public equations and private totality/acquisition/inline/ordered-error laws are supplied in §3. Whole agreement, generic interpretation/action lifetime, consumer bridges and cache bundles remain open.
 - Q50: the explicit reachable-domain proof and supplied-empty-root interpretation follow C7/C8/§5; domain/descent and recursive C7 construction with finite authenticated source agreement are in §3; the total local C8 wrapper is supplied in §3; whole-source refinement remains open.
 - Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and
@@ -1547,21 +1588,22 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Pure lookup (Q59; guidance only):** the selected-slot diagnostic, total operation and §7.0.5
-  constructor equations remain unimplemented. Supply private structural proper-child
-  Node/Array/Option support, public-only clients and §4 complete optional-value/first-error/cache-
-  independent cases. Source value/stub agreement requires valid selected accesses and actual
-  Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles and the typed out-of-
-  range selected-slot adaptation are separate law/test domains. No reachable decoder/mutation
-  invariant or guest outcome adapter follows. D18/D25 executable/reference equality and copy/scan
-  costs remain future; decoder/WF/cache/update/root/security/generic coupling/lifetime/whole
-  W1/S2/C1–C4/O12 and guest readiness obligations remain open.
+- **Pure lookup (Q59; supplied local operation):** the selected-slot diagnostic, total operation
+  and exactly seven constructor equations are supplied in §3, with private structural proper-child
+  Node/Array/Option support, all-bare offset/reference equality, public-only clients and §4
+  complete optional-value/first-error/cache-independent cases. Source value/stub agreement
+  requires valid selected accesses and actual Hash32-to-64-nibble/source-class/host premises; odd
+  generalized Nibbles and the typed out-of-range-slot adaptation are separate law/test domains. No
+  reachable decoder/mutation invariant or guest outcome adapter follows. D18/D25
+  executable/reference equality is supplied; aggregate copy/scan/resource costs remain unmeasured;
+  decoder/WF/cache/update/root/security/generic coupling/lifetime/whole W1/S2/C1–C4/O12 and guest
+  readiness obligations remain open.
 
 - **Nominal partial-trie carrier scope:** exactly Enc/Node/Ref and secured/root IncrementalMPT are
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
-  meaning, childRef, smart constructors and lookup/update/delete/root operations remain
-  unimplemented. Complete generic decoding is supplied separately in §3. Bare arbitrary
+  meaning, childRef, smart constructors and update/delete/root operations remain
+  unimplemented. Complete generic decoding and pure bare lookup are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
   provenance sufficiency and eventual representation hiding remain unproved. The carriers alone
   discharge no C18/C19/canonicality/map/security/W1/S2/R2/G/C1–C4/O12/guest/EEST gate; no cache

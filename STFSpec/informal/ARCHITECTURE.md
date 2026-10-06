@@ -264,7 +264,7 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 - **Bare lookup traversal** (Q59) descends by proper-child Node size, independently
   of key consumption. A matched empty extension still moves to a proper child;
   branch terminal values precede bounds, and only an in-bounds selected child is
-  traversed. EthCommit §7.0.5 owns the prospective equations.
+  traversed. EthCommit §7.0.5 owns the supplied equations.
 - **Admitted mutation traversal** (update/delete) has a separate remaining-key
   measure under the nonempty-extension path invariant. A branch consumes one nibble
   and an admitted extension at least one; a leaf is terminal and consumes nothing.
@@ -566,7 +566,7 @@ and operational contracts. DECISIONS Q58 owns the bounded disposition; EthState 
 owns its law targets, without an additional account-reformulation law.
 
 **Pure lookup selected-access options (Q59).** DECISIONS Q59 owns the disposition;
-EthCommit C20/§§5/7 owns its exact future diagnostic and §7.0.5 constructor equations.
+EthCommit C20/§§5/7 owns its supplied diagnostic and §7.0.5 constructor equations.
 Candidate A retains the total bare `Ref → Nibbles → Except TrieError (Option ByteArray)`
 API and names only a reached nonterminal out-of-range selected slot with
 `Malformed.branchIndex (index : Nat) (arity : Nat)`. Candidate B changes that API
@@ -582,7 +582,7 @@ is the typed diagnostic/domain adaptation. Source value/stub correspondence is l
 to valid selected accesses and actual Hash32-to-64-nibble/source-class/host premises.
 Proper-child Node-size descent handles matched empty extensions independently of key
 consumption. Private cursor/reference/child-size support and ordinary all-bare-input
-fast/reference equality remain future D18/D25 implementation work. No compiled feasibility,
+fast/reference equality are supplied under D18/D25 (EthCommit §3). No compiled feasibility,
 speed, guest reachability/output, host resource or readiness result follows; decoder,
 mutation, cache, root and security obligations retain their owners.
 

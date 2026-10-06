@@ -57,7 +57,9 @@ def diagnostics : List Malformed :=
   [.rlp, .nonEmptyString, .compactPathList, .compactEmpty, .leafValueList, .pathEmpty,
    .badListLength 0, .badListLength 2, .badListLength 17,
    .refLength 0, .refLength 1, .refLength 32, .extChild,
-   .occupancy 0, .occupancy 1, .occupancy 2, .cycle]
+   .occupancy 0, .occupancy 1, .occupancy 2, .cycle,
+   .branchIndex 0 0, .branchIndex 1 0, .branchIndex 0 1, .branchIndex 15 15,
+   .branchIndex 1000000 2000000, .branchIndex 2000000 1000000]
 
 /-- Ordinary equality distinguishes all diagnostic constructors and payloads. -/
 def diagnosticChecks : Bool := diagnostics.zipIdx.all fun (a, i) ↦
