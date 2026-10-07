@@ -15,6 +15,7 @@ import STFSpec.Commit.Root
 import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Decoder
 import STFSpec.Commit.Lookup
+import STFSpec.Commit.Update
 import STFSpec.Commit.Trie
 import STFSpec.Commit.Preparation
 
