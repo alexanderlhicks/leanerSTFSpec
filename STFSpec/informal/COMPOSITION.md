@@ -29,6 +29,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | Stack | EthVmCore | Use the six public bounded-stack APIs and eight ordinary laws owned by EthVmCore §3/§7. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; swap/decoders, handler failure order, actual frame ownership and compiled allocation remain separate. |
+| `bufferRead` | EthVmCore | Use the existing Base Bytes/U256 types and the three supplied ordinary bridge/List/size laws owned by EthVmCore §3/§7; no Memory/gas/host-cap premise. Source correspondence retains typed-dependency/representable-width/allocation premises. |
 | Memory | EthVmCore | DECISIONS Q62 owns the disposition; EthVmCore §5/§7 owns the prospective API and laws, with implementation status in §10. The local-premise handoff below records caller alignment/window and ordering duties. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
@@ -37,6 +38,16 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied immutable buffer read
+
+[EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map) owns the supplied
+`bufferRead` API, ordinary laws and conditional source correspondence. Consumers use
+existing Base Bytes/U256 and the bridge/List/size laws. Public clients obtain empty
+Bytes equality, unavailable/contained models and right-padding extension through
+the existing Base law with its explicit window premise. No representation helper
+or additional public law is exposed. Remaining resource/ordering/Memory obligations
+are owned by EthVmCore §10 and REVIEW.
 
 ### Prospective Memory local-premise handoff (Q62)
 

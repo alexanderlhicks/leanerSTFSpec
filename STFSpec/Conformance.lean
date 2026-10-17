@@ -154,6 +154,8 @@ import STFSpec.Conformance.StateCommit.AccountEncodingGuards
 
 import STFSpec.Conformance.Vm.Core.StackCallerProofs
 import STFSpec.Conformance.Vm.Core.StackGuards
+import STFSpec.Conformance.Vm.Core.BufferReadCallerProofs
+import STFSpec.Conformance.Vm.Core.BufferReadGuards
 import STFSpec.Conformance.Vm.Core.GasMeterCallerProofs
 import STFSpec.Conformance.Vm.Core.GasMeterGuards
 
