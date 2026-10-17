@@ -100,23 +100,26 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
-### Supplied charge kernel
+### Supplied local meter algebra
 
 The following local contracts are **discharged** in `STFSpec/Vm/Core/Exceptions.lean`
 and `STFSpec/Vm/Core/GasMeter.lean`, exported by `STFSpec.Vm.Core` in namespace
 `STFSpec.Vm.Core`. Other declarations in the grouped inventory remain unimplemented.
-This is a partial G1 discharge, without a frame, gas policy, settlement or runner.
+This is a partial G1 discharge, without a frame, gas policy, frame settlement or runner.
 
 | Pinned EELS source | Lean declaration and type | Domain, complete success/effect and ordered failure | Public law / test |
 |---|---|---|---|
 | `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer or Revert implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
 | `vm/gas.py:270–336` | `GasMeter : Type` | Public fields `gasLeft stateGasLeft stateGasBaseline : Nat`, `refundCounter : Int := 0`, `stateGasSpilled stateGasCommittedSpill : Nat := 0`; every raw record admitted, including reservoir above baseline, negative refund and both positive spill pools | Complete six-field guards and default-record case |
-| §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`; ordinary positive-charge client |
+| §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`, `commitStateGas_phi`, `restoreStateGas_phi`, `restoreStateGasToEntry_phi`; ordinary public clients |
 | `vm/gas.py:374–388` | `checkGas : GasMeter → Nat → Except ExceptionalHalt Unit` | All raw meters/amounts; check execution shortage first, returning `.error .outOfGas` iff `gasLeft < a`; otherwise `.ok ()`, no meter update | `checkGas_eq_ok_iff`, `checkGas_eq_error_iff`; zero/exact/one-over guards |
 | `vm/gas.py:391–405` (numeric helper of `:408–422`) | `chargeGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; execution affordability precedes subtraction; success changes only `gasLeft := gasLeft - a`; shortage returns only `.outOfGas` without a preceding update | `chargeGas_of_le`, `chargeGas_eq_error_iff`, `chargeGas_phi`; exact full-record success/error guards |
 | `vm/gas.py:425–448` (numeric helper of `:451–468`) | `chargeStateGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; reservoir affordability first: change only `stateGasLeft := stateGasLeft - a`; otherwise total affordability, let `d := a - stateGasLeft`, set execution gas to `gasLeft - d`, reservoir to zero and pending spill to `stateGasSpilled + d`; baseline/refund/committed spill unchanged. Total shortage returns only `.outOfGas` before any update | `chargeStateGas_of_le`, `chargeStateGas_of_lt`, `chargeStateGas_eq_error_iff`, `chargeStateGas_phi`, `chargeStateGas_gasLeft_le`; zero/exact/one-over for each branch and beyond-64-bit guards |
+| `vm/gas.py:471–502` | `commitStateGas (m : GasMeter) (h : m.stateGasLeft ≤ m.stateGasBaseline) : GasMeter` | Exactly the local proof domain; arbitrary signed refund and both spill pools. The source assertion at :499 precedes all updates. Result `(E,R,R,q,0,C+S)` in six-field order; no runtime failure | `commitStateGas_eq`, `commitStateGas_phi`; complete-field zero/equality/negative/both-spill/beyond-word guards and authenticated original comparison |
+| `vm/gas.py:505–529` | `restoreStateGas : GasMeter → GasMeter` | Every raw meter, including `R>B` and negative refund; no source assertion. Result `(E+S,B,B,0,0,C)`; committed spill retained, no failure | `restoreStateGas_eq`, `restoreStateGas_phi`, `restoreStateGas_post`; complete-field guards, public idempotence/committed-retention clients and authenticated original comparison |
+| `vm/gas.py:532–567` | `restoreStateGasToEntry (m : GasMeter) (R : Nat) (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) : GasMeter` | Only these two premises, with no reservoir bound. Source assertions :555 then :558 precede all mutation. Result `(E+S+C,R,R,q,0,0)`; refund preserved under its equality proof, no runtime failure | `restoreStateGasToEntry_eq`, `restoreStateGasToEntry_phi`, `restoreStateGasToEntry_post`; complete-field guards, public composition and authenticated original comparison including ordered source-only assertion probes |
 
-The target helper's error is an O8 exceptional halt. Existing source consumers include
+The charge helpers' error is an O8 exceptional halt. Existing source consumers include
 `vm/interpreter.py:276` (top-level preparation), `:386` (code deposit), and `:456–474`
 (call execution); their settlement, rollback and outcome projection remain outside
 this kernel. Pure `Except` errors contain no mutable meter; controls separately retain
@@ -160,10 +163,51 @@ not exception-producer executions. Preflight executes no numeric helper;
 source comparison preserves original return/error classes and all six fields.
 New runtime/candidate checks and their results must be recorded for each actual run.
 
+`GasRollbackCallerProofs.lean` consumes all eight additional ordinary public laws,
+including complete-record congruence, baseline lowering, ordinary restore idempotence,
+committed-spill retention and charge/commit/two-boundary potential composition.
+`GasRollbackGuards.lean` freezes complete six-field cases, including both spill pools,
+negative refunds, reservoir above baseline where admitted and `2^130` amounts; an actual
+Lean charge/commit/charge/restore/entry sequence checks every intermediate meter.
+`gas_rollback_differential.py` strictly compares 18 public-import complete frames
+normally and under `-O`; its separately authenticated original schedule adds four
+source-only assertion probes with exact locations and unchanged inputs. It executes
+only these three original helpers. The authenticated comparison passed all 18 valid
+complete meters and four source-only assertion probes, including both-false entry
+assertion priority and unchanged failed inputs. No invalid Lean call is fabricated.
+
+Reproduce this rollback slice with fresh external output paths. The emitter uses
+`#eval`, so execute it with plain Lean. Keep source assertions enabled in the
+separate pinned clone's interpreter and use its authenticated locked wheels:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/gas_rollback_differential.py
+OUT=/absolute/path/to/fresh-rollback-controls
+EELS=/absolute/path/to/pinned-eels
+WHEELS=/absolute/path/to/locked-wheels
+mkdir -p "$OUT"
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > "$OUT/GasRollbackFrames.lean"
+lake env lean "$OUT/GasRollbackFrames.lean" > "$OUT/frames.jsonl"
+python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
+```
+
+The complete catalog retains 18 valid calls and four source-only assertion probes;
+preflight executes none. Invalid proof-domain inputs remain source-only probes.
+Record each actual current-candidate source/runtime result separately from these
+reproduction instructions and from historical campaigns.
+
 **External semantics.** From `ethereum_types` 0.4.1 (`reference.toml`): `Uint` (unbounded, subtraction below zero raises `OverflowError`), `U256`/`U64`/`U8` (constructor, `+` and `from_signed` raise `OverflowError` out of range; `from_be_bytes` raises `ValueError` for more than 32 bytes; `wrapping_*` wrap), `Bytes`, `Bytes32`, `ulen`. Only the `OverflowError` cases listed in R-EXC-2 are behaviourally reachable from this module's callers; the Lean `Nat`/`U256` API (EthBase) must make each one explicit rather than wrap. `ceil32` and `taylor_exponential` come from `utils/numeric.py` (EthBase). `left_pad_zero_bytes` from `utils/byte.py`.
 
 ## 4. Tests
 
+- **Supplied rollback controls:** the three helpers have complete-field zero/equality, signed-refund, both-spill, above-baseline (where admitted) and beyond-word cases; guards retain every intermediate meter of the two-boundary composition. Public callers consume all eight laws, without unfolding provider internals. The strict normal/`-O` parser rejects malformed/duplicate/missing/extra fields, Bool-as-Nat, bad arities, reordered/incomplete streams and wrong whole results. Original assertions are checked only in Python, with location/order and unchanged input retained; they are proof arguments in Lean.
 - **Supplied charge-kernel controls:** `GasMeterGuards.lean` retains every field for zero, exact and one-over execution charges; reservoir zero/exact, first spill, exact total and one-over total; zero gas, reservoir above baseline, negative refunds, both spill pools and beyond-64-bit amounts. It checks the three zero defaults, every nominal exception tag, all UInt8 opcode payloads and complete String payloads including NUL/newline/Unicode. Public callers cover all ten laws, conditional positive-charge progress, zero-charge neutrality and execution-then-state accounting without unfolding the kernel. The strict differential parser rejects duplicate/missing/extra fields, Bool-as-Nat, wrong arities, malformed payloads and incomplete/reordered streams; compare the complete observations with authenticated original numeric helpers. Other tests below remain obligations for their unsupplied operations.
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`, `blockchain_tests/for_amsterdam/…`; the `_engine` copies carry no guest records, GAPS-CROSSCUTTING X5): gas meter and state gas: `amsterdam/eip8037_state_creation_gas_cost_increase` (268), `amsterdam/eip8038_state_access_gas_cost_increase` (88), `amsterdam/eip7778_block_gas_accounting_without_refunds` (9), `amsterdam/eip2780_reduce_intrinsic_tx_gas` (59), `amsterdam/eip7976_increase_calldata_floor_cost`, `osaka/eip7825_transaction_gas_limit_cap`; memory: `ported_static/stMemoryTest` (72), `stMemoryStressTest` (36), `stMemExpandingEIP150Calls`, `cancun/eip5656_mcopy`; call gas: `tangerine_whistle/eip150_operation_gas_costs`, `ported_static/stEIP150Specific`, `stEIP150singleCodeGasPrices`; stack limits: `ported_static/stStackTests`, `amsterdam/eip8024_dupn_swapn_exchange` (66); refunds: `ported_static/stRefundTest`, `istanbul/eip2200_net_gas_metering`; transfer logs: `amsterdam/eip7708_eth_transfer_logs` (38); blob gas: `cancun/eip4844_blobs`, `osaka/eip7918_blob_reserve_price`, `cancun/eip7516_blobgasfee`.
 - **EELS unit tests:** none exercise `vm/` directly at e1a316a0 [V: `tests/json_loader/*` touches only tracing (`test_trace.py`)]. The EEST sources under `tests/amsterdam/eip8037_*` (`test_state_gas_reservoir.py`, `test_state_gas_cross_frame_refund.py`, `test_state_gas_ordering.py`) and `tests/amsterdam/eip8024_*` (`test_eip_vectors.py`) are the best specification of the meter and decoders.
@@ -381,8 +425,9 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 proved on every raw meter and natural amount. No baseline/reservoir relation, refund
 sign, spill exclusivity, schedule positivity or global `Wf` is a premise. Record-update
 equations preserve all untouched fields; each subtraction has its preceding local
-affordability guard. Remaining meter-operation equations below are source-checked
-obligations (G1, ARCHITECTURE §5.5), not supplied Lean laws.
+affordability guard. The three rollback operations additionally supply the eight laws
+below on their complete local proof domains (R-GAS-1), without global `Wf`. Other
+meter-operation equations remain source-checked obligations (G1, ARCHITECTURE §5.5).
 
 | Supplied public law | Contract |
 |---|---|
@@ -397,14 +442,32 @@ obligations (G1, ARCHITECTURE §5.5), not supplied Lean laws.
 | `chargeStateGas_phi g a g' h` | Success gives `g'.phi = g.phi` |
 | `chargeStateGas_gasLeft_le g a g' h` | Success gives `g'.gasLeft ≤ g.gasLeft` |
 
+| Additional supplied public law | Contract |
+|---|---|
+| `commitStateGas_eq m h` | Exactly `{ m with stateGasCommittedSpill := m.stateGasCommittedSpill + m.stateGasSpilled, stateGasBaseline := m.stateGasLeft, stateGasSpilled := 0 }` |
+| `commitStateGas_phi m h` | `(commitStateGas m h).phi = m.phi` |
+| `restoreStateGas_eq m` | Exactly `{ m with gasLeft := m.gasLeft + m.stateGasSpilled, stateGasSpilled := 0, stateGasLeft := m.stateGasBaseline, refundCounter := 0 }` |
+| `restoreStateGas_phi m` | `(restoreStateGas m).phi = m.phi` |
+| `restoreStateGas_post m` | Pending spill and refund zero; reservoir equals unchanged baseline; no committed-spill-zero conclusion |
+| `restoreStateGasToEntry_eq m R h₁ h₂` | Exactly `{ m with gasLeft := m.gasLeft + m.stateGasSpilled + m.stateGasCommittedSpill, stateGasSpilled := 0, stateGasCommittedSpill := 0, stateGasLeft := R, stateGasBaseline := R }`; refund unchanged |
+| `restoreStateGasToEntry_phi m R h₁ h₂` | `(restoreStateGasToEntry m R h₁ h₂).phi = m.phi` |
+| `restoreStateGasToEntry_post m R h₁ h₂` | Both spills and refund zero; reservoir and baseline both `R` |
+
+Commit uses only `h : m.stateGasLeft ≤ m.stateGasBaseline`. Entry restore uses only
+`h₁ : m.stateGasBaseline ≤ R` and `h₂ : m.refundCounter = 0`. Ordinary restore has
+no premise and preserves committed spill even on raw meters with `R>B` or negative
+refund. These three operations use only unbounded addition: no subtraction, word cast,
+refund-sign assumption, spill-exclusivity assumption or new failure channel occurs.
+Their local postconditions do not discharge the full `L-SETTLE` or F11 obligations.
+
 An ordinary public-only client derives `g'.phi + 1 ≤ g.phi` from `chargeGas_phi`
 under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follows.
 The complete nominal exception carrier supplies vocabulary only; its other producers
 remain unimplemented.
 
-The charge/check equations are supplied above. The following list retains only
-the remaining G1 and composition obligations:
-- `(commitStateGas m h).phi = m.phi`; `(restoreStateGas m).phi = m.phi`; `(restoreStateGasToEntry m R ..).phi = m.phi`; `(creditStateGasRefund m a).phi = m.phi`; `(repayStateGasSpill m).phi = m.phi`; `(drainStateGasReservoir m).2.phi = m.phi`.
+The charge and three rollback equations are supplied; the following list retains the remaining
+G1 and composition obligations:
+- `(creditStateGasRefund m a).phi = m.phi`; `(repayStateGasSpill m).phi = m.phi`; `(drainStateGasReservoir m).2.phi = m.phi`.
 - `(forfeitRemainingGas m h).phi = m.stateGasCommittedSpill ≤ m.phi`.
 - `(withholdCreateGas m) = (g, m') → m'.phi + g = m.phi ∧ g = m.gasLeft − m.gasLeft/64`.
 - `(restoreChildGas m g R).phi = m.phi + g`.
@@ -424,7 +487,7 @@ the remaining G1 and composition obligations:
 
 **Claim.** Stack, memory, logs, jump destinations and gas operations refine their public observers and preserve the frame invariants required by stepping and settlement.
 
-**Premises.** EthBase and EthState laws; caller premises for the remaining meter operations (none for the supplied charge kernel); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
+**Premises.** EthBase and EthState laws; local proof arguments for commit/entry restore and caller premises for the remaining meter operations (none for the supplied charge kernel or ordinary restore); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
 **Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement splits each read/write into its in-range segment and zero extension, with the size-zero identity handled before offset conversion. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
@@ -456,7 +519,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws. Commit/restore/restore-to-entry, refund/repay, forfeit/withhold/drain/child-return, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains. Caller premise reachability, refund/repay, forfeit/withhold/drain/child-return, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).

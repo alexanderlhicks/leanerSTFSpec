@@ -28,7 +28,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
-| GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel and ten all-raw-meter laws are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for these numeric operations. Nominal halt vocabulary supplies no producer/settlement implementation. |
+| GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains) are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges or ordinary restore; commit/entry restore carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
@@ -618,8 +618,13 @@ The local charge kernel is supplied under [EthVmCore §3/§7](modules/EthVmCore.
 Execution charging consumes its amount of Φ; state charging preserves Φ and cannot
 increase execution gas. The ordinary positive-charge client uses an explicit `1 ≤ a`
 premise. Zero charging is neutral. These all-raw-meter laws neither choose a schedule
-nor establish any whole-iteration or child-return inequality. Other meter operations,
-settlement and frame/runner composition remain obligations.
+nor establish any whole-iteration or child-return inequality. Commit and both rollback
+boundaries additionally preserve Φ under the local proof domains owned by EthVmCore
+§3/§7. Ordinary rollback returns only pending spill and retains committed spill; entry
+rollback returns both pools. Public-law clients compose these with charging and derive
+ordinary rollback idempotence without a global invariant. Caller premise reachability,
+remaining meter operations, full L-SETTLE/F11, settlement and frame/runner composition
+remain obligations.
 
 For computable sufficiency use Φ = gasLeft + stateGasSpilled + stateGasCommittedSpill. Local meter algebra establishes neutral redistribution and decreases for execution charges. Strengthen runner induction with child-final Φ ≤ child-entry Φ. The whole parent iteration, including forwarding, EIP-150, stipend, failed preflight, child settlement and returned gas, must decrease Φ whenever execution continues. Then entry Φ continuing iterations plus one terminal iteration gives `phiBudget`. This is the candidate proof, not a proved bound. Numeric schedule checks do not establish the whole-round-trip inequality.
 
