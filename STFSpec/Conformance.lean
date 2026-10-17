@@ -164,6 +164,8 @@ import STFSpec.Conformance.Vm.Core.GasTransferCallerProofs
 import STFSpec.Conformance.Vm.Core.GasTransferGuards
 import STFSpec.Conformance.Vm.Core.GasAccountingCallerProofs
 import STFSpec.Conformance.Vm.Core.GasAccountingGuards
+import STFSpec.Conformance.Vm.Core.TxStateGasUsageCallerProofs
+import STFSpec.Conformance.Vm.Core.TxStateGasUsageGuards
 import STFSpec.Conformance.Vm.Core.GasRefundGuards
 
 /-!
