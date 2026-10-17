@@ -16,6 +16,7 @@ import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Decoder
 import STFSpec.Commit.Lookup
 import STFSpec.Commit.Update
+import STFSpec.Commit.Delete
 import STFSpec.Commit.Trie
 import STFSpec.Commit.Preparation
 
@@ -34,7 +35,8 @@ storage/safety, pure unsecured preparation and typed root composition are implem
 Mathematical-root domain, prefix, ordered branches, recursive construction and
 the total local root are implemented. Nominal Enc/Node/Ref and IncrementalMPT carriers
 are supplied. Complete generic eager witness decoding, total pure bare lookup and
-strict fresh-leaf completion and local reached-branch construction are supplied.
+strict fresh-leaf completion, local reached-branch construction and total bare
+insertion/deletion with their local root equations are supplied.
 Remaining representation and operation
 gates are owned by EthCommit §10.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md`.

@@ -332,9 +332,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and private all-input mkBranch reference/effect/field controls are supplied in §3.
   Update and exact update_branch_oob are supplied, with private all-input plain-Monad
   List/CPS equality, original-child totality and U01–31 complete-field/effect/parser
-  controls. Delete/mptSet and three §7.0.10 equations remain UNSUPPLIED; future workers
-  need their own proper-child/reference/effect laws and compatible finite nonaliasing
-  dirty/cache/source premises. The local bridge
+  controls. Delete and both approved laws are supplied with separate independent
+  List-wire/CPS equality, private source-control metadata, strict visited/no-op
+  completion and the scoped deletion-family 01–32 controls (§3). mptSet and its §7.0.10 equation remain
+  UNSUPPLIED; source/history/dirty/cache premises are separate from both nominal
+  all-input action equalities. The local bridge
   requires clean supplied-field entry images/consulted embedding and cacheless parent
   top for retained branch completion; it supplies no recursive history realization.
   Preserve source construction/empty dispatch and full
@@ -398,7 +400,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
   meaning remain open; local reached mkBranch is supplied separately in §3, while
-  update is supplied separately above; delete/mptSet remain unimplemented. Complete generic
+  update/delete are supplied separately above; mptSet remains unimplemented. Complete generic
   decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003

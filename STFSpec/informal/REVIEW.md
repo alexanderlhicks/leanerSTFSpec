@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-07.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-18.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -93,7 +93,24 @@ totality and ordinary all-input offset/List CPS equality.
 query-answer, failure, nonlawful-monad, parser and conditional pinned-source
 controls, including the source cache/embedding premises and history boundaries.
 All helper/reference/test support remains private. Direct empty values remain
-insertions. Delete/mptSet and their three remaining public equations are unsupplied.
+insertions. Deletion and its two equations are supplied separately below;
+mptSet and its remaining equation are unsupplied.
+
+The Q60 direct deletion slice is supplied locally, owned by
+[EthCommit C19/C24/C25/§§3/4/5/7.0.10/10](modules/EthCommit.md#3-eels-source-map):
+total delete and both approved bare root equations, private source-control metadata,
+strict visited/no-op completion and independent List-wire/continuation/set versus
+bounded packed-offset whole CPS action equality under plain Monad. Proper-child
+totality includes empty extensions; structural or allocation equality does not
+implement source changedness. Public-law clients and complete deletion controls
+are supplied; EthCommit §3 owns the deletion-family 01–32 map and distinguishes copied
+regression expectations, independent literals and source/Lean-only cases. EthCommit §3
+owns the frozen typed catalog/premises, strict normal/-O parser controls, actual
+source/runtime identity preflight and completed finite original observations.
+The local observed-clean source guard, consulted embedding/cache, complete
+Encodable/class/Id/host premises and boundary/materialization stages remain
+explicit. Source mutable history, witness/partial state and generic coupling,
+frontend/map/root/WF/security/W1/S2/R2/O12/C1–C4/EEST/guest gates remain open.
 
 EthCommit §3 supplies local reached mkBranch, its occupancy/collapseIndex emission,
 private all-input ordinary List/wire literal action equality under plain Monad and
@@ -101,8 +118,10 @@ complete-field public-import/generic/source/parser controls. All support remains
 private. Declaration/strict reason 12 parser controls retain old tags/full Nat fields;
 decoder and lookup never emit collapseIndex. Source comparison retains the exact
 clean/cache/consulted-embedding/retained-parent premises owned by EthCommit §3.
-Remaining deletion/frontend worker/law/test catalogs, proper-child descent and clean-entry
-change/cache realization remain unsupplied. No broader gate or readiness closes.
+Direct deletion dispatch, its no-change handling, proper-child descent and both
+bare root equations are supplied above. The frontend worker, its secure-key/empty
+dispatch equation and catalog remain unsupplied. Whole mutation change/cache/source
+realization remains open. No broader gate or readiness closes.
 
 ## 4. Agent implementation contract
 

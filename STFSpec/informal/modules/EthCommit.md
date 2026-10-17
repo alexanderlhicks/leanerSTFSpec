@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-10-07. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-18. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55, Q59, Q60; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
@@ -133,7 +133,8 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### Clean-entry mutation realization (C19/C24/C25; Q60)
 
-Future private workers may carry a changed Bool separately from the public Ref.
+Private workers may carry change metadata separately from the public Ref; the
+supplied deletion realization is described in §3.
 Treat supplied bare inputs as clean for dirty-guard purposes. Changed tracks the
 source constructor/change event, not equality of node shape, values or Enc: insertion
 replacement is still a change even when the new bytes equal the old bytes. A semantic
@@ -150,14 +151,16 @@ A precise correspondence theorem relates this clean-input realization to source
 identity and dirty state; arbitrary initially dirty source trees/history are not covered.
 Private working cache/timing choices under B15/Q33 remain explicit future obligations.
 
-Before future deletion passes a survivor to supplied mkBranch, its private realization
+Before deletion passes a survivor to supplied mkBranch, its private realization
 must preserve the source's consulted descendant encodings and query effects
 (`inc:302–313`). Representing visited-cache invalidation merely as a hashless Enc
 with empty raw on retained descendants does not establish that relation: the source
 can recompute and hash a long descendant, while childRef uses its supplied Enc.
 The B15/Q33 cache/dirty realization and its ordinary correspondence proof must account
 for this before composing C24 with C25. Clean input or a no-change result alone is
-insufficient. This is a future worker obligation, with no new mkBranch admission check.
+insufficient. The supplied strict nominal completion and conditional finite source
+controls are in §3; whole source-history correspondence remains open, with no new
+mkBranch admission check.
 
 The standalone public mkBranch witness realization treats its supplied survivor as
 clean, matching `inc:240–254` before index classification. A stub fails first.
@@ -174,8 +177,8 @@ realization and supplies no public witness table or complete source mutable-stat
 
 - C29. Typed decoding, lookup and mutations use `TrieError`. Q60 explicitly extends prospective
   branchIndex/occupancy mutation emission sites and supplies the collapseIndex constructor without
-  changing Q59 lookup or C14 decoding; local reached mkBranch and update branchIndex emission are supplied
-  in §3, while delete/frontend emission remains future. Fields are unrestricted
+  changing Q59 lookup or C14 decoding; local reached mkBranch and update/delete emission are supplied
+  in §3, while frontend emission remains future. Fields are unrestricted
   Nat; reached bounds derive the actual key digit/arity, collapseIndex the actual survivor
   position. Only established reachable failures may be projected by a witness/guest adapter
   through WitnessError under CONTRACT O4/O13: bare diagnostics prove no block reachability, first
@@ -453,8 +456,151 @@ actual failure histories govern dynamic claims.
 Interpreter/startup/frozen RECORD and
 finite host remain trust inputs. Whole mutable history/partial heap/error state,
 cache/WF/canonical/map/root/backend/witness/security/generic coupling/lifetime,
-O12/C1–C4/W1/S2/R2/EEST and guest readiness remain open. Delete, mptSet and their
-three remaining §7.0.10 equations are unsupplied.
+O12/C1–C4/W1/S2/R2/EEST and guest readiness remain open. Deletion and its two
+equations are supplied separately below; mptSet and its remaining §7.0.10 equation
+are unsupplied.
+
+### Supplied total bare deletion (C24/C25/Q60)
+
+`STFSpec/Commit/Delete.lean`, reexported by `STFSpec.Commit`, supplies only
+`delete`, `delete_branch_oob` and `delete_terminal_clear_empty`. All finite bare
+Ref/path/cache/actual-array inputs are accepted under plain Monad/KeccakQuery.
+Private source-control metadata records same-origin and dirty case classification;
+completion allocation and structural/Enc equality never determine changedness.
+
+| Exact pinned EELS source | Public declaration/domain and status | Success/effects and ordered failures | Ordinary proof | Complete controls |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:680–784,787–828`, C19/C24/C25/Q60 | `delete : Ref → Nibbles → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None disappears without query; leaf match removes, mismatch strictly completes; ext mismatch preserves whole child, matched ext follows original child even with empty path, drops absence or splices one immediate leaf/ext before the source guard; empty terminal bypasses collapse, nonempty terminal clears then collapses; actual missing selected slot and reached stub fail first; same-origin clean no-change propagates completed child caches and preserves the parent; changed collapse witnesses before actual survivor index and forwards underlying failure | Private bounded packed match/offset worker, independent List HP/RLP fresh-wire constructors, List-set/continuations/census reference and ordinary all-input full literal CPS action equality; original proper-child structural totality; no LawfulMonad/WF/source binder | DeleteGuards 01–32 regression/effect controls retain complete recursive fields, Enc, actual arity, error payloads, preimages, answers and state; an independent literal dirty-child collapse control pins all 89 result values and zero queries. The family map below distinguishes copied-reference regression checks, source cases and Lean-only effects; private metadata/helper guards stay in Delete |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:766–781`, Q60 | `delete_branch_oob` with actual selected bounded digit and supplied arity; **supplied** (§7.0.10) | Exact bare pure branchIndex(index,arity), before recursive query/completion or continuation | Ordinary literal root equation under plain Monad/KeccakQuery | Generic public-import client; bounds/stub precedence and nonlawful pure count 1 |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:760–764,790–793`, Q60 | `delete_terminal_clear_empty` with arbitrary supplied Enc and nonempty value; **supplied** (§7.0.10) | Clearing the terminal of the empty actual array returns exact bare pure `occupancy 0`; an already empty terminal instead preserves/completes its branch | Ordinary literal root equation under plain Monad/KeccakQuery; private reached-zero precheck precedes mkBranch forwarding bind | Generic public-import client; terminal-empty/no-change bypass and negative added-error-bind count 4 versus count 1 |
+
+Every visited surviving node, including mismatch/already-empty/no-change, discards
+its old own Enc and strictly completes current fields. Unvisited fields/caches are
+retained whole. The parent no-change case installs its visited child's completed
+value, which records source pointer-visible cache writes, while retaining source
+control origin. No-op results are same-origin/clean; disappearance is changed/absent;
+immediate merges are fresh/dirty; changed retained branches/extensions are
+same-origin/dirty. Metadata stays private and imposes no public source admission.
+
+The private reached collapse checks only zero present children with empty terminal,
+returning bare `occupancy 0`. Otherwise it forwards the exact public mkBranch action,
+including its existing bind parentheses, witness-first errors and every actual
+slot/index. No-op/terminal-empty bypass never invokes this precheck. Sole stub or
+underlying query failure wins before collapseIndex; indices 16–255 are the chosen
+completion of unrepresentable successful Python paths, while ≥256 also covers
+Python's byte-constructor failure. Nominal diagnostics do not claim Python payload
+or guest-outcome equality.
+
+The independent List reference uses copying tails, public HP/RLP models,
+List.set and independently written parent continuations. It retains literal
+public mkExt/mkBranch subactions and whole childRef providers. Equality rewrites
+only pure path/wire/set terms and continuation functions, preserving every bind;
+no lawful-monad reassociation is used. The executable path scan is bounded by
+remaining key/path lengths and keeps the original packed key/offset. Recursion
+uses only original proper children, never fresh merged/collapsed outputs.
+
+`STFSpec/Conformance/Commit/delete_differential.py` freezes the complete catalog
+for source families 01–28 and the typed local premise map, authenticates pinned
+originals, actual loaded
+classes/callables/runtime/crypto and raw locked wheels, and separately records
+before inputs, immediate invalidation/origin/dirty/first errors/witnesses, detached
+recursive returns and subsequent bottom-up materializations. It compares complete
+concrete Id/cache images where the stated premises hold. Immediate witness queries
+and dirty reentry histories remain source observations; they are not identified
+with the strict nominal action. Its eight-field parser retains successful absence,
+whole recursive fields and unrestricted diagnostic Nat payloads; normal/-O positive
+checks execute and reject Bool-as-Nat, floats, negative/nonfinite, duplicate,
+missing/extra/truncated/trailing fields and absent extension children.
+
+The driver writes complete Id/State frames and source-stage summaries for its
+frozen catalog. The dirty same-origin nested-branch case is included as a real
+source operation: removing inner slot 0 must collapse the sole-child outer branch
+to extension `[0]`, retain inner slots 1 and 2, and make no query. Its independent
+89-Nat literal guard does not use the copied test reference. The other reference
+comparisons in DeleteGuards are compiled regression pins; source-fidelity evidence
+comes from the separately authenticated original campaign. Immediate witness and
+later materialization histories remain distinct from nominal query histories.
+Call/return/exception snapshots are actual source observations; premise-map guard
+annotations are prospective model data, not guard-line trace events. Public-import
+clients also check that private control instances do not install a Monad on the
+public tuple carrier. These finite controls add no whole-history or guest-readiness
+claim. Resumption is unsupported and rejected before output creation; every run
+requires a fresh evidence destination.
+
+The family IDs have one owner here. In the driver, each numeric suffix below
+is prefixed with `D`. 01–28 label concrete source cases; the
+corresponding Lean checks may also compare against the copied regression reference.
+29–32 label Lean-only effects and are not extra source cases.
+
+| Family | Control |
+|---|---|
+| 01 | Absent roots and reached hash stubs |
+| 02 | Exact leaf removal |
+| 03 | Leaf mismatch and strict completion |
+| 04 | Discarded visited own-cache variations |
+| 05 | Extension-prefix mismatch |
+| 06 | Disappearance beneath an extension |
+| 07 | Immediate leaf splice before the dirty guard |
+| 08 | Immediate extension splice |
+| 09 | Retained branch beneath an extension |
+| 10 | Empty and nested empty extension segments |
+| 11 | Empty terminal bypass at actual array arities |
+| 12 | Nonempty terminal clear into empty collapse |
+| 13 | Unchanged selected absence and off-path stubs |
+| 14 | Missing actual selected slot |
+| 15 | Valid selected slots in short arrays |
+| 16 | Ordinary 16-slot arrays |
+| 17 | Valid selected slots in oversized arrays |
+| 18 | Same-origin no-change and inspected dirty-return boundaries |
+| 19 | Sole resolved-sibling collapse |
+| 20 | Sole hash-stub witness before index classification |
+| 21 | High-survivor source-stage boundaries |
+| 22 | Last-child deletion into empty collapse |
+| 23 | Retained branch value or multiple surviving slots |
+| 24 | Nested changed-child propagation, including the independent literal collapse |
+| 25 | Immediate child merging before a parent's dirty guard |
+| 26 | Own 31/32/33-byte and joined HP/RLP boundaries |
+| 27 | Retained noncanonical cache variations |
+| 28 | Witness-stage composition beneath an extension |
+| 29 | Repeated, constant, distinct and full-width replies (Lean only) |
+| 30 | Each first-query failure in both transformer orders (Lean only) |
+| 31 | Immediate typed failure before any query (Lean only) |
+| 32 | Nonlawful bind counts and negative reassociation controls (Lean only) |
+
+Concrete correspondence requires finite acyclic nonaliasing represented native
+classes and bounded paths, complete assembled Encodable and actual Id/Keccak/host
+premises. A same-origin surviving no-op return must be clean only where its dirty
+flag is actually inspected at a reached parent guard (`inc:742–744,776–778`). This
+is a local source relation, not global initial cleanliness or runtime rejection.
+Immediate leaf/ext merging precedes those guards. Dirty root no-op and dirty leaves
+under immediate merge can remain eligible; dirty resolved off-path nodes and
+hashed stubs are distinct native cases. Consulted retained cached hashes must be
+clean; hashless inline embeddings must be coherent short current encodings with
+eligible descendants. Full retained-cache comparison additionally requires present
+matching raw/hash. Dirty survivor witness-skip, missing/stale/hashless-long retained
+embedding, extension-None and aliases are recorded separate boundaries. Source
+witness tables, partial mutable heaps and generic histories are not nominal fields.
+
+Reproduce with fresh destinations, the pinned EELS environment and locked wheels:
+
+```sh
+python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --write-catalog CATALOG.json
+python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --write-premises PREMISES.json
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/delete_differential.py \
+  --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/delete_differential.py \
+  --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --self-test
+python3 -I -B -O STFSpec/Conformance/Commit/delete_differential.py --self-test
+```
+
+Interpreter/startup/frozen RECORD/finite host remain trust inputs. No new native
+target, public metadata/provider/domain/policy or generic source coupling is added.
+Whole mutable history/partial failure, WF/cache/canonical/map/root/backend/witness/
+security/lifetime, W1/S2/R2/O12/C1–C4/EEST and guest readiness remain open. mptSet
+and its frontend/default/secure-key contract remain unsupplied.
 
 ### Supplied reached-branch construction
 
@@ -466,7 +612,7 @@ present child retain every slot in a completed branch. A sole empty-terminal sur
 before checking its actual position. Stub unresolved and underlying query failure precede
 collapseIndex at position ≥ 16. A valid position constructs a single-prefix extension through the
 supplied mkExt, with its immediate splice and retained grandchildren. This worker is the reached
-collapse site; delete dispatch and its no-change guard remain future work.
+collapse site; supplied delete dispatch and its no-change guard are described above.
 Supplied insertion uses the preserving completions described above.
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Reference/proofs | Complete-field/generic/source controls |
@@ -1356,7 +1502,10 @@ The Lean operation supplies no witness map/ledger contract.
 Original `_compute` can bypass a completed cached pair even when dirty remains true;
 this local observation supplies no public history or dirty-reentry action law.
 
-**Remaining deletion/frontend controls (Q60; UNSUPPLIED).** Preserve every old diagnostic
+**Deletion/frontend control contract (Q60).** The deletion-family 01–32 map, independent
+literal collapse case, copied-reference regression checks and separate completed
+finite original comparisons are supplied in §3. The frontend controls remain
+UNSUPPLIED. Preserve every old diagnostic
 and full recursive path/value/raw/hash field. Cover terminal-before-bounds;
 missing and valid short/oversized selected accesses; skipped already-empty/no-change
 zero occupancy versus changed zero collapse; actual survivor 15/16/255/256;
@@ -1366,7 +1515,7 @@ matched insertion/split extension retention; secure key acquisition before empty
 frontend dispatch; actual arbitrary/stateful/failing query prefixes under the chosen
 private generic reference. Observer controls retain unrestricted nominal Nat fields
 and full framing: reject bool/float/negative/wrong arity/unknown/truncated/extra records,
-accept large fields, and run normal/-O. These are future test obligations, not tests
+accept large fields, and run normal/-O. Remaining frontend obligations are not tests
 added by the guidance. Constructor-only diagnostic controls are supplied separately in §3.
 
 Completed-leaf controls observe every path/value/raw/hash-presence field and all
@@ -1589,7 +1738,7 @@ def childRef : Ref → RlpItem                -- C18: "" · stub hash · cached 
 inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | leafValueList
   | pathEmpty | badListLength (n : Nat) | refLength (n : Nat)
   | extChild | occupancy (n : Nat) | cycle
-  | branchIndex (index : Nat) (arity : Nat)    -- Q59 lookup/Q60 update supplied; delete future
+  | branchIndex (index : Nat) (arity : Nat)    -- Q59 lookup/Q60 update/delete supplied
   | collapseIndex (index : Nat)                -- Q60 local mkBranch emission (§3)
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
@@ -1609,7 +1758,7 @@ def decodeRoot (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
 def lookup (t : Ref) (key : Nibbles) : Except TrieError (Option ByteArray)             -- C20/Q59, supplied
 -- C23/Q60, every finite value including empty; supplied
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref)
--- C24–C25/Q60, every finite bare input; future
+-- C24–C25/Q60, every finite bare input; supplied
 def delete (t : Ref) (key : Nibbles) : m (Except TrieError Ref)
 def rootHash (emptyRoot : Hash32) (root : Ref) : m Hash32  -- supplied (§3/§7.0.9), C27
 
@@ -2092,14 +2241,14 @@ requires complete recursive Encodable, not only a root path/value bound. The
 conditional source premises and dirty/recursive-child/query boundaries are listed
 in §3; whole map/WF/cache/generic coupling remains separate.
 
-### 7.0.10 Bare mutation local equations (Q60; update supplied, delete/frontend unsupplied)
+### 7.0.10 Bare mutation local equations (Q60; update/delete supplied, frontend unsupplied)
 
 These four ordinary public types retain plain Monad/KeccakQuery and all displayed
-inputs. update_branch_oob and update are supplied in §3; the other three equations
-and delete/mptSet remain prospective guidance. Local reached mkBranch and its
-collapseIndex emission are separate supplied workers. The private update realization
-and complete success/first-error/reference controls are described in §3. Remaining
-workers must freeze their own bounded catalogs; no public collapse/domain/model
+inputs. update/delete and the first three equations are supplied in §3; mptSet and
+its emptyEncoding equation remain prospective guidance. Local reached mkBranch and
+its collapseIndex emission are separate supplied workers. The private update/delete realizations
+and complete success/first-error/reference controls are described in §3. The frontend
+worker must freeze its own bounded catalog; no public collapse/domain/model
 helper is added.
 
 ```lean
@@ -2159,8 +2308,9 @@ progress theorems, not total runtime admission.
   and one monadic query), `lookup` (Q59 finite proper-child Node-size descent, including
   zero-key-consumption empty extensions; private Array/Option child decrease), `update` (Q60 all
   finite bare inputs, supplied private original proper-child Node descent and finite bounded
-  loops; empty-extension descent consumes no key), `delete` (same prospective structural contract;
-  proof UNSUPPLIED), `decodeRoot` (lexicographic: DB entries not on the current path, then inline
+  loops; empty-extension descent consumes no key), `delete` (supplied private original
+  proper-child descent, including empty extensions, and bounded packed-path matching),
+  `decodeRoot` (lexicographic: DB entries not on the current path, then inline
   subterm size; ARCHITECTURE §5.4). All are total on arbitrary DBs without collision assumptions.
   Q55 adds a finite acquisition/parse/admission stage before recursive continuation; prove its
   decreases and full path invariant, rather than assuming hash injectivity. This cycle
@@ -2232,7 +2382,8 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
   operation-dependent premises the old path/sibling-resolved success sketches apply.
   Authenticated absence is success, but does not alone establish that a dirty source
   branch skips collapse. None of these proof premises narrows runtime admission or
-  supplies a new public WF/domain predicate. All mutation characterizations are future.
+  supplies a new public WF/domain predicate. Map-level mutation characterizations remain future;
+  supplied bare action equations are separate.
 - Conjectures to settle: success of an insert-only (resp. delete-only) sequence is independent of its order.
 
 ### 7.6 Caches [C]
@@ -2258,8 +2409,8 @@ The collision pair consists of a DB entry (or an inline subterm) and a node enco
 proper-child Node size for Q59 bare lookup; an empty extension still moves into a proper child.
 Terminal branch dispatch precedes selected-slot bounds, and only the selected child is visited.
 The valid-selected-access source bridge is separate from the typed missing-slot adaptation.
-Extension/branch/leaf cases partition keys; the supplied update preserves C23 constructors; future
-deletion workers compress only the reached C24/C25 cases. The compatible source
+Extension/branch/leaf cases partition keys; the supplied update preserves C23 constructors;
+the supplied deletion worker compresses only the reached C24/C25 cases. The compatible source
 identity/dirty-state premise is separate from nominal Enc equality. Map-level lookup preservation
 and the updated value law remain separate obligations; the local update reference equality does
 not prove them. A collapse onto a stub must resolve that stub or fail, which explains
@@ -2299,8 +2450,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
   own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its reached
   occupancy/collapseIndex emission and private reference/controls are supplied in §3.
-  Update and exact update_branch_oob are supplied locally in §3; delete/mptSet, their
-  three local laws and the remaining frontend catalog remain UNSUPPLIED. Complete
+  Update/delete and the first three local laws are supplied in §3; mptSet, its
+  emptyEncoding law and the remaining frontend catalog remain UNSUPPLIED. Complete
   constructor/observer/parser support is supplied;
   no new public proof domain or broad WF premise, cache strategy or readiness follows.
 
@@ -2334,9 +2485,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and private all-input mkBranch reference/effect/field controls are supplied in §3.
   Update and exact update_branch_oob are supplied, with private all-input plain-Monad
   List/CPS equality, original-child totality and U01–31 complete-field/effect/parser
-  controls. Delete/mptSet and three §7.0.10 equations remain UNSUPPLIED; future workers
-  need their own proper-child/reference/effect laws and compatible finite nonaliasing
-  dirty/cache/source premises. The local bridge
+  controls. Delete and both approved laws are supplied with separate independent
+  List-wire/CPS equality, private source-control metadata, strict visited/no-op
+  completion and the scoped deletion-family 01–32 controls (§3). mptSet and its §7.0.10 equation remain
+  UNSUPPLIED; source/history/dirty/cache premises are separate from both nominal
+  all-input action equalities. The local bridge
   requires clean supplied-field entry images/consulted embedding and cacheless parent
   top for retained branch completion; it supplies no recursive history realization.
   Preserve source construction/empty dispatch and full
@@ -2400,7 +2553,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
   meaning remain open; local reached mkBranch is supplied separately in §3, while
-  update is supplied separately above; delete/mptSet remain unimplemented. Complete generic
+  update/delete are supplied separately above; mptSet remains unimplemented. Complete generic
   decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003
