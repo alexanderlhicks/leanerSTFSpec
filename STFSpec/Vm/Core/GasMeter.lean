@@ -388,4 +388,32 @@ theorem restoreChildGas_phi (m : GasMeter) (g T : Nat) :
   simp only [GasMeter.phi]
   omega
 
+/-- Signed refund addition; EELS inline `refund_counter += k`, at
+`src/ethereum/forks/amsterdam/vm/instructions/storage.py:130,134,139` and
+`src/ethereum/forks/amsterdam/vm/__init__.py:242`. Every raw meter is admitted. -/
+def addRefund (m : GasMeter) (k : Int) : GasMeter :=
+  { m with refundCounter := m.refundCounter + k }
+
+/-- Refund addition changes exactly the signed counter. -/
+theorem addRefund_eq (m : GasMeter) (k : Int) :
+    addRefund m k = { m with refundCounter := m.refundCounter + k } := rfl
+
+/-- Signed refunds do not contribute to execution potential. -/
+theorem addRefund_phi (m : GasMeter) (k : Int) :
+    (addRefund m k).phi = m.phi := rfl
+
+/-- EIP-150 maximum grant; EELS `src/ethereum/forks/amsterdam/vm/gas.py:861–876`. -/
+def maxMessageCallGas (g : Nat) : Nat :=
+  g - g / 64
+
+/-- The scalar maximum retains the ordinary unbounded subtraction expression. -/
+theorem maxMessageCallGas_eq (g : Nat) :
+    maxMessageCallGas g = g - g / 64 := rfl
+
+/-- The maximum grant cannot exceed the supplied execution amount. -/
+theorem maxMessageCallGas_le (g : Nat) :
+    maxMessageCallGas g ≤ g := by
+  rw [maxMessageCallGas_eq]
+  exact Nat.sub_le _ _
+
 end STFSpec.Vm.Core
