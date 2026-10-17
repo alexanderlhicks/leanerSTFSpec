@@ -103,11 +103,65 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
 | `forks/amsterdam/vm/gas.py::*` | 48–1243 | `GasCosts`, `StateGasCosts`, `GasMeter` and one function per EELS function (§5) | all 43 items; blob/capacity/settlement functions take plain numbers instead of `Header`/`Transaction`/`BlockOutput` |
 | `forks/amsterdam/vm/memory.py::*` | 20–83 | `Memory.write`, `Memory.readBytes`, `bufferRead` | |
-| `forks/amsterdam/vm/stack.py::*` | 25–131 | `Stack.pop`, `Stack.push`, `decodeSingle`, `decodePair` | |
+| `forks/amsterdam/vm/stack.py::pop` | 94–112 | `Stack.pop` | bounded typed-source domain below |
+| `forks/amsterdam/vm/stack.py::push` | 115–131 | `Stack.push` | bounded typed-source domain below |
+| `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
+| `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/runtime.py::*` | 22 | `validJumpDestinations`, `JumpdestMap` | byte-level; no `Ops` import |
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied scalar immediate decoders
+
+`STFSpec/Vm/Core/StackDecoders.lean`, exported by `STFSpec.Vm.Core`, supplies
+exactly the two existing UInt8 APIs. Both use the existing nullary
+`ExceptionalHalt.invalidParameter`; the complete eight-law catalog is in §7.
+Arithmetic observes `UInt8.toNat`, without substituting the distinct Base U8 type.
+
+| Pinned source | Declaration and domain | Ordered failure and complete effect | Discharged laws / controls |
+|---|---|---|---|
+| `vm/stack.py:25–53` | `decodeSingle : UInt8 → Except ExceptionalHalt Nat`; every byte | First reject 91≤x.toNat≤127; otherwise return (x.toNat+145)%256; no state effect or alternative error | `decodeSingle_eq`, `decodeSingle_eq_error_iff`, `decodeSingle_bounds`, `decodeSingle_injective`; all 256 complete literal guards/frames |
+| `vm/stack.py:56–91` | `decodePair : UInt8 → Except ExceptionalHalt (Nat × Nat)`; every byte | First reject 82≤x.toNat≤127; otherwise xor143, quotient/remainder16, then the exact ordered pair in §7; no state effect or alternative error | `decodePair_eq`, `decodePair_eq_error_iff`, `decodePair_bounds`, `decodePair_injective`; all 256 complete literal guards/frames |
+
+All eight laws are **discharged** by ordinary kernel proofs. Private finite
+support establishes pair bounds and an inverse of the ordered payload on accepted
+bytes; xor cancellation recovers actual input equality. Single bounds/injectivity
+use bounded arithmetic. The public-only clients consume all eight laws, derive
+successful progress on valid bytes, exclude arbitrary alternative errors and
+derive bounded successor indices without unfolding either decoder.
+
+`StackDecoderGuards.lean` compares all 512 complete literal results, including
+both pair coordinates and exact invalidParameter errors. The pure
+`stack_decoder_differential.py` comparator imports no reference oracle. Its strict
+normal/`-O` controls reject malformed schemas/framing, booleans/floats, wrong pair
+arity, duplicate/reordered/incomplete streams and changed middle results.
+CLI ingestion preserves UTF-8 line bytes; positive and CRLF-negative CLI controls
+run in both normal and `-O` modes.
+Actual interpreted public-import target frames agree with every retained literal; this
+is not a separate native executable measurement. The observed success partitions
+are 219 single and 210 pair, with exact images and valid-input injectivity.
+
+The committed comparator checks the complete 512 target/literal outcomes and does
+not execute or authenticate an external source. Separate historical original-source
+observations and their precise process-identity audit qualification are recorded in
+[PR157 review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/157#issuecomment-6243089392).
+Raw negative/oversized Python arguments have no UInt8 representative. Neither these
+finite controls nor ordinary scalar laws close handler/frame, compiled-cost, G1–G7,
+resource, replacement, fixture/EEST or guest gates.
+
+Reproduce the committed controls with fresh output paths. This emitter uses #eval,
+so plain Lean, rather than --run, executes the observations:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/stack_decoder_differential.py
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > /tmp/DecoderFrames.lean
+lake env lean /tmp/DecoderFrames.lean > /tmp/decoder-frames.ndjson
+python3 -B "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
+python3 -B -O "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
+```
 
 ### Supplied padded buffer read
 
@@ -544,6 +598,8 @@ and source/runtime identities separately from historical validation records.
 
 - **Supplied local Memory controls (Q62):** Thirty-three complete frames cover empty/zero/repeated aligned expansion, full high/interior-zero payloads, cross-word and exact-end writes, complete untouched prefixes/suffixes, both overlap directions/self-copy and retained immutable snapshots. Empty reads/writes at 2^64 and U256.max have typed source counterparts; 2^4096 is Lean-only. Public clients consume all ten laws, derive result-read witnesses and cover adjacent/either-empty disjointness. The committed producer/comparator checks all thirty-three target/literal frames under strict normal/`-O` comparison; optional external source frames are an explicit caller-supplied evidence premise (§3). Source agreement is conditional on aligned/admitted typed inputs and successful host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Caller ordering, compiled ownership/costs and guest gates remain open.
 
+- **Supplied scalar decoder controls:** All 256 bytes per decoder have complete literal guards and actual interpreted target/source frames. These include the boundaries 81/82, 90/91, 127/128, equal-nibble branch cases, byte255, both ordered pair coordinates and exact errors. Public-only clients exercise all eight laws, successful progress, arbitrary-error exclusion and actual input equality. Strict normal/`-O` parsing passes 81 positive and 79 rejection controls per mode; complete images, partitions and valid-input injectivity are also checked. These are local semantic controls, not native allocation, handler or guest evidence.
+
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
 
 `TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation
@@ -819,10 +875,43 @@ Stack.peek?_eq_getElem? (s : Stack) (i : Nat) :
 Nonfull-push/nonempty-pop availability and both conditional actual-Stack inverses
 are public-law client results, without private storage unfolding or additional
 provider laws. `swap?` remains unsupplied: its in-bounds model swap does not yet
-specify the all-input none/identity behavior. Both byte decoders remain unsupplied;
-their bounds/injectivity obligations are unchanged: `decodeSingle x = .ok n →
-17 ≤ n ≤ 235`, injective on valid inputs; `decodePair x = .ok (n,m) →
-1 ≤ n ≤ 14 ∧ n < m ∧ m ≤ 30 − n`, injective. [C]
+specify the all-input none/identity behavior.
+
+**Scalar immediate decoders.** Exactly eight ordinary laws are **discharged**,
+on every actual UInt8. `^^^` below is Nat xor, and error payloads remain nullary.
+
+```lean
+decodeSingle_eq (x : UInt8) :
+  decodeSingle x =
+    if 91 ≤ x.toNat ∧ x.toNat ≤ 127 then .error .invalidParameter
+    else .ok ((x.toNat + 145) % 256)
+decodeSingle_eq_error_iff (x : UInt8) :
+  decodeSingle x = .error .invalidParameter ↔ 91 ≤ x.toNat ∧ x.toNat ≤ 127
+decodeSingle_bounds (x : UInt8) (n : Nat) (h : decodeSingle x = .ok n) :
+  17 ≤ n ∧ n ≤ 235
+decodeSingle_injective (x y : UInt8) (n : Nat)
+    (hx : decodeSingle x = .ok n) (hy : decodeSingle y = .ok n) : x = y
+decodePair_eq (x : UInt8) :
+  decodePair x =
+    if 82 ≤ x.toNat ∧ x.toNat ≤ 127 then .error .invalidParameter
+    else
+      let k := x.toNat ^^^ 143
+      let q := k / 16
+      let r := k % 16
+      .ok (if q < r then (q + 1, r + 1) else (r + 1, 29 - q))
+decodePair_eq_error_iff (x : UInt8) :
+  decodePair x = .error .invalidParameter ↔ 82 ≤ x.toNat ∧ x.toNat ≤ 127
+decodePair_bounds (x : UInt8) (n m : Nat) (h : decodePair x = .ok (n,m)) :
+  1 ≤ n ∧ n ≤ 14 ∧ n < m ∧ m ≤ 30 - n
+decodePair_injective (x y : UInt8) (n m : Nat)
+    (hx : decodePair x = .ok (n,m)) (hy : decodePair y = .ok (n,m)) : x = y
+```
+
+The complete equations exclude every alternative error and determine success on
+the valid domain. Source U8 construction follows modulo256 for the single decoder;
+xor143 stays below256, divmod uses nonzero16, and the pair increments/subtraction
+stay in range. No additional checked-arithmetic fault occurs on this typed domain.
+The source rows and finite comparison evidence are owned by §3.
 
 **Memory** (Q62; model `List UInt8`). Exactly ten ordinary laws
 are **discharged** in `STFSpec/Vm/Core/Memory.lean`. They are [C] boundaries for
@@ -1079,7 +1168,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, both decoders, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
+- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
+- **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
