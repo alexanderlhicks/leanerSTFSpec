@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-06). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-17). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -611,6 +611,26 @@ Proof-premised canonical/source progress is separate from total runtime interfac
 Strict/lazy/private cache realization remains internal under B15/Q33; Id value
 agreement supplies no arbitrary generic trace or source mutable-state equality.
 Implementation, laws/tests, coupling, resources/costs and readiness remain open.
+
+**Transaction state-gas usage domain options (Q61).** DECISIONS Q61 owns the
+disposition. Option A adds only an explicit proof argument
+`h : m.stateGasBaseline ≤ T` to the existing `txStateGasUsed` observer. This matches
+the source assertion and the local-proof convention of the rollback helpers: a
+caller establishes precisely the condition this operation needs, independently of
+other meter operations or a future global invariant. Its signed `Int` equation
+casts before subtraction; the reservoir may exceed both baseline and grant, and
+negative results remain valid. Execution gas, signed refund and both spill pools
+are unrestricted.
+
+Option B retains a two-argument arithmetic observer on all raw inputs as a total
+extension. Source correspondence would still require the same baseline proof;
+outside it, enabled Python assertions reject rather than return the extension's
+value. Option C bundles that proof in a dependent input carrier. It expresses the
+same logical premise while adding a carrier and adapters at the module boundary.
+Neither alternative reduces the source-correspondence obligation. EthVmCore §§5/7
+own the exact API and single prospective ordinary equation. No runtime error,
+clamping, global `Wf`, caller reachability, conservation or settlement theorem
+follows. Implementation, proof and integration gates remain separate.
 
 ## 12. Not yet decided
 
