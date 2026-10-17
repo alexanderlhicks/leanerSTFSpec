@@ -5,11 +5,11 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Core.Exceptions
 
 /-!
-# Two-dimensional gas charges and rollback
+# Two-dimensional gas charges, rollback and refunds
 
 Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or frame settlement.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567`.
-Charges admit every raw Nat/Int record; rollback assertions become local proof arguments.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567,606–659`.
+Charges and refunds admit every raw Nat/Int record; rollback assertions are local proof arguments.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.5/5/7.
 -/
 
@@ -234,5 +234,88 @@ theorem restoreStateGasToEntry_post (m : GasMeter) (R : Nat)
     (restoreStateGasToEntry m R h₁ h₂).stateGasBaseline = R := by
   rw [restoreStateGasToEntry_eq]
   exact ⟨rfl, rfl, h₂, rfl, rfl⟩
+
+/-- Credit pending spill first, then the reservoir; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:606–628`. Baseline, signed refund and
+committed spill are retained, without a baseline cap. -/
+def creditStateGasRefund (m : GasMeter) (a : Nat) : GasMeter :=
+  let fromGasLeft := min a m.stateGasSpilled
+  { m with
+    gasLeft := m.gasLeft + fromGasLeft
+    stateGasSpilled := m.stateGasSpilled - fromGasLeft
+    stateGasLeft := m.stateGasLeft + (a - fromGasLeft) }
+
+/-- Repay pending spill from the reservoir; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:631–659`. The final source assertion
+is a universal postcondition, proved below, with no input premise. -/
+def repayStateGasSpill (m : GasMeter) : GasMeter :=
+  let repayment := min m.stateGasLeft m.stateGasSpilled
+  { m with
+    gasLeft := m.gasLeft + repayment
+    stateGasLeft := m.stateGasLeft - repayment
+    stateGasSpilled := m.stateGasSpilled - repayment }
+
+/-- Refund credit changes exactly execution gas, pending spill and reservoir. -/
+theorem creditStateGasRefund_eq (m : GasMeter) (a : Nat) :
+    creditStateGasRefund m a =
+      { m with
+        gasLeft := m.gasLeft + min a m.stateGasSpilled
+        stateGasSpilled := m.stateGasSpilled - min a m.stateGasSpilled
+        stateGasLeft := m.stateGasLeft + (a - min a m.stateGasSpilled) } := rfl
+
+/-- Credit transfers pending spill into execution gas without changing potential. -/
+theorem creditStateGasRefund_phi (m : GasMeter) (a : Nat) :
+    (creditStateGasRefund m a).phi = m.phi := by
+  rw [creditStateGasRefund_eq]
+  simp only [GasMeter.phi]
+  have hSpill := Nat.min_le_right a m.stateGasSpilled
+  have hAmount := Nat.min_le_left a m.stateGasSpilled
+  omega
+
+/-- Zero credit leaves the complete meter unchanged. -/
+theorem creditStateGasRefund_zero (m : GasMeter) :
+    creditStateGasRefund m 0 = m := by
+  rw [creditStateGasRefund_eq]
+  simp only [Nat.zero_min, Nat.add_zero, Nat.sub_zero]
+
+/-- Repayment changes exactly execution gas, reservoir and pending spill. -/
+theorem repayStateGasSpill_eq (m : GasMeter) :
+    repayStateGasSpill m =
+      { m with
+        gasLeft := m.gasLeft + min m.stateGasLeft m.stateGasSpilled
+        stateGasLeft := m.stateGasLeft - min m.stateGasLeft m.stateGasSpilled
+        stateGasSpilled := m.stateGasSpilled - min m.stateGasLeft m.stateGasSpilled } := rfl
+
+/-- Repayment transfers pending spill into execution gas without changing potential. -/
+theorem repayStateGasSpill_phi (m : GasMeter) :
+    (repayStateGasSpill m).phi = m.phi := by
+  rw [repayStateGasSpill_eq]
+  simp only [GasMeter.phi]
+  have hReservoir := Nat.min_le_left m.stateGasLeft m.stateGasSpilled
+  have hSpill := Nat.min_le_right m.stateGasLeft m.stateGasSpilled
+  omega
+
+/-- At least one pool is exhausted on every raw meter, including equality. -/
+theorem repayStateGasSpill_post (m : GasMeter) :
+    (repayStateGasSpill m).stateGasLeft = 0 ∨
+    (repayStateGasSpill m).stateGasSpilled = 0 := by
+  rw [repayStateGasSpill_eq]
+  by_cases h : m.stateGasLeft ≤ m.stateGasSpilled
+  · simp only [Nat.min_eq_left h, Nat.sub_self, true_or]
+  · have h' : m.stateGasSpilled ≤ m.stateGasLeft := by omega
+    simp only [Nat.min_eq_right h', Nat.sub_self, or_true]
+
+/-- Repayment leaves no further transfer available. -/
+theorem repayStateGasSpill_idempotent (m : GasMeter) :
+    repayStateGasSpill (repayStateGasSpill m) = repayStateGasSpill m := by
+  have h := repayStateGasSpill_post m
+  rw [repayStateGasSpill_eq (repayStateGasSpill m)]
+  have hz : min (repayStateGasSpill m).stateGasLeft
+      (repayStateGasSpill m).stateGasSpilled = 0 := by
+    rcases h with h | h
+    · simp only [h, Nat.zero_min]
+    · simp only [h, Nat.min_zero]
+  rw [hz]
+  simp only [Nat.add_zero, Nat.sub_zero]
 
 end STFSpec.Vm.Core

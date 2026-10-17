@@ -157,6 +157,8 @@ import STFSpec.Conformance.Vm.Core.GasMeterGuards
 
 import STFSpec.Conformance.Vm.Core.GasRollbackCallerProofs
 import STFSpec.Conformance.Vm.Core.GasRollbackGuards
+import STFSpec.Conformance.Vm.Core.GasRefundCallerProofs
+import STFSpec.Conformance.Vm.Core.GasRefundGuards
 
 /-!
 # STFSpec.Conformance
