@@ -15,7 +15,7 @@ gas parameters, and jumpdest analysis.
 
 Library `EthVmCore`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The local gas algebra, bounded Stack,
-padded buffer read and nominal exceptional halts are supplied; other components
-remain scaffolding.
+aligned Memory, padded buffer read and nominal exceptional halts are supplied;
+other components remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md`.
 -/
