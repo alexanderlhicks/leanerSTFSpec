@@ -457,8 +457,7 @@ Interpreter/startup/frozen RECORD and
 finite host remain trust inputs. Whole mutable history/partial heap/error state,
 cache/WF/canonical/map/root/backend/witness/security/generic coupling/lifetime,
 O12/C1–C4/W1/S2/R2/EEST and guest readiness remain open. Deletion and its two
-equations are supplied separately below; mptSet and its remaining §7.0.10 equation
-are unsupplied.
+equations and the encoded setter/remaining §7.0.10 equation are supplied separately below.
 
 ### Supplied total bare deletion (C24/C25/Q60)
 
@@ -599,8 +598,62 @@ python3 -I -B -O STFSpec/Conformance/Commit/delete_differential.py --self-test
 Interpreter/startup/frozen RECORD/finite host remain trust inputs. No new native
 target, public metadata/provider/domain/policy or generic source coupling is added.
 Whole mutable history/partial failure, WF/cache/canonical/map/root/backend/witness/
-security/lifetime, W1/S2/R2/O12/C1–C4/EEST and guest readiness remain open. mptSet
-and its frontend/default/secure-key contract remain unsupplied.
+security/lifetime, W1/S2/R2/O12/C1–C4/EEST and guest readiness remain open. The
+encoded setter is supplied separately below; full frontend/default/history agreement remains open.
+
+### Supplied encoded incremental setter (C22/Q60)
+
+`STFSpec/Commit/Set.lean`, reexported by `STFSpec.Commit`, supplies only `mptSet`
+and `mptSet_emptyEncoding`. The input is an already-encoded optional value and the
+complete nominal secured/root carrier, under plain Monad/KeccakQuery. No source
+value/default instance, contextual Account callback or source admission predicate
+is added.
+
+| Exact pinned EELS source | Public declaration/domain and status | Complete action and failures | Ordinary proof and controls |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:424–470`, C22/Q60 | `mptSet : IncrementalMPT → ByteArray → Option ByteArray → m (Except TrieError IncrementalMPT)`; **supplied**, every finite nominal input | If secured, query the entire original key once before dispatch and expand all 32 answer bytes to 64 high-before-low nibbles; otherwise expand every supplied key byte. None/some-empty selects public delete, nonempty selects public update. Preserve the literal provider-result bind/pure/Except.map, complete returned root and original flag. Oracle failure prevents dispatch; provider errors are mapped without handlers | Private copying List-byte/path reference and ordinary all-input equality for arbitrary opaque provider actions, preserving bind syntax under plain Monad. Seven private byte/path/reference laws; private opaque-provider controls and public-only SetGuards observe whole recursive fields, actual arities, every diagnostic payload, complete preimages/answers, seeded state, both transformer failure orders and a private nonlawful Count structure |
+| Same source/C22; §7.0.10 | `mptSet_emptyEncoding`; **supplied** | Complete equality of some-empty and None actions, including secure key query, deletion and final result map | Ordinary plain-Monad theorem; SetCallerProofs uses only public imports for arbitrary roots/both flags and public byte/path/full 32 interpretation laws |
+
+The frozen finite controls contain 156 opaque-provider cases and 376 public
+compositions. They retain all source-independent nominal fields, full 32 arbitrary
+answers, all 256 singleton unsecured bytes, leading zeros/long keys, all error
+variants with unrestricted Nat payloads, empty dispatch, direct-empty-update
+contrast, bounds/stub/witness-first collapse order and each reached query failure.
+These focused guards and public callers pass warning-fatal compilation; their
+scoped declaration audit reports zero findings. The strict ten-field setter parser passes
+normal and optimized Python (17 positive/2019 negative frames each) with complete
+success/error/input/recording/query/answer frames; no checksum or reduced structural observer is used.
+
+`STFSpec/Conformance/Commit/set_differential.py` supplies a 54-case frontend
+catalog separating original map/default, key hashing/path, preencoding/Account
+callback, mutation, captured-return own completion and nominal comparison stages.
+The catalog passes: 26 successful complete secured/root projections, eight
+source-only nondefault None/unsupported encoding/missing or invalid Account callback
+boundaries, and 20 explicit diagnostic boundaries. All 46 nominal cases retain
+complete Id/recording results. Source-only boundaries have no nominal projection
+assertion. The 21 original key queries and 11 separate own-completion queries are
+retained separately; 16 captured-return own-completion actions are observed.
+Successful completed-root comparisons require accepted update/delete clean-entry,
+consulted embedding/retained-cache, complete Encodable/class/Id/finite-host premises.
+The prepared selected source entries are clean/cacheless; this is a corpus premise,
+not a global runtime check or nominal theorem premise. Source `_data`, defaults,
+witnesses, dirty/origin/cache writes, partial failure state and query histories
+remain observations separate from the encoded nominal carrier/action equality.
+No whole mutation/map/root/backend/security or readiness gate closes.
+
+The source driver uses fresh destinations and the pinned environment/locked wheels:
+
+```sh
+python3 -I -B STFSpec/Conformance/Commit/set_differential.py --write-catalog CATALOG.json
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
+  --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
+  --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
+  --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+python3 -I -B STFSpec/Conformance/Commit/set_differential.py --self-test
+python3 -I -B -O STFSpec/Conformance/Commit/set_differential.py --self-test
+```
 
 ### Supplied reached-branch construction
 
@@ -1765,7 +1818,7 @@ def rootHash (emptyRoot : Hash32) (root : Ref) : m Hash32  -- supplied (§3/§7.
 structure IncrementalMPT where secured : Bool; root : Ref  -- supplied nominal carrier only
 def decodeWitnessToMpt (emptyRoot : Hash32) (db : NodeDB)
     (r : Hash32) (secured : Bool) : m (Except TrieError IncrementalMPT)
--- Q60: secure key query first; none/some empty delete; future
+-- Q60: secure key query first; none/some empty delete; supplied (§3)
 def mptSet (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) :
     m (Except TrieError IncrementalMPT)
 def mptRoot (emptyRoot : Hash32) (trie : IncrementalMPT) : m Hash32  -- supplied (§3/§7.0.9)
@@ -2241,15 +2294,13 @@ requires complete recursive Encodable, not only a root path/value bound. The
 conditional source premises and dirty/recursive-child/query boundaries are listed
 in §3; whole map/WF/cache/generic coupling remains separate.
 
-### 7.0.10 Bare mutation local equations (Q60; update/delete supplied, frontend unsupplied)
+### 7.0.10 Bare mutation local equations (Q60; all four supplied locally)
 
 These four ordinary public types retain plain Monad/KeccakQuery and all displayed
-inputs. update/delete and the first three equations are supplied in §3; mptSet and
-its emptyEncoding equation remain prospective guidance. Local reached mkBranch and
-its collapseIndex emission are separate supplied workers. The private update/delete realizations
-and complete success/first-error/reference controls are described in §3. The frontend
-worker must freeze its own bounded catalog; no public collapse/domain/model
-helper is added.
+inputs. update/delete/mptSet and all four equations are supplied in §3. Local
+reached mkBranch and its collapseIndex emission are separate supplied workers.
+Private realizations, ordinary all-input reference equalities and bounded complete
+controls are described in §3; no public collapse/domain/model helper is added.
 
 ```lean
 variable {m : Type → Type} [Monad m] [KeccakQuery m]
@@ -2438,9 +2489,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and seven constructor equations (§3); pure completed-cache `childRef` and five constructor
   equations (§3/§7.0.7); completed mkExt and four immediate case equations (§3/§7.0.8);
   local reached mkBranch with private all-input literal reference equality (§3); supplied
-  local rootHash/mptRoot and six constructor/wrapper equations (§3/§7.0.9); the following trie
-  seams remain unimplemented: `mptSet` (the partial trie behind the witness backend; replacement
-  exercise 2 replaces exactly this), `represents` and the agreement theorem (for
+  local rootHash/mptRoot and six constructor/wrapper equations (§3/§7.0.9); the supplied trie
+  seams also include encoded `mptSet` and its emptyEncoding law (§3/§7.0.10).
+  `represents` and the agreement theorem remain unimplemented (for
   `EthStateCommit` and `EthSecurity`).
 - **Relies on:** `EthCodec`'s strict RLP decode, its round-trip `encode (decode b) = b`, and RLP injectivity/prefix-freeness (for the collision theorem's reduction); every keccak through `EthHash`'s `KeccakQuery` (reached through `EthCodec`; D5), with its `ExceptT`/`StateT` lift instances (F15) and concrete `keccak256` at `Id`; `HashConsts.emptyTrieRoot` supplied by the caller (C5).
 - **Guarantees:** totality; the laws of §7; key sequencing is the caller's responsibility (C26).
@@ -2450,8 +2501,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
   own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its reached
   occupancy/collapseIndex emission and private reference/controls are supplied in §3.
-  Update/delete and the first three local laws are supplied in §3; mptSet, its
-  emptyEncoding law and the remaining frontend catalog remain UNSUPPLIED. Complete
+  Update/delete/mptSet and all four local laws are supplied in §3. Full frontend
+  default/encoding/map/history agreement remains open. Complete
   constructor/observer/parser support is supplied;
   no new public proof domain or broad WF premise, cache strategy or readiness follows.
 
@@ -2487,9 +2538,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   List/CPS equality, original-child totality and U01–31 complete-field/effect/parser
   controls. Delete and both approved laws are supplied with separate independent
   List-wire/CPS equality, private source-control metadata, strict visited/no-op
-  completion and the scoped deletion-family 01–32 controls (§3). mptSet and its §7.0.10 equation remain
-  UNSUPPLIED; source/history/dirty/cache premises are separate from both nominal
-  all-input action equalities. The local bridge
+  completion and the scoped deletion-family 01–32 controls (§3). Encoded mptSet and its
+  §7.0.10 equation are supplied with private opaque-provider/List whole-action
+  equality, passing focused controls and scoped frontend comparisons (§3).
+  Source/history/dirty/cache premises are separate from nominal all-input action
+  equalities. The local bridge
   requires clean supplied-field entry images/consulted embedding and cacheless parent
   top for retained branch completion; it supplies no recursive history realization.
   Preserve source construction/empty dispatch and full
@@ -2553,7 +2606,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplied in §3, with private public-import full-field/variant/recursive-array clients and
   declaration-audited generated support. Node.WF and its exact generic cache/provenance/timing
   meaning remain open; local reached mkBranch is supplied separately in §3, while
-  update/delete are supplied separately above; mptSet remains unimplemented. Complete generic
+  update/delete and encoded mptSet are supplied separately above. Complete generic
   decoding, pure bare lookup, strict fresh-leaf/immediate-extension
   completion and pure childRef are supplied separately in §3. Bare arbitrary
   arity/malformed cache/path/child expressibility is not admission. B3/NEW-COMMIT-1/DISC-003

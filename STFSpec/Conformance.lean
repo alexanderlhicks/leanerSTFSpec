@@ -143,6 +143,8 @@ import STFSpec.Conformance.Commit.UpdateCallerProofs
 import STFSpec.Conformance.Commit.UpdateGuards
 import STFSpec.Conformance.Commit.DeleteCallerProofs
 import STFSpec.Conformance.Commit.DeleteGuards
+import STFSpec.Conformance.Commit.SetCallerProofs
+import STFSpec.Conformance.Commit.SetGuards
 
 import STFSpec.Conformance.StateCommit.StorageEncodingCallerProofs
 import STFSpec.Conformance.StateCommit.StorageEncodingGuards
