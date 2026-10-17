@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -32,6 +32,15 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-MEM-1** Memory is a byte sequence whose length is always a multiple of 32 [I: every expansion adds `ceil32(end) − ceil32(size)`, `gas.py:801–811`]. `memory_write m start v` (`memory.py:20–36`) overwrites `[start, start+|v|)`; callers guarantee the window lies inside memory after expansion; an **empty** write at any `start`, even beyond the end, must be a no-op (Python slice assignment `m[s:s] = b""`). `memory_read_bytes` (`:39–60`) returns the window; an empty read at any start returns empty. `buffer_read buf start size` (`:63–83`) returns `buf[start, start+size)` right-padded with zeros to `size`, for any `start` (including `start ≥ |buf|` and `start ≥ 2^64`).
 - **R-MEM-2** Expansion must be priced **before** it is performed: no handler may allocate memory before the corresponding `charge_gas` succeeds (every handler follows `calculate_gas_extend_memory` → `charge_gas` → `memory += zeros`). With `Nat` gas this bounds the allocation by the available gas.
+
+Q62 makes alignment structural and admits read/write windows through only the local
+proofs in §5. Empty reads/writes are valid at every Nat offset; check emptiness
+before runtime offset narrowing or index traversal, without work proportional to
+an unused huge offset. Expansion appends exactly its aligned byte increment. Raw
+source reads clip and raw writes may grow outside the admitted domain
+(`memory.py:20–60`); source agreement is conditional on admitted typed-source
+inputs and host premises, without a new guest rejection. New frames initialize
+empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 
 ### 2.5 Gas meter (EIP-8037 two-dimensional gas)
 
@@ -99,6 +108,26 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Prospective aligned Memory (Q62; unimplemented/unproved)
+
+The exact API is in §5 and its finite ten-law target is in §7. The following rows
+are implementation targets, not supplied operations or correspondence results.
+
+| Source/model anchor at the pin | Prospective declaration | Domain and complete effect | Prospective evidence |
+|---|---|---|---|
+| `interpreter.py:227`, `instructions/system.py:166,435` | `Memory.empty` | Fresh empty aligned memory | `toBytes_empty`; empty initialization controls |
+| §6 abstraction; source `len(memory)` | `Memory.toBytes`, `Memory.size` | Complete byte-list model and byte length; aligned carrier | `length_toBytes`, `size_mod32`; full observations |
+| caller append, `instructions/memory.py:42–58,73–90,103–120,156–179` | `Memory.expand` | Only n % 32 = 0; append exactly n zero bytes | `toBytes_expand`; zero/repeated expansion |
+| `memory.py:39–60` | `Memory.readBytes` | Empty or in bounds; exact immutable window | `readBytes_toList`; endpoints/retained snapshots |
+| `memory.py:20–36` | `Memory.write` | Empty or in bounds; complete overwrite, preserved size and untouched bytes; actual identity for empty value | `toBytes_write`, `write_empty`, `size_write`, `readBytes_write`, `readBytes_write_disjoint`; full-memory/overlap controls |
+
+The local proofs are erased, not new runtime source assertions or failure channels.
+Typed source read start/size and write start additionally lie below 2^256; Nat-only
+huge empty-window laws are not direct typed Python-call claims. Host execution
+requires the existing valid dependency/argument interpretation and successful
+allocation/index premises. Caller derivation and source/compiled validation remain
+future work. No raw constructor or representation helper is a public test ingress.
 
 ### Supplied bounded Stack
 
@@ -429,6 +458,8 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Prospective Memory controls (Q62; unrun):** Construct through `Memory.empty`, aligned expand and admitted writes only. Retain complete post-memory/size and saved immutable read bytes for empty operations at every offset (including huge Nat offsets), exact endpoints, untouched prefixes/suffixes, cross-word writes, adjacent/disjoint windows and explicit empty windows, overlapping read-then-write copies in both directions/self-copy, and snapshots surviving later writes. Public-only clients consume exactly the ten §7 laws. Derive post-write read witnesses from preserved size and the original local window proof. Future source comparison is restricted to typed aligned/admitted inputs and host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Preserve caller charge/allocation, return-buffer and static-check ordering separately. Compiled linear ownership, trace on/off and shared-old-value controls remain required and unrun; no checksum belongs in a timed loop.
+
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
 
 `TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation
@@ -568,13 +599,16 @@ def Stack.swap? (s : Stack) (i j : Nat) : Option Stack
 def decodeSingle : UInt8 → Except ExceptionalHalt Nat
 def decodePair   : UInt8 → Except ExceptionalHalt (Nat × Nat)
 
--- Memory (public; representation internal, D11)
-structure Memory
-def Memory.toBytes : Memory → List UInt8                 -- model
+-- Memory (prospective public API, D11/Q62; unimplemented/unproved)
+structure Memory                    -- private storage, constructor and alignment proof
+def Memory.empty : Memory
+def Memory.toBytes : Memory → List UInt8
 def Memory.size : Memory → Nat
-def Memory.expand : Memory → Nat → Memory                -- append n zero bytes
-def Memory.readBytes : Memory → Nat → Nat → Bytes         -- (start size); requires window inside or size = 0
-def Memory.write : Memory → Nat → Bytes → Memory          -- empty write is the identity
+def Memory.expand (m : Memory) (n : Nat) (h : n % 32 = 0) : Memory
+def Memory.readBytes (m : Memory) (s k : Nat)
+    (h : k = 0 ∨ s + k ≤ m.size) : Bytes
+def Memory.write (m : Memory) (s : Nat) (v : Bytes)
+    (h : v.size = 0 ∨ s + v.size ≤ m.size) : Memory
 def bufferRead : Bytes → U256 → U256 → Bytes              -- zero-padded, any start
 structure ExtendMemory where cost : Nat; expandBy : Nat
 def calculateGasExtendMemory : Memory → List (U256 × U256) → ExtendMemory
@@ -664,7 +698,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | Type | Representation | Model and abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
 | `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
-| `Memory` | `ByteArray` (D11) | `List UInt8`; `α = ByteArray.toList` | `size % 32 = 0` | linear-only | expand O(n) amortised; read/write O(k); copy O(k) |
+| `Memory` | private `ByteArray` and alignment proof (D11/Q62), prospective | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
 | `JumpdestMap` | `ByteArray` bitmap of `⌈\|code\|/8⌉` bytes | `Finset Nat` (= EELS `Set[Uint]`); `α b = {i \| bit i}` | only indices `< \|code\|` | read-only, shareable; a cache keyed by code hash is allowed outside semantic state (ARCHITECTURE §7) | build O(\|code\|); lookup O(1) |
@@ -703,10 +737,67 @@ their bounds/injectivity obligations are unchanged: `decodeSingle x = .ok n →
 17 ≤ n ≤ 235`, injective on valid inputs; `decodePair x = .ok (n,m) →
 1 ≤ n ≤ 14 ∧ n < m ∧ m ≤ 30 − n`, injective. [C]
 
-**Memory** (model `List UInt8`). [C], used by [R] memory-opcode lemmas (exercise 1):
-- `α (expand m k) = α m ++ replicate k 0`; preservation of 32-byte alignment requires `k % 32 = 0`. Window reads/writes require the in-bounds hypotheses stated in §5.
-- read-after-write: `readBytes (write m s v) s |v| = v` when `s + |v| ≤ size m`; disjoint windows: `readBytes (write m s v) t k = readBytes m t k` when `[t,t+k)` ∩ `[s,s+|v|)` = ∅; `write m s [] = m` for **all** `s`; `size (write m s v) = size m` when in bounds.
-- overlap (MCOPY): `write m d (readBytes m s k)` reads back as the snapshot of the source, i.e. copy is "read then write" (memmove semantics).
+**Memory** (Q62; model `List UInt8`). Exactly ten prospective ordinary laws
+are required; all remain **unimplemented/unproved**. They are [C] boundaries for
+[R] memory-opcode clients (exercise 1). No additional public helper or law is
+implied by the sketches.
+
+In M9, let `h' : v.size = 0 ∨ s + v.size ≤ (m.write s v h).size` be the
+proof derived by rewriting the result size with M8 `size_write` and using h.
+In M10, let `hR' : k = 0 ∨ t + k ≤ (m.write s v hW).size` be derived in the
+same way from M8 and hR. These are determined proof arguments to the result read,
+not new semantic premises, additional public binders or an exported support helper.
+The size law is stated before both reads; proof irrelevance avoids distinguishing
+witnesses. The following are informal signatures, not Lean proofs.
+
+```lean
+-- M1
+Memory.toBytes_empty : Memory.empty.toBytes = []
+-- M2
+Memory.length_toBytes (m : Memory) : m.toBytes.length = m.size
+-- M3
+Memory.size_mod32 (m : Memory) : m.size % 32 = 0
+-- M4
+Memory.toBytes_expand (m : Memory) (n : Nat) (h : n % 32 = 0) :
+  (m.expand n h).toBytes = m.toBytes ++ List.replicate n 0
+-- M5
+Memory.readBytes_toList (m : Memory) (s k : Nat)
+    (h : k = 0 ∨ s + k ≤ m.size) :
+  (m.readBytes s k h).toList = (m.toBytes.drop s).take k
+-- M6
+Memory.toBytes_write (m : Memory) (s : Nat) (v : Bytes)
+    (h : v.size = 0 ∨ s + v.size ≤ m.size) :
+  (m.write s v h).toBytes =
+    m.toBytes.take s ++ v.toList ++ m.toBytes.drop (s + v.size)
+-- M7
+Memory.write_empty (m : Memory) (s : Nat) :
+  m.write s Bytes.empty (Or.inl Bytes.size_empty) = m
+-- M8
+Memory.size_write (m : Memory) (s : Nat) (v : Bytes)
+    (h : v.size = 0 ∨ s + v.size ≤ m.size) :
+  (m.write s v h).size = m.size
+-- M9; h' is derived above from M8 and h
+Memory.readBytes_write (m : Memory) (s : Nat) (v : Bytes)
+    (h : v.size = 0 ∨ s + v.size ≤ m.size) :
+  (m.write s v h).readBytes s v.size h' = v
+-- M10; hR' is derived above from M8 and hR
+Memory.readBytes_write_disjoint (m : Memory) (s : Nat) (v : Bytes) (t k : Nat)
+    (hW : v.size = 0 ∨ s + v.size ≤ m.size)
+    (hR : k = 0 ∨ t + k ≤ m.size)
+    (hD : k = 0 ∨ v.size = 0 ∨ t + k ≤ s ∨ s + v.size ≤ t) :
+  (m.write s v hW).readBytes t k hR' = m.readBytes t k hR
+```
+
+M6 specifies every byte, including empty v at arbitrary s (take/drop reassemble
+the original model). M7 additionally requires actual Memory equality, established
+privately; no generic extensionality or representation-injectivity API is exposed.
+M9/M10 explicitly include empty windows, even inside another window or beyond the
+memory end. Expansion length and preservation follow from M2–M4/M8. Read-then-write
+MCOPY snapshot behavior, including both overlap directions and self-copy, follows
+as a prospective client derivation from immutable reads and M5/M8/M9; disjoint
+retention uses M10. This adds no Memory.copy operation or extra public law.
+
+BufferRead and pricing retain their independent obligations:
 - `bufferRead b s k = (b.drop s).take k ++ replicate (k − …) 0`, length `k`.
 - Expansion closed form: for windows `ws` with nonzero sizes, `(calculateGasExtendMemory m ws).expandBy = ceil32(max(size m, maxEnd ws)) − size m` and `cost = C(size m + expandBy) − C(size m)` [I: telescoping sum; prove].
 - `L-MEM-BOUND` [T/S]: `chargeGas g (… + ext.cost) = .ok _ → ext.expandBy ≤ f(g)` for an explicit `f` (the quadratic inverse); this is what makes "no allocation before charge" a resource bound.
@@ -854,7 +945,7 @@ above. The following list retains the remaining G1 and composition obligations:
 
 **Premises.** EthBase and EthState laws; local proof arguments for commit/entry restore and caller premises for the remaining meter operations (none for the supplied charge kernel, refund/repay or ordinary restore); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
-**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement splits each read/write into its in-range segment and zero extension, with the size-zero identity handled before offset conversion. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
+**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Prospective Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
 **Open obligations.** Prove meter premises at every caller, checked refund conversion, exact arithmetic failure cases and the compiled memory/stack cost assumptions. Memory representation replacement uses observer equations; amortised linear-container bounds must not be applied to snapshot-reachable values.
 
@@ -880,6 +971,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
+- **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact prospective API/ten-law contract. BufferRead remains independent. Pricing’s missing explicit policy argument (`GasCosts` versus `VmConfig` or another authorized seam) remains separate/open under B8; no argument or Amsterdam constant is selected here.
 
 ## 10. Gaps
 
@@ -894,6 +986,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **O13 enumeration still open.** The VM-internal Python faults are classified (CONTRACT O13, D14): BLOCKHASH's `IndexError` is fixture-witnessed, and the BLOBBASEFEE and balance overflows are argued reachable. The `VmFault` constructor list is frozen only once this module's failure-ledger entries close (DECISIONS B14).
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
 - **`calculate_blob_gas_price` on huge `excess_blob_gas`** runs `taylor_exponential` for a number of iterations roughly proportional to `excess_blob_gas / BLOB_BASE_FEE_UPDATE_FRACTION` (DISC-002); for adversarial parent headers this is a host-time problem (DISC-002), and `U256(price)` in BLOBBASEFEE is argued reachable as an overflow (O13, `instructions/environment.py:607`). Termination and cost belong to EthBase; the envelope question is open.
-- **Memory closed form** (telescoping of `calculate_gas_extend_memory`) and `L-MEM-BOUND` are unproved.
+- **Memory (Q62) remains unimplemented/unproved:** the private aligned carrier, six public APIs in §5 and exactly ten prospective ordinary laws in §7 need separately checked/reviewed implementation and public-only clients. Empty-any-offset behavior, immutable snapshots, complete write effects and actual empty-write identity remain proof/test targets; post-write read proofs derive from `size_write` and the original local window proof. Actual caller alignment/window derivation, charge/allocation/return-buffer/static-check ordering, linear ownership, compiled C1–C4, R1, G1–G7 and guest gates remain open. No invalid-window completion, runtime error or global frame invariant follows; bufferRead remains independent.
+- **Memory pricing policy and closed form:** the missing explicit policy argument remains separate/open under B8 (§9); no concrete `GasCosts`/`VmConfig` seam is chosen. Telescoping of `calculate_gas_extend_memory`, its alignment/window-coverage proofs and `L-MEM-BOUND` are unproved.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
