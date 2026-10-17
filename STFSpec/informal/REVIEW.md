@@ -72,7 +72,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthStateCommit | Total U256 storage encoding, all-value validity/nonempty and wire injectivity are supplied by EthStateCommit §3 independently of supplied-default deletion. Contextual Account encoding, unconditional nonempty and pair binding under both complete assembled Q47 premises are supplied in EthStateCommit §3. Implement callback/root integration, without a bare Account instance or secured-policy claim. SC6 and nonzero storage SC10 are supplied locally in EthStateCommit §3, with ordinary all-Bytes packed/reference equality, bounded checked candidates and full-parser-first equations. SC5 and conditional account SC10 are supplied locally in EthStateCommit §3, with caller-owned defaults, unbounded nonce, bounded numerical balance and complete assembled Q47 premises. Finish code-authenticity/root clauses, triggered backend/shared error integration and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
-| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws, are owned by EthVmCore §3/§7; partial G1 only. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
+| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws, are owned by EthVmCore §3/§7; partial G1 only. The bounded Stack carrier/six operations/eight laws are additionally supplied under EthVmCore §3/§7; swap/decoders and composed allocation remain open. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
@@ -176,6 +176,17 @@ observer and single ordinary equation remain unimplemented/unproved. Caller
 reachability, remaining operations and transaction conservation remain open. These local laws
 close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate. The dated
 §6 readiness assessment is unchanged.
+
+The bounded Stack slice's six source/model rows and eight ordinary public laws are
+owned by [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). Its private Array
+carrier enforces size≤1024 and observes top first. Error iff laws quantify over all
+ExceptionalHalt values, so public clients derive successful operation availability
+and both conditional inverses with actual Stack equality. Forty-one whole-model
+controls cover empty/full transitions, complete returned words/remainders, huge
+Nat depths and sequence intermediates. Source correspondence covers only fresh typed
+bounded lists and unchanged pop/push helpers; peek is a labelled List-index adapter.
+Swap/decoders, actual handler order, frame reachability, compiler allocations and
+C1–C4 remain open; this is no whole VM or guest readiness claim.
 
 Use these three independent acceptance checks:
 
