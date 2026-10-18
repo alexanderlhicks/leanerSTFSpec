@@ -206,7 +206,7 @@ source-value acquisition, record-only native protocol or pricing operation.
 MODEXP classification, module-derived maximum placement, StateGasCosts
 representation, BLS index/denominator support and actual EthFork factory/config
 coherence remain open for the claims that need them. Memory pricing's policy
-disposition stays separate. No broad B8, termination, resource, C1–C4 or guest
+disposition is owned separately by Q63. No broad B8, termination, resource, C1–C4 or guest
 readiness gate follows; the dated §6 assessment is unchanged.
 
 The two scalar immediate decoder APIs and eight ordinary laws are owned by
@@ -245,8 +245,9 @@ agree with the authenticated retained source baseline under strict normal/`-O` p
 without source replay. Caller derivations and compiled ownership/cost validation
 remain open on their existing domains. No invalid-window completion, runtime error
 or global frame invariant is
-introduced. BufferRead remains independent; pricing’s missing explicit policy
-argument stays separate/open. This supplies no implementation closure, R1/C1–C4,
+introduced. BufferRead remains independent; memory pricing’s policy-threading
+contract is owned by Q63 and EthVmCore §5/§7; its implementation/proofs and actual
+callers remain open. This supplies no implementation closure, R1/C1–C4,
 L-MEM-BOUND, G1–G7 or guest/EEST gate; the dated §6 readiness assessment is unchanged.
 
 Use these three independent acceptance checks:

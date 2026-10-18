@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -61,8 +61,8 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `withhold_create_gas` (:678) | `g = max_message_call_gas gas_left`; `gas_left −= g`; returns `g` |
 | `drain_state_gas_reservoir` (:701) | returns the reservoir and sets it to 0 (no 63/64 rule for state gas) |
 | `restore_child_gas m g R` (:725) | `gas_left += g`, reservoir `+= R` (child never entered) |
-| `calculate_memory_gas_cost s` (:749) | `w = ceil32(s)/32`; `3w + ⌊w²/512⌋`. The EELS `try/except ValueError` (:770–773) is dead code (`ExecutionGas` is a `NewType` of the unbounded `Uint`, so the call is the identity) [V] |
-| `calculate_gas_extend_memory m ws` (:776) | fold over windows `(start, size)` in order, skipping `size = 0` **regardless of `start`**; with running `cur` (initially `\|m\|`), if `ceil32(start+size) > ceil32(cur)`, add the difference to `expand_by` and `C(after) − C(before)` to `cost`, then `cur := after` |
+| `calculate_memory_gas_cost s` (:749–773) | With `w = ceil32(s)/32`, return `GasCosts.MEMORY_PER_WORD*w + ⌊w²/512⌋`; ZERO is not read. The caught `ValueError` is absent under stable typed Uint/ExecutionGas-NewType bindings. Source/host correspondence retains those premises. |
+| `calculate_gas_extend_memory m ws` (:776–813) | Initialize extent with literal 0 and cost with `GasCosts.ZERO`; fold in order, skip size 0 before endpoint work, and convert each nonzero start/size to unbounded Nat observations before addition. On strict rounded growth add extent and two-cost differences. Returns values without charge, append or Memory mutation. |
 | `calculate_message_call_gas v g L mem extra stipend` (:816) | `stipend := 0` if `v = 0`; if `L < extra + mem` return `(g + extra, g + stipend)` (the caller then fails its charge); else `g' = min g (max_message_call_gas (L − mem − extra))`, return `(g' + extra, g' + stipend)` |
 | `max_message_call_gas g` (:861) | `g − ⌊g/64⌋` (EIP-150) |
 | `init_code_cost n` (:879) | `2 · ceil32(n)/32` (EIP-3860) |
@@ -150,9 +150,22 @@ classification, module-derived MAX_BLOB_GAS_PER_BLOCK placement/checked-U64 rang
 the separate StateGasCosts stored-versus-computed representation, BLS executable
 index/denominator support, and the actual EthFork factory/config coherence remain
 open at their owners. Those obligations block their corresponding claims, not
-this raw record. Memory pricing's policy argument and the separate user disposition
-remain open; no pricing function, ZERO interpretation or 32/512 choice is supplied.
+this raw record. Memory pricing's policy-threading disposition is owned separately
+by Q63; this raw-data seam supplies no pricing function, ZERO interpretation or
+32/512 choice.
 Record equality proves no supported-policy, termination, resource or guest gate.
+
+### Memory pricing (Q63; contract targets, unimplemented)
+
+| EELS source at pin | Prospective Lean declaration | Exact domain/effect/failure/model/control entry |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/gas.py:749–773` | `calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat` | Every cfg/n; depends only on cfg.costs.memoryPerWord. Pure Nat result, no charge/allocation/state effect or new error. MP1/MP2/MP9; rounding, zero-coefficient, first-quadratic-step and unrelated-config controls remain required. Original correspondence additionally retains actual typed bindings and successful host premises. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:776–813` | `calculateGasExtendMemory (cfg : VmConfig) (m : Memory) (ws : List (U256 × U256)) : ExtendMemory` | Every cfg, aligned Memory and ordered window list; arbitrary Nat coefficient/seed. Pure complete cost/extent, no append/charge/mutation or new error. MP3–MP8/MP10; empty, huge-empty, cross-word, permuted, subsumed, seed and huge-Nat-endpoint controls remain required. Raw unaligned source memory is a separate source-only domain, not an invalid Lean proof/carrier. |
+
+The source policy reads are `GasCosts.ZERO` (`gas.py:102`) and
+`GasCosts.MEMORY_PER_WORD` (`gas.py:103`). Both operations, all ten pricing laws
+and their public-only derived clients are **unimplemented/unproved**. This
+contract clarification supplies no executed pricing controls or source coupling.
 
 ### Supplied scalar immediate decoders
 
@@ -697,6 +710,11 @@ actual complete records and source/runtime identities beside each fresh run.
 - **`core` `#guard` cases** (a `#guard` evaluates only once every leaf it reaches is implemented, F16):
   - `decodeSingle`: all 256 inputs (219 valid, results exactly `17…235`, bijective on the valid range) [V: run against EELS]; `decodePair`: all 256 inputs (210 valid, `1 ≤ n ≤ 14`, `n < m ≤ 30 − n`, injective) [V: run].
   - Memory cost: `C 0 = 0`, `C 32 = 3`, `C (32·724) = 3·724 + 724²/512`; `extendMemory` on `[(2^256−1, 0)]` gives `(0, 0)`; `[(0,32),(0,64)]` equals `[(0,64)]`; a second window below the first adds nothing.
+
+    These prospective pinned-value pricing guards specialize
+    `cfg.costs.memoryPerWord = 3` and `cfg.costs.zero = 0` at use; those assumptions
+    are not defaults or restrictions of either generic helper.
+
   - Meter: charge exactly `gas_left` (succeeds, leaves 0); charge `gas_left + 1` (fails, meter unchanged); state charge split across reservoir and `gas_left`; credit when `spilled < a` (remainder to reservoir); repay; restore after commit leaves committed spill charged; `restoreToEntry` refills both spills; negative `refund_counter` after one clear-reversal.
   - `maxMessageCallGas 64 = 63`, `63 = 63`, `0 = 0`; `calculateMessageCallGas` below `extra + mem`.
   - `settleTransactionGas`: refund capped at one fifth; floor binding both dimensions; negative `state_gas_used` clamped to 0.
@@ -797,8 +815,9 @@ def Memory.write (m : Memory) (s : Nat) (v : Bytes)
 def bufferRead : Bytes → U256 → U256 → Bytes              -- supplied; independent of Memory
 -- Memory pricing (unimplemented)
 structure ExtendMemory where cost : Nat; expandBy : Nat
-def calculateGasExtendMemory : Memory → List (U256 × U256) → ExtendMemory
-def calculateMemoryGasCost : Nat → Nat
+def calculateGasExtendMemory (cfg : VmConfig) (m : Memory)
+    (ws : List (U256 × U256)) : ExtendMemory
+def calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat
 
 -- Gas policy and meter (public)
 structure GasCosts where            -- supplied raw data; no defaults or policy values
@@ -1016,6 +1035,8 @@ def JumpdestMap.contains : JumpdestMap → Nat → Bool
 ```
 
 `TxState`, `TxRevertible` and `StateError` come from `EthState`. Observations live only at `world.tx.obs`, and ancestor access only at `world.tx.block.oldestAncestorOffset`. A snapshot retains only `TxRevertible`. `Log` and `LogRope` are declared here (D27/D24). Precompile types are also declared here; the producer and runner import them. `PrecompileFn m` is monadic so that ECRECOVER's public-key hash goes through `KeccakQuery` (D5); only `EthPrecompiles` needs `[KeccakQuery m]`. `meter_law` is stated with `SatisfiesM` so that it holds for every `m`; at `m := Id` it is the plain equation, and that instance is the minimum required. It holds by construction for the normal form (EthPrecompiles §5), because the meter is fixed by `chargeGas` before the monadic body runs. `BlobGasArithmeticError`, `BlobFeeError` and `CapacityError` are local errors mapped by `EthBlock`; their complete constructor lists remain a §10 obligation. These are Lean-like signatures: declarations must be ordered before their uses in Lean.
+
+Q63's helpers compute values only. All cfg inputs are admitted; no config-WF/zero-price/gas/resource proof argument is introduced. Only memoryPerWord affects standalone cost; extension additionally observes zero, old byte size and ordered windows. Private scalar support is permitted; it is not a third public API or a policy view. Existing Core-owned record types and EthFork-owned values retain their owners; the independent StateGasCosts representation gap is not settled here.
 
 Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explicitly. Opcode handlers use `ctx.config`, and child contexts retain it. `BlockConfig` constructs the runner environment and this context from the same records. There are no free `costs` variables or hidden Amsterdam defaults in generic semantics. The current stack/depth proofs use the literal `STACK_DEPTH_LIMIT = 1024`; supporting a different limit requires changing those proofs and indexed types.
 
@@ -1478,9 +1499,67 @@ bufferRead_size (b : Bytes) (start size : U256) :
   (bufferRead b start size).size = size.toNat
 ```
 
-Pricing retains its independent obligations:
-- Expansion closed form: for windows `ws` with nonzero sizes, `(calculateGasExtendMemory m ws).expandBy = ceil32(max(size m, maxEnd ws)) − size m` and `cost = C(size m + expandBy) − C(size m)` [I: telescoping sum; prove].
+**Memory pricing (Q63).** The following exact ten ordinary laws and all derived
+clients are **unimplemented/unproved**. This is informal contract notation, not
+Lean proof bodies. It introduces no additional public helper.
+
+No additional proof argument belongs to either helper. Let a=cfg.costs.memoryPerWord
+and z=cfg.costs.zero. Both are arbitrary Nat, not fixed Amsterdam values. For
+mathematical notation only, W(n)=ceil32(n)/32 and C_a(n)=a*W(n)+W(n)^2/512.
+Define E(ws) as the maximum of start.toNat+size.toNat over just the windows with
+size.toNat≠0; the empty filtered maximum is 0. Put F(m,ws)=ceil32(max(m.size,E(ws))).
+E/F/W/C are local informal notation, not new public helpers, fields or policy views.
+Each endpoint adds two unbounded Nat observations, never two U256 words.
+In each extension statement r abbreviates calculateGasExtendMemory cfg m ws.
+
+Every Memory is the existing structurally aligned carrier. Windows are every
+finite ordered list of U256 pairs; scalar n is every Nat. There is no config-WF,
+canonical-value, nonzero-price, gas, allocation, host-width or global-frame premise
+in the pure Lean pricing functions or laws. Literal32/512 remain algorithm constants.
+
+| ID and proposed ordinary law | Exact statement and local domain |
+|---|---|
+| MP1 calculateMemoryGasCost_eq | For every cfg,n, calculateMemoryGasCost cfg n = a*(ceil32(n)/32)+(ceil32(n)/32)^2/512. ZERO is absent. |
+| MP2 calculateMemoryGasCost_mono | For every cfg,n,n', n≤n' implies calculateMemoryGasCost cfg n≤calculateMemoryGasCost cfg n'. No a>0 premise or strict conclusion. |
+| MP3 calculateGasExtendMemory_nil | For every cfg,m, calculateGasExtendMemory cfg m [] = {cost:=z,expandBy:=0}, the complete result. |
+| MP4 calculateGasExtendMemory_zero | For every cfg,m, as,bs:List(U256 × U256) and s:U256, extension on as++[(s,0)]++bs equals extension on as++bs as an actual complete ExtendMemory result. Empty windows are skipped before endpoint work. |
+| MP5 calculateGasExtendMemory_expandBy | For every cfg,m,ws, r=calculateGasExtendMemory cfg m ws implies r.expandBy=F(m,ws)-m.size. |
+| MP6 calculateGasExtendMemory_cost | For the same complete domain, r.cost=z+(C_a(F(m,ws))-C_a(m.size)). The Nat subtraction is justified by F≥m.size and MP2, rather than concealing a negative source Uint subtraction. |
+| MP7 calculateGasExtendMemory_aligned | For every cfg,m,ws, r.expandBy%32=0. This produces the existing Memory.expand local argument. |
+| MP8 calculateGasExtendMemory_covers | For every listed (s,k)∈ws, k.toNat=0 or s.toNat+k.toNat≤m.size+r.expandBy. This covers every window and preserves the empty branch. |
+| MP9 calculateMemoryGasCost_congr | If cfg.costs.memoryPerWord=cfg'.costs.memoryPerWord, then for every n, calculateMemoryGasCost cfg n=calculateMemoryGasCost cfg' n. No equality of zero, GasCosts, StateGasCosts, limits or entire configs. |
+| MP10 calculateGasExtendMemory_congr | If both memoryPerWord projections agree and both zero projections agree, then for every same m,ws the complete extension results agree. No whole-config equality/WF/coherence or other price premise. |
+
+Derived public-only clients, rather than extra required public laws:
+
+- Scalar cost(0)=0, rounding invariance, and standard a=3 specialization follow
+  from MP1 and public ceil32 laws. Zero seed is irrelevant to scalar cost.
+- m.size+r.expandBy=F follows from MP5 and F≥m.size; MP7/MP8 with the existing
+  Memory expansion/model/size laws yields each actual empty-or-in-bounds read/write
+  premise. A write also needs actual payload-size correspondence from its caller.
+- Complete size invariance for same-size Memory values follows from MP5/MP6 and
+  the two existing ExtendMemory fields; it supplies no Memory equality or content
+  observer. Unrelated config fields are irrelevant through MP9/MP10, not a WF proof.
+- Permutation, duplication and insertion of windows whose nonempty endpoints are
+  at most the prior F preserve the complete result through the filtered maximum.
+  This says nothing about intermediate fold states/callee counts/time/allocations.
+- For rA=ext cfg m as, mA=m.expand rA.expandBy hA (MP7), rB=ext cfg mA bs and
+  r=ext cfg m (as++bs), r.expandBy=rA.expandBy+rB.expandBy and
+  r.cost+z=rA.cost+rB.cost. This seed-aware addition equation requires no z=0.
+  The simpler r.cost=rA.cost+rB.cost is a specialization using z=0 at theorem use.
+- Empty/all-subsumed extension costs z; zero-cost neutrality needs z=0 at theorem
+  use. a=0 permits positive extent with zero cost below the first quadratic step;
+  the quadratic term can still increase for larger extents. No generic
+  strict-growth, cost=0 iff extent=0, allocation feasibility or resource bound.
+
+All derived clients use public Memory/Base/pricing laws. MP2 can use derived ceil32
+monotonicity from existing least-multiple/bounds laws; no new Base export is needed.
+
+Pricing retains its independent resource obligation:
 - `L-MEM-BOUND` [T/S]: `chargeGas g (… + ext.cost) = .ok _ → ext.expandBy ≤ f(g)` for an explicit `f` (the quadratic inverse); this is what makes "no allocation before charge" a resource bound.
+
+Pure price/alignment/coverage equations do not prove L-MEM-BOUND or authorize
+allocation, including for huge mathematically admitted extents.
 
 **Logs** [C]: `LogRope.toList (LogRope.append a b) = LogRope.toList a ++ LogRope.toList b`. Flatten maintains the emitted prefix and pending subtrees in chronological order; the total pending structural size decreases when a node is expanded. Each node and each leaf log is visited once. This proves order and the linear traversal claim without repeated prefix copying.
 
@@ -1651,7 +1730,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
-- **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent. Pricing’s missing explicit policy argument (`GasCosts` versus `VmConfig` or another authorized seam) remains separate/open under B8; no argument or Amsterdam constant is selected here.
+- **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent; memory pricing’s policy-threading contract is owned separately by Q63.
+- **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two exact VmConfig-first signatures and ten prospective ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and source/host agreement are separate obligations; no pricing implementation or proof is supplied by this clarification.
 
 ## 10. Gaps
 
@@ -1671,6 +1751,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
 - **`calculate_blob_gas_price` on huge `excess_blob_gas`** runs `taylor_exponential` for a number of iterations roughly proportional to `excess_blob_gas / BLOB_BASE_FEE_UPDATE_FRACTION` (DISC-002); for adversarial parent headers this is a host-time problem (DISC-002), and `U256(price)` in BLOBBASEFEE is argued reachable as an overflow (O13, `instructions/environment.py:607`). Termination and cost belong to EthBase; the envelope question is open.
 - **Local Memory (Q62) is supplied:** §3/§5/§7 own the private aligned carrier, six APIs and ten discharged ordinary laws, including complete write effects, immutable snapshots and actual empty-write identity. Public-only clients derive post-write read proofs from preserved size and the original local window proof. Actual caller alignment/window derivation, charge/allocation/return-buffer/static-check ordering, linear ownership, compiled C1–C4, R1, G1–G7 and guest gates remain open. No invalid-window completion, runtime error or global frame invariant follows; bufferRead remains independent.
-- **Memory pricing policy and closed form:** the missing explicit policy argument remains separate/open under B8 (§9); no concrete `GasCosts`/`VmConfig` seam is chosen. Telescoping of `calculate_gas_extend_memory`, its alignment/window-coverage proofs and `L-MEM-BOUND` are unproved.
+- **Memory pricing (Q63):** the explicit policy-threading contract and seed-aware closed forms are specified in §5/§7. Both helpers, their ten ordinary laws, public-only derived clients and original-source/target coupling remain unimplemented/unproved. Actual caller windows/alignment, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, source-host/resource and whole VM/guest gates remain open.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
