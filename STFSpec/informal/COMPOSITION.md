@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-07.*
+*Status: conditional proof plan. Date: 2026-10-18.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -24,7 +24,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | IncrementalMPT | EthCommit | Retain the complete supplied Bool and Ref; the Q55 decoder and local rootHash/mptRoot actions are supplied separately (EthCommit §3/§5/§7.0.9). Mutation, whole root/cache refinement and representation/admission obligations remain owned by §10 (B3). |
 | InternalNode | EthCommit | Supply already interpreted byte/list fields and sixteen ordered children; use public assembly/model/query laws. |
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
-| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; Q60 supplies collapseIndex, local reached mkBranch diagnostics and update branchIndex emission (EthCommit §3); delete/frontend emission remains future; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
+| TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; Q60 supplies collapseIndex, local reached mkBranch diagnostics and update/delete emission (EthCommit §3); frontend emission remains future; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
@@ -319,13 +319,14 @@ Mutable dirty/history/descendant observers and arbitrary generic source actions 
 not simulated by the all-input nominal reference equality. Whole mutation and the
 existing WF/map/root/witness/security/resource/readiness gates remain open.
 
-### Bare mutation handoff (Q60; update supplied, deletion/frontend unsupplied)
+### Bare mutation handoff (Q60; update/delete supplied, frontend unsupplied)
 
 Q60 collapseIndex constructor/complete observer and strict reason 12 parser support
 are supplied by EthCommit §3, together with local reached mkBranch emission.
 Decoder and lookup never emit it. Update and exact update_branch_oob are supplied
-by EthCommit §3/§7.0.10; delete/mptSet and their three equations remain open. Normal/-O decoder,
-lookup and update parser controls
+by EthCommit §3/§7.0.10; delete and both approved root equations are also supplied there;
+mptSet and its emptyEncoding equation remain open. Normal/-O decoder, lookup,
+update and deletion parser controls
 preserve old tags/fields and full Nat identity.
 
 [EthCommit C18/C19/C22–C25/C29/§7.0.10](modules/EthCommit.md#5-interface) owns
@@ -336,6 +337,16 @@ plain-Monad offset/List CPS equality. Its public root bounds law keeps the exact
 index/arity and bare pure error. EthCommit §3 owns the complete controls, concrete
 source stages/premises and remaining history obligations; no extra consumer helper
 or public source/WF predicate is supplied.
+The separate supplied deletion realization strictly completes every visited surviving
+node, including no-op nodes, while retaining off-path caches. Its private source-control
+classification propagates visited child completion through no-change parents and
+merges one immediate leaf/ext before the dirty guard. Ordinary independent List-wire/
+continuation/set and packed-offset CPS equality retains plain Monad; both public root
+errors are bare pure. Concrete agreement retains clean same-origin returns only where
+a reached parent actually inspects dirty, with separate consulted embedding, full
+retained-cache, Encodable/class/host premises owned by EthCommit §3. It introduces no
+public metadata or a broad WF/initial-clean requirement.
+
 Callers preserve actual key/value/secured/root fields and operation order: direct
 empty update inserts, while frontend none/some empty deletes after secure key
 acquisition. This action equality concerns only the nominal root/secured carrier;
@@ -355,9 +366,9 @@ premises, not new runtime/public WF predicates. Consumers use public operation/m
 laws; private worker/structural/reference proofs may change internally under B15/Q33.
 An Id value equation does not license stateful/failing generic action reordering,
 cache/witness/lifetime equivalence or arbitrary initially dirty source shape.
-Remaining deletion/frontend diagnostics/laws and catalogs, delete/mptSet,
-root/map/backend/security/witness,
-W1/S2/R2/O12/resources/costs and guest readiness remain open.
+Remaining frontend diagnostics/law and catalog, mptSet, map-level mutation laws,
+root/map/backend/security/witness, W1/S2/R2/O12/resources/costs and guest readiness
+remain open.
 
 ### Pure lookup premise (Q59; supplied local operation)
 
