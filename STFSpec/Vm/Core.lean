@@ -5,6 +5,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.GasMeter
 import STFSpec.Vm.Core.GasCosts
+import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Memory
 import STFSpec.Vm.Core.Stack
 import STFSpec.Vm.Core.StackDecoders

@@ -473,6 +473,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency and Q63 implementation remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Raw GasCosts data is supplied:** §3/§5/§7 own the exact class-plus-seven-BLS 144-field boundary, source-shaped types and two discharged ordinary ext/eta laws. Universal constructor/public-law and selected-cost charge clients supply the local data seam; no pinned values, defaults, instances, factory or supported-policy predicate is supplied.
