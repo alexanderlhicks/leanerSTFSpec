@@ -94,7 +94,7 @@ query-answer, failure, nonlawful-monad, parser and conditional pinned-source
 controls, including the source cache/embedding premises and history boundaries.
 All helper/reference/test support remains private. Direct empty values remain
 insertions. Deletion and its two equations are supplied separately below;
-mptSet and its remaining equation are unsupplied.
+Encoded mptSet and its remaining equation are supplied separately below.
 
 The Q60 direct deletion slice is supplied locally, owned by
 [EthCommit C19/C24/C25/§§3/4/5/7.0.10/10](modules/EthCommit.md#3-eels-source-map):
@@ -119,9 +119,22 @@ private. Declaration/strict reason 12 parser controls retain old tags/full Nat f
 decoder and lookup never emit collapseIndex. Source comparison retains the exact
 clean/cache/consulted-embedding/retained-parent premises owned by EthCommit §3.
 Direct deletion dispatch, its no-change handling, proper-child descent and both
-bare root equations are supplied above. The frontend worker, its secure-key/empty
-dispatch equation and catalog remain unsupplied. Whole mutation change/cache/source
+bare root equations are supplied above. The encoded frontend worker and its secure-key/empty dispatch equation are
+supplied separately below. Whole mutation change/cache/source
 realization remains open. No broader gate or readiness closes.
+
+The Q60 encoded setter slice is supplied locally: exactly mptSet and
+mptSet_emptyEncoding under plain Monad/KeccakQuery, with private arbitrary-provider
+copying List/full-action equality retaining the actual bind/pure/map syntax.
+[EthCommit C22/§3/§7.0.10/§10](modules/EthCommit.md#3-eels-source-map) owns its
+156 opaque-provider and 376 public-composition frozen full-field/query/error/state/
+failure/nonlawful controls, public-law clients and strict normal/-O parser.
+Focused warning-fatal controls/callers and declaration audit pass. The bounded
+frontend catalog passes with 26 successful completed projections, eight source-only
+encoding/default boundaries and 20 explicit diagnostics under the premises there.
+Source value/default/map/Account callback/dirty/witness/partial-state histories
+remain separate from the already-encoded nominal secured/root projection. No new
+public helper, source/WF predicate, policy, dependency or broader readiness is supplied.
 
 ## 4. Agent implementation contract
 

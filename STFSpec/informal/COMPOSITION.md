@@ -319,14 +319,14 @@ Mutable dirty/history/descendant observers and arbitrary generic source actions 
 not simulated by the all-input nominal reference equality. Whole mutation and the
 existing WF/map/root/witness/security/resource/readiness gates remain open.
 
-### Bare mutation handoff (Q60; update/delete supplied, frontend unsupplied)
+### Bare mutation handoff (Q60; encoded setter supplied)
 
 Q60 collapseIndex constructor/complete observer and strict reason 12 parser support
 are supplied by EthCommit §3, together with local reached mkBranch emission.
 Decoder and lookup never emit it. Update and exact update_branch_oob are supplied
 by EthCommit §3/§7.0.10; delete and both approved root equations are also supplied there;
-mptSet and its emptyEncoding equation remain open. Normal/-O decoder, lookup,
-update and deletion parser controls
+encoded mptSet and its emptyEncoding equation are supplied separately by EthCommit §3.
+Normal/-O decoder, lookup, update, deletion and setter parser controls
 preserve old tags/fields and full Nat identity.
 
 [EthCommit C18/C19/C22–C25/C29/§7.0.10](modules/EthCommit.md#5-interface) owns
@@ -347,6 +347,11 @@ a reached parent actually inspects dirty, with separate consulted embedding, ful
 retained-cache, Encodable/class/host premises owned by EthCommit §3. It introduces no
 public metadata or a broad WF/initial-clean requirement.
 
+The encoded setter preserves literal provider-result bind/pure/Except.map syntax under
+plain Monad, with private arbitrary-provider/List action equality and complete controls
+owned by EthCommit §3. Focused validation and the bounded frontend catalog pass:
+26 successful completed projections, eight source-only encoding/default boundaries
+and 20 explicit diagnostics. The complete premises and history limits remain there.
 Callers preserve actual key/value/secured/root fields and operation order: direct
 empty update inserts, while frontend none/some empty deletes after secure key
 acquisition. This action equality concerns only the nominal root/secured carrier;
