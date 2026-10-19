@@ -152,6 +152,10 @@ lake exe pre-state-native-tests
 lake build state-error-native-tests --wfail
 lake exe check-decls StateErrorNativeTests
 lake exe state-error-native-tests
+lake build taylor-exponential-native-tests --wfail
+lake exe check-decls TaylorExponentialNativeTests
+lake exe taylor-exponential-native-tests > .lake/taylor.jsonl
+python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py --check-target .lake/taylor.jsonl
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
@@ -174,6 +178,8 @@ python3 scripts/test_fixture_archive.py
 
 The fixed-endian and log-rope benchmarks are built and audited here; timing measurements
 remain manual.
+The Taylor producer is built, audited and executed before its complete captured stdout
+is checked against the handwritten literals; source coupling is separate.
 
 Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there and `scripts/check_decls.sh mathlib` or `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.
 

@@ -7,6 +7,7 @@ import STFSpec.Base.BytesOrder
 import STFSpec.Base.FixedBytes
 import STFSpec.Base.IntegerBytes
 import STFSpec.Base.Numeric
+import STFSpec.Base.TaylorExponential
 import STFSpec.Base.U16
 import STFSpec.Base.U256
 import STFSpec.Base.U256Arithmetic
