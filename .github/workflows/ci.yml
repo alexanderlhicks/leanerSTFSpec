@@ -27,6 +27,11 @@ jobs:
         run: |
           curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Cache pinned Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan/toolchains
+          key: elan-toolchains-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lean-toolchain', 'STFSpecMathlib/lean-toolchain', 'STFSpecSecurity/lean-toolchain') }}
       - uses: actions/cache@v4
         with:
           path: .lake
@@ -126,6 +131,11 @@ jobs:
         run: |
           curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Cache pinned Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan/toolchains
+          key: elan-toolchains-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lean-toolchain', 'STFSpecMathlib/lean-toolchain', 'STFSpecSecurity/lean-toolchain') }}
       # STFSpecSecurity shares STFSpecMathlib/.lake/packages (its packagesDir), so one cache serves both.
       - uses: actions/cache@v4
         with:
