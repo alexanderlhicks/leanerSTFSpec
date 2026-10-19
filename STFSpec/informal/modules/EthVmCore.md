@@ -63,9 +63,9 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `restore_child_gas m g R` (:725) | `gas_left += g`, reservoir `+= R` (child never entered) |
 | `calculate_memory_gas_cost s` (:749–773) | With `w = ceil32(s)/32`, return `GasCosts.MEMORY_PER_WORD*w + ⌊w²/512⌋`; ZERO is not read. The caught `ValueError` is absent under stable typed Uint/ExecutionGas-NewType bindings. Source/host correspondence retains those premises. |
 | `calculate_gas_extend_memory m ws` (:776–813) | Initialize extent with literal 0 and cost with `GasCosts.ZERO`; fold in order, skip size 0 before endpoint work, and convert each nonzero start/size to unbounded Nat observations before addition. On strict rounded growth add extent and two-cost differences. Returns values without charge, append or Memory mutation. |
-| `calculate_message_call_gas v g L mem extra stipend` (:816) | Select `t = GasCosts.ZERO` if `v = 0`, otherwise the passed/default-captured stipend; if `L < extra + mem`, return `(g + extra, g + t)` before subtraction/capping. Otherwise use the existing maximum on `(L − mem) − extra` and cap the request, then add extra/t to the two fields. Pure values only; the caller charges the complete applicable amount. Q64 owns the explicit Lean policy argument; §5/§7 give its prospective contract. |
+| `calculate_message_call_gas v g L mem extra stipend` (:816) | Select `t = GasCosts.ZERO` if `v = 0`, otherwise the passed/default-captured stipend; if `L < extra + mem`, return `(g + extra, g + t)` before subtraction/capping. Otherwise use the existing maximum on `(L − mem) − extra` and cap the request, then add extra/t to the two fields. Pure values only; the caller charges the complete applicable amount. Q64 owns the explicit Lean policy argument; §5/§7 give its supplied contract. |
 | `max_message_call_gas g` (:861) | `g − ⌊g/64⌋` (EIP-150) |
-| `init_code_cost n` (:879) | `(GasCosts.CODE_INIT_PER_WORD * ceil32(n)) // 32`, multiplication first (EIP-3860). This reads the word price; §5/§7 give Q64's prospective explicit-policy contract. |
+| `init_code_cost n` (:879) | `(GasCosts.CODE_INIT_PER_WORD * ceil32(n)) // 32`, multiplication first (EIP-3860). This reads the word price; §5/§7 give Q64's supplied explicit-policy contract. |
 | `calculate_excess_blob_gas` (:901) | from the parent's `(excess_blob_gas, blob_gas_used, base_fee_per_gas)` (zeros when absent): 0 if `excess + used < 14·2^17`; if `2^13 · base_fee > 2^17 · blob_price(excess)` return `excess + used · 7 / 21`; else `excess + used − 14·2^17` |
 | `calculate_total_blob_gas` (:951) | `2^17 · \|blob_versioned_hashes\|` for blob transactions, else 0 |
 | `calculate_blob_gas_price e` (:972) | `taylor_exponential(1, e, 11684671)` (`utils/numeric.py`, EthBase) |
@@ -269,22 +269,67 @@ are described below. Core/Fork values, all state amounts and consumer/coherence,
 limit specialization, ordering/resource and VM/guest obligations remain open for
 their corresponding claims.
 
-### Prospective call/init-code pricing (Q64)
+### Supplied call/init-code pricing (Q64)
 
-The following approved contracts are **unimplemented/unproved**. This subsection
-records their source map and exact domains, not implementation or test evidence.
+`CallGas.lean` supplies the two-Nat result, both pure helpers and exactly six
+ordinary laws. Configurations and numeric inputs have no global WF, alias,
+positivity or amount-cap premise.
 
-| EELS source at pin | Planned Lean declaration | Domain/effects and prospective laws |
+| EELS source at pin | Supplied Lean declaration | Exact domain/effect/law/control entry |
 |---|---|---|
-| `src/ethereum/forks/amsterdam/vm/gas.py:357–371` | `MessageCallGas` | Two Nat fields, cost then subCall; no defaults, proof field or invariant. `MessageCallGas.ext` and `MessageCallGas.eta` remain prospective. |
-| `src/ethereum/forks/amsterdam/vm/gas.py:816–858` | `calculateMessageCallGas` | Every cfg, U256 value and Nat gas/gasLeft/memoryCost/extraGas/selected stipend; pure complete result with no charge, state effect or new error. The shortage-first equation and effective-price congruence remain prospective. |
-| `src/ethereum/forks/amsterdam/vm/gas.py:879–899` | `initCodeCost` | Every cfg and Nat length, without a buffer or size limit; pure Nat result, multiplication before division. The exact source equation and word-price congruence remain prospective. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:357–371` | `MessageCallGas` | Every pair of Nat fields, cost then subCall; no defaults, proof field or invariant. `MessageCallGas.ext` and `MessageCallGas.eta` discharged; arbitrary public constructor/ext/eta clients retain both fields. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:816–858` | `calculateMessageCallGas` | Every cfg, U256 value and Nat gas/gasLeft/memoryCost/extraGas/selected stipend; complete pure result, no charge, state effect or new error. `calculateMessageCallGas_eq` and `calculateMessageCallGas_congr` discharged. Sixteen pinned and four generic complete-result controls, actual charge/error and public-law affordability/read-set/local-payment clients are supplied. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:879–899` | `initCodeCost` | Every cfg and Nat length, without a buffer or size limit; pure Nat result, multiplication before division. `initCodeCost_eq` and `initCodeCost_congr` discharged. Nine pinned and three generic complete-result controls, public-law exact-divisibility/rounding and complete checked-charge clients are supplied. |
 
 The source reads `GasCosts.ZERO` (`gas.py:102`), the function-definition-time
 captured `CALL_STIPEND` default (`:93,822`) and `CODE_INIT_PER_WORD` (`:98,897`).
-The supplied scalar maximum at `gas.py:861–876` and its laws are reused.
-Source correspondence additionally retains stable typed bindings and successful
-host operations; it has not been established for these helpers by this guidance.
+The supplied scalar maximum at `gas.py:861–876`, its ordinary laws and existing
+guards are reused; no duplicate implementation or legacy original replay occurs.
+
+`CallGasCallerProofs.lean` consumes all six public laws and existing public
+charge/max/ceil32 laws without unfolding providers. It proves complete result
+and actual Except charge transport, default/zero/nonzero/unrelated-config
+specializations, exact affordability and exclusive outOfGas, capped/retained
+bounds, init word pricing and conditional local potential consequences. The
+actual meter budget is used for charge affordability; all six raw meter fields,
+signed refunds, reservoir above baseline and positive spill pools remain admitted.
+
+`CallGasGuards.lean` retains all thirty-two complete hand-frozen results and six
+complete actual charge witnesses. The strict `call_init_differential.py` reader
+checks every input/config/result/after/type field and couples the twenty-five
+pinned C/I subsets when supplied with external target/source frames and the
+caller-authenticated binding digest. It does not produce or authenticate that
+source baseline. The seven generic rows are target/proof-only; the nine legacy
+maximum rows reuse existing guards. Normal/`-O` synthetic typed/schema/default/
+framing controls are committed; consistent CRLF is an explicit reader adapter.
+
+Reproduce the committed guards, public-law clients and strict synthetic parser
+controls from the repository root:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.CallGasGuards --wfail
+lake build STFSpec.Conformance.Vm.Core.CallGasCallerProofs --wfail
+DRIVER=STFSpec/Conformance/Vm/Core/call_init_differential.py
+python3 -I -B "$DRIVER" --self-test
+python3 -I -B -O "$DRIVER" --self-test
+```
+
+The dated [external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/175#issuecomment-6271408160)
+records the interpreted/native and retained-source results separately. Its original
+source schedule ran once: sixteen call rows (twelve omitted/four explicit stipends)
+and nine init rows. Those source observations, producing tool and provenance packet
+are external to the committed reader; this is historical finite evidence rather
+than an original-helper replay performed by these repository commands. The original
+source LF bytes and the reader's explicit framing adaptation remain distinct.
+
+This bounded correspondence retains stable typed runtime/dependency/callable
+bindings, successful host operations and relevant current/captured-price equality.
+The fixtures specialize only their relevant prices and full raw stored fields;
+they are not a coherent Amsterdam config factory or arbitrary repricing experiment.
+Python capture and the actual-call cfg expression remain distinct. Actual caller/
+frame/target coherence, source-host generalization, payment/state spill composition,
+child return/settlement, compiled/resource costs and whole G1–G7/VM/guest gates
+remain open. No helper charges gas, allocates code or checks an init size limit.
 
 ### Supplied memory pricing (Q63)
 
@@ -804,16 +849,17 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
-- Call/init controls remain prospective: complete cost/subCall pairs for zero,
-  nonzero and maximum U256 value; omitted/explicit stipend; shortage/equality;
-  nonzero memory/extra charges; 63/64/65 cap boundaries and beyond-U64 amounts.
-  Init covers zero, word boundaries, wide Nat lengths and zero/odd word prices.
-  Generic policies vary zero seeds/selected stipends and unrelated config fields.
-  Public-only clients use every one of Q64's six laws, full actual chargeGas
-  successes/exclusive errors on arbitrary raw meters, init rounding/congruence,
-  and only the stated local payment hypotheses. Preserve signed refunds and both
-  spill pools; compare complete results rather than checksums. Reuse the supplied
-  maximum and its existing controls. No source/compiled comparison is claimed.
+- **Supplied call/init controls (Q64):** §3 owns thirty-two complete handwritten
+  results, with the dated external interpreted/native and twenty-five original
+  comparisons scoped in §3: zero/nonzero/maximum U256, omitted/explicit stipend, shortage/
+  equality, nonzero memory/extra, 63/64/65 cap boundaries and beyond-U64 amounts.
+  Init covers zero, word boundaries, wide lengths and zero/odd word prices.
+  Generic raw policies vary zero seeds/defaults/selected stipends and unrelated
+  fields. Public-only clients use all six laws, complete actual chargeGas
+  success/exclusive errors, affordability/rounding/read-set facts and explicit
+  local financing hypotheses. Six complete charge witnesses preserve negative
+  refunds, reservoir above baseline and positive spill pools. The scalar maximum
+  and nine legacy hand rows reuse existing guards; no old original is replayed.
 
 - **Supplied log controls:** `LogsCallerProofs.lean` consumes only public Log/rope
   and provider laws for complete-field injectivity, eta, every observer equation,
@@ -1287,7 +1333,7 @@ clients inspect every field; no default value or policy-support invariant is
 introduced. StateGasCosts retains exactly its four existing Nat inputs, leaving
 the separate three amount observations and their coherence contract open.
 
-Q64's two helpers compute values only and remain unimplemented. Omitting the
+Q64's two helpers are supplied in `CallGas.lean` and compute values only. Omitting the
 stipend supplies the expression `cfg.costs.callStipend` as that call's argument;
 its value comes from the actual cfg for the call. A fully applied call observes
 only the effective selection: `cfg.costs.zero` at `value = U256.zero`, otherwise
@@ -2020,10 +2066,10 @@ establish this local proof; no global `Wf`, non-negativity premise, clamp, runti
 error or bundled domain is added. Caller reachability and transaction conservation
 remain separate obligations. The observer and this equation are discharged.
 
-### Prospective call/init-code pricing laws (Q64)
+### Supplied call/init-code pricing laws (Q64)
 
-All six ordinary laws below are **unproved**; both helpers and the result carrier
-remain unimplemented. `U256.zero` and `ceil32` are the existing public Base values/
+All six ordinary laws below are **discharged** in `CallGas.lean`; both helpers
+and the result carrier are supplied. `U256.zero` and `ceil32` are the existing public Base values/
 operation. No private pricing model or extra public helper occurs in these types.
 
 ```lean
@@ -2066,21 +2112,21 @@ The affordable branch establishes both source subtraction bounds. Its q is at
 most the request and available maximum; shortage returns the uncapped request
 before either subtraction. Fully applied congruence compares selected effective
 stipends, not unused zero/default fields or whole configs. The source-ordered
-init equation can be refined privately to word pricing using the existing
+init equation is refined by a private public-law client to word pricing using
 `ceil32_mod_eq_zero`; exact divisibility justifies that refinement.
 
-Prospective private public-law clients consume the complete result and actual
+Supplied private public-law clients consume the complete result and actual
 `chargeGas` success/error values. With the calculator's gasLeft equal to the
 meter's gasLeft, charging `result.cost + memoryCost` succeeds exactly when
 `memoryCost + extraGas ≤ gasLeft`; success changes only gasLeft and shortage
 returns only outOfGas. All other raw meter fields, including arbitrary signed
 refund and both spill pools, remain unconstrained. Relevant-price congruence
 also transports the complete checked charge; init transports
-`otherCharge + initCodeCost cfg n`. These are future clients, not additional
-public laws or discharged source-handler obligations.
+`otherCharge + initCodeCost cfg n`. These are discharged private clients, not
+additional public laws or discharged source-handler obligations.
 
 Under affordability, if t is the selected effective stipend and
-A = (gasLeft − memoryCost) − extraGas, the prospective local consequences are
+A = (gasLeft − memoryCost) − extraGas, the discharged private local consequences are
 `result.cost ≤ gasLeft − memoryCost`,
 `result.subCall = (result.cost − extraGas) + t`,
 `result.cost − extraGas ≤ gas` and `≤ maxMessageCallGas A`, and retained execution
@@ -2095,8 +2141,8 @@ composed separately. No local arithmetic theorem closes those obligations.
 
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
-- Q64's prospective call equation gives the local affordability/forwarding
-  consequences above once proved. Actual caller derivation and paid-stipend/child
+- Q64's supplied call equation gives the discharged private local affordability/
+  forwarding consequences above. Actual caller derivation and paid-stipend/child
   return accounting remain G2 obligations; the pure helper alone proves no whole
   CALL-family progress or settlement result.
 - **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
@@ -2174,9 +2220,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
 
 - **Q64**: DECISIONS owns the approved call/init policy/default disposition;
-  §5/§7 own the exact prospective two-helper/result/six-law contract. Helpers and
-  laws remain unimplemented/unproved. Caller payments, source/default agreement,
-  configuration/target coherence, settlement and G2 remain separate obligations.
+  §5/§7 own the supplied two-helper/result/six-law contract. Private public-law
+  clients and bounded typed comparisons are supplied in §3. Caller payments,
+  general source/default agreement, configuration/target coherence, settlement
+  and G2 remain separate obligations.
 
 ## 10. Gaps
 
@@ -2193,14 +2240,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   stack/resource bounds remain open. No C1/C4, G1–G7, whole VM/guest/EEST or
   readiness gate is closed by this local slice.
 
-- **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
-  own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly
-  six prospective ordinary laws. Complete public-law charge/error/affordability,
-  init rounding and explicitly financed local-potential clients, frozen controls
-  and source/target correspondence remain future work. Actual caller/config
-  coherence, earlier CALL payments/state spill, preflight/child return/settlement,
-  compiled/resource and G1/G2–G7/VM/guest gates remain open. The supplied scalar
-  maximum is reused; no new global invariant or hidden default follows.
+- **Call/init-code pricing (Q64) is locally supplied:** §3/§5/§7 own both
+  VmConfig-first helpers, the two-Nat MessageCallGas result, six discharged
+  ordinary laws and private public-law charge/error/affordability/read-set/init
+  rounding and explicitly financed local-potential clients. Thirty-two complete
+  literal controls and six complete charge witnesses, plus the dated external
+  interpreted/native and twenty-five original comparisons scoped in §3, are local evidence. General
+  source/default/host agreement, actual caller/config/target coherence, earlier
+  CALL payments/state spill, preflight/child return/settlement, compiled/resource
+  and whole G1/G2–G7/VM/guest gates remain open. The supplied scalar maximum and
+  existing guards are reused; no global invariant or hidden default follows.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
