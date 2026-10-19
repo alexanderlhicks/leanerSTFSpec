@@ -6,6 +6,7 @@ import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.GasMeter
 import STFSpec.Vm.Core.Memory
 import STFSpec.Vm.Core.Stack
+import STFSpec.Vm.Core.StackDecoders
 
 /-!
 # STFSpec.Vm.Core

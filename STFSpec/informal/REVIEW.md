@@ -72,7 +72,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthStateCommit | Total U256 storage encoding, all-value validity/nonempty and wire injectivity are supplied by EthStateCommit §3 independently of supplied-default deletion. Contextual Account encoding, unconditional nonempty and pair binding under both complete assembled Q47 premises are supplied in EthStateCommit §3. Implement callback/root integration, without a bare Account instance or secured-policy claim. SC6 and nonzero storage SC10 are supplied locally in EthStateCommit §3, with ordinary all-Bytes packed/reference equality, bounded checked candidates and full-parser-first equations. SC5 and conditional account SC10 are supplied locally in EthStateCommit §3, with caller-owned defaults, unbounded nonce, bounded numerical balance and complete assembled Q47 premises. Finish code-authenticity/root clauses, triggered backend/shared error integration and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
-| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws and transaction state-gas usage with one equation on its local baseline-to-grant proof, are owned by EthVmCore §3/§7; partial G1 only. The bounded Stack carrier/six operations/eight laws are additionally supplied under EthVmCore §3/§7; swap/decoders and composed allocation remain open. The standalone bufferRead and its three ordinary bridge/List/size laws are supplied under EthVmCore §3/§7. Q62’s private aligned Memory, exact six-operation API and ten ordinary laws are supplied (EthVmCore §5/§7); actual caller windows/alignment and compiled ownership remain open. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
+| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws and transaction state-gas usage with one equation on its local baseline-to-grant proof, are owned by EthVmCore §3/§7; partial G1 only. The bounded Stack carrier/six operations/eight laws are additionally supplied under EthVmCore §3/§7; swap and composed allocation remain open. The two scalar immediate decoders and eight ordinary laws are supplied under EthVmCore §3/§7. The standalone bufferRead and its three ordinary bridge/List/size laws are supplied under EthVmCore §3/§7. Q62’s private aligned Memory, exact six-operation API and ten ordinary laws are supplied (EthVmCore §5/§7); actual caller windows/alignment and compiled ownership remain open. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
@@ -191,8 +191,20 @@ and both conditional inverses with actual Stack equality. Forty-one whole-model
 controls cover empty/full transitions, complete returned words/remainders, huge
 Nat depths and sequence intermediates. Source correspondence covers only fresh typed
 bounded lists and unchanged pop/push helpers; peek is a labelled List-index adapter.
-Swap/decoders, actual handler order, frame reachability, compiler allocations and
+Swap, actual handler order, frame reachability, compiler allocations and
 C1–C4 remain open; this is no whole VM or guest readiness claim.
+
+The two scalar immediate decoder APIs and eight ordinary laws are owned by
+[EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). They retain actual UInt8
+inputs, Nat/ordered-Nat-pair successes and the existing nullary invalidParameter.
+Public-only clients derive successful progress, exclusive errors, bounded successor
+indices and actual input equality. All 512 complete literal guards and interpreted
+target frames agree with authenticated unchanged original helper calls on fresh
+pinned U8 inputs; exact result classes, both tuple coordinates, exception args and
+unchanged full inputs are retained before nominal projection. Strict normal/`-O`
+parsing rejects malformed, reordered, truncated and changed middle results. No
+other original helper or handler was replayed. This supplies local decoder
+semantics, not native cost, handler/frame, resource, G1–G7 or guest readiness.
 
 The independent `bufferRead` adapter and its three ordinary public laws are
 supplied under [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map), using the
