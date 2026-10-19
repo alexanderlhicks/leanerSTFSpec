@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-18.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-19.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -72,7 +72,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthStateCommit | Total U256 storage encoding, all-value validity/nonempty and wire injectivity are supplied by EthStateCommit §3 independently of supplied-default deletion. Contextual Account encoding, unconditional nonempty and pair binding under both complete assembled Q47 premises are supplied in EthStateCommit §3. Implement callback/root integration, without a bare Account instance or secured-policy claim. SC6 and nonzero storage SC10 are supplied locally in EthStateCommit §3, with ordinary all-Bytes packed/reference equality, bounded checked candidates and full-parser-first equations. SC5 and conditional account SC10 are supplied locally in EthStateCommit §3, with caller-owned defaults, unbounded nonce, bounded numerical balance and complete assembled Q47 premises. Finish code-authenticity/root clauses, triggered backend/shared error integration and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
-| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, are owned by EthVmCore §3/§7; partial G1 only. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
+| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, are owned by EthVmCore §3/§7; partial G1 only. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
@@ -140,7 +140,7 @@ public helper, source/WF predicate, policy, dependency or broader readiness is s
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
 
-The supplied numeric charge and rollback algebra's exact source-to-Lean/domain/error/law/test rows
+The supplied numeric charge, rollback and refund algebra's exact source-to-Lean/domain/error/law/test rows
 are owned by [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). Its ordinary
 public-only clients and complete controls retain all fields, signed refunds, both spill
 pools, raw unusual meters and unbounded amounts, plus complete nominal exception
@@ -149,7 +149,12 @@ settlement; the `check_gas` holder is only its meter-field projection. The three
 rollback helpers preserve Φ; ordinary restore retains committed spill while entry
 restore returns both pools. Their eight laws use exactly the source assertion proof
 arguments, with source-only invalid probes retaining assertion order and all fields.
-Caller reachability, the adjacent txStateGasUsed domain ambiguity, refund/repay and
+Refund/repay preserve Φ and B/q/C on every raw meter, with min-based complete equations,
+zero-credit neutrality, universal repayment exhaustion and idempotence. Public clients
+compose actual providers and prove conditional charge/refund inversion under local initial
+pending spill zero; the unconditional claim has a full-field counterexample. The source
+repayment assertion is a postcondition, without a new input proof or failure.
+Caller reachability, the adjacent txStateGasUsed domain ambiguity, remaining operations and
 transaction conservation remain open. These local laws
 close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate. The dated
 §6 readiness assessment is unchanged.
