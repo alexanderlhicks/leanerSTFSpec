@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-18). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-19). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -665,6 +665,21 @@ Overall target/frame/config coherence and correctness of each target's arithmeti
 interpretation remain separate obligations. No target implementation's runtime representation or
 source code is asserted here.
 
+
+**Call/init-code policy and stipend options (Q64).** DECISIONS Q64 owns the
+approved disposition; EthVmCore §5/§7 own the exact prospective signatures and
+six ordinary laws. VmConfig first matches the existing grouped caller convention;
+GasCosts first would expose a narrower existing record, while public relevant
+scalars would make selections explicit but repeat projections and fragment B8's
+grouping. The optional cfg-derived stipend preserves omitted and explicit calls;
+a mandatory stipend would display every selection. Omission supplies the cfg
+projection expression for that call, unlike Python's definition-time captured
+default. Original agreement needs the relevant selected/captured value equality,
+not arbitrary repricing-timing equivalence. Fully applied relevant-price laws
+leave unrelated policy/state/limit fields arbitrary. No new policy view/record,
+factory, global WF, price alias or runtime error is needed. Helper implementation,
+ordinary proofs, caller payment/settlement, configuration/target coherence and
+whole G2/readiness remain separate.
 
 ## 12. Not yet decided
 
