@@ -155,6 +155,54 @@ by Q63; this raw-data seam supplies no pricing function, ZERO interpretation or
 32/512 choice.
 Record equality proves no supported-policy, termination, resource or guest gate.
 
+### Supplied raw VM configuration data
+
+`StateGasCosts`, `VmLimits` and `VmConfig` supply exactly the existing raw data
+contracts in §5. Core owns their types; EthFork owns actual values, derived
+equations and configuration consistency. Each record has ordinary public
+construction/projections and exactly two discharged ordinary laws, ext and eta
+(§7). There are no defaults, deriving/instances, proof fields, predicates,
+factories, additional amount/config fields or semantic helpers.
+
+| Source / existing grouping | Supplied declaration and complete domain | Local laws and evidence |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/gas.py:56–59`; existing four-field sketch | `StateGasCosts`: costPerStateByte, bytesPerNewAccount, bytesPerStorageSet, bytesPerAuthBase, all Nat in that order. The rate field retains the explicit Nat carrier; existing Base.StateGasPerByte supplies its interpretation bridge. | Four-field constructor/projections; ordinary ext/eta; private generic full-constructor/projection/public-law clients. No failure or state effect. |
+| `src/ethereum/forks/amsterdam/vm/interpreter.py:84–86`; F8 | `VmLimits`: stackDepthLimit, maxCodeSize, maxInitCodeSize, all Nat in that order. | Three-field constructor/projections and ordinary ext/eta with private generic clients; existing Stack behavior and literal-depth specialization constraints are unchanged. |
+| B8, ARCHITECTURE §8; existing §5 grouping | `VmConfig`: costs : GasCosts, stateCosts : StateGasCosts, limits : VmLimits, in that order. | Complete-record constructor/projections and ordinary ext/eta. Its ext premises are actual whole GasCosts/StateGasCosts/VmLimits equalities. This is the existing Lean grouping, not a claim of an identically shaped Python class. |
+
+All new Nat fields admit zero and arbitrary unbounded values. Raw maxInitCodeSize
+need not equal twice maxCodeSize; raw stackDepthLimit need not equal the literal
+depth bound. Admitting raw limits changes no existing Stack/depth behavior or
+caller proof. Supplied whole GasCosts values retain every signed refund, checked
+Base.U64 carrier, arbitrary BLS array and independent alias from its own data seam.
+
+The four state inputs do not supply storageSet/newAccount/authBase observations.
+Their computed-versus-independently-stored surface, universal-versus-Fork-only
+equations, original-source correspondence and supported consumer domains remain
+separate. No global coherence predicate, wrapper substitution or initialization
+value is inferred. The source reservoir use at `src/ethereum/forks/amsterdam/fork.py:802`
+is inside process_unchecked_system_transaction (:766); it does not add an amount
+field to this raw-four item.
+
+Ten private public-import clients construct every supplied record on arbitrary
+typed inputs, observe every stored projection and consume all six laws. A
+meaningful selected-cost client proves equality of the complete existing
+chargeGas Except result for the same arbitrary meter whenever
+cfg.costs.opcodeAdd agrees, without equality or coherence of unused stateCosts,
+limits, other cost projections or whole configs. Explicitly varying the unused
+records preserves that result. Public affordability/error laws retain the exact
+whole-meter success and exclusive outOfGas domains. These are local data/charge
+clients, not opcode, memory-pricing, frame or target consistency proofs.
+
+The evidence is ordinary universal proofs, public constructor/projection clients
+and declaration/axiom checks. No runtime mirror of generated projection or
+substitution code, record-only native protocol/parser/benchmark, imported source
+values or new oracle suite is involved. These data carriers supply construction
+dependencies for Q63; its pricing helpers and ten prospective laws remain
+unimplemented/unproved. Core/Fork values, all state amounts and consumer/coherence,
+limit specialization, ordering/resource and VM/guest obligations remain open for
+their corresponding claims.
+
 ### Memory pricing (Q63; contract targets, unimplemented)
 
 | EELS source at pin | Prospective Lean declaration | Exact domain/effect/failure/model/control entry |
@@ -1036,6 +1084,13 @@ def JumpdestMap.contains : JumpdestMap → Nat → Bool
 
 `TxState`, `TxRevertible` and `StateError` come from `EthState`. Observations live only at `world.tx.obs`, and ancestor access only at `world.tx.block.oldestAncestorOffset`. A snapshot retains only `TxRevertible`. `Log` and `LogRope` are declared here (D27/D24). Precompile types are also declared here; the producer and runner import them. `PrecompileFn m` is monadic so that ECRECOVER's public-key hash goes through `KeccakQuery` (D5); only `EthPrecompiles` needs `[KeccakQuery m]`. `meter_law` is stated with `SatisfiesM` so that it holds for every `m`; at `m := Id` it is the plain equation, and that instance is the minimum required. It holds by construction for the normal form (EthPrecompiles §5), because the meter is fixed by `chargeGas` before the monadic body runs. `BlobGasArithmeticError`, `BlobFeeError` and `CapacityError` are local errors mapped by `EthBlock`; their complete constructor lists remain a §10 obligation. These are Lean-like signatures: declarations must be ordered before their uses in Lean.
 
+The StateGasCosts, VmLimits and VmConfig signatures above are supplied raw data
+interfaces: the exact stored field order is the constructor order, and all six
+ordinary ext/eta laws are discharged in §7. Complete generic public-constructor
+clients inspect every field; no default value or policy-support invariant is
+introduced. StateGasCosts retains exactly its four existing Nat inputs, leaving
+the separate three amount observations and their coherence contract open.
+
 Q63's helpers compute values only. All cfg inputs are admitted; no config-WF/zero-price/gas/resource proof argument is introduced. Only memoryPerWord affects standalone cost; extension additionally observes zero, old byte size and ordered windows. Private scalar support is permitted; it is not a third public API or a policy view. Existing Core-owned record types and EthFork-owned values retain their owners; the independent StateGasCosts representation gap is not settled here.
 
 Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explicitly. Opcode handlers use `ctx.config`, and child contexts retain it. `BlockConfig` constructs the runner environment and this context from the same records. There are no free `costs` variables or hidden Amsterdam defaults in generic semantics. The current stack/depth proofs use the literal `STACK_DEPTH_LIMIT = 1024`; supporting a different limit requires changing those proofs and indexed types.
@@ -1055,6 +1110,48 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Raw VM configuration data.** Exactly six ordinary laws are **discharged**
+for every raw record. Ext requires all four, three and three stored projection
+equalities respectively; VmConfig uses actual whole-record equalities, while eta
+reconstructs each complete record in constructor order. No positivity, width,
+coherence, config-WF, default or Fork initialization premise is required.
+
+```lean
+theorem StateGasCosts.ext (a b : StateGasCosts)
+    (h_costPerStateByte : a.costPerStateByte = b.costPerStateByte)
+    (h_bytesPerNewAccount : a.bytesPerNewAccount = b.bytesPerNewAccount)
+    (h_bytesPerStorageSet : a.bytesPerStorageSet = b.bytesPerStorageSet)
+    (h_bytesPerAuthBase : a.bytesPerAuthBase = b.bytesPerAuthBase) : a = b
+
+theorem StateGasCosts.eta (c : StateGasCosts) :
+    StateGasCosts.mk c.costPerStateByte c.bytesPerNewAccount
+      c.bytesPerStorageSet c.bytesPerAuthBase = c
+
+theorem VmLimits.ext (a b : VmLimits)
+    (h_stackDepthLimit : a.stackDepthLimit = b.stackDepthLimit)
+    (h_maxCodeSize : a.maxCodeSize = b.maxCodeSize)
+    (h_maxInitCodeSize : a.maxInitCodeSize = b.maxInitCodeSize) : a = b
+
+theorem VmLimits.eta (c : VmLimits) :
+    VmLimits.mk c.stackDepthLimit c.maxCodeSize c.maxInitCodeSize = c
+
+theorem VmConfig.ext (a b : VmConfig)
+    (h_costs : a.costs = b.costs)
+    (h_stateCosts : a.stateCosts = b.stateCosts)
+    (h_limits : a.limits = b.limits) : a = b
+
+theorem VmConfig.eta (c : VmConfig) :
+    VmConfig.mk c.costs c.stateCosts c.limits = c
+```
+
+Public-only private clients supply arbitrary constructor arguments, inspect the
+complete projection tuples and consume these laws. Selected-price chargeGas
+congruence requires only cfg.costs.opcodeAdd equality and the same actual meter;
+it is separate from the stronger whole-field premises of VmConfig.ext. Success
+retains all meter fields except the affordable execution deduction; the public
+error iff law preserves the exact shortage/exclusive outOfGas result. No state
+amount API, supported-policy predicate, pricing or frame coherence law follows.
 
 **Raw GasCosts data.** Exactly two ordinary laws are **discharged** for all
 raw records. Extensionality requires every one of the 144 field equalities, in
@@ -1734,6 +1831,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two exact VmConfig-first signatures and ten prospective ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and source/host agreement are separate obligations; no pricing implementation or proof is supplied by this clarification.
 
 ## 10. Gaps
+
+- **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency and Q63 implementation remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
