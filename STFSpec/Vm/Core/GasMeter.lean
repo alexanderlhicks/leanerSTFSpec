@@ -5,10 +5,10 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Core.Exceptions
 
 /-!
-# Two-dimensional gas charges, rollback and refunds
+# Two-dimensional gas charges, rollback, refunds and grant transfers
 
 Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or frame settlement.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567,606–659`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567,606–746,861–876`.
 Charges and refunds admit every raw Nat/Int record; rollback assertions are local proof arguments.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.5/5/7.
 -/
@@ -317,5 +317,75 @@ theorem repayStateGasSpill_idempotent (m : GasMeter) :
     · simp only [h, Nat.min_zero]
   rw [hz]
   simp only [Nat.add_zero, Nat.sub_zero]
+
+/-- Forfeit execution gas after spill rollback; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:662–675`. Only pending spill must be zero. -/
+def forfeitRemainingGas (m : GasMeter) (_h : m.stateGasSpilled = 0) : GasMeter :=
+  { m with gasLeft := 0 }
+
+/-- Save the CREATE execution grant, then subtract it; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:678–698`, inlining `:876`. -/
+def withholdCreateGas (m : GasMeter) : Nat × GasMeter :=
+  let childGas := m.gasLeft - m.gasLeft / 64
+  (childGas, { m with gasLeft := m.gasLeft - childGas })
+
+/-- Save the whole reservoir, then empty it; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:701–722`. The saved amount is first. -/
+def drainStateGasReservoir (m : GasMeter) : Nat × GasMeter :=
+  (m.stateGasLeft, { m with stateGasLeft := 0 })
+
+/-- Restore execution and reservoir amounts; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:725–746`. Both amounts are unbounded. -/
+def restoreChildGas (m : GasMeter) (g T : Nat) : GasMeter :=
+  { m with gasLeft := m.gasLeft + g, stateGasLeft := m.stateGasLeft + T }
+
+/-- Forfeiture changes only remaining execution gas. -/
+theorem forfeitRemainingGas_eq (m : GasMeter) (h : m.stateGasSpilled = 0) :
+    forfeitRemainingGas m h = { m with gasLeft := 0 } := rfl
+
+/-- Forfeiture retains committed spill and cannot increase potential. -/
+theorem forfeitRemainingGas_phi (m : GasMeter) (h : m.stateGasSpilled = 0) :
+    (forfeitRemainingGas m h).phi = m.stateGasCommittedSpill ∧
+    (forfeitRemainingGas m h).phi ≤ m.phi := by
+  rw [forfeitRemainingGas_eq]
+  simp only [GasMeter.phi, h]
+  omega
+
+/-- Withholding returns the saved grant first and preserves every other field. -/
+theorem withholdCreateGas_eq (m : GasMeter) :
+    withholdCreateGas m =
+      (m.gasLeft - m.gasLeft / 64,
+        { m with gasLeft := m.gasLeft - (m.gasLeft - m.gasLeft / 64) }) := rfl
+
+/-- The returned execution grant accounts for exactly the withheld potential. -/
+theorem withholdCreateGas_phi (m : GasMeter) :
+    (withholdCreateGas m).2.phi + (withholdCreateGas m).1 = m.phi := by
+  rw [withholdCreateGas_eq]
+  simp only [GasMeter.phi]
+  have hDiv : m.gasLeft / 64 ≤ m.gasLeft := Nat.div_le_self _ _
+  have hGrant : m.gasLeft - m.gasLeft / 64 ≤ m.gasLeft := Nat.sub_le _ _
+  omega
+
+/-- Draining returns the old reservoir first and changes only that reservoir. -/
+theorem drainStateGasReservoir_eq (m : GasMeter) :
+    drainStateGasReservoir m = (m.stateGasLeft, { m with stateGasLeft := 0 }) := rfl
+
+/-- The reservoir is excluded from execution potential. -/
+theorem drainStateGasReservoir_phi (m : GasMeter) :
+    (drainStateGasReservoir m).2.phi = m.phi := by
+  rw [drainStateGasReservoir_eq]
+  rfl
+
+/-- Child restoration adds exactly the two supplied amounts. -/
+theorem restoreChildGas_eq (m : GasMeter) (g T : Nat) :
+    restoreChildGas m g T =
+      { m with gasLeft := m.gasLeft + g, stateGasLeft := m.stateGasLeft + T } := rfl
+
+/-- Only the execution amount contributes to the increase in potential. -/
+theorem restoreChildGas_phi (m : GasMeter) (g T : Nat) :
+    (restoreChildGas m g T).phi = m.phi + g := by
+  rw [restoreChildGas_eq]
+  simp only [GasMeter.phi]
+  omega
 
 end STFSpec.Vm.Core

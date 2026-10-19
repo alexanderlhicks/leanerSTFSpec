@@ -111,7 +111,7 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 |---|---|---|---|
 | `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer or Revert implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
 | `vm/gas.py:270–336` | `GasMeter : Type` | Public fields `gasLeft stateGasLeft stateGasBaseline : Nat`, `refundCounter : Int := 0`, `stateGasSpilled stateGasCommittedSpill : Nat := 0`; every raw record admitted, including reservoir above baseline, negative refund and both positive spill pools | Complete six-field guards and default-record case |
-| §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`, `commitStateGas_phi`, `restoreStateGas_phi`, `restoreStateGasToEntry_phi`, `creditStateGasRefund_phi`, `repayStateGasSpill_phi`; ordinary public clients |
+| §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`, `commitStateGas_phi`, `restoreStateGas_phi`, `restoreStateGasToEntry_phi`, `creditStateGasRefund_phi`, `repayStateGasSpill_phi`, `forfeitRemainingGas_phi`, `withholdCreateGas_phi`, `drainStateGasReservoir_phi`, `restoreChildGas_phi`; ordinary public clients |
 | `vm/gas.py:374–388` | `checkGas : GasMeter → Nat → Except ExceptionalHalt Unit` | All raw meters/amounts; check execution shortage first, returning `.error .outOfGas` iff `gasLeft < a`; otherwise `.ok ()`, no meter update | `checkGas_eq_ok_iff`, `checkGas_eq_error_iff`; zero/exact/one-over guards |
 | `vm/gas.py:391–405` (numeric helper of `:408–422`) | `chargeGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; execution affordability precedes subtraction; success changes only `gasLeft := gasLeft - a`; shortage returns only `.outOfGas` without a preceding update | `chargeGas_of_le`, `chargeGas_eq_error_iff`, `chargeGas_phi`; exact full-record success/error guards |
 | `vm/gas.py:425–448` (numeric helper of `:451–468`) | `chargeStateGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; reservoir affordability first: change only `stateGasLeft := stateGasLeft - a`; otherwise total affordability, let `d := a - stateGasLeft`, set execution gas to `gasLeft - d`, reservoir to zero and pending spill to `stateGasSpilled + d`; baseline/refund/committed spill unchanged. Total shortage returns only `.outOfGas` before any update | `chargeStateGas_of_le`, `chargeStateGas_of_lt`, `chargeStateGas_eq_error_iff`, `chargeStateGas_phi`, `chargeStateGas_gasLeft_le`; zero/exact/one-over for each branch and beyond-64-bit guards |
@@ -120,6 +120,10 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 | `vm/gas.py:532–567` | `restoreStateGasToEntry (m : GasMeter) (R : Nat) (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) : GasMeter` | Only these two premises, with no reservoir bound. Source assertions :555 then :558 precede all mutation. Result `(E+S+C,R,R,q,0,0)`; refund preserved under its equality proof, no runtime failure | `restoreStateGasToEntry_eq`, `restoreStateGasToEntry_phi`, `restoreStateGasToEntry_post`; complete-field guards, public composition and authenticated original comparison including ordered source-only assertion probes |
 | `vm/gas.py:606–628` | `creditStateGasRefund : GasMeter → Nat → GasMeter` | Every raw meter/amount. With `x = min a S`, complete result `(E+x,R+(a-x),B,q,S-x,C)`; both subtraction bounds follow from min. No assertion, baseline cap, refund-sign/word bound or failure; B/q/C unchanged | `creditStateGasRefund_eq`, `creditStateGasRefund_phi`, `creditStateGasRefund_zero`; complete-field guards, public branch/retention/inversion clients and authenticated original comparison |
 | `vm/gas.py:631–659` | `repayStateGasSpill : GasMeter → GasMeter` | Every raw meter. With `y = min R S`, complete result `(E+y,R-y,B,q,S-y,C)`; min bounds both subtractions. The source assertion :657–659 follows all assignments and holds universally; no input proof or runtime failure. B/q/C unchanged | `repayStateGasSpill_eq`, `repayStateGasSpill_phi`, `repayStateGasSpill_post`, `repayStateGasSpill_idempotent`; complete-field guards, public branch/identity clients and authenticated original comparison |
+| `vm/gas.py:662–675` | `forfeitRemainingGas (m : GasMeter) (h : m.stateGasSpilled = 0) : GasMeter` | Exactly local pending-spill-zero proof; source assertion :674 precedes mutation. Complete result `(0,R,B,q,S,C)` with S=0; arbitrary B/q/C and R>B admitted. Only E changes, with no new failure | `forfeitRemainingGas_eq`, `forfeitRemainingGas_phi`; complete-field guards, actual public rollback/forfeit clients and source-only assertion probes |
+| `vm/gas.py:678–698`, inlining arithmetic `:861–876` | `withholdCreateGas : GasMeter → Nat × GasMeter` | Every raw meter; save `g=E-E/64`, subtract g from E, return `(g,(E-g,R,B,q,S,C))`, grant first. Division and both subtraction bounds hold universally; no affordability premise or failure | `withholdCreateGas_eq`, `withholdCreateGas_phi`; 0/1/63/64/65/127/128/129/beyond-word complete returns, retained-share and round-trip clients; original callee binding |
+| `vm/gas.py:701–722` | `drainStateGasReservoir : GasMeter → Nat × GasMeter` | Every raw meter; save R then set reservoir zero; return `(R,(E,0,B,q,S,C))`, saved value first. No 63/64 rule or baseline cap; no failure | `drainStateGasReservoir_eq`, `drainStateGasReservoir_phi`; complete zero/positive/beyond-word saved returns, retention and repeated-drain clients |
+| `vm/gas.py:725–746` | `restoreChildGas : GasMeter → Nat → Nat → GasMeter` | Every raw meter and g,T : Nat; E+=g then R+=T; complete result `(E+g,R+T,B,q,S,C)`. No provenance/maximum-grant premise or failure; unbounded addition | `restoreChildGas_eq`, `restoreChildGas_phi`; independent zero/nonzero amounts, beyond-word complete addition, zero identity and withhold/drain/restore clients |
 
 The charge helpers' error is an O8 exceptional halt. Existing source consumers include
 `vm/interpreter.py:276` (top-level preparation), `:386` (code deposit), and `:456–474`
@@ -252,10 +256,64 @@ executes none; each actual source comparison retains all six fields and `None`
 returns, with enabled repayment postconditions. Record its current source/runtime
 results separately from these instructions and from historical campaigns.
 
+`GasTransferCallerProofs.lean` consumes all eight transfer laws through public imports:
+complete untouched-field retention, retained execution E/64, forfeit idempotence,
+second drain returning zero with the same meter, zero restoration and a complete
+withhold/drain/restore round trip for the saved amounts. Actual ordinary and entry
+rollback post laws produce the forfeit proof in clients and guards. Ordinary rollback
+then forfeit retains committed spill; entry rollback uses its actual B≤T and q=0
+premises. These local facts do not establish full `ChildSettled`, reachability, or that
+CREATE returns its grant: collision happens after withholding and before draining
+(`instructions/system.py:120–134`). Failed-call preflight restores supplied grants
+before optional NEW_ACCOUNT credit (`:393–398`); completed children use incorporation.
+`GasTransferGuards.lean` freezes thirty complete return/meter controls and every actual
+Lean composition intermediate, including R>B, q<0, both spill pools and beyond-word
+amounts. `gas_transfer_differential.py` strictly compares all thirty public-import
+frames normally and under `-O`. Its source schedule calls only these four new original
+helpers; withhold uses the real authenticated `max_message_call_gas` callee, without
+providing a separate public `maxMessageCallGas` operation or status. Composition rows
+are standalone new-helper inputs, with no original charge/refund/rollback replay.
+The three source-only S>0 probes require enabled AssertionError at `vm/gas.py:674`
+before mutation and retain all six unchanged fields, including when E=0; they have no
+invalid Lean invocation. Valid saved returns have exact Uint class, other returns None.
+The other three helpers have no typed-domain error or assertion premise.
+The authenticated original comparison passed all thirty complete return/meter cases
+(seven forfeits, ten withholds, six drains, seven restorations) and all three
+source-only invalid forfeits. Each assertion occurred at :674 before mutation, with
+every field unchanged. Runtime/source/input identities remained unchanged within
+each stage; no old original helper was replayed. These are finite local controls.
+
+Reproduce this transfer slice with fresh external output paths. Its emitter uses
+`#eval` and plain Lean; source modes require the pinned clone's isolated,
+unoptimized interpreter, preserving the forfeit assertion and real maximum callee:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/gas_transfer_differential.py
+OUT=/absolute/path/to/fresh-transfer-controls
+EELS=/absolute/path/to/pinned-eels
+WHEELS=/absolute/path/to/locked-wheels
+mkdir -p "$OUT"
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > "$OUT/GasTransferFrames.lean"
+lake env lean "$OUT/GasTransferFrames.lean" > "$OUT/frames.jsonl"
+python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
+```
+
+The complete catalog retains thirty valid return/meter cases and three source-only
+invalid forfeits. Preflight calls none. Record each actual current-candidate source
+result and its runtime identities separately from historical validation records.
+
 **External semantics.** From `ethereum_types` 0.4.1 (`reference.toml`): `Uint` (unbounded, subtraction below zero raises `OverflowError`), `U256`/`U64`/`U8` (constructor, `+` and `from_signed` raise `OverflowError` out of range; `from_be_bytes` raises `ValueError` for more than 32 bytes; `wrapping_*` wrap), `Bytes`, `Bytes32`, `ulen`. Only the `OverflowError` cases listed in R-EXC-2 are behaviourally reachable from this module's callers; the Lean `Nat`/`U256` API (EthBase) must make each one explicit rather than wrap. `ceil32` and `taylor_exponential` come from `utils/numeric.py` (EthBase). `left_pad_zero_bytes` from `utils/byte.py`.
 
 ## 4. Tests
 
+- **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve assertion :674 and unchanged full meter; no invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
 - **Supplied refund controls:** `GasRefundGuards.lean` and the strict normal/`-O` complete-frame parser retain twenty full outputs and actual Lean charge/refund/repay intermediates. Public clients use all seven laws and prove the conditional inverse with local initial pending spill zero; a complete-field counterexample excludes unconditional inversion. Min boundaries, R>B, signed refund, both spills, zero execution and unbounded amounts are covered. Source calls use only the two unchanged original helpers on fresh typed meters, with expected `None`, complete fields and enabled repayment postcondition.
 - **Supplied rollback controls:** the three helpers have complete-field zero/equality, signed-refund, both-spill, above-baseline (where admitted) and beyond-word cases; guards retain every intermediate meter of the two-boundary composition. Public callers consume all eight laws, without unfolding provider internals. The strict normal/`-O` parser rejects malformed/duplicate/missing/extra fields, Bool-as-Nat, bad arities, reordered/incomplete streams and wrong whole results. Original assertions are checked only in Python, with location/order and unchanged input retained; they are proof arguments in Lean.
 - **Supplied charge-kernel controls:** `GasMeterGuards.lean` retains every field for zero, exact and one-over execution charges; reservoir zero/exact, first spill, exact total and one-over total; zero gas, reservoir above baseline, negative refunds, both spill pools and beyond-64-bit amounts. It checks the three zero defaults, every nominal exception tag, all UInt8 opcode payloads and complete String payloads including NUL/newline/Unicode. Public callers cover all ten laws, conditional positive-charge progress, zero-charge neutrality and execution-then-state accounting without unfolding the kernel. The strict differential parser rejects duplicate/missing/extra fields, Bool-as-Nat, wrong arities, malformed payloads and incomplete/reordered streams; compare the complete observations with authenticated original numeric helpers. Other tests below remain obligations for their unsupplied operations.
@@ -446,7 +504,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 |---|---|---|---|---|---|
 | `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
 | `Memory` | `ByteArray` (D11) | `List UInt8`; `α = ByteArray.toList` | `size % 32 = 0` | linear-only | expand O(n) amortised; read/write O(k); copy O(k) |
-| `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
+| `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
 | `JumpdestMap` | `ByteArray` bitmap of `⌈\|code\|/8⌉` bytes | `Finset Nat` (= EELS `Set[Uint]`); `α b = {i \| bit i}` | only indices `< \|code\|` | read-only, shareable; a cache keyed by code hash is allowed outside semantic state (ARCHITECTURE §7) | build O(\|code\|); lookup O(1) |
 | `AddrSet`, `SlotSet` (warm sets) | `Std.TreeSet` | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
@@ -477,8 +535,10 @@ sign, spill exclusivity, schedule positivity or global `Wf` is a premise. Record
 equations preserve all untouched fields; each subtraction has its preceding local
 affordability guard. The three rollback operations additionally supply the eight laws
 below on their complete local proof domains (R-GAS-1), without global `Wf`. Refund
-credit and spill repayment supply seven further laws on every raw meter. The remaining
-meter-operation equations are source-checked obligations (G1, ARCHITECTURE §5.5).
+credit and spill repayment supply seven further laws on every raw meter. The four
+local transfer operations supply eight further ordinary laws below: forfeiture uses
+only pending spill zero; the other three admit every raw meter and natural amount.
+The remaining meter-operation equations are source-checked obligations (G1, ARCHITECTURE §5.5).
 
 | Supplied public law | Contract |
 |---|---|
@@ -530,17 +590,32 @@ Public clients derive exact charge/refund inversion under initial pending spill 
 retaining arbitrary baseline/refund/committed spill; that conditional local fact
 establishes no transaction conservation, reachability, incorporation or settlement law.
 
+| Supplied transfer public law | Contract |
+|---|---|
+| `forfeitRemainingGas_eq m h` | With only `h : m.stateGasSpilled = 0`, exactly `{ m with gasLeft := 0 }` |
+| `forfeitRemainingGas_phi m h` | `(forfeitRemainingGas m h).phi = m.stateGasCommittedSpill ∧ (forfeitRemainingGas m h).phi ≤ m.phi` |
+| `withholdCreateGas_eq m` | Exactly `(m.gasLeft - m.gasLeft / 64, { m with gasLeft := m.gasLeft - (m.gasLeft - m.gasLeft / 64) })`, saved grant first |
+| `withholdCreateGas_phi m` | `(withholdCreateGas m).2.phi + (withholdCreateGas m).1 = m.phi` |
+| `drainStateGasReservoir_eq m` | Exactly `(m.stateGasLeft, { m with stateGasLeft := 0 })`, old reservoir first |
+| `drainStateGasReservoir_phi m` | `(drainStateGasReservoir m).2.phi = m.phi` |
+| `restoreChildGas_eq m g T` | Exactly `{ m with gasLeft := m.gasLeft + g, stateGasLeft := m.stateGasLeft + T }` |
+| `restoreChildGas_phi m g T` | `(restoreChildGas m g T).phi = m.phi + g` |
+
+Both withhold subtraction bounds are ordinary Nat facts: `E/64 ≤ E` and
+`E-E/64 ≤ E`. Thus source checked Uint subtraction cannot underflow on this domain;
+Nat subtraction hides no failed check. Public clients derive the exact retained share
+E/64, without unfolding the provider. Draining excludes R from phi; restoration counts
+only g, independently of T. Forfeit leaves arbitrary C. The saved-amount round trip is
+local algebra, not an unconditional CREATE/CALL child-return or iteration-progress law.
+The separately specified `maxMessageCallGas` remains unimplemented.
+
 An ordinary public-only client derives `g'.phi + 1 ≤ g.phi` from `chargeGas_phi`
 under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follows.
 The complete nominal exception carrier supplies vocabulary only; its other producers
 remain unimplemented.
 
-The charge, three rollback and two refund equations are supplied; the following list retains the remaining
-G1 and composition obligations:
-- `(drainStateGasReservoir m).2.phi = m.phi`.
-- `(forfeitRemainingGas m h).phi = m.stateGasCommittedSpill ≤ m.phi`.
-- `(withholdCreateGas m) = (g, m') → m'.phi + g = m.phi ∧ g = m.gasLeft − m.gasLeft/64`.
-- `(restoreChildGas m g R).phi = m.phi + g`.
+The charge, three rollback, two refund and four local transfer equations are supplied
+above. The following list retains the remaining G1 and composition obligations:
 - `calculateMessageCallGas v g L mem x = ⟨c, s⟩ → L ≥ mem + x → c ≤ L − mem ∧ s ≤ c − x + stipend(v)` (forwarded gas never exceeds what is charged, plus stipend): the `Ccallgas_lt_Ccall` analogue needed by G2.
 - **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
 - **`L-INC`** [C]: `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi` (the repay step preserves Φ). Together with G2's "child returns potential ≤ potential granted" this gives the cross-frame bound.
@@ -588,7 +663,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws. Caller premise reachability, forfeit/withhold/drain/child-return, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero). Caller premise reachability, separate maximum-message-call gas, remaining meter operations, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
