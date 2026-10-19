@@ -155,6 +155,9 @@ import STFSpec.Conformance.StateCommit.AccountEncodingGuards
 import STFSpec.Conformance.Vm.Core.GasMeterCallerProofs
 import STFSpec.Conformance.Vm.Core.GasMeterGuards
 
+import STFSpec.Conformance.Vm.Core.GasRollbackCallerProofs
+import STFSpec.Conformance.Vm.Core.GasRollbackGuards
+
 /-!
 # STFSpec.Conformance
 
@@ -167,4 +170,3 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 Base guards, public-law callers and differential drivers are owned by
 `STFSpec/informal/modules/EthBase.md` §3.
 -/
-

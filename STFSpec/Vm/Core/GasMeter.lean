@@ -5,11 +5,11 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Core.Exceptions
 
 /-!
-# Two-dimensional gas charge kernel
+# Two-dimensional gas charges and rollback
 
-Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or settlement.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448`.
-Every raw Nat/Int record is admitted; affordability is checked before subtraction.
+Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or frame settlement.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567`.
+Charges admit every raw Nat/Int record; rollback assertions become local proof arguments.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.5/5/7.
 -/
 
@@ -139,5 +139,100 @@ theorem chargeStateGas_gasLeft_le (g : GasMeter) (a : Nat) (g' : GasMeter)
     · cases h
       exact Nat.sub_le _ _
     · contradiction
+
+/-- Commit pending spill and lower the baseline; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:471–502`. The assertion is a proof argument. -/
+def commitStateGas (m : GasMeter)
+    (_h : m.stateGasLeft ≤ m.stateGasBaseline) : GasMeter :=
+  { m with
+    stateGasCommittedSpill := m.stateGasCommittedSpill + m.stateGasSpilled
+    stateGasBaseline := m.stateGasLeft
+    stateGasSpilled := 0 }
+
+/-- Restore pending spill and the current baseline; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:505–529`. Committed spill is retained. -/
+def restoreStateGas (m : GasMeter) : GasMeter :=
+  { m with
+    gasLeft := m.gasLeft + m.stateGasSpilled
+    stateGasSpilled := 0
+    stateGasLeft := m.stateGasBaseline
+    refundCounter := 0 }
+
+/-- Restore both spill pools and the entry grant; EELS
+`src/ethereum/forks/amsterdam/vm/gas.py:532–567`. Both assertions precede mutation;
+refund is preserved, and its proof argument establishes that it is zero. -/
+def restoreStateGasToEntry (m : GasMeter) (R : Nat)
+    (_h₁ : m.stateGasBaseline ≤ R) (_h₂ : m.refundCounter = 0) : GasMeter :=
+  { m with
+    gasLeft := m.gasLeft + m.stateGasSpilled + m.stateGasCommittedSpill
+    stateGasSpilled := 0
+    stateGasCommittedSpill := 0
+    stateGasLeft := R
+    stateGasBaseline := R }
+
+/-- Committing changes exactly the baseline and two spill pools. -/
+theorem commitStateGas_eq (m : GasMeter)
+    (h : m.stateGasLeft ≤ m.stateGasBaseline) :
+    commitStateGas m h = { m with
+      stateGasCommittedSpill := m.stateGasCommittedSpill + m.stateGasSpilled
+      stateGasBaseline := m.stateGasLeft
+      stateGasSpilled := 0 } := rfl
+
+/-- Committing redistributes pending into committed potential. -/
+theorem commitStateGas_phi (m : GasMeter)
+    (h : m.stateGasLeft ≤ m.stateGasBaseline) :
+    (commitStateGas m h).phi = m.phi := by
+  simp only [commitStateGas_eq, GasMeter.phi]
+  omega
+
+/-- Ordinary rollback resets the signed refund and retains committed spill. -/
+theorem restoreStateGas_eq (m : GasMeter) :
+    restoreStateGas m = { m with
+      gasLeft := m.gasLeft + m.stateGasSpilled
+      stateGasSpilled := 0
+      stateGasLeft := m.stateGasBaseline
+      refundCounter := 0 } := rfl
+
+/-- Ordinary rollback redistributes pending spill into execution gas. -/
+theorem restoreStateGas_phi (m : GasMeter) :
+    (restoreStateGas m).phi = m.phi := by
+  simp only [restoreStateGas_eq, GasMeter.phi]
+  omega
+
+/-- Local ordinary-rollback fields; no committed-spill-zero claim is made. -/
+theorem restoreStateGas_post (m : GasMeter) :
+    (restoreStateGas m).stateGasSpilled = 0 ∧
+    (restoreStateGas m).refundCounter = 0 ∧
+    (restoreStateGas m).stateGasLeft = (restoreStateGas m).stateGasBaseline := by
+  rw [restoreStateGas_eq]
+  exact ⟨rfl, rfl, rfl⟩
+
+/-- Entry rollback changes exactly execution gas, both spill pools and reservoir/baseline. -/
+theorem restoreStateGasToEntry_eq (m : GasMeter) (R : Nat)
+    (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) :
+    restoreStateGasToEntry m R h₁ h₂ = { m with
+      gasLeft := m.gasLeft + m.stateGasSpilled + m.stateGasCommittedSpill
+      stateGasSpilled := 0
+      stateGasCommittedSpill := 0
+      stateGasLeft := R
+      stateGasBaseline := R } := rfl
+
+/-- Entry rollback redistributes both spill pools into execution gas. -/
+theorem restoreStateGasToEntry_phi (m : GasMeter) (R : Nat)
+    (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) :
+    (restoreStateGasToEntry m R h₁ h₂).phi = m.phi := by
+  simp only [restoreStateGasToEntry_eq, GasMeter.phi]
+  omega
+
+/-- Entry rollback's zero-refund fact uses its equality premise. -/
+theorem restoreStateGasToEntry_post (m : GasMeter) (R : Nat)
+    (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) :
+    (restoreStateGasToEntry m R h₁ h₂).stateGasSpilled = 0 ∧
+    (restoreStateGasToEntry m R h₁ h₂).stateGasCommittedSpill = 0 ∧
+    (restoreStateGasToEntry m R h₁ h₂).refundCounter = 0 ∧
+    (restoreStateGasToEntry m R h₁ h₂).stateGasLeft = R ∧
+    (restoreStateGasToEntry m R h₁ h₂).stateGasBaseline = R := by
+  rw [restoreStateGasToEntry_eq]
+  exact ⟨rfl, rfl, h₂, rfl, rfl⟩
 
 end STFSpec.Vm.Core
