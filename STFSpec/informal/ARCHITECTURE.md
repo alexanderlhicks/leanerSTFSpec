@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-17). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.5, 2026-10-18). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -390,6 +390,7 @@ Preflight failures and CREATE collisions do not spawn a child; their nonce, gas,
 ## 8. Fork parameters versus fork behaviour
 
 - **Parameter records** hold constants: the gas cost schedule (including every precompile pricing table), limits, blob schedule and system addresses. The record *types* live next to their semantics (gas records in `EthVmCore`, blob parameters near block validation), **not** in `EthBase`; the Amsterdam *values* live in `EthFork` (B8). Only `STACK_DEPTH_LIMIT` is a literal in `EthVmCore`, because the depth proofs need a kernel-reducible bound (F8).
+- Memory pricing's explicit policy threading is owned by Q63 and EthVmCore §5/§7. The uniform VmConfig argument retains B8's record grouping; its two local arithmetic contracts depend only on their stated price projections. Whole frame/runner/fork coherence remains a composition obligation, separate from local relevant-price congruence.
 - **Named fork modules** hold behaviour that changed: instruction semantics, transaction rules, block processing, codecs. Unchanged code is shared, and names and source mappings to EELS are preserved.
 - **An explicit composition module** (`EthFork.Amsterdam`) selects the parameters, the fork modules and the precompile table.
 - **Conditions for generic proofs** are stated explicitly (for example gas monotonicity for termination, and accounting conservation). Arbitrary configurations need not satisfy them; the supported instantiation discharges them.
@@ -648,7 +649,22 @@ chosen aligned/admitted domain; this design adds no guest rejection. No global
 frame invariant, gas premise or public representation-injectivity/extensionality
 API follows. D11 and the replacement/ownership/cost gates remain their existing
 owners’ obligations, recorded with implementation/proof status in EthVmCore §10.
-BufferRead is independent, and B8 owns the separate pricing-policy obligation.
+BufferRead is independent, and Q63 owns the separate memory-pricing policy contract.
+
+**Memory-pricing policy argument options (Q63).** DECISIONS Q63 owns the disposition; EthVmCore
+§5/§7 owns the exact helper types and ordinary laws. The choices discussed are the existing
+`GasCosts` record directly, the existing `VmConfig` uniformly, or public coefficient/seed scalars.
+GasCosts exposes the schedule boundary directly; VmConfig gives callers one consistent entry
+argument while local laws retain only `memoryPerWord`/`zero` dependencies. Public scalars expose
+minimal arithmetic inputs but fragment B8's grouping. Private scalar arithmetic/proof support adds
+no consumer interface. A fourth policy record/view or public maxEnd helper is unnecessary. The
+complete seed-aware closed forms retain arbitrary Nat prices/seed and literal 32/512. Locally,
+relevant price agreement and the same interpreted inputs suffice when each implementation meets
+those arithmetic contracts; a whole-config equality or WF premise would obscure that dependency.
+Overall target/frame/config coherence and correctness of each target's arithmetic/input
+interpretation remain separate obligations. No target implementation's runtime representation or
+source code is asserted here.
+
 
 ## 12. Not yet decided
 
