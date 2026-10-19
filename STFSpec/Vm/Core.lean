@@ -7,6 +7,7 @@ import STFSpec.Vm.Core.GasMeter
 import STFSpec.Vm.Core.GasCosts
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Memory
+import STFSpec.Vm.Core.MemoryGas
 import STFSpec.Vm.Core.Stack
 import STFSpec.Vm.Core.StackDecoders
 

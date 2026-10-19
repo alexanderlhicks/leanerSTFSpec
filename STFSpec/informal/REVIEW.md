@@ -207,7 +207,7 @@ native data protocol or pricing operations. Remaining StateGasCosts representati
 work concerns the three amount-provider observations and their generic versus
 specialization equations; it does not unsupply the four-input data carrier.
 Actual EthFork values and configuration, F8 limits, consumers/frame/target
-consistency, Q63 pricing implementation, ordering/resource/C1–C4 and VM/guest
+consistency, actual pricing callers, ordering/resource/C1–C4 and VM/guest
 gates remain open. The dated §6 readiness assessment is unchanged.
 
 The raw GasCosts data seam is owned by
@@ -262,9 +262,25 @@ without source replay. Caller derivations and compiled ownership/cost validation
 remain open on their existing domains. No invalid-window completion, runtime error
 or global frame invariant is
 introduced. BufferRead remains independent; memory pricing’s policy-threading
-contract is owned by Q63 and EthVmCore §5/§7; its implementation/proofs and actual
-callers remain open. This supplies no implementation closure, R1/C1–C4,
+contract is owned by Q63 and EthVmCore §5/§7; its local implementation/proofs are supplied below, while actual
+callers/coherence/resource obligations remain open. This supplies no implementation closure, R1/C1–C4,
 L-MEM-BOUND, G1–G7 or guest/EEST gate; the dated §6 readiness assessment is unchanged.
+
+Q63's local pricing slice is supplied by [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map):
+two pure VmConfig-first functions, the existing two-Nat result and exactly ten ordinary
+public laws. Private source-fold/rounded-maximum refinement proves the seed-aware closed
+forms and subtraction validity for every raw coefficient/seed. Public-only clients derive
+same-size/permutation/duplicate/subsumed invariance, seed-aware composition using actual
+Memory.expand, post-expansion admission, read preservation and admitted write/read witnesses through provider laws.
+Forty-two complete literal controls agree with actual interpreted/native observations;
+twenty-four pinned-policy rows agree with unchanged authenticated original helpers, actual
+source classes, full arguments and unchanged pre/post bytes/bindings. Strict normal/`-O`
+comparison and actual CLI LF/CRLF controls check entire frames, not hashes or summary sizes.
+Generic-policy controls are target-only; three raw unaligned predictions remain unrun
+source-only controls. No returned huge extent is allocated. These local facts do not prove
+actual caller/window/payload/config/target coherence, charge/allocation/check ordering,
+L-MEM-BOUND, R1/C1–C4, G1–G7, general source-host/resources or VM/guest/EEST readiness.
+The dated §6 assessment remains unchanged.
 
 Use these three independent acceptance checks:
 
