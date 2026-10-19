@@ -677,6 +677,18 @@ Witness updates must use the recorded order. EELS's branch collapse can need una
 
 ## 4. Composing VM execution and termination
 
+The supplied pure Log/LogRope handoff is owned by
+[EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): complete raw Log fields,
+public rope constructors, two operations and six ordinary laws. Consumers use
+`toList_append` for singleton emission and successful-child chronology; failed-child
+selection retains the parent observation. Private public-only clients establish this
+algebra, including inner success followed by outer discard and empty error-output
+selection while stored logs remain unchanged. These are model statements, not a
+settled-child or frame implementation. Actual gas/static/stack/HashConsts ordering,
+settlement, state and top-level output/receipt integration remain caller obligations.
+Raw shapes remain observable. EthVmCore §4 scopes the 102 native C3 measurements and
+sharing/cleanup limits; no whole execution or resource gate follows.
+
 The dependency order is Core → Instructions → Runner; precompile implementations reach Runner through the table, and the runner alone executes children. For each opcode, the local proof matches the ordered Python guards, effects and failure priority. The request boundary captures everything needed to resume; the child theorem supplies its settled meter, output, logs, state and error. FrameResult.toChildOutcome copies those fields with its non-top ChildSettled proof; runFrame alone is not a settled child result. How the runner produces that proof is open (DECISIONS F11): either a decidable check raising `InternalError.invariant`, proved dead together with the fuel guarantees, or a settled subtype returned by the runner. Resume equations complete the corresponding Python call/create operation.
 
 Define Exec from these same step/resume/settlement operations. Induction on checked execution proves soundness. Induction on a finite Exec derivation chooses sufficient fuel and proves completeness; the same derivation proves monotonicity for larger fuel **with semantic gas fixed**. Gas-dependent code makes a general gas-monotonicity claim false.

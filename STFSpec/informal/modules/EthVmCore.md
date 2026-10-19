@@ -112,6 +112,30 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
+### Supplied chronological logs and ropes
+
+`STFSpec/Vm/Core/Logs.lean`, exported by `STFSpec.Vm.Core`, supplies the existing
+raw `Log`, public `LogRope.empty/leaf/concat`, `toList` and `append` interfaces.
+`Log` retains complete Address, ordered arbitrary-length `Array Hash32` and Bytes
+fields; producer topic limits are not carrier premises. The six ordinary public
+laws in §7 are discharged, including `Log.ext/eta`. Public constructors retain
+observable raw shapes; chronological observation respects association and empty
+identities without a structural append contract.
+
+| Pinned source | Supplied declaration / domain | Complete effect and failures | Public law / evidence |
+|---|---|---|---|
+| `blocks.py:327–356`; `state.py:33`; `crypto/hash.py:19` | `Log` on all existing provider fields | Exact address, topic order/duplicates and every data byte; no runtime failure | `Log.ext`, `Log.eta`; arbitrary-field public-only clients and complete A/B/C/D observations |
+| `vm/__init__.py:169`; `vm/interpreter.py:230`; `vm/instructions/system.py:169,438` | Public empty/leaf/concat and `LogRope.toList` on every finite raw tree | Complete chronological List, including empty leaves and repeated/shared occurrences | `toList_empty/leaf/concat`; private ordinary all-tree workstack/reference refinement and full-field controls |
+| `vm/__init__.py:247`; `vm/instructions/log.py:47–80,86–90`; `vm/__init__.py:253–289` | `LogRope.append` on arbitrary ropes; singleton emission is a model client | All left log occurrences then all right; no carrier failure | `toList_append`; public-only singleton/duplicate/order clients; LOG/transfer handlers remain unsupplied |
+| `vm/__init__.py:194–250`; `vm/interpreter.py:276–321` | Conditional merge/discard and output-selection model clients only | Failed children contribute no logs; top-level error selects empty output without erasing stored logs | Six complete S controls and ordinary arbitrary-log algebra; no real incorporation/frame/receipt proof |
+
+The source correspondence here is the ordered tuple model on intended typed
+immutable Log values. Optional mutable Python construction (`_frozen=False`) and
+arbitrary malformed objects are outside that correspondence. There is no Python
+LogRope helper to replay; accepted source text supplies the boundary. LOG's stack,
+gas, expansion and static-check order, transfer HashConsts acquisition, child
+settlement and receipt/bloom/block consumers remain with their existing owners.
+
 ### Supplied jump-destination analysis
 
 `STFSpec/Vm/Core/Jumpdest.lean`, exported through `STFSpec.Vm.Core`, supplies the
@@ -791,6 +815,39 @@ and source/runtime identities separately from historical validation records.
   spill pools; compare complete results rather than checksums. Reuse the supplied
   maximum and its existing controls. No source/compiled comparison is claimed.
 
+- **Supplied log controls:** `LogsCallerProofs.lean` consumes only public Log/rope
+  and provider laws for complete-field injectivity, eta, every observer equation,
+  order, duplicates, observation identities/association/congruence, singleton
+  emission, retained operands and conditional nested success/discard algebra.
+  `LogsGuards.lean` retains sixteen unchanged raw/full-field controls and six
+  success/discard/output controls, including empty raw shapes, repeated/shared
+  subtrees and more than four topics. Native and interpreted `log-rope-bench
+  --check-controls` agree on all 22 complete input/before/distractor/after/retained
+  observations. These are pure model clients, not handler or frame execution.
+- **Scoped native C3 (dated external evidence):** the
+  [original review record](https://github.com/alexanderlhicks/leanerSTFSpec/pull/172#issuecomment-6270880143)
+  records the audited `scripts/LogRopeBench.lean` artifact and 102 retained
+  fresh-process measurements: three trials at 64/1024/4096/16384 for balanced,
+  left/right skew, sibling accumulation, empty merges, long leaves, shared repeats
+  and mixed success/discard; mixed fresh payloads add 64/1024. Every process checks
+  all 22 fixed controls and full measured chronological payloads outside operation
+  clocks. Generated C uses loop-based workstack/leaf traversal with no calls to
+  the proof measure/reference. Timed phases separate combined construction,
+  flattening, full-observation conversion and observation/output/root/fresh-child
+  release; saved-parent observations remain complete and unchanged.
+  The empty family shares one dynamically built `concat empty (leaf [])` across
+  all appends; the shared family repeats one A/B subtree. Expanded node/log counts
+  include every occurrence, while allocation and cleanup reflect actual sharing.
+  Fixed A/B/C/D payloads are global; the separate mixed-payload case creates fresh
+  address/topics/data. Construction includes IO-holder instrumentation and failed
+  attempted-child release. Raw ns, current-thread small-allocation heartbeats and
+  process RSS are diagnostics, not exact allocation bytes or peak-live heap.
+  Flatten allocation counts scale with expanded nodes/logs; measured heights reach
+  16385/16386 and complete cleanup succeeds on these finite cases. This evidence
+  does not establish universal host stack/resource bounds or C1/C4/guest readiness.
+  These are dated retained measurements, not a claim that a fresh checkout or the
+  routine CI build/audit replays the measurement campaign. Timing remains manual.
+
 - **Supplied memory pricing controls (Q63):** §3 owns the complete frozen literal,
   interpreted/native, strict CLI/parser and conditional original-source control boundary.
   The private public-only caller goals and their domains are owned by §7. Pricing tests
@@ -1257,7 +1314,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `Memory` | private `ByteArray` and alignment proof (D11/Q62), supplied | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
 | `bufferRead` input/output | existing immutable Base `Bytes`, no new carrier | Base padded-window model in §7 | every finite input/all U256 operands | immutable input and copied result | inferred output-proportional copying O(k), bounded source copy and Nat availability check before narrowing; compiled costs unmeasured |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
-| `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
+| `LogRope` | supplied strict immutable public empty/leaf/concat tree | chronological `List Log` via `toList` | all raw shapes admitted; concat observes left before right; no mutable cache | immutable nodes; production frame ownership remains a caller obligation | append allocates one concat, O(1); workstack flatten O(expanded nodes + emitted logs), including empty/shared occurrences; finite native C3 evidence is scoped in §4 |
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
 | `AddrSet`, `SlotSet` (warm sets) | `Std.TreeSet` | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
 | `accountsToDelete` | `Std.TreeSet Address` | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
@@ -1813,7 +1870,33 @@ Pricing retains its independent resource obligation:
 Pure price/alignment/coverage equations do not prove L-MEM-BOUND or authorize
 allocation, including for huge mathematically admitted extents.
 
-**Logs** [C]: `LogRope.toList (LogRope.append a b) = LogRope.toList a ++ LogRope.toList b`. Flatten maintains the emitted prefix and pending subtrees in chronological order; the total pending structural size decreases when a node is expanded. Each node and each leaf log is visited once. This proves order and the linear traversal claim without repeated prefix copying.
+**Logs** [C], supplied ordinary laws on arbitrary raw fields and every finite rope:
+
+```lean
+Log.ext (a b : Log)
+  (h_address : a.address = b.address)
+  (h_topics : a.topics = b.topics)
+  (h_data : a.data = b.data) : a = b
+Log.eta (l : Log) : Log.mk l.address l.topics l.data = l
+LogRope.toList_empty : LogRope.toList .empty = []
+LogRope.toList_leaf (ls : List Log) : LogRope.toList (.leaf ls) = ls
+LogRope.toList_concat (left right : LogRope) :
+  LogRope.toList (.concat left right) = LogRope.toList left ++ LogRope.toList right
+LogRope.toList_append (left right : LogRope) :
+  LogRope.toList (LogRope.append left right) =
+    LogRope.toList left ++ LogRope.toList right
+```
+
+The private legible recursive List reference is connected to the explicit pending
+workstack and reverse accumulator by an ordinary generalized equality. Its private
+sum of pending node-occurrence weights strictly decreases for empty/leaf removal
+and concat expansion, proving total descent on all finite raw trees. Each expanded
+node and leaf log occurrence is processed once, including repeated shared subtrees;
+no repeated recursive List append is used by execution. Public callers use the six
+laws, without unfolding providers or execution. Raw constructor equality is still
+observable; no quotient/extensional/injective LogRope law or structural append
+equation is exported. Mathematical occurrence cost and finite native C3 diagnostics
+in §4 are separate from actual consumer ownership and general resource bounds.
 
 **Gas meter** [C]. The supplied charge kernel has exactly ten public laws below,
 proved on every raw meter and natural amount. No baseline/reservoir relation, refund
@@ -2061,7 +2144,7 @@ consistency (Nipkow Ch. 18 invariant).
 
 **Premises.** EthBase and EthState laws; local proof arguments for commit/entry restore and caller premises for the remaining meter operations (none for the supplied charge kernel, refund/repay or ordinary restore); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
-**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
+**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. The supplied ordinary LogRope refinement gives toList(append a b) = toList a ++ toList b; chronological observation is invariant under association and empty identities. Public raw constructors still expose distinct tree shapes. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
 **Open obligations.** Prove meter premises at every caller, checked refund conversion, exact arithmetic failure cases and the compiled memory/stack cost assumptions. Memory representation replacement uses observer equations; amortised linear-container bounds must not be applied to snapshot-reachable values.
 
@@ -2096,6 +2179,19 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   configuration/target coherence, settlement and G2 remain separate obligations.
 
 ## 10. Gaps
+
+- **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
+  Log, existing public rope constructors, two operations and six discharged ordinary
+  laws, with private total workstack/all-tree reference refinement. Public-only
+  clients and all 16+6 complete controls cover full fields/order/duplicates and model
+  selection. The finite 102 native C3 measurements in §4 cover expanded traversal,
+  deep/skew/shared shapes and explicit last-owner cleanup with disclosed sharing,
+  IO instrumentation and metric limits. Real LOG/transfer producer ordering,
+  HashConsts and topic restrictions, settled child/frame incorporation, top-level
+  execution/output/receipt/bloom integration, typed source/host generalization,
+  actual composed ownership, exact allocated bytes/live space and universal
+  stack/resource bounds remain open. No C1/C4, G1–G7, whole VM/guest/EEST or
+  readiness gate is closed by this local slice.
 
 - **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
   own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly

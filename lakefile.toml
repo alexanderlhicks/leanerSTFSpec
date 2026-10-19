@@ -102,6 +102,12 @@ name = "fixed-endian-bench"
 srcDir = "scripts"
 root = "FixedEndianBench"
 
+# Focused chronological-log controls and C3 native lifetime diagnostic; run explicitly.
+[[lean_exe]]
+name = "log-rope-bench"
+srcDir = "scripts"
+root = "LogRopeBench"
+
 # Build and audit complete packed/reference hash cost diagnostics; run timings manually.
 [[lean_exe]]
 name = "packed-keccak-bench"
