@@ -100,6 +100,69 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
+### Supplied bounded Stack
+
+`STFSpec/Vm/Core/Stack.lean`, exported by `STFSpec.Vm.Core`, supplies the existing
+bounded carrier and six operations below. The private constructor, Array storage and
+stored size proof enforce at most 1024 existing EthBase U256 words. Only `toList`
+converts/reverses the Array; pop/push/peek inspect the size and relevant cell directly.
+The bound is a representation invariant, not a new guest validation rule. Source
+correspondence is restricted to actual typed Python lists of size at most 1024:
+original push tests equality to 1024, so oversized Python lists are outside this model.
+
+| Pinned EELS source / model seam | Lean declaration and type | Complete domain, ordered failure and effect | Public law / test |
+|---|---|---|---|
+| `vm/__init__.py:163`; `vm/interpreter.py:226`; `vm/instructions/system.py:165,434` | `Stack.empty : Stack` | Empty private top-at-end Array; top-first model [] | `Stack.toList_empty`; complete empty guards |
+| §6 abstraction, no separate source helper | `Stack.toList : Stack → List U256` | Complete top-first model, O(n) observer; no raw constructor | `Stack.size_eq_length_toList`, `Stack.size_le`; full ordered observations |
+| source `len(stack)`, `stack.py:109,128` | `Stack.size : Stack → Nat` | Direct stored Array size, always ≤1024 | Same size/length and bound laws; 0/1/1023/1024 guards |
+| `vm/stack.py:94–112` | `Stack.pop : Stack → Except ExceptionalHalt (U256 × Stack)` | Empty check precedes subtraction/read; exact underflow or removed top and complete remainder | `Stack.pop_eq_error_iff`, `Stack.pop_eq_ok_iff`; empty, mixed, duplicates and full cases |
+| `vm/stack.py:115–131` | `Stack.push : Stack → U256 → Except ExceptionalHalt Stack` | Exact full check before append; overflow at 1024, otherwise entire model cons and size+1 | `Stack.push_eq_error_iff`, `Stack.push_eq_ok_iff`; near/full transitions and complete models |
+| indexed reads `vm/instructions/stack.py:106–109,242–243`, model seam | `Stack.peek? : Stack → Nat → Option U256` | All Nat depths; i<size guard before index arithmetic, otherwise none; no mutation | `Stack.peek?_eq_getElem?`; all positions, exact bounds and 2^4096 |
+
+All eight exact public laws in §7 are **discharged** by ordinary proofs. Private
+model/observation injectivity establishes actual Stack equality in both directions
+of the success iff laws; no public constructor, extensionality or equality instance
+is supplied. The two error iff laws quantify over every ExceptionalHalt, excluding
+unrelated errors. Public-only clients derive successful push availability below the
+bound and successful pop availability on nonempty models by total Except case
+analysis; they also prove both conditional inverses with actual original Stacks.
+
+`StackGuards.lean` and `stack_differential.py` retain forty-one complete input/result
+models, exact size/status/returned words, empty/full boundaries, duplicates, zero,
+maximum/high-bit words and every intermediate of a deterministic sequence. Inputs
+are built through public pushes. Strict normal/-O frame controls reject malformed
+schema, boolean/float integer aliases, out-of-range words and wrong whole streams.
+The source schedule is limited to original pop/push on fresh typed bounded lists;
+peek is explicitly a builtin List-index adapter, not an original standalone helper.
+Authenticated original comparison passed eight unchanged pop and fourteen push
+calls on fresh typed bounded lists, retaining exact U256/None return classes or
+exception classes/args and entire before/after models. Nineteen separately labelled
+List-index adapter observations also passed. All forty-one complete Lean frames
+matched; source/runtime identities remained unchanged before/after each phase.
+No swap/decoder/handler, gas ordering, frame reachability, allocation benchmark,
+replacement, G1/G2–G7 or guest/EEST gate is supplied by this slice.
+
+Reproduce the committed controls from the repository root (use fresh output paths):
+
+```sh
+python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
+python3 -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
+python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --emit-lean > /tmp/stack.lean
+lake env lean /tmp/stack.lean > /tmp/stack-frames.jsonl
+python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
+python3 -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
+"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$PREFLIGHT"
+"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$SOURCE_OUTPUT" --frames /tmp/stack-frames.jsonl
+```
+
+`EELS` is a clean scratch checkout at the reference pin with its private `.venv`;
+`WHEELS` contains the selected raw lock-matching wheels. `PREFLIGHT` and `SOURCE_OUTPUT`
+must not exist. Preflight authenticates inputs without invoking a source stack helper.
+The source command checks unchanged pop/push helpers and the separately labelled
+List-index adapter against all complete frames; it supplies no standalone EELS peek helper.
+
 ### Supplied local meter algebra
 
 The following local contracts are **discharged** in `STFSpec/Vm/Core/Exceptions.lean`
@@ -365,6 +428,8 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
+
 - **Supplied accounting controls:** Twelve complete signed-refund cases and fourteen scalar maxima retain all fields and exact returns, including negative/cross-zero/cancellation/beyond-U256 refunds, both spills, R>B and 63/64 rounding. Public-only clients consume all four laws and derive signed composition/inverse, actual rollback/reset order and complementary grant shares. Strict normal/`-O` frames reject boolean/float aliases and malformed or wrong complete streams. Authenticated original comparison passed exact statement projection on twelve distinct typed parent/child pairs with unchanged full children, plus fourteen direct scalar helper calls. No source caller assertions or whole incorporation are replayed.
 
 - **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve assertion :674 and unchanged full meter; no invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
@@ -568,11 +633,34 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 
 ## 7. Contract and laws
 
-**Stack** (model `List U256`, top first). [C] each with invariant preservation:
-- `α (push s v) = v :: α s` when `size s < 1024`; `push s v = .error .stackOverflow` iff `size s = 1024`.
-- `pop s = .ok (v, s')` iff `α s = v :: α s'`; `.error .stackUnderflow` iff `α s = []`.
-- `peek? s i = (α s)[i]?`; `swap? s i j` swaps model positions `i, j` when both `< size`.
-- `decodeSingle x = .ok n → 17 ≤ n ≤ 235`; injective on valid inputs; `decodePair x = .ok (n, m) → 1 ≤ n ≤ 14 ∧ n < m ∧ m ≤ 30 − n`, injective. [C]
+**Stack** (model `List U256`, top first). The six-operation bounded slice supplies
+exactly these eight **discharged** ordinary laws, for every Stack/word/Nat index
+and every ExceptionalHalt; the carrier itself stores the bound. No reachability,
+host index-width or word-validity premise is added.
+
+```lean
+Stack.toList_empty : Stack.empty.toList = []
+Stack.size_eq_length_toList (s : Stack) : s.size = s.toList.length
+Stack.size_le (s : Stack) : s.size ≤ 1024
+Stack.pop_eq_error_iff (s : Stack) (e : ExceptionalHalt) :
+  s.pop = .error e ↔ s.toList = [] ∧ e = .stackUnderflow
+Stack.pop_eq_ok_iff (s t : Stack) (v : U256) :
+  s.pop = .ok (v, t) ↔ s.toList = v :: t.toList
+Stack.push_eq_error_iff (s : Stack) (v : U256) (e : ExceptionalHalt) :
+  s.push v = .error e ↔ s.size = 1024 ∧ e = .stackOverflow
+Stack.push_eq_ok_iff (s t : Stack) (v : U256) :
+  s.push v = .ok t ↔ s.size < 1024 ∧ t.toList = v :: s.toList
+Stack.peek?_eq_getElem? (s : Stack) (i : Nat) :
+  s.peek? i = s.toList[i]?
+```
+
+Nonfull-push/nonempty-pop availability and both conditional actual-Stack inverses
+are public-law client results, without private storage unfolding or additional
+provider laws. `swap?` remains unsupplied: its in-bounds model swap does not yet
+specify the all-input none/identity behavior. Both byte decoders remain unsupplied;
+their bounds/injectivity obligations are unchanged: `decodeSingle x = .ok n →
+17 ≤ n ≤ 235`, injective on valid inputs; `decodePair x = .ok (n,m) →
+1 ≤ n ≤ 14 ∧ n < m ∧ m ≤ 30 − n`, injective. [C]
 
 **Memory** (model `List UInt8`). [C], used by [R] memory-opcode lemmas (exercise 1):
 - `α (expand m k) = α m ++ replicate k 0`; preservation of 32-byte alignment requires `k % 32 = 0`. Window reads/writes require the in-bounds hypotheses stated in §5.
@@ -756,6 +844,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, both decoders, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation remain unimplemented/unproved; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
