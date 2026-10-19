@@ -176,6 +176,9 @@ import STFSpec.Conformance.Vm.Core.TxStateGasUsageCallerProofs
 import STFSpec.Conformance.Vm.Core.TxStateGasUsageGuards
 import STFSpec.Conformance.Vm.Core.GasRefundGuards
 
+import STFSpec.Conformance.Vm.Core.MemoryGasCallerProofs
+import STFSpec.Conformance.Vm.Core.MemoryGasGuards
+
 /-!
 # STFSpec.Conformance
 

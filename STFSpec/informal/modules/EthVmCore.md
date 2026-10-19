@@ -198,22 +198,60 @@ The evidence is ordinary universal proofs, public constructor/projection clients
 and declaration/axiom checks. No runtime mirror of generated projection or
 substitution code, record-only native protocol/parser/benchmark, imported source
 values or new oracle suite is involved. These data carriers supply construction
-dependencies for Q63; its pricing helpers and ten prospective laws remain
-unimplemented/unproved. Core/Fork values, all state amounts and consumer/coherence,
+dependencies for Q63; its separately supplied pricing helpers and ten ordinary laws
+are described below. Core/Fork values, all state amounts and consumer/coherence,
 limit specialization, ordering/resource and VM/guest obligations remain open for
 their corresponding claims.
 
-### Memory pricing (Q63; contract targets, unimplemented)
+### Supplied memory pricing (Q63)
 
-| EELS source at pin | Prospective Lean declaration | Exact domain/effect/failure/model/control entry |
+| EELS source at pin | Supplied Lean declaration | Exact domain/effect/failure/model/control entry |
 |---|---|---|
-| `src/ethereum/forks/amsterdam/vm/gas.py:749–773` | `calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat` | Every cfg/n; depends only on cfg.costs.memoryPerWord. Pure Nat result, no charge/allocation/state effect or new error. MP1/MP2/MP9; rounding, zero-coefficient, first-quadratic-step and unrelated-config controls remain required. Original correspondence additionally retains actual typed bindings and successful host premises. |
-| `src/ethereum/forks/amsterdam/vm/gas.py:776–813` | `calculateGasExtendMemory (cfg : VmConfig) (m : Memory) (ws : List (U256 × U256)) : ExtendMemory` | Every cfg, aligned Memory and ordered window list; arbitrary Nat coefficient/seed. Pure complete cost/extent, no append/charge/mutation or new error. MP3–MP8/MP10; empty, huge-empty, cross-word, permuted, subsumed, seed and huge-Nat-endpoint controls remain required. Raw unaligned source memory is a separate source-only domain, not an invalid Lean proof/carrier. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:749–773` | `calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat` | Every cfg/n; depends only on cfg.costs.memoryPerWord. Pure Nat result, no charge/allocation/state effect or new error. MP1/MP2/MP9 discharged; complete rounding, zero-coefficient, first-quadratic-step and unrelated-config controls are supplied below. Original correspondence additionally retains actual typed bindings and successful host premises. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:776–813` | `calculateGasExtendMemory (cfg : VmConfig) (m : Memory) (ws : List (U256 × U256)) : ExtendMemory` | Every cfg, aligned Memory and ordered window list; arbitrary Nat coefficient/seed. Pure complete cost/extent, no append/charge/mutation or new error. MP3–MP8/MP10 discharged; complete empty, huge-empty, cross-word, permuted, subsumed, seed and huge-Nat-endpoint controls are supplied below. Raw unaligned source memory is a separate source-only domain, not an invalid Lean proof/carrier. |
 
 The source policy reads are `GasCosts.ZERO` (`gas.py:102`) and
-`GasCosts.MEMORY_PER_WORD` (`gas.py:103`). Both operations, all ten pricing laws
-and their public-only derived clients are **unimplemented/unproved**. This
-contract clarification supplies no executed pricing controls or source coupling.
+`GasCosts.MEMORY_PER_WORD` (`gas.py:103`). Both operations and all ten ordinary pricing laws are supplied in `MemoryGas.lean`.
+The executable private structural fold follows source order; a private ordinary
+rounded-maximum refinement proves the closed forms and ordered subtraction bounds.
+No private model constant occurs in a public law type. Public-only private clients
+use the actual Base/U256/Memory/config providers, without another provider export.
+
+`MemoryGasGuards.lean` and `memory_gas_differential.py` retain forty-two complete
+literal target rows: twenty-four pinned-policy and eighteen generic-policy controls.
+They cover zero/word rounding, the first quadratic step, zero-coefficient plateaus
+above that step, arbitrary seeds, irrelevant config fields, full mixed input bytes,
+ordered/permuted/duplicate/subsumed windows and unbounded endpoints crossing 2^256.
+The committed observer compares complete target results and unchanged inputs against
+these literals; huge returned extents are priced on small memory and never allocated.
+Its optional source-frame/digest inputs are caller-supplied evidence, without a
+committed source producer or authentication step in this comparator. The dated
+[external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/166#issuecomment-6267536592)
+records the finite interpreted/native and original-source comparisons separately,
+including the inherited numeric-method binding limitation. Those historical results
+are not executions of a repository source recipe. Generic controls are target-only;
+three unaligned raw-source predictions remain unrun source-only controls, with no
+corresponding `Memory` construction. Source agreement retains stable actual typed
+bindings and successful host operations, rather than arbitrary substitutions/resources.
+
+Reproduce the committed target controls from the repository root with fresh output
+paths (the emitter defines `main`, so execute it with `--run`):
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/memory_gas_differential.py
+python3 -I -B "$DRIVER" --self-test
+python3 -I -B -O "$DRIVER" --self-test
+python3 -I -B "$DRIVER" --emit-guards > /tmp/memory-pricing-guards.lean
+python3 -I -B "$DRIVER" --emit-lean > /tmp/memory-pricing-observer.lean
+lake env lean --run /tmp/memory-pricing-observer.lean > /tmp/memory-pricing-frames.jsonl
+python3 -I -B "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
+python3 -I -B -O "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
+```
+
+The strict whole-frame parser accepts consistent LF or CRLF and rejects malformed
+framing, classes, numeric aliases, nested shapes, whole-input changes and wrong
+cost/extent fields. These local proofs/controls establish no charge/allocation,
+handler/config coherence or cost gate.
 
 ### Supplied scalar immediate decoders
 
@@ -683,6 +721,11 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Supplied memory pricing controls (Q63):** §3 owns the complete frozen literal,
+  interpreted/native, strict CLI/parser and conditional original-source control boundary.
+  The private public-only caller goals and their domains are owned by §7. Pricing tests
+  compute values only; they allocate no returned extent and discharge no ordering/cost gate.
+
 - **Supplied buffer controls:** `BufferReadGuards.lean` freezes 32 complete input,
   offset, width and output observations. `buffer_read_differential.py` embeds the
   same literals and emits public-import Lean observations without a private data
@@ -861,7 +904,7 @@ def Memory.write (m : Memory) (s : Nat) (v : Bytes)
     (h : v.size = 0 ∨ s + v.size ≤ m.size) : Memory
 -- Standalone supplied adapter; independent of the six Memory APIs
 def bufferRead : Bytes → U256 → U256 → Bytes              -- supplied; independent of Memory
--- Memory pricing (unimplemented)
+-- Memory pricing (supplied; pure values only)
 structure ExtendMemory where cost : Nat; expandBy : Nat
 def calculateGasExtendMemory (cfg : VmConfig) (m : Memory)
     (ws : List (U256 × U256)) : ExtendMemory
@@ -1596,9 +1639,10 @@ bufferRead_size (b : Bytes) (start size : U256) :
   (bufferRead b start size).size = size.toNat
 ```
 
-**Memory pricing (Q63).** The following exact ten ordinary laws and all derived
-clients are **unimplemented/unproved**. This is informal contract notation, not
-Lean proof bodies. It introduces no additional public helper.
+**Memory pricing (Q63).** The following exact ten ordinary laws are discharged
+in `MemoryGas.lean`. Private public-only clients derive the consequences below.
+This is informal contract notation, not Lean proof bodies. It introduces no
+additional public helper.
 
 No additional proof argument belongs to either helper. Let a=cfg.costs.memoryPerWord
 and z=cfg.costs.zero. Both are arbitrary Nat, not fixed Amsterdam values. For
@@ -1614,7 +1658,7 @@ finite ordered list of U256 pairs; scalar n is every Nat. There is no config-WF,
 canonical-value, nonzero-price, gas, allocation, host-width or global-frame premise
 in the pure Lean pricing functions or laws. Literal32/512 remain algorithm constants.
 
-| ID and proposed ordinary law | Exact statement and local domain |
+| ID and ordinary law | Exact statement and local domain |
 |---|---|
 | MP1 calculateMemoryGasCost_eq | For every cfg,n, calculateMemoryGasCost cfg n = a*(ceil32(n)/32)+(ceil32(n)/32)^2/512. ZERO is absent. |
 | MP2 calculateMemoryGasCost_mono | For every cfg,n,n', n≤n' implies calculateMemoryGasCost cfg n≤calculateMemoryGasCost cfg n'. No a>0 premise or strict conclusion. |
@@ -1828,11 +1872,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
 - **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent; memory pricing’s policy-threading contract is owned separately by Q63.
-- **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two exact VmConfig-first signatures and ten prospective ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and source/host agreement are separate obligations; no pricing implementation or proof is supplied by this clarification.
+- **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
 
 ## 10. Gaps
 
-- **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency and Q63 implementation remain open.
+- **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency remain open; Q63 pricing is supplied separately.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -1850,6 +1894,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
 - **`calculate_blob_gas_price` on huge `excess_blob_gas`** runs `taylor_exponential` for a number of iterations roughly proportional to `excess_blob_gas / BLOB_BASE_FEE_UPDATE_FRACTION` (DISC-002); for adversarial parent headers this is a host-time problem (DISC-002), and `U256(price)` in BLOBBASEFEE is argued reachable as an overflow (O13, `instructions/environment.py:607`). Termination and cost belong to EthBase; the envelope question is open.
 - **Local Memory (Q62) is supplied:** §3/§5/§7 own the private aligned carrier, six APIs and ten discharged ordinary laws, including complete write effects, immutable snapshots and actual empty-write identity. Public-only clients derive post-write read proofs from preserved size and the original local window proof. Actual caller alignment/window derivation, charge/allocation/return-buffer/static-check ordering, linear ownership, compiled C1–C4, R1, G1–G7 and guest gates remain open. No invalid-window completion, runtime error or global frame invariant follows; bufferRead remains independent.
-- **Memory pricing (Q63):** the explicit policy-threading contract and seed-aware closed forms are specified in §5/§7. Both helpers, their ten ordinary laws, public-only derived clients and original-source/target coupling remain unimplemented/unproved. Actual caller windows/alignment, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, source-host/resource and whole VM/guest gates remain open.
+- **Memory pricing (Q63) is locally supplied:** §3/§5/§7 own both VmConfig-first helpers, ten discharged ordinary laws, private public-only clients and forty-two full interpreted/native controls with twenty-four authenticated typed original comparisons. Clients derive actual Memory expansion/admitted-window/preservation facts through public laws; real handler payload/window derivation, frame/target config coherence, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, general source-host/resource and whole VM/guest gates remain open. Raw unaligned source controls remain source-only and unrun; no huge returned extent is allocated.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
