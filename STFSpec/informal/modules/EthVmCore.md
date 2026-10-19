@@ -107,10 +107,52 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/stack.py::push` | 115–131 | `Stack.push` | bounded typed-source domain below |
 | `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
-| `forks/amsterdam/vm/runtime.py::*` | 22 | `validJumpDestinations`, `JumpdestMap` | byte-level; no `Ops` import |
+| `forks/amsterdam/vm/runtime.py::get_valid_jump_destinations` | 22–69 | `validJumpDestinations`, `JumpdestMap.contains` | supplied packed/reference refinement and three ordinary laws; raw bytes, no Lean `Ops` import |
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied jump-destination analysis
+
+`STFSpec/Vm/Core/Jumpdest.lean`, exported through `STFSpec.Vm.Core`, supplies the
+abstract immutable `JumpdestMap`, the two existing operations in §5 and exactly
+three ordinary public lookup equations in §7. The fast builder scans actual
+Base.Bytes packed input without constructing the List reference. Private ordinary
+proofs establish exact bitmap length `(code.size + 7) / 8`, local byte-update
+behavior, zero padding and all-code/all-Nat refinement to a structural Boolean
+membership reference. Its finite set observation is `{i | reference code i = true}`;
+the out-of-code proof supplies finite support without allocating a List Nat.
+The constructor, code-size field, bitmap and reference stay private.
+
+The pinned source converts each reached byte with `Ops`, catches `ValueError` and
+advances invalid bytes by one. Reached PUSH1–PUSH32 skip their declared immediate
+width, including truncated suffixes; PUSH0 and DUPN/SWAPN/EXCHANGE do not skip an
+extra byte. The raw-byte Lean scanner implements this behavior without an opcode
+enum dependency. The committed handwritten 32-case controls retain complete code,
+destination sets, logical bitmap bytes, probes and held-map snapshots. Reproduce
+that self-contained target path from the repository root with fresh output paths:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/jumpdest_differential.py
+python3 -I -B "$DRIVER" --self-test-parser
+python3 -I -B -O "$DRIVER" --self-test-parser
+python3 -I -B "$DRIVER" --focused32 --emit-target /tmp/jumpdest-observer.lean
+lake env lean --run /tmp/jumpdest-observer.lean > /tmp/jumpdest-frames.jsonl
+python3 -I -B "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
+python3 -I -B -O "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
+```
+
+The driver also reads a canonical 940-input catalog and optional source observations
+with a preflight binding-catalog digest. Those artifacts and their authenticated
+producing step are external, rather than supplied by this comparator. The dated
+[external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/167#issuecomment-6268899065)
+records the finite interpreted/native and retained-source comparisons separately.
+They retain actual typed Bytes/Ops/Uint bindings and successful host premises;
+those historical results are not a fresh repository source execution. Logical
+bitmap output is reconstructed through public membership; private physical shape
+and padding are established by the ordinary proofs. Actual code/map provenance,
+cache consistency, handler ordering, compiled cost/ownership and guest obligations
+remain open (§10).
 
 ### Supplied raw GasCosts data
 
@@ -809,9 +851,28 @@ actual complete records and source/runtime identities beside each fresh run.
   - Meter: charge exactly `gas_left` (succeeds, leaves 0); charge `gas_left + 1` (fails, meter unchanged); state charge split across reservoir and `gas_left`; credit when `spilled < a` (remainder to reservoir); repay; restore after commit leaves committed spill charged; `restoreToEntry` refills both spills; negative `refund_counter` after one clear-reversal.
   - `maxMessageCallGas 64 = 63`, `63 = 63`, `0 = 0`; `calculateMessageCallGas` below `extra + mem`.
   - `settleTransactionGas`: refund capped at one fifth; floor binding both dimensions; negative `state_gas_used` clamped to 0.
-  - Jumpdest: `0x5B` inside PUSH data excluded; PUSH32 truncated at end of code; `0x5B` after `0xE6` (DUPN) **included** (EELS gives `{1, 4}` for `E6 5B 60 5B 5B` [V: run]).
+- **Supplied Jumpdest controls:** 32 unchanged handwritten complete literals cover
+  reached/hidden `0x5B`, PUSH1/PUSH2/PUSH32 resumption and truncation, invalid bytes,
+  PUSH0, DUPN/SWAPN/EXCHANGE and bitmap boundaries. Private public-only callers
+  consume all three laws to derive head/PUSH/non-PUSH behavior, true-hit bounds/byte
+  identity, equal-code observations and huge-index absence. Strict normal/`-O`
+  public CLI comparisons check complete code, logical bytes, sorted destinations,
+  cardinality, every membership/padding bit and probe, and unchanged held maps.
+  Thirty malformed complete-frame controls and seven actual LF/framing CLI cases
+  per mode are synthetic observations derived from those handwritten controls.
+  The canonical 940-input catalog is external: it contains the 32 handwritten
+  cases, all 256 one-byte heads, 592 PUSH-width/truncation/resumption inputs,
+  24 boundary patterns, 32 repeated/mixed inputs and four whole-code inputs,
+  including 24 KiB and 64 KiB. The dated external review linked in §3 records
+  interpreted/native/source comparisons, each target backend retaining 940 full
+  frames and 2820 held/distractor/saved observations, 193328 membership/padding
+  positions and 12910 probes per complete before-observation set; the original
+  sets contain 120896 destination members. Those retained results are not a new
+  source execution by the committed reader. Logical bytes reconstruct public
+  membership; physical bitmap shape follows from the private ordinary proofs.
+
   - `(HashConsts.query (m := Id)).transferTopic = keccak256 "Transfer(address,address,uint256)" = 0xddf252ad…b3ef` (owned by EthHash §7, `HashConsts.query (m := Id) = HashConsts.literals`).
-- **Property/differential:** random meter operation sequences against a direct `Nat` model of the six fields, checking Φ laws (§7); random window lists for `extendMemory` against the closed form; `validJumpDestinations` against a byte-by-byte reference over random code, including a 24 KiB and 64 KiB input for linear-time behaviour.
+- **Property/differential:** random meter operation sequences against a direct `Nat` model of the six fields, checking Φ laws (§7); random window lists for `extendMemory` against the closed form; Jumpdest's ordinary all-input packed/reference proof and complete finite controls above supply its local functional slice. Random-code differential campaigns and measured 24 KiB/64 KiB linearity/compiled costs remain future checks; merely running those sizes proves no timing bound.
 
 ## 5. Interface
 
@@ -1120,7 +1181,7 @@ def emitTransferLog (f : Frame) (topic : Hash32) (sender recipient : Address) (a
 def SYSTEM_ADDRESS : Address
 
 -- Jumpdests (public)
-structure JumpdestMap                                     -- bitmap, internal representation
+structure JumpdestMap                                     -- abstract; constructor/fields private
 def validJumpDestinations : Bytes → JumpdestMap
 def JumpdestMap.contains : JumpdestMap → Nat → Bool
 ```
@@ -1147,7 +1208,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `bufferRead` input/output | existing immutable Base `Bytes`, no new carrier | Base padded-window model in §7 | every finite input/all U256 operands | immutable input and copied result | inferred output-proportional copying O(k), bounded source copy and Nat availability check before narrowing; compiled costs unmeasured |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
-| `JumpdestMap` | `ByteArray` bitmap of `⌈\|code\|/8⌉` bytes | `Finset Nat` (= EELS `Set[Uint]`); `α b = {i \| bit i}` | only indices `< \|code\|` | read-only, shareable; a cache keyed by code hash is allowed outside semantic state (ARCHITECTURE §7) | build O(\|code\|); lookup O(1) |
+| `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
 | `AddrSet`, `SlotSet` (warm sets) | `Std.TreeSet` | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
 | `accountsToDelete` | `Std.TreeSet Address` | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
@@ -1835,7 +1896,36 @@ above. The following list retains the remaining G1 and composition obligations:
 - Settlement [C]: `settleTransactionGas` preconditions `gasLeft + stateGasLeft ≤ txGas`, `calldataFloor ≤ txGas`, and `refund ≥ 0` (the caller converts `refundCounter : Int` with a proof or a `u256Overflow` fault, R-EXC-2); then `gasUsed ≤ txGas`, `executionGasUsed ≥ calldataFloor`.
 - Transaction-level conservation [C, statement to be found]: an equation relating `txGas`, the returned `gasLeft + stateGasLeft`, `txStateGasUsed` and the gas charged; needed by `EthBlock` accounting proofs.
 
-**Jumpdests** [C]: `(validJumpDestinations c).contains i ↔ i ∈ getValidJumpDestinations c` (the EELS set, defined as the model by structural recursion on remaining length); [C] cache consistency if a code-hash cache is added (Nipkow Ch. 18 invariant).
+### Supplied jump-destination lookup equations
+
+`Jumpdest.lean` discharges exactly these three ordinary public equations, on every
+finite Base.Bytes code and every Nat index. The raw PUSH width is local to the
+cons equation, not an additional API.
+
+```lean
+validJumpDestinations_contains_empty (i : Nat) :
+  (validJumpDestinations Bytes.empty).contains i = false
+
+validJumpDestinations_contains_cons (b : UInt8) (xs : List UInt8) (i : Nat) :
+  let k := if 96 ≤ b.toNat ∧ b.toNat ≤ 127 then b.toNat - 95 else 0
+  (validJumpDestinations (Bytes.ofList (b :: xs))).contains i =
+    (if i = 0 then b == (0x5b : UInt8) else if i ≤ k then false
+     else (validJumpDestinations (Bytes.ofList (xs.drop k))).contains (i - (k + 1)))
+
+validJumpDestinations_contains_of_size_le (c : Bytes) (i : Nat)
+  (hi : c.size ≤ i) :
+  (validJumpDestinations c).contains i = false
+```
+
+The private ordinary packed/reference theorem covers all code and indices through
+actual Base.Bytes public bridges, size-derived sufficient structural fuel, private
+bit-update/frame/shape/padding facts and finite support. The reference's true-index
+set is the mathematical observation of EELS's finite set; no allocated List Nat or
+public reference operation is needed. Private public-law consumers derive true-hit
+byte identity and bounds without unfolding provider or scanner storage. The
+bounded original comparison in §3/§4 is additional source evidence, not the ordinary
+all-input refinement proof. [C] A future code-hash cache separately needs cache/code
+consistency (Nipkow Ch. 18 invariant).
 
 **Transfer log** [C]: `emitTransferLog f topic s r 0 = f`; otherwise, for `f' := emitTransferLog f topic s r a`, `α f'.logs = α f.logs ++ [Log(SYSTEM_ADDRESS, [topic, pad32 s, pad32 r], be32 a)]`.
 
@@ -1875,6 +1965,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
 
 ## 10. Gaps
+
+- **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
 - **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency remain open; Q63 pricing is supplied separately.
 

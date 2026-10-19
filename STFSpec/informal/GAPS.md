@@ -473,6 +473,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
+
 - **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency remain open; Q63 pricing is supplied separately.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
