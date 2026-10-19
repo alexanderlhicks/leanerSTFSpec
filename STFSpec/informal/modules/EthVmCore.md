@@ -77,7 +77,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 
 - **R-GAS-1** Every EELS `assert` above is a precondition of the Lean operation, discharged by callers (§7). The Lean operations must not contain fallible checks that EELS does not have.
 - **R-GAS-2** Gas amounts are unbounded `Nat`; charging is checked; no wrapping, no saturating subtraction that hides a failed check.
-- **R-GAS-3** `GasCosts` and `StateGasCosts` (`gas.py:48–259`) are fields of a gas-policy record, not literals inside handlers (ARCHITECTURE §8). The record also holds every precompile pricing dependency that EELS keeps outside `GasCosts` (DECISIONS B8, F9; §5). This module defines the record types; the Amsterdam values live in `EthFork`. Derived constants must be computed from their components as in EELS: `CALL_VALUE = ACCOUNT_WRITE + CALL_STIPEND = 11300`, `CREATE_ACCESS = 12000`, `REFUND_STORAGE_CLEAR = (10000 + 2100)·4800/5000 = 11616`, `STORAGE_SET = 64·1530 = 97920`, `NEW_ACCOUNT = 120·1530 = 183600`, `AUTH_BASE = 23·1530 = 35190`, `EXECUTION_PER_AUTH_BASE_COST = 101·16 + 3000 + 3000 + 2·100 = 7816`, `TX_ACCESS_LIST_ADDRESS = 2900`, `TX_ACCESS_LIST_STORAGE_KEY = 2000`, `MAX_BLOB_GAS_PER_BLOCK = 21·2^17`.
+- **R-GAS-3** `GasCosts` and `StateGasCosts` (`gas.py:48–259`) are fields of a gas-policy record, not literals inside handlers (ARCHITECTURE §8). The record also holds every precompile pricing dependency that EELS keeps outside `GasCosts` (DECISIONS B8, F9; §5). This module defines the record types; the Amsterdam values live in `EthFork`. In the EthFork instantiation, derived constants must be computed from their components as in EELS: `CALL_VALUE = ACCOUNT_WRITE + CALL_STIPEND = 11300`, `CREATE_ACCESS = 12000`, `REFUND_STORAGE_CLEAR = (10000 + 2100)·4800/5000 = 11616`, `STORAGE_SET = 64·1530 = 97920`, `NEW_ACCOUNT = 120·1530 = 183600`, `AUTH_BASE = 23·1530 = 35190`, `EXECUTION_PER_AUTH_BASE_COST = 101·16 + 3000 + 3000 + 2·100 = 7816`, `TX_ACCESS_LIST_ADDRESS = 2900`, `TX_ACCESS_LIST_STORAGE_KEY = 2000`, `MAX_BLOB_GAS_PER_BLOCK = 21·2^17`.
 
 ### 2.6 Exceptions
 
@@ -111,6 +111,48 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied raw GasCosts data
+
+`STFSpec/Vm/Core/GasCosts.lean`, exported through `STFSpec.Vm.Core`, supplies
+exactly the existing class-plus-seven-BLS data boundary: 144 public fields in
+the source/guidance order listed in §5. Type ownership is EthVmCore; Amsterdam
+values and alias/derived-value coherence belong to EthFork. This supplies data,
+not a complete supported pricing policy or an initialized VmConfig.
+
+| Pinned source / guidance boundary | Declaration and domain | Effect / laws / evidence |
+|---|---|---|
+| `gas.py:72–259`, all 137 class fields in source order | `GasCosts` constructor/projections; 132 Nat, one signed Int refund and four existing Base.U64 fields | Raw data, no failure or state effect; ordinary `GasCosts.ext`/`GasCosts.eta`; full supplied-constructor/public-law clients |
+| `precompiled_contracts/bls12_381/bls12_381_pairing.py:46`; B8/F9 | `blsPairingBase`, `blsPairingPerPair : Nat`, appended after the class fields | Independent raw scalars; values belong to EthFork |
+| `precompiled_contracts/bls12_381/__init__.py:37,168`; B8/F9 | `blsG1KDiscount`, `blsG2KDiscount : Array Nat`, next in order | Arbitrary complete ordered arrays, including empty/short arrays; no index premise supplied |
+| `precompiled_contracts/bls12_381/__init__.py:299–301`; B8/F9 | `blsG1MaxDiscount`, `blsG2MaxDiscount`, `blsMultiplier : Nat`, last in order | Independent raw scalars, including zero multiplier; no divisor premise supplied |
+
+The exact total is 137 Nat, one Int, four Base.U64 and two Array Nat. The record
+has no defaults, deriving/instances, proof fields, predicate, factory, additional
+helper or pricing field. Nat fields are arbitrary and unbounded; refund may be
+negative. Existing U64 bounds are retained without granting product-range facts.
+Copied source aliases remain independent raw fields: veryLow need not equal
+opcodeAdd, zero need not be 0, and callValue need not be accountWrite+callStipend.
+These relationships are future fork-initialization obligations.
+
+Exactly two ordinary laws are discharged (§7). Private public-import clients
+construct the full record on 144 independently supplied arguments, consume eta
+and all-field ext without unfolding provider implementations, and prove that
+the complete existing `chargeGas g c.opcodeAdd` result depends only on that selected
+projection and the same meter. Existing public charge laws yield exact success
+updates and exclusive out-of-gas failure on their actual affordability domains.
+This is a numeric charge client, not an ADD handler or an opcode-order theorem.
+No 144-row projector/substitution runtime suite, record-only wire/parser/native
+framework, benchmark or original imported-value acquisition is involved.
+
+The enumerated data seam is partial B8 coverage. MODEXP's floor500 and formula
+classification, module-derived MAX_BLOB_GAS_PER_BLOCK placement/checked-U64 range,
+the separate StateGasCosts stored-versus-computed representation, BLS executable
+index/denominator support, and the actual EthFork factory/config coherence remain
+open at their owners. Those obligations block their corresponding claims, not
+this raw record. Memory pricing's policy argument and the separate user disposition
+remain open; no pricing function, ZERO interpretation or 32/512 choice is supplied.
+Record equality proves no supported-policy, termination, resource or guest gate.
 
 ### Supplied scalar immediate decoders
 
@@ -598,6 +640,8 @@ and source/runtime identities separately from historical validation records.
 
 - **Supplied local Memory controls (Q62):** Thirty-three complete frames cover empty/zero/repeated aligned expansion, full high/interior-zero payloads, cross-word and exact-end writes, complete untouched prefixes/suffixes, both overlap directions/self-copy and retained immutable snapshots. Empty reads/writes at 2^64 and U256.max have typed source counterparts; 2^4096 is Lean-only. Public clients consume all ten laws, derive result-read witnesses and cover adjacent/either-empty disjointness. The committed producer/comparator checks all thirty-three target/literal frames under strict normal/`-O` comparison; optional external source frames are an explicit caller-supplied evidence premise (§3). Source agreement is conditional on aligned/admitted typed inputs and successful host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Caller ordering, compiled ownership/costs and guest gates remain open.
 
+- **Supplied raw GasCosts clients:** Ordinary private public-only proofs construct the full record on independently supplied fields, use both complete ext/eta laws and derive selected opcodeAdd `chargeGas` congruence on the same arbitrary meter, with exact public success/error consequences. Arbitrary aliases, signed refund and U64/array domains are not restricted to pinned values. This validates the data seam without mirroring all 144 generated projections in runtime substitution tests; source-value/factory and supported-consumer validation remain separate.
+
 - **Supplied scalar decoder controls:** All 256 bytes per decoder have complete literal guards and actual interpreted target/source frames. These include the boundaries 81/82, 90/91, 127/128, equal-nibble branch cases, byte255, both ordered pair coordinates and exact errors. Public-only clients exercise all eight laws, successful progress, arbitrary-error exclusion and actual input equality. Strict normal/`-O` parsing passes 81 positive and 79 rejection controls per mode; complete images, partitions and valid-input injectivity are also checked. These are local semantic controls, not native allocation, handler or guest evidence.
 
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
@@ -757,11 +801,151 @@ def calculateGasExtendMemory : Memory → List (U256 × U256) → ExtendMemory
 def calculateMemoryGasCost : Nat → Nat
 
 -- Gas policy and meter (public)
-structure GasCosts where …          -- one field per `GasCosts` constant (gas.py:72–259), then the
-  -- precompile pricing dependencies EELS keeps elsewhere (B8, F9; values in EthFork):
-  blsPairingBase blsPairingPerPair : Nat          -- 37700, 32600 (bls12_381_pairing.py:46)
-  blsG1KDiscount blsG2KDiscount : Array Nat       -- 128 entries each (bls12_381/__init__.py:37, 168)
-  blsG1MaxDiscount blsG2MaxDiscount blsMultiplier : Nat   -- 519, 524, 1000 (:299–301)
+structure GasCosts where            -- supplied raw data; no defaults or policy values
+  base : Nat
+  veryLow : Nat
+  low : Nat
+  mid : Nat
+  high : Nat
+  warmAccess : Nat
+  coldAccountAccess : Nat
+  coldStorageAccess : Nat
+  storageWrite : Nat
+  callStipend : Nat
+  accountWrite : Nat
+  callValue : Nat
+  codeInitPerWord : Nat
+  createAccess : Nat
+  zero : Nat
+  memoryPerWord : Nat
+  fastStep : Nat
+  refundStorageClear : Int
+  precompileEcrecover : Nat
+  precompileP256Verify : Nat
+  precompileSha256Base : Nat
+  precompileSha256PerWord : Nat
+  precompileRipemd160Base : Nat
+  precompileRipemd160PerWord : Nat
+  precompileIdentityBase : Nat
+  precompileIdentityPerWord : Nat
+  precompileBlake2FPerRound : Nat
+  precompilePointEvaluation : Nat
+  precompileBlsG1Add : Nat
+  precompileBlsG1Mul : Nat
+  precompileBlsG1Map : Nat
+  precompileBlsG2Add : Nat
+  precompileBlsG2Mul : Nat
+  precompileBlsG2Map : Nat
+  precompileEcAdd : Nat
+  precompileEcMul : Nat
+  precompileEcPairingBase : Nat
+  precompileEcPairingPerPoint : Nat
+  perBlob : STFSpec.Base.U64
+  blobScheduleTarget : STFSpec.Base.U64
+  blobTargetGasPerBlock : STFSpec.Base.U64
+  blobBaseCost : Nat
+  blobScheduleMax : STFSpec.Base.U64
+  blobMinGasPrice : Nat
+  blobBaseFeeUpdateFraction : Nat
+  blockAccessListItem : Nat
+  txBase : Nat
+  txValueCost : Nat
+  txDataTokenStandard : Nat
+  txDataTokenFloor : Nat
+  txAccessListAddress : Nat
+  txAccessListStorageKey : Nat
+  txMaxGasLimit : Nat
+  txMaxTotalGasLimit : Nat
+  authTupleBytes : Nat
+  executionPerAuthBaseCost : Nat
+  limitAdjustmentFactor : Nat
+  limitMinimum : Nat
+  opcodeAdd : Nat
+  opcodeSub : Nat
+  opcodeMul : Nat
+  opcodeDiv : Nat
+  opcodeSdiv : Nat
+  opcodeMod : Nat
+  opcodeSmod : Nat
+  opcodeAddmod : Nat
+  opcodeMulmod : Nat
+  opcodeSignextend : Nat
+  opcodeLt : Nat
+  opcodeGt : Nat
+  opcodeSlt : Nat
+  opcodeSgt : Nat
+  opcodeEq : Nat
+  opcodeIsZero : Nat
+  opcodeAnd : Nat
+  opcodeOr : Nat
+  opcodeXor : Nat
+  opcodeNot : Nat
+  opcodeByte : Nat
+  opcodeShl : Nat
+  opcodeShr : Nat
+  opcodeSar : Nat
+  opcodeClz : Nat
+  opcodeJump : Nat
+  opcodeJumpi : Nat
+  opcodeJumpDest : Nat
+  opcodeCallDataLoad : Nat
+  opcodeBlockHash : Nat
+  opcodeCoinbase : Nat
+  opcodePop : Nat
+  opcodeMsize : Nat
+  opcodePc : Nat
+  opcodeGas : Nat
+  opcodeAddress : Nat
+  opcodeOrigin : Nat
+  opcodeCaller : Nat
+  opcodeCallValue : Nat
+  opcodeCallDataSize : Nat
+  opcodeCodeSize : Nat
+  opcodeGasPrice : Nat
+  opcodeTimestamp : Nat
+  opcodeNumber : Nat
+  opcodeGasLimit : Nat
+  opcodePrevRandao : Nat
+  opcodeReturnDataSize : Nat
+  opcodeChainId : Nat
+  opcodeSelfBalance : Nat
+  opcodeBaseFee : Nat
+  opcodeBlobBaseFee : Nat
+  opcodeSlotNum : Nat
+  opcodeBlobHash : Nat
+  opcodePush : Nat
+  opcodePush0 : Nat
+  opcodeDup : Nat
+  opcodeSwap : Nat
+  opcodeDupn : Nat
+  opcodeSwapn : Nat
+  opcodeExchange : Nat
+  opcodeTload : Nat
+  opcodeTstore : Nat
+  opcodeReturnDataCopyBase : Nat
+  opcodeReturnDataCopyPerWord : Nat
+  opcodeCallDataCopyBase : Nat
+  opcodeCodeCopyBase : Nat
+  opcodeMcopyBase : Nat
+  opcodeMloadBase : Nat
+  opcodeMstoreBase : Nat
+  opcodeMstore8Base : Nat
+  opcodeCopyPerWord : Nat
+  opcodeExpBase : Nat
+  opcodeExpPerByte : Nat
+  opcodeKeccak256Base : Nat
+  opcodeKeccak256PerWord : Nat
+  opcodeLogBase : Nat
+  opcodeLogDataPerByte : Nat
+  opcodeLogTopic : Nat
+  opcodeSelfDestructBase : Nat
+  blsPairingBase : Nat
+  blsPairingPerPair : Nat
+  blsG1KDiscount : Array Nat
+  blsG2KDiscount : Array Nat
+  blsG1MaxDiscount : Nat
+  blsG2MaxDiscount : Nat
+  blsMultiplier : Nat
 structure StateGasCosts where costPerStateByte bytesPerNewAccount bytesPerStorageSet bytesPerAuthBase : Nat
 -- No Amsterdam values here: `EthFork` defines them (B8, F8).
 structure GasMeter where
@@ -850,6 +1034,311 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Raw GasCosts data.** Exactly two ordinary laws are **discharged** for all
+raw records. Extensionality requires every one of the 144 field equalities, in
+the exact §5 order; eta reconstructs every projection in that same order. Actual
+Array Nat and Base.U64 equality is retained, without normalization or instances.
+
+```lean
+GasCosts.ext (a b : GasCosts)
+    (h_base : a.base = b.base)
+    (h_veryLow : a.veryLow = b.veryLow)
+    (h_low : a.low = b.low)
+    (h_mid : a.mid = b.mid)
+    (h_high : a.high = b.high)
+    (h_warmAccess : a.warmAccess = b.warmAccess)
+    (h_coldAccountAccess : a.coldAccountAccess = b.coldAccountAccess)
+    (h_coldStorageAccess : a.coldStorageAccess = b.coldStorageAccess)
+    (h_storageWrite : a.storageWrite = b.storageWrite)
+    (h_callStipend : a.callStipend = b.callStipend)
+    (h_accountWrite : a.accountWrite = b.accountWrite)
+    (h_callValue : a.callValue = b.callValue)
+    (h_codeInitPerWord : a.codeInitPerWord = b.codeInitPerWord)
+    (h_createAccess : a.createAccess = b.createAccess)
+    (h_zero : a.zero = b.zero)
+    (h_memoryPerWord : a.memoryPerWord = b.memoryPerWord)
+    (h_fastStep : a.fastStep = b.fastStep)
+    (h_refundStorageClear : a.refundStorageClear = b.refundStorageClear)
+    (h_precompileEcrecover : a.precompileEcrecover = b.precompileEcrecover)
+    (h_precompileP256Verify : a.precompileP256Verify = b.precompileP256Verify)
+    (h_precompileSha256Base : a.precompileSha256Base = b.precompileSha256Base)
+    (h_precompileSha256PerWord : a.precompileSha256PerWord = b.precompileSha256PerWord)
+    (h_precompileRipemd160Base : a.precompileRipemd160Base = b.precompileRipemd160Base)
+    (h_precompileRipemd160PerWord : a.precompileRipemd160PerWord = b.precompileRipemd160PerWord)
+    (h_precompileIdentityBase : a.precompileIdentityBase = b.precompileIdentityBase)
+    (h_precompileIdentityPerWord : a.precompileIdentityPerWord = b.precompileIdentityPerWord)
+    (h_precompileBlake2FPerRound : a.precompileBlake2FPerRound = b.precompileBlake2FPerRound)
+    (h_precompilePointEvaluation : a.precompilePointEvaluation = b.precompilePointEvaluation)
+    (h_precompileBlsG1Add : a.precompileBlsG1Add = b.precompileBlsG1Add)
+    (h_precompileBlsG1Mul : a.precompileBlsG1Mul = b.precompileBlsG1Mul)
+    (h_precompileBlsG1Map : a.precompileBlsG1Map = b.precompileBlsG1Map)
+    (h_precompileBlsG2Add : a.precompileBlsG2Add = b.precompileBlsG2Add)
+    (h_precompileBlsG2Mul : a.precompileBlsG2Mul = b.precompileBlsG2Mul)
+    (h_precompileBlsG2Map : a.precompileBlsG2Map = b.precompileBlsG2Map)
+    (h_precompileEcAdd : a.precompileEcAdd = b.precompileEcAdd)
+    (h_precompileEcMul : a.precompileEcMul = b.precompileEcMul)
+    (h_precompileEcPairingBase : a.precompileEcPairingBase = b.precompileEcPairingBase)
+    (h_precompileEcPairingPerPoint : a.precompileEcPairingPerPoint = b.precompileEcPairingPerPoint)
+    (h_perBlob : a.perBlob = b.perBlob)
+    (h_blobScheduleTarget : a.blobScheduleTarget = b.blobScheduleTarget)
+    (h_blobTargetGasPerBlock : a.blobTargetGasPerBlock = b.blobTargetGasPerBlock)
+    (h_blobBaseCost : a.blobBaseCost = b.blobBaseCost)
+    (h_blobScheduleMax : a.blobScheduleMax = b.blobScheduleMax)
+    (h_blobMinGasPrice : a.blobMinGasPrice = b.blobMinGasPrice)
+    (h_blobBaseFeeUpdateFraction : a.blobBaseFeeUpdateFraction = b.blobBaseFeeUpdateFraction)
+    (h_blockAccessListItem : a.blockAccessListItem = b.blockAccessListItem)
+    (h_txBase : a.txBase = b.txBase)
+    (h_txValueCost : a.txValueCost = b.txValueCost)
+    (h_txDataTokenStandard : a.txDataTokenStandard = b.txDataTokenStandard)
+    (h_txDataTokenFloor : a.txDataTokenFloor = b.txDataTokenFloor)
+    (h_txAccessListAddress : a.txAccessListAddress = b.txAccessListAddress)
+    (h_txAccessListStorageKey : a.txAccessListStorageKey = b.txAccessListStorageKey)
+    (h_txMaxGasLimit : a.txMaxGasLimit = b.txMaxGasLimit)
+    (h_txMaxTotalGasLimit : a.txMaxTotalGasLimit = b.txMaxTotalGasLimit)
+    (h_authTupleBytes : a.authTupleBytes = b.authTupleBytes)
+    (h_executionPerAuthBaseCost : a.executionPerAuthBaseCost = b.executionPerAuthBaseCost)
+    (h_limitAdjustmentFactor : a.limitAdjustmentFactor = b.limitAdjustmentFactor)
+    (h_limitMinimum : a.limitMinimum = b.limitMinimum)
+    (h_opcodeAdd : a.opcodeAdd = b.opcodeAdd)
+    (h_opcodeSub : a.opcodeSub = b.opcodeSub)
+    (h_opcodeMul : a.opcodeMul = b.opcodeMul)
+    (h_opcodeDiv : a.opcodeDiv = b.opcodeDiv)
+    (h_opcodeSdiv : a.opcodeSdiv = b.opcodeSdiv)
+    (h_opcodeMod : a.opcodeMod = b.opcodeMod)
+    (h_opcodeSmod : a.opcodeSmod = b.opcodeSmod)
+    (h_opcodeAddmod : a.opcodeAddmod = b.opcodeAddmod)
+    (h_opcodeMulmod : a.opcodeMulmod = b.opcodeMulmod)
+    (h_opcodeSignextend : a.opcodeSignextend = b.opcodeSignextend)
+    (h_opcodeLt : a.opcodeLt = b.opcodeLt)
+    (h_opcodeGt : a.opcodeGt = b.opcodeGt)
+    (h_opcodeSlt : a.opcodeSlt = b.opcodeSlt)
+    (h_opcodeSgt : a.opcodeSgt = b.opcodeSgt)
+    (h_opcodeEq : a.opcodeEq = b.opcodeEq)
+    (h_opcodeIsZero : a.opcodeIsZero = b.opcodeIsZero)
+    (h_opcodeAnd : a.opcodeAnd = b.opcodeAnd)
+    (h_opcodeOr : a.opcodeOr = b.opcodeOr)
+    (h_opcodeXor : a.opcodeXor = b.opcodeXor)
+    (h_opcodeNot : a.opcodeNot = b.opcodeNot)
+    (h_opcodeByte : a.opcodeByte = b.opcodeByte)
+    (h_opcodeShl : a.opcodeShl = b.opcodeShl)
+    (h_opcodeShr : a.opcodeShr = b.opcodeShr)
+    (h_opcodeSar : a.opcodeSar = b.opcodeSar)
+    (h_opcodeClz : a.opcodeClz = b.opcodeClz)
+    (h_opcodeJump : a.opcodeJump = b.opcodeJump)
+    (h_opcodeJumpi : a.opcodeJumpi = b.opcodeJumpi)
+    (h_opcodeJumpDest : a.opcodeJumpDest = b.opcodeJumpDest)
+    (h_opcodeCallDataLoad : a.opcodeCallDataLoad = b.opcodeCallDataLoad)
+    (h_opcodeBlockHash : a.opcodeBlockHash = b.opcodeBlockHash)
+    (h_opcodeCoinbase : a.opcodeCoinbase = b.opcodeCoinbase)
+    (h_opcodePop : a.opcodePop = b.opcodePop)
+    (h_opcodeMsize : a.opcodeMsize = b.opcodeMsize)
+    (h_opcodePc : a.opcodePc = b.opcodePc)
+    (h_opcodeGas : a.opcodeGas = b.opcodeGas)
+    (h_opcodeAddress : a.opcodeAddress = b.opcodeAddress)
+    (h_opcodeOrigin : a.opcodeOrigin = b.opcodeOrigin)
+    (h_opcodeCaller : a.opcodeCaller = b.opcodeCaller)
+    (h_opcodeCallValue : a.opcodeCallValue = b.opcodeCallValue)
+    (h_opcodeCallDataSize : a.opcodeCallDataSize = b.opcodeCallDataSize)
+    (h_opcodeCodeSize : a.opcodeCodeSize = b.opcodeCodeSize)
+    (h_opcodeGasPrice : a.opcodeGasPrice = b.opcodeGasPrice)
+    (h_opcodeTimestamp : a.opcodeTimestamp = b.opcodeTimestamp)
+    (h_opcodeNumber : a.opcodeNumber = b.opcodeNumber)
+    (h_opcodeGasLimit : a.opcodeGasLimit = b.opcodeGasLimit)
+    (h_opcodePrevRandao : a.opcodePrevRandao = b.opcodePrevRandao)
+    (h_opcodeReturnDataSize : a.opcodeReturnDataSize = b.opcodeReturnDataSize)
+    (h_opcodeChainId : a.opcodeChainId = b.opcodeChainId)
+    (h_opcodeSelfBalance : a.opcodeSelfBalance = b.opcodeSelfBalance)
+    (h_opcodeBaseFee : a.opcodeBaseFee = b.opcodeBaseFee)
+    (h_opcodeBlobBaseFee : a.opcodeBlobBaseFee = b.opcodeBlobBaseFee)
+    (h_opcodeSlotNum : a.opcodeSlotNum = b.opcodeSlotNum)
+    (h_opcodeBlobHash : a.opcodeBlobHash = b.opcodeBlobHash)
+    (h_opcodePush : a.opcodePush = b.opcodePush)
+    (h_opcodePush0 : a.opcodePush0 = b.opcodePush0)
+    (h_opcodeDup : a.opcodeDup = b.opcodeDup)
+    (h_opcodeSwap : a.opcodeSwap = b.opcodeSwap)
+    (h_opcodeDupn : a.opcodeDupn = b.opcodeDupn)
+    (h_opcodeSwapn : a.opcodeSwapn = b.opcodeSwapn)
+    (h_opcodeExchange : a.opcodeExchange = b.opcodeExchange)
+    (h_opcodeTload : a.opcodeTload = b.opcodeTload)
+    (h_opcodeTstore : a.opcodeTstore = b.opcodeTstore)
+    (h_opcodeReturnDataCopyBase : a.opcodeReturnDataCopyBase = b.opcodeReturnDataCopyBase)
+    (h_opcodeReturnDataCopyPerWord : a.opcodeReturnDataCopyPerWord = b.opcodeReturnDataCopyPerWord)
+    (h_opcodeCallDataCopyBase : a.opcodeCallDataCopyBase = b.opcodeCallDataCopyBase)
+    (h_opcodeCodeCopyBase : a.opcodeCodeCopyBase = b.opcodeCodeCopyBase)
+    (h_opcodeMcopyBase : a.opcodeMcopyBase = b.opcodeMcopyBase)
+    (h_opcodeMloadBase : a.opcodeMloadBase = b.opcodeMloadBase)
+    (h_opcodeMstoreBase : a.opcodeMstoreBase = b.opcodeMstoreBase)
+    (h_opcodeMstore8Base : a.opcodeMstore8Base = b.opcodeMstore8Base)
+    (h_opcodeCopyPerWord : a.opcodeCopyPerWord = b.opcodeCopyPerWord)
+    (h_opcodeExpBase : a.opcodeExpBase = b.opcodeExpBase)
+    (h_opcodeExpPerByte : a.opcodeExpPerByte = b.opcodeExpPerByte)
+    (h_opcodeKeccak256Base : a.opcodeKeccak256Base = b.opcodeKeccak256Base)
+    (h_opcodeKeccak256PerWord : a.opcodeKeccak256PerWord = b.opcodeKeccak256PerWord)
+    (h_opcodeLogBase : a.opcodeLogBase = b.opcodeLogBase)
+    (h_opcodeLogDataPerByte : a.opcodeLogDataPerByte = b.opcodeLogDataPerByte)
+    (h_opcodeLogTopic : a.opcodeLogTopic = b.opcodeLogTopic)
+    (h_opcodeSelfDestructBase : a.opcodeSelfDestructBase = b.opcodeSelfDestructBase)
+    (h_blsPairingBase : a.blsPairingBase = b.blsPairingBase)
+    (h_blsPairingPerPair : a.blsPairingPerPair = b.blsPairingPerPair)
+    (h_blsG1KDiscount : a.blsG1KDiscount = b.blsG1KDiscount)
+    (h_blsG2KDiscount : a.blsG2KDiscount = b.blsG2KDiscount)
+    (h_blsG1MaxDiscount : a.blsG1MaxDiscount = b.blsG1MaxDiscount)
+    (h_blsG2MaxDiscount : a.blsG2MaxDiscount = b.blsG2MaxDiscount)
+    (h_blsMultiplier : a.blsMultiplier = b.blsMultiplier)
+    : a = b
+GasCosts.eta (c : GasCosts) :
+  GasCosts.mk
+    c.base
+    c.veryLow
+    c.low
+    c.mid
+    c.high
+    c.warmAccess
+    c.coldAccountAccess
+    c.coldStorageAccess
+    c.storageWrite
+    c.callStipend
+    c.accountWrite
+    c.callValue
+    c.codeInitPerWord
+    c.createAccess
+    c.zero
+    c.memoryPerWord
+    c.fastStep
+    c.refundStorageClear
+    c.precompileEcrecover
+    c.precompileP256Verify
+    c.precompileSha256Base
+    c.precompileSha256PerWord
+    c.precompileRipemd160Base
+    c.precompileRipemd160PerWord
+    c.precompileIdentityBase
+    c.precompileIdentityPerWord
+    c.precompileBlake2FPerRound
+    c.precompilePointEvaluation
+    c.precompileBlsG1Add
+    c.precompileBlsG1Mul
+    c.precompileBlsG1Map
+    c.precompileBlsG2Add
+    c.precompileBlsG2Mul
+    c.precompileBlsG2Map
+    c.precompileEcAdd
+    c.precompileEcMul
+    c.precompileEcPairingBase
+    c.precompileEcPairingPerPoint
+    c.perBlob
+    c.blobScheduleTarget
+    c.blobTargetGasPerBlock
+    c.blobBaseCost
+    c.blobScheduleMax
+    c.blobMinGasPrice
+    c.blobBaseFeeUpdateFraction
+    c.blockAccessListItem
+    c.txBase
+    c.txValueCost
+    c.txDataTokenStandard
+    c.txDataTokenFloor
+    c.txAccessListAddress
+    c.txAccessListStorageKey
+    c.txMaxGasLimit
+    c.txMaxTotalGasLimit
+    c.authTupleBytes
+    c.executionPerAuthBaseCost
+    c.limitAdjustmentFactor
+    c.limitMinimum
+    c.opcodeAdd
+    c.opcodeSub
+    c.opcodeMul
+    c.opcodeDiv
+    c.opcodeSdiv
+    c.opcodeMod
+    c.opcodeSmod
+    c.opcodeAddmod
+    c.opcodeMulmod
+    c.opcodeSignextend
+    c.opcodeLt
+    c.opcodeGt
+    c.opcodeSlt
+    c.opcodeSgt
+    c.opcodeEq
+    c.opcodeIsZero
+    c.opcodeAnd
+    c.opcodeOr
+    c.opcodeXor
+    c.opcodeNot
+    c.opcodeByte
+    c.opcodeShl
+    c.opcodeShr
+    c.opcodeSar
+    c.opcodeClz
+    c.opcodeJump
+    c.opcodeJumpi
+    c.opcodeJumpDest
+    c.opcodeCallDataLoad
+    c.opcodeBlockHash
+    c.opcodeCoinbase
+    c.opcodePop
+    c.opcodeMsize
+    c.opcodePc
+    c.opcodeGas
+    c.opcodeAddress
+    c.opcodeOrigin
+    c.opcodeCaller
+    c.opcodeCallValue
+    c.opcodeCallDataSize
+    c.opcodeCodeSize
+    c.opcodeGasPrice
+    c.opcodeTimestamp
+    c.opcodeNumber
+    c.opcodeGasLimit
+    c.opcodePrevRandao
+    c.opcodeReturnDataSize
+    c.opcodeChainId
+    c.opcodeSelfBalance
+    c.opcodeBaseFee
+    c.opcodeBlobBaseFee
+    c.opcodeSlotNum
+    c.opcodeBlobHash
+    c.opcodePush
+    c.opcodePush0
+    c.opcodeDup
+    c.opcodeSwap
+    c.opcodeDupn
+    c.opcodeSwapn
+    c.opcodeExchange
+    c.opcodeTload
+    c.opcodeTstore
+    c.opcodeReturnDataCopyBase
+    c.opcodeReturnDataCopyPerWord
+    c.opcodeCallDataCopyBase
+    c.opcodeCodeCopyBase
+    c.opcodeMcopyBase
+    c.opcodeMloadBase
+    c.opcodeMstoreBase
+    c.opcodeMstore8Base
+    c.opcodeCopyPerWord
+    c.opcodeExpBase
+    c.opcodeExpPerByte
+    c.opcodeKeccak256Base
+    c.opcodeKeccak256PerWord
+    c.opcodeLogBase
+    c.opcodeLogDataPerByte
+    c.opcodeLogTopic
+    c.opcodeSelfDestructBase
+    c.blsPairingBase
+    c.blsPairingPerPair
+    c.blsG1KDiscount
+    c.blsG2KDiscount
+    c.blsG1MaxDiscount
+    c.blsG2MaxDiscount
+    c.blsMultiplier
+    = c
+```
+
+The constructor/projections are ordinary public data operations. There is no
+raw-record alias, positivity, table-size or denominator invariant. Supported
+consumer assumptions and fork initialization remain separate as recorded in §3.
 
 **Stack** (model `List U256`, top first). The six-operation bounded slice supplies
 exactly these eight **discharged** ordinary laws, for every Stack/word/Nat index
@@ -1168,6 +1657,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Raw GasCosts data is supplied:** §3/§5/§7 own the exact class-plus-seven-BLS 144-field boundary, source-shaped types and two discharged ordinary ext/eta laws. Universal constructor/public-law and selected-cost charge clients supply the local data seam; no pinned values, defaults, instances, factory or supported-policy predicate is supplied.
+- **B8 pricing and specialization remain partial:** MODEXP floor500/formula classification, module-derived maximum placement/checked-U64 range, separate StateGasCosts representation, BLS executable index/denominator support, EthFork literal/alias/derived-field factory and config/consumer coherence remain open. They block the corresponding claims, not the supplied raw record. No extra field, unsupported-config completion or Memory-pricing policy choice follows.
 - **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
