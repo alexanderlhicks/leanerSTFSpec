@@ -486,14 +486,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   stack/resource bounds remain open. No C1/C4, G1–G7, whole VM/guest/EEST or
   readiness gate is closed by this local slice.
 
-- **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
-  own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly
-  six prospective ordinary laws. Complete public-law charge/error/affordability,
-  init rounding and explicitly financed local-potential clients, frozen controls
-  and source/target correspondence remain future work. Actual caller/config
-  coherence, earlier CALL payments/state spill, preflight/child return/settlement,
-  compiled/resource and G1/G2–G7/VM/guest gates remain open. The supplied scalar
-  maximum is reused; no new global invariant or hidden default follows.
+- **Call/init-code pricing (Q64) is locally supplied:** §3/§5/§7 own both
+  VmConfig-first helpers, the two-Nat MessageCallGas result, six discharged
+  ordinary laws and private public-law charge/error/affordability/read-set/init
+  rounding and explicitly financed local-potential clients. Thirty-two complete
+  literal controls and six complete charge witnesses, plus the dated external
+  interpreted/native and twenty-five original comparisons scoped in §3, are local evidence. General
+  source/default/host agreement, actual caller/config/target coherence, earlier
+  CALL payments/state spill, preflight/child return/settlement, compiled/resource
+  and whole G1/G2–G7/VM/guest gates remain open. The supplied scalar maximum and
+  existing guards are reused; no global invariant or hidden default follows.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 

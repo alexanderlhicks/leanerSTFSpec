@@ -182,6 +182,8 @@ import STFSpec.Conformance.Vm.Core.GasRefundGuards
 
 import STFSpec.Conformance.Vm.Core.MemoryGasCallerProofs
 import STFSpec.Conformance.Vm.Core.MemoryGasGuards
+import STFSpec.Conformance.Vm.Core.CallGasCallerProofs
+import STFSpec.Conformance.Vm.Core.CallGasGuards
 
 /-!
 # STFSpec.Conformance

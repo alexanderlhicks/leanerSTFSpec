@@ -136,14 +136,17 @@ Source value/default/map/Account callback/dirty/witness/partial-state histories
 remain separate from the already-encoded nominal secured/root projection. No new
 public helper, source/WF predicate, policy, dependency or broader readiness is supplied.
 
-Q64's call/init-code pricing contract is specified by
+Q64's local call/init-code pricing slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): two VmConfig-first
-pure helpers, the existing cost/subCall result shape and exactly six prospective
-ordinary laws. The carrier/helpers/proofs and complete public-law clients and
-source/target controls remain unimplemented/unproved. Relevant-price congruence
-is a local arithmetic boundary, without a global WF or payment/settlement/G2
-claim. This guidance approval closes no implementation, compiled/resource or
-VM/guest gate and changes no dated §6 readiness assessment.
+pure helpers, the complete cost/subCall result and six discharged ordinary laws.
+Private public-law clients derive complete checked-charge/error, affordability,
+read-set, init rounding and explicitly financed local-potential consequences.
+Core §3 owns the thirty-two literal controls, complete charge witnesses and strict
+reader scope, and identifies the dated external interpreted/native/twenty-five
+original comparisons and their source/default/host premises.
+Relevant-price congruence supplies no global WF or whole payment/settlement/G2
+claim. Actual caller/coherence/composition, compiled/resource and whole VM/guest
+gates remain open; the dated §6 readiness assessment is unchanged.
 
 ## 4. Agent implementation contract
 
