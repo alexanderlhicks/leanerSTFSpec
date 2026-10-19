@@ -29,6 +29,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | Stack | EthVmCore | Use the six public bounded-stack APIs and eight ordinary laws owned by EthVmCore §3/§7. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; swap/decoders, handler failure order, actual frame ownership and compiled allocation remain separate. |
+| Memory | EthVmCore | DECISIONS Q62 owns the disposition; EthVmCore §5/§7 owns the prospective API and laws, with implementation status in §10. The local-premise handoff below records caller alignment/window and ordering duties. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | VmWorld, VmConfig, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
@@ -36,6 +37,33 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Prospective Memory local-premise handoff (Q62)
+
+[EthVmCore §5/§7](modules/EthVmCore.md#5-interface) owns the exact API and ten
+prospective ordinary laws; no Memory implementation or law is supplied by this
+handoff. Initialize new frames with `Memory.empty`. For each expansion, establish
+only `n % 32 = 0`; the operation appends exactly n zero bytes. For reads supply
+`k = 0 ∨ s + k ≤ m.size`, and for writes supply
+`v.size = 0 ∨ s + v.size ≤ m.size`. These local erased proofs do not require a
+global frame invariant or a GasMeter premise. Size counts bytes, and alignment is
+structural. No raw constructor or arbitrary-byte ingress is available to callers.
+
+After a write, derive the read-window witness by rewriting the result size using
+`Memory.size_write` and reusing the original write/read window proof. The
+read-after-write and disjoint-read laws therefore introduce no additional semantic
+premise or exported witness helper. Empty windows remain admitted at every Nat
+offset; disjointness explicitly permits either window to be empty. Immutable read
+values support later overlapping read-then-write copy clients without a new API.
+
+Actual handlers/pricing must establish aligned increments and post-expansion
+windows; those derivations remain unproved. Preserve source charge-before-allocation,
+return-buffer checks and static-check ordering. Source agreement covers only
+intended aligned/admitted typed inputs and successful host premises; raw reads clip
+and writes can grow outside that domain, without adding a guest rejection.
+Remaining implementation, ownership, cost and readiness obligations are owned by
+[EthVmCore §10](modules/EthVmCore.md#10-gaps) and REVIEW; B8 owns the separate
+pricing-policy obligation. This handoff does not supply their proofs.
 
 ### Internal first-write order premise
 
