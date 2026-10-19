@@ -171,8 +171,9 @@ typed parent/child meters with unchanged child; it does not replay whole incorpo
 The unchanged scalar helper is called directly. Normal/-O complete-frame parsing rejects
 boolean/float substitutes and malformed streams. No top-level refund sign, storage
 history, source caller assertion, or message-call affordability/stipend theorem follows.
-Caller reachability, the adjacent txStateGasUsed domain ambiguity, remaining operations and
-transaction conservation remain open. These local laws
+Q61 specifies only the local baseline-to-grant proof for `txStateGasUsed`; its
+observer and single ordinary equation remain unimplemented/unproved. Caller
+reachability, remaining operations and transaction conservation remain open. These local laws
 close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate. The dated
 §6 readiness assessment is unchanged.
 

@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -45,7 +45,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 | `commit_state_gas` (:471) | precondition `state_gas_left ≤ baseline`; `committed += spilled`, `baseline := state_gas_left`, `spilled := 0` |
 | `restore_state_gas` (:505) | `gas_left += spilled`, `spilled := 0`, reservoir := `baseline`, `refund_counter := 0`. Committed spill untouched |
 | `restore_state_gas_to_entry m R` (:532) | preconditions `baseline ≤ R`, `refund_counter = 0`; `gas_left += spilled + committed`, both spills := 0, reservoir := baseline := `R` |
-| `tx_state_gas_used m R` (:570) | precondition `baseline ≤ R`; returns the `Int` `R − state_gas_left + spilled + committed` (may be negative) |
+| `tx_state_gas_used m T` (:570) | precondition `baseline ≤ T`; returns the `Int` `T − state_gas_left + spilled + committed` (may be negative) |
 | `credit_state_gas_refund m a` (:606) | `x = min a spilled`; `gas_left += x`, `spilled −= x`, reservoir `+= a − x` (LIFO credit) |
 | `repay_state_gas_spill` (:631) | `y = min reservoir spilled`; `gas_left += y`, reservoir `−= y`, `spilled −= y`; afterwards `reservoir = 0 ∨ spilled = 0` (a theorem, not a check) |
 | `forfeit_remaining_gas` (:662) | precondition `spilled = 0`; `gas_left := 0` |
@@ -506,7 +506,8 @@ def chargeStateGas : GasMeter → Nat → Except ExceptionalHalt GasMeter     --
 def commitStateGas (m : GasMeter) (h : m.stateGasLeft ≤ m.stateGasBaseline) : GasMeter
 def restoreStateGas : GasMeter → GasMeter
 def restoreStateGasToEntry (m : GasMeter) (R : Nat) (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) : GasMeter
-def txStateGasUsed (m : GasMeter) (R : Nat) : Int
+def txStateGasUsed (m : GasMeter) (T : Nat)
+    (h : m.stateGasBaseline ≤ T) : Int
 def creditStateGasRefund : GasMeter → Nat → GasMeter
 def repayStateGasSpill : GasMeter → GasMeter
 def forfeitRemainingGas (m : GasMeter) (h : m.stateGasSpilled = 0) : GasMeter
@@ -683,6 +684,28 @@ under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follo
 The complete nominal exception carrier supplies vocabulary only; its other producers
 remain unimplemented.
 
+**Transaction state-gas usage (Q61), prospective and not supplied.** The
+`txStateGasUsed` observer has only the local proof argument
+`h : m.stateGasBaseline ≤ T`, matching `gas.py:597` and R-GAS-1. It neither changes
+the meter nor returns an error. Its one required ordinary equation is:
+
+```lean
+theorem txStateGasUsed_eq (m : GasMeter) (T : Nat)
+    (h : m.stateGasBaseline ≤ T) :
+    txStateGasUsed m T h =
+      (T : Int) - (m.stateGasLeft : Int) +
+        (m.stateGasSpilled : Int) + (m.stateGasCommittedSpill : Int)
+```
+
+This is a law type for a later implementation, not a supplied theorem. Cast before
+subtraction: the result is signed and may be negative. All other raw fields are
+unrestricted, including execution gas, refund sign and both spill pools; the
+reservoir may exceed both baseline and grant. For example, `(E,R,B,q,S,C) =
+(13,21,9,99,3,5)` with `T = 10` meets the premise and returns `-3`. Callers must
+establish this local proof; no global `Wf`, non-negativity premise, clamp, runtime
+error or bundled domain is added. Caller reachability and transaction conservation
+remain separate obligations. The observer and this equation are unimplemented/unproved.
+
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
 - `calculateMessageCallGas v g L mem x = ⟨c, s⟩ → L ≥ mem + x → c ≤ L − mem ∧ s ≤ c − x + stipend(v)` (forwarded gas never exceeds what is charged, plus stipend): the `Ccallgas_lt_Ccall` analogue needed by G2.
@@ -727,12 +750,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-3: resolved by D27 (DECISIONS Q25).
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
+- **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability and implementation remain obligations.
 
 ## 10. Gaps
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation remain unimplemented/unproved; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
