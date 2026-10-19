@@ -78,6 +78,10 @@ jobs:
         run: |
           lake build fixed-endian-bench --wfail
           lake exe check-decls FixedEndianBench
+      - name: Log-rope benchmark build and declaration audit
+        run: |
+          lake build log-rope-bench --wfail
+          lake exe check-decls LogRopeBench
       - name: Packed Keccak benchmark build, declaration audit and generator freshness
         run: |
           lake build packed-keccak-bench --wfail

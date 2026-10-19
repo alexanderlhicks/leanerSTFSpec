@@ -154,6 +154,8 @@ lake exe check-decls StateErrorNativeTests
 lake exe state-error-native-tests
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
+lake build log-rope-bench --wfail
+lake exe check-decls LogRopeBench
 python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
@@ -170,7 +172,8 @@ lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py
 ```
 
-The fixed-endian benchmark is built and audited here; timing measurements remain manual.
+The fixed-endian and log-rope benchmarks are built and audited here; timing measurements
+remain manual.
 
 Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there and `scripts/check_decls.sh mathlib` or `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.
 

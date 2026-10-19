@@ -473,6 +473,19 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
+  Log, existing public rope constructors, two operations and six discharged ordinary
+  laws, with private total workstack/all-tree reference refinement. Public-only
+  clients and all 16+6 complete controls cover full fields/order/duplicates and model
+  selection. The finite 102 native C3 measurements in §4 cover expanded traversal,
+  deep/skew/shared shapes and explicit last-owner cleanup with disclosed sharing,
+  IO instrumentation and metric limits. Real LOG/transfer producer ordering,
+  HashConsts and topic restrictions, settled child/frame incorporation, top-level
+  execution/output/receipt/bloom integration, typed source/host generalization,
+  actual composed ownership, exact allocated bytes/live space and universal
+  stack/resource bounds remain open. No C1/C4, G1–G7, whole VM/guest/EEST or
+  readiness gate is closed by this local slice.
+
 - **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
   own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly
   six prospective ordinary laws. Complete public-law charge/error/affordability,

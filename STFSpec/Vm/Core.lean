@@ -6,6 +6,7 @@ import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.GasMeter
 import STFSpec.Vm.Core.GasCosts
 import STFSpec.Vm.Core.Config
+import STFSpec.Vm.Core.Logs
 import STFSpec.Vm.Core.Jumpdest
 import STFSpec.Vm.Core.Memory
 import STFSpec.Vm.Core.MemoryGas
