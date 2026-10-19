@@ -109,6 +109,46 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
+### Supplied padded buffer read
+
+`STFSpec/Vm/Core/Memory.lean`, exported by `STFSpec.Vm.Core`, supplies only the
+standalone `bufferRead` adapter and its three ordinary laws in §7. It delegates to
+the existing public `Bytes.extractPadded` provider with exact `U256.toNat` operands;
+there is no Memory carrier or gas effect in this operation.
+
+| Pinned source | Declaration and domain | Complete effect and failure | Public law / evidence |
+|---|---|---|---|
+| `memory.py:63,82–83`; `src/ethereum/utils/byte.py:40–59` | `bufferRead (b : Bytes) (start size : U256) : Bytes`; every finite Bytes and all U256 pairs | Exact available window then zeros to size.toNat; no mathematical failure or host cap. Source casts both operands to unbounded Uint before addition. | `bufferRead_eq_extractPadded`, `bufferRead_toList`, `bufferRead_size`; private public-law clients, 32 complete-byte guards/frames and strict normal/`-O` parser controls |
+
+All three ordinary laws are **discharged**. Base checks availability in Nat before
+packed index conversion and clamps the copied endpoint within the input. Huge
+unavailable offsets do not cause traversal or allocation proportional to the offset.
+The output-copying O(k) algorithm shape is inferred from that existing provider;
+compiled allocation, sharing and composed costs have not been measured here.
+
+Equal successful Python execution additionally requires actual pinned builtin
+bytes/U256 arguments and dependencies, representable requested width in the runtime's
+Py_ssize_t domain, and successful allocation. These are correspondence premises,
+not restrictions on Lean's mathematical domain or new guest outcomes (O12,
+DISC-001, DISC-006). The committed public comparator checks all 32 frozen complete
+byte observations and strict framing without importing a source or dependency oracle;
+it has no source mode. The separate historical authenticated source comparison is
+recorded in [PR153 review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/153#issuecomment-6242238102),
+rather than implemented by this comparator. Neither finite comparison replaces the
+all-domain ordinary laws or closes host-resource gates.
+
+Reproduce the committed controls with fresh output paths; the emitter defines main:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/buffer_read_differential.py
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > /tmp/BufferReadFrames.lean
+lake env lean --run /tmp/BufferReadFrames.lean > /tmp/buffer-read.ndjson
+python3 -B "$DRIVER" --check-frames /tmp/buffer-read.ndjson
+python3 -B -O "$DRIVER" --check-frames /tmp/buffer-read.ndjson
+```
+
 ### Prospective aligned Memory (Q62; unimplemented/unproved)
 
 The exact API is in §5 and its finite ten-law target is in §7. The following rows
@@ -458,6 +498,22 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Supplied buffer controls:** `BufferReadGuards.lean` freezes 32 complete input,
+  offset, width and output observations. `buffer_read_differential.py` embeds the
+  same literals and emits public-import Lean observations without a private data
+  file. Its strict whole-frame NDJSON comparison checks all input/output bytes,
+  exact integer types, IDs/order/count, fields and framing under normal Python and
+  `-O`; rejection controls include duplicate/missing/extra/truncated/reordered rows,
+  booleans/floats and wrong middle bytes with unchanged length. Private clients use
+  all three laws for zero-size actual Bytes equality, wholly unavailable and
+  contained windows, and the existing Base right-padding extension law with its
+  explicit window premise. Requested outputs are at most 33 bytes, including huge
+  offsets near 2^64 and U256.max. U256.max with tiny width is already unavailable:
+  wrapped and unbounded stops both give empty slices, so those finite controls
+  cannot establish endpoint arithmetic. The all-domain bridge/List law and static
+  adapter/provider/source inspection supply that guarantee. The authenticated
+  original result and exact typed/whole-input observations are recorded in §3.
+
 - **Prospective Memory controls (Q62; unrun):** Construct through `Memory.empty`, aligned expand and admitted writes only. Retain complete post-memory/size and saved immutable read bytes for empty operations at every offset (including huge Nat offsets), exact endpoints, untouched prefixes/suffixes, cross-word writes, adjacent/disjoint windows and explicit empty windows, overlapping read-then-write copies in both directions/self-copy, and snapshots surviving later writes. Public-only clients consume exactly the ten §7 laws. Derive post-write read witnesses from preserved size and the original local window proof. Future source comparison is restricted to typed aligned/admitted inputs and host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Preserve caller charge/allocation, return-buffer and static-check ordering separately. Compiled linear ownership, trace on/off and shared-old-value controls remain required and unrun; no checksum belongs in a timed loop.
 
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
@@ -609,7 +665,9 @@ def Memory.readBytes (m : Memory) (s k : Nat)
     (h : k = 0 ∨ s + k ≤ m.size) : Bytes
 def Memory.write (m : Memory) (s : Nat) (v : Bytes)
     (h : v.size = 0 ∨ s + v.size ≤ m.size) : Memory
-def bufferRead : Bytes → U256 → U256 → Bytes              -- zero-padded, any start
+-- Standalone supplied adapter; not one of the prospective Memory APIs
+def bufferRead : Bytes → U256 → U256 → Bytes              -- supplied; independent of Memory
+-- Memory pricing (unimplemented)
 structure ExtendMemory where cost : Nat; expandBy : Nat
 def calculateGasExtendMemory : Memory → List (U256 × U256) → ExtendMemory
 def calculateMemoryGasCost : Nat → Nat
@@ -699,6 +757,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 |---|---|---|---|---|---|
 | `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
 | `Memory` | private `ByteArray` and alignment proof (D11/Q62), prospective | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
+| `bufferRead` input/output | existing immutable Base `Bytes`, no new carrier | Base padded-window model in §7 | every finite input/all U256 operands | immutable input and copied result | inferred output-proportional copying O(k), bounded source copy and Nat availability check before narrowing; compiled costs unmeasured |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
 | `JumpdestMap` | `ByteArray` bitmap of `⌈\|code\|/8⌉` bytes | `Finset Nat` (= EELS `Set[Uint]`); `α b = {i \| bit i}` | only indices `< \|code\|` | read-only, shareable; a cache keyed by code hash is allowed outside semantic state (ARCHITECTURE §7) | build O(\|code\|); lookup O(1) |
@@ -797,8 +856,23 @@ MCOPY snapshot behavior, including both overlap directions and self-copy, follow
 as a prospective client derivation from immutable reads and M5/M8/M9; disjoint
 retention uses M10. This adds no Memory.copy operation or extra public law.
 
-BufferRead and pricing retain their independent obligations:
-- `bufferRead b s k = (b.drop s).take k ++ replicate (k − …) 0`, length `k`.
+**Padded buffer read.** Exactly these three ordinary public laws are **discharged**
+for every finite Bytes and all U256 operands, without a Memory/gas/host-cap premise.
+The bridge is actual Bytes equality to the existing public Base provider; the
+other two laws consume its existing public List-window and size seams.
+
+```
+bufferRead_eq_extractPadded (b : Bytes) (start size : U256) :
+  bufferRead b start size = Bytes.extractPadded b start.toNat size.toNat
+bufferRead_toList (b : Bytes) (start size : U256) :
+  (bufferRead b start size).toList =
+    (b.toList.drop start.toNat).take size.toNat ++
+      List.replicate (size.toNat - min size.toNat (b.size - start.toNat)) 0
+bufferRead_size (b : Bytes) (start size : U256) :
+  (bufferRead b start size).size = size.toNat
+```
+
+Pricing retains its independent obligations:
 - Expansion closed form: for windows `ws` with nonzero sizes, `(calculateGasExtendMemory m ws).expandBy = ceil32(max(size m, maxEnd ws)) − size m` and `cost = C(size m + expandBy) − C(size m)` [I: telescoping sum; prove].
 - `L-MEM-BOUND` [T/S]: `chargeGas g (… + ext.cost) = .ok _ → ext.expandBy ≤ f(g)` for an explicit `f` (the quadratic inverse); this is what makes "no allocation before charge" a resource bound.
 
@@ -978,6 +1052,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, both decoders, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
+- **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
