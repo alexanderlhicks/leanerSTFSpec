@@ -30,6 +30,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
 | Stack | EthVmCore | Use the six public bounded-stack APIs and eight ordinary laws owned by EthVmCore §3/§7. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; swap, handler failure order, actual frame ownership and compiled allocation remain separate. |
 | `decodeSingle`, `decodePair` | EthVmCore | Use the existing UInt8-to-Except APIs and eight discharged ordinary equations/error/bounds/injectivity laws owned by EthVmCore §3/§7. Preserve complete ordered pair payloads and the existing nullary invalidParameter. Valid-domain progress and alternative-error exclusion follow from those equations. Handler ordering, gas/PC effects, Stack operations, compiled costs and guest gates remain separate. |
+| JumpdestMap | EthVmCore | Use the abstract immutable map, existing factory/contains operations and three supplied ordinary equations owned by EthVmCore §3/§5/§7. Empty/out-of-code absence, PUSH exclusion/resumption and true-hit byte identity are public-law consequences. Supply the intended complete code and establish actual frame code/map agreement; cache provenance, JUMP/JUMPI gas/error ordering and compiled costs/ownership remain separate. |
 | `bufferRead` | EthVmCore | Use the existing Base Bytes/U256 types and the three supplied ordinary bridge/List/size laws owned by EthVmCore §3/§7; no Memory/gas/host-cap premise. Source correspondence retains typed-dependency/representable-width/allocation premises. |
 | Memory | EthVmCore | DECISIONS Q62 owns the disposition; EthVmCore §5/§7 owns the supplied API and laws, with implementation status in §10. The local-premise handoff below records caller alignment/window and ordering duties; Q63 owns the separate memory-pricing policy contract. |
 | GasCosts | EthVmCore | Use the exact raw 144-field constructor/projections and two ordinary ext/eta laws owned by EthVmCore §3/§5/§7. Raw aliases are independent; refund is signed, blob fields use existing Base.U64 and BLS arrays admit arbitrary lengths. Equal selected opcodeAdd cost and the same meter give equal complete chargeGas results. EthFork values/coherence, broader B8 classification, StateGasCosts, supported consumer domains and Memory pricing remain separate. |
@@ -83,6 +84,23 @@ memory-pricing policy contract; its local helpers and proofs are supplied under
 EthVmCore §3/§5/§7.
 
 Q63's supplied pricing helpers receive the caller's VmConfig. Compute ext without changing memory or charging gas; its discharged alignment law supplies the existing expansion proof, and its coverage law with the supplied Memory size/expand laws derives each listed empty-or-in-bounds window. Private public-only clients also derive complete same-size/permutation/duplicate/subsumed result invariance, seed-aware composition through actual Memory.expand, and admitted-read preservation. A write still requires the actual payload-size equality. Preserve actual source charge-before-allocation, return-buffer/static/init-code checks and CALL-family ordering. Local relevant-price congruence suffices for the arithmetic component when the target satisfies the same arithmetic/input interpretation; passing a config alone proves neither that fact nor coherence with the executing frame/other operations. No evm-asm or stateless-pancaketh runtime config shape is assumed or inspected. Actual caller/coherence, source-host, allocation/resource, L-MEM-BOUND and whole VM/guest obligations retain their owners.
+
+### Supplied jump-destination handoff
+
+[EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map) owns the supplied
+abstract immutable map, two existing operations and three ordinary all-code/all-Nat
+lookup equations. Call `validJumpDestinations` on the intended complete code and
+use `contains` through those public equations. Private public-law consumers derive
+head behavior, PUSH data exclusion/resumption/truncation, non-PUSH advancement,
+true-hit bounds/byte identity and arbitrary out-of-code absence. Consumers neither
+construct maps nor inspect bitmap storage. Semantic immutable sharing is distinct
+from compiled allocation/sharing/ownership.
+
+A frame must separately establish that its map belongs to its actual code. Future
+code-hash caches require authenticity/coherence, and JUMP/JUMPI handlers must
+establish their operand/gas/error order. Complete finite source/target controls
+retain typed-dependency and successful host premises; they prove neither these
+caller facts nor compiled costs, C1–C4 or whole VM/guest readiness.
 
 ### Internal first-write order premise
 

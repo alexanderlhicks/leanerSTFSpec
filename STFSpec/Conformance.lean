@@ -152,6 +152,8 @@ import STFSpec.Conformance.StateCommit.StorageEncodingGuards
 import STFSpec.Conformance.StateCommit.AccountEncodingCallerProofs
 import STFSpec.Conformance.StateCommit.AccountEncodingGuards
 
+import STFSpec.Conformance.Vm.Core.JumpdestCallerProofs
+import STFSpec.Conformance.Vm.Core.JumpdestGuards
 import STFSpec.Conformance.Vm.Core.StackCallerProofs
 import STFSpec.Conformance.Vm.Core.StackGuards
 import STFSpec.Conformance.Vm.Core.StackDecoderCallerProofs
