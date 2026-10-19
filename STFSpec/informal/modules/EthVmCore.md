@@ -124,6 +124,8 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 | `vm/gas.py:678–698`, inlining arithmetic `:861–876` | `withholdCreateGas : GasMeter → Nat × GasMeter` | Every raw meter; save `g=E-E/64`, subtract g from E, return `(g,(E-g,R,B,q,S,C))`, grant first. Division and both subtraction bounds hold universally; no affordability premise or failure | `withholdCreateGas_eq`, `withholdCreateGas_phi`; 0/1/63/64/65/127/128/129/beyond-word complete returns, retained-share and round-trip clients; original callee binding |
 | `vm/gas.py:701–722` | `drainStateGasReservoir : GasMeter → Nat × GasMeter` | Every raw meter; save R then set reservoir zero; return `(R,(E,0,B,q,S,C))`, saved value first. No 63/64 rule or baseline cap; no failure | `drainStateGasReservoir_eq`, `drainStateGasReservoir_phi`; complete zero/positive/beyond-word saved returns, retention and repeated-drain clients |
 | `vm/gas.py:725–746` | `restoreChildGas : GasMeter → Nat → Nat → GasMeter` | Every raw meter and g,T : Nat; E+=g then R+=T; complete result `(E+g,R+T,B,q,S,C)`. No provenance/maximum-grant premise or failure; unbounded addition | `restoreChildGas_eq`, `restoreChildGas_phi`; independent zero/nonzero amounts, beyond-word complete addition, zero identity and withhold/drain/restore clients |
+| `vm/instructions/storage.py:130,134,139`; `vm/__init__.py:242` (inline additions, no named `add_refund`) | `addRefund : GasMeter → Int → GasMeter` | Every raw meter and signed k; complete result `(E,R,B,q+k,S,C)`. No sign, word-width, baseline, spill or caller premise; no failure | `addRefund_eq`, `addRefund_phi`; complete signed/cancellation/beyond-U256 guards, public composition/reset-order clients and exact original statement projection |
+| `vm/gas.py:861–876` | `maxMessageCallGas : Nat → Nat` | Every unbounded Nat g; result `g-g/64`. Division/subtraction bounds hold universally; no meter, premise or failure | `maxMessageCallGas_eq`, `maxMessageCallGas_le`; zero/rounding/beyond-word guards, public complementary-share clients and direct original helper comparison |
 
 The charge helpers' error is an O8 exceptional halt. Existing source consumers include
 `vm/interpreter.py:276` (top-level preparation), `:386` (code deposit), and `:456–474`
@@ -271,7 +273,7 @@ Lean composition intermediate, including R>B, q<0, both spill pools and beyond-w
 amounts. `gas_transfer_differential.py` strictly compares all thirty public-import
 frames normally and under `-O`. Its source schedule calls only these four new original
 helpers; withhold uses the real authenticated `max_message_call_gas` callee, without
-providing a separate public `maxMessageCallGas` operation or status. Composition rows
+providing its own standalone maximum operation/status; the scalar slice below owns that. Composition rows
 are standalone new-helper inputs, with no original charge/refund/rollback replay.
 The three source-only S>0 probes require enabled AssertionError at `vm/gas.py:674`
 before mutation and retain all six unchanged fields, including when E=0; they have no
@@ -311,7 +313,59 @@ result and its runtime identities separately from historical validation records.
 
 **External semantics.** From `ethereum_types` 0.4.1 (`reference.toml`): `Uint` (unbounded, subtraction below zero raises `OverflowError`), `U256`/`U64`/`U8` (constructor, `+` and `from_signed` raise `OverflowError` out of range; `from_be_bytes` raises `ValueError` for more than 32 bytes; `wrapping_*` wrap), `Bytes`, `Bytes32`, `ulen`. Only the `OverflowError` cases listed in R-EXC-2 are behaviourally reachable from this module's callers; the Lean `Nat`/`U256` API (EthBase) must make each one explicit rather than wrap. `ceil32` and `taylor_exponential` come from `utils/numeric.py` (EthBase). `left_pad_zero_bytes` from `utils/byte.py`.
 
+
+`GasAccountingCallerProofs.lean` consumes all four signed-addition/scalar-maximum laws
+without unfolding providers: all five Nat fields are retained, signed zero/composition/
+inverse identities hold, and the grant plus retained share equals the input. Actual
+ordinary rollback after addition discards the refund; addition after rollback retains k.
+These local facts prove neither storage-history consistency nor top-level refund sign.
+`GasAccountingGuards.lean` checks twelve complete signed cases, fourteen scalar cases
+and every intermediate of actual addition/cancellation/reset sequences. Values include
+R>B, negative refunds, both spill pools and beyond-U256 amounts. The withholding body
+remains unchanged; a standalone scalar law proves no CALL affordability/stipend claim.
+`gas_accounting_differential.py` emits and strictly compares all twenty-six complete
+public-import frames normally and under `-O`, rejecting boolean/float substitutes,
+duplicates, nonfinite values, malformed fields and complete-stream mismatches.
+Its separately authenticated original schedule projects only the exact original
+AugAssign AST at `vm/__init__.py:242` on distinct original typed meters and preserves
+the complete child. This is not a named source function or whole incorporation replay.
+The scalar schedule calls the unchanged original maximum directly. Host/compiler/runtime
+and startup trust remain explicit; no old helper or transaction lifecycle is replayed.
+The authenticated original comparison passed all twenty-six complete observations:
+twelve signed statement projections with unchanged full children and execution returning
+None, plus fourteen direct maximum calls returning the exact original Uint class.
+Source/runtime identities remained unchanged before and after each separate phase.
+
+Reproduce this accounting slice with fresh external output paths. The emitter
+uses `#eval` and plain Lean. Source mode uses the pinned clone's isolated,
+unoptimized interpreter and distinguishes exact statement projections from calls:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/gas_accounting_differential.py
+OUT=/absolute/path/to/fresh-accounting-controls
+EELS=/absolute/path/to/pinned-eels
+WHEELS=/absolute/path/to/locked-wheels
+mkdir -p "$OUT"
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > "$OUT/GasAccountingFrames.lean"
+lake env lean "$OUT/GasAccountingFrames.lean" > "$OUT/frames.jsonl"
+python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
+```
+
+The catalog retains twelve signed statement projections and fourteen direct
+maximum calls. Preflight executes none. Refund projection is not a named source
+helper or whole incorporation. Record each actual comparison's complete results
+and source/runtime identities separately from historical validation records.
+
 ## 4. Tests
+
+- **Supplied accounting controls:** Twelve complete signed-refund cases and fourteen scalar maxima retain all fields and exact returns, including negative/cross-zero/cancellation/beyond-U256 refunds, both spills, R>B and 63/64 rounding. Public-only clients consume all four laws and derive signed composition/inverse, actual rollback/reset order and complementary grant shares. Strict normal/`-O` frames reject boolean/float aliases and malformed or wrong complete streams. Authenticated original comparison passed exact statement projection on twelve distinct typed parent/child pairs with unchanged full children, plus fourteen direct scalar helper calls. No source caller assertions or whole incorporation are replayed.
 
 - **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve assertion :674 and unchanged full meter; no invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
 - **Supplied refund controls:** `GasRefundGuards.lean` and the strict normal/`-O` complete-frame parser retain twenty full outputs and actual Lean charge/refund/repay intermediates. Public clients use all seven laws and prove the conditional inverse with local initial pending spill zero; a complete-field counterexample excludes unconditional inversion. Min boundaries, R>B, signed refund, both spills, zero execution and unbounded amounts are covered. Source calls use only the two unchanged original helpers on fresh typed meters, with expected `None`, complete fields and enabled repayment postcondition.
@@ -607,14 +661,29 @@ Nat subtraction hides no failed check. Public clients derive the exact retained 
 E/64, without unfolding the provider. Draining excludes R from phi; restoration counts
 only g, independently of T. Forfeit leaves arbitrary C. The saved-amount round trip is
 local algebra, not an unconditional CREATE/CALL child-return or iteration-progress law.
-The separately specified `maxMessageCallGas` remains unimplemented.
+The separately supplied `maxMessageCallGas` has its own scalar laws below;
+withholding is not refactored through it.
+
+
+| Supplied signed-addition/scalar public law | Contract |
+|---|---|
+| `addRefund_eq m k` | `addRefund m k = { m with refundCounter := m.refundCounter + k }` |
+| `addRefund_phi m k` | `(addRefund m k).phi = m.phi` |
+| `maxMessageCallGas_eq g` | `maxMessageCallGas g = g - g / 64` |
+| `maxMessageCallGas_le g` | `maxMessageCallGas g ≤ g` |
+
+These four laws have no premises: signed k and q are unbounded, and all five Nat
+meter fields are unrestricted. The scalar subtraction bound `g/64 ≤ g` is universal.
+Signed addition preserves Φ, without establishing a nonnegative refund or a valid
+child merge. Public clients derive zero, composition, inverse, exact rollback/reset
+order, and both complementary-share equations. No new public law or global WF is needed.
 
 An ordinary public-only client derives `g'.phi + 1 ≤ g.phi` from `chargeGas_phi`
 under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follows.
 The complete nominal exception carrier supplies vocabulary only; its other producers
 remain unimplemented.
 
-The charge, three rollback, two refund and four local transfer equations are supplied
+The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
 - `calculateMessageCallGas v g L mem x = ⟨c, s⟩ → L ≥ mem + x → c ≤ L − mem ∧ s ≤ c − x + stipend(v)` (forwarded gas never exceeds what is charged, plus stipend): the `Ccallgas_lt_Ccall` analogue needed by G2.
 - **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
@@ -663,7 +732,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero). Caller premise reachability, separate maximum-message-call gas, remaining meter operations, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The adjacent `txStateGasUsed` proof-parameter ambiguity (§2.5/R-GAS-1 versus §5) remains unresolved. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).

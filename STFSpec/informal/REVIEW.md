@@ -72,7 +72,7 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthStateCommit | Total U256 storage encoding, all-value validity/nonempty and wire injectivity are supplied by EthStateCommit §3 independently of supplied-default deletion. Contextual Account encoding, unconditional nonempty and pair binding under both complete assembled Q47 premises are supplied in EthStateCommit §3. Implement callback/root integration, without a bare Account instance or secured-policy claim. SC6 and nonzero storage SC10 are supplied locally in EthStateCommit §3, with ordinary all-Bytes packed/reference equality, bounded checked candidates and full-parser-first equations. SC5 and conditional account SC10 are supplied locally in EthStateCommit §3, with caller-owned defaults, unbounded nonce, bounded numerical balance and complete assembled Q47 premises. Finish code-authenticity/root clauses, triggered backend/shared error integration and computable collision extraction including full-state code. |
 | EthStateFull | Require CodeComplete for progress; prove applyChanges preservation and raw-helper WF premises; finish full-root folding model. |
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
-| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), are owned by EthVmCore §3/§7; partial G1 only. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
+| EthVmCore | The supplied nominal ExceptionalHalt, complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws, are owned by EthVmCore §3/§7; partial G1 only. Implement/prove every remaining meter operation, GasCosts/error/frame fields, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | Expand all grouped handler claims into guard/effect/error equations; typecheck requests/resume and prove per-opcode source refinement. |
 | EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
@@ -161,7 +161,16 @@ adds its execution amount. Public clients derive retained E/64 and complete save
 withhold/drain/restore inversion; actual rollback post laws supply the forfeit premise.
 Thirty complete return/meter controls and three source-only invalid-forfeit probes
 retain assertion :674 before mutation. No actual CREATE return or child settlement
-claim follows; the separate maximum-message-call helper remains unimplemented.
+claim follows. Signed refund addition and the standalone scalar maximum supply four
+additional unconditional ordinary laws. Public-only clients derive complete Nat-field
+retention, signed zero/composition/inverse and actual rollback/reset order, plus both
+complementary-share equations. Twelve complete signed cases and fourteen scalar cases
+include R>B, both spills, cancellation, rounding boundaries and beyond-U256 values.
+The source adapter projects only the exact original refund AugAssign at :242 on distinct
+typed parent/child meters with unchanged child; it does not replay whole incorporation.
+The unchanged scalar helper is called directly. Normal/-O complete-frame parsing rejects
+boolean/float substitutes and malformed streams. No top-level refund sign, storage
+history, source caller assertion, or message-call affordability/stipend theorem follows.
 Caller reachability, the adjacent txStateGasUsed domain ambiguity, remaining operations and
 transaction conservation remain open. These local laws
 close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate. The dated
