@@ -8,7 +8,7 @@ import STFSpec.Vm.Core.Exceptions
 # Two-dimensional gas charges, rollback, refunds and grant transfers
 
 Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or frame settlement.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–567,606–746,861–876`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–746,861–876`.
 Charges and refunds admit every raw Nat/Int record; rollback assertions are local proof arguments.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.5/5/7.
 -/
@@ -415,5 +415,18 @@ theorem maxMessageCallGas_le (g : Nat) :
     maxMessageCallGas g ≤ g := by
   rw [maxMessageCallGas_eq]
   exact Nat.sub_le _ _
+
+/-- Net transaction state usage; EELS `src/ethereum/forks/amsterdam/vm/gas.py:570–603`.
+The baseline assertion is a local proof argument. Cast before subtraction so that
+refunds may leave negative usage; the complete meter is unchanged. -/
+def txStateGasUsed (m : GasMeter) (T : Nat) (_h : m.stateGasBaseline ≤ T) : Int :=
+  (T : Int) - (m.stateGasLeft : Int) +
+    (m.stateGasSpilled : Int) + (m.stateGasCommittedSpill : Int)
+
+/-- Signed usage subtracts the reservoir and adds both spill pools. -/
+theorem txStateGasUsed_eq (m : GasMeter) (T : Nat) (h : m.stateGasBaseline ≤ T) :
+    txStateGasUsed m T h =
+      (T : Int) - (m.stateGasLeft : Int) +
+        (m.stateGasSpilled : Int) + (m.stateGasCommittedSpill : Int) := rfl
 
 end STFSpec.Vm.Core

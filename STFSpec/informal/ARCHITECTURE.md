@@ -628,7 +628,7 @@ outside it, enabled Python assertions reject rather than return the extension's
 value. Option C bundles that proof in a dependent input carrier. It expresses the
 same logical premise while adding a carrier and adapters at the module boundary.
 Neither alternative reduces the source-correspondence obligation. EthVmCore §§5/7
-own the exact API and single prospective ordinary equation. No runtime error,
+own the supplied exact API and single ordinary equation. No runtime error,
 clamping, global `Wf`, caller reachability, conservation or settlement theorem
 follows. Implementation, proof and integration gates remain separate.
 

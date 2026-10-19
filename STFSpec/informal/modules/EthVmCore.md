@@ -181,6 +181,7 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 | `vm/gas.py:471–502` | `commitStateGas (m : GasMeter) (h : m.stateGasLeft ≤ m.stateGasBaseline) : GasMeter` | Exactly the local proof domain; arbitrary signed refund and both spill pools. The source assertion at :499 precedes all updates. Result `(E,R,R,q,0,C+S)` in six-field order; no runtime failure | `commitStateGas_eq`, `commitStateGas_phi`; complete-field zero/equality/negative/both-spill/beyond-word guards and authenticated original comparison |
 | `vm/gas.py:505–529` | `restoreStateGas : GasMeter → GasMeter` | Every raw meter, including `R>B` and negative refund; no source assertion. Result `(E+S,B,B,0,0,C)`; committed spill retained, no failure | `restoreStateGas_eq`, `restoreStateGas_phi`, `restoreStateGas_post`; complete-field guards, public idempotence/committed-retention clients and authenticated original comparison |
 | `vm/gas.py:532–567` | `restoreStateGasToEntry (m : GasMeter) (R : Nat) (h₁ : m.stateGasBaseline ≤ R) (h₂ : m.refundCounter = 0) : GasMeter` | Only these two premises, with no reservoir bound. Source assertions :555 then :558 precede all mutation. Result `(E+S+C,R,R,q,0,0)`; refund preserved under its equality proof, no runtime failure | `restoreStateGasToEntry_eq`, `restoreStateGasToEntry_phi`, `restoreStateGasToEntry_post`; complete-field guards, public composition and authenticated original comparison including ordered source-only assertion probes |
+| `vm/gas.py:570–603` | `txStateGasUsed (m : GasMeter) (T : Nat) (h : m.stateGasBaseline ≤ T) : Int` | Exactly the local baseline-to-grant proof at source assertion :597; other raw fields arbitrary, reservoir may exceed baseline/grant. No mutation or runtime error; signed result `T-R+S+C`, with each amount cast before subtraction | `txStateGasUsed_eq`; twenty complete literal controls, private public-only clients and strict normal/`-O` whole frames and authenticated original comparison |
 | `vm/gas.py:606–628` | `creditStateGasRefund : GasMeter → Nat → GasMeter` | Every raw meter/amount. With `x = min a S`, complete result `(E+x,R+(a-x),B,q,S-x,C)`; both subtraction bounds follow from min. No assertion, baseline cap, refund-sign/word bound or failure; B/q/C unchanged | `creditStateGasRefund_eq`, `creditStateGasRefund_phi`, `creditStateGasRefund_zero`; complete-field guards, public branch/retention/inversion clients and authenticated original comparison |
 | `vm/gas.py:631–659` | `repayStateGasSpill : GasMeter → GasMeter` | Every raw meter. With `y = min R S`, complete result `(E+y,R-y,B,q,S-y,C)`; min bounds both subtractions. The source assertion :657–659 follows all assignments and holds universally; no input proof or runtime failure. B/q/C unchanged | `repayStateGasSpill_eq`, `repayStateGasSpill_phi`, `repayStateGasSpill_post`, `repayStateGasSpill_idempotent`; complete-field guards, public branch/identity clients and authenticated original comparison |
 | `vm/gas.py:662–675` | `forfeitRemainingGas (m : GasMeter) (h : m.stateGasSpilled = 0) : GasMeter` | Exactly local pending-spill-zero proof; source assertion :674 precedes mutation. Complete result `(0,R,B,q,S,C)` with S=0; arbitrary B/q/C and R>B admitted. Only E changes, with no new failure | `forfeitRemainingGas_eq`, `forfeitRemainingGas_phi`; complete-field guards, actual public rollback/forfeit clients and source-only assertion probes |
@@ -429,6 +430,46 @@ and source/runtime identities separately from historical validation records.
 ## 4. Tests
 
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
+
+`TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation
+through the public Core import. `TxStateGasUsageGuards.lean` retains twenty complete
+literal meter/grant/signed-result cases; `tx_state_gas_usage_differential.py` strictly
+compares the whole public-import stream normally and under `-O`. Authenticated original
+comparison passed twenty direct unchanged `tx_state_gas_used` calls on fresh actual
+GasMeter/Uint fields and StateGas grants, with exact builtin `int` results and every
+meter field unchanged. Three source-only invalid baseline-to-grant cases preserve the
+original assertion at `gas.py:597` and unchanged full inputs; no invalid Lean proof is
+fabricated. Source/runtime identities remained unchanged. No original charge, rollback,
+refund, transfer, settlement or transaction lifecycle is replayed.
+
+Reproduce the transaction-usage observer with fresh external output paths:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/tx_state_gas_usage_differential.py
+OUT=/absolute/path/to/fresh-usage-controls
+EELS=/absolute/path/to/pinned-eels
+WHEELS=/absolute/path/to/locked-wheels
+mkdir -p "$OUT"
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > "$OUT/TxUsageFrames.lean"
+lake env lean "$OUT/TxUsageFrames.lean" > "$OUT/frames.jsonl"
+python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
+```
+
+Use a clean pinned scratch source checkout with its private `.venv` and selected
+lock-matching raw wheels. Preflight authenticates inputs without calling the helper.
+Source mode compares the original observer's signed result and unchanged full meter;
+its three invalid-baseline probes are source-only and supply no Lean proof. Keep
+actual complete records and source/runtime identities beside each fresh run.
+
+
+- **Supplied transaction-usage controls:** Twenty complete literal meter/grant/signed-result guards cover zero, exact and strict baseline-to-grant domains, arbitrary execution gas/refund, reservoir above baseline/grant, isolated and combined spills, cancellation and beyond-U256 values. Private public-only clients use the single equation to derive E/q/baseline insensitivity with separate baseline proofs, additive spills, grant growth, reservoir decrease and their order consequences, plus a valid negative witness. Strict normal/`-O` JSON parsing retains the complete input, grant, signed result and unchanged meter and rejects boolean/float aliases, malformed frames and wrong whole streams. Caller reachability and transaction conservation remain open.
 
 - **Supplied accounting controls:** Twelve complete signed-refund cases and fourteen scalar maxima retain all fields and exact returns, including negative/cross-zero/cancellation/beyond-U256 refunds, both spills, R>B and 63/64 rounding. Public-only clients consume all four laws and derive signed composition/inverse, actual rollback/reset order and complementary grant shares. Strict normal/`-O` frames reject boolean/float aliases and malformed or wrong complete streams. Authenticated original comparison passed exact statement projection on twelve distinct typed parent/child pairs with unchanged full children, plus fourteen direct scalar helper calls. No source caller assertions or whole incorporation are replayed.
 
@@ -772,7 +813,7 @@ under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follo
 The complete nominal exception carrier supplies vocabulary only; its other producers
 remain unimplemented.
 
-**Transaction state-gas usage (Q61), prospective and not supplied.** The
+**Transaction state-gas usage (Q61), supplied local observer.** The
 `txStateGasUsed` observer has only the local proof argument
 `h : m.stateGasBaseline ≤ T`, matching `gas.py:597` and R-GAS-1. It neither changes
 the meter nor returns an error. Its one required ordinary equation is:
@@ -785,14 +826,14 @@ theorem txStateGasUsed_eq (m : GasMeter) (T : Nat)
         (m.stateGasSpilled : Int) + (m.stateGasCommittedSpill : Int)
 ```
 
-This is a law type for a later implementation, not a supplied theorem. Cast before
+The ordinary equation is discharged in `GasMeter.lean`. Cast before
 subtraction: the result is signed and may be negative. All other raw fields are
 unrestricted, including execution gas, refund sign and both spill pools; the
 reservoir may exceed both baseline and grant. For example, `(E,R,B,q,S,C) =
 (13,21,9,99,3,5)` with `T = 10` meets the premise and returns `-3`. Callers must
 establish this local proof; no global `Wf`, non-negativity premise, clamp, runtime
 error or bundled domain is added. Caller reachability and transaction conservation
-remain separate obligations. The observer and this equation are unimplemented/unproved.
+remain separate obligations. The observer and this equation are discharged.
 
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
@@ -838,14 +879,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-3: resolved by D27 (DECISIONS Q25).
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
-- **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability and implementation remain obligations.
+- **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
 
 ## 10. Gaps
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, both decoders, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation remain unimplemented/unproved; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
