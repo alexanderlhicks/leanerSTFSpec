@@ -111,7 +111,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 
 ### Supplied padded buffer read
 
-`STFSpec/Vm/Core/Memory.lean`, exported by `STFSpec.Vm.Core`, supplies only the
+`STFSpec/Vm/Core/Memory.lean`, exported by `STFSpec.Vm.Core`, supplies the
 standalone `bufferRead` adapter and its three ordinary laws in §7. It delegates to
 the existing public `Bytes.extractPadded` provider with exact `U256.toNat` operands;
 there is no Memory carrier or gas effect in this operation.
@@ -149,12 +149,13 @@ python3 -B "$DRIVER" --check-frames /tmp/buffer-read.ndjson
 python3 -B -O "$DRIVER" --check-frames /tmp/buffer-read.ndjson
 ```
 
-### Prospective aligned Memory (Q62; unimplemented/unproved)
+### Supplied aligned Memory (Q62)
 
-The exact API is in §5 and its finite ten-law target is in §7. The following rows
-are implementation targets, not supplied operations or correspondence results.
+The exact six-operation API is supplied in `STFSpec/Vm/Core/Memory.lean`; §7 owns
+its ten discharged ordinary laws. Packed storage, constructor, alignment proof and
+helpers stay private. Callers use the existing Base Bytes provider and public laws.
 
-| Source/model anchor at the pin | Prospective declaration | Domain and complete effect | Prospective evidence |
+| Source/model anchor at the pin | Declaration | Domain and complete effect | Discharged laws and controls |
 |---|---|---|---|
 | `interpreter.py:227`, `instructions/system.py:166,435` | `Memory.empty` | Fresh empty aligned memory | `toBytes_empty`; empty initialization controls |
 | §6 abstraction; source `len(memory)` | `Memory.toBytes`, `Memory.size` | Complete byte-list model and byte length; aligned carrier | `length_toBytes`, `size_mod32`; full observations |
@@ -166,8 +167,35 @@ The local proofs are erased, not new runtime source assertions or failure channe
 Typed source read start/size and write start additionally lie below 2^256; Nat-only
 huge empty-window laws are not direct typed Python-call claims. Host execution
 requires the existing valid dependency/argument interpretation and successful
-allocation/index premises. Caller derivation and source/compiled validation remain
-future work. No raw constructor or representation helper is a public test ingress.
+allocation/index premises. Caller derivation and compiled ownership/cost validation remain open. No raw
+constructor or representation helper is a public test ingress.
+
+`MemoryCallerProofs.lean` consumes all ten laws and derives expansion/read sizes
+and post-write read witnesses using only public equations. Its snapshot-copy client
+requires only admitted source/destination windows, including arbitrary overlap;
+empty-inside, both-empty and adjacent disjoint clients retain the original reads.
+`MemoryGuards.lean` retains thirty-three complete literal frames. The public-import
+native producer in `memory_differential.py` observes actual retained Memory/Bytes
+values; normal and `-O` parsing checks all frames and ninety-nine malformed-stream
+adversaries. The committed comparator checks all thirty-three target/literal frames. Its optional
+`--source-frames` input can compare thirty-one caller-supplied typed-source rows,
+but does not authenticate or produce that baseline; the default reports zero source
+frames compared. Separate historical source-method evidence and its audit limits are
+recorded in [PR155 review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/155#issuecomment-6242656073).
+The two empty 2^4096 cases are Lean-only. These controls establish no compiled
+ownership, allocation, C1–C4, R1, caller or guest readiness.
+
+Reproduce the committed public controls using fresh output paths:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/memory_differential.py
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > /tmp/MemoryFrames.lean
+lake env lean --run /tmp/MemoryFrames.lean > /tmp/memory-frames.ndjson
+python3 -B "$DRIVER" --check-frames /tmp/memory-frames.ndjson
+python3 -B -O "$DRIVER" --check-frames /tmp/memory-frames.ndjson
+```
 
 ### Supplied bounded Stack
 
@@ -514,7 +542,7 @@ and source/runtime identities separately from historical validation records.
   adapter/provider/source inspection supply that guarantee. The authenticated
   original result and exact typed/whole-input observations are recorded in §3.
 
-- **Prospective Memory controls (Q62; unrun):** Construct through `Memory.empty`, aligned expand and admitted writes only. Retain complete post-memory/size and saved immutable read bytes for empty operations at every offset (including huge Nat offsets), exact endpoints, untouched prefixes/suffixes, cross-word writes, adjacent/disjoint windows and explicit empty windows, overlapping read-then-write copies in both directions/self-copy, and snapshots surviving later writes. Public-only clients consume exactly the ten §7 laws. Derive post-write read witnesses from preserved size and the original local window proof. Future source comparison is restricted to typed aligned/admitted inputs and host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Preserve caller charge/allocation, return-buffer and static-check ordering separately. Compiled linear ownership, trace on/off and shared-old-value controls remain required and unrun; no checksum belongs in a timed loop.
+- **Supplied local Memory controls (Q62):** Thirty-three complete frames cover empty/zero/repeated aligned expansion, full high/interior-zero payloads, cross-word and exact-end writes, complete untouched prefixes/suffixes, both overlap directions/self-copy and retained immutable snapshots. Empty reads/writes at 2^64 and U256.max have typed source counterparts; 2^4096 is Lean-only. Public clients consume all ten laws, derive result-read witnesses and cover adjacent/either-empty disjointness. The committed producer/comparator checks all thirty-three target/literal frames under strict normal/`-O` comparison; optional external source frames are an explicit caller-supplied evidence premise (§3). Source agreement is conditional on aligned/admitted typed inputs and successful host premises; raw invalid-window behavior has no invalid proof-carrying Lean call. Caller ordering, compiled ownership/costs and guest gates remain open.
 
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
 
@@ -655,7 +683,7 @@ def Stack.swap? (s : Stack) (i j : Nat) : Option Stack
 def decodeSingle : UInt8 → Except ExceptionalHalt Nat
 def decodePair   : UInt8 → Except ExceptionalHalt (Nat × Nat)
 
--- Memory (prospective public API, D11/Q62; unimplemented/unproved)
+-- Memory (public API, D11/Q62; ten ordinary laws discharged)
 structure Memory                    -- private storage, constructor and alignment proof
 def Memory.empty : Memory
 def Memory.toBytes : Memory → List UInt8
@@ -665,7 +693,7 @@ def Memory.readBytes (m : Memory) (s k : Nat)
     (h : k = 0 ∨ s + k ≤ m.size) : Bytes
 def Memory.write (m : Memory) (s : Nat) (v : Bytes)
     (h : v.size = 0 ∨ s + v.size ≤ m.size) : Memory
--- Standalone supplied adapter; not one of the prospective Memory APIs
+-- Standalone supplied adapter; independent of the six Memory APIs
 def bufferRead : Bytes → U256 → U256 → Bytes              -- supplied; independent of Memory
 -- Memory pricing (unimplemented)
 structure ExtendMemory where cost : Nat; expandBy : Nat
@@ -756,7 +784,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | Type | Representation | Model and abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
 | `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
-| `Memory` | private `ByteArray` and alignment proof (D11/Q62), prospective | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
+| `Memory` | private `ByteArray` and alignment proof (D11/Q62), supplied | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
 | `bufferRead` input/output | existing immutable Base `Bytes`, no new carrier | Base padded-window model in §7 | every finite input/all U256 operands | immutable input and copied result | inferred output-proportional copying O(k), bounded source copy and Nat availability check before narrowing; compiled costs unmeasured |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
@@ -796,8 +824,8 @@ their bounds/injectivity obligations are unchanged: `decodeSingle x = .ok n →
 17 ≤ n ≤ 235`, injective on valid inputs; `decodePair x = .ok (n,m) →
 1 ≤ n ≤ 14 ∧ n < m ∧ m ≤ 30 − n`, injective. [C]
 
-**Memory** (Q62; model `List UInt8`). Exactly ten prospective ordinary laws
-are required; all remain **unimplemented/unproved**. They are [C] boundaries for
+**Memory** (Q62; model `List UInt8`). Exactly ten ordinary laws
+are **discharged** in `STFSpec/Vm/Core/Memory.lean`. They are [C] boundaries for
 [R] memory-opcode clients (exercise 1). No additional public helper or law is
 implied by the sketches.
 
@@ -853,7 +881,7 @@ privately; no generic extensionality or representation-injectivity API is expose
 M9/M10 explicitly include empty windows, even inside another window or beyond the
 memory end. Expansion length and preservation follow from M2–M4/M8. Read-then-write
 MCOPY snapshot behavior, including both overlap directions and self-copy, follows
-as a prospective client derivation from immutable reads and M5/M8/M9; disjoint
+as a public-law client derivation from immutable reads and M5/M8/M9; disjoint
 retention uses M10. This adds no Memory.copy operation or extra public law.
 
 **Padded buffer read.** Exactly these three ordinary public laws are **discharged**
@@ -1019,7 +1047,7 @@ above. The following list retains the remaining G1 and composition obligations:
 
 **Premises.** EthBase and EthState laws; local proof arguments for commit/entry restore and caller premises for the remaining meter operations (none for the supplied charge kernel, refund/repay or ordinary restore); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
-**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Prospective Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
+**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
 **Open obligations.** Prove meter premises at every caller, checked refund conversion, exact arithmetic failure cases and the compiled memory/stack cost assumptions. Memory representation replacement uses observer equations; amortised linear-container bounds must not be applied to snapshot-reachable values.
 
@@ -1045,7 +1073,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
 - **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
-- **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact prospective API/ten-law contract. BufferRead remains independent. Pricing’s missing explicit policy argument (`GasCosts` versus `VmConfig` or another authorized seam) remains separate/open under B8; no argument or Amsterdam constant is selected here.
+- **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent. Pricing’s missing explicit policy argument (`GasCosts` versus `VmConfig` or another authorized seam) remains separate/open under B8; no argument or Amsterdam constant is selected here.
 
 ## 10. Gaps
 
@@ -1061,7 +1089,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **O13 enumeration still open.** The VM-internal Python faults are classified (CONTRACT O13, D14): BLOCKHASH's `IndexError` is fixture-witnessed, and the BLOBBASEFEE and balance overflows are argued reachable. The `VmFault` constructor list is frozen only once this module's failure-ledger entries close (DECISIONS B14).
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
 - **`calculate_blob_gas_price` on huge `excess_blob_gas`** runs `taylor_exponential` for a number of iterations roughly proportional to `excess_blob_gas / BLOB_BASE_FEE_UPDATE_FRACTION` (DISC-002); for adversarial parent headers this is a host-time problem (DISC-002), and `U256(price)` in BLOBBASEFEE is argued reachable as an overflow (O13, `instructions/environment.py:607`). Termination and cost belong to EthBase; the envelope question is open.
-- **Memory (Q62) remains unimplemented/unproved:** the private aligned carrier, six public APIs in §5 and exactly ten prospective ordinary laws in §7 need separately checked/reviewed implementation and public-only clients. Empty-any-offset behavior, immutable snapshots, complete write effects and actual empty-write identity remain proof/test targets; post-write read proofs derive from `size_write` and the original local window proof. Actual caller alignment/window derivation, charge/allocation/return-buffer/static-check ordering, linear ownership, compiled C1–C4, R1, G1–G7 and guest gates remain open. No invalid-window completion, runtime error or global frame invariant follows; bufferRead remains independent.
+- **Local Memory (Q62) is supplied:** §3/§5/§7 own the private aligned carrier, six APIs and ten discharged ordinary laws, including complete write effects, immutable snapshots and actual empty-write identity. Public-only clients derive post-write read proofs from preserved size and the original local window proof. Actual caller alignment/window derivation, charge/allocation/return-buffer/static-check ordering, linear ownership, compiled C1–C4, R1, G1–G7 and guest gates remain open. No invalid-window completion, runtime error or global frame invariant follows; bufferRead remains independent.
 - **Memory pricing policy and closed form:** the missing explicit policy argument remains separate/open under B8 (§9); no concrete `GasCosts`/`VmConfig` seam is chosen. Telescoping of `calculate_gas_extend_memory`, its alignment/window-coverage proofs and `L-MEM-BOUND` are unproved.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.

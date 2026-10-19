@@ -289,7 +289,7 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
 | Operand stack | `Array U256`, depth ≤ 1024 | `push`, `pop`, `peek`, `depth`, and **failure behaviour** (underflow/overflow as exceptional halts) | [C] stack laws; [R] used by per-opcode lemmas |
-| Memory | `ByteArray` (D11); private aligned carrier (Q62) | Preserve the prospective public boundary owned by EthVmCore §5/§7; word operations and copying are clients of it | [C] public model/window laws; [R] memory-opcode proofs use these laws (exercise 1). EthVmCore §10 owns implementation/proof status |
+| Memory | `ByteArray` (D11); private aligned carrier (Q62) | Preserve the supplied public boundary owned by EthVmCore §5/§7; word operations and copying are clients of it | [C] public model/window laws; [R] memory-opcode proofs use these laws (exercise 1). EthVmCore §10 owns implementation/proof status |
 | Gas meter | a dedicated `GasMeter` record (2-D: execution plus state gas with reservoir/spill), following `gas.py` names | **charge, reserve, return (child gas), and exceptional-halt behaviour** as named operations with laws; gas *policy* (costs) is a separate parameter record | [C] meter laws; [T] the measure (below); exercise 3 |
 | Jumpdest analysis | a bitmap per code; optionally a cache keyed by code hash (§7) | `isValidJumpdest code pc` | [C] equals EELS `get_valid_jump_destinations` |
 | Instructions | one handler per opcode → `StepResult = next frame · halt/revert/exceptional · childRequest` | the per-opcode semantics | [R] per-opcode lemmas stated with stack, memory, gas and state laws only |
@@ -635,7 +635,7 @@ follows. Implementation, proof and integration gates remain separate.
 **Memory alignment, initialization and window-domain options (Q62).** DECISIONS
 Q62 owns the disposition. Its selected local-proof design uses a private aligned
 carrier, exact byte-count expansion and admitted window operations. EthVmCore §§5/7
-own the exact prospective signatures and laws; COMPOSITION records how consumers
+own the exact supplied signatures and laws; COMPOSITION records how consumers
 derive post-write read proofs and preserve source ordering.
 
 A raw carrier moves alignment hypotheses to callers and alignment-dependent pricing
