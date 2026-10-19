@@ -61,7 +61,7 @@ Every row is required before claiming that module's corresponding refinement, in
 
 | Module | Remaining design/proof work |
 |---|---|
-| EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Enumerate checked integer operations and failure sites; specify Envelope's role; formalise Taylor descent and resolve DISC-002 practical feasibility. |
+| EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Taylor's positive-denominator totality/two zero-value laws and bounded controls are supplied by EthBase §3/§7; DISC-002 practical feasibility remains open. Enumerate checked integer operations and failure sites; specify Envelope's role. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
 | EthField | Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
@@ -151,6 +151,21 @@ gates remain open; the dated §6 readiness assessment is unchanged.
 ## 4. Agent implementation contract
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
+
+EthBase's `utils/numeric.py:177–216` operation is supplied as
+`STFSpec.Base.taylorExponential (factor numerator denominator : Nat)
+(h : 0 < denominator) : Nat`, with exactly the two ordinary public zero-factor
+and zero-numerator laws owned by [EthBase §3/§5/§7](modules/EthBase.md#implemented-taylor-exponential).
+All loop/equation/descent helpers are private; the source-order iterated floors
+and arbitrary-natural domain are preserved, with no fuel/error/policy argument.
+Eleven ordinary public-only clients and 28 full literal guards are supplied.
+EthBase §3 owns the complete interpreted/native target recipe, dated external
+source evidence and the committed reader's authentication boundary. Normal and `-O` strict parser runs each pass 122 cases plus 122 actual CLI
+invocations, including explicit uniform LF/CRLF acceptance and malformed framing,
+field/type/value/order/binding rejection. The private logical lexicographic
+measure proves mathematical totality, not DISC-002 practical large-input cost,
+stack/cycle feasibility or caller-exception reachability. No broader Base,
+G1–G7, EEST/guest or dated §6 readiness claim follows.
 
 The supplied numeric charge, rollback, refund and local transfer algebra's exact source-to-Lean/domain/error/law/test rows
 are owned by [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). Its ordinary

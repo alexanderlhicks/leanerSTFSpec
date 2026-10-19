@@ -16,6 +16,8 @@ import STFSpec.Conformance.Base.NarrowCallerProofs
 import STFSpec.Conformance.Base.NarrowGuards
 import STFSpec.Conformance.Base.NumericCallerProofs
 import STFSpec.Conformance.Base.NumericGuards
+import STFSpec.Conformance.Base.TaylorExponentialCallerProofs
+import STFSpec.Conformance.Base.TaylorExponentialGuards
 import STFSpec.Conformance.Base.U256ArithmeticCallerProofs
 import STFSpec.Conformance.Base.U256ArithmeticGuards
 import STFSpec.Conformance.Base.U256BitwiseCallerProofs

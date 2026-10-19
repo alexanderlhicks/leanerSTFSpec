@@ -74,6 +74,12 @@ jobs:
           lake build state-error-native-tests --wfail
           lake exe check-decls StateErrorNativeTests
           lake exe state-error-native-tests
+      - name: Complete Taylor exponential native regressions
+        run: |
+          lake build taylor-exponential-native-tests --wfail
+          lake exe check-decls TaylorExponentialNativeTests
+          lake exe taylor-exponential-native-tests > .lake/taylor.jsonl
+          python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py --check-target .lake/taylor.jsonl
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

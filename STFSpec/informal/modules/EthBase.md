@@ -93,7 +93,7 @@ with the same content have no additional runtime tag in this model.
 | `utils/numeric.py::le_bytes_to_uint32_sequence` | 96 | `STFSpec.Base.leBytesToU32s` (internal) | only `ethash.py` uses it: unreachable; exclusion candidate |
 | `utils/numeric.py::le_uint32_sequence_to_bytes` | 122 | `STFSpec.Base.leU32sToBytes` (internal) | as above |
 | `utils/numeric.py::le_uint32_sequence_to_uint` | 155 | `STFSpec.Base.leU32sToNat` (internal) | as above |
-| `utils/numeric.py::taylor_exponential` | 177 | `STFSpec.Base.taylorExponential : Nat → Nat → (d : Nat) → 0 < d → Nat` | blob base fee; termination proof needed |
+| `utils/numeric.py::taylor_exponential` | 177 | `STFSpec.Base.taylorExponential : Nat → Nat → (d : Nat) → 0 < d → Nat` | local totality and two zero-value laws supplied below; DISC-002 feasibility remains open |
 | `utils/byte.py::left_pad_zero_bytes` | 18 | `Bytes.leftPadZero` | no truncation |
 | `utils/byte.py::right_pad_zero_bytes` | 40 | `Bytes.rightPadZero` | memory reads |
 | `utils/hexadecimal.py::*` | 20–206 | `STFSpec.Base.Hex.*` (internal, test/constant only) | `has_hex_prefix`, `remove_hex_prefix`, `hex_to_bytes{,8,32,256}`, `hex_to_hash`, `hex_to_uint`, `hex_to_u8/u64/u256` |
@@ -343,6 +343,72 @@ padding parameters of types `int`/`Uint`/`U256`, compares in-bounds
 `memory_read_bytes`, and verifies its out-of-bounds unpadded distinction.
 These comparisons leave host-resource policy, opcode effects, guest executions
 and the remaining byte/conversion API open (§10).
+
+### Implemented Taylor exponential
+
+`STFSpec/Base/TaylorExponential.lean` supplies the existing positive-denominator
+operation in namespace `STFSpec.Base`. It is one legible source-order reference
+loop with ordinary private totality/equation proofs; every helper remains private.
+Inputs and intermediates are unbounded naturals, matching the locked `Uint`
+domain. There is no fuel, threshold argument, price/configuration, hidden default,
+new error, factory, instance or dependency.
+
+| Source at the pin | Lean declaration and public type | Domain / observation / effects / failures | Ordinary public laws | Regression evidence |
+|---|---|---|---|---|
+| `utils/numeric.py:177–216` | `taylorExponential (factor numerator denominator : Nat) (h : 0 < denominator) : Nat` | Every natural factor/numerator and positive denominator; initial `(i,a,out)=(1,factor*denominator,0)`, add positive `a`, then `a := a*numerator/(denominator*i)`, increment `i`, stop at zero and return `out/denominator`. Retain every floor; pure immutable inputs, no failure in this typed domain. Source denominator-zero exceptions are outside it | `taylorExponential_zero_factor`, `taylorExponential_zero_numerator`; totality is discharged by the private lexicographic descent in §7 | `TaylorExponentialGuards.lean`: 28 complete literal results; `TaylorExponentialCallerProofs.lean`: 11 ordinary public-only clients; interpreted/native/source full-frame comparison below |
+
+The zero-factor law returns 0 for arbitrary numerator and positive denominator.
+The zero-numerator law returns the complete arbitrary factor, independent of the
+positive denominator. Private downstream clients derive cross-denominator
+agreement, factor injectivity in the zero-numerator slice and nested full-result
+composition, without unfolding the operation. A private owning-module four-step
+ordinary proof gives `taylorExponential 1 2 1 = 6`; the unfloored rational prefix 7
+is a different value. Initial accumulated terms can grow, so global accumulated
+descent would be false.
+
+The fixed 28-input schedule includes zeros, intermediate flooring, early growth,
+large factors/intermediates beyond fixed word widths, a 257-bit denominator and
+the pinned 11684671 denominator's below/equal/above boundaries.
+`scripts/TaylorExponentialNativeTests.lean` emits complete observations through
+only the public operation in interpreted and native modes. The committed strict
+reader `STFSpec/Conformance/Base/taylor_exponential_differential.py` checks every
+input/result/unchanged after-input, domain and class against handwritten literals.
+It has no source mode: it neither loads EELS nor produces or authenticates source
+frames. Its `--compare` mode consumes externally supplied source frames and a
+caller-authenticated binding digest; checking syntax and matching the frame's
+digest does not authenticate the original source/runtime environment.
+
+Recorded external evidence dated 2026-10-19 contains 28 direct calls to the
+unchanged pinned original on actual `Uint` arguments (original002, 16:55:20–21 UTC).
+Those complete results agree with the handwritten literals and the corresponding
+interpreted/native streams. This is retained evidence, not a source campaign
+reproduced by the committed reader. Reusing it requires authenticating the packet,
+pin/dependency/runtime captures and before/after bindings separately. No expected
+recurrence, source repricing or original replay supplies those recorded answers.
+
+From the repository root, reproduce the committed target checks with:
+
+```sh
+lake build taylor-exponential-native-tests --wfail
+lake exe check-decls TaylorExponentialNativeTests
+lake env lean --run scripts/TaylorExponentialNativeTests.lean > /tmp/taylor-id.jsonl
+lake exe taylor-exponential-native-tests > /tmp/taylor-native.jsonl
+python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
+  --check-target /tmp/taylor-id.jsonl
+python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
+  --check-target /tmp/taylor-native.jsonl
+cmp /tmp/taylor-id.jsonl /tmp/taylor-native.jsonl
+```
+
+The normal and `-O` parser campaigns use `--self-test --self-test-output` with a
+fresh directory per run. Each exercises 122 literal parser cases and 122 actual
+public CLI invocations: four accepted LF/CRLF fixtures and 118 rejected
+malformed/value/type/field/order/binding cases. Raw-byte ingestion accepts uniform
+LF or uniform CRLF, rejecting mixed/bare/malformed CR and missing final terminators.
+Duplicate keys, booleans/floats, missing/extra fields and narrowed large values are
+rejected. Source coupling remains a separate check against authenticated external
+frames. This bounded evidence supplies no EEST/guest result, general source-caller
+reachability, practical large-input stack/cycle bound or DISC-002 resolution.
 
 ### Implemented variable-length Bytes order (Q54)
 
@@ -785,6 +851,10 @@ def StateGasPerByte.charge (g : StateGasPerByte) (numBytes : Nat) : Nat := g.rat
 -- Numeric helpers
 def ceil32 : Nat → Nat
 def taylorExponential (factor numerator denominator : Nat) (h : 0 < denominator) : Nat
+theorem taylorExponential_zero_factor (numerator denominator : Nat) (h : 0 < denominator) :
+  taylorExponential 0 numerator denominator h = 0
+theorem taylorExponential_zero_numerator (factor denominator : Nat) (h : 0 < denominator) :
+  taylorExponential factor 0 denominator h = factor
 def isPrime : Nat → Bool                            -- internal, unreachable
 def leBytesToU32s : ByteArray → Array U32           -- internal, unreachable
 def leU32sToBytes : Array U32 → ByteArray           -- internal, unreachable
@@ -908,7 +978,16 @@ are listed in §3.
 
 **Derived laws** (on the model, proved once): `add`/`mul` form a commutative ring mod 2^256; `sub a b = add a (sub zero b)`; the `div`/`mod` decomposition `a = b·(div a b) + mod a b` for `b ≠ 0`; shift composition for nonwrapping natural amount sums (the §3 shift laws); `ceil32 n % 32 = 0 ∧ n ≤ ceil32 n < n + 32`.
 
-**Totality** [T]: `taylorExponential` terminates for a positive denominator by a finite prefix followed by bit-length descent (§7 argument below). Use a lexicographic measure: first the iterations remaining until `i + 1 ≥ max(1, ceil(2·numerator/denominator))`, then the bit length of the accumulated numerator. The latter decreases once the prefix is exhausted. The iterated-floor recurrence must be preserved; the unfloored factorial expression is only an upper bound, not the recurrence or a globally decreasing measure. Formalisation remains open (§10).
+**Taylor laws and totality** [C/T]: the two public zero-value equations are given
+in §5. The private loop uses the ordinary lexicographic measure
+`(numerator + 1 - i, numeratorAccumulated)` with one-based `i > 0`. While
+`i ≤ numerator`, the first coordinate decreases. Otherwise both old/new first
+coordinates are zero and `denominator ≥ 1` gives `numerator < denominator*i`;
+every positive accumulated term therefore strictly decreases after the floor.
+This proves totality on every positive denominator without computing an extra
+prefix loop or fuel. The original iterated-floor recurrence is preserved; an
+unfloored factorial expression is not interchangeable. The measure is logical,
+not an executable budget or practical resource bound; DISC-002 remains open.
 
 **Fast path** [F]: if D1(b) moves to limbs, only this component's definitions and law proofs change. Replacement exercise 4 checks that downstream opcode proofs are unchanged.
 
@@ -918,9 +997,9 @@ are listed in §3.
 
 **Premises.** Integer widths are positive; generic fixed-byte widths are arbitrary natural numbers, including zero. Checked conversions report overflow, byte order is explicit, and the Taylor denominator is positive. These are local premises; neither gas bounds nor hash assumptions are needed.
 
-**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal inverse, length, canonicality and ordered width-rejection equations are proved by the §3 implementations; masked-address construction preserves exactly the low 160 bits. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, the reference recurrence is a_(i+1) = floor(a_i * numerator / (denominator * (i+1))). After i+1 reaches max(1, ceil(2*numerator/denominator)), each nonzero term at least halves. A finite prefix followed by a bit-length descent proves termination. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
+**Argument.** Interpret a word as its unsigned natural value. Modular arithmetic commutes with reduction modulo 2^256; a checked operation instead compares the unreduced result with the range and returns the corresponding error. Signed operations use the two's-complement interpretation before dividing or comparing, then reduce the result. Fixed-byte conversion is positional evaluation, so induction on the byte sequence proves its exact-width inverse/range laws and lexical-order equation, including empty sequences. Integer endian/minimal inverse, length, canonicality and ordered width-rejection equations are proved by the §3 implementations; masked-address construction preserves exactly the low 160 bits. Padded reads split the requested window into its intersection with the input and its zero suffix; this also proves the zero-length case without converting an enormous offset to a host index. For Taylor, use source one-based indexing: `a₁ = factor*denominator` and `a_(i+1) = floor(a_i*numerator/(denominator*i))`. The private lexicographic measure above handles initial term growth and proves ordinary totality. Zero factor starts in the terminal branch; zero numerator makes the next accumulated term zero, returning `(factor*denominator)/denominator = factor`. Iterated flooring must be retained; a real-valued exponential is not an interchangeable definition.
 
-**Open obligations.** Complete Q54’s actual consumer cost/integration evidence (§3/§10). Complete the enumeration of checked-operation failure sites and their errors, the actual Taylor measure and its practical cost analysis (DISC-002), and the Envelope domain. The recurrence argument proves mathematical termination, not a usable zkVM cycle bound.
+**Open obligations.** Complete Q54’s actual consumer cost/integration evidence (§3/§10). Complete the enumeration of checked-operation failure sites and their errors, Taylor practical cost analysis (DISC-002), and the Envelope domain. The ordinary Taylor totality proof does not give a usable zkVM cycle bound.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -949,11 +1028,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Variable-length Bytes order (Q54).** The comparator/reference, all-input ordinary equality, lawful instances, actual-equality and packed-export model laws and source/compiled/public-only validation are discharged in §3; the conditional `instKeyBytesBytes : KeyBytes Bytes` adapter is supplied separately by [EthCommit §3/§7.0.3](EthCommit.md#pure-unsecured-typed-preparation-q53), using only these public export/inverse/order laws. Actual maps, preparation/root composition, allocation/retention, replacement and C1–C4 costs remain open; reassess under D18/D25 rather than adopting a cost bound from local comparator evidence.
-- **Remaining primitive APIs.** Implemented declarations and laws are owned by §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; other unbounded integer helpers and Envelope remain unimplemented; hash acquisition and its concrete byte-field equality guards are owned by EthHash §3; F20 production entry seams and coherence remain open. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
+- **Remaining primitive APIs.** Implemented declarations and laws, including Taylor's positive-denominator operation/two zero-value laws, are owned by §3. U8/U16/U32 byte APIs remain unspecified/unimplemented; the remaining unbounded integer helpers and Envelope remain unimplemented; hash acquisition and its concrete byte-field equality guards are owned by EthHash §3; F20 production entry seams and coherence remain open. The narrow widths still lack checked division, modulo, power and left shift, right shift, bitwise operators, wrapping power and signed conversions required by R2; §5 does not yet specify these missing APIs fully. In particular `forks/amsterdam/vm/gas.py:141,144,941,945` uses U64 operands and constants in a checked quotient. Add/Sub/Mul contracts do not discharge that consumer. Full R4 alternative-representation and opcode-loop cost evidence remains open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`forks/amsterdam/vm/gas.py:931, 945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). For the final addition at `forks/amsterdam/vm/gas.py:944`, see [EthBlock §2.12](EthBlock.md#212-failure-mapping). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
-- **`taylor_exponential` termination.** The finite-prefix/halving strategy in §7 is not formalised. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. So the proof must also address feasibility, not only termination (DISC-002).
+- **`taylor_exponential` feasibility (DISC-002).** Ordinary positive-denominator totality, the two zero-value laws and bounded source/interpreted/native controls are supplied in §3/§7. The private logical lexicographic measure is not a runtime budget. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. Practical large-input cost/stack/cycle feasibility and actual consumer exception/reachability obligations remain open; mathematical totality and 28 finite results do not discharge them.
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
 - **Hash32 table-support costs.** The functional seam is discharged in §3; actual NodeDB construction, adversarial-distribution and allocation/throughput measurements remain open under ARCHITECTURE §5.0/C1–C4. Fixed-byte representation replacement evidence remains open. NodeDB authenticity, eager witness decoding, root agreement and oracle/resource policy are separate consumer obligations.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); the local `U64` checked-bounds allocation exception is recorded in [DEBT-U64-CHECKED](../DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds). Native storage and that local diagnostic do not discharge aggregate cost checks.

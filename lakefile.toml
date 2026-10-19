@@ -165,3 +165,9 @@ root = "PreStateNativeTests"
 name = "state-error-native-tests"
 srcDir = "scripts"
 root = "StateErrorNativeTests"
+
+# Whole-value interpreted/native Taylor observations; source comparison is separate.
+[[lean_exe]]
+name = "taylor-exponential-native-tests"
+srcDir = "scripts"
+root = "TaylorExponentialNativeTests"
