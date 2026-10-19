@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-18. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
@@ -100,10 +100,71 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
+### Supplied charge kernel
+
+The following local contracts are **discharged** in `STFSpec/Vm/Core/Exceptions.lean`
+and `STFSpec/Vm/Core/GasMeter.lean`, exported by `STFSpec.Vm.Core` in namespace
+`STFSpec.Vm.Core`. Other declarations in the grouped inventory remain unimplemented.
+This is a partial G1 discharge, without a frame, gas policy, settlement or runner.
+
+| Pinned EELS source | Lean declaration and type | Domain, complete success/effect and ordered failure | Public law / test |
+|---|---|---|---|
+| `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer or Revert implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
+| `vm/gas.py:270–336` | `GasMeter : Type` | Public fields `gasLeft stateGasLeft stateGasBaseline : Nat`, `refundCounter : Int := 0`, `stateGasSpilled stateGasCommittedSpill : Nat := 0`; every raw record admitted, including reservoir above baseline, negative refund and both positive spill pools | Complete six-field guards and default-record case |
+| §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`; ordinary positive-charge client |
+| `vm/gas.py:374–388` | `checkGas : GasMeter → Nat → Except ExceptionalHalt Unit` | All raw meters/amounts; check execution shortage first, returning `.error .outOfGas` iff `gasLeft < a`; otherwise `.ok ()`, no meter update | `checkGas_eq_ok_iff`, `checkGas_eq_error_iff`; zero/exact/one-over guards |
+| `vm/gas.py:391–405` (numeric helper of `:408–422`) | `chargeGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; execution affordability precedes subtraction; success changes only `gasLeft := gasLeft - a`; shortage returns only `.outOfGas` without a preceding update | `chargeGas_of_le`, `chargeGas_eq_error_iff`, `chargeGas_phi`; exact full-record success/error guards |
+| `vm/gas.py:425–448` (numeric helper of `:451–468`) | `chargeStateGas : GasMeter → Nat → Except ExceptionalHalt GasMeter` | All raw meters/amounts; reservoir affordability first: change only `stateGasLeft := stateGasLeft - a`; otherwise total affordability, let `d := a - stateGasLeft`, set execution gas to `gasLeft - d`, reservoir to zero and pending spill to `stateGasSpilled + d`; baseline/refund/committed spill unchanged. Total shortage returns only `.outOfGas` before any update | `chargeStateGas_of_le`, `chargeStateGas_of_lt`, `chargeStateGas_eq_error_iff`, `chargeStateGas_phi`, `chargeStateGas_gasLeft_le`; zero/exact/one-over for each branch and beyond-64-bit guards |
+
+The target helper's error is an O8 exceptional halt. Existing source consumers include
+`vm/interpreter.py:276` (top-level preparation), `:386` (code deposit), and `:456–474`
+(call execution); their settlement, rollback and outcome projection remain outside
+this kernel. Pure `Except` errors contain no mutable meter; controls separately retain
+the complete original input and check that the source has not mutated it on failure.
+`chargeGas`/`chargeStateGas` model the numeric helpers, excluding wrapper trace events.
+The `check_gas` adapter projects only `evm.gas_meter`; its Python holder is not a complete
+production EVM and introduces no public Lean frame.
+
+`STFSpec/Conformance/Vm/Core/GasMeterCallerProofs.lean` supplies ordinary generic
+public-law callers. `GasMeterGuards.lean` checks frozen complete results.
+`gas_meter_differential.py` emits complete public-import observations and strictly
+parses all fields, signed refunds, exception payloads and defaults normally and under
+`-O`; original source comparison requires separately authenticated source/runtime
+identities. These local controls establish no full VM, producer, EEST or budget claim.
+
+The committed observer recipe uses plain Lean because the emitter contains `#eval`
+commands. Choose fresh external output paths and a separate pinned source clone
+with locked wheels; source modes require its unoptimized isolated interpreter:
+
+```sh
+DRIVER=STFSpec/Conformance/Vm/Core/gas_meter_differential.py
+OUT=/absolute/path/to/fresh-controls
+EELS=/absolute/path/to/pinned-eels
+WHEELS=/absolute/path/to/locked-wheels
+mkdir -p "$OUT"
+python3 -B "$DRIVER" --self-test
+python3 -B -O "$DRIVER" --self-test
+python3 -B "$DRIVER" --emit-lean > "$OUT/GasMeterFrames.lean"
+lake env lean "$OUT/GasMeterFrames.lean" > "$OUT/frames.jsonl"
+python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+  --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
+```
+
+The catalog retains 31 numeric source-helper cases and 304 complete nominal
+frames. The 256 opcode payloads are nominal constructor/serializer controls,
+not exception-producer executions. Preflight executes no numeric helper;
+source comparison preserves original return/error classes and all six fields.
+New runtime/candidate checks and their results must be recorded for each actual run.
+
 **External semantics.** From `ethereum_types` 0.4.1 (`reference.toml`): `Uint` (unbounded, subtraction below zero raises `OverflowError`), `U256`/`U64`/`U8` (constructor, `+` and `from_signed` raise `OverflowError` out of range; `from_be_bytes` raises `ValueError` for more than 32 bytes; `wrapping_*` wrap), `Bytes`, `Bytes32`, `ulen`. Only the `OverflowError` cases listed in R-EXC-2 are behaviourally reachable from this module's callers; the Lean `Nat`/`U256` API (EthBase) must make each one explicit rather than wrap. `ceil32` and `taylor_exponential` come from `utils/numeric.py` (EthBase). `left_pad_zero_bytes` from `utils/byte.py`.
 
 ## 4. Tests
 
+- **Supplied charge-kernel controls:** `GasMeterGuards.lean` retains every field for zero, exact and one-over execution charges; reservoir zero/exact, first spill, exact total and one-over total; zero gas, reservoir above baseline, negative refunds, both spill pools and beyond-64-bit amounts. It checks the three zero defaults, every nominal exception tag, all UInt8 opcode payloads and complete String payloads including NUL/newline/Unicode. Public callers cover all ten laws, conditional positive-charge progress, zero-charge neutrality and execution-then-state accounting without unfolding the kernel. The strict differential parser rejects duplicate/missing/extra fields, Bool-as-Nat, wrong arities, malformed payloads and incomplete/reordered streams; compare the complete observations with authenticated original numeric helpers. Other tests below remain obligations for their unsupplied operations.
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`, `blockchain_tests/for_amsterdam/…`; the `_engine` copies carry no guest records, GAPS-CROSSCUTTING X5): gas meter and state gas: `amsterdam/eip8037_state_creation_gas_cost_increase` (268), `amsterdam/eip8038_state_access_gas_cost_increase` (88), `amsterdam/eip7778_block_gas_accounting_without_refunds` (9), `amsterdam/eip2780_reduce_intrinsic_tx_gas` (59), `amsterdam/eip7976_increase_calldata_floor_cost`, `osaka/eip7825_transaction_gas_limit_cap`; memory: `ported_static/stMemoryTest` (72), `stMemoryStressTest` (36), `stMemExpandingEIP150Calls`, `cancun/eip5656_mcopy`; call gas: `tangerine_whistle/eip150_operation_gas_costs`, `ported_static/stEIP150Specific`, `stEIP150singleCodeGasPrices`; stack limits: `ported_static/stStackTests`, `amsterdam/eip8024_dupn_swapn_exchange` (66); refunds: `ported_static/stRefundTest`, `istanbul/eip2200_net_gas_metering`; transfer logs: `amsterdam/eip7708_eth_transfer_logs` (38); blob gas: `cancun/eip4844_blobs`, `osaka/eip7918_blob_reserve_price`, `cancun/eip7516_blobgasfee`.
 - **EELS unit tests:** none exercise `vm/` directly at e1a316a0 [V: `tests/json_loader/*` touches only tracing (`test_trace.py`)]. The EEST sources under `tests/amsterdam/eip8037_*` (`test_state_gas_reservoir.py`, `test_state_gas_cross_frame_refund.py`, `test_state_gas_ordering.py`) and `tests/amsterdam/eip8024_*` (`test_eip_vectors.py`) are the best specification of the meter and decoders.
 - **`core` `#guard` cases** (a `#guard` evaluates only once every leaf it reaches is implemented, F16):
@@ -291,7 +352,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 |---|---|---|---|---|---|
 | `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
 | `Memory` | `ByteArray` (D11) | `List UInt8`; `α = ByteArray.toList` | `size % 32 = 0` | linear-only | expand O(n) amortised; read/write O(k); copy O(k) |
-| `GasMeter` | record of `Nat`/`Int` | itself (public record) | `Wf m`: the EELS asserts that are invariants rather than preconditions; see §7 | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
+| `GasMeter` | record of `Nat`/`Int` | itself (public record) | no invariant for the supplied charge kernel; remaining operations require their own local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | strict immutable empty/leaf/concat tree | chronological `List Log` via `toList` | concat observes left before right; no mutable cache | immutable nodes, linear frame ownership | append O(1); flatten O(nodes + logs) via a work stack, including skew trees; discarded child logs do not enter the parent |
 | `JumpdestMap` | `ByteArray` bitmap of `⌈\|code\|/8⌉` bytes | `Finset Nat` (= EELS `Set[Uint]`); `α b = {i \| bit i}` | only indices `< \|code\|` | read-only, shareable; a cache keyed by code hash is allowed outside semantic state (ARCHITECTURE §7) | build O(\|code\|); lookup O(1) |
 | `AddrSet`, `SlotSet` (warm sets) | `Std.TreeSet` | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
@@ -316,9 +377,33 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 
 **Logs** [C]: `LogRope.toList (LogRope.append a b) = LogRope.toList a ++ LogRope.toList b`. Flatten maintains the emitted prefix and pending subtrees in chronological order; the total pending structural size decreases when a node is expanded. Each node and each leaf log is visited once. This proves order and the linear traversal claim without repeated prefix copying.
 
-**Gas meter** [C] (each operation's field update is exactly the table in §2.5, stated as an equation lemma, `GasMeter.laws`). Φ laws (G1; source-checked, not yet proved, ARCHITECTURE §5.5 table):
-- `chargeGas m a = .ok m' → m'.phi + a = m.phi`; `chargeGas m a = .error _ ↔ m.gasLeft < a`.
-- `chargeStateGas m a = .ok m' → m'.phi = m.phi` and `m'.gasLeft ≤ m.gasLeft`; failure ↔ `m.stateGasLeft + m.gasLeft < a`.
+**Gas meter** [C]. The supplied charge kernel has exactly ten public laws below,
+proved on every raw meter and natural amount. No baseline/reservoir relation, refund
+sign, spill exclusivity, schedule positivity or global `Wf` is a premise. Record-update
+equations preserve all untouched fields; each subtraction has its preceding local
+affordability guard. Remaining meter-operation equations below are source-checked
+obligations (G1, ARCHITECTURE §5.5), not supplied Lean laws.
+
+| Supplied public law | Contract |
+|---|---|
+| `checkGas_eq_ok_iff g a` | `checkGas g a = .ok () ↔ a ≤ g.gasLeft` |
+| `checkGas_eq_error_iff g a e` | `checkGas g a = .error e ↔ g.gasLeft < a ∧ e = .outOfGas` |
+| `chargeGas_of_le g a h` | With `h : a ≤ g.gasLeft`, success is exactly `{ g with gasLeft := g.gasLeft - a }` |
+| `chargeGas_eq_error_iff g a e` | `chargeGas g a = .error e ↔ g.gasLeft < a ∧ e = .outOfGas` |
+| `chargeGas_phi g a g' h` | Success gives `g'.phi + a = g.phi` |
+| `chargeStateGas_of_le g a h` | With `h : a ≤ g.stateGasLeft`, success is exactly `{ g with stateGasLeft := g.stateGasLeft - a }` |
+| `chargeStateGas_of_lt g a hR hA` | With `hR : g.stateGasLeft < a`, `hA : a ≤ g.stateGasLeft + g.gasLeft`, success is exactly `{ g with gasLeft := g.gasLeft - (a - g.stateGasLeft), stateGasLeft := 0, stateGasSpilled := g.stateGasSpilled + (a - g.stateGasLeft) }` |
+| `chargeStateGas_eq_error_iff g a e` | Error iff `g.stateGasLeft + g.gasLeft < a ∧ e = .outOfGas` |
+| `chargeStateGas_phi g a g' h` | Success gives `g'.phi = g.phi` |
+| `chargeStateGas_gasLeft_le g a g' h` | Success gives `g'.gasLeft ≤ g.gasLeft` |
+
+An ordinary public-only client derives `g'.phi + 1 ≤ g.phi` from `chargeGas_phi`
+under `1 ≤ a`; no continuing-opcode progress or sufficient-budget result follows.
+The complete nominal exception carrier supplies vocabulary only; its other producers
+remain unimplemented.
+
+The charge/check equations are supplied above. The following list retains only
+the remaining G1 and composition obligations:
 - `(commitStateGas m h).phi = m.phi`; `(restoreStateGas m).phi = m.phi`; `(restoreStateGasToEntry m R ..).phi = m.phi`; `(creditStateGasRefund m a).phi = m.phi`; `(repayStateGasSpill m).phi = m.phi`; `(drainStateGasReservoir m).2.phi = m.phi`.
 - `(forfeitRemainingGas m h).phi = m.stateGasCommittedSpill ≤ m.phi`.
 - `(withholdCreateGas m) = (g, m') → m'.phi + g = m.phi ∧ g = m.gasLeft − m.gasLeft/64`.
@@ -339,7 +424,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 
 **Claim.** Stack, memory, logs, jump destinations and gas operations refine their public observers and preserve the frame invariants required by stepping and settlement.
 
-**Premises.** EthBase and EthState laws; well-formed gas meters; memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
+**Premises.** EthBase and EthState laws; caller premises for the remaining meter operations (none for the supplied charge kernel); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
 **Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement splits each read/write into its in-range segment and zero extension, with the size-zero identity handled before offset conversion. Calculate expansion and charge its cost before allocation. LogRope induction gives flatten(append a b) = flatten a ++ flatten b, so rope shape is unobservable. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
@@ -371,7 +456,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Φ laws are source-checked only.** None of the §7 meter equations is a Lean theorem; G1 is "planned".
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws. Commit/restore/restore-to-entry, refund/repay, forfeit/withhold/drain/child-return, signed refund addition, settlement and transaction-conservation laws remain unimplemented/unproved. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
