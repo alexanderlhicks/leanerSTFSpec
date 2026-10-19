@@ -473,6 +473,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
+  own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly
+  six prospective ordinary laws. Complete public-law charge/error/affordability,
+  init rounding and explicitly financed local-potential clients, frozen controls
+  and source/target correspondence remain future work. Actual caller/config
+  coherence, earlier CALL payments/state spill, preflight/child return/settlement,
+  compiled/resource and G1/G2–G7/VM/guest gates remain open. The supplied scalar
+  maximum is reused; no new global invariant or hidden default follows.
+
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
 - **Raw VM configuration data is supplied:** §3/§5/§7 own the exact four-Nat StateGasCosts, three-Nat VmLimits and complete three-record-field VmConfig, six discharged ordinary ext/eta laws and generic public-only constructor/law/selected-charge clients. No state amount observations, values/defaults/instances/factory, global WF or supported-policy claim is supplied. The separate state amount-provider choice, F8 specialization, actual Fork/consumer/frame/target consistency remain open; Q63 pricing is supplied separately.

@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -63,9 +63,9 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `restore_child_gas m g R` (:725) | `gas_left += g`, reservoir `+= R` (child never entered) |
 | `calculate_memory_gas_cost s` (:749–773) | With `w = ceil32(s)/32`, return `GasCosts.MEMORY_PER_WORD*w + ⌊w²/512⌋`; ZERO is not read. The caught `ValueError` is absent under stable typed Uint/ExecutionGas-NewType bindings. Source/host correspondence retains those premises. |
 | `calculate_gas_extend_memory m ws` (:776–813) | Initialize extent with literal 0 and cost with `GasCosts.ZERO`; fold in order, skip size 0 before endpoint work, and convert each nonzero start/size to unbounded Nat observations before addition. On strict rounded growth add extent and two-cost differences. Returns values without charge, append or Memory mutation. |
-| `calculate_message_call_gas v g L mem extra stipend` (:816) | `stipend := 0` if `v = 0`; if `L < extra + mem` return `(g + extra, g + stipend)` (the caller then fails its charge); else `g' = min g (max_message_call_gas (L − mem − extra))`, return `(g' + extra, g' + stipend)` |
+| `calculate_message_call_gas v g L mem extra stipend` (:816) | Select `t = GasCosts.ZERO` if `v = 0`, otherwise the passed/default-captured stipend; if `L < extra + mem`, return `(g + extra, g + t)` before subtraction/capping. Otherwise use the existing maximum on `(L − mem) − extra` and cap the request, then add extra/t to the two fields. Pure values only; the caller charges the complete applicable amount. Q64 owns the explicit Lean policy argument; §5/§7 give its prospective contract. |
 | `max_message_call_gas g` (:861) | `g − ⌊g/64⌋` (EIP-150) |
-| `init_code_cost n` (:879) | `2 · ceil32(n)/32` (EIP-3860) |
+| `init_code_cost n` (:879) | `(GasCosts.CODE_INIT_PER_WORD * ceil32(n)) // 32`, multiplication first (EIP-3860). This reads the word price; §5/§7 give Q64's prospective explicit-policy contract. |
 | `calculate_excess_blob_gas` (:901) | from the parent's `(excess_blob_gas, blob_gas_used, base_fee_per_gas)` (zeros when absent): 0 if `excess + used < 14·2^17`; if `2^13 · base_fee > 2^17 · blob_price(excess)` return `excess + used · 7 / 21`; else `excess + used − 14·2^17` |
 | `calculate_total_blob_gas` (:951) | `2^17 · \|blob_versioned_hashes\|` for blob transactions, else 0 |
 | `calculate_blob_gas_price e` (:972) | `taylor_exponential(1, e, 11684671)` (`utils/numeric.py`, EthBase) |
@@ -244,6 +244,23 @@ dependencies for Q63; its separately supplied pricing helpers and ten ordinary l
 are described below. Core/Fork values, all state amounts and consumer/coherence,
 limit specialization, ordering/resource and VM/guest obligations remain open for
 their corresponding claims.
+
+### Prospective call/init-code pricing (Q64)
+
+The following approved contracts are **unimplemented/unproved**. This subsection
+records their source map and exact domains, not implementation or test evidence.
+
+| EELS source at pin | Planned Lean declaration | Domain/effects and prospective laws |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/gas.py:357–371` | `MessageCallGas` | Two Nat fields, cost then subCall; no defaults, proof field or invariant. `MessageCallGas.ext` and `MessageCallGas.eta` remain prospective. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:816–858` | `calculateMessageCallGas` | Every cfg, U256 value and Nat gas/gasLeft/memoryCost/extraGas/selected stipend; pure complete result with no charge, state effect or new error. The shortage-first equation and effective-price congruence remain prospective. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:879–899` | `initCodeCost` | Every cfg and Nat length, without a buffer or size limit; pure Nat result, multiplication before division. The exact source equation and word-price congruence remain prospective. |
+
+The source reads `GasCosts.ZERO` (`gas.py:102`), the function-definition-time
+captured `CALL_STIPEND` default (`:93,822`) and `CODE_INIT_PER_WORD` (`:98,897`).
+The supplied scalar maximum at `gas.py:861–876` and its laws are reused.
+Source correspondence additionally retains stable typed bindings and successful
+host operations; it has not been established for these helpers by this guidance.
 
 ### Supplied memory pricing (Q63)
 
@@ -763,6 +780,17 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- Call/init controls remain prospective: complete cost/subCall pairs for zero,
+  nonzero and maximum U256 value; omitted/explicit stipend; shortage/equality;
+  nonzero memory/extra charges; 63/64/65 cap boundaries and beyond-U64 amounts.
+  Init covers zero, word boundaries, wide Nat lengths and zero/odd word prices.
+  Generic policies vary zero seeds/selected stipends and unrelated config fields.
+  Public-only clients use every one of Q64's six laws, full actual chargeGas
+  successes/exclusive errors on arbitrary raw meters, init rounding/congruence,
+  and only the stated local payment hypotheses. Preserve signed refunds and both
+  spill pools; compare complete results rather than checksums. Reuse the supplied
+  maximum and its existing controls. No source/compiled comparison is claimed.
+
 - **Supplied memory pricing controls (Q63):** §3 owns the complete frozen literal,
   interpreted/native, strict CLI/parser and conditional original-source control boundary.
   The private public-only caller goals and their domains are owned by §7. Pricing tests
@@ -1152,10 +1180,17 @@ def withholdCreateGas : GasMeter → Nat × GasMeter
 def drainStateGasReservoir : GasMeter → Nat × GasMeter
 def restoreChildGas : GasMeter → Nat → Nat → GasMeter
 def addRefund : GasMeter → Int → GasMeter                                 -- `refund_counter += k`
-structure MessageCallGas where cost subCall : Nat
-def calculateMessageCallGas (value : U256) (gas gasLeft memoryCost extraGas : Nat) (stipend : Nat := costs.callStipend) : MessageCallGas
+structure MessageCallGas where
+  cost : Nat
+  subCall : Nat
+
+def calculateMessageCallGas (cfg : VmConfig) (value : U256)
+    (gas gasLeft memoryCost extraGas : Nat)
+    (stipend : Nat := cfg.costs.callStipend) : MessageCallGas
+
 def maxMessageCallGas : Nat → Nat
-def initCodeCost : Nat → Nat
+
+def initCodeCost (cfg : VmConfig) (n : Nat) : Nat
 -- transaction/block level (public; consumed by EthBlock)
 def calculateExcessBlobGas (parentExcess parentUsed : U64) (parentBaseFee : Nat)
     : Except BlobGasArithmeticError U64  -- checked intermediates, in EELS order
@@ -1194,6 +1229,21 @@ ordinary ext/eta laws are discharged in §7. Complete generic public-constructor
 clients inspect every field; no default value or policy-support invariant is
 introduced. StateGasCosts retains exactly its four existing Nat inputs, leaving
 the separate three amount observations and their coherence contract open.
+
+Q64's two helpers compute values only and remain unimplemented. Omitting the
+stipend supplies the expression `cfg.costs.callStipend` as that call's argument;
+its value comes from the actual cfg for the call. A fully applied call observes
+only the effective selection: `cfg.costs.zero` at `value = U256.zero`, otherwise
+the selected stipend. Init observes only `cfg.costs.codeInitPerWord`. Unused
+prices/stateCosts/limits remain arbitrary. No config-WF, alias coherence,
+positivity, amount cap or hidden Amsterdam default is required.
+
+Python captures its omitted stipend when the function is defined. Omitted-source
+agreement therefore needs the selected argument to equal that authenticated
+captured value, or a source adapter passes the value explicitly. Zero-value
+agreement uses the current source ZERO and init agreement uses its current
+per-word price. This does not assert arbitrary repricing-timing equivalence.
+The pure helper adds no error, charge/allocation, length check or child effect.
 
 Q63's helpers compute values only. All cfg inputs are admitted; no config-WF/zero-price/gas/resource proof argument is introduced. Only memoryPerWord affects standalone cost; extension additionally observes zero, old byte size and ordered windows. Private scalar support is permitted; it is not a third public API or a policy view. Existing Core-owned record types and EthFork-owned values retain their owners; the independent StateGasCosts representation gap is not settled here.
 
@@ -1887,9 +1937,85 @@ establish this local proof; no global `Wf`, non-negativity premise, clamp, runti
 error or bundled domain is added. Caller reachability and transaction conservation
 remain separate obligations. The observer and this equation are discharged.
 
+### Prospective call/init-code pricing laws (Q64)
+
+All six ordinary laws below are **unproved**; both helpers and the result carrier
+remain unimplemented. `U256.zero` and `ceil32` are the existing public Base values/
+operation. No private pricing model or extra public helper occurs in these types.
+
+```lean
+theorem MessageCallGas.ext (a b : MessageCallGas)
+    (h_cost : a.cost = b.cost) (h_subCall : a.subCall = b.subCall) :
+    a = b
+
+theorem MessageCallGas.eta (r : MessageCallGas) :
+    MessageCallGas.mk r.cost r.subCall = r
+
+theorem calculateMessageCallGas_eq (cfg : VmConfig) (value : U256)
+    (gas gasLeft memoryCost extraGas stipend : Nat) :
+    let t := if value = U256.zero then cfg.costs.zero else stipend
+    calculateMessageCallGas cfg value gas gasLeft memoryCost extraGas stipend =
+      if gasLeft < extraGas + memoryCost then
+        MessageCallGas.mk (gas + extraGas) (gas + t)
+      else
+        let q := min gas
+          (maxMessageCallGas ((gasLeft - memoryCost) - extraGas))
+        MessageCallGas.mk (q + extraGas) (q + t)
+
+theorem calculateMessageCallGas_congr (cfg₁ cfg₂ : VmConfig)
+    (value : U256) (gas gasLeft memoryCost extraGas stipend₁ stipend₂ : Nat)
+    (h_price :
+      (if value = U256.zero then cfg₁.costs.zero else stipend₁) =
+      (if value = U256.zero then cfg₂.costs.zero else stipend₂)) :
+    calculateMessageCallGas cfg₁ value gas gasLeft memoryCost extraGas stipend₁ =
+    calculateMessageCallGas cfg₂ value gas gasLeft memoryCost extraGas stipend₂
+
+theorem initCodeCost_eq (cfg : VmConfig) (n : Nat) :
+    initCodeCost cfg n = (cfg.costs.codeInitPerWord * ceil32 n) / 32
+
+theorem initCodeCost_congr (cfg₁ cfg₂ : VmConfig)
+    (h_price : cfg₁.costs.codeInitPerWord = cfg₂.costs.codeInitPerWord)
+    (n : Nat) :
+    initCodeCost cfg₁ n = initCodeCost cfg₂ n
+```
+
+The affordable branch establishes both source subtraction bounds. Its q is at
+most the request and available maximum; shortage returns the uncapped request
+before either subtraction. Fully applied congruence compares selected effective
+stipends, not unused zero/default fields or whole configs. The source-ordered
+init equation can be refined privately to word pricing using the existing
+`ceil32_mod_eq_zero`; exact divisibility justifies that refinement.
+
+Prospective private public-law clients consume the complete result and actual
+`chargeGas` success/error values. With the calculator's gasLeft equal to the
+meter's gasLeft, charging `result.cost + memoryCost` succeeds exactly when
+`memoryCost + extraGas ≤ gasLeft`; success changes only gasLeft and shortage
+returns only outOfGas. All other raw meter fields, including arbitrary signed
+refund and both spill pools, remain unconstrained. Relevant-price congruence
+also transports the complete checked charge; init transports
+`otherCharge + initCodeCost cfg n`. These are future clients, not additional
+public laws or discharged source-handler obligations.
+
+Under affordability, if t is the selected effective stipend and
+A = (gasLeft − memoryCost) − extraGas, the prospective local consequences are
+`result.cost ≤ gasLeft − memoryCost`,
+`result.subCall = (result.cost − extraGas) + t`,
+`result.cost − extraGas ≤ gas` and `≤ maxMessageCallGas A`, and retained execution
+gas at least `A / 64`. A successful charge and the explicit local hypothesis
+`t + 1 ≤ memoryCost + extraGas` suffice for the corresponding private
+`post.phi + result.subCall + 1 ≤ meter.phi` consequence; nonincrease needs
+`t ≤ memoryCost + extraGas`. No global price/WF relation replaces those premises.
+Real CALL prepays overhead/memory, may spill for state charges, then passes
+current ZERO twice to the calculator. Those earlier payments, child entry/return,
+failed preflight/refunds, settlement and whole continuing-iteration G2 must be
+composed separately. No local arithmetic theorem closes those obligations.
+
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
-- `calculateMessageCallGas v g L mem x = ⟨c, s⟩ → L ≥ mem + x → c ≤ L − mem ∧ s ≤ c − x + stipend(v)` (forwarded gas never exceeds what is charged, plus stipend): the `Ccallgas_lt_Ccall` analogue needed by G2.
+- Q64's prospective call equation gives the local affordability/forwarding
+  consequences above once proved. Actual caller derivation and paid-stipend/child
+  return accounting remain G2 obligations; the pure helper alone proves no whole
+  CALL-family progress or settlement result.
 - **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
 - **`L-INC`** [C]: `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi` (the repay step preserves Φ). Together with G2's "child returns potential ≤ potential granted" this gives the cross-frame bound.
 - **`L-WARM-MONO`** [C]: if `p.accessedAddresses ⊆ c.accessedAddresses` then the union is `c.accessedAddresses` (same for slots). [F] the implementation may assign.
@@ -1964,7 +2090,21 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent; memory pricing’s policy-threading contract is owned separately by Q63.
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
 
+- **Q64**: DECISIONS owns the approved call/init policy/default disposition;
+  §5/§7 own the exact prospective two-helper/result/six-law contract. Helpers and
+  laws remain unimplemented/unproved. Caller payments, source/default agreement,
+  configuration/target coherence, settlement and G2 remain separate obligations.
+
 ## 10. Gaps
+
+- **Call/init-code pricing (Q64) is specified, unimplemented/unproved:** §3/§5/§7
+  own both VmConfig-first helpers, the two-Nat MessageCallGas result and exactly
+  six prospective ordinary laws. Complete public-law charge/error/affordability,
+  init rounding and explicitly financed local-potential clients, frozen controls
+  and source/target correspondence remain future work. Actual caller/config
+  coherence, earlier CALL payments/state spill, preflight/child return/settlement,
+  compiled/resource and G1/G2–G7/VM/guest gates remain open. The supplied scalar
+  maximum is reused; no new global invariant or hidden default follows.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 

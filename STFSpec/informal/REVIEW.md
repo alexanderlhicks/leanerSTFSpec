@@ -136,6 +136,15 @@ Source value/default/map/Account callback/dirty/witness/partial-state histories
 remain separate from the already-encoded nominal secured/root projection. No new
 public helper, source/WF predicate, policy, dependency or broader readiness is supplied.
 
+Q64's call/init-code pricing contract is specified by
+[EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): two VmConfig-first
+pure helpers, the existing cost/subCall result shape and exactly six prospective
+ordinary laws. The carrier/helpers/proofs and complete public-law clients and
+source/target controls remain unimplemented/unproved. Relevant-price congruence
+is a local arithmetic boundary, without a global WF or payment/settlement/G2
+claim. This guidance approval closes no implementation, compiled/resource or
+VM/guest gate and changes no dated §6 readiness assessment.
+
 ## 4. Agent implementation contract
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
