@@ -83,7 +83,9 @@ def toFields (n : Nat) : RlpItem → Except RlpError (Vector RlpItem n)
 
 /-- Exactly one successful variant; two successes reject even equal results.
 Pinned dependency `ethereum_rlp/rlp.py:325–343` (0.1.6). Both alternatives are
-observed; the future wrapper erases the no-match/multiple-match diagnostics. -/
+observed; under Q68 the future wrapper preserves no-match/multiple-match
+values. Erasure means single-channel source/consumer observation, not diagnostic
+replacement in the wrapper. That wrapper remains unimplemented. -/
 def union2 {α : Type} (f g : RlpItem → Except RlpError α)
     (x : RlpItem) : Except RlpError α :=
   match f x, g x with

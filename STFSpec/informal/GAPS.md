@@ -264,8 +264,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   public-law domains. The supplied `RlpEncode`, `encodeOf` and Nat encoder leave
   `RlpDecode`, `decodeTo`, Nat decoding/typed roundtrip, other encoding instances,
   element/schema decoders and SSZ semantic interfaces beyond structural sizing
-  unimplemented. The observable diagnostic-erasure mapping for `decodeTo` needs
-  clarification before that wrapper is supplied. Raw `SszType`/`SszValue`/`SszError`
+  unimplemented. Q68 fixes the prospective exact wrapper equation and channel
+  observation; it supplies no decoder class, wrapper, Nat instance or typed-wire
+  composition premise. `decodeTo_encodeOf_nat` is unproved and §4's prospective
+  controls are unrun. Local intended-source/reflection/callback/host and
+  first-handler premises, actual schema-depth agreement and full-guest gates
+  remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
   `WellTyped`, schema, codec, root operation or error producer implementation.
