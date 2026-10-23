@@ -563,6 +563,17 @@ Consumers can compose empty/nested byte/list models without unfolding the tempor
 writer cache. The raw wire-law domains are owned by EthCodec §7; schema
 instances and guest outcomes remain their owners' open obligations.
 
+The encoding-only typed handoff is supplied by
+[EthCodec §3/§5/§7](modules/EthCodec.md#implemented-typed-rlp-encoding-foundation):
+`RlpEncode` has exactly the `toRlp` field, `encodeOf` composes it with raw encoding,
+and Nat's adapter is exactly `ofNat` on every natural. Private facade clients
+compose complete byte/size laws and conditional raw-wire image, including a
+bounded caller's public-law domain discharge and a nominal instance dispatch
+control. Standard/source correspondence retains Q47's `Encodable` and actual
+source-class/host premises. No generic inverse or class proof field follows;
+`RlpDecode`, `decodeTo`, Nat decoding/typed inverse, other instances and the exact
+diagnostic-erasure mapping remain pending in EthCodec §10.
+
 ### Raw SSZ model premise
 
 [EthCodec §3/§5/§7](modules/EthCodec.md#3-eels-source-map) supplies the raw
