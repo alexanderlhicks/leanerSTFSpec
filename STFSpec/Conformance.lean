@@ -195,6 +195,9 @@ import STFSpec.Conformance.Vm.Core.MemoryGasGuards
 import STFSpec.Conformance.Vm.Core.CallGasCallerProofs
 import STFSpec.Conformance.Vm.Core.CallGasGuards
 
+import STFSpec.Conformance.Codec.RlpDecodeOfCallerProofs
+import STFSpec.Conformance.Codec.RlpDecodeOfGuards
+
 /-!
 # STFSpec.Conformance
 

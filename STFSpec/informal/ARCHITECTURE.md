@@ -719,6 +719,24 @@ Private traversal/termination support is permitted behind the public equation;
 implementation, source correspondence, the other six domains and cost/readiness
 obligations remain with EthCodec.
 
+**Typed RLP wrapper diagnostic options (Q68).** DECISIONS Q68 owns the
+disposition; EthCodec §5/§7 owns the exact interface and Nat theorem.
+A preserves raw error values and the complete typed result after raw success,
+placing single-channel erasure in source/consumer correspondence. B instead
+preserves raw errors but replaces every typed error with exactly
+`.shape "decodeTo"`; C replaces both raw and typed errors with that same value.
+All preserve successful values and raw-before-typed ordering, but their public
+`Except RlpError` results differ. The source normalizes the typed outer exception
+class/message while retaining causes; none claims Python exception-object or
+message equality. A keeps provider diagnostics available for private composition;
+reference guest handlers use the common rejection classification at their own
+phase. Existing `Except Unit` suffices as mathematical observation, without an
+exported projection, new error/type or proof-bearing class. Generic class
+availability supplies neither an inverse nor all-target Python correspondence.
+Local source/reflection/callback, host and first-handler premises remain required;
+implementation, proof, controls, schema-depth and guest gates remain with their
+owners.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
