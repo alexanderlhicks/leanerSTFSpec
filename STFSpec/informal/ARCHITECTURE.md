@@ -706,6 +706,19 @@ Unsigned construction at the original runner points differs from Base.ofInt?'s
 signed from_signed conversion. No policy argument, global meter invariant or
 whole-transaction accounting theorem follows from this local helper contract.
 
+**SSZ fixed-size classification options (Q67).** DECISIONS Q67 owns the
+disposition; EthCodec §5/§7 owns the exact value and single ordinary
+equation. A gives structural fixed-class width on all raw syntax, keeping schema
+admission, value typing and codec/root domains separate. B couples `none` to an
+executable validator, conflating invalid schemas with variable classes and
+requiring additional admission choices. C adds a proof-bounded input or checked
+result, changing the public interface and requiring a domain or error contract.
+A keeps local consumer premises explicit: fixed zero is valid metadata without
+licensing division, and a variable branch establishes no class-admission fact.
+Private traversal/termination support is permitted behind the public equation;
+implementation, source correspondence, the other six domains and cost/readiness
+obligations remain with EthCodec.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
