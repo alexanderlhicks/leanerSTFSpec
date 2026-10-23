@@ -4,8 +4,9 @@
 
 Run EELS/.venv/bin/python -I -B with --eels EELS --output SCRATCH/observations.lean.
 Reuse the typed driver's authenticated current-source loader and trusted RECORD
-checks. Inputs are exactly bytes or nested exact lists of those bytes. Results
-must be exact bytes, before any Lean observation is emitted. Interpreter, startup,
+checks. Inputs are exactly bytes or nested exact lists of those bytes, plus the
+fixed 22-case Nat handoff through exact source Uint. Results must be exact bytes,
+before any Lean observation is emitted. Interpreter, startup,
 frozen installation and RECORD remain trust inputs. No huge/deep host claim follows.
 """
 from pathlib import Path
@@ -32,6 +33,18 @@ def require_bytes(value):
     """Python equality cannot distinguish bool/int or bytes-like return classes."""
     if type(value) is not bytes:
         raise TypeError("raw RLP encoder returned a non-bytes result")
+
+
+def require_nat(value):
+    """Only exact nonnegative Python integers enter the Nat-to-Uint handoff."""
+    if type(value) is not int or value < 0:
+        raise TypeError("Nat observation requires an exact nonnegative int")
+
+
+def require_uint(value, uint_class):
+    """Require the original authenticated Uint class before oracle encoding."""
+    if type(value) is not uint_class:
+        raise TypeError("Nat encoding requires exact source Uint")
 
 
 def lean_list(value):
@@ -81,12 +94,15 @@ def main():
     auth = RlpSourceAuth(context)
     sys.meta_path.insert(0, RlpFreshFinder(auth))
     from ethereum_rlp import rlp
-    from ethereum_types.numeric import Uint
+    from ethereum_types.numeric import Uint, U64
+    from ethereum_types import numeric
     context.check_source(rlp, "ethereum_rlp/rlp.py", dependency=True)
+    source_uint, source_encode = Uint, rlp.encode
     rng = random.Random(context.seed)
     guards = ["import STFSpec.Codec", "open STFSpec.Codec STFSpec.Codec.Rlp STFSpec.Base"]
     counts = {"items": 0, "bytes": 0, "list_payloads": 0, "integers": 0,
-              "shape_negative_controls": 0}
+              "shape_negative_controls": 0, "nat_negative_controls": 0,
+              "typed_integer_encodings": 0}
     for wrong in [True, 1, bytearray(b"x"), memoryview(b"x"), [False], (b"x",)]:
         try:
             require_model(wrong)
@@ -101,6 +117,20 @@ def main():
             counts["shape_negative_controls"] += 1
         else:
             raise AssertionError("result exact-type negative control accepted")
+    for wrong in [True, -1, 1.0, "1", b"1", Uint(1), U64(1)]:
+        try:
+            require_nat(wrong)
+        except TypeError:
+            counts["nat_negative_controls"] += 1
+        else:
+            raise AssertionError("Nat input negative control accepted")
+    for wrong in [True, -1, 1, 1.0, "1", b"1", U64(1)]:
+        try:
+            require_uint(wrong, source_uint)
+        except TypeError:
+            counts["nat_negative_controls"] += 1
+        else:
+            raise AssertionError("Uint input negative control accepted")
 
     def observe(value):
         require_model(value)
@@ -149,16 +179,30 @@ def main():
 
     for _ in range(100):
         observe(sample(rng.randrange(1, 6)))
-    for n in [0, 1, 127, 128, 255, 256, 1024, 2**64-1, 2**64, 2**256-1]:
-        result = rlp.encode(Uint(n))
+    for n in [0, 1, 2, 127, 128, 129, 255, 256, 257, 1024, 0x01000203,
+              2**64-1, 2**64, 2**64+1, 2**256-1, 2**256, 2**256+1,
+              2**(8*54)+0x010003, 2**(8*55)+0x010003,
+              2**(8*254)+0x010003, 2**(8*255)+0x010003, 2**(8*256)+0x010003]:
+        require_nat(n)
+        if (Uint is not source_uint or numeric.Uint is not source_uint or
+                rlp.Uint is not source_uint or rlp.encode is not source_encode):
+            raise AssertionError("authenticated Uint/encode identity changed")
+        value = source_uint(n)
+        require_uint(value, source_uint)
+        result = source_encode(value)
         require_bytes(result)
         guards.append(f"#guard encode (ofNat {n}) = {lean_bytes(result)}")
+        guards.append(f"#guard encodeOf ({n} : Nat) = {lean_bytes(result)}")
         counts["integers"] += 1
+        counts["typed_integer_encodings"] += 1
+    if (Uint is not source_uint or numeric.Uint is not source_uint or
+            rlp.Uint is not source_uint or rlp.encode is not source_encode):
+        raise AssertionError("authenticated Uint/encode identity changed")
     auth.check()
     result = context.run(guards, counts=counts, ethereum_rlp="0.1.6",
                          rlp_sources={str(p): h for p, h in auth.expected.items()},
                          rlp_record_sha256=hashlib.sha256(auth.record_bytes).hexdigest(),
-                         domain="bounded exact raw bytes/list trees and Uint model leaves")
+                         domain="bounded exact raw bytes/list trees and 22 exact Uint/Nat encodings")
     auth.check()
     return result
 
