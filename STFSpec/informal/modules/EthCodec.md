@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-23. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -320,8 +320,8 @@ the nine `SszType`, five `SszValue` and six `SszError` constructors in §5. Thes
 inductives are their own raw models: arbitrary natural parameters, complete byte
 payloads, ordered finite recursive lists and independent boolean masks are
 retained without a construction invariant. No authored instances or public laws
-are added. Well-formedness, typing, size classification, schema adapters, codecs,
-root operations and error producers remain unimplemented.
+are added. Well-formedness, typing, schema adapters, codecs, root operations and error
+producers remain unimplemented. Structural size classification is supplied below.
 
 The descriptor graph in `utils/ssz.py:32–87,179–225,231–258` supplies the static
 shape correspondence below. `_field_types` preserves reflected field order and
@@ -380,6 +380,47 @@ diagnostic correspondence or O1/O2/O12/O13 classification.
 - `remerkleable.basic`, `.byte_arrays.{ByteList, ByteVector}`, `.complex.{Container, List}`, `.progressive.{ProgressiveList, ProgressiveByteList, ProgressiveContainer}`, as S2–S6.
 - `hashlib.sha256` via `EthHash`.
 
+### Structural SSZ sizing (Q67)
+
+`STFSpec/Codec/SszFixedSize.lean`, exported through `STFSpec.Codec`, supplies
+`SszType.fixedSize? : SszType → Option Nat` and the single ordinary public law
+`SszType.fixedSize?_eq` in §7, **discharged** on every raw descriptor. The readable
+descriptor/private-field-list recursion is structurally terminating; a private
+list induction relates the short-circuiting worker to the exact public fold.
+The §4 complete-result controls and six private public-equation client groups
+elaborate. These are target proofs/controls, without executed source comparison.
+
+| Source at the pin / locked dependency | Lean operation | Domain, effects and failures | Law and controls |
+|---|---|---|---|
+| `utils/ssz.py:179–225,231–258`; `remerkleable/basic.py:52–53,252–309`, `core.py:200–213`, `byte_arrays.py:78–103` | `SszType.fixedSize?` primitive branches | every raw Nat width; pure, no error channel; source agreement only for actually mapped classes and matching byte widths | `fixedSize?_eq`; bool, zero/standard/unsupported/large uint and byte-vector widths |
+| `utils/ssz.py:181–194,213–220`; `remerkleable/byte_arrays.py:262–271`, `complex.py:516–529`, `progressive.py:121–134,244–266`, `core.py:106–108` | same operation, variable branches | every raw child and limit; no recursive admission judgment; progressive protocol fallback is statically falsey `None`, not literal `False` or an observed execution result | same single law; zero limits, unsupported children, zero-width fixed children and nested progressive lists |
+| `utils/ssz.py:231–258`; `remerkleable/complex.py:811–848`, `progressive.py:440–498,535–536` | same operation, container branches | every ordered raw field list and independent mask; optional sum over fields only; source class admission and reflection remain separate | same single law; empty/zero/mixed/nested fields, variable fields and independent malformed masks |
+
+These source correspondences are static consequences of the retained source,
+conditional on an actual successful intended mapping to the standard pinned
+class, matching primitive byte widths and the actual ordered field classes,
+with unchanged methods, reflection metadata and caches. The source marker's
+integer width is in bits; the raw descriptor's width is in bytes. On this domain,
+`some n` corresponds to a truthy `is_fixed_byte_length()` result and
+`type_byte_length() = n`; `none` corresponds to a falsey classifier result,
+without calling `type_byte_length`. This is neither an exact-`False` identity nor
+a min/max characterization: zero-limit byte/lists and containers containing
+variable zero-limit fields can have equal source min/max while remaining variable.
+For progressive lists and progressive byte lists, inherited `View` protocol
+fallback (`core.py:106–108`) has an implicit `None` result under ordinary Python
+semantics; no source probe or formal Python-refinement theorem is supplied.
+
+EELS creates progressive containers with all-one masks. Direct dependency
+correspondence for other masks additionally needs actual successful class
+construction and the same enumerated fields. Ordinary name filtering/inheritance,
+progressive admission and the capacity-256 `more` rule are not represented by
+nameless raw syntax. Unsupported uint widths, ordinary empty containers and
+malformed progressive masks can therefore have chosen raw answers without a
+corresponding source class. Class/annotation exceptions remain separate from
+sizing, codec failures and guest outcomes. In particular, fixed-zero element
+classification does not repair the decoder's division/modulo by element width
+(`remerkleable/complex.py:186–195`); its serialization/inverse domain stays open.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -433,6 +474,35 @@ diagnostic correspondence or O1/O2/O12/O13 classification.
   These are local model checks, without source execution, codec/schema acceptance,
   root or error-producer coverage.
 
+- **Implemented structural sizing controls (Q67).**
+  `SszFixedSizeGuards.lean` checks exactly 96 handwritten complete `Option Nat`
+  expectations with stable per-case IDs: 12 uint, one bool, eight byte-vector,
+  five byte-list, ten list, eight progressive-list, one progressive-byte-list,
+  twenty container, twenty-four progressive-container and seven nested controls.
+  They cover all nine constructors,
+  zero/standard/unsupported/huge byte widths (including 2^64 and 2^256+17),
+  variable zero limits/zero-width or malformed children, fixed zero versus none,
+  duplicate and nested fixed fields, and early/late/nested variable fields.
+  Independent empty, trailing-false, mismatched and 255/256/257-entry masks never
+  select fields; at most 257 actual fields are allocated. S labels mark static
+  conditional source consequences, D direct-dependency mapping consequences,
+  and R the chosen raw completion. S/D do not assert actual class admission or
+  source execution; G12 additionally requires a source field named `more`.
+  Summation alone does not observe field permutations, so these controls make
+  no field-order mutation claim.
+- **Implemented private sizing consumers.** `SszFixedSizeCallerProofs.lean`
+  imports only the Codec facade and uses the public equation and ordinary core
+  laws. Its six groups derive all nine arbitrary constructor cases; complete
+  optional sums and ordinary/progressive append composition (including empty,
+  fixed and variable results); mask independence of results; list child/limit
+  independence and variable propagation; prospective slot tables; and the
+  positive-divisor boundary. The tables retain complete slots [2,1,0,4,3,8]
+  totaling 18 and [32,1,8,2] totaling 43, without encoding offsets or supplying
+  an actual guest schema. Fixed-zero examples disprove general positivity and
+  unique element-count recovery; division/remainder recovery has its separate
+  explicit positive-width premise. All support and proofs are private.
+  No source execution, native CLI, codec/root or guest coverage is supplied.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -477,7 +547,7 @@ def computeContractAddressQ [Monad m] [KeccakQuery m] : Address → Nat → m Ad
 def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
--- SSZ: the three raw inductives are supplied; every other SSZ item remains future.
+-- SSZ: raw inductives and fixedSize? are supplied; other SSZ items remain future.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -533,6 +603,16 @@ The supplied raw SSZ slice declares no authored instances or deriving clauses,
 including on `SszError`. Its constructors, recursors and ordinary generated inductive facts
 supply raw construction and elimination only. No schema admission, normalization
 or executable semantic operation is hidden in the representation.
+
+**Structural sizing implementation (Q67).** The readable descriptor/private-list
+mutual recursion uses ordinary finite structural descent. Variable list branches
+return `none` without inspecting their children or limits. Each container visits
+its actual fields in order and stops at the first variable field; masks are not
+read. The private worker/fold equality proves the single ordinary §7 law. There
+is no second optimized model, mapped field list, public measure, fuel, validator,
+instance, certificate, error type or extra public law. Widths and their sums remain
+Nat metadata, without proportional byte allocation. Mathematical termination
+supplies no practical host-depth, compiled ownership, allocation or cost guarantee.
 
 **Implemented encoder costs.** The first structural pass caches each subtree's
 size and packed writer closure once. The second pass copies each header/payload
@@ -657,8 +737,42 @@ canonicality uses public Base fold/range/encoded-width and fixed-byte injectivit
 so it also proves the converse byte minimality rather than just value round trip.
 
 **SSZ.**
-Only raw construction/elimination is supplied, with no authored public law family.
-The following semantic laws remain prospective conditional obligations. Their
+Raw construction/elimination and Q67 structural sizing are supplied. Exactly one
+ordinary public sizing law on every raw `SszType` is **discharged**, with the §5
+value signature. Its type is recorded informally below; the checked proof belongs
+to `STFSpec/Codec/SszFixedSize.lean`:
+
+```lean
+theorem SszType.fixedSize?_eq (t : SszType) :
+  t.fixedSize? =
+    match t with
+    | .uint w => some w
+    | .bool => some 1
+    | .byteVector n => some n
+    | .byteList _ => none
+    | .list _ _ => none
+    | .progressiveList _ => none
+    | .progressiveByteList => none
+    | .container fields | .progressiveContainer _ fields =>
+        fields.foldr
+          (fun field acc =>
+            match field.fixedSize?, acc with
+            | some n, some m => some (n + m)
+            | _, _ => none)
+          (some 0)
+```
+
+`some n` is raw structural fixed-class byte width, including zero; it asserts no
+schema well-formedness, value typing, source-class admission, positive divisor,
+codec success or rootability. `none` is structural variability, not an invalid
+schema error. Thus unsupported uint widths return their raw width, byte vectors
+may be fixed zero, and all list/byte-list branches are variable regardless of
+limit or child validity. Both container branches take the optional sum of every
+actual field, with empty result `some 0`: any variable field makes the result
+`none`. Progressive sizing ignores the mask and neither filters, zips, pads nor
+normalizes the field list. Arbitrary Nat widths add without a host-sized cap.
+
+All other semantic laws below remain prospective conditional obligations. Their
 domains and total completions remain open as detailed in §10; the raw model and
 its private consumers discharge none of them.
 
@@ -694,6 +808,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** `EthCommit` (node RLP), `EthVmInstructions` (CREATE/CREATE2 addresses), `EthBlock` (transaction/header/receipt RLP, withdrawal and request SSZ, BAL encoding), and transitively `EthStateCommit` (account leaf RLP), `EthStateWitness` and `EthStateless` (`StatelessInput` schema, output encoding, the request root).
 - **Seams provided.** Generic RLP and SSZ with canonicality theorems. Schema owners write `SszSchema`/`RlpDecode` instances and prove only the per-instance schema laws. Contract-address derivation.
 - **Cross-module invariants.** Consumers must decode with `decodeTo` (typed) wherever EELS uses `decode_to`, so that D2r stays unobservable. Schema owners must mirror `_infer` exactly: field order, widths, limits, and progressive versus plain types.
+- **Supplied sizing premise (Q67).** Future inline/offset and fixed-element
+  consumers use the single §7 equation and inspect the whole `Option Nat`.
+  `some 0` remains fixed metadata; division/modulo, serialization inverses,
+  actual schema admission and root operations each need their own local domain
+  premises. Neither a blanket WF assumption nor sizing alone supplies them.
+  The classifier and equation supply the local structural composition premise;
+  actual codec/schema consumers remain future work.
 - **Implemented header premise.** The extent helper supplies suffix/window
   correspondence and positive declared extents. Full parsers must still check
   declared extents against the current parent window before reading payloads,
@@ -701,6 +822,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Relies on.** `EthHash.sha256` and `keccak256`, and `EthBase` byte conversions (in particular `Uint.toBeBytes 0 = empty`).
 
 ## 9. Open decisions
+
+- **Q67** owns the raw structural sizing disposition; §5/§7 specifies its
+  supplied value/law contract. The other six SSZ domain questions in §10 stay open.
 
 - **Q47** owns the total RLP encoder completion beyond `Encodable`; decoder acceptance and round-trip/canonicality contracts retain the domain in §7.
 
@@ -720,10 +844,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
-  element/schema decoders and all SSZ semantic interfaces are unimplemented.
-  Only the raw `SszType`/`SszValue`/`SszError` vocabulary is supplied; there is no
-  `WellFormed`, `WellTyped`, `fixedSize?`, schema, codec, root operation or error
-  producer implementation.
+  element/schema decoders and SSZ semantic interfaces beyond structural sizing
+  are unimplemented. Raw `SszType`/`SszValue`/`SszError` vocabulary and structural
+  `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
+  `WellTyped`, schema, codec, root operation or error producer implementation.
   The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
@@ -732,17 +856,23 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
-- **SSZ semantic domains remain open.** The raw vocabulary selects no answer to
-  these seven questions: structural nameless `WellFormed` versus full Python class
-  admission/names (including `more` at mask capacity); ordinary empty-container
-  admission and explicit empty-mask interpretation; progressive mask length versus
-  population/field count and name restrictions; whether `WellTyped` entails
-  `WellFormed` and how malformed schemas affect all-value typing; `fixedSize?`'s
-  total completion on malformed syntax versus variable types; which count,
-  uint256 length, uint32 offset, scope, cache and zero-width constraints belong to
-  typing versus separate operation/source/root domains; and serialization/inverse
-  premises and total completion for zero-fixed-element lists. No positivity guard,
-  mask normalization, acceptance cap, rejection rule or total completion is chosen.
+- **SSZ sizing limits (Q67).** The classifier, ordinary equation, structural
+  termination and §4 private controls/clients are supplied. Conditional static
+  source interpretation is not a formal Python refinement theorem or executed
+  source comparison. Actual codec/schema consumers, source class admission,
+  compiled feasibility, practical stack/resources and C1–C4 remain open; no
+  larger G/S/W/R, EEST or guest readiness claim follows.
+- **Six other SSZ semantic domains remain open.** Q67 resolves only raw sizing.
+  The remaining questions are structural nameless `WellFormed` versus full Python
+  class admission/names (including `more` at mask capacity); ordinary
+  empty-container admission and explicit empty-mask interpretation; progressive
+  mask length versus population/field count and name restrictions; whether
+  `WellTyped` entails `WellFormed` and how malformed schemas affect all-value
+  typing; which count, uint256 length, uint32 offset, scope, cache and zero-width
+  constraints belong to typing versus separate operation/source/root domains;
+  and serialization/inverse premises and total completion for zero-fixed-element
+  lists. No positivity guard, mask normalization, acceptance cap, rejection rule
+  or completion for these other domains is chosen.
 - **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
   domain-dependent claim. The re-encode check alone proves no reverse implication
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic
