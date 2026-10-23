@@ -64,6 +64,8 @@ import STFSpec.Conformance.Codec.RlpDecodeCallerProofs
 import STFSpec.Conformance.Codec.RlpCanonicalCallerProofs
 import STFSpec.Conformance.Codec.AddressGuards
 import STFSpec.Conformance.Codec.AddressCallerProofs
+import STFSpec.Conformance.Codec.SszModelCallerProofs
+import STFSpec.Conformance.Codec.SszModelGuards
 import STFSpec.Conformance.Commit.NodeDBGuards
 import STFSpec.Conformance.Commit.NodeDBCallerProofs
 import STFSpec.Conformance.Commit.NodeCallerProofs
