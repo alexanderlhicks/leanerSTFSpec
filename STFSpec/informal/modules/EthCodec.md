@@ -1,6 +1,6 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-23. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
@@ -235,6 +235,61 @@ success/error/cause/traceback observations and source/runtime/controller/all483
 candidate body/mode snapshots were retained and unchanged before/after execution.
 These are finite source observations, with no generic Python or host equivalence
 claim.
+
+### Implemented ByteArray RLP instances
+
+`STFSpec/Codec/RlpByteArray.lean` supplies exactly the byte-string encoding and
+decoding instances and one ordinary conditional instance inverse. Every byte,
+including zeros and leading zeros, remains data; no integer normalization applies.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:70–72` (0.1.6); `ethereum_types/bytes.py:165` (0.4.1) | `RlpEncode ByteArray`, field exactly `RlpItem.bytes` | every mathematical ByteArray, complete payload; pure | none; standard/source domain retains Q47 | `decodeTo_encodeOf_byteArray` with explicit `Encodable (.bytes b)`; empty, singleton00/7f/80/ff, leading/internal zeros, payload55/56/255/256 |
+| `ethereum_rlp/rlp.py:206–207,254–262`; `ethereum_types/bytes.py:165` | `RlpDecode ByteArray`, field exactly `Rlp.toBytes` | original source Bytes is builtin bytes; every model byte leaf preserved | existing `.shape "bytes"` on lists after complete raw success; every raw diagnostic wins unchanged (Q68) | public `toBytes_eq_ok_iff` and the conditional wire inverse; seven canonical list wires,33 ordered raw failures and direct model/Nat contrasts |
+
+**Proof clients and controls.** `RlpByteArrayCallerProofs.lean` has eight private
+facade client groups: arbitrary leaf success, exact adapter accept set, the
+conditional inverse, recovery of the exact raw leaf, successful-domain and
+size<2^64 recovery, exact original-wire reencoding, local size≤256 domain
+discharge, and byte-preserving encoding/list non-success. They compose public
+`decode_encode`, `toBytes_eq_ok_iff`, `decode_success_encodable`,
+`encode_eq_of_decode_eq_ok` and `encodable_bytes_iff`, reducing only the new
+adapters/wrappers. No arbitrary-ByteArray Encodable claim follows.
+
+`RlpByteArrayGuards.lean` supplies102 complete outcomes across54 wire vectors:
+14 payloads each check model constructor plus every byte, complete model success,
+exact encoded wire and complete wire success; seven lists and33 raw failures;
+three direct list rejections and three Nat contrasts. All support is manually
+private, without nested deriving or exported conformance declarations.
+
+**Bounded source profile.** `rlp_byte_array_differential.py` fixes seed29201:
+14 catalog payloads (encode then decode), seven literal lists,33 literal raw
+failures, then48 generated payloads at widths0/1/2/7/8/31/32/55/56/127/255/256,
+four trials each, with encode/decode/drop-last/append00 in that order. The fresh
+frozen Python3.13 `-I -B` run completed62 encode entries and198 decode calls:
+62 decoder successes,129 raw
+errors and seven typed-list errors;124 successful source calls include encoders.
+All260 complete result guards compiled successfully through the existing Lean
+driver. Normal and `-O` helper runs passed twelve exact-type negatives, eight
+exception-admission negatives and one wrong-value negative; the same controls
+also passed before the source profile.
+Maximum supplied wire260, payload256, list depth3/width56 and declared length
+2^64−1 are bounded controls, without proportional allocation for declared lengths.
+
+The source controller uses original builtin Bytes and original encode/decode_to,
+checks exact bytes before equality, verifies saved aliases/functions/code and
+current source/origin/RECORD identity, and retains complete source events separately
+from full Lean diagnostics and the existing `Except Unit ByteArray` observation.
+Raw raises remain outside the typed catch; exact list provenance is checked at
+outer `decode_to:171`, with cause `decode_to:169` → `deserialize_to:207` →
+`_deserialize_to_bytes:258` and exact invalid-bytes cause arguments. Frozen interpreter/startup,
+installation/RECORD, Lean compiler/core runtime and ambient host are trust inputs.
+This finite profile supplies no generic Python refinement, schema-depth, practical
+host/resource, C1–C4, EEST, guest or whole-layer readiness result. Complete
+source events, all generated bytes/wires and guards, actual argv/cwd/environment,
+and source/runtime/controller/compiled-Lean/all487 target body/mode snapshots
+were retained and unchanged before/after the single run. The actual empty-input
+raise is149; the typed-list cause is258, distinguished from condition/signature lines.
 
 ### Implemented RLP header slice
 
@@ -560,6 +615,10 @@ classification does not repair the decoder's division/modulo by element width
   `RlpDecodeOfCallerProofs.lean` supplies the eight private client groups in §3.
   The narrow actual-source wire profile is described in §3; it retains intended
   source-class/reflection/callback/host and first-handler premises.
+- **Implemented ByteArray instance controls.** The102 complete outcomes and eight
+  private public-law client groups are catalogued in §3. They retain complete
+  payloads/diagnostics, Q47 and raw-before-typed order; the bounded source profile
+  supplies separate source-event and mathematical common-channel observations.
 - **Property / differential tests.**
   - Random `RlpItem` round trip, and canonicality under mutation fuzzing.
   - Random well-typed SSZ values round trip.
@@ -643,8 +702,9 @@ class RlpEncode (α : Type) where toRlp : α → RlpItem
 class RlpDecode (α : Type) where
   ofRlp : RlpItem → Except RlpError α
 -- supplied: RlpEncode Nat, with toRlp exactly Rlp.ofNat
--- supplied: RlpDecode Nat, with ofRlp exactly Rlp.toNat; pending other instances:
--- U256, U64, U32, U8, Bool, ByteArray, FixedBytes n, Address, Hash32, List α
+-- supplied: RlpDecode Nat, with ofRlp exactly Rlp.toNat
+-- supplied: RlpEncode ByteArray / RlpDecode ByteArray, exactly .bytes / Rlp.toBytes
+-- pending other instances: U256, U64, U32, U8, Bool, FixedBytes n, Address, Hash32, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 -- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
@@ -835,6 +895,22 @@ establish `Encodable` locally through public Base/leaf laws. Unfold neither raw
 parser workers nor Base representations, and introduce no additional public
 helper-law family. These private clients are supplied through the Codec facade.
 
+The supplied ByteArray instances are exactly `.bytes` and `toBytes`. Their one
+ordinary public per-instance law is discharged:
+
+```lean
+theorem Rlp.decodeTo_encodeOf_byteArray (b : ByteArray)
+    (h : Rlp.Encodable (.bytes b)) :
+    Rlp.decodeTo (α := ByteArray) (Rlp.encodeOf b) =
+      (Except.ok b : Except RlpError ByteArray)
+```
+
+It composes public `decode_encode` and `toBytes_eq_ok_iff`, reducing only the
+new adapters/wrappers. The explicit h is retained for arbitrary mathematical
+ByteArray (Q47). Successful typed decoding recovers the exact byte leaf, its
+Encodable domain and every original wire byte through public provider laws;
+those recovery clients remain private. Q68 preserves all raw and typed results.
+
 **Discharged encoder laws.** `toList_encode` relates the packed encoder to
 `encodeModel` for every item, including Q47 completion; `size_encode` and
 `encodedSize_eq_model_length` equate size pass, output and reference widths.
@@ -1019,7 +1095,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
-  Nat adapters and conditional Nat roundtrip leave other encoding/decoding
+  Nat/ByteArray adapters and their conditional roundtrips leave other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
