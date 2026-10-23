@@ -66,6 +66,8 @@ import STFSpec.Conformance.Codec.AddressGuards
 import STFSpec.Conformance.Codec.AddressCallerProofs
 import STFSpec.Conformance.Codec.SszModelCallerProofs
 import STFSpec.Conformance.Codec.SszModelGuards
+import STFSpec.Conformance.Codec.SszFixedSizeGuards
+import STFSpec.Conformance.Codec.SszFixedSizeCallerProofs
 import STFSpec.Conformance.Commit.NodeDBGuards
 import STFSpec.Conformance.Commit.NodeDBCallerProofs
 import STFSpec.Conformance.Commit.NodeCallerProofs
