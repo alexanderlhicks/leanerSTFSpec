@@ -473,6 +473,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
+  Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
+  and ten complete-value guards. Full EthBlock.BlockOutput construction,
+  block/counter coherence, capacity arithmetic and checked failures/precedence,
+  allocation/settlement and actual consumers remain unimplemented here. This
+  raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
+
 - **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
   Log, existing public rope constructors, two operations and six discharged ordinary
   laws, with private total workstack/all-tree reference refinement. Public-only

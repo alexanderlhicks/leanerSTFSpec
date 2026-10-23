@@ -169,6 +169,8 @@ import STFSpec.Conformance.Vm.Core.MemoryGuards
 import STFSpec.Conformance.Vm.Core.GasMeterCallerProofs
 import STFSpec.Conformance.Vm.Core.GasCostsCallerProofs
 import STFSpec.Conformance.Vm.Core.ConfigCallerProofs
+import STFSpec.Conformance.Vm.Core.BlockGasCallerProofs
+import STFSpec.Conformance.Vm.Core.BlockGasGuards
 import STFSpec.Conformance.Vm.Core.GasMeterGuards
 
 import STFSpec.Conformance.Vm.Core.GasRollbackCallerProofs
