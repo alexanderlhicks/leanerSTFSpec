@@ -291,6 +291,64 @@ and source/runtime/controller/compiled-Lean/all487 target body/mode snapshots
 were retained and unchanged before/after the single run. The actual empty-input
 raise is149; the typed-list cause is258, distinguished from condition/signature lines.
 
+### Implemented Bool RLP instances
+
+`STFSpec/Codec/RlpBool.lean` supplies exactly two Bool instances and one ordinary
+unconditional wire inverse. False maps to empty bytes, true to singleton01;
+`ofRlp` is exactly the existing `Rlp.toBool`.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:79–83` (0.1.6) | `RlpEncode Bool`, field `if b then .bytes ⟨#[1]⟩ else .bytes ByteArray.empty` | both mathematical Bool values; pure; both models lie in Q47 | none | `decodeTo_encodeOf_bool`; complete false/true models and exact wires80/01 |
+| `ethereum_rlp/rlp.py:208–209,245–251` | `RlpDecode Bool`, field exactly `Rlp.toBool` | original source native Bool target; empty bytes false, singleton01 true | complete raw errors first (Q68); other bytes and lists both retain `.shape "boolean"` | `toBool_eq_ok_iff` and unconditional instance wire inverse; two successes,16 typed and30 raw rejections |
+
+**Proof clients and controls.** `RlpBoolCallerProofs.lean` supplies eight private
+facade client groups: exact encoder/decoder equations, finite-domain discharge,
+typed model inverse, public unconditional wire inverse, exact raw-model recovery
+and accepted-wire reencoding, complete raw-first forwarding, lists/invalid-byte
+rejection, and diagnostic preservation with external common-channel erasure.
+Only the new adapters and transparent wrappers are reduced; the proofs compose
+public `encodable_bytes_iff`, `decode_encode`, `toBool_eq_ok_iff` and
+`encode_eq_of_decode_eq_ok`. `RlpBoolGuards.lean` supplies52 complete controls:
+two full model observations, two exact encodings and48 whole wire outcomes.
+Support is private and introduces no nested equality or deriving instance.
+
+**Bounded source profile.** `rlp_bool_differential.py` fixes seed29301 with no
+random draws:18 encode calls interleaved with corresponding Bool decode calls,
+then30 malformed wires in the Nat profile's fixed order. The first two encode
+inputs are exact native False/True; the other16 deliberately encode raw models
+(11 byte payloads and five lists), then test Bool rejection. Target comparisons
+use `encodeOf` for the two Bool values and public raw `encode` for other models.
+The fresh frozen Python3.13 `-I -B` profile completed48 decodes:
+two successes,16 typed and30 raw failures,
+20 successful source calls including encoders. All66 complete generated guards
+compiled through the existing Lean driver.
+Maximum wire259, byte payload256, list depth2 and width56 bound this profile.
+
+Exact Bool admission precedes equality/JSON/emission, rejecting Python0/1;
+all wires and encoder results require exact bytes. Original builtin Bool/Bytes,
+source aliases, functions/code, current source and RECORD are bound pre/post.
+Raw decode at167 is outside the typed catch. Typed rejection retains outer
+`decode_to:171`, cause `decode_to:169` → `deserialize_to:209` →
+`_deserialize_to_bool:251` and exact arguments. Its original authenticated
+frame's full native value/class distinguishes invalid bytes from lists; accepted
+empty/01 values cannot be failures. Both retain the same Lean diagnostic.
+Complete source events, complete Lean results and external `Except Unit Bool`
+observations are separate. Thirty-nine local helper negatives cover22 Bool,
+eight byte, eight exception/provenance and one complete-value rejection.
+
+Both normal and `-O` helper-only runs passed all39 local negatives without source
+entry calls; the same controls also passed before the single source profile.
+Actual argv/cwd/UTC/empty stdin, selected nonsecret effective environment,
+full stdout/stderr/exits, ordered per-call records and full source/Lean
+observations were retained. All491 target bodies/modes, source/runtime/install,
+compiled Lean and controller inputs were frozen and unchanged pre/post.
+Interpreter/startup,
+installation/RECORD, outer orchestration, ambient host, Lean compiler/kernel and
+native runtime remain trust inputs. This finite profile supplies no generic
+Python refinement, practical host/resource, C1–C4, EEST, guest or whole-layer
+readiness claim.
+
 ### Implemented RLP header slice
 
 `STFSpec/Codec/RlpHeader.lean` implements the total packed cursor helper, with
@@ -619,6 +677,9 @@ classification does not repair the decoder's division/modulo by element width
   private public-law client groups are catalogued in §3. They retain complete
   payloads/diagnostics, Q47 and raw-before-typed order; the bounded source profile
   supplies separate source-event and mathematical common-channel observations.
+- **Implemented Bool instance controls.** The52 whole-result controls and eight
+  private public-law client groups are catalogued in §3. Bool's finite domain is
+  discharged privately; both invalid shape families preserve the same diagnostic.
 - **Property / differential tests.**
   - Random `RlpItem` round trip, and canonicality under mutation fuzzing.
   - Random well-typed SSZ values round trip.
@@ -704,7 +765,8 @@ class RlpDecode (α : Type) where
 -- supplied: RlpEncode Nat, with toRlp exactly Rlp.ofNat
 -- supplied: RlpDecode Nat, with ofRlp exactly Rlp.toNat
 -- supplied: RlpEncode ByteArray / RlpDecode ByteArray, exactly .bytes / Rlp.toBytes
--- pending other instances: U256, U64, U32, U8, Bool, FixedBytes n, Address, Hash32, List α
+-- supplied: RlpEncode Bool / RlpDecode Bool, exactly the two byte models / Rlp.toBool
+-- pending other instances: U256, U64, U32, U8, FixedBytes n, Address, Hash32, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 -- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
@@ -911,6 +973,24 @@ ByteArray (Q47). Successful typed decoding recovers the exact byte leaf, its
 Encodable domain and every original wire byte through public provider laws;
 those recovery clients remain private. Q68 preserves all raw and typed results.
 
+The supplied Bool encoder is exactly
+`if b then .bytes ⟨#[1]⟩ else .bytes ByteArray.empty`, and its decoder is
+exactly `Rlp.toBool`. Its single ordinary public law is discharged:
+
+```lean
+theorem Rlp.decodeTo_encodeOf_bool (b : Bool) :
+    Rlp.decodeTo (α := Bool) (Rlp.encodeOf b) =
+      (Except.ok b : Except RlpError Bool)
+```
+
+A private finite-domain argument uses `encodable_bytes_iff` for the zero/one-byte
+models. The inverse composes public `decode_encode` and `toBool_eq_ok_iff`,
+reducing only the new adapters and wrappers. No public Bool helper or domain
+predicate is added. Nat and arbitrary ByteArray keep their explicit hypotheses;
+generic independent classes still supply no arbitrary inverse. Accepted Bool
+wire reencoding is proved by private public-law callers, with exact diagnostics
+preserved before external common-channel observation.
+
 **Discharged encoder laws.** `toList_encode` relates the packed encoder to
 `encodeModel` for every item, including Q47 completion; `size_encode` and
 `encodedSize_eq_model_length` equate size pass, output and reference widths.
@@ -1095,7 +1175,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
-  Nat/ByteArray adapters and their conditional roundtrips leave other encoding/decoding
+  Nat/ByteArray adapters with conditional roundtrips and Bool adapters with their
+  unconditional finite-domain roundtrip leave other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,

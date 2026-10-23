@@ -59,6 +59,8 @@ import STFSpec.Conformance.Codec.RlpEncodeOfCallerProofs
 import STFSpec.Conformance.Codec.RlpEncodeOfGuards
 import STFSpec.Conformance.Codec.RlpByteArrayCallerProofs
 import STFSpec.Conformance.Codec.RlpByteArrayGuards
+import STFSpec.Conformance.Codec.RlpBoolCallerProofs
+import STFSpec.Conformance.Codec.RlpBoolGuards
 import STFSpec.Conformance.Codec.RlpTypedGuards
 import STFSpec.Conformance.Codec.RlpTypedCallerProofs
 import STFSpec.Conformance.Codec.RlpHeaderGuards

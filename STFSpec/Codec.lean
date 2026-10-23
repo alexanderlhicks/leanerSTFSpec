@@ -6,6 +6,7 @@ import STFSpec.Codec.RlpEncode
 import STFSpec.Codec.RlpEncodeOf
 import STFSpec.Codec.RlpDecodeOf
 import STFSpec.Codec.RlpByteArray
+import STFSpec.Codec.RlpBool
 import STFSpec.Codec.RlpHeader
 import STFSpec.Codec.RlpDecode
 import STFSpec.Codec.RlpCanonical
