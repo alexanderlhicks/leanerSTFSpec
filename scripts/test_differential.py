@@ -12,9 +12,10 @@ import io
 import os
 from pathlib import Path
 import py_compile
-import shutil
+import struct
 import subprocess
 import sys
+import sysconfig
 from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 import tempfile
 import unittest
@@ -72,8 +73,13 @@ class DifferentialTests(unittest.TestCase):
                                    for name in dir(sys.flags) if not name.startswith("_")})
         flags.isolated = 1
         package_path = distribution.locate_file("")
+        # Preserve stdlib discovery for lazy imports without inheriting ambient
+        # user/site packages or checkout search paths. Compute before patching prefix.
+        stdlib_paths = [sysconfig.get_path("stdlib"), sysconfig.get_path("platstdlib"),
+                        sysconfig.get_config_var("DESTSHARED")]
+        paths = list(dict.fromkeys(str(p) for p in stdlib_paths if p))
         with patch.dict(sys.modules), patch.object(sys, "flags", flags), \
-                patch.object(sys, "path", [str(package_path)]), \
+                patch.object(sys, "path", [str(package_path), *paths]), \
                 patch.object(sys, "meta_path", list(sys.meta_path)), \
                 patch.object(sys, "prefix", str(self.root / ".venv")), \
                 patch.object(sys, "argv", self.argv):
@@ -97,6 +103,17 @@ class DifferentialTests(unittest.TestCase):
             self.assertIsInstance(numeric.__loader__, FreshSourceLoader)
             self.assertEqual(driver.dependency, source)
             self.assertEqual(driver.seed, 7)
+
+    def test_initializer_fixture_allows_stdlib_without_unrelated_search_paths(self):
+        _, distribution = self.prepare_initializer()
+        unrelated = self.root / "unrelated"
+        unrelated.mkdir()
+        (unrelated / "wi280_unrelated.py").write_text("VALUE = 9\n")
+        with patch.object(sys, "path", [str(unrelated), *sys.path]):
+            with self.initializer_environment(distribution):
+                # Exercise discovery even if metadata's lazy import was preloaded.
+                self.assertIsNotNone(importlib.machinery.PathFinder.find_spec("quopri"))
+                self.assertIsNone(importlib.machinery.PathFinder.find_spec("wi280_unrelated"))
 
     def test_initializer_rejects_wrong_prefix(self):
         _, distribution = self.prepare_initializer()
@@ -529,12 +546,17 @@ class DifferentialTests(unittest.TestCase):
                 cache.unlink(missing_ok=True)
 
     def test_installed_native_dependency_preserved(self):
-        spec = importlib.machinery.PathFinder.find_spec("_json")
-        self.assertIsInstance(spec.loader, importlib.machinery.ExtensionFileLoader)
+        # A controlled filename exercises native-loader routing, not binary loading.
+        # Real stdlib extensions such as _json can instead be builtin in CPython.
+        fullname = "wi280_native_fixture"
         installed = self.root / ".venv/lib"
         installed.mkdir(parents=True)
-        shutil.copy2(spec.origin, installed / Path(spec.origin).name)
-        self.assertIsNone(FreshSourceFinder(self.driver).find_spec("_json", [str(installed)]))
+        extension = installed / (fullname + importlib.machinery.EXTENSION_SUFFIXES[0])
+        extension.write_bytes(b"")
+        spec = importlib.machinery.PathFinder.find_spec(fullname, [str(installed)])
+        self.assertIsInstance(spec.loader, importlib.machinery.ExtensionFileLoader)
+        self.assertEqual(spec.origin, str(extension))
+        self.assertIsNone(FreshSourceFinder(self.driver).find_spec(fullname, [str(installed)]))
 
 
 class CodeIdentityTests(unittest.TestCase):
@@ -639,10 +661,10 @@ class CodeIdentityTests(unittest.TestCase):
 
     def test_supported_constants_roundtrip(self):
         import marshal
-        import struct
         code = self.code()
         values = [frozenset(("abc", "def", 3)), -0.0, float("inf"),
-                  complex(2.5, -0.0), b"\x00\xff"]
+                  complex(2.5, -0.0), b"\x00\xff", None, Ellipsis, False,
+                  -(1 << 16000), "surrogate\ud800", (b"", frozenset((1, 2)))]
         for value in values:
             with self.subTest(kind=type(value)):
                 original = code.replace(co_consts=(None, value))
@@ -659,6 +681,57 @@ class CodeIdentityTests(unittest.TestCase):
                         struct.pack(">dd", restored.co_consts[1].real, restored.co_consts[1].imag))
                 else:
                     self.assertEqual(value, restored.co_consts[1])
+
+    def test_nested_constant_bit_patterns_and_framing(self):
+        code = self.code()
+        nan1 = struct.unpack(">d", bytes.fromhex("7ff8000000000001"))[0]
+        nan2 = struct.unpack(">d", bytes.fromhex("7ff8000000000002"))[0]
+        for left, right in [(0.0, -0.0), (nan1, nan2),
+                            (complex(2.5, 0.0), complex(2.5, -0.0)),
+                            ((b"a", b"bc"), (b"ab", b"c")),
+                            ((False,), (0,))]:
+            with self.subTest(left=type(left), right=type(right)):
+                self.assertNotEqual(
+                    self.driver._code_digest(code.replace(co_consts=(None, (left,)))),
+                    self.driver._code_digest(code.replace(co_consts=(None, (right,)))))
+
+    def test_unsupported_constant_fails_explicitly(self):
+        for value in ((object(),), slice(0, object(), None)):
+            with self.subTest(kind=type(value)):
+                code = self.code().replace(co_consts=(None, value))
+                with self.assertRaisesRegex(TypeError, "unsupported code constant"):
+                    self.driver._code_digest(code)
+
+    def test_compiled_slice_constants(self):
+        # Python 3.14 folds ordinary slicing into slice-valued code constants.
+        module = compile("def target(value):\n"
+                         "    def nested():\n"
+                         "        return (b'bytes', 'literal', (None, True, 1, 2.5, 3j))\n"
+                         "    return (value[1:3], value[::2], value[:], value[0:0:0], nested)\n",
+                         "<compiled slice identity fixture>", "exec")
+        code = next(value for value in module.co_consts if type(value) is CodeType)
+        self.assertEqual(self.driver._code_digest(code), self.driver._code_digest(code.replace()))
+
+    def test_slice_constants_fields_and_types(self):
+        code = self.code()
+
+        def digest(value):
+            return self.driver._code_digest(code.replace(co_consts=(None, (value,))))
+
+        before = digest(slice(1, 3, None))
+        self.assertEqual(before, digest(slice(1, 3, None)))
+        for changed in (slice(2, 3, None), slice(1, 4, None), slice(1, 3, 1),
+                        slice(True, 3, None), slice(1, 3.0, None), (1, 3, None)):
+            with self.subTest(changed=changed):
+                self.assertNotEqual(before, digest(changed))
+        for left, right in ((slice(None, 3, None), slice(0, 3, None)),
+                            (slice(1, None, None), slice(1, 0, None)),
+                            (slice(1, 3, None), slice(1, 3, 0))):
+            with self.subTest(left=left, right=right):
+                self.assertNotEqual(digest(left), digest(right))
+        nested = digest(slice(slice(1, 3, None), None, 2))
+        self.assertEqual(nested, digest(slice(slice(1, 3, None), None, 2)))
+        self.assertNotEqual(nested, digest(slice(slice(1, 4, None), None, 2)))
 
     def test_content_clone_keeps_distinct_live_identity(self):
         function = self.function()
