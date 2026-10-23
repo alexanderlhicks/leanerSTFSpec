@@ -473,6 +473,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Transaction-gas guidance is specified, not implemented (Q65, Q66):** §5/§7
+  own the two raw result carriers, exact local-proof helper signatures and four
+  allocation/five settlement prospective ordinary laws. Implementations, proofs,
+  public-law clients and target controls remain absent. Actual admission/allocation
+  cap consistency, system-call separation, returned/state/floor derivation,
+  validated unsigned refund/range reconstruction at the unchanged Runner Nat
+  boundary, checked-failure precedence, fees/providers/conservation, compiled
+  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. No finite
+  source observation supplies a universal theorem or these actual caller premises.
+
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
   and ten complete-value guards. Full EthBlock.BlockOutput construction,
@@ -518,7 +528,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
-- **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
+- **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:285,318`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; this guidance implements no actual caller proof and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
 - **Balance overflow in `move_ether`.** A recipient balance above `2^256 − 1` raises `OverflowError` in EELS (`state_tracker.py:663`, and `create_ether` at `:687`). The witness authenticates the state against a parent root the guest does not itself trust, so large balances are not excluded by the input format. It is argued reachable from the pinned source (O13); no fixture or probe witnesses it. The named constructor is owned by `EthState`'s `moveEther` and surfaces here as `VmFault.state`.
 - **O13 enumeration still open.** The VM-internal Python faults are classified (CONTRACT O13, D14): BLOCKHASH's `IndexError` is fixture-witnessed, and the BLOBBASEFEE and balance overflows are argued reachable. The `VmFault` constructor list is frozen only once this module's failure-ledger entries close (DECISIONS B14).
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].

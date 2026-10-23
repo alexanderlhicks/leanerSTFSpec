@@ -38,12 +38,46 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | StateGasCosts, VmLimits, VmConfig | EthVmCore | Use the exact raw data constructors/projections and six ordinary ext/eta laws owned by EthVmCore §3/§5/§7. StateGasCosts retains four Nat inputs; VmLimits retains three Nat fields; VmConfig retains the complete costs/stateCosts/limits records. Equal selected opcodeAdd prices and the same meter give equal complete chargeGas results even when unused stateCosts/limits differ. EthFork values, state amount observations/coherence, limit specialization and actual frame/target consistency remain separate; Q63 pricing is supplied separately through its ten ordinary laws; actual caller/coherence/resource obligations remain open. |
 | MessageCallGas, `calculateMessageCallGas`, `initCodeCost` | EthVmCore | Q64 and EthVmCore §5/§7 own the supplied VmConfig-first signatures/default and six discharged ordinary laws. Retain the complete cost/subCall result; local transport needs only selected effective-stipend or init-price equality. Private public-law clients derive complete actual charge/error, affordability, rounding and explicitly financed local potential consequences. Bounded typed comparisons and their current/captured-default/host premises are owned by Core §3. Actual cfg/frame/target coherence, general source/default agreement, earlier CALL payments/state spill, child return and settlement remain caller-owned; no global WF or whole G2 result is supplied. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
+| EvmGasAllocation, `allocateEvmGas` | EthVmCore | Q65 and EthVmCore §5/§7 own the prospective VmConfig-first API, two local subtraction proofs, raw two-field result and four ordinary laws. Implementation/proofs/clients remain open. Preserve floor/admission ordering; establish relevant admission/allocation cap consistency or the allocation cap proof independently. System transactions supply separate grants and bypass this helper. |
+| TransactionGasSettlement, `settleTransactionGas` | EthVmCore | Q66 and EthVmCore §5/§7 own the prospective U256-refund API, three local gas proofs, raw complete four-field result and five ordinary laws. Implementation/proofs/actual callers remain open. Retain the signed-state clamp and pre-refund block dimensions, all source subtraction domains and the original checked refund-conversion boundary described below. |
 | VmWorld, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Prospective transaction-gas caller handoff (Q65, Q66)
+
+[EthVmCore §5/§7](modules/EthVmCore.md#5-interface) owns the exact prospective
+helper APIs and four/five ordinary law types; §3 owns source correspondence and
+§10 the remaining implementation/caller obligations. Allocation reads only the
+relevant execution cap. Equal relevant caps transport its local proof/result;
+whole-config equality is unnecessary locally, while actual frame/target policy
+coherence remains separate. Keep ordinary validation's floor checks and ordering,
+and match the allocation cap to the admitted cap or establish its bound afresh.
+A larger admission cap alone does not justify a smaller allocation cap. Do not
+impose an ordinary allocation identity on the independent system grants.
+
+Settlement callers establish all three local gas bounds, retain complete result
+fields and supply a validated existing Base.U256 refund. Runner's prospective
+`TransactionOutput.refundCounter : Nat` (EthVmRunner §5) remains unchanged.
+For an actual successful output n, retain `n < 2^256` and reconstruct the exact
+word using existing `U256.ofNat?_eq_some_iff`, `U256.ofNat?_toNat` and
+`U256.toNat_lt`. A raw Nat observation does not itself prove that range; the
+validated bridge and actual caller bounds remain unimplemented, with no public
+adapter or new reachable rejection.
+
+Signed meter refund conversion needs both unsigned bounds at its source phase.
+Preparation restore/forfeit precedes cast `vm/interpreter.py:285`, before the
+state-usage argument :291–293; normal TransactionEnd tracing :309–314 precedes
+cast :318, before state usage :324–326. Preserve both points and the existing
+proof/fault obligations rather than postponing conversion to block settlement
+(`fork.py:1101–1110`). Base.ofInt? is the signed from_signed factory; unchecked
+negative Int.toNat or wrapping ofNat also cannot replace unsigned construction.
+Int.toNat on state usage has the distinct intended clamp semantics. The helper
+proves no actual runner range, source-fault reachability, fee/provider effect,
+transaction conservation, progress, resource or guest/readiness result.
 
 ### Supplied immutable buffer read
 
