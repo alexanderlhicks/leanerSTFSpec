@@ -57,6 +57,8 @@ import STFSpec.Conformance.Codec.RlpEncodeGuards
 import STFSpec.Conformance.Codec.RlpEncodeCallerProofs
 import STFSpec.Conformance.Codec.RlpEncodeOfCallerProofs
 import STFSpec.Conformance.Codec.RlpEncodeOfGuards
+import STFSpec.Conformance.Codec.RlpByteArrayCallerProofs
+import STFSpec.Conformance.Codec.RlpByteArrayGuards
 import STFSpec.Conformance.Codec.RlpTypedGuards
 import STFSpec.Conformance.Codec.RlpTypedCallerProofs
 import STFSpec.Conformance.Codec.RlpHeaderGuards
@@ -210,4 +212,3 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 Base guards, public-law callers and differential drivers are owned by
 `STFSpec/informal/modules/EthBase.md` §3.
 -/
-
