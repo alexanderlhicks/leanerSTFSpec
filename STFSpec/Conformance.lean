@@ -195,6 +195,9 @@ import STFSpec.Conformance.Vm.Core.MemoryGasGuards
 import STFSpec.Conformance.Vm.Core.CallGasCallerProofs
 import STFSpec.Conformance.Vm.Core.CallGasGuards
 
+import STFSpec.Conformance.Codec.RlpDecodeOfCallerProofs
+import STFSpec.Conformance.Codec.RlpDecodeOfGuards
+
 /-!
 # STFSpec.Conformance
 
@@ -207,3 +210,4 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 Base guards, public-law callers and differential drivers are owned by
 `STFSpec/informal/modules/EthBase.md` §3.
 -/
+

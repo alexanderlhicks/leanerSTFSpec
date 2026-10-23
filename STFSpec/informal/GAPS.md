@@ -261,11 +261,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthCodec`](modules/EthCodec.md)
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
-  public-law domains. The supplied `RlpEncode`, `encodeOf` and Nat encoder leave
-  `RlpDecode`, `decodeTo`, Nat decoding/typed roundtrip, other encoding instances,
-  element/schema decoders and SSZ semantic interfaces beyond structural sizing
-  unimplemented. The observable diagnostic-erasure mapping for `decodeTo` needs
-  clarification before that wrapper is supplied. Raw `SszType`/`SszValue`/`SszError`
+  public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
+  Nat adapters and conditional Nat roundtrip leave other encoding/decoding
+  instances, element/schema decoders and SSZ semantic interfaces beyond structural
+  sizing unimplemented. The whole typed-result equation and local single-channel
+  observation are supplied without a new projection API. Local intended-source,
+  reflection/callback/host and first-handler premises, actual schema-depth
+  agreement and full-guest gates
+  remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
   `WellTyped`, schema, codec, root operation or error producer implementation.

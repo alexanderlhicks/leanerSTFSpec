@@ -571,8 +571,9 @@ compose complete byte/size laws and conditional raw-wire image, including a
 bounded caller's public-law domain discharge and a nominal instance dispatch
 control. Standard/source correspondence retains Q47's `Encodable` and actual
 source-class/host premises. No generic inverse or class proof field follows;
-`RlpDecode`, `decodeTo`, Nat decoding/typed inverse, other instances and the exact
-diagnostic-erasure mapping remain pending in EthCodec §10.
+the separate typed decoding foundation supplies `RlpDecode`, `decodeTo`, Nat
+decoding and its conditional roundtrip. Other instances remain open in EthCodec
+§10. Q68 owns the diagnostic equation and source/consumer observation.
 
 ### Raw SSZ model premise
 
@@ -636,10 +637,25 @@ security and guest outcomes remain open.
 leaf accept sets and byte/field order preservation. The integer premise includes
 both minimality directions and complete bounded range; union success requires
 exactly one successful alternative. Consumers compose the raw wire laws from
-EthCodec §7 and must implement child schemas/instances and diagnostic erasure
-through `decodeTo` wherever the pinned caller uses `decode_to`. The header fallback and payload transaction
-handlers remain unimplemented; these leaf laws discharge none of their guest
-outcomes, host-depth policy or complete schema premises (Q20, O12).
+EthCodec §7 and must implement child schemas/instances wherever the pinned caller
+uses `decode_to`. Q68's supplied wrapper preserves raw errors and the entire
+typed result after raw success. Erasure means mathematical source/consumer
+observation in existing `Except Unit`, mapping all diagnostic errors to one
+rejection channel while preserving complete successes; it is not replacement of
+wrapper diagnostics or a new exported projection API.
+
+The class, wrapper, Nat decoder and conditional Nat theorem are supplied.
+Private facade clients establish whole typed forwarding and raw-first failure,
+a generic inverse only with its caller-owned adapter-inverse and Encodable
+premises, bounded local Nat discharge, and successful Nat exact reencoding.
+The168 complete controls preserve arbitrary diagnostics and custom successes. Source correspondence retains intended target
+admission, successful reflection/class metadata, local callback refinement and
+host premises; the source typed catch retains causes and supplies no Python
+exception-object/message equality. Raw host exceptions bypass that catch. Header
+fallback O3 and transaction O6 retain their distinct first consuming handlers;
+using the wrapper alone proves no schema-depth or D2r agreement. These leaf laws
+discharge none of the handler, guest outcome, host-depth or complete schema
+premises (D14, Q20, O12).
 
 ### Hash32 table-support premise
 
