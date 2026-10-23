@@ -473,21 +473,28 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
-- **Transaction-gas guidance is specified, not implemented (Q65, Q66):** §5/§7
-  own the two raw result carriers, exact local-proof helper signatures and four
-  allocation/five settlement prospective ordinary laws. Implementations, proofs,
-  public-law clients and target controls remain absent. Actual admission/allocation
-  cap consistency, system-call separation, returned/state/floor derivation,
-  validated unsigned refund/range reconstruction at the unchanged Runner Nat
-  boundary, checked-failure precedence, fees/providers/conservation, compiled
-  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. No finite
-  source observation supplies a universal theorem or these actual caller premises.
+- **Allocation is supplied locally (Q65):** §3/§5/§7 own the raw two-Nat
+  result, VmConfig-first helper on exactly two local proofs and four discharged
+  ordinary laws, including relevant-cap congruence for independent admitted calls.
+  Eight private public-law groups, 23 complete-pair guards and four actual meter/
+  charge/observer controls supply the local seam. Fourteen retained successful
+  source results and three source-only failures are finite evidence; the source
+  schedule remains closed. Actual admission/allocation cap consistency, caller
+  reachability, system-entry separation, returned/final potential, refund and
+  settlement/fee/provider/transaction/block integration, compiled resources,
+  G1/G2–G7 and VM/guest/EEST/readiness remain open.
+- **Settlement remains specified, not implemented (Q66):** §5/§7 own its raw
+  four-Nat result, three local gas proofs, U256 refund and five prospective laws.
+  Implementation/proofs/clients/target controls remain absent. Returned/state/floor
+  derivation, validated unsigned refund reconstruction at the unchanged Runner
+  Nat boundary, checked-failure precedence, fee/provider/conservation, compiled
+  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open.
 
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
   and ten complete-value guards. Full EthBlock.BlockOutput construction,
   block/counter coherence, capacity arithmetic and checked failures/precedence,
-  allocation/settlement and actual consumers remain unimplemented here. This
+  allocation/settlement integration and actual block consumers remain unimplemented here. This
   raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
 
 - **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
