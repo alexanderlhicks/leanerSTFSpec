@@ -571,10 +571,9 @@ compose complete byte/size laws and conditional raw-wire image, including a
 bounded caller's public-law domain discharge and a nominal instance dispatch
 control. Standard/source correspondence retains Q47's `Encodable` and actual
 source-class/host premises. No generic inverse or class proof field follows;
-`RlpDecode`, `decodeTo`, Nat decoding/typed inverse and other instances remain
-unimplemented in EthCodec §10. Q68 fixes the prospective diagnostic equation and
-source/consumer observation; no decoder implementation or typed composition
-premise follows.
+the separate typed decoding foundation supplies `RlpDecode`, `decodeTo`, Nat
+decoding and its conditional roundtrip. Other instances remain open in EthCodec
+§10. Q68 owns the diagnostic equation and source/consumer observation.
 
 ### Raw SSZ model premise
 
@@ -639,16 +638,17 @@ leaf accept sets and byte/field order preservation. The integer premise includes
 both minimality directions and complete bounded range; union success requires
 exactly one successful alternative. Consumers compose the raw wire laws from
 EthCodec §7 and must implement child schemas/instances wherever the pinned caller
-uses `decode_to`. Q68's prospective wrapper preserves raw errors and the entire
+uses `decode_to`. Q68's supplied wrapper preserves raw errors and the entire
 typed result after raw success. Erasure means mathematical source/consumer
 observation in existing `Except Unit`, mapping all diagnostic errors to one
 rejection channel while preserving complete successes; it is not replacement of
 wrapper diagnostics or a new exported projection API.
 
-This is a future typed handoff, not a supplied composition premise: the class,
-wrapper and Nat decoder remain unimplemented, the conditional Nat theorem
-unproved and prospective controls unrun. Generic clients need their own adapter
-inverse and Encodable premises. Source correspondence retains intended target
+The class, wrapper, Nat decoder and conditional Nat theorem are supplied.
+Private facade clients establish whole typed forwarding and raw-first failure,
+a generic inverse only with its caller-owned adapter-inverse and Encodable
+premises, bounded local Nat discharge, and successful Nat exact reencoding.
+The168 complete controls preserve arbitrary diagnostics and custom successes. Source correspondence retains intended target
 admission, successful reflection/class metadata, local callback refinement and
 host premises; the source typed catch retains causes and supplies no Python
 exception-object/message equality. Raw host exceptions bypass that catch. Header

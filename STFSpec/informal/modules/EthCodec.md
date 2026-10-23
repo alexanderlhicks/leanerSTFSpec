@@ -189,8 +189,52 @@ source/RECORD/runtime bodies are bound before/after the frozen `-I -B` profile.
 Interpreter/native runtime, startup, installation and RECORD remain trust inputs.
 This is bounded encoder evidence, without typed decoding/inverse, all-Nat Python
 equivalence, host/resource, guest/EEST or throughput claims. `RlpDecode`,
-`decodeTo`, Nat decoding and schema instances remain unimplemented. Q68 owns the
-prospective diagnostic equation; this encoding slice supplies no decoder or proof.
+`decodeTo` and Nat decoding are supplied by the typed decoding foundation below;
+schema instances remain open. Q68 owns the diagnostic equation.
+
+### Implemented typed RLP decoding foundation
+
+`STFSpec/Codec/RlpDecodeOf.lean` supplies the independent one-field `RlpDecode`
+class, literal raw-first `decodeTo`, Nat's exact `toNat` instance, and only the
+ordinary conditional `decodeTo_encodeOf_nat` law. No class proof field, public
+helper-law family, error or observation projection is added. The runtime accepts
+all naturals; `Encodable (ofNat n)` remains explicit in the roundtrip theorem.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public contract and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:162–171` (0.1.6), supplied typed dispatch | `RlpDecode (α : Type)` with exactly `ofRlp : RlpItem → Except RlpError α` | total supplied model callback, independent of encoding | every supplied error and complete success retained | private decode-only/encode-only carriers and arbitrary complete-result forwarding |
+| `ethereum_rlp/rlp.py:167–171` | `Rlp.decodeTo : [RlpDecode α] → ByteArray → Except RlpError α` | direct reference composition, no effects | raw failure unchanged before typing; raw success returns whole typed result | literal equation;168 whole-result controls including90 raw-first controls and21 arbitrary typed errors |
+| `ethereum_rlp/rlp.py:204–205,263–273`; `ethereum_types/numeric.py:517–540` (0.4.1) | Nat's `RlpDecode` instance with field exactly `Rlp.toNat` | intended source is exact Uint, unbounded; empty payload zero | list shape, then leading zero; no fixed-width bound | `decodeTo_encodeOf_nat` composes public `decode_encode`/`toNat_ofNat` with explicit `Encodable`; Nat wires include internal zeroes and above-U256 values |
+
+**Proof clients and limits.** Eight private groups cover the whole equation and
+class independence, raw failure, whole typed forwarding, generic inversion with
+both caller-owned premises (and a noninverse counterexample), Nat adapter and
+conditional theorem, a bounded local domain discharge, successful Nat exact
+reencoding/domain recovery, and the existing single-channel observation. These
+use public raw/leaf/Base laws and reduce only the new adapters. They prove no
+arbitrary instance pair inverse or all-Nat `Encodable` assertion. Source causes,
+class/reflection/callback/host admission and the first consuming handler remain
+local premises (D14, Q20/O12); no schema, EEST/guest, cost or readiness gate closes.
+
+**Wire evidence.** `rlp_decode_of_differential.py` provides the seed5029 narrow
+profile:59 authenticated source encoder entry calls and283 actual original
+`decode_to(Uint, bytes)` calls, with25 exact-type and eight exception-admission
+negative fixtures. The schedule retains30 literal raw failures,22 Nat encodings,
+ten typed failures,12 byte widths, seven depths, eight list widths,128 random
+wires and66 mutations. Maximum wire length is1027, depth32 and sibling width256.
+The controller checks exact original Uint before integer conversion and exact
+bytes, authenticates source code/class bindings and current RECORD inventories,
+and admits only original raw raise sites or typed outer171 with cause269/271.
+It retains complete errors, causes, tracebacks and whole generated Except guards.
+Interpreter/native runtime, startup, frozen installation/RECORD and Lean compiler
+remain trust inputs. The fresh 2026-10-23 frozen `-I -B` execution completed all
+283 wire calls (34 accepted,249 rejected),59 encoder entries and283 complete
+emitted guards, which compiled successfully. Normal and `-O` helper runs each
+passed25 type and eight exception negative fixtures. Complete original wire,
+success/error/cause/traceback observations and source/runtime/controller/all483
+candidate body/mode snapshots were retained and unchanged before/after execution.
+These are finite source observations, with no generic Python or host equivalence
+claim.
 
 ### Implemented RLP header slice
 
@@ -276,7 +320,7 @@ No instance is added on nested `RlpItem` (F17); only nonnested `RlpError` derive
 | `ethereum_rlp/rlp.py:325–343` | `Rlp.union2 : (RlpItem → Except RlpError α) → (RlpItem → Except RlpError α) → RlpItem → Except RlpError α` | all items, total callbacks; both alternatives contribute; returns sole success | zero successes (no variant); two successes (multiple variants), even equal values | `union2_eq_ok_iff`; actual Bytes0/Bytes20 union; model both-failure and same/different-value double-success |
 
 **Error correspondence (Q68).** All typed rejection constructors here are
-diagnostic refinements of one dependency `DecodingError`. The prospective wrapper
+diagnostic refinements of one dependency `DecodingError`. The supplied wrapper
 preserves each raw error and the entire typed result, including shape, Boolean,
 width, field-count, no-variant, multiple-variant and integer-leading-zero
 `nonCanonical` diagnostics. Single-channel erasure occurs only in the
@@ -291,7 +335,7 @@ observation does not equate Python exception identity, messages or cause chains.
 Intended source-target admission and successful reflection/class metadata
 (`rlp.py:184–241,311–322`), local callback refinement and host premises remain
 explicit. Nat corresponds to exact source Uint (`:204–205,265–275`), not plain
-Python int or U256; its decoder is prospectively exactly `Rlp.toNat`.
+Python int or U256; its supplied decoder is exactly `Rlp.toNat`.
 
 First consuming handlers remain the header fallback (`stateless.py:234–237`,
 CONTRACT O3) and transaction check (`execution_engine/new_payload.py:60–68`, O6).
@@ -506,17 +550,16 @@ classification does not repair the decoder's division/modulo by element width
   nine-byte extent addition; nonzero/end/huge cursors; missing bodies, prefixed
   singleton<80, small long forms and trailing bytes accepted by the helper.
   Whole-item decode rejection cases above are covered by the raw-decoder guards.
-- **Prospective typed-wire controls (Q68; unrun).** Compare complete approved
-  `Except` results, not `.toOption`: Nat successes and shape/leading-zero
-  rejections; a custom callback returning `.truncated` on valid raw wire;
-  an accepting callback on invalid raw wire; and raw truncation, trailing and
-  canonicality failures before a possible typed failure. A must preserve every
-  returned diagnostic, including arbitrary callback errors. Private custom
-  carriers distinguish instance dispatch and complete successes without claiming
-  an effect trace for pure callbacks. A future differential comparison uses actual
-  intended source Uint/target classes and the §7 source observation with explicit
-  source/reflection/callback/host premises. No such new controls or source
-  execution are supplied by this guidance change.
+- **Implemented typed-wire controls (Q68).** `RlpDecodeOfGuards.lean` supplies
+  168 complete-result controls:22 Nat wires,22 typed encoder/decoder results,
+  ten valid-raw typed failures,21 supplied-error controls,90 raw-first controls
+  (30 malformed wires with Nat/accepting/rejecting decoders), and three complete
+  custom successes. Typed `.truncated` and arbitrary literal contexts remain
+  unchanged; private arbitrary-error forwarding covers every supplied diagnostic.
+  Pure callback controls establish result selection, with no effect-trace claim.
+  `RlpDecodeOfCallerProofs.lean` supplies the eight private client groups in §3.
+  The narrow actual-source wire profile is described in §3; it retains intended
+  source-class/reflection/callback/host and first-handler premises.
 - **Property / differential tests.**
   - Random `RlpItem` round trip, and canonicality under mutation fuzzing.
   - Random well-typed SSZ values round trip.
@@ -596,14 +639,14 @@ namespace Rlp
       RlpItem → Except RlpError α              -- exactly-one-success semantics
 end Rlp
 class RlpEncode (α : Type) where toRlp : α → RlpItem
--- prospective only (Q68); not implemented:
+-- supplied (Q68):
 class RlpDecode (α : Type) where
   ofRlp : RlpItem → Except RlpError α
 -- supplied: RlpEncode Nat, with toRlp exactly Rlp.ofNat
--- pending: RlpDecode Nat, with ofRlp exactly Rlp.toNat; other instances:
+-- supplied: RlpDecode Nat, with ofRlp exactly Rlp.toNat; pending other instances:
 -- U256, U64, U32, U8, Bool, ByteArray, FixedBytes n, Address, Hash32, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
--- prospective only (Q68); exact equation in §7:
+-- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
 
 -- Derived addresses
@@ -747,7 +790,7 @@ CONTRIBUTING §3).
 - [R] Typed round trips for each instance: `Encodable (toRlp a) → decodeTo (encodeOf a) = .ok a` (where toRlp is the instance adapter). This is used by `EthBlock` (transaction, header and receipt codecs) and `EthStateCommit` (account leaves).
 - [R] `union2 f g x = .ok a` implies that exactly one of `f x`, `g x` succeeds.
 
-**Prospective typed wrapper contract (Q68; unimplemented).** Inside
+**Supplied typed wrapper contract (Q68).** Inside
 `namespace STFSpec.Codec`, the normative equation is literally:
 
 ```lean
@@ -772,7 +815,7 @@ helper-law family. Changing a provider's promised diagnostic changes the exact
 wrapper result; guest handlers must use the common rejection classification with
 reference phase/first-handler ordering intact.
 
-The first Nat instance must use exactly `Rlp.toNat`. Its one prospective ordinary
+The supplied Nat instance uses exactly `Rlp.toNat`. Its one ordinary
 per-instance theorem, inside the same namespace, has exactly this type:
 
 ```lean
@@ -782,7 +825,7 @@ theorem Rlp.decodeTo_encodeOf_nat (n : Nat)
       (Except.ok n : Except RlpError Nat)
 ```
 
-This theorem is unproved. The intended argument composes public `decode_encode`
+This theorem is proved by composing public `decode_encode`
 and `toNat_ofNat`, unfolding only the new wrapper/class adapters. Keep `h` for
 arbitrary Nat (Q47). Generic private roundtrip callers additionally need their
 own `ofRlp (toRlp a) = .ok a` premise: independent classes supply no inverse.
@@ -790,7 +833,7 @@ Private Nat success-to-reencoding clients can compose `toNat_eq_ok_iff`,
 `decode_success_encodable` and `encode_eq_of_decode_eq_ok`; bounded callers
 establish `Encodable` locally through public Base/leaf laws. Unfold neither raw
 parser workers nor Base representations, and introduce no additional public
-helper-law family. These are prospective proof/client plans, not supplied proofs.
+helper-law family. These private clients are supplied through the Codec facade.
 
 **Discharged encoder laws.** `toList_encode` relates the packed encoder to
 `encodeModel` for every item, including Q47 completion; `size_encode` and
@@ -811,8 +854,8 @@ Private clients reduce these new references and compose the existing complete
 byte-model and width laws. For Nat, `Encodable (ofNat n)` gives the raw-wire image
 `decode (encodeOf n) = .ok (ofNat n)`; a private n<2^256 caller discharges that
 premise using public Base/leaf laws. No all-Nat `Encodable` assertion or new public
-law family is supplied. The per-instance typed roundtrip above remains pending
-with `RlpDecode` and `decodeTo`; Q68 fixes their prospective diagnostic equation.
+law family is supplied. The per-instance Nat typed roundtrip above is supplied
+with `RlpDecode` and `decodeTo`; Q68 fixes their diagnostic equation.
 
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
@@ -952,8 +995,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-- **Q68** owns the prospective typed-wrapper diagnostic equation and conditional
-  Nat theorem contract in §5/§7; the implementation/proof/control gaps remain §10.
+- **Q68** owns the typed-wrapper diagnostic equation and conditional Nat theorem
+  contract supplied in §5/§7; remaining instance/schema gaps are in §10.
 
 - **Q67** owns the raw structural sizing disposition; §5/§7 specifies its
   supplied value/law contract. The other six SSZ domain questions in §10 stay open.
@@ -975,14 +1018,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
-  public-law domains. The supplied `RlpEncode`, `encodeOf` and Nat encoder leave
-  `RlpDecode`, `decodeTo`, Nat decoding/typed roundtrip, other encoding instances,
-  element/schema decoders and SSZ semantic interfaces beyond structural sizing
-  unimplemented. Q68 fixes the prospective exact wrapper equation and channel
-  observation; it supplies no decoder class, wrapper, Nat instance or typed-wire
-  composition premise. `decodeTo_encodeOf_nat` is unproved and §4's prospective
-  controls are unrun. Local intended-source/reflection/callback/host and
-  first-handler premises, actual schema-depth agreement and full-guest gates
+  public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
+  Nat adapters and conditional Nat roundtrip leave other encoding/decoding
+  instances, element/schema decoders and SSZ semantic interfaces beyond structural
+  sizing unimplemented. The whole typed-result equation and local single-channel
+  observation are supplied without a new projection API. Local intended-source,
+  reflection/callback/host and first-handler premises, actual schema-depth
+  agreement and full-guest gates
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,

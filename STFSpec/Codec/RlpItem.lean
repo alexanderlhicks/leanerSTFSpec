@@ -10,9 +10,9 @@ import STFSpec.Base
 Library `EthCodec`. `RlpItem` is the public nested byte/list model of
 `ethereum_rlp/rlp.py` (locked ethereum-rlp 0.1.6). No nested instances are derived.
 Typed diagnostics do not introduce distinct protocol outcomes. Under Q68 the
-future `decodeTo` preserves raw errors and the complete typed result; the source's
+supplied `decodeTo` preserves raw errors and the complete typed result; the source's
 single DecodingError channel is a correspondence observation, not replacement of
-returned diagnostics. The class, wrapper and Nat decoder remain unimplemented.
+returned diagnostics. The class, wrapper and Nat decoder are supplied in `RlpDecodeOf`.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§2–7.
 -/
 
@@ -24,7 +24,7 @@ inductive RlpItem where
   | list (items : List RlpItem)
 
 /-- Diagnostic context only; pinned `ethereum_rlp/exceptions.py` has DecodingError.
-Q68 preserves these values through the prospective wrapper; source/consumer
+Q68 preserves these values through the supplied wrapper; source/consumer
 observation maps all errors to one rejection channel, without a new projection API. -/
 inductive RlpError where
   | empty
