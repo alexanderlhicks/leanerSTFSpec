@@ -17,14 +17,16 @@ import json
 import os
 from pathlib import Path
 import random
-import marshal
+import struct
 import tomllib
 import subprocess
 import sys
 import traceback
+from types import CodeType
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[3]
+CODE_DIGEST_ALGORITHM = "stfspec-public-code-v2"
 
 
 def require(condition, message):
@@ -33,8 +35,68 @@ def require(condition, message):
 
 
 def _code_digest(code):
-    """Reference-count-independent content identity within the authenticated runtime."""
-    return hashlib.sha256(marshal.dumps(code, 2)).hexdigest()
+    """Digest explicit code content within the authenticated CPython runtime.
+
+    stfspec-public-code-v2 hashes its ASCII name plus NUL, then the encoding below.
+    Every value is a one-byte type tag, unsigned 8-byte big-endian payload length,
+    and payload. Containers concatenate framed elements; frozensets sort these
+    encodings. Slices encode their (start, stop, step) tuple recursively, including
+    slice constants emitted by Python 3.14. Code payloads encode the ordered
+    (field name, value) tuple below:
+    all independent public code-constructor fields in CPython 3.12--3.14. Derived
+    views (co_lnotab, positions/lines) and incidental marshal state are excluded.
+    Integers use sign plus minimal big-endian magnitude; strings use UTF-8 with
+    surrogatepass; floats/complex components preserve their IEEE-754 binary64 bits.
+
+    This is content identity, separate from the live object identities in snapshot.
+    It neither authenticates source alone nor promises equal digests across Python
+    runtimes. Interpreter/startup/installation remain trust inputs. A future field
+    or format change needs a new algorithm name; historical marshal evidence keeps
+    its original meaning. Unsupported constants fail rather than being collapsed.
+    """
+    fields = (
+        "co_argcount", "co_posonlyargcount", "co_kwonlyargcount", "co_nlocals",
+        "co_stacksize", "co_flags", "co_code", "co_consts", "co_names", "co_varnames",
+        "co_freevars", "co_cellvars", "co_filename", "co_name", "co_qualname",
+        "co_firstlineno", "co_linetable", "co_exceptiontable",
+    )
+
+    def encode(value):
+        kind = type(value)
+        if value is None:
+            tag, payload = b"n", b""
+        elif value is Ellipsis:
+            tag, payload = b"e", b""
+        elif kind is bool:
+            tag, payload = b"b", bytes([value])
+        elif kind is int:
+            magnitude = abs(value)
+            tag = b"i"
+            payload = bytes([value < 0]) + magnitude.to_bytes(
+                (magnitude.bit_length() + 7) // 8, "big")
+        elif kind is float:
+            tag, payload = b"f", struct.pack(">d", value)
+        elif kind is complex:
+            tag, payload = b"c", struct.pack(">dd", value.real, value.imag)
+        elif kind is bytes:
+            tag, payload = b"y", value
+        elif kind is str:
+            tag, payload = b"s", value.encode("utf-8", "surrogatepass")
+        elif kind is tuple:
+            tag, payload = b"t", b"".join(encode(item) for item in value)
+        elif kind is frozenset:
+            tag, payload = b"r", b"".join(sorted(encode(item) for item in value))
+        elif kind is slice:
+            tag, payload = b"l", encode((value.start, value.stop, value.step))
+        elif kind is CodeType:
+            tag, payload = b"k", encode(tuple((name, getattr(value, name)) for name in fields))
+        else:
+            raise TypeError("unsupported code constant: " + kind.__name__)
+        return tag + len(payload).to_bytes(8, "big") + payload
+
+    if type(code) is not CodeType:
+        raise TypeError("expected code object")
+    return hashlib.sha256(CODE_DIGEST_ALGORITHM.encode("ascii") + b"\0" + encode(code)).hexdigest()
 
 
 def natural(value):
@@ -453,6 +515,7 @@ def main():
             )
         return dict(
             pin=context.head,
+            code_digest_algorithm=CODE_DIGEST_ALGORITHM,
             dependencies=dependency_inputs,
             startup=startup,
             classes=[
