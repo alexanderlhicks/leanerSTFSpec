@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.5, 2026-10-19). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-23). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -680,6 +680,31 @@ leave unrelated policy/state/limit fields arbitrary. No new policy view/record,
 factory, global WF, price alias or runtime error is needed. Helper implementation,
 ordinary proofs, caller payment/settlement, configuration/target coherence and
 whole G2/readiness remain separate.
+
+**Transaction allocation policy and domain options (Q65).** DECISIONS Q65 owns
+the disposition; EthVmCore §5/§7 owns the prospective API and four ordinary laws.
+VmConfig first preserves B8's grouped policy. GasCosts first would expose a narrower
+existing record; a scalar cap would expose the minimal read but fragment policy
+arguments; a fixed-fork helper would embed specialization in Core. Relevant-cap
+congruence states the narrow dependency without equating whole configurations.
+Two local subtraction proofs avoid a new domain subtype/bundle, runtime error or
+all-raw completion. These alternatives change the consumer boundary, not the
+ordinary caller's floor checks, admission/allocation cap consistency or system
+transaction bypass. Source matching of the live cap and actual caller derivation
+remain separate from the generic helper contract.
+
+**Transaction settlement refund and domain options (Q66).** DECISIONS Q66 owns
+the disposition; EthVmCore §5/§7 owns the prospective API and five ordinary laws.
+An unbounded Nat refund would extend the source helper's refund domain beyond its
+U256 input. Existing Base.U256 retains the source unsigned width and exposes the
+value through `toNat`. Three local gas proofs express source arithmetic success;
+a bundled domain/subtype, checked runtime errors or saturating all-raw completion
+would instead add a construction or failure policy. Keeping Runner's Nat output
+observation requires a validated caller reconstruction through existing Base laws;
+changing that record or adding a public adapter is a separate interface choice.
+Unsigned construction at the original runner points differs from Base.ofInt?'s
+signed from_signed conversion. No policy argument, global meter invariant or
+whole-transaction accounting theorem follows from this local helper contract.
 
 ## 12. Not yet decided
 
