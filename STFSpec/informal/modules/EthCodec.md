@@ -1,6 +1,6 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-23. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
@@ -313,12 +313,32 @@ inputs. The emitted Lean guards and committed generic-effect guards provide
 bounded reproducible evidence. They establish no universal Python equivalence,
 EEST guest execution, native-client speed, C1–C4 or security result.
 
-### Remaining source ownership
+### Raw SSZ vocabulary and remaining source ownership
+
+`STFSpec/Codec/SszModel.lean`, exported through `STFSpec.Codec`, supplies exactly
+the nine `SszType`, five `SszValue` and six `SszError` constructors in §5. These
+inductives are their own raw models: arbitrary natural parameters, complete byte
+payloads, ordered finite recursive lists and independent boolean masks are
+retained without a construction invariant. No authored instances or public laws
+are added. Well-formedness, typing, size classification, schema adapters, codecs,
+root operations and error producers remain unimplemented.
+
+The descriptor graph in `utils/ssz.py:32–87,179–225,231–258` supplies the static
+shape correspondence below. `_field_types` preserves reflected field order and
+the wrapper's progressive container activates every field; the raw model also
+admits other masks and independent field lists. Names, Python class admission,
+inheritance and the at-capacity `more` rule are separate future schema premises.
+`utils/ssz.py:263–325` supplies the natural/boolean/bytes/ordered-child abstraction
+ingredients for values, without implementing Python coercions, runtime-class
+reflection, backing nodes or defaults. Arbitrary raw trees imply no source-object
+admission theorem. The six nominal `SszError` tags are guidance vocabulary, not
+six Python exception classes; declaring them selects no producer, priority,
+diagnostic correspondence or O1/O2/O12/O13 classification.
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `utils/ssz.py::_SszType` | 32 | `SszType` (inductive) | marker base class |
-| `utils/ssz.py::_Uint` | 38 | `SszType.uint` | widths 1..32 bytes |
+| `utils/ssz.py::_Uint` | 38 | `SszType.uint` | supported `uint(bits)` factory widths (`utils/ssz.py:91–95`): 1/2/4/8/16/32 bytes; raw Nat unrestricted |
 | `utils/ssz.py::_ByteVector` | 44 | `SszType.byteVector` | |
 | `utils/ssz.py::_ByteList` | 50 | `SszType.byteList` | |
 | `utils/ssz.py::_List` | 56 | `SszType.list` | |
@@ -399,6 +419,20 @@ EEST guest execution, native-client speed, C1–C4 or security result.
   - Random well-typed SSZ values round trip.
   - SSZ mutation fuzzing comparing the strict decoder with "remerkleable decode plus re-encode check". This is differential only; the fixtures and the EELS source decide.
 
+- **Implemented raw SSZ consumers.** `SszModelCallerProofs.lean` has five private
+  consumer groups: arbitrary nested type mask/field/limit recovery, ordinary versus
+  progressive type separation, complete nested value payload recovery (including
+  arbitrary bytes and child lists), nested list/container separation and pairwise
+  separation of all six nominal diagnostic tags. They use public constructors and
+  ordinary inductive elimination, without an added public law family.
+  `SszModelGuards.lean` has four bounded complete aggregate controls: all nine
+  descriptor shapes with zero/unsupported/large raw Nat parameters and a trailing
+  false mask; an independent 257-entry mask with empty fields; a mixed value with
+  a large natural, complete zero-containing bytes, duplicate and empty nested
+  children; and a child-order mutation rejected by that fixed-context observer.
+  These are local model checks, without source execution, codec/schema acceptance,
+  root or error-producer coverage.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -443,7 +477,7 @@ def computeContractAddressQ [Monad m] [KeccakQuery m] : Address → Nat → m Ad
 def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
--- SSZ
+-- SSZ: the three raw inductives are supplied; every other SSZ item remains future.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -454,8 +488,8 @@ inductive SszType where
 inductive SszValue where
   | uint (n : Nat) | bool (b : Bool) | bytes (b : ByteArray)
   | list (xs : List SszValue) | container (xs : List SszValue)
-def SszType.WellFormed : SszType → Prop      -- widths ∈ {1,2,4,8,16,32}; active fields end in 1, count = #fields ≤ 256
-def SszValue.WellTyped : SszType → SszValue → Prop   -- ranges, exact lengths, limits
+def SszType.WellFormed : SszType → Prop      -- future width/mask/schema domain; unresolved details in §10
+def SszValue.WellTyped : SszType → SszValue → Prop   -- future ranges/lengths/limits; relation to WF remains open
 def SszType.fixedSize? : SszType → Option Nat
 inductive SszError where | length | offset | limit | boolByte | trailing | shape
 namespace Ssz
@@ -488,12 +522,17 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 |---|---|---|---|---|---|
 | `RlpItem` | nested inductive over `ByteArray` and `List` | itself (it is the public model) | none | immutable; decoded nodes may be shared by snapshots read-only | `encode` O(n) via a size pass and one pre-sized write. A naive recursive `++` is O(n·depth), which is also what Python's slicing and joining cost, so it should be avoided. `decode` O(n) with a cursor, instead of Python's re-slicing at each level (O(n·depth)) |
 | encoded bytes | `ByteArray` | `List UInt8` | canonical (image of `encode`) | linear while being built, then frozen | — |
-| `SszType` | inductive | itself | `WellFormed` | immutable constant per schema | — |
-| `SszValue` | nested inductive | itself; typed views via `SszSchema` | `WellTyped t v` | immutable | `encode`/`decode` O(n · type depth) |
+| `SszType` | nested inductive | itself (raw model) | none; future `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
+| `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; future `WellTyped t v` is a separate judgment | immutable | raw construction only; codec costs remain future |
 | `zeroHashes` | `Array Bytes32` built once | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup |
 | merkleization | `Array Bytes32` layers | the full padded binary tree | — | local, linear | O(chunks) hashes + O(log limit) zero-hash lookups. **Never O(limit)**: `ByteList[2^16]` has 2048 chunk leaves, and `List[_, 256]` must not hash 256 leaves when it has 3 elements |
 
 **No derived instances on the nested inductives** (F17). `deriving BEq`, `Repr` or `DecidableEq` on `RlpItem`, `SszType` or `SszValue` generates `partial` constants (for example `instBEqT.beq`), which D21 bans and only the compiled declaration check catches. Write structural instances by hand, as mutual structural recursions (a compiled prototype of the interfaces showed the pattern works). Non-nested types such as `RlpError` and `SszError` may derive them.
+
+The supplied raw SSZ slice declares no authored instances or deriving clauses,
+including on `SszError`. Its constructors, recursors and ordinary generated inductive facts
+supply raw construction and elimination only. No schema admission, normalization
+or executable semantic operation is hidden in the representation.
 
 **Implemented encoder costs.** The first structural pass caches each subtree's
 size and packed writer closure once. The second pass copies each header/payload
@@ -618,9 +657,14 @@ canonicality uses public Base fold/range/encoded-width and fixed-byte injectivit
 so it also proves the converse byte minimality rather than just value round trip.
 
 **SSZ.**
-- [T] `decode` is total: recursion on the type, with each sub-decode on a strictly smaller slice. Offsets are validated against the slice length before use.
+Only raw construction/elimination is supplied, with no authored public law family.
+The following semantic laws remain prospective conditional obligations. Their
+domains and total completions remain open as detailed in §10; the raw model and
+its private consumers discharge none of them.
+
+- [T] `decode` must be total. Recursion on the type and validated slice boundaries are the intended proof ingredients. Strictly smaller byte slices alone do not justify every sub-decode: zero-byte fixed children require a separate termination argument and an unresolved serialization domain. Offsets must be validated against the slice length before use.
 - [C] Round trip: `WellTyped t v → (encode t v).size < 2^32 → decode t (encode t v) = .ok v`.
-- [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This theorem is the Lean replacement for EELS's re-encode check (`ssz.py:144`). It pins the accept set to the image of `encode`, which is exactly the set EELS accepts. That EELS's set is exactly the image of `encode` is itself a claim about the reference, argued in S3 and tested differentially.
+- [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This prospective theorem replaces EELS's re-encode check (`ssz.py:144`). Equality of the accept set and the image of `encode` additionally needs the converse decoding/inverse premise on a resolved serialization domain (S3; §10); the re-encode check alone does not supply it.
 - [T] `hashTreeRoot` must terminate, and its reference refinement requires the schema’s Rootable domain (length mix-ins fit uint256 and fields have the exact interpretation). O2 freedom requires proving every successfully decoded guest request belongs to that domain; S5 alone does not establish this.
 - [C] `merkleize` with `zeroHashes` equals naive merkleization over the full power-of-two padding. `merkleizeProgressive` is characterised by the recurrence in S4.
 - [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
@@ -676,7 +720,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
-  element/schema decoders and SSZ are unimplemented.
+  element/schema decoders and all SSZ semantic interfaces are unimplemented.
+  Only the raw `SszType`/`SszValue`/`SszError` vocabulary is supplied; there is no
+  `WellFormed`, `WellTyped`, `fixedSize?`, schema, codec, root operation or error
+  producer implementation.
   The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
@@ -685,7 +732,25 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
-- **"EELS accepts exactly the image of `encode`" (S3)** is argued from the re-encode check. It is not proved for remerkleable's `decode_bytes`, which could raise (and so reject) on some canonical input. This is unlikely but unverified. The differential round-trip fuzzing should cover every Amsterdam schema, not only toy containers.
+- **SSZ semantic domains remain open.** The raw vocabulary selects no answer to
+  these seven questions: structural nameless `WellFormed` versus full Python class
+  admission/names (including `more` at mask capacity); ordinary empty-container
+  admission and explicit empty-mask interpretation; progressive mask length versus
+  population/field count and name restrictions; whether `WellTyped` entails
+  `WellFormed` and how malformed schemas affect all-value typing; `fixedSize?`'s
+  total completion on malformed syntax versus variable types; which count,
+  uint256 length, uint32 offset, scope, cache and zero-width constraints belong to
+  typing versus separate operation/source/root domains; and serialization/inverse
+  premises and total completion for zero-fixed-element lists. No positivity guard,
+  mask normalization, acceptance cap, rejection rule or total completion is chosen.
+- **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
+  domain-dependent claim. The re-encode check alone proves no reverse implication
+  that every encoding decodes. Zero-width fixed-element lists obstruct a generic
+  inverse argument in the pinned dependency: an offset bound `< 2^32` alone is
+  insufficient, and byte-slice decrease is not universal around zero-byte children.
+  The appropriate serialization domain and total completion remain open; no fix is
+  supplied here. Future differential round-trip coverage must include every
+  Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
