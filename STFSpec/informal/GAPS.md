@@ -483,12 +483,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   reachability, system-entry separation, returned/final potential, refund and
   settlement/fee/provider/transaction/block integration, compiled resources,
   G1/G2–G7 and VM/guest/EEST/readiness remain open.
-- **Settlement remains specified, not implemented (Q66):** §5/§7 own its raw
-  four-Nat result, three local gas proofs, U256 refund and five prospective laws.
-  Implementation/proofs/clients/target controls remain absent. Returned/state/floor
-  derivation, validated unsigned refund reconstruction at the unchanged Runner
-  Nat boundary, checked-failure precedence, fee/provider/conservation, compiled
-  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open.
+- **Settlement is supplied locally (Q66):** §3/§5/§7 own its raw four-Nat
+  result, U256-refund/Int-state helper on exactly three local gas proofs and five
+  discharged ordinary laws. Ten private public-law client groups and 32 complete
+  controls retain all fields; sixteen historical successful source results and
+  six source-only failures remain finite closed-schedule evidence. Actual
+  returned/state/floor derivation, validated unsigned refund reconstruction at
+  the unchanged Runner Nat boundary, checked-failure reachability/precedence,
+  fee/provider/transaction/block integration and conservation, compiled resources,
+  G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. Conditional client
+  bounds, signed usage, range witnesses and price order do not establish real
+  caller history or move either original signed-counter conversion.
 
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients

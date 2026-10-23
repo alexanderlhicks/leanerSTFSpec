@@ -39,7 +39,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | MessageCallGas, `calculateMessageCallGas`, `initCodeCost` | EthVmCore | Q64 and EthVmCore §5/§7 own the supplied VmConfig-first signatures/default and six discharged ordinary laws. Retain the complete cost/subCall result; local transport needs only selected effective-stipend or init-price equality. Private public-law clients derive complete actual charge/error, affordability, rounding and explicitly financed local potential consequences. Bounded typed comparisons and their current/captured-default/host premises are owned by Core §3. Actual cfg/frame/target coherence, general source/default agreement, earlier CALL payments/state spill, child return and settlement remain caller-owned; no global WF or whole G2 result is supplied. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | EvmGasAllocation, `allocateEvmGas` | EthVmCore | Q65 and EthVmCore §3/§5/§7 own the supplied VmConfig-first helper, two local subtraction proofs, raw two-field result and four discharged ordinary laws, with private full-result/meter clients and bounded guards. Actual caller integration remains open. Preserve floor/admission ordering; establish relevant admission/allocation cap consistency or the allocation cap proof independently. System transactions supply separate grants and bypass this helper. |
-| TransactionGasSettlement, `settleTransactionGas` | EthVmCore | Q66 and EthVmCore §5/§7 own the prospective U256-refund API, three local gas proofs, raw complete four-field result and five ordinary laws. Implementation/proofs/actual callers remain open. Retain the signed-state clamp and pre-refund block dimensions, all source subtraction domains and the original checked refund-conversion boundary described below. |
+| TransactionGasSettlement, `settleTransactionGas` | EthVmCore | Q66 and EthVmCore §3/§5/§7 own the supplied U256-refund API, three local gas proofs, raw complete four-field result and five discharged ordinary laws, with private complete-result/meter/validated-word clients and bounded controls. Actual caller derivation/integration remains open. Retain the signed-state clamp and pre-refund block dimensions, all source subtraction domains and the original checked refund-conversion boundary described below. |
 | VmWorld, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
@@ -50,8 +50,8 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 ### Transaction-gas caller handoff (Q65, Q66)
 
 [EthVmCore §5/§7](modules/EthVmCore.md#5-interface) owns the exact helper APIs:
-allocation and its four ordinary laws are supplied;
-settlement and its five law types remain prospective. §3 owns source correspondence
+allocation and its four ordinary laws and settlement and its five ordinary laws
+are supplied. §3 owns source correspondence
 and §10 the remaining implementation/caller obligations. Allocation reads only the
 relevant execution cap. Equal relevant caps transport its local proof/result;
 whole-config equality is unnecessary locally, while actual frame/target policy
@@ -68,6 +68,14 @@ word using existing `U256.ofNat?_eq_some_iff`, `U256.ofNat?_toNat` and
 `U256.toNat_lt`. A raw Nat observation does not itself prove that range; the
 validated bridge and actual caller bounds remain unimplemented, with no public
 adapter or new reachable rejection.
+
+Private clients consume the public laws to retain complete sender conservation,
+refund-independent block dimensions, signed-state erasure/floor branches and
+dimension-sum identity. Conditional actual meter reads retain the existing local
+baseline, returned/state/floor and validated-refund witnesses; checked Nat
+reconstruction consumes an already successful Base witness. Fee algebra carries
+the explicit base≤effective-price premise. None derives those witnesses for real
+Runner outputs or proves fee/provider effects or general source reachability.
 
 Signed meter refund conversion needs both unsigned bounds at its source phase.
 Preparation restore/forfeit precedes cast `vm/interpreter.py:285`, before the
