@@ -262,7 +262,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
-  Nat adapters and conditional Nat roundtrip leave other encoding/decoding
+  Nat/ByteArray adapters and their conditional roundtrips leave other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,

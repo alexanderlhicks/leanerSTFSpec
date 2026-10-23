@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-23.*
+*Status: conditional proof plan. Date: 2026-10-24.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -574,6 +574,17 @@ source-class/host premises. No generic inverse or class proof field follows;
 the separate typed decoding foundation supplies `RlpDecode`, `decodeTo`, Nat
 decoding and its conditional roundtrip. Other instances remain open in EthCodec
 §10. Q68 owns the diagnostic equation and source/consumer observation.
+
+The ByteArray pair is also supplied by [EthCodec §3/§7](modules/EthCodec.md#implemented-bytearray-rlp-instances):
+`RlpEncode.toRlp` is exactly `.bytes`, `RlpDecode.ofRlp` is exactly `toBytes`,
+and `decodeTo_encodeOf_byteArray` retains `Encodable (.bytes b)` (Q47).
+Private facade clients recover the exact successful leaf/domain and reencode
+the complete original wire; bounded callers discharge their own size premise.
+All bytes, including leading zeros, remain data. Lists reject only after raw
+success; every raw diagnostic and the complete typed result survive under Q68.
+Source admission is original builtin Bytes, with source/runtime and first-consuming
+handler premises retained. Other instances, schemas, host-depth, guest and cost
+gates remain open; this supplied handoff changes no decision or readiness status.
 
 ### Raw SSZ model premise
 
