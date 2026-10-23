@@ -274,17 +274,22 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
-- **SSZ semantic domains remain open.** The raw vocabulary selects no answer to
-  these seven questions: structural nameless `WellFormed` versus full Python class
-  admission/names (including `more` at mask capacity); ordinary empty-container
-  admission and explicit empty-mask interpretation; progressive mask length versus
-  population/field count and name restrictions; whether `WellTyped` entails
-  `WellFormed` and how malformed schemas affect all-value typing; `fixedSize?`'s
-  total completion on malformed syntax versus variable types; which count,
-  uint256 length, uint32 offset, scope, cache and zero-width constraints belong to
-  typing versus separate operation/source/root domains; and serialization/inverse
-  premises and total completion for zero-fixed-element lists. No positivity guard,
-  mask normalization, acceptance cap, rejection rule or total completion is chosen.
+- **SSZ sizing implementation remains open (Q67).** The raw completion and
+  single ordinary law contract are specified in §5/§7; `fixedSize?` is still
+  unimplemented, the equation unproved and §4's controls/clients unrun. Source
+  correspondence, actual consumers, termination and compiled/resource evidence
+  remain future work. This guidance supplies no source execution or readiness claim.
+- **Six other SSZ semantic domains remain open.** Q67 resolves only raw sizing.
+  The remaining questions are structural nameless `WellFormed` versus full Python
+  class admission/names (including `more` at mask capacity); ordinary
+  empty-container admission and explicit empty-mask interpretation; progressive
+  mask length versus population/field count and name restrictions; whether
+  `WellTyped` entails `WellFormed` and how malformed schemas affect all-value
+  typing; which count, uint256 length, uint32 offset, scope, cache and zero-width
+  constraints belong to typing versus separate operation/source/root domains;
+  and serialization/inverse premises and total completion for zero-fixed-element
+  lists. No positivity guard, mask normalization, acceptance cap, rejection rule
+  or completion for these other domains is chosen.
 - **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
   domain-dependent claim. The re-encode check alone proves no reverse implication
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic

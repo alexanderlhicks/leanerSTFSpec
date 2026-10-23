@@ -570,8 +570,15 @@ instances and guest outcomes remain their owners' open obligations.
 Consumers can retain complete natural/boolean/byte payloads, ordered recursive
 children and independent masks. Construction proves no source-class/schema
 admission, well-formedness, typing, codec inverse, rootability, error-producer or
-guest outcome property. The semantic domains and all such operations remain open
-with EthCodec; the raw handoff adds no acceptance restriction or authored law family.
+guest outcome property. All semantic operations remain unimplemented with
+EthCodec; the raw handoff adds no acceptance restriction or authored law family.
+
+Separately, Q67 specifies prospective structural sizing in
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws). Its single ordinary
+equation is unproved and the helper unimplemented, so it supplies no composition
+premise here. Future consumers inspect the complete `Option Nat` and retain
+local admission, positive-divisor, serialization and root-domain premises; the
+other six domain questions remain open in EthCodec §10.
 
 ### Derived address premise
 
