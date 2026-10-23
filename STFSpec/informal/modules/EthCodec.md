@@ -147,14 +147,50 @@ byte/list/prefix/typed-leaf composition cases. `RlpEncodeCallerProofs.lean` uses
 public model/size/domain contracts. `rlp_encode_differential.py` reuses the typed
 driver's authenticated current-source/RECORD loader, frozen `-I -B` interpreter and
 pinned EELS byte checks. Its seed5023 bounded raw bytes/list trees reach depth32,
-string lengths1024, sibling counts256 and mixed nested cases; typed integer models
-include0/1/1024. It checks exact Python input/result classes before observations,
+string lengths1024, sibling counts256 and mixed nested cases; the Nat handoff
+is supplied below. It checks exact Python input/result classes before observations,
 including11 negative shape controls. Whole returned bytes, byte helper dispatch,
 sequence dispatch and joined payloads are compared, not checksums. Lengthy Lean
 literals are chunked and constant-byte runs use `List.replicate`, without
 changing limits or tested bytes. Interpreter/startup,
 frozen installation and RECORD remain trust inputs. These are finite actual
 encoder observations, not EEST guest execution or a Python equivalence proof.
+
+### Implemented typed RLP encoding foundation
+
+`STFSpec/Codec/RlpEncodeOf.lean` supplies the one-field `RlpEncode (α : Type)`
+class, its direct reference wrapper and only the Nat encoding instance. The
+class has no inverse, domain or proof field. All naturals remain valid inputs,
+including values above 2^256; Q47 retains the standard wire/source domain.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public contract and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:66–88` (0.1.6), typed dispatch | `RlpEncode (α : Type)` with exactly `toRlp : α → RlpItem` | complete supplied model adapter; instance schema laws remain separate | no local rejection or diagnostic mapping | private generic wrapper/complete byte-model/size clients use the supplied field and existing public encoder laws |
+| `ethereum_rlp/rlp.py:66–135` | `Rlp.encodeOf : [RlpEncode α] → α → ByteArray` | exactly `Rlp.encode (RlpEncode.toRlp a)`; pure, total reference composition | none; no decoder or error-policy choice | private composition through `toList_encode` and `size_encode`; private nominal carrier with complete nontrivial bytes |
+| `ethereum_rlp/rlp.py:77–78`; `ethereum_types/numeric.py:477–484` (0.4.1) | Nat's `RlpEncode` instance, with field exactly `Rlp.ofNat` | unbounded minimal unsigned payload; empty zero | none; source input is exact Uint, not Python int | private adapter identity and conditional raw-wire image via `decode_encode`; bounded caller discharges `Encodable (ofNat n)` for n<2^256 using public leaf/Base laws |
+
+**Checks and provenance.** `RlpEncodeOfCallerProofs.lean` supplies eight private
+consumer proofs through the Codec facade, without unfolding underlying providers.
+`RlpEncodeOfGuards.lean` compares every output byte in sixteen handwritten cases:
+zero/1/127/128/255/256/1024, asymmetric zero-containing digits, 2^64 and 2^256
+boundaries and two private nominal carrier inputs. There is no exported helper-law
+family. `rlp_encode_differential.py` retains seed5023 and its hundred random raw
+trees, with 141 total raw-tree observations and complete byte/helper/payload checks.
+Its exactly 22 Nat cases span 0/1/2, singleton transitions, asymmetric digits,
+2^64/2^256 boundaries and payload widths55/56/255/256/257. Each actual
+`rlp.encode(Uint(n))` produces both the existing raw `encode (ofNat n)` and new
+`encodeOf (n : Nat)` complete-byte guard: 326 guards in total compiled successfully.
+Before oracle encoding, exact nonnegative Python int and original authenticated
+Uint identity are required; exact bytes are required before comparison/emission.
+Fourteen bounded Nat/Uint admission controls reject bool, negative/plain wrong
+numeric/string/bytes classes and another unsigned class, alongside the eleven
+retained raw-shape controls. Source/executable/class identity and current
+source/RECORD/runtime bodies are bound before/after the frozen `-I -B` profile.
+Interpreter/native runtime, startup, installation and RECORD remain trust inputs.
+This is bounded encoder evidence, without typed decoding/inverse, all-Nat Python
+equivalence, host/resource, guest/EEST or throughput claims. `RlpDecode`,
+`decodeTo`, Nat decoding, diagnostic erasure policy and schema instances remain
+pending; this slice selects no diagnostic replacement.
 
 ### Implemented RLP header slice
 
@@ -223,7 +259,7 @@ typed/schema composition or EEST guest execution.
 `STFSpec/Codec/RlpItem.lean` supplies the public raw model and diagnostic error.
 `STFSpec/Codec/RlpTyped.lean` implements the following pure, total operations on
 all model items. The exported accept-set laws are discharged for this slice;
-whole-wire, instance, schema and guest correspondence remain open (§10).
+typed decoding, other instances, schema and guest correspondence remain open (§10).
 No instance is added on nested `RlpItem` (F17); only nonnested `RlpError` derives
 `DecidableEq`. The model constructors preserve all supplied bytes/ordered children.
 
@@ -535,7 +571,9 @@ namespace Rlp
 end Rlp
 class RlpEncode (α : Type) where toRlp : α → RlpItem
 class RlpDecode (α : Type) where ofRlp : RlpItem → Except RlpError α
--- instances: Nat, U256, U64, U32, U8, Bool, ByteArray, FixedBytes n, Address, Hash32, List α
+-- supplied: RlpEncode Nat, with toRlp exactly Rlp.ofNat
+-- pending: RlpDecode Nat and both classes' other instances:
+-- U256, U64, U32, U8, Bool, ByteArray, FixedBytes n, Address, Hash32, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 def Rlp.decodeTo [RlpDecode α] (b : ByteArray) : Except RlpError α     -- decode then ofRlp
 
@@ -693,6 +731,15 @@ preserved. `Encodable` is characterized recursively by `encodable_bytes_iff` and
 `encodable_list_iff`; standard tags do not wrap on this domain. These discharge
 encoding model obligations; raw wire contracts are listed below.
 
+**Supplied typed encoding composition.** `encodeOf` is the readable direct
+composition with the one-field adapter, and Nat supplies exactly `ofNat`.
+Private clients reduce these new references and compose the existing complete
+byte-model and width laws. For Nat, `Encodable (ofNat n)` gives the raw-wire image
+`decode (encodeOf n) = .ok (ofNat n)`; a private n<2^256 caller discharges that
+premise using public Base/leaf laws. No all-Nat `Encodable` assertion or new public
+law family is supplied. The per-instance typed roundtrip above remains pending
+with `RlpDecode`, `decodeTo` and their diagnostic policy.
+
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
 specified in §3. `decode_window_model` observes exact clipped public byte windows.
@@ -843,9 +890,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
-  public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
+  public-law domains. The supplied `RlpEncode`, `encodeOf` and Nat encoder leave
+  `RlpDecode`, `decodeTo`, Nat decoding/typed roundtrip, other encoding instances,
   element/schema decoders and SSZ semantic interfaces beyond structural sizing
-  are unimplemented. Raw `SszType`/`SszValue`/`SszError` vocabulary and structural
+  unimplemented. The observable diagnostic-erasure mapping for `decodeTo` needs
+  clarification before that wrapper is supplied. Raw `SszType`/`SszValue`/`SszError`
+  vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
   `WellTyped`, schema, codec, root operation or error producer implementation.
   The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
