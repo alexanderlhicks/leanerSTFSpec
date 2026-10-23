@@ -262,7 +262,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
-  element/schema decoders and SSZ are unimplemented.
+  element/schema decoders and all SSZ semantic interfaces are unimplemented.
+  Only the raw `SszType`/`SszValue`/`SszError` vocabulary is supplied; there is no
+  `WellFormed`, `WellTyped`, `fixedSize?`, schema, codec, root operation or error
+  producer implementation.
   The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
@@ -271,7 +274,25 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
-- **"EELS accepts exactly the image of `encode`" (S3)** is argued from the re-encode check. It is not proved for remerkleable's `decode_bytes`, which could raise (and so reject) on some canonical input. This is unlikely but unverified. The differential round-trip fuzzing should cover every Amsterdam schema, not only toy containers.
+- **SSZ semantic domains remain open.** The raw vocabulary selects no answer to
+  these seven questions: structural nameless `WellFormed` versus full Python class
+  admission/names (including `more` at mask capacity); ordinary empty-container
+  admission and explicit empty-mask interpretation; progressive mask length versus
+  population/field count and name restrictions; whether `WellTyped` entails
+  `WellFormed` and how malformed schemas affect all-value typing; `fixedSize?`'s
+  total completion on malformed syntax versus variable types; which count,
+  uint256 length, uint32 offset, scope, cache and zero-width constraints belong to
+  typing versus separate operation/source/root domains; and serialization/inverse
+  premises and total completion for zero-fixed-element lists. No positivity guard,
+  mask normalization, acceptance cap, rejection rule or total completion is chosen.
+- **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
+  domain-dependent claim. The re-encode check alone proves no reverse implication
+  that every encoding decodes. Zero-width fixed-element lists obstruct a generic
+  inverse argument in the pinned dependency: an offset bound `< 2^32` alone is
+  insufficient, and byte-slice decrease is not universal around zero-byte children.
+  The appropriate serialization domain and total completion remain open; no fix is
+  supplied here. Future differential round-trip coverage must include every
+  Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
