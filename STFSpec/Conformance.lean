@@ -204,6 +204,9 @@ import STFSpec.Conformance.Vm.Core.CallGasGuards
 import STFSpec.Conformance.Codec.RlpDecodeOfCallerProofs
 import STFSpec.Conformance.Codec.RlpDecodeOfGuards
 
+import STFSpec.Conformance.Codec.RlpNarrowUnsignedCallerProofs
+import STFSpec.Conformance.Codec.RlpNarrowUnsignedGuards
+
 /-!
 # STFSpec.Conformance
 
