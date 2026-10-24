@@ -7,6 +7,7 @@ import STFSpec.Codec.RlpEncodeOf
 import STFSpec.Codec.RlpDecodeOf
 import STFSpec.Codec.RlpByteArray
 import STFSpec.Codec.RlpBool
+import STFSpec.Codec.RlpU256
 import STFSpec.Codec.RlpHeader
 import STFSpec.Codec.RlpDecode
 import STFSpec.Codec.RlpCanonical
