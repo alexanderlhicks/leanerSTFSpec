@@ -13,6 +13,7 @@ import STFSpec.Codec.RlpDecode
 import STFSpec.Codec.RlpCanonical
 import STFSpec.Codec.Address
 import STFSpec.Codec.SszModel
+import STFSpec.Codec.SszWellTyped
 import STFSpec.Codec.SszWellFormed
 import STFSpec.Codec.SszFixedSize
 

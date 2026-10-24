@@ -266,15 +266,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   unconditional finite-domain roundtrips, plus generic FixedBytes n adapters with
   conditional wire inversion, and nominal Hash32/Address with unconditional finite-domain
   inversions and generic List adapters with membership-local model/wire laws,
-  leave other encoding/decoding instances, element/schema decoders and SSZ semantic interfaces beyond structural
-  sizing and nameless WF unimplemented. The whole typed-result equation and local single-channel
+  leave other encoding/decoding instances and element/schema decoders unimplemented.
+  The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
+  and payload typing; all other SSZ semantic interfaces remain unimplemented.
+  The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
   agreement and full-guest gates
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
-  `fixedSize?` and `WellFormed` with their single respective equations are supplied;
-  there is no `WellTyped`, schema, codec, root operation or error producer implementation.
+  `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
+  are supplied; schema, codec, root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -290,11 +292,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
-- **Residual SSZ domains (Q70).** The nameless WF predicate, constructor law,
+- **Residual SSZ domains (Q70/Q71).** The nameless WF predicate, constructor law,
   private logical controls and facade clients are supplied. Actual Python names,
   inheritance/reflection/class admission (including `more` at capacity256) remain
-  source-mapping premises. `WellTyped` and WT⇒WF remain open, as do count/uint256
-  backing, uint32 offsets, scope, cache and codec/root domains. Zero-fixed-element
+  source-mapping premises. Payload-only WT, its constructor law, 130 signed
+  controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
+  false and consumers needing WF supply it separately. Count/uint256 backing, uint32 offsets, scope, cache and codec/root domains. Zero-fixed-element
   list serialization/inverse premises and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,
