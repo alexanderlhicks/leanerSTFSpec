@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1046,8 +1046,8 @@ the nine `SszType`, five `SszValue` and six `SszError` constructors in §5. Thes
 inductives are their own raw models: arbitrary natural parameters, complete byte
 payloads, ordered finite recursive lists and independent boolean masks are
 retained without a construction invariant. No authored instances or public laws
-are added. Well-formedness, typing, schema adapters, codecs, root operations and error
-producers remain unimplemented. Structural size classification is supplied below.
+are added. Typing, schema adapters, codecs, root operations and error producers remain
+unimplemented. Structural sizing and nameless well-formedness are supplied below.
 
 The descriptor graph in `utils/ssz.py:32–87,179–225,231–258` supplies the static
 shape correspondence below. `_field_types` preserves reflected field order and
@@ -1146,6 +1146,34 @@ corresponding source class. Class/annotation exceptions remain separate from
 sizing, codec failures and guest outcomes. In particular, fixed-zero element
 classification does not repair the decoder's division/modulo by element width
 (`remerkleable/complex.py:186–195`); its serialization/inverse domain stays open.
+
+### Structural SSZ well-formedness (Q70)
+
+`STFSpec/Codec/SszWellFormed.lean`, exported through `STFSpec.Codec`, supplies
+`SszType.WellFormed : SszType → Prop` and exactly one ordinary public
+`SszType.wellFormed_iff` constructor law in §7, **discharged** on all raw syntax.
+Private descriptor/field-list recursion and a list bridge implement the equation;
+there is no executable validator, DecidablePred, instance or diagnostic producer.
+
+| Source at the pin / locked dependency | Lean operation and domain | Effects and failures | Law and controls |
+|---|---|---|---|
+| `utils/ssz.py:91–120,179–225`; `remerkleable/basic.py:252–309`, `byte_arrays.py:79–103,174–194` | `SszType.WellFormed` primitive branches; byte widths 1/2/4/8/16/32; unconditional bool/vector/byte-list/progressive-byte schemas, unrestricted raw Nat lengths/limits | pure Prop; no effects or ordered errors | `wellFormed_iff`; W01–W22, C01–C04/C07 |
+| `utils/ssz.py:181–184,215–218`; `remerkleable/complex.py:336–399`, `progressive.py:88–134` | same predicate; recursive element validity even at list limit 0 | pure Prop; limit never hides an invalid child | same law; W23–W30, C05–C06/C10 |
+| `utils/ssz.py:231–260`; `remerkleable/complex.py:800–819`, `progressive.py:440–498,535–536` | same predicate; ordinary nonempty/all-member fields; progressive final true/length ≤ 256/true-population=field count/all-member fields | no source-class or error-order assertion | same law; W31–W64, C08–C09/C11–C12 |
+
+These are static structural correspondences conditional on actual mapped primitive
+classes and reflected ordered fields/names. EELS creates all-one progressive
+masks; direct dependency sparse-mask correspondence needs its own successful
+class mapping. The raw Bool mask rules out nonbinary entries. At length 256 the
+actual `more` name and View/type checks remain local source-mapping premises;
+nameless well-formedness alone asserts no successful source class.
+
+Zero vectors and limits remain admissible. Ordinary empty fields and empty masks
+fail; sparse masks and length 256 are structurally admitted. Value typing and
+whether it entails WF remain open. Q67 sizing is unchanged on every malformed
+schema and fixed zero remains possible under WF. Count/backing, offset/scope,
+cache, codec/root and zero-width-list inverse domains retain separate premises.
+No global positivity condition repairs a later division or inverse.
 
 ## 4. Tests
 
@@ -1274,6 +1302,25 @@ classification does not repair the decoder's division/modulo by element width
   by §3. Normal/-O admission preparation has 96 groups and zero RLP entries.
   These counts are separate; none is a whole EthCodec/guest gate.
 
+- **Implemented structural well-formedness controls (Q70).**
+  `SszWellFormedControls.lean` supplies exactly 64 private signed proposition
+  controls W01–W64, each proving complete WF or its negation through the public
+  constructor law. They cover all nine branches, six admitted widths and adjacent
+  invalid/huge widths, zero/huge lengths and limits, bad descendants beneath
+  limit 0, duplicate and nested fields, ordinary/progressive emptiness, sparse,
+  trailing false and mismatched masks, and dense/sparse lengths 255/256/257.
+  Huge Nat parameters remain scalars; actual lists/masks have at most 257 entries.
+  `SszWellFormedCallerProofs.lean` supplies exactly 15 private facade clients
+  C01–C15: all arbitrary constructor clauses, limit independence, child elimination,
+  complete Q67 independence counterexamples, fixed-zero positivity countermodels,
+  mask-sensitive WF with mask-independent sizing, and distinct raw zero-width
+  list values. C15 asserts neither typing nor equal encodings.
+  Ordinary proof elaboration supplies this Prop-only slice's deterministic tests.
+  There is no source-class validator in this nameless contract to compare
+  differentially and no native WF runner is introduced. These controls supply no
+  source execution/class admission, codec/root, guest/resource or cost result;
+  future adapters/operations retain their source and differential obligations.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1336,7 +1383,7 @@ def computeContractAddressQ [Monad m] [KeccakQuery m] : Address → Nat → m Ad
 def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
--- SSZ: raw inductives and fixedSize? are supplied; other SSZ items remain future.
+-- SSZ: raw inductives, fixedSize? and WellFormed are supplied; other items remain future.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -1347,7 +1394,7 @@ inductive SszType where
 inductive SszValue where
   | uint (n : Nat) | bool (b : Bool) | bytes (b : ByteArray)
   | list (xs : List SszValue) | container (xs : List SszValue)
-def SszType.WellFormed : SszType → Prop      -- future width/mask/schema domain; unresolved details in §10
+def SszType.WellFormed : SszType → Prop      -- supplied nameless structural judgment (Q70)
 def SszValue.WellTyped : SszType → SszValue → Prop   -- future ranges/lengths/limits; relation to WF remains open
 def SszType.fixedSize? : SszType → Option Nat
 inductive SszError where | length | offset | limit | boolByte | trailing | shape
@@ -1381,7 +1428,7 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 |---|---|---|---|---|---|
 | `RlpItem` | nested inductive over `ByteArray` and `List` | itself (it is the public model) | none | immutable; decoded nodes may be shared by snapshots read-only | `encode` O(n) via a size pass and one pre-sized write. A naive recursive `++` is O(n·depth), which is also what Python's slicing and joining cost, so it should be avoided. `decode` O(n) with a cursor, instead of Python's re-slicing at each level (O(n·depth)) |
 | encoded bytes | `ByteArray` | `List UInt8` | canonical (image of `encode`) | linear while being built, then frozen | — |
-| `SszType` | nested inductive | itself (raw model) | none; future `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
+| `SszType` | nested inductive | itself (raw model) | none; supplied `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
 | `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; future `WellTyped t v` is a separate judgment | immutable | raw construction only; codec costs remain future |
 | `zeroHashes` | `Array Bytes32` built once | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup |
 | merkleization | `Array Bytes32` layers | the full padded binary tree | — | local, linear | O(chunks) hashes + O(log limit) zero-hash lookups. **Never O(limit)**: `ByteList[2^16]` has 2048 chunk leaves, and `List[_, 256]` must not hash 256 leaves when it has 3 elements |
@@ -1402,6 +1449,15 @@ is no second optimized model, mapped field list, public measure, fuel, validator
 instance, certificate, error type or extra public law. Widths and their sums remain
 Nat metadata, without proportional byte allocation. Mathematical termination
 supplies no practical host-depth, compiled ownership, allocation or cost guarantee.
+
+**Structural well-formedness implementation (Q70).** Private mutual Prop
+workers descend through each descriptor's child/actual field list and each list's
+head/tail. A thin public predicate and private list-induction bridge expose
+exactly the §7 constructor law. List elements are checked even at limit 0; masks
+are inspected independently of the ordered actual fields. No Boolean traversal,
+fuel, public termination helper, broad simp attribute, validator or error channel
+is added. This is a logical judgment with no new executable hot path; ordinary
+structural totality and proof controls imply no compiled resource/cost result.
 
 **Implemented encoder costs.** The first structural pass caches each subtree's
 size and packed writer closure once. The second pass copies each header/payload
@@ -1779,9 +1835,42 @@ actual field, with empty result `some 0`: any variable field makes the result
 `none`. Progressive sizing ignores the mask and neither filters, zips, pads nor
 normalizes the field list. Arbitrary Nat widths add without a host-sized cap.
 
+Q70 additionally supplies the §5 Prop judgment and exactly this ordinary
+constructor law, **discharged** by `STFSpec/Codec/SszWellFormed.lean`:
+
+```lean
+theorem SszType.wellFormed_iff (t : SszType) :
+    t.WellFormed ↔
+      match t with
+      | .uint w => w ∈ [1, 2, 4, 8, 16, 32]
+      | .bool => True
+      | .byteVector _ => True
+      | .byteList _ => True
+      | .list elem _ => elem.WellFormed
+      | .progressiveList elem => elem.WellFormed
+      | .progressiveByteList => True
+      | .container fields =>
+          fields ≠ [] ∧ ∀ field ∈ fields, field.WellFormed
+      | .progressiveContainer mask fields =>
+          mask.getLast? = some true ∧
+          mask.length ≤ 256 ∧
+          (mask.filter id).length = fields.length ∧
+          ∀ field ∈ fields, field.WellFormed
+
+```
+
+Its nameless structural domain is separate from actual names/class construction,
+value typing and operation domains. Every child is checked, including beneath
+zero limits; fixed-zero vectors/fields and sparse length 256 masks are admitted.
+The mask's last bit expresses nonemptiness and final activity, while true
+population counts actual fields. There is no `WellTyped` implication, runtime
+validator, diagnostic priority or codec/root success claim. In particular WF
+implies neither positive `fixedSize?` nor unique zero-width-list count recovery.
+Q67 stays total and independent, including unsupported widths and malformed
+containers/masks. Future division/inverse consumers prove positivity locally.
+
 All other semantic laws below remain prospective conditional obligations. Their
-domains and total completions remain open as detailed in §10; the raw model and
-its private consumers discharge none of them.
+domains and total completions remain open as detailed in §10; the raw model, sizing and structural WF controls discharge none of them.
 
 - [T] `decode` must be total. Recursion on the type and validated slice boundaries are the intended proof ingredients. Strictly smaller byte slices alone do not justify every sub-decode: zero-byte fixed children require a separate termination argument and an unresolved serialization domain. Offsets must be validated against the slice length before use.
 - [C] Round trip: `WellTyped t v → (encode t v).size < 2^32 → decode t (encode t v) = .ok v`.
@@ -1842,6 +1931,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+- **Q70** owns the approved nameless structural WF disposition; §5/§7 owns
+  exactly the predicate and constructor law. Source names/classes, WT and the
+  operation domains in §10 remain separate.
+
 - **Q69** owns the approved List disposition; §5/§7 owns its exact bounded
   instance/law contract. No new unresolved semantic choice is introduced.
 
@@ -1849,7 +1942,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   contract supplied in §5/§7; remaining instance/schema gaps are in §10.
 
 - **Q67** owns the raw structural sizing disposition; §5/§7 specifies its
-  supplied value/law contract. The other six SSZ domain questions in §10 stay open.
+  supplied value/law contract. The residual SSZ domains in §10 stay open under Q70.
 
 - **Q47** owns the total RLP encoder completion beyond `Encodable`; decoder acceptance and round-trip/canonicality contracts retain the domain in §7.
 
@@ -1874,14 +1967,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   conditional wire inversion, and nominal Hash32/Address with unconditional finite-domain
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances, element/schema decoders and SSZ semantic interfaces beyond structural
-  sizing unimplemented. The whole typed-result equation and local single-channel
+  sizing and nameless WF unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
   agreement and full-guest gates
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
-  `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
-  `WellTyped`, schema, codec, root operation or error producer implementation.
+  `fixedSize?` and `WellFormed` with their single respective equations are supplied;
+  there is no `WellTyped`, schema, codec, root operation or error producer implementation.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -1897,17 +1990,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
-- **Six other SSZ semantic domains remain open.** Q67 resolves only raw sizing.
-  The remaining questions are structural nameless `WellFormed` versus full Python
-  class admission/names (including `more` at mask capacity); ordinary
-  empty-container admission and explicit empty-mask interpretation; progressive
-  mask length versus population/field count and name restrictions; whether
-  `WellTyped` entails `WellFormed` and how malformed schemas affect all-value
-  typing; which count, uint256 length, uint32 offset, scope, cache and zero-width
-  constraints belong to typing versus separate operation/source/root domains;
-  and serialization/inverse premises and total completion for zero-fixed-element
-  lists. No positivity guard, mask normalization, acceptance cap, rejection rule
-  or completion for these other domains is chosen.
+- **Residual SSZ domains (Q70).** The nameless WF predicate, constructor law,
+  private logical controls and facade clients are supplied. Actual Python names,
+  inheritance/reflection/class admission (including `more` at capacity 256) remain
+  source-mapping premises. `WellTyped` and WT⇒WF remain open, as do count/uint256
+  backing, uint32 offsets, scope, cache and codec/root domains. Zero-fixed-element
+  list serialization/inverse premises and total decoder completion remain open.
+  Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
+  No source execution, class admission, runtime validator, error priority,
+  acceptance cap, codec/root or larger readiness/resource/cost gate is supplied
+  by this Prop-only implementation.
 - **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
   domain-dependent claim. The re-encode check alone proves no reverse implication
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic
