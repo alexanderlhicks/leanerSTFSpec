@@ -721,17 +721,26 @@ obligations remain with EthCodec.
 
 **Nameless structural SSZ well-formedness options (Q70).** DECISIONS Q70 owns
 this disposition; EthCodec §5/§7 owns the exact predicate and sole constructor
-law. WF alone leaves either raw payload typing or WF-conjoined typing available
-later. Joint WF/WT would choose more now. Mathematical empty containers/masks
+law. The WF-only choice left payload typing separate; Q71 subsequently selects
+its payload-only meaning. Joint WF/WT would have coupled those judgments. Mathematical empty containers/masks
 would need a separate completion without a successful-source-class claim;
 all-one-only masks or length<256 would exclude structurally admitted cases.
 The chosen structural domain permits zero vectors/limits and sparse length 256
-masks, checking every child. Actual names/class admission, WT⇒WF and operation
-premises remain local and independently changeable. Global positive-size WF
+masks, checking every child. Actual names/class admission and operation premises remain local and
+independently changeable; Q71 deliberately has no WT⇒WF implication. Global positive-size WF
 would exclude zero-byte fields merely to repair a later list inverse; positivity
 instead belongs at division/recovery, whose zero-width completion remains open.
 Q67 sizing is independent even outside WF. The Prop slice supplies no runtime
 validator, error/codec/root, guest/resource/cost or readiness gate closure.
+
+**Structural SSZ payload typing options (Q71).** DECISIONS Q71 owns the
+approved payload-only disposition; EthCodec §5/§7 owns exactly the predicate and
+complete ordinary constructor law. WF-conjoined typing would couple payload and
+schema admission; a uint256 actual-count cap would further couple the relation
+to source backing representation. The chosen raw mathematical meaning keeps
+those consumer premises separate. WT⇒WF is deliberately false. Constructor/
+backing counts (including recursive sites), offsets/scope/cache, positive-width
+inverse recovery and codec/root domains remain local/open. Q67/Q70 stay unchanged.
 
 **Generic typed RLP list law options (Q69).** The disposition is owned only by
 DECISIONS Q69; EthCodec §5/§7 owns the exact two instances and two ordinary laws.
