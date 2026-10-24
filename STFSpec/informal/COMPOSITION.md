@@ -613,11 +613,22 @@ nameless structural equation: recursive children remain obligations at limit0,
 ordinary fields are nonempty, and progressive masks use final activity, length
 and population rather than an all-one assumption. Source names/reflection/class
 construction, including `more` at capacity256, are supplied locally; the predicate
-alone proves none of them. Future value typing, WT⇒WF, count/backing/offset/scope,
+alone proves none of them. Q71 supplies payload typing separately below; count/backing/offset/scope,
 cache, codec/root and zero-width-list inverse domains remain separate. Some fixed-zero
 schemas are WF, so division/recovery must establish positivity locally. Q67 stays
 total on every malformed schema; logical controls assert no executable source,
 codec, root, guest, resource or cost agreement.
+
+Separately, Q71 supplies payload-only `SszValue.WellTyped` and the single
+ordinary complete `wellTyped_iff`, owned by EthCodec §5/§7. Consumers use actual
+member recursion and exact equal-length/zip field alignment. Masks do not change
+payload typing, and empty actual lists visit no child values. WT⇒WF is false;
+consumers needing WF state it separately. Source classes/names/coercions,
+recursive uint256 constructor/backing counts and mix-ins, offsets/scope/cache,
+positive-width count recovery and codec/inverse/root domains remain local/open.
+Private public-law clients compose these independent judgments and give fixed-zero
+count-size counterexamples without a codec claim. This Prop slice supplies no
+source execution or guest/resource/security/cost/readiness result.
 
 ### Derived address premise
 
