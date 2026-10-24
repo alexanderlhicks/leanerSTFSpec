@@ -2,6 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Vm.Core.TransactionGasAllocation
 import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.GasMeter
 import STFSpec.Vm.Core.GasCosts
@@ -26,3 +27,4 @@ Library `EthVmCore`. Its allowed dependencies are listed in `scripts/boundaries.
 are owned by `STFSpec/informal/modules/EthVmCore.md` §§3/7/10.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md`.
 -/
+

@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-23.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-24.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -147,6 +147,19 @@ original comparisons and their source/default/host premises.
 Relevant-price congruence supplies no global WF or whole payment/settlement/G2
 claim. Actual caller/coherence/composition, compiled/resource and whole VM/guest
 gates remain open; the dated §6 readiness assessment is unchanged.
+
+Q65's local allocation slice is supplied by
+[EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
+execution/reservoir carrier, VmConfig-first helper with exactly two local bounds,
+and four discharged ordinary laws. Nine private clients consume public allocation,
+record/config and meter laws throughout. EthVmCore §3 owns 36 complete interpreted/
+native groups, strict normal/`-O` parser controls, 14 whole successful original
+comparisons and three source-only typed underflows. Full declaration types/proof
+values/privacy/generated raw-record and script support/axiom closure were audited;
+no public conformance helper was added. Local constructed entry/charge facts prove
+no actual Runner reachability, admission/allocation cap consistency, settlement,
+transaction conservation, resource or whole G1/G2–G7 result. Q66 and the dated §6
+readiness assessment remain unchanged.
 
 ## 4. Agent implementation contract
 
