@@ -16,6 +16,7 @@ import STFSpec.Codec.SszModel
 import STFSpec.Codec.SszFixedSize
 
 import STFSpec.Codec.RlpNarrowUnsigned
+import STFSpec.Codec.RlpFixedBytes
 
 /-!
 # STFSpec.Codec
