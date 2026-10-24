@@ -208,6 +208,8 @@ import STFSpec.Conformance.Codec.RlpNarrowUnsignedCallerProofs
 import STFSpec.Conformance.Codec.RlpNarrowUnsignedGuards
 import STFSpec.Conformance.Codec.RlpFixedBytesCallerProofs
 import STFSpec.Conformance.Codec.RlpFixedBytesGuards
+import STFSpec.Conformance.Codec.RlpListCallerProofs
+import STFSpec.Conformance.Codec.RlpListGuards
 import STFSpec.Conformance.Codec.RlpAddressCallerProofs
 import STFSpec.Conformance.Codec.RlpAddressGuards
 import STFSpec.Conformance.Codec.RlpHash32CallerProofs

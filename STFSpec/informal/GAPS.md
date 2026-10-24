@@ -265,8 +265,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Nat/ByteArray adapters with conditional roundtrips and Bool/U256/U64/U32/U8 adapters with
   unconditional finite-domain roundtrips, plus generic FixedBytes n adapters with
   conditional wire inversion, and nominal Hash32/Address with unconditional finite-domain
-  inversions, leave List and other encoding/decoding
-  instances, element/schema decoders and SSZ semantic interfaces beyond structural
+  inversions and generic List adapters with membership-local model/wire laws,
+  leave other encoding/decoding instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -275,7 +275,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
   `WellTyped`, schema, codec, root operation or error producer implementation.
-  The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
+  Generic List composition requires supplied child instances and local inverses;
+  the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
   remain open.

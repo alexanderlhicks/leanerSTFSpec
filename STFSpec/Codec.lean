@@ -18,6 +18,7 @@ import STFSpec.Codec.SszFixedSize
 import STFSpec.Codec.RlpNarrowUnsigned
 import STFSpec.Codec.RlpFixedBytes
 import STFSpec.Codec.RlpAddress
+import STFSpec.Codec.RlpList
 import STFSpec.Codec.RlpHash32
 
 /-!
