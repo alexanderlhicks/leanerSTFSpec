@@ -73,6 +73,19 @@ word using existing `U256.ofNat?_eq_some_iff`, `U256.ofNat?_toNat` and
 validated bridge and actual caller bounds remain unimplemented, with no public
 adapter or new reachable rejection.
 
+The private ordinary preparation-failure client in EthVmCore §3/§7 composes the
+existing public laws with exactly the two allocation proofs, admitted F≤T and
+partial-meter baseline≤R0/refund=0. Restore/post supplies pending-spill-zero;
+forfeit then gives the complete final meter `(0,R0,R0,0,0,0)`, also from the
+constructed entry meter. Allocation derives R0≤T; state usage and refund are zero,
+with both unsigned bounds and existing U256 checked reconstruction. These facts
+derive the remaining settlement proofs locally, giving complete result
+`(max(T-R0,F), T-max(T-R0,F), max(T-R0,F), 0)` on both routes. Its six complete
+numerical specializations assert no source reachability. Actual admission/cap/floor
+transport, preparation assertion derivation, normal/child accounting and refund
+bounds, system behavior, fees/providers/counters and G1/G2 remain open. There is
+no new public API or actual Runner/cast implementation.
+
 Signed meter refund conversion needs both unsigned bounds at its source phase.
 Preparation restore/forfeit precedes cast `vm/interpreter.py:285`, before the
 state-usage argument :291–293; normal TransactionEnd tracing :309–314 precedes
