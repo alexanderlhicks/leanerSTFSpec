@@ -509,10 +509,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
-- **Allocation is locally supplied; settlement remains prospective (Q65, Q66):**
+- **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
-  laws, nine private public-law client groups and complete finite controls. Q66's
-  carrier/helper/five laws and target controls remain absent. Actual admission/allocation
+  laws, nine private public-law client groups and complete finite controls. Q66 supplies
+  its raw carrier/exact three-bound helper, five discharged laws, private public-law
+  clients and 50 complete target groups (§3). Actual admission/allocation
   cap consistency, system-call separation, returned/state/floor derivation,
   validated unsigned refund/range reconstruction at the unchanged Runner Nat
   boundary, checked-failure precedence, fees/providers/conservation, compiled
@@ -523,8 +524,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
   and ten complete-value guards. Full EthBlock.BlockOutput construction,
   block/counter coherence, capacity arithmetic and checked failures/precedence,
-  settlement and actual consumers remain unimplemented here; allocation is supplied
-  separately above. This raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
+  actual settlement integration and counter consumers remain unimplemented here;
+  the pure allocation and settlement helpers are supplied separately above. This raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
 
 - **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
   Log, existing public rope constructors, two operations and six discharged ordinary
@@ -561,7 +562,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
-- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
+- **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:285,318`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; this guidance implements no actual caller proof and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.

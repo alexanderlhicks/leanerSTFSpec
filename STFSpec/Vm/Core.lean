@@ -2,6 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Vm.Core.TransactionGasSettlement
 import STFSpec.Vm.Core.TransactionGasAllocation
 import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.GasMeter
