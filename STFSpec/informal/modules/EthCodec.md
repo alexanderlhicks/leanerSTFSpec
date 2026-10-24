@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -67,6 +67,10 @@ allocation proportional to that declaration.
   - `bool` accepts only the empty string or `0x01` (`:245–251`).
   - A dataclass requires a list with exactly as many items as it has fields (`:222–228`).
   - `Tuple[T, ...]` and `List[T]` accept any length.
+  - The supplied generic list adapter preserves complete ordered child models
+    (`:70–78,112–135`). List typing checks `toList` shape first, then core `mapM`
+    preserves empty success and the complete first child error (`:191–205,311–318,370–384`).
+    It introduces no default element, cap, normalization, sorting or deduplication.
   - A `Union` requires **exactly one** alternative to succeed (`:325–343`; used for `to: Bytes0 | Address`).
   - `decode_to` **wraps every exception raised during typed deserialization into `DecodingError`** (`:167–171`). The header fallback in `stateless.py:234–237` (Amsterdam `Header`, then `PreviousForkHeader`) depends on this. The raw `decode` step is *outside* that wrapper, so a `RecursionError` there is not converted (D2r).
 - **D4r. Naive-reading trap.** A fixed-arity `Tuple[A, B]` target is decoded with `zip` (`:346–367`), which has **no length check**: extra items are dropped, and missing items give a shorter tuple. I found no fixed-arity RLP tuple target in the Amsterdam decode sites (`transactions.py:573–585`, `blocks.py:434`, `stateless.py:235–237`); all use dataclasses. The spec therefore does not model this laxity. Any future use must be flagged.
@@ -773,6 +777,93 @@ kernel remain trusted. These bounded observations prove no universal Python, gue
 EEST, resource/host-exclusion, security or whole-Codec result; caller first-handler
 and broader composition obligations remain open.
 
+### Implemented generic typed RLP List composition
+
+`STFSpec/Codec/RlpList.lean` supplies exactly four public declarations under Q69:
+two generic independent instances and two ordinary laws. Every support/caller
+and generated declaration is private. The accepted nominal Address slice above
+is preserved. No schema, global lawful-codec class, public traversal/helper,
+new diagnostic, runtime guard or global invariant is introduced.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:70–78,112–135` (0.1.6) | `RlpEncode (List α)` with `[RlpEncode α]` | every finite list; `.list (xs.map toRlp)` with complete ordered children, pure/total | no adapter rejection; Q47 retains whole standard wire domain | complete byte model through `toList_encode/toList_encode_list`; S01-M–S08-E, K01/K03, CM01/CM06/CM10 |
+| `ethereum_rlp/rlp.py:191–205,311–318,370–384` | `RlpDecode (List α)` with `[RlpDecode α]` | `toList.bind (fun children => children.mapM ofRlp)`; complete success list and empty success | list shape before callbacks; first complete error in child order, unchanged Q68 raw-first wrapper | S01-I–S08-D, T01-I–T06-D, R01-N–R06-F, A01-H–A06-B, CM/Z/K/X; CP02/CP07/CP08 |
+| public model composition; no additional Python entry | `Rlp.ofRlp_toRlp_list` with membership-local `hElements` (§7) | complete model inverse for actual members, no Encodable premise | independent instances alone supply no nonempty inverse | ordinary induction through public core mapM equations; CP03/CP05/CP06/CP09, including recursive public nested-law reuse |
+| public raw inverse plus wrapper/model composition | `Rlp.decodeTo_encodeOf_list` with same `hElements` and whole assembled Encodable (§7) | complete `.ok xs`; every child domain AND joined payload bound retained | no added rejecting API or accepted-wire generic right inverse | public `decode_encode` then public model law; CP04/CP06, S/K whole wires |
+
+The fixed control catalogue has104 separate whole outcomes in S,T,R,A,CM,Z,K,X
+order (32/12/18/18/10/4/4/6), and ten private caller groups CP01–CP10.
+Model observations preserve constructor delimiters, every byte and every child;
+there is no nested deriving, checksum or count-only substitute. Independent
+Fail/Const/Local carriers show nonempty failure, lost accepted-value recovery and
+strict actual-member/global agreement differences. Public Nat/byte/list acceptance
+contracts support symbolic contrasts; exact diagnostics are finite guard values.
+No private integer/parser/Base representation or provider helper is unfolded.
+
+The portable `rlp_list_differential.py` requires explicit `--wheel-dir` with the
+original locked ethereum_rlp0.1.6/types0.4.1 wheels, authenticates whole wheels,
+installed current Python members and RECORD inventories, and freshly compiles
+authenticated bytes through the accepted loaders. `--help` exits0; a missing
+wheel directory exits2. Native builtin bytes/list and exact original Uint with
+plain-int nonnegative `_number` admission precede conversion or whole-value
+comparison. The retained genuine `typing.List[Uint]` alias is parameterized once
+per process, with original origin/args/class/name/rendering metadata; no equal
+replacement, fake alias, With callback or crypto import is used.
+
+The finite preflight closure binds14 selected RLP functions (including joined
+encoding generator code), Uint/Unsigned hierarchy and inherited numeric methods,
+original code/globals/scoped builtins and exact None defaults for those selected
+functions/methods plus direct get_origin/get_args/is_dataclass. Reached typing
+helper/class and alias construction/rendering dependencies retain their actual
+defaults, including `_should_unflatten_callable_args` and dataclasses `_FIELDS`;
+there is no universal None-default claim. Uint.from_be_bytes is numeric.py:522–528;
+dataclass reflection is rlp.py:215–217, byte shape :219–220 and arity :222–228.
+No dataclass constructor or get_type_hints is exercised.
+
+The closed author schedule is40negative/8positive admission groups normally and
+under `-O`,96 group executions with zero RLP entries, then seed30001/no RNG,
+E01–E08, decode01–08, T01–T06, R01–R06:28 original entries (8encode/20decode;
+8decode successes/6typed/6raw failures) and28 separately compiled complete guards.
+Helper setups are four original numeric constructions per run; source setup is
+five reused Uint values,13 explicit numeric constructions across the three
+processes. The source-internal125 Uint-construction prediction is static source
+reasoning, not instrumentation. Maximum wire58 bytes, list length56, raw depth2
+and natural256. No extra raw decode, hidden replay or success raw-tree capture.
+Typed failure records retain complete outer/cause/context/suppression/args,
+original frame/code/global identity, reached raw trees, exact original target,
+first index and actual child. Sites are list374, child379, wrapper382, outer171;
+raw167 precedes typing. Complete raw paths/args are separately admitted. Native,
+reflection/class or host faults abort evidence, including wrapped faults; they
+are never mapped to a protocol error. The source exception record and Lean
+complete diagnostic remain distinct from mathematical `Except Unit` observation.
+
+**Validation status.** The104 controls and ten caller groups compile through both
+complete facades. The fresh V2 full raw type/proof-value/axiom/privacy audit finds
+211 item declarations: exactly four public and207 private, including generated
+support. The two private CP09 concrete-wire proofs now compose public byte-model
+laws and core byte extensionality; production types, definitions and laws are
+unchanged. The authorized final author03 profile passes all28 original entries
+and28 compiled whole guards after fresh normal/-O admission96. All515 target
+bodies and selected source/controller/runtime/install/wheel/compiled bodies and
+modes match pre/post successful execution. The final tree is frozen before its
+fresh current47 required checks; no cache result supplies passing credit.
+Author01 reached28 entries but failed metadata packaging before guard compilation
+and remains uncredited. Its reviewed renderer-only repair preceded author02's
+successful28-entry/28-guard profile; those results are historical and superseded
+for V2. Across all three attempts, historical execution totals84 source entries,
+288 helper groups and39 explicit numeric setups. Credited final author03 evidence
+is28 source entries/28 compiled guards/96 helper groups, with13 explicit numeric
+setups in the final three processes. The reviewed CODE packet retains full
+streams, body/mode receipts, original outcomes, failed attempts and fresh current
+gates. These finite observations supply no cold-build, whole-host or generic
+Python refinement, callback execution/cost trace, host resource, schema-depth,
+first-consuming-handler, EEST, guest or readiness gate. Header fallback
+stateless.py:234–237 and transaction execution_engine/new_payload.py:60–68 remain
+separate premises. Compiler/kernel, native integer/bytes/arithmetic/allocation,
+interpreter/startup, frozen install/RECORD, ambient host and orchestration remain
+explicit trust inputs. No whole-host certification or cold-build claim follows.
+
 ### Implemented RLP header slice
 
 `STFSpec/Codec/RlpHeader.lean` implements the total packed cursor helper, with
@@ -1175,6 +1266,11 @@ classification does not repair the decoder's division/modulo by element width
   original native class identity, the36→262→171 length chain and singleton wires.
   The source/host/first-handler and broader guest/resource premises remain open.
 
+- **Implemented generic List controls.** The104 complete handwritten outcomes,
+  ten private caller groups and separately generated28 source guards are owned
+  by §3. Normal/-O admission preparation has96 groups and zero RLP entries.
+  These counts are separate; none is a whole EthCodec/guest gate.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1218,7 +1314,13 @@ class RlpDecode (α : Type) where
 -- supplied: RlpEncode/RlpDecode (Base.FixedBytes n), exact byte leaf / Rlp.toFixed n
 -- supplied: RlpEncode/RlpDecode Base.Hash32, exact32-byte leaf / toFixed32.map ofBytes32
 -- supplied: RlpEncode/RlpDecode Base.Address, exact20-byte leaf / checked Address.ofBytes?
--- pending other instances: List α
+-- supplied (Q69): generic ordered RlpEncode/RlpDecode (List α), see exact forms below
+instance {α : Type} [RlpEncode α] : RlpEncode (List α) where
+  toRlp xs := .list (xs.map RlpEncode.toRlp)
+instance {α : Type} [RlpDecode α] : RlpDecode (List α) where
+  ofRlp item := (Rlp.toList item).bind
+    (fun children => children.mapM (RlpDecode.ofRlp (α := α)))
+-- other schema/element instances remain pending
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 -- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
@@ -1353,6 +1455,12 @@ throughput/guest measurements or satisfaction of whole-codec cost gates. Schemas
 wire workloads and consumer lifetime/cleanup checks remain required (REVIEW C1;
 CONTRIBUTING §3).
 
+**Generic List implementation (Q69).** The readable ordered `map` model and public
+core `mapM` traversal add no stored representation or private traversal worker.
+Ordinary kernel proofs use public mapM_nil/mapM_cons; the core implementation's
+structural totality and reversed accumulator do not prove compiler callback
+traces, practical host stack, allocation bounds or C1–C4 acceptance.
+
 ## 7. Contract and laws
 
 **RLP.**
@@ -1363,6 +1471,41 @@ CONTRIBUTING §3).
 - [C] Integer canonicality: `toNat (.bytes b) = .ok n ↔ b = (Uint.toBeBytes n).toByteArray`; `toNatBounded w` additionally requires `b.size ≤ w`.
 - [R] Typed round trips for each instance: `Encodable (toRlp a) → decodeTo (encodeOf a) = .ok a` (where toRlp is the instance adapter). This is used by `EthBlock` (transaction, header and receipt codecs) and `EthStateCommit` (account leaves).
 - [R] `union2 f g x = .ok a` implies that exactly one of `f x`, `g x` succeeds.
+
+**Supplied generic List laws (Q69).** Exactly these two ordinary public laws are
+discharged; the namespace is `STFSpec.Codec`:
+
+```lean
+theorem Rlp.ofRlp_toRlp_list {α : Type} [RlpEncode α] [RlpDecode α]
+    (xs : List α)
+    (hElements : ∀ a ∈ xs,
+      RlpDecode.ofRlp (RlpEncode.toRlp a) =
+        (Except.ok a : Except RlpError α)) :
+    RlpDecode.ofRlp (α := List α) (RlpEncode.toRlp xs) =
+      (Except.ok xs : Except RlpError (List α))
+
+theorem Rlp.decodeTo_encodeOf_list {α : Type} [RlpEncode α] [RlpDecode α]
+    (xs : List α)
+    (hElements : ∀ a ∈ xs,
+      RlpDecode.ofRlp (RlpEncode.toRlp a) =
+        (Except.ok a : Except RlpError α))
+    (h : Rlp.Encodable (.list (xs.map RlpEncode.toRlp))) :
+    Rlp.decodeTo (α := List α) (Rlp.encodeOf xs) =
+      (Except.ok xs : Except RlpError (List α))
+```
+
+Model induction restricts membership-local agreement to the head and tail and
+uses public mapM_nil/mapM_cons with ordinary Except equations. No Encodable
+premise is needed for that model law, including recursive public-law lifting of
+nested lists. The wire law composes public raw decode_encode at the complete
+assembled-list h with that public model law. Public encodable_list_iff exposes
+both every child and joined encoded payload length<2^64: individual child bounds
+cannot replace h. Independent classes imply no nonempty inverse; neither law
+implies generic successful-decoding-to-reencoding without additional element
+model-recovery premises. The explicitly approved pair qualifies the generic
+private/no-added-family wording below, without adding an open-ended helper family.
+Empty lists have vacuous member agreement even for a failing decoder. First-error
+equations preserve complete pure values, with no callback execution or cost claim.
 
 **Supplied typed wrapper contract (Q68).** Inside
 `namespace STFSpec.Codec`, the normative equation is literally:
@@ -1673,6 +1816,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source/reflection/callback/host and first-handler premises remain required.
   Schema owners must mirror `_infer` exactly: field order, widths, limits, and
   progressive versus plain types. No new typed handoff is supplied by guidance.
+- **Supplied List seam (Q69).** Consumers lift their actual member inverses through
+  the public model law, recursively for nested lists, and supply complete assembled
+  Encodable for the public wire law. [COMPOSITION §2](../COMPOSITION.md#typed-rlp-model-premise)
+  owns that handoff; schema, local source/host and first-handler duties remain.
 - **Supplied sizing premise (Q67).** Future inline/offset and fixed-element
   consumers use the single §7 equation and inspect the whole `Option Nat`.
   `some 0` remains fixed metadata; division/modulo, serialization inverses,
@@ -1687,6 +1834,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Relies on.** `EthHash.sha256` and `keccak256`, and `EthBase` byte conversions (in particular `Uint.toBeBytes 0 = empty`).
 
 ## 9. Open decisions
+
+- **Q69** owns the approved List disposition; §5/§7 owns its exact bounded
+  instance/law contract. No new unresolved semantic choice is introduced.
 
 - **Q68** owns the typed-wrapper diagnostic equation and conditional Nat theorem
   contract supplied in §5/§7; remaining instance/schema gaps are in §10.
@@ -1715,8 +1865,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Nat/ByteArray adapters with conditional roundtrips and Bool/U256/U64/U32/U8 adapters with
   unconditional finite-domain roundtrips, plus generic FixedBytes n adapters with
   conditional wire inversion, and nominal Hash32/Address with unconditional finite-domain
-  inversions, leave List and other encoding/decoding
-  instances, element/schema decoders and SSZ semantic interfaces beyond structural
+  inversions and generic List adapters with membership-local model/wire laws,
+  leave other encoding/decoding instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -1725,7 +1875,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   vocabulary and structural
   `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
   `WellTyped`, schema, codec, root operation or error producer implementation.
-  The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
+  Generic List composition requires supplied child instances and local inverses;
+  the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
   remain open.

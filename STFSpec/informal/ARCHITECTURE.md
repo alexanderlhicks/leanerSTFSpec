@@ -719,6 +719,17 @@ Private traversal/termination support is permitted behind the public equation;
 implementation, source correspondence, the other six domains and cost/readiness
 obligations remain with EthCodec.
 
+**Generic typed RLP list law options (Q69).** The disposition is owned only by
+DECISIONS Q69; EthCodec §5/§7 owns the exact two instances and two ordinary laws.
+Both laws provide domain-free model composition and direct wire ergonomics.
+Model only would leave callers to compose the raw/wrapper wire laws; wire only
+would omit domain-free nested model lifting; keeping both inverses private would
+leave consumers to repeat these composition proofs. The chosen pair retains
+actual-member inverses, with complete assembled Encodable only for wire use.
+Independent classes imply no generic accepted-value recovery. Schema admission,
+source reflection/callbacks, first handlers, host resources and costs remain
+consumer obligations; there is no global lawful-codec class or runtime guard.
+
 **Typed RLP wrapper diagnostic options (Q68).** DECISIONS Q68 owns the
 disposition; EthCodec §5/§7 owns the exact prospective interface and Nat theorem.
 A preserves raw error values and the complete typed result after raw success,
