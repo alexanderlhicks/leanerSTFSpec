@@ -171,3 +171,9 @@ root = "StateErrorNativeTests"
 name = "taylor-exponential-native-tests"
 srcDir = "scripts"
 root = "TaylorExponentialNativeTests"
+
+# Complete local allocation observations; source coupling is a separate gate.
+[[lean_exe]]
+name = "transaction-gas-allocation-native-tests"
+srcDir = "scripts"
+root = "TransactionGasAllocationNativeTests"

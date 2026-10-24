@@ -2,6 +2,8 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
+import STFSpec.Conformance.Vm.Core.TransactionGasAllocationGuards
 import STFSpec.Conformance.Base.BytesCallerProofs
 import STFSpec.Conformance.Base.BytesGuards
 import STFSpec.Conformance.Base.BytesOrderCallerProofs
