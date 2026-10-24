@@ -47,6 +47,19 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
+### Supplied raw SSZ pack handoff (Q72)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the supplied component helper
+and its single complete ordered byte-observation law; §3/§4 owns source premises
+and the six private property/client groups plus15 whole-byte controls. Consumers
+use that law and public Base byte/fixed-byte contracts. Flattened output recovers
+the complete input prefix, but equal chunk arrays imply input equality only with
+equal input lengths. Concatenation preserves chunk append only when the FIRST
+input's byte length is divisible by32. There is no root or length-binding seam.
+Actual typed packing, schema/codec/root and adapter inverses, class/count/backing/
+offset/cache premises, source-host/differential obligations and compiled costs
+remain with their consumers; no guest/error/resource gate follows from raw chunks.
+
 ### Transaction-gas caller handoff (Q65, Q66)
 
 [EthVmCore §5/§7](modules/EthVmCore.md#5-interface) owns the exact supplied
