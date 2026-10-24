@@ -221,6 +221,25 @@ No negative-refund constructor probe, raw source dataclass construction,
 caller/provider execution, random extension or helper replay is part of this slice.
 These are finite observations, not a universal source/host or actual Runner theorem.
 
+### Private ordinary preparation-failure composition
+
+`STFSpec/Conformance/Vm/Core/PreparationFailureGasCallerProofs.lean` imports only
+`STFSpec.Vm.Core`; every authored declaration is private. Its four generic groups
+use the public allocation, restore/post, forfeit, signed observer, settlement and
+Base unsigned constructor/observer laws, without unfolding provider algorithms.
+
+| Pinned source | Private client / explicit domain | Complete result and retained obligations |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/interpreter.py:267–294`; `vm/gas.py:555–603,674–675,1120–1243` | `partial_complete`, `entry_agreement`, `final_observations`, `settlement_complete`; arbitrary cfg/T/I/F with the existing two allocation proofs and F≤T; arbitrary partial meter with baseline≤R0 and refund=0 | Restore/post supplies pending-spill-zero before forfeit. Both partial and constructed-entry routes yield the complete meter `(0,R0,R0,0,0,0)`. Allocation gives R0≤T; observer gives zero signed state; refund zero gives both unsigned bounds and existing `U256.ofNat?` reconstruction/unsigned observation. Locally derived returned/state proofs give complete settlement `(max(T-R0,F), T-max(T-R0,F), max(T-R0,F), 0)`. Actual admission/config transport and preparation assertions remain open; no actual Runner or cast is implemented. |
+
+No reservoir≤baseline, returned-gas, final-potential or refund-range hypothesis is
+added. In particular, arbitrary initial execution/reservoir and both spills are
+admitted under only the stated partial baseline/refund assertions. The complete
+entry/partial and settlement equalities retain every coordinate. This is ordinary
+allocation composition; system grants do not use its partition. Source cast
+`:285` still executes before state usage; the local zero argument excludes its
+overflow alternative without changing the proof/fault policy or Runner Nat output.
+
 ### Supplied raw block-gas counters
 
 `STFSpec/Vm/Core/BlockGas.lean`, exported through `STFSpec.Vm.Core`, supplies
@@ -1081,6 +1100,16 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
   The upstream unsigned refund constructors and unchanged Runner range bridge
   remain caller obligations. No actual caller, fee/provider or readiness gate follows.
 
+- **Supplied private preparation-failure controls:** §3's four conditional generic
+  groups have exactly six complete numerical specializations, `pfC01`–`pfC06`.
+  Each takes an arbitrary supplied cfg and privately replaces only
+  `cfg.costs.txMaxGasLimit`. Both routes compare the complete six-field final
+  meter and four-field settlement through the generic proofs. The cases cover
+  zero gas/cap, above-baseline partial reservoirs with both spills nonzero,
+  a binding floor, cap above transaction gas, intrinsic exhaustion and a zero
+  execution cap with returned reservoir. Raw partial meters assert no source
+  reachability; no source replay or broader accounting/gate result follows.
+
 - **Supplied raw block-gas controls:** `BlockGasCallerProofs.lean` has seven
   private public-law client groups: complete construction/eta, independently
   varied all-field ext, nominal U64 observation/equality, each single-field
@@ -1726,6 +1755,16 @@ conditional entry-meter/allocation-cap clients described in §3. In particular
 bounded by transaction gas. No additional public law is supplied. Actual caller
 bounds/config/refund bridges, universal source/host agreement, fee/provider effects
 and composed progress remain open (§10).
+
+**Private ordinary preparation-failure handoff.** The four generic groups in §3
+are discharged conditional public-law compositions, with no new public law.
+For allocation grants E0/R0, retain its two proofs, F≤T and partial-meter
+baseline≤R0/refund=0. Restore/post and forfeit fix all six final fields; allocation
+bounds the returned reservoir, and the observer/refund facts derive every other
+settlement proof locally. Both partial and constructed-entry settlements equal
+`TransactionGasSettlement.mk (max (T-R0) F) (T-max (T-R0) F) (max (T-R0) F) 0`.
+Actual preparation/admission semantics and their assertions are not proved by
+this client. Normal execution, system calls and G1/G2 retain their obligations.
 
 **Raw block-gas counter data.** Exactly two ordinary laws are **discharged**
 for every raw Nat/Nat/U64 record. No capacity, coherence or initialization
@@ -2610,7 +2649,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
   laws, nine private public-law client groups and complete finite controls. Q66 supplies
   its raw carrier/exact three-bound helper, five discharged laws, private public-law
-  clients and 50 complete target groups (§3). Actual admission/allocation
+  clients and 50 complete target groups (§3). The additional four private ordinary
+  preparation-failure composition groups and six complete specializations derive
+  returned/state/refund bounds locally, conditional on the existing allocation
+  proofs, F≤T and partial baseline/refund assertions; actual preparation assertion
+  derivation remains open. Actual admission/allocation
   cap consistency, system-call separation, returned/state/floor derivation,
   validated unsigned refund/range reconstruction at the unchanged Runner Nat
   boundary, checked-failure precedence, fees/providers/conservation, compiled
@@ -2662,7 +2705,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
-- **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:285,318`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; this guidance implements no actual caller proof and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
+- **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:285,318`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; §3/§7 supply its private conditional gas composition, while actual preparation assertion derivation remains open. This implements no actual caller and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
 - **Balance overflow in `move_ether`.** A recipient balance above `2^256 − 1` raises `OverflowError` in EELS (`state_tracker.py:663`, and `create_ether` at `:687`). The witness authenticates the state against a parent root the guest does not itself trust, so large balances are not excluded by the input format. It is argued reachable from the pinned source (O13); no fixture or probe witnesses it. The named constructor is owned by `EthState`'s `moveEther` and surfaces here as `VmFault.state`.
 - **O13 enumeration still open.** The VM-internal Python faults are classified (CONTRACT O13, D14): BLOCKHASH's `IndexError` is fixture-witnessed, and the BLOBBASEFEE and balance overflows are argued reachable. The `VmFault` constructor list is frozen only once this module's failure-ledger entries close (DECISIONS B14).
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
