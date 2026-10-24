@@ -668,6 +668,18 @@ using the wrapper alone proves no schema-depth or D2r agreement. These leaf laws
 discharge none of the handler, guest outcome, host-depth or complete schema
 premises (D14, Q20, O12).
 
+The supplied generic List seam is owned by [EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws).
+Consumers lift agreement for their actual list members through the public model
+law, recursively reusing that same law for nested lists. This model lifting
+requires no wire domain. The public wire law additionally requires Encodable of
+the complete assembled model: every child and the joined encoded payload bound.
+Per-child sizes do not establish that aggregate bound. Neither left inverse gives
+generic successful-decoding-to-reencoding without separate element model-recovery
+premises. Ordered child models, list-shape-before-child typing, empty success and
+the first complete error remain visible under Q68. Schema ownership and local
+source admission/reflection/callback, first-handler and host duties remain as
+above; pure error equations supply no callback execution or cost trace.
+
 ### Hash32 table-support premise
 
 [EthBase §3](modules/EthBase.md#3-eels-source-map) supplies Q51's total
