@@ -510,10 +510,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
-- **Transaction-gas guidance is specified, not implemented (Q65, Q66):** §5/§7
-  own the two raw result carriers, exact local-proof helper signatures and four
-  allocation/five settlement prospective ordinary laws. Implementations, proofs,
-  public-law clients and target controls remain absent. Actual admission/allocation
+- **Allocation is locally supplied; settlement remains prospective (Q65, Q66):**
+  §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
+  laws, nine private public-law client groups and complete finite controls. Q66's
+  carrier/helper/five laws and target controls remain absent. Actual admission/allocation
   cap consistency, system-call separation, returned/state/floor derivation,
   validated unsigned refund/range reconstruction at the unchanged Runner Nat
   boundary, checked-failure precedence, fees/providers/conservation, compiled
@@ -524,8 +524,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
   and ten complete-value guards. Full EthBlock.BlockOutput construction,
   block/counter coherence, capacity arithmetic and checked failures/precedence,
-  allocation/settlement and actual consumers remain unimplemented here. This
-  raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
+  settlement and actual consumers remain unimplemented here; allocation is supplied
+  separately above. This raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
 
 - **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
   Log, existing public rope constructors, two operations and six discharged ordinary
