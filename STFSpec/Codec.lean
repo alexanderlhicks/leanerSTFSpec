@@ -15,6 +15,8 @@ import STFSpec.Codec.Address
 import STFSpec.Codec.SszModel
 import STFSpec.Codec.SszFixedSize
 
+import STFSpec.Codec.RlpNarrowUnsigned
+
 /-!
 # STFSpec.Codec
 
