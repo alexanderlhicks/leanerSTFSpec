@@ -264,7 +264,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
   Nat/ByteArray adapters with conditional roundtrips and Bool/U256/U64/U32/U8 adapters with
   unconditional finite-domain roundtrips, plus generic FixedBytes n adapters with
-  conditional wire inversion, leave Address/Hash32/List and other encoding/decoding
+  conditional wire inversion, and nominal Hash32 with unconditional finite-domain
+  inversion, leave Address/List and other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,

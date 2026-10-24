@@ -517,7 +517,7 @@ guest theorem; actual consuming schema/first-handler obligations remain open.
 `STFSpec/Codec/RlpFixedBytes.lean` supplies exactly two generic instances and
 one ordinary conditional inverse. Every mathematical Nat width, including zero,
 is supported; existing FixedBytes aliases inherit these instances. Nominal
-Address/Hash32 and List/schema instances remain separate.
+Address and List/schema instances remain separate; nominal Hash32 is supplied below.
 
 | Locked dependency source | Lean declaration and public type | Domain, success/effects | Ordered failures | Law and deterministic regression |
 |---|---|---|---|---|
@@ -603,6 +603,90 @@ observations: interpreter/startup/installation, native primitives, ambient host,
 outer orchestration and Lean compiler/kernel remain trusted. No universal Python,
 arbitrary-n source, host/resource, C1–C4, EEST, guest or readiness result follows;
 actual consuming handlers and other schemas remain open.
+
+### Implemented nominal Hash32 RLP instances
+
+`STFSpec/Codec/RlpHash32.lean` supplies exactly two instances and one ordinary
+unconditional inverse for the existing nominal Base.Hash32. Root/VersionedHash
+aliases inherit them. The provider imports RlpDecodeOf and does not depend on the
+generic FixedBytes instance. No Base seam, other instance or public helper is added.
+
+| Locked source | Lean declaration and public type | Domain, success/effects | Ordered failures | Law and deterministic regression |
+|---|---|---|---|---|
+| EELS `crypto/hash.py:19`; `ethereum_rlp/rlp.py:70–72,101` (0.1.6) | `RlpEncode Base.Hash32`, `.bytes x.toBytes.toByteArray` | all nominal hashes; every one of32 bytes, including leading/internal zeros; pure | none | ordinary unconditional `decodeTo_encodeOf_hash32`; complete model/wire controls |
+| EELS `crypto/hash.py:19`; `ethereum_rlp/rlp.py:206–207,255–262`; `ethereum_types/bytes.py:29–37` (0.4.1) | `RlpDecode Base.Hash32`, `(Rlp.toFixed 32 item).map Base.Hash32.ofBytes32` | exactly32-byte leaves; complete nominal reconstruction | raw decode first; list `.shape "bytes"`; byte-length mismatch `.shape "fixed bytes length"` | complete acceptance both ways from public toFixed/conversion laws; C/D/E/R controls |
+| public raw inverse, typed acceptance and Base conversion/byte laws | `Rlp.decodeTo_encodeOf_hash32 (x : Base.Hash32)` | every x, complete `.ok x`; finite Q47 premise discharged privately at32<2^64 | no new error or domain family | eight private public-law caller groups; unconditional nominal inverse and full-wire recovery |
+
+All three are **discharged for this slice**. The private caller groups cover exact
+adapters/byte diagrams, item inverse, complete acceptance in both directions,
+checked constructors/both conversion inverses/both byte laws/packed adapters,
+unconditional wire inverse with independent-class composition retaining its own
+item-inverse premise, raw success/domain/complete reencoding/size32, exact raw/list/
+length failures and separate external Unit observations, finite domain and nominal
+separation including empty/31/33-byte rejection and distinct Nat/ByteArray acceptance.
+All support, caller, guard and generated declarations remain private. Clients use
+public laws; the new adapter/wrapper composition and intentionally exported normative
+toFixed equations may reduce. Base storage/private conversion, parser/integer workers
+and compiler-generated provider equations are not unfolded. The generic FixedBytes
+wire inverse retains its separate explicit domain premise.
+
+`RlpHash32Guards.lean` supplies90 complete handwritten controls: S24 (six payloads,
+model/typed/wire/roundtrip), B4 (two additional complete successes), C8 (four list
+models/wires), D24 (twelve wrong lengths), E10 (five singleton/leading-zero length
+failures), R12 (complete raw errors) and X8 (Hash32/Nat/ByteArray contrasts). Values
+use public Bytes32 construction and Hash32.ofBytes32; every expected byte and entire
+nominal result/wire/diagnostic is checked. There is no zero-width Hash32 value.
+
+`rlp_hash32_differential.py` fixes seed29701 without RNG and uses the exact original
+locked Bytes32 class, the static EELS Hash32 alias. It imports no crypto/hash module
+and executes no hash. Its single bounded schedule A00-E/A00-D through A05-E/A05-D,
+B-group indices00–01, C-group indices00–03, D-group indices00–11,
+E-group indices00–04, R-group indices00–11 contains47 original RLP entries:6 encode,
+41 decode_to (8 successes,21 typed failures:4 shape/17 length,12 raw failures),
+14 total successful calls and47 whole compiled guards. Six successful direct setups,
+eight successful decode constructions and17 length-failing constructions give31
+original constructor invocations. Maxima are payload256/wire259/raw literal3 bytes,
+raw-valid list depth2/arity1. All duplicates remain; finite header fixtures are not
+a parser/oracle. Actual native encode wires pass unchanged to paired decode.
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_hash32_differential.py \
+  --eels EELS --wheel-dir WHEELS --output EXTERNAL.lean
+```
+
+WHEELS supplies exactly named original locked ethereum_rlp-0.1.6-py3-none-any.whl
+and ethereum_types-0.4.1-py3-none-any.whl; no fallback/download. Before source,
+`--helpers-only` normally then with `-O` runs50 negative/nine positive groups each:
+118 executions total, one successful original Bytes32 setup per run, no RLP entries
+or wrong-length constructor probes. Stable HP/HW/HS/HV/HE/HO fixtures test exact
+payload/wire types and sizes, success native class before conversion/equality,
+primitive provenance/length descriptors and builtin encode-output admission;
+sentinels retain zero conversion/equality touches. The source branch records that
+separate helper boundary and never repeats it.
+
+The shared unchanged setup admits pin/current source/installed RECORD, while this
+driver admits explicit lock-hashed wheel members, original Bytes32/FixedBytes,
+exact int32 LENGTH, bases/inherited constructor/current code/globals, native byte
+observers/equality, RLP functions/aliases, reflection/builtins and exception renderer.
+Successes require original native class before byte conversion; encode outputs and
+literal payloads/wires require exact builtin bytes before comparison. Literal00/01/7f
+raw singleton wires retain actual identity through wrong-length rejection. Native
+wrong-length frame results are exact Bytes32 before full projection, with K≠32;
+they are not admitted as successful32-byte values. Original construction at33
+precedes the source check34, whereas Lean checks width before construction: the
+byte accept sets coincide, without identical allocation timing.
+
+Complete original exceptions retain class, args/message, cause/context/suppression,
+code/full selected traceback and original target/raw/constructor args/kwargs/result/
+LENGTH values. Raw167 precedes typing; list258 wraps at171; native ValueError36
+wraps through empty DecodingError262 to outer171. Native33/reflection/class/host
+errors abort evidence and are never renamed length failures. Complete source
+values, Lean diagnostics and external Except Unit remain distinct. Selected source,
+runtime/install/compiled/controller/target full bodies/modes are retained unchanged
+pre/post; interpreter/startup/install/RECORD/ambient host/outer orchestration/compiler/
+kernel remain trusted. These bounded observations prove no universal Python, guest,
+EEST, resource/host-exclusion, security or whole-Codec result; caller first-handler
+and broader composition obligations remain open.
 
 ### Implemented RLP header slice
 
@@ -993,6 +1077,12 @@ classification does not repair the decoder's division/modulo by element width
   explicit positive-width premise. All support and proofs are private.
   No source execution, native CLI, codec/root or guest coverage is supplied.
 
+- **Implemented Hash32 controls.** The90 complete handwritten controls and eight
+  private caller groups in §3 preserve every byte and actual nominal value. The
+  separate47-entry original Bytes32 profile and normal/optimized118 helper fixtures
+  retain the source failure chain, raw precedence and explicit native/host boundary.
+  No crypto execution, generic schema or whole guest gate is claimed.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1034,7 +1124,8 @@ class RlpDecode (α : Type) where
 -- supplied: RlpEncode Base.U256 / RlpDecode Base.U256, minimal ofNat / bounded32 map ofNat
 -- supplied: RlpEncode/RlpDecode Base.U64, Base.U32, Base.U8, minimal / bounded8/4/1 map ofNat
 -- supplied: RlpEncode/RlpDecode (Base.FixedBytes n), exact byte leaf / Rlp.toFixed n
--- pending other instances: Address, Hash32, List α
+-- supplied: RlpEncode/RlpDecode Base.Hash32, exact32-byte leaf / toFixed32.map ofBytes32
+-- pending other instances: Address, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 -- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
@@ -1293,6 +1384,21 @@ public bounded acceptance. Exact list diagnostics are tested, without unfolding
 the private integer worker or introducing a new provider law. Nat and arbitrary
 ByteArray retain their explicit encoder-domain premises.
 
+The supplied nominal Hash32 adapters preserve the exact32-byte leaf, decoding
+through public toFixed32 and ofBytes32. Their ordinary unconditional inverse is:
+
+```lean
+theorem Rlp.decodeTo_encodeOf_hash32 (x : Base.Hash32) :
+    Rlp.decodeTo (α := Base.Hash32) (Rlp.encodeOf x) =
+      (Except.ok x : Except RlpError Base.Hash32)
+```
+
+The payload domain is discharged privately from encodable_bytes_iff,
+Bytes.size_toByteArray and Hash32.size_toBytes at32. Public toFixed complete
+acceptance, both Hash32/Bytes32 inverse and byte laws and raw decode_encode
+supply exact nominal reconstruction. No separate public success/domain family
+or changed generic-domain statement is introduced.
+
 The supplied generic fixed-byte adapters are the complete exact-width byte leaf
 and `Rlp.toFixed n`. Their single ordinary public law is discharged:
 
@@ -1497,7 +1603,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
   Nat/ByteArray adapters with conditional roundtrips and Bool/U256/U64/U32/U8 adapters with
   unconditional finite-domain roundtrips, plus generic FixedBytes n adapters with
-  conditional wire inversion, leave Address/Hash32/List and other encoding/decoding
+  conditional wire inversion, and nominal Hash32 with unconditional finite-domain
+  inversion, leave Address/List and other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
