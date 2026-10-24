@@ -267,14 +267,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   conditional wire inversion, and nominal Hash32/Address with unconditional finite-domain
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances, element/schema decoders and SSZ semantic interfaces beyond structural
-  sizing unimplemented. The whole typed-result equation and local single-channel
+  sizing and nameless WF unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
   agreement and full-guest gates
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
-  `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
-  `WellTyped`, schema, codec, root operation or error producer implementation.
+  `fixedSize?` and `WellFormed` with their single respective equations are supplied;
+  there is no `WellTyped`, schema, codec, root operation or error producer implementation.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -290,17 +290,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
-- **Six other SSZ semantic domains remain open.** Q67 resolves only raw sizing.
-  The remaining questions are structural nameless `WellFormed` versus full Python
-  class admission/names (including `more` at mask capacity); ordinary
-  empty-container admission and explicit empty-mask interpretation; progressive
-  mask length versus population/field count and name restrictions; whether
-  `WellTyped` entails `WellFormed` and how malformed schemas affect all-value
-  typing; which count, uint256 length, uint32 offset, scope, cache and zero-width
-  constraints belong to typing versus separate operation/source/root domains;
-  and serialization/inverse premises and total completion for zero-fixed-element
-  lists. No positivity guard, mask normalization, acceptance cap, rejection rule
-  or completion for these other domains is chosen.
+- **Residual SSZ domains (Q70).** The nameless WF predicate, constructor law,
+  private logical controls and facade clients are supplied. Actual Python names,
+  inheritance/reflection/class admission (including `more` at capacity256) remain
+  source-mapping premises. `WellTyped` and WT⇒WF remain open, as do count/uint256
+  backing, uint32 offsets, scope, cache and codec/root domains. Zero-fixed-element
+  list serialization/inverse premises and total decoder completion remain open.
+  Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
+  No source execution, class admission, runtime validator, error priority,
+  acceptance cap, codec/root or larger readiness/resource/cost gate is supplied
+  by this Prop-only implementation.
 - **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
   domain-dependent claim. The re-encode check alone proves no reverse implication
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic

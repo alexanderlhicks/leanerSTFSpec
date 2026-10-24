@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-10-23). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-24). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -716,8 +716,22 @@ result, changing the public interface and requiring a domain or error contract.
 A keeps local consumer premises explicit: fixed zero is valid metadata without
 licensing division, and a variable branch establishes no class-admission fact.
 Private traversal/termination support is permitted behind the public equation;
-implementation, source correspondence, the other six domains and cost/readiness
+implementation, source correspondence, the residual Q70 domains and cost/readiness
 obligations remain with EthCodec.
+
+**Nameless structural SSZ well-formedness options (Q70).** DECISIONS Q70 owns
+this disposition; EthCodec §5/§7 owns the exact predicate and sole constructor
+law. WF alone leaves either raw payload typing or WF-conjoined typing available
+later. Joint WF/WT would choose more now. Mathematical empty containers/masks
+would need a separate completion without a successful-source-class claim;
+all-one-only masks or length<256 would exclude structurally admitted cases.
+The chosen structural domain permits zero vectors/limits and sparse length256
+masks, checking every child. Actual names/class admission, WT⇒WF and operation
+premises remain local and independently changeable. Global positive-size WF
+would exclude zero-byte fields merely to repair a later list inverse; positivity
+instead belongs at division/recovery, whose zero-width completion remains open.
+Q67 sizing is independent even outside WF. The Prop slice supplies no runtime
+validator, error/codec/root, guest/resource/cost or readiness gate closure.
 
 **Generic typed RLP list law options (Q69).** The disposition is owned only by
 DECISIONS Q69; EthCodec §5/§7 owns the exact two instances and two ordinary laws.
