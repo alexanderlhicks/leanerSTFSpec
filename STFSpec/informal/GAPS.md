@@ -268,7 +268,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing; all other SSZ semantic interfaces remain unimplemented.
+  and payload typing plus raw byte packing; the remaining SSZ semantic interfaces
+  remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -276,7 +277,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied; schema, codec, root operations and error producers remain unimplemented.
+  are supplied, together with raw `Ssz.pack` and its single complete byte equation;
+  schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -292,6 +294,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Raw pack limits (Q72).** The two declarations, six private ordinary property
+  groups, six separate facade client groups and15 complete mathematical controls
+  are supplied. Static dependency/helper correspondence has the original
+  bytes/helper/RootNode/Root/builtins and successful-host-allocation premises in
+  §3; there is no executed source comparison or raw-pack source-run profile.
+  Typed packing, adapters/inverses, actual codec/schema/class/count/backing/offset/
+  cache/root domains and broader differential obligations remain open with their
+  consumers. No hashing, mix-in, acceptance cap, diagnostic/outcome policy,
+  compiled ownership/resource bound, C1–C4, security, EEST or guest gate closes.
 - **Residual SSZ domains (Q70/Q71).** The nameless WF predicate, constructor law,
   private logical controls and facade clients are supplied. Actual Python names,
   inheritance/reflection/class admission (including `more` at capacity256) remain
