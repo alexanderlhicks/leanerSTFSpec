@@ -224,6 +224,9 @@ import STFSpec.Conformance.Codec.RlpAddressGuards
 import STFSpec.Conformance.Codec.RlpHash32CallerProofs
 import STFSpec.Conformance.Codec.RlpHash32Guards
 
+import STFSpec.Conformance.Codec.SszPackControls
+import STFSpec.Conformance.Codec.SszPackCallerProofs
+
 /-!
 # STFSpec.Conformance
 

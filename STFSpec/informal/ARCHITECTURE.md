@@ -742,6 +742,15 @@ those consumer premises separate. WT⇒WF is deliberately false. Constructor/
 backing counts (including recursive sites), offsets/scope/cache, positive-width
 inverse recovery and codec/root domains remain local/open. Q67/Q70 stay unchanged.
 
+**Raw SSZ packing visibility options (Q72).** DECISIONS Q72 owns the approved
+exported-helper disposition; EthCodec §5/§7 owns the exact operation and one
+complete byte law. A Lean-private operation would prevent separate Codec/root
+modules and facade clients from consuming it; deferring until the first consumer
+would postpone this small source-determined provider. The selected surface keeps
+all derived properties and support private. It supplies raw byte chunks only;
+typed packing, class/count/codec/root/host/differential and cost/guest domains
+remain independently owned and open.
+
 **Generic typed RLP list law options (Q69).** The disposition is owned only by
 DECISIONS Q69; EthCodec §5/§7 owns the exact two instances and two ordinary laws.
 Both laws provide domain-free model composition and direct wire ergonomics.

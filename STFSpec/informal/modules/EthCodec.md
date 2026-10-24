@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1205,6 +1205,37 @@ offsets, decoder scope and positive-width element recovery remain operation
 premises. WT plus WF does not repair zero-width list inverse/count ambiguity.
 No error policy, codec/root domain or host/guest/resource/cost gate is selected.
 
+### Raw SSZ byte packing (Q72)
+
+`STFSpec/Codec/SszPack.lean`, exported through `STFSpec.Codec`, supplies exactly
+`Ssz.pack : ByteArray → Array Base.Bytes32` and the ordinary complete
+`Ssz.pack_toBytes` in §7, **discharged** on every finite existing ByteArray.
+“Internal” here means an exported Codec component helper; all references,
+construction support, derived properties, controls and clients are Lean-private.
+It preserves every input byte and its order, emits `(n+31)/32` exact 32-byte
+chunks, and pads only a nonempty final partial chunk on the right. Empty input
+has no chunks; an exact multiple of 32 has no extra chunk. This raw helper has
+no schema, WF/WT, class/count cap, offsets, root, hash, backend, error/completion
+or host-size parameter.
+
+| Source at pin / locked dependency | Operation and domain | Effects / failures / first handler | Law and controls |
+|---|---|---|---|
+| EELS `utils/ssz.py:133–135,263–296` caller/coercion context; eth-remerkleable 0.1.31 `remerkleable/core.py:344–349` raw helper | `Ssz.pack : ByteArray → Array Base.Bytes32`, all finite mathematical bytes | pure ordered exact 32-byte chunks; no model failure or diagnostic producer, so no local handler/O-row | ordinary complete `Ssz.pack_toBytes`; six private property/client groups and all 15 complete literal controls in §4 |
+| same helper; ordinary private List/range/window induction | `Ssz.pack_toBytes (b)`, complete ordered byte observation on every finite input | logical equation only; no source/runtime or host-resource equivalence | exact §7 type; private observation injectivity determines complete output arrays |
+
+Static source correspondence retains original immutable builtin bytes, slicing,
+concatenation, len/range/shifts, original helper/RootNode/Root identities and
+successful host allocations. `RootNode` at `tree.py:274–275,296–302` stores and
+projects leaves without a call-time hash. Importing `settings.py:24–31` initializes
+zero hashes separately; typed views, backing construction and length mix-ins may
+hash or consume uint256 counts. Those consumers are not this raw helper.
+No original source was executed, imported or probed for this finite mathematical
+slice, and no raw-pack differential profile is released here. Ordinary full-byte
+proofs and the 15 mathematical controls verify the stated model operation;
+they imply no unrestricted Python/class/host or guest correspondence. The
+broader well-typed round trips and strict-decoder mutation comparisons in §4
+remain obligations of the unimplemented typed codecs and their consumers.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -1374,9 +1405,34 @@ No error policy, codec/root domain or host/guest/resource/cost gate is selected.
   no Boolean validator, native runner or source-class differential schedule is
   introduced. Actual adapters/operations retain their differential obligations.
 
+- **Implemented raw pack controls (Q72).** `SszPackControls.lean` proves exactly 15
+  private complete literal groups packP00/packP01/packP31/packP32/packP33/packP63/
+  packP64/packP65/packZ01/packZ32/packZL02/packZT02/packSW64/packE32/packE33.
+  They compare complete ordered chunks and all 32 bytes of each chunk; the largest
+  input is 65 bytes and the largest output has three chunks. Empty/exact/tail,
+  zero preservation, swapped full chunks and slots 31/32 are explicit. Expected
+  bytes are independent handwritten literals, not the packing algorithm.
+  `SszPackCallerProofs.lean` imports only the Codec facade. Its six private groups
+  independently derive (C1) complete reference/byte equality and output-array
+  observation injectivity; (C2) count/width/empty/exact multiples; (C3) complete
+  input-prefix recovery and packed adapter reconstruction; (C4) exact suffix
+  padding and arbitrary full/tail padded windows with checked construction;
+  (C5) same-length recovery and complete unequal-length equal-output witnesses
+  packP01/packZT02 and packZ01/packZ32; (C6) aligned concatenation plus complete
+  packSW64/packE32/packE33/packP65
+  byte observations. The implementation's six private property groups prove
+  the same mathematical obligations. Aligned concatenation requires the FIRST
+  input's byte length divisible by 32; equal chunk arrays do not bind length.
+  The clients use only the approved public pack law and public Base/core facts,
+  with local private List mathematics, never implementation-private workers or
+  provider storage/equations. These ordinary kernel proofs are deterministic
+  model controls, with no native pack runner or source execution credit.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
+Q72 interprets raw `Ssz.pack` as an exported component-internal helper, with only
+the complete public byte-observation law in §7; its support remains Lean-private.
 
 ```lean
 -- RLP
@@ -1436,7 +1492,7 @@ def computeContractAddressQ [Monad m] [KeccakQuery m] : Address → Nat → m Ad
 def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
--- SSZ: raw inductives, fixedSize? and WellFormed are supplied; other items remain future.
+-- SSZ: raw vocabulary, sizing, WF, WT and raw pack are supplied; other items remain future.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -1455,7 +1511,7 @@ namespace Ssz
   def encode : SszType → SszValue → ByteArray
   def decode : SszType → ByteArray → Except SszError SszValue          -- strict canonical
   def hashTreeRoot : SszType → SszValue → Bytes32
-  def pack : ByteArray → Array Bytes32                                  -- internal
+  def pack : ByteArray → Array Base.Bytes32    -- supplied exported component helper (Q72)
   def merkleize (chunks : Array Bytes32) (limit : Nat) : Bytes32        -- zero-hash padded
   def merkleizeProgressive (chunks : Array Bytes32) : Bytes32
   def mixInLength (root : Bytes32) (len : Nat) : Bytes32
@@ -1520,6 +1576,20 @@ predicate and one complete ordinary iff add no runtime traversal, validator,
 DecidablePred/instance, fuel, new relation, broad simp attribute or error channel.
 Public-law clients require no worker or automatic equation declaration. No compiled
 stack, allocation, source execution or cost result follows from these proofs.
+
+**Raw pack construction (Q72).** `Array.ofFn` constructs exactly k=(n+31)/32
+chunks. Each index reads the original packed ingress through public
+`Bytes.extractPadded (32*i) 32` and checked `FixedBytes.ofBytes?`. The proved
+size 32 discharges dependent Option elimination; no panic or new error branch
+is introduced. The private range/window reference and complete ordinary public
+observation equation retain every byte. Private List induction proves exact
+flattened suffix padding and recovery; there is no compiler substitution.
+Execution neither converts the whole input to a List per chunk nor repeatedly
+copies the remaining input or concatenates growing output prefixes. Sequence
+work/output storage are O(n+1), excluding arbitrary-precision index arithmetic
+bit costs. FixedBytes construction traverses a bounded 32-byte window. Compiled
+ownership, allocation/lifetime measurements, practical host bounds, native-client
+ratios and composed C1–C4 remain unproved; no benchmark is supplied by this slice.
 
 **Implemented encoder costs.** The first structural pass caches each subtree's
 size and packed writer closure once. The second pass copies each header/payload
@@ -1963,8 +2033,25 @@ counts, backing/cache, offsets/scope, positive-width inverse recovery and
 codec/root/host premises remain separate. The literal length equality prevents
 zip truncation; mask validity never changes the actual field payload judgment.
 
+Q72 supplies exactly this ordinary full-byte raw packing law,
+**discharged** by `STFSpec/Codec/SszPack.lean`:
+
+```lean
+theorem Ssz.pack_toBytes (b : ByteArray) :
+    (Ssz.pack b).toList.map (fun chunk => chunk.toBytes.toList) =
+      (List.range ((b.size + 31) / 32)).map (fun i =>
+        (b.toList.drop (32 * i)).take 32 ++
+          List.replicate (32 - min 32 (b.size - 32 * i)) 0)
+```
+
+This law has no schema, WT/WF, source-class or host-allocation premise; its domain
+is the finite mathematical input. Private consequences are the six groups in §4.
+They retain the equal-length premise for recovery from equal chunk arrays and
+the first-input 32-byte alignment premise for concatenation. No length/root binding,
+canonicality, typed packing, Merkleization, mix-in or codec-domain law follows.
+
 All other semantic laws below remain prospective conditional obligations. Their
-domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF and payload typing controls discharge none of them.
+domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
 
 - [T] `decode` must be total. Recursion on the type and validated slice boundaries are the intended proof ingredients. Strictly smaller byte slices alone do not justify every sub-decode: zero-byte fixed children require a separate termination argument and an unresolved serialization domain. Offsets must be validated against the slice length before use.
 - [C] **Incomplete prospective roundtrip:** `WellTyped t v → (encode t v).size < 2^32 → decode t (encode t v) = .ok v`.
@@ -2069,7 +2156,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing; all other SSZ semantic interfaces remain unimplemented.
+  and payload typing plus raw byte packing; the remaining SSZ semantic interfaces
+  remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -2077,7 +2165,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied; schema, codec, root operations and error producers remain unimplemented.
+  are supplied, together with raw `Ssz.pack` and its single complete byte equation;
+  schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -2093,6 +2182,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Raw pack limits (Q72).** The two declarations, six private ordinary property
+  groups, six separate facade client groups and 15 complete mathematical controls
+  are supplied. Static dependency/helper correspondence has the original
+  bytes/helper/RootNode/Root/builtins and successful-host-allocation premises in
+  §3; there is no executed source comparison or raw-pack source-run profile.
+  Typed packing, adapters/inverses, actual codec/schema/class/count/backing/offset/
+  cache/root domains and broader differential obligations remain open with their
+  consumers. No hashing, mix-in, acceptance cap, diagnostic/outcome policy,
+  compiled ownership/resource bound, C1–C4, security, EEST or guest gate closes.
 - **Residual SSZ domains (Q70/Q71).** The nameless WF predicate, constructor law,
   private logical controls and facade clients are supplied. Actual Python names,
   inheritance/reflection/class admission (including `more` at capacity 256) remain
