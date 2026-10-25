@@ -156,6 +156,12 @@ lake build taylor-exponential-native-tests --wfail
 lake exe check-decls TaylorExponentialNativeTests
 lake exe taylor-exponential-native-tests > .lake/taylor.jsonl
 python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py --check-target .lake/taylor.jsonl
+lake build transaction-gas-allocation-native-tests --wfail
+lake exe check-decls TransactionGasAllocationNativeTests
+lake exe transaction-gas-allocation-native-tests > .lake/transaction-gas-allocation.jsonl
+python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_allocation_differential.py --check-target .lake/transaction-gas-allocation.jsonl
+python3 -B scripts/test_transaction_gas_allocation_output_parser.py
+python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
