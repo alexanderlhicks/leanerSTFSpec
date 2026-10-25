@@ -161,6 +161,19 @@ no actual Runner reachability, admission/allocation cap consistency, settlement,
 transaction conservation, resource or whole G1/G2–G7 result. Q66 and the dated §6
 readiness assessment remain unchanged.
 
+Q66's local settlement slice is supplied by
+[EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
+four-Nat result, U256 refund, signed state usage, exactly three local bounds and
+five discharged ordinary laws. Private clients derive sender ranges/conservation,
+independent dimensions/read sets/state erasure/floor branches, and conditional
+entry-meter and allocation-cap composition through public equations. Core §3 owns
+the complete 44 helper/six raw interpreted/native controls, strict parser scope and
+44 authenticated whole successful original comparisons plus eight source-only
+typed arithmetic failures.
+Actual caller bounds/refund range and cast ordering, provider/fee effects, whole
+G1/G2–G7, compiled/resource and VM/guest/readiness gates remain open. The dated §6
+assessment is unchanged.
+
 ## 4. Agent implementation contract
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
