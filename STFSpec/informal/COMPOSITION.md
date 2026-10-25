@@ -604,8 +604,20 @@ independence and inspect complete slot tables. Consumers inspect the complete
 `Option Nat`, retain `some 0` separately from `none`, and establish local admission,
 positive-divisor, serialization and root-domain premises independently. Conditional
 static source interpretation supplies no executable/formal Python correspondence,
-actual schema or compiled resource theorem; the other six domain questions remain
+actual schema or compiled resource theorem; the residual domain questions remain
 open in EthCodec §10.
+
+Separately, Q70 supplies `SszType.WellFormed` and the sole ordinary public
+`wellFormed_iff` constructor law, owned by EthCodec §5/§7. Consumers use that
+nameless structural equation: recursive children remain obligations at limit 0,
+ordinary fields are nonempty, and progressive masks use final activity, length
+and population rather than an all-one assumption. Source names/reflection/class
+construction, including `more` at capacity 256, are supplied locally; the predicate
+alone proves none of them. Future value typing, WT⇒WF, count/backing/offset/scope,
+cache, codec/root and zero-width-list inverse domains remain separate. Some fixed-zero
+schemas are WF, so division/recovery must establish positivity locally. Q67 stays
+total on every malformed schema; logical controls assert no executable source,
+codec, root, guest, resource or cost agreement.
 
 ### Derived address premise
 
