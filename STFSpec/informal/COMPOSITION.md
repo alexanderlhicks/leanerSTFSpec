@@ -563,6 +563,16 @@ Consumers can compose empty/nested byte/list models without unfolding the tempor
 writer cache. The raw wire-law domains are owned by EthCodec §7; schema
 instances and guest outcomes remain their owners' open obligations.
 
+### Raw SSZ model premise
+
+[EthCodec §3/§5/§7](modules/EthCodec.md#3-eels-source-map) supplies only the raw
+`SszType`/`SszValue`/`SszError` constructors and ordinary inductive elimination.
+Consumers can retain complete natural/boolean/byte payloads, ordered recursive
+children and independent masks. Construction proves no source-class/schema
+admission, well-formedness, typing, codec inverse, rootability, error-producer or
+guest outcome property. The semantic domains and all such operations remain open
+with EthCodec; the raw handoff adds no acceptance restriction or authored law family.
+
 ### Derived address premise
 
 [EthCodec §3/§7](modules/EthCodec.md#3-eels-source-map) supplies the exact CREATE
