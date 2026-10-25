@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-23. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
@@ -111,6 +111,27 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied raw block-gas counters
+
+`STFSpec/Vm/Core/BlockGas.lean`, exported through `STFSpec.Vm.Core`, supplies
+the existing R-ENV-4 three-field projection carrier. D27 leaves the containing
+full `BlockOutput` with EthBlock; there is no Python `BlockGasCounters` class.
+
+| Pinned source | Supplied declaration / complete raw domain | Effect / laws / evidence |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:104,105,118`; `src/ethereum/forks/amsterdam/fork_types.py:37,39` | `BlockGasCounters.mk : Nat → Nat → U64 → BlockGasCounters`; projections `blockGasUsed`, `blockStateGasUsed`, `blobGasUsed` in that order. The first two map `block_gas_used : ExecutionGas` and `block_state_gas_used : StateGas`, each a Uint NewType; the third maps `blob_gas_used : U64`. | **Discharged** raw constructor/projections and exactly two ordinary laws, `BlockGasCounters.ext`/`BlockGasCounters.eta` (§7). All Nat/Nat/U64 records, no failure or state effect; private public-only clients and ten complete field-order guards (§4). |
+
+The selected source fields belong to `BlockOutput` (`__init__.py:72–120`)
+and are read separately by capacity checking (`gas.py:1088–1094`). Source
+zero defaults are not Lean defaults or raw-record invariants. Every Nat value
+is admitted, including values beyond 2^64 and 2^256; blob values retain the
+existing Base.U64 domain. The record has no authored instances, factory, proof field,
+limit, policy or adapter. Cumulative gas paid (`__init__.py:106`), tries,
+receipt keys, logs, requests and BAL stay outside this projection. This is
+field/type correspondence on intended typed source values, not a full source
+constructor, mutable-object or capacity-operation refinement. Capacity arithmetic,
+checked failures/precedence and actual block integration remain separate (§10).
 
 ### Supplied chronological logs and ropes
 
@@ -849,6 +870,15 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Supplied raw block-gas controls:** `BlockGasCallerProofs.lean` has seven
+  private public-law client groups: complete construction/eta, independently
+  varied all-field ext, nominal U64 observation/equality, each single-field
+  replacement/congruence and nested reconstructions. `BlockGasGuards.lean` checks
+  ten complete ordered
+  execution/state/blob observations: zero, distinct and swapped execution/state,
+  each single zero dimension, U64 maximum and unbounded Nats beyond 2^64/2^256.
+  No runtime/source replay is needed for this projection-only data boundary.
+
 - **Supplied call/init controls (Q64):** §3 owns thirty-two complete handwritten
   results, with the dated external interpreted/native and twenty-five original
   comparisons scoped in §3: zero/nonzero/maximum U256, omitted/explicit stipend, shortage/
@@ -1367,6 +1397,20 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Raw block-gas counter data.** Exactly two ordinary laws are **discharged**
+for every raw Nat/Nat/U64 record. No capacity, coherence or initialization
+premise is required; equality retains all three independent dimensions.
+
+```lean
+theorem BlockGasCounters.ext (a b : BlockGasCounters)
+    (hExecution : a.blockGasUsed = b.blockGasUsed)
+    (hState : a.blockStateGasUsed = b.blockStateGasUsed)
+    (hBlob : a.blobGasUsed = b.blobGasUsed) : a = b
+
+theorem BlockGasCounters.eta (c : BlockGasCounters) :
+    BlockGasCounters.mk c.blockGasUsed c.blockStateGasUsed c.blobGasUsed = c
+```
 
 **Raw VM configuration data.** Exactly six ordinary laws are **discharged**
 for every raw record. Ext requires all four, three and three stored projection
@@ -2226,6 +2270,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and G2 remain separate obligations.
 
 ## 10. Gaps
+
+- **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
+  Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
+  and ten complete-value guards. Full EthBlock.BlockOutput construction,
+  block/counter coherence, capacity arithmetic and checked failures/precedence,
+  allocation/settlement and actual consumers remain unimplemented here. This
+  raw data supplies no resource, G1–G7, whole VM/guest/EEST or readiness result.
 
 - **Chronological Log/LogRope is supplied locally:** §3/§5/§7 own the complete raw
   Log, existing public rope constructors, two operations and six discharged ordinary
