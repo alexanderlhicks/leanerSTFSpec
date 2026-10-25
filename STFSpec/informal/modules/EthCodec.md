@@ -300,7 +300,7 @@ unconditional wire inverse. False maps to empty bytes, true to singleton 01;
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
 | `ethereum_rlp/rlp.py:79–83` (0.1.6) | `RlpEncode Bool`, field `if b then .bytes ⟨#[1]⟩ else .bytes ByteArray.empty` | both mathematical Bool values; pure; both models lie in Q47 | none | `decodeTo_encodeOf_bool`; complete false/true models and exact wires 80/01 |
-| `ethereum_rlp/rlp.py:208–209,245–251` | `RlpDecode Bool`, field exactly `Rlp.toBool` | original source native Bool target; empty bytes false, singleton 01 true | complete raw errors first (Q68); other bytes and lists both retain `.shape "boolean"` | `toBool_eq_ok_iff` and unconditional instance wire inverse; two successes,16 typed and 30 raw rejections |
+| `ethereum_rlp/rlp.py:208–209,245–251` | `RlpDecode Bool`, field exactly `Rlp.toBool` | original source native Bool target; empty bytes false, singleton 01 true | complete raw errors first (Q68); other bytes and lists both retain `.shape "boolean"` | `toBool_eq_ok_iff` and unconditional instance wire inverse; two successes, 16 typed and 30 raw rejections |
 
 **Proof clients and controls.** `RlpBoolCallerProofs.lean` supplies eight private
 facade client groups: exact encoder/decoder equations, finite-domain discharge,
@@ -316,13 +316,13 @@ two full model observations, two exact encodings and 48 whole wire outcomes.
 Support is private and introduces no nested equality or deriving instance.
 
 **Bounded source profile.** `rlp_bool_differential.py` fixes seed 29301 with no
-random draws:18 encode calls interleaved with corresponding Bool decode calls,
+random draws: 18 encode calls interleaved with corresponding Bool decode calls,
 then 30 malformed wires in the Nat profile's fixed order. The first two encode
 inputs are exact native False/True; the other 16 deliberately encode raw models
 (11 byte payloads and five lists), then test Bool rejection. Target comparisons
 use `encodeOf` for the two Bool values and public raw `encode` for other models.
 The fresh frozen Python 3.13 `-I -B` profile completed 48 decodes:
-two successes,16 typed and 30 raw failures,
+two successes, 16 typed and 30 raw failures,
 20 successful source calls including encoders. All 66 complete generated guards
 compiled through the existing Lean driver.
 Maximum wire 259, byte payload 256, list depth 2 and width 56 bound this profile.
@@ -350,6 +350,80 @@ installation/RECORD, outer orchestration, ambient host, Lean compiler/kernel and
 native runtime remain trust inputs. This finite profile supplies no generic
 Python refinement, practical host/resource, C1–C4, EEST, guest or whole-layer
 readiness claim.
+
+
+### Implemented U256 RLP instances
+
+`STFSpec/Codec/RlpU256.lean` supplies exactly two U256 instances and one ordinary
+unconditional wire inverse. Encoding is minimal, including empty zero; decoding
+maps the existing 32-byte bounded Nat result through `Base.U256.ofNat`.
+
+| Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
+|---|---|---|---|---|
+| `ethereum_rlp/rlp.py:77–78` (0.1.6); `ethereum_types/numeric.py:477–484` (0.4.1) | `RlpEncode Base.U256`, `toRlp x := Rlp.ofNat x.toNat` | every word; minimal payload, zero empty; pure | none | `decodeTo_encodeOf_u256`;12 exact fixed wires including zero and maximum |
+| `ethereum_rlp/rlp.py:204–205,263–275`; `ethereum_types/numeric.py:566–577` | `RlpDecode Base.U256`, `ofRlp item := (Rlp.toNatBounded 32 item).map Base.U256.ofNat` | exact original source U256; guarded construction cannot wrap admitted success | raw errors first (Q68), list shape, leading zero, excess width; existing diagnostics unchanged | bounded acceptance and word reconstruction; unconditional inverse;12 model/12 wire successes,10 model failures,12 raw failures and 6 Nat/ByteArray contrasts |
+
+**Private callers and controls.** Eight facade groups cover complete encoder
+model/size, arbitrary-item decoder and raw-error equation, model inverse,
+unconditional wire inverse, success iff exact raw model, accepted-wire raw
+recovery/domain/reencoding, leading-zero precedence and external common-channel
+observation preserving whole successful words. They use only public laws and
+reduce the new adapters/wrappers. `RlpU256Guards.lean` supplies exactly 64 complete
+handwritten outcomes. All test support, including generated declarations, is
+private; no public helper/domain theorem or other carrier instance is added.
+
+**Bounded source profile.** `rlp_u256_differential.py` fixes seed 29401 without
+random draws: A00–A23 interleave 24 original-U256 encodes and 24 corresponding
+decodes; the 16 B-series cases supply success wires; C00–C31 supply eight list-shape,
+12 leading-zero and 12 width failures; R00–R23 supply 24 raw malformed wires.
+The portable invocation is:
+
+```sh
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_u256_differential.py \
+  --eels EELS --output EXTERNAL.lean --wheel-dir WHEELS
+```
+
+WHEELS must contain the original locked `ethereum_rlp-0.1.6-py3-none-any.whl`
+and `ethereum_types-0.4.1-py3-none-any.whl`. The driver checks their hashes
+against pinned `uv.lock` and matches installed source members; it downloads
+nothing and has no private fallback. `--help` lists the usage and filenames;
+missing wheel input fails clearly before original RLP entries.
+The corrected candidate's fresh frozen Python 3.13 `-I -B` profile completed
+exactly 120 entries:24 encodes and 96 decodes (40 exact U256 successes,32 typed
+failures,24 raw failures),64 successful source calls including encodes. All 120
+complete generated guards compiled through unchanged `context.run`. Payload≤256, wire≤259,
+success payload≤32/wire≤33, depth 32, width 64 and nine-byte declarations of
+2^64−1 bound the supplied inputs. Fixed header recipes are a bounded fixture
+catalog, not a replacement encoder/parser/oracle.
+
+Inputs require exact Python int in [0,2^256) before original U256 construction;
+success requires exact original U256 before conversion, equality or emission.
+Wires/results require exact builtin bytes. Current source/RECORD, lock-hashed
+wheel members, original RLP functions/classes, numeric inheritance/method code
+and MAX_VALUE are authenticated. Raw failures remain outside the typed catch.
+Shape 269 and leading-zero 271 retain original arguments and outer 171; width
+retains original numeric ValueError 575, empty-argument inner 275 and outer 171,
+with complete classes, arguments, cause/context identity and traceback frames.
+Unrecognized host/reflection/native origins abort evidence. Twenty-eight helper
+negatives (ten numeric, five wire, five success, eight provenance) exercise the
+same real admission helpers on isolated primitive fixtures, without mutating
+shared oracle code/classes or making extra source entries. Normal and optimized
+helper-only runs each passed all 28 final-driver negatives before the one source
+profile:56 fixture executions and zero RLP entries. The explicit supplied wheel
+copies were lock-hashed and their complete bodies/modes bound before/after.
+All 495 target bodies/modes and selected executable/Lean/comments/controllers,
+source/runtime/install/compiled Lean inputs remained frozen across the profile. Actual
+argv/cwd/UTC/empty stdin,
+selected effective nonsecret environment, complete streams/exits, ordered
+per-call observations and exact wheel-directory bindings are retained with
+candidate/source/runtime/install/controller/compiled input bodies/modes.
+
+Finite source observations, complete Lean diagnostics and the external
+`Except Unit U256` observation remain separate. Interpreter/startup/installation,
+native primitives, ambient host, outer orchestration and Lean compiler/kernel
+remain trusted; body/mode binding is not compiler correspondence or whole-host
+closure. No universal Python refinement, host resource, C1–C4, EEST or guest
+result follows; other carriers/schemas and actual consuming handlers stay open.
 
 ### Implemented RLP header slice
 
@@ -679,9 +753,12 @@ classification does not repair the decoder's division/modulo by element width
   private public-law client groups are catalogued in §3. They retain complete
   payloads/diagnostics, Q47 and raw-before-typed order; the bounded source profile
   supplies separate source-event and mathematical common-channel observations.
-- **Implemented Bool instance controls.** The52 whole-result controls and eight
+- **Implemented Bool instance controls.** The 52 whole-result controls and eight
   private public-law client groups are catalogued in §3. Bool's finite domain is
   discharged privately; both invalid shape families preserve the same diagnostic.
+- **Implemented U256 instance controls.** The64 complete outcomes and eight
+  private facade groups in §3 preserve minimal words, exact errors, accepted-wire
+  reencoding and the separate Nat/ByteArray domains.
 - **Property / differential tests.**
   - Random `RlpItem` round trip, and canonicality under mutation fuzzing.
   - Random well-typed SSZ values round trip.
@@ -768,7 +845,8 @@ class RlpDecode (α : Type) where
 -- supplied: RlpDecode Nat, with ofRlp exactly Rlp.toNat
 -- supplied: RlpEncode ByteArray / RlpDecode ByteArray, exactly .bytes / Rlp.toBytes
 -- supplied: RlpEncode Bool / RlpDecode Bool, exactly the two byte models / Rlp.toBool
--- pending other instances: U256, U64, U32, U8, FixedBytes n, Address, Hash32, List α
+-- supplied: RlpEncode Base.U256 / RlpDecode Base.U256, minimal ofNat / bounded32 map ofNat
+-- pending other instances: U64, U32, U8, FixedBytes n, Address, Hash32, List α
 def Rlp.encodeOf [RlpEncode α] (a : α) : ByteArray
 -- supplied (Q68); exact equation in §7:
 def Rlp.decodeTo {α : Type} [RlpDecode α] (b : ByteArray) : Except RlpError α
@@ -993,6 +1071,25 @@ generic independent classes still supply no arbitrary inverse. Accepted Bool
 wire reencoding is proved by private public-law callers, with exact diagnostics
 preserved before external common-channel observation.
 
+The supplied U256 adapters are exactly `Rlp.ofNat x.toNat` and
+`(Rlp.toNatBounded 32 item).map Base.U256.ofNat`. Their one ordinary public
+per-instance law is discharged:
+
+```lean
+theorem Rlp.decodeTo_encodeOf_u256 (x : Base.U256) :
+    Rlp.decodeTo (α := Base.U256) (Rlp.encodeOf x) =
+      (Except.ok x : Except RlpError Base.U256)
+```
+
+A private finite-domain discharge composes `U256.toNat_lt`,
+`Uint.size_toBeBytes_le_iff`, `Bytes.size_toByteArray` and `encodable_bytes_iff`:
+minimal payload≤32<2^64. Public `decode_encode`,
+`toNatBounded_eq_ok_item_iff` and `U256.ofNat_toNat` prove the inverse without
+representation unfolding. The bounded success range also justifies exact
+`ofNat` recovery, so an overflow never becomes a wrapped success. Nat and
+arbitrary ByteArray retain their explicit encoder-domain hypotheses. Private
+callers recover the exact raw model and every accepted source wire byte.
+
 **Discharged encoder laws.** `toList_encode` relates the packed encoder to
 `encodeModel` for every item, including Q47 completion; `size_encode` and
 `encodedSize_eq_model_length` equate size pass, output and reference widths.
@@ -1177,8 +1274,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. The supplied independent classes, `encodeOf`/`decodeTo`,
-  Nat/ByteArray adapters with conditional roundtrips and Bool adapters with their
-  unconditional finite-domain roundtrip leave other encoding/decoding
+  Nat/ByteArray adapters with conditional roundtrips and Bool/U256 adapters with
+  unconditional finite-domain roundtrips leave other encoding/decoding
   instances, element/schema decoders and SSZ semantic interfaces beyond structural
   sizing unimplemented. The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
