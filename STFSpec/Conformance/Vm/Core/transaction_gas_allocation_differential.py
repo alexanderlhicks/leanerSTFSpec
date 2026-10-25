@@ -246,11 +246,18 @@ TARGET = [
         "id": "W03",
         "kind": "allocation",
         "payload": {
-            "cap": "115792089237316195423570985008687907853269984665640564039457584007913129639943",
-            "txGas": "115792089237316195423570985008687907853269984665640564039457584007913129639945",
+            "cap": (
+                "115792089237316195423570985008687907853269984665640564039457584007913129639943"
+            ),
+            "txGas": (
+                "115792089237316195423570985008687907853269984665640564039457584007913129639945"
+            ),
             "intrinsicExecution": "2",
             "allocation": {
-                "executionGas": "115792089237316195423570985008687907853269984665640564039457584007913129639941",
+                "executionGas": (
+                    "1157920892373161954235709850086879078532"
+                    "69984665640564039457584007913129639941"
+                ),
                 "stateGasReservoir": "2",
             },
         },
@@ -259,9 +266,15 @@ TARGET = [
         "id": "W04",
         "kind": "allocation",
         "payload": {
-            "cap": "115792089237316195423570985008687907853269984665640564039457584007913129639937",
-            "txGas": "115792089237316195423570985008687907853269984665640564039457584007913129639937",
-            "intrinsicExecution": "115792089237316195423570985008687907853269984665640564039457584007913129639937",
+            "cap": (
+                "115792089237316195423570985008687907853269984665640564039457584007913129639937"
+            ),
+            "txGas": (
+                "115792089237316195423570985008687907853269984665640564039457584007913129639937"
+            ),
+            "intrinsicExecution": (
+                "115792089237316195423570985008687907853269984665640564039457584007913129639937"
+            ),
             "allocation": {"executionGas": "0", "stateGasReservoir": "0"},
         },
     },
@@ -297,11 +310,17 @@ TARGET = [
         "kind": "raw",
         "payload": {
             "allocation": {
-                "executionGas": "115792089237316195423570985008687907853269984665640564039457584007913129639937",
+                "executionGas": (
+                    "1157920892373161954235709850086879078532"
+                    "69984665640564039457584007913129639937"
+                ),
                 "stateGasReservoir": "18446744073709551617",
             },
             "reconstructed": {
-                "executionGas": "115792089237316195423570985008687907853269984665640564039457584007913129639937",
+                "executionGas": (
+                    "1157920892373161954235709850086879078532"
+                    "69984665640564039457584007913129639937"
+                ),
                 "stateGasReservoir": "18446744073709551617",
             },
             "equal": True,
@@ -873,10 +892,18 @@ def run_original(eels, evidence, profile, target_path):
         "interpreter path",
     )
     expected_text = {
-        "src/ethereum/forks/amsterdam/vm/gas.py": "91d7240e67b18b1f4406e17c11c1e9a8cf2e83b93e0dd0eb5071a23ba2a2ccc0",
-        "src/ethereum/forks/amsterdam/fork_types.py": "3e0013e251867df02aca7b746b77403b36b41d73f7c4158bed09964838c935ca",
-        "src/ethereum/forks/amsterdam/transactions.py": "120507bf6258289b2072cba60446b29ce9e86e987d063f82b0c9e926a84987da",
-        ".venv/lib/python3.13/site-packages/ethereum_types/numeric.py": "47d040d4de043e46d19c2fd9f74b318396b6c83ab01fe346f98a3c477e58db46",
+        "src/ethereum/forks/amsterdam/vm/gas.py": (
+            "91d7240e67b18b1f4406e17c11c1e9a8cf2e83b93e0dd0eb5071a23ba2a2ccc0"
+        ),
+        "src/ethereum/forks/amsterdam/fork_types.py": (
+            "3e0013e251867df02aca7b746b77403b36b41d73f7c4158bed09964838c935ca"
+        ),
+        "src/ethereum/forks/amsterdam/transactions.py": (
+            "120507bf6258289b2072cba60446b29ce9e86e987d063f82b0c9e926a84987da"
+        ),
+        ".venv/lib/python3.13/site-packages/ethereum_types/numeric.py": (
+            "47d040d4de043e46d19c2fd9f74b318396b6c83ab01fe346f98a3c477e58db46"
+        ),
     }
     source_files = [file_info(eels / path) for path in expected_text]
     for path, info in zip(expected_text, source_files, strict=True):

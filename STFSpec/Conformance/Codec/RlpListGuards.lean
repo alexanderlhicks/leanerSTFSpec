@@ -7,7 +7,7 @@ import STFSpec.Codec
 /-!
 # Generic list RLP complete controls
 
-Library `EthConformance`. Exactly104 handwritten whole outcomes in catalogue order.
+Library `EthConformance`. Exactly 104 handwritten whole outcomes in catalogue order.
 Private independent callbacks test pure first-error values and class independence.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
