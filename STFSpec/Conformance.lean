@@ -55,6 +55,8 @@ import STFSpec.Conformance.Hash.PackedKeccakCallerProofs
 
 import STFSpec.Conformance.Codec.RlpEncodeGuards
 import STFSpec.Conformance.Codec.RlpEncodeCallerProofs
+import STFSpec.Conformance.Codec.RlpEncodeOfCallerProofs
+import STFSpec.Conformance.Codec.RlpEncodeOfGuards
 import STFSpec.Conformance.Codec.RlpTypedGuards
 import STFSpec.Conformance.Codec.RlpTypedCallerProofs
 import STFSpec.Conformance.Codec.RlpHeaderGuards
