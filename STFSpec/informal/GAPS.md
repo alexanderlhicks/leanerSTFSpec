@@ -262,10 +262,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Remaining APIs and composition.** See §3 for implemented APIs and §7 for
   public-law domains. `RlpEncode`/`RlpDecode` instances, `encodeOf`/`decodeTo`,
-  element/schema decoders and all SSZ semantic interfaces are unimplemented.
-  Only the raw `SszType`/`SszValue`/`SszError` vocabulary is supplied; there is no
-  `WellFormed`, `WellTyped`, `fixedSize?`, schema, codec, root operation or error
-  producer implementation.
+  element/schema decoders and SSZ semantic interfaces beyond structural sizing
+  are unimplemented. Raw `SszType`/`SszValue`/`SszError` vocabulary and structural
+  `fixedSize?` with its single equation are supplied; there is no `WellFormed`,
+  `WellTyped`, schema, codec, root operation or error producer implementation.
   The `toList`/`toFields` leaves do not discharge child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
   Whole EthCodec gates, schema proofs, security binding and cost/guest obligations
@@ -274,17 +274,23 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
-- **SSZ semantic domains remain open.** The raw vocabulary selects no answer to
-  these seven questions: structural nameless `WellFormed` versus full Python class
-  admission/names (including `more` at mask capacity); ordinary empty-container
-  admission and explicit empty-mask interpretation; progressive mask length versus
-  population/field count and name restrictions; whether `WellTyped` entails
-  `WellFormed` and how malformed schemas affect all-value typing; `fixedSize?`'s
-  total completion on malformed syntax versus variable types; which count,
-  uint256 length, uint32 offset, scope, cache and zero-width constraints belong to
-  typing versus separate operation/source/root domains; and serialization/inverse
-  premises and total completion for zero-fixed-element lists. No positivity guard,
-  mask normalization, acceptance cap, rejection rule or total completion is chosen.
+- **SSZ sizing limits (Q67).** The classifier, ordinary equation, structural
+  termination and §4 private controls/clients are supplied. Conditional static
+  source interpretation is not a formal Python refinement theorem or executed
+  source comparison. Actual codec/schema consumers, source class admission,
+  compiled feasibility, practical stack/resources and C1–C4 remain open; no
+  larger G/S/W/R, EEST or guest readiness claim follows.
+- **Six other SSZ semantic domains remain open.** Q67 resolves only raw sizing.
+  The remaining questions are structural nameless `WellFormed` versus full Python
+  class admission/names (including `more` at mask capacity); ordinary
+  empty-container admission and explicit empty-mask interpretation; progressive
+  mask length versus population/field count and name restrictions; whether
+  `WellTyped` entails `WellFormed` and how malformed schemas affect all-value
+  typing; which count, uint256 length, uint32 offset, scope, cache and zero-width
+  constraints belong to typing versus separate operation/source/root domains;
+  and serialization/inverse premises and total completion for zero-fixed-element
+  lists. No positivity guard, mask normalization, acceptance cap, rejection rule
+  or completion for these other domains is chosen.
 - **"EELS accepts exactly the image of `encode`" (S3)** remains a prospective
   domain-dependent claim. The re-encode check alone proves no reverse implication
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic

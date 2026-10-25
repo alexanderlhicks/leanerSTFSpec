@@ -565,13 +565,23 @@ instances and guest outcomes remain their owners' open obligations.
 
 ### Raw SSZ model premise
 
-[EthCodec §3/§5/§7](modules/EthCodec.md#3-eels-source-map) supplies only the raw
+[EthCodec §3/§5/§7](modules/EthCodec.md#3-eels-source-map) supplies the raw
 `SszType`/`SszValue`/`SszError` constructors and ordinary inductive elimination.
 Consumers can retain complete natural/boolean/byte payloads, ordered recursive
 children and independent masks. Construction proves no source-class/schema
 admission, well-formedness, typing, codec inverse, rootability, error-producer or
-guest outcome property. The semantic domains and all such operations remain open
-with EthCodec; the raw handoff adds no acceptance restriction or authored law family.
+guest outcome property. The raw handoff adds no acceptance restriction or
+authored constructor-law family; structural sizing is supplied separately below.
+
+Separately, [EthCodec §3/§5/§7](modules/EthCodec.md#7-contract-and-laws) supplies
+Q67's structural classifier and single ordinary equation on every raw descriptor.
+Private public-equation clients compose optional field sums, derive mask/list
+independence and inspect complete slot tables. Consumers inspect the complete
+`Option Nat`, retain `some 0` separately from `none`, and establish local admission,
+positive-divisor, serialization and root-domain premises independently. Conditional
+static source interpretation supplies no executable/formal Python correspondence,
+actual schema or compiled resource theorem; the other six domain questions remain
+open in EthCodec §10.
 
 ### Derived address premise
 
