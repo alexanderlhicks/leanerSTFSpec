@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-23. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -72,8 +72,8 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `calculate_data_fee` (:994) | total blob gas × blob gas price |
 | `check_max_fee_per_blob_gas` (:1016) | no check without blobs; else fail iff `max_fee_per_blob_gas < price` |
 | `check_block_gas_capacity` (:1053) | fail iff `min(2^24, tx_gas) > limit − block_gas_used`, or `tx_gas > limit − block_state_gas_used`, or `tx_blob_gas > 21·2^17 − blob_gas_used`, in that order |
-| `allocate_evm_gas tx_gas intr` (:1120) | `evm = tx_gas − intr.execution`; `exec = min(2^24 − intr.execution, evm)`; reservoir `= evm − exec`. Precondition: intrinsic affordable and `intr.execution ≤ 2^24` (validated in `EthBlock`) |
-| `settle_transaction_gas` (:1178) | `pre = tx_gas − gas_left − state_gas_left`; `refund = min(pre/5, refund_counter)`; `gas_used = max(pre − refund, floor)`; `state_used = max 0 state_gas_used`; `execution_gas_used = max(pre − state_used, floor)` (EIP-7778: pre-refund); `gas_left_out = tx_gas − gas_used` |
+| `allocate_evm_gas tx_gas intr` (:1120) | `available = txGas − intrinsicExecution`; `execution = min(cfg.costs.txMaxGasLimit − intrinsicExecution, available)`; reservoir `= available − execution`. Q65's prospective helper takes exactly the two local subtraction proofs in §5; source matching of the live cap is separate. |
+| `settle_transaction_gas` (:1178) | `p = txGas − gasLeft − stateGasLeft`; `c = min(p/5, refund.toNat)` for U256 refund; `gasUsed = max(p − c, floor)`; `S = stateGasUsed.toNat` clamps signed state usage; `executionGasUsed = max(p − S, floor)` (EIP-7778: pre-refund); returned gas `= txGas − gasUsed`. Q66's three local bounds and source order are in §5/§7. |
 
 - **R-GAS-1** Every EELS `assert` above is a precondition of the Lean operation, discharged by callers (§7). The Lean operations must not contain fallible checks that EELS does not have.
 - **R-GAS-2** Gas amounts are unbounded `Nat`; charging is checked; no wrapping, no saturating subtraction that hides a failed check.
@@ -82,7 +82,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 ### 2.6 Exceptions
 
 - **R-EXC-1** `ExceptionalHalt` (`exceptions.py:17`) has the subclasses `StackUnderflowError`, `StackOverflowError`, `OutOfGasError`, `InvalidOpcode(code)`, `InvalidJumpDestError`, `StackDepthLimitError`, `WriteInStaticContext`, `OutOfBoundsRead`, `InvalidParameter`, `InvalidContractPrefix`, `AddressCollision`, `KZGProofError`; precompiles also raise bare `ExceptionalHalt` (`precompiled_contracts/modexp.py:34, 38, 42`). `Revert` (`:24`) is **not** an exceptional halt. The Lean type must keep one constructor per class (for traces and receipts' diagnostics) although every exceptional halt has the same effect (O8): spill restored, remaining execution gas forfeited, output empty.
-- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:303` catches `Exception`): `witness` (missing trie/code data, O4, from `EthState`), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: a negative top-level refund in `U256(refund_counter)` (`interpreter.py:318`; the sibling cast at `:285` is proved unreachable, because the refund counter is 0 there), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The `U256(...)` casts in NUMBER, GASLIMIT and BASEFEE cannot overflow, because the SSZ payload field widths (`uint64`, `uint64`, `uint256`) rule it out, so they have no constructor. These faults are CONTRACT **O13** members (D14): the existing invalid output, one named constructor each, never a catch-all. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor`; the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
+- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:303` catches `Exception`): `witness` (missing trie/code data, O4, from `EthState`), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: an out-of-range top-level refund in `U256(refund_counter)` (`interpreter.py:285,318`; §3 preserves both checked casts and their order, with the preparation-zero argument owned by EthVmRunner R-TOP-2), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The `U256(...)` casts in NUMBER, GASLIMIT and BASEFEE cannot overflow, because the SSZ payload field widths (`uint64`, `uint64`, `uint256`) rule it out, so they have no constructor. These faults are CONTRACT **O13** members (D14): the existing invalid output, one named constructor each, never a catch-all. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor`; the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
 
 ### 2.7 Jumpdest analysis
 
@@ -111,6 +111,57 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Prospective transaction allocation and settlement (Q65, Q66)
+
+The following are **unimplemented** contracts, not supplied Lean declarations or
+discharged laws. §5 owns the exact value/proof APIs and raw result records; §7
+owns exactly four allocation and five settlement ordinary prospective law types.
+Both source correspondences retain stable typed numeric/class bindings and
+successful host/resource premises; this guidance supplies no fresh source run.
+
+| Pinned source | Prospective declaration / domain | Effects, ordered failures and future evidence |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/gas.py:1106–1152` | `EvmGasAllocation`, `allocateEvmGas`; arbitrary raw VmConfig and Nat transaction/intrinsic gas on the two local proof bounds in §5. Only intrinsic.execution is read from the source IntrinsicGasCost. | Pure complete two-field result, no meter/currency effect. Source subtracts transaction minus intrinsic at :1148 before live cap minus intrinsic at :1149, then min and residual. Failed bounds remain outside the target domain; no saturation or fabricated proof. §7's four laws and §4's future complete-result/public-law controls remain unproved/unrun. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:1157–1242` | `TransactionGasSettlement`, `settleTransactionGas`; arbitrary Nat gas values, existing U256 refund and signed Int state usage on the three local proof bounds in §5. | Pure complete four-field result, no fee/provider or block mutation. Returned-gas subtractions precede refund/floor, then state clamp and execution subtraction before max, then final sender-return subtraction. Failed-domain cases are source-only. §7's five laws and §4's future controls remain unproved/unrun. |
+
+Allocation's source `TX_MAX_GAS_LIMIT` is the live Uint cap at `gas.py:162`,
+distinct from `TX_MAX_TOTAL_GAS_LIMIT` at :163. Generic cfg laws do not assume a
+literal, cap positivity or cap alias. Original correspondence requires the
+supplied relevant cap to match the authenticated live source cap, with stable
+typed inputs/numeric/class bindings and successful host/resource premises.
+The ordinary direct caller validates first (`fork.py:576,620`): intrinsic versus
+transaction gas, floor versus transaction gas, intrinsic versus execution cap,
+floor versus execution cap (`transactions.py:675–687`), after the earlier total
+cap check at :643–644. Preserve that order even though allocation ignores floor.
+Admission/allocation caps must be consistent, or the caller proves the allocation
+bound separately; validation under a larger cap alone is insufficient. The two
+result fields flow into the environment (`fork.py:655–657`) and entry meter
+(`vm/interpreter.py:267–271`), without charging intrinsic again. System
+transactions supply independent grants and bypass allocation (`fork.py:791–806`).
+
+Settlement reads no VmConfig. Its literal divisor 5 and signed-state clamp 0 stay
+in the equation. U256 refund supplies its unsigned range; it does not establish
+that a signed meter refund can be converted. Runner's prospective
+`TransactionOutput.refundCounter : Nat` stays unchanged (EthVmRunner §5).
+Successful source correspondence must retain `n < 2^256` for that Nat observation
+and reconstruct a U256 with complete unsigned observation n through existing
+`U256.ofNat?_eq_some_iff`, `U256.ofNat?_toNat` and `U256.toNat_lt`. Actual range
+derivation and this caller bridge are unimplemented; no public adapter is added.
+
+Ordinary unsigned `U256(r)` needs `0 ≤ r ∧ r < 2^256`
+(`ethereum_types/numeric.py:44–48,611–612,690–712`), unlike Base `U256.ofInt?`,
+which models signed `from_signed` (:594–608). Do not clamp negative refund with
+Int.toNat or wrap it with unchecked ofNat. Both source conversions stay at their
+original runner points: preparation restore/forfeit at `interpreter.py:280–282`
+precedes cast :285, which precedes state-usage argument :291–293; normal
+TransactionEnd tracing :309–314 precedes cast :318, which precedes state usage
+:324–326. The preparation-zero argument remains EthVmRunner R-TOP-2's guidance;
+no new actual caller proof or removed conversion follows. Preserve the existing
+separate proof/fault obligation at each applicable cast, including the unresolved
+normal return, before block settlement (`fork.py:1101–1110`). No new O13
+classification or helper error is chosen. Int.toNat on signed **state usage**
+instead expresses precisely the intended source `max(0, state_gas_used)` clamp.
 
 ### Supplied raw block-gas counters
 
@@ -870,6 +921,24 @@ and source/runtime identities separately from historical validation records.
 
 ## 4. Tests
 
+- **Prospective transaction-gas controls (Q65, Q66), unrun for the target:**
+  allocation needs complete zero-cap/intrinsic-zero, exact bounds, below/equal/
+  above-cap and beyond-word results, equal relevant caps with unrelated cfg changes,
+  and a changed-cap counterexample. Independently false first/second/both bounds
+  remain source-only failures, with transaction subtraction first. Settlement needs
+  complete four-field refund/floor boundaries, U256 maximum/high-bit refunds,
+  negative state clamp and unbounded Nat/signed usage; first/second returned
+  subtraction failures, state subtraction before max (even with a high floor),
+  and final-return underflow remain outside the target proof domain. Raw signed
+  refunds −1 and 2^256 fail upstream unsigned construction, outside the helper's
+  U256 input. With transaction gas 10, no returns, floor 10, refund 0 and state
+  usage 1, all three bounds hold and the result is (10,0,10,1): block dimensions
+  need not sum to sender gas used or be bounded by transaction gas. Future private
+  public-law clients may derive conservation/branch/range, refund-independent
+  block dimensions and entry-meter consequences; no extra public laws or actual
+  caller reachability follows. This guidance supplies no helper implementation,
+  compiled proof, new source execution or replay of historical finite observations.
+
 - **Supplied raw block-gas controls:** `BlockGasCallerProofs.lean` has seven
   private public-law client groups: complete construction/eta, independently
   varied all-field ext, nominal U64 observation/equality, each single-field
@@ -1332,10 +1401,28 @@ def calculateBlobGasPrice : U64 → Nat
 def calculateDataFee (excessBlobGas : U64) (numBlobs : Nat) : Nat
 def checkMaxFeePerBlobGas (numBlobs : Nat) (maxFee : U256) (excess : U64) : Except BlobFeeError Unit
 def checkBlockGasCapacity (env : BlockEnvironment) (c : BlockGasCounters) (txGas : Nat) (txBlobGas : U64) : Except CapacityError Unit
-structure EvmGasAllocation where executionGas stateGasReservoir : Nat
-def allocateEvmGas (txGas intrinsicExecution : Nat) : EvmGasAllocation
-structure TransactionGasSettlement where gasUsed gasLeft executionGasUsed stateGasUsed : Nat
-def settleTransactionGas (txGas calldataFloor gasLeft stateGasLeft : Nat) (refund : Nat) (stateGasUsed : Int) : TransactionGasSettlement
+-- Q65/Q66: prospective, unimplemented; exact ordinary law types are in §7.
+structure EvmGasAllocation where
+  executionGas : Nat
+  stateGasReservoir : Nat
+
+def allocateEvmGas (cfg : VmConfig) (txGas intrinsicExecution : Nat)
+    (hIntrinsicLeTxGas : intrinsicExecution ≤ txGas)
+    (hIntrinsicLeCap : intrinsicExecution ≤ cfg.costs.txMaxGasLimit) :
+    EvmGasAllocation
+
+structure TransactionGasSettlement where
+  gasUsed : Nat
+  gasLeft : Nat
+  executionGasUsed : Nat
+  stateGasUsed : Nat
+
+def settleTransactionGas
+    (txGas calldataFloor gasLeft stateGasLeft : Nat)
+    (refund : U256) (stateGasUsed : Int)
+    (hReturned : gasLeft + stateGasLeft ≤ txGas)
+    (hState : stateGasUsed.toNat ≤ txGas - gasLeft - stateGasLeft)
+    (hFloor : calldataFloor ≤ txGas) : TransactionGasSettlement
 
 -- Frame exit (public)
 def ChildSettled (child : Frame) (failed : Bool) : Prop
@@ -1397,6 +1484,106 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Prospective transaction-gas contracts (Q65, Q66).**
+
+These two raw result carriers, both helpers and exactly the following four plus
+five ordinary public law types are **unimplemented/unproved**. The records admit
+every Nat pair/quadruple, without defaults, instances or proof fields. Only the
+helper arguments impose their local source-success domains; invalid-domain
+calls acquire no fabricated proof, runtime error or saturating completion.
+
+**Allocation: exactly four prospective laws.** Available gas is computed before
+the remaining cap, then execution min and reservoir residual. The two bounds
+protect the source subtractions; min ≤ available protects the residual without
+a third premise. Separate admitted calls have their own proofs; relevant-cap
+equality suffices for complete result equality without comparing proof objects,
+whole configurations, other prices/state/limits or a global WF predicate.
+
+```lean
+theorem EvmGasAllocation.ext (a b : EvmGasAllocation)
+    (h_executionGas : a.executionGas = b.executionGas)
+    (h_stateGasReservoir : a.stateGasReservoir = b.stateGasReservoir) :
+    a = b
+
+theorem EvmGasAllocation.eta (allocation : EvmGasAllocation) :
+    EvmGasAllocation.mk allocation.executionGas allocation.stateGasReservoir = allocation
+
+theorem allocateEvmGas_eq (cfg : VmConfig) (txGas intrinsicExecution : Nat)
+    (hIntrinsicLeTxGas : intrinsicExecution ≤ txGas)
+    (hIntrinsicLeCap : intrinsicExecution ≤ cfg.costs.txMaxGasLimit) :
+    allocateEvmGas cfg txGas intrinsicExecution hIntrinsicLeTxGas hIntrinsicLeCap =
+      (let available := txGas - intrinsicExecution
+       let executionGas := min (cfg.costs.txMaxGasLimit - intrinsicExecution) available
+       { executionGas := executionGas
+         stateGasReservoir := available - executionGas } : EvmGasAllocation)
+
+theorem allocateEvmGas_congr (a b : VmConfig) (txGas intrinsicExecution : Nat)
+    (hIntrinsicLeTxGasA : intrinsicExecution ≤ txGas)
+    (hIntrinsicLeCapA : intrinsicExecution ≤ a.costs.txMaxGasLimit)
+    (hIntrinsicLeTxGasB : intrinsicExecution ≤ txGas)
+    (hIntrinsicLeCapB : intrinsicExecution ≤ b.costs.txMaxGasLimit)
+    (hCap : a.costs.txMaxGasLimit = b.costs.txMaxGasLimit) :
+    allocateEvmGas a txGas intrinsicExecution hIntrinsicLeTxGasA hIntrinsicLeCapA =
+      allocateEvmGas b txGas intrinsicExecution hIntrinsicLeTxGasB hIntrinsicLeCapB
+```
+
+**Settlement: exactly five prospective laws.** In source order, p is pre-refund
+usage, c is the one-fifth capped unsigned refund, then sender usage/floor is
+computed before clamped state usage and pre-refund execution usage/floor. The
+returned-gas proof protects both left-associated subtractions; the state proof
+protects p minus clamped state **before** max; the floor proof, with the refund
+cap, protects the final sender return. On typed source inputs these three bounds
+describe arithmetic success; raising the floor cannot rescue state underflow.
+U256 supplies refund range with no extra binder. Section variables abbreviate
+the same complete arguments and introduce no public helper or theorem family.
+
+```lean
+theorem TransactionGasSettlement.ext (a b : TransactionGasSettlement)
+    (hUsed : a.gasUsed = b.gasUsed) (hLeft : a.gasLeft = b.gasLeft)
+    (hExecution : a.executionGasUsed = b.executionGasUsed)
+    (hState : a.stateGasUsed = b.stateGasUsed) : a = b
+
+theorem TransactionGasSettlement.eta (a : TransactionGasSettlement) :
+    TransactionGasSettlement.mk a.gasUsed a.gasLeft
+      a.executionGasUsed a.stateGasUsed = a
+
+section
+variable (txGas calldataFloor gasLeft stateGasLeft : Nat)
+variable (refund : U256) (stateGasUsed : Int)
+variable (hReturned : gasLeft + stateGasLeft ≤ txGas)
+variable (hState : stateGasUsed.toNat ≤ txGas - gasLeft - stateGasLeft)
+variable (hFloor : calldataFloor ≤ txGas)
+
+theorem settleTransactionGas_eq :
+    settleTransactionGas txGas calldataFloor gasLeft stateGasLeft refund stateGasUsed
+      hReturned hState hFloor =
+    let p := txGas - gasLeft - stateGasLeft
+    let c := min (p / 5) refund.toNat
+    { gasUsed := max (p - c) calldataFloor
+      gasLeft := txGas - max (p - c) calldataFloor
+      executionGasUsed := max (p - stateGasUsed.toNat) calldataFloor
+      stateGasUsed := stateGasUsed.toNat }
+
+theorem settleTransactionGas_gasUsed_le :
+    (settleTransactionGas txGas calldataFloor gasLeft stateGasLeft refund stateGasUsed
+      hReturned hState hFloor).gasUsed ≤ txGas
+
+theorem settleTransactionGas_executionGasUsed_ge_floor :
+    calldataFloor ≤
+      (settleTransactionGas txGas calldataFloor gasLeft stateGasLeft refund stateGasUsed
+        hReturned hState hFloor).executionGasUsed
+end
+```
+
+Future private public-law clients may derive sender conservation, refund
+independence of the complete block dimensions, negative-state erasure and floor
+branches. Writing X and S for the returned execution and state amounts, they may
+derive `X + S = max p (calldataFloor + S)`. Their sum need not equal sender gas used or be
+bounded by transaction gas. Fee decomposition additionally needs the existing
+base-fee ≤ effective-price premise and supplies no provider effects. None is an
+extra public law or an implemented client; actual caller bounds/config/refund
+bridges, source/host correspondence and composed progress remain open (§10).
 
 **Raw block-gas counter data.** Exactly two ordinary laws are **discharged**
 for every raw Nat/Nat/U64 record. No capacity, coherence or initialization
@@ -2192,7 +2379,7 @@ above. The following list retains the remaining G1 and composition obligations:
 - **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
 - **`L-INC`** [C]: `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi` (the repay step preserves Φ). Together with G2's "child returns potential ≤ potential granted" this gives the cross-frame bound.
 - **`L-WARM-MONO`** [C]: if `p.accessedAddresses ⊆ c.accessedAddresses` then the union is `c.accessedAddresses` (same for slots). [F] the implementation may assign.
-- Settlement [C]: `settleTransactionGas` preconditions `gasLeft + stateGasLeft ≤ txGas`, `calldataFloor ≤ txGas`, and `refund ≥ 0` (the caller converts `refundCounter : Int` with a proof or a `u256Overflow` fault, R-EXC-2); then `gasUsed ≤ txGas`, `executionGasUsed ≥ calldataFloor`.
+- Settlement [C]: Q66's prospective API and five laws above use exactly the three returned/state/floor bounds and a validated U256 refund. Their actual caller derivation, including the earlier checked signed-counter conversion and unchanged Runner Nat observation bridge (§3), remains unimplemented; R-EXC-2/O13 keep their existing owners.
 - Transaction-level conservation [C, statement to be found]: an equation relating `txGas`, the returned `gasLeft + stateGasLeft`, `txStateGasUsed` and the gas charged; needed by `EthBlock` accounting proofs.
 
 ### Supplied jump-destination lookup equations
@@ -2269,7 +2456,24 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   general source/default agreement, configuration/target coherence, settlement
   and G2 remain separate obligations.
 
+- **Q65, Q66**: DECISIONS owns the transaction allocation/settlement dispositions;
+  §5/§7 owns the exact prospective two-helper/result and four/five-law contracts.
+  Their implementation, proofs, private clients and actual caller bridges remain
+  open; §3/§4 distinguish source-domain guidance and future controls from supplied
+  components. Allocation policy matching and unsigned refund validation are
+  separate caller obligations, not global meter invariants.
+
 ## 10. Gaps
+
+- **Transaction-gas guidance is specified, not implemented (Q65, Q66):** §5/§7
+  own the two raw result carriers, exact local-proof helper signatures and four
+  allocation/five settlement prospective ordinary laws. Implementations, proofs,
+  public-law clients and target controls remain absent. Actual admission/allocation
+  cap consistency, system-call separation, returned/state/floor derivation,
+  validated unsigned refund/range reconstruction at the unchanged Runner Nat
+  boundary, checked-failure precedence, fees/providers/conservation, compiled
+  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. No finite
+  source observation supplies a universal theorem or these actual caller premises.
 
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
@@ -2316,7 +2520,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, settlement and transaction-conservation laws remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
-- **Negative top-level refund.** `U256(gas_meter.refund_counter)` raises `OverflowError` if the top frame's refund is negative. The preparation-failure cast (`interpreter.py:285`) is proved unreachable, because the refund counter is 0 there. The cast after execution (`:318`) is **unresolved**: a non-negativity invariant is sketched (every `−REFUND_STORAGE_CLEAR` reverses a surviving earlier `+` in the same transaction, and failed frames reset their refunds) [I] but unproved. Until it is proved, the spec must produce `VmFault.u256Overflow .refundCounter` there (an O13 candidate).
+- **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:285,318`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; this guidance implements no actual caller proof and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
 - **Balance overflow in `move_ether`.** A recipient balance above `2^256 − 1` raises `OverflowError` in EELS (`state_tracker.py:663`, and `create_ether` at `:687`). The witness authenticates the state against a parent root the guest does not itself trust, so large balances are not excluded by the input format. It is argued reachable from the pinned source (O13); no fixture or probe witnesses it. The named constructor is owned by `EthState`'s `moveEther` and surfaces here as `VmFault.state`.
 - **O13 enumeration still open.** The VM-internal Python faults are classified (CONTRACT O13, D14): BLOCKHASH's `IndexError` is fixture-witnessed, and the BLOBBASEFEE and balance overflows are argued reachable. The `VmFault` constructor list is frozen only once this module's failure-ledger entries close (DECISIONS B14).
 - **`calculate_excess_blob_gas`** takes `Header | PreviousForkHeader` and uses `isinstance`; the Lean version takes three numbers, and `EthBlock` must reproduce the "fields absent → zeros" default [I: both header types at the pin carry the fields, so the default may be dead].
