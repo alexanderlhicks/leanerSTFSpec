@@ -16,7 +16,8 @@ namespace STFSpec.Vm.Core
 
 open STFSpec.Base
 
-/-- Complete raw sender and block gas observations, in source constructor order. -/
+/-- Complete raw sender and block gas observations, in source constructor order.
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1157–1175` at the pin. -/
 structure TransactionGasSettlement where
   /-- Sender gas used after capped refund and calldata floor. -/
   gasUsed : Nat
@@ -43,7 +44,8 @@ theorem TransactionGasSettlement.eta (a : TransactionGasSettlement) :
   cases a
   rfl
 
-/-- Source-ordered pure settlement; EELS `gas.py:1178–1243` at the pin.
+/-- Source-ordered pure settlement.
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1178–1243` at the pin.
 The refund is already an unsigned word; its upstream checked conversion is caller-owned. -/
 def settleTransactionGas
     (txGas calldataFloor gasLeft stateGasLeft : Nat)
