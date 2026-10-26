@@ -27,6 +27,7 @@ import STFSpec.Codec.RlpHash32
 
 import STFSpec.Codec.SszMerkleize
 import STFSpec.Codec.SszMerkleizeProgressive
+import STFSpec.Codec.SszMixInActiveFields
 import STFSpec.Codec.SszMixInLength
 
 /-!

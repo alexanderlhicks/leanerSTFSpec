@@ -828,6 +828,22 @@ preserve that entire caller order. Actual count bounds, source classes/backings/
 globals/aliases/cache/host, activity mix-ins and enclosing rootability remain
 consumer obligations. No provider change or new Rootable clause is selected.
 
+**SSZ active-field mix-in options (Q77).** DECISIONS Q77 owns the approved
+selection; EthCodec §5/§7 owns the two declarations and complete SHA equation.
+A keeps the original ordered Bool list and only its local width ≤ 256 proof.
+B would use the existing standard `Vector Bool 256`, moving zero-padding and
+width preservation to the caller construction seam; C would accept every finite
+Bool list with an explicit low256 completion, discarding unsupported positions;
+D would return a checked runtime result. These alternatives
+change domain or observable handling. None is selected. Numeric fit follows
+privately from the width. Mathematical empty/allfalse/trailingfalse inputs remain
+valid, and packing identifies some distinct raw lists without any SHA assumption.
+A supplied root must already denote the source contents tree, including inactive
+zero nodes at activity positions; sparse field ordinal is a separate concept.
+Source eager mask/content construction, lazy hashing and backing/cache coherence
+remain consumer premises. No new provider, Rootable clause, actual guest mask
+acceptance rule, error policy or resource/readiness result follows.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
