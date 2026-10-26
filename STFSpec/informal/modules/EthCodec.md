@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-26. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1282,6 +1282,38 @@ pack/zero contracts remain unchanged. Plain padding does not bind counts.
 Capacity alone proves no source success or depth 64/255 cap. No original source
 execution/profile is released; source-runtime controls remain UNRUN.
 
+### Progressive contents-tree Merkleization (Q75)
+
+`STFSpec/Codec/SszMerkleizeProgressive.lean` supplies exactly the optional-depth
+operation and complete public recurrence in §5/§7. A private source-shaped List
+reference equals the packed traversal for every Array, offset and Nat depth.
+The executable retains one original Array and advances an offset, extracting
+only disjoint current windows. It never converts/copies the entire remaining
+suffix, enumerates progressive levels up to n, or materializes exponential padding.
+Each ordinary prefix uses the existing public physical helper with a private
+capacity proof; its sparse traversal and self-contained 65-entry prefix/linear
+zero extension retain their existing contract.
+
+| Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
+|---|---|---|---|
+| locked eth-remerkleable 0.1.31 `remerkleable/progressive.py:25–32`; ordinary `tree.py:242–263`; EELS `utils/ssz.py:133–146,208–225,243–260,288–296` caller context | `Ssz.merkleizeProgressive chunks (depth := 0)`; every finite Array and every Nat starting depth | pure progressive contents root, no errors; original nodes/backings/classes/root/hash/globals/imported aliases/cache history/per-path zero availability and successful host execution remain premises | complete ordinary `merkleizeProgressive_eq`; private progressiveP0–progressiveP9 and facade-only C0–C9 below |
+
+Empty at every depth returns zero32, including empty suffixes; it does not request
+zeroHash(depth). Nonempty capacity is 2^depth, with suffix depth + 2. Source bulk
+construction differs from append/navigation: a payload 19 tree splits 1 + 4 + 14,
+and its final ordinary 14/16 subtree **does insert zeroHash 1**. The all-Nat law
+implies no arbitrary-depth source success or global 64/255 cap. VirtualNode roots
+can be available without traversing their children; root and navigation premises
+must stay distinct. No original Python runtime/profile was released: the
+source-only operational catalog remains UNRUN.
+
+Actual chunk copying sums over disjoint windows; progressive levels, power/offset
+arithmetic, ordinary subtree traversal depth, and each ordinary call's zero
+availability/extension and allocation/conversions are separate costs. There is
+no cross-call cache-reuse, universal all-depth O(n), exact runtime hash count,
+compiled sharing/cache-lifetime, C1–C4 or resource claim. No D18 exception is adopted.
+
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -1502,13 +1534,30 @@ execution/profile is released; source-runtime controls remain UNRUN.
   propositions; merkleP8 complete 64-byte/order/FIPS composition; merkleP9 actual byte-count
   through public pack law to rounded capacity, preserving stronger admission.
   `SszMerkleizeCallerProofs.lean` imports only Codec and independently derives
-  private C0–C9: empty0/1/arbitrary depth; singleton0/1; two/limit2;
-  three/limits3–4; four/limits3–4; five/limit3 impossibility and related domains;
-  singleton versus appended-zero at limit2; complete ordered SHA/FIPS;
-  arbitrary same-depth replacement; and byte31/32/33/admitted packing bridges.
+  private C0–C9: empty 0/1/arbitrary depth; singleton 0/1; two/limit 2;
+  three/limits 3–4; four/limits 3–4; five/limit 3 impossibility and related domains;
+  singleton versus appended-zero at limit 2; complete ordered SHA/FIPS;
+  arbitrary same-depth replacement; and byte 31/32/33/admitted packing bridges.
   All support is private local List mathematics and public Base/Hash/Codec laws;
   no provider-private workers, storage or generated equations are consumed.
   Complete symbolic expressions avoid expensive deep SHA evaluation.
+
+- **Progressive controls (Q75).** `SszMerkleizeProgressiveControls.lean` supplies
+  private progressiveP0 entire all-Array/all-Nat executable/reference/public recurrence;
+  progressiveP1 empty all depths and complete singleton symbolic paths; progressiveP2 complete ordered
+  roots at1/2/5/6/21/22 with capacities1/4/16/64; progressiveP3 arbitrary ordered segmentation
+  and exact reconstruction; progressiveP4 every local physical bound and strict suffix descent;
+  progressiveP5 complete ordinary padded frontier/pair fold plus the public ordinary-helper
+  bridge; progressiveP6 default 0 insertion, underlying two-argument function type, odd shifted
+  depths and symbolic64/65/255/256; progressiveP7 complete ordered64-byte preimages and local
+  public FIPS composition; progressiveP8 arbitrary-data/depth finite right-fold equivalence;
+  progressiveP9 unequal-count equal-root padding witness without a collision premise.
+  `SszMerkleizeProgressiveCallerProofs.lean` imports only Codec and independently
+  derives the same observable C0–C9 families through the public recurrence and
+  ordinary/Base/Hash laws with caller-owned private mathematics. No client consumes
+  provider-private workers, generated equations or private Base/Hash storage.
+  Activity/source/Rootable/host separation remains explicit prose/premises, with
+  no invented activity theorem or source execution. Deep hashes remain symbolic.
 
 ## 5. Interface
 
@@ -1597,7 +1646,8 @@ namespace Ssz
   def merkleize (chunks : Array Base.Bytes32) (limit : Nat)
       (h : chunks.size ≤ 2 ^ (if limit ≤ 1 then 0 else Nat.log2 (limit - 1) + 1)) :
       Base.Bytes32 -- supplied physical-capacity helper (Q74)
-  def merkleizeProgressive (chunks : Array Bytes32) : Bytes32
+  def merkleizeProgressive (chunks : Array Base.Bytes32) (depth : Nat := 0) :
+      Base.Bytes32 -- supplied contents-tree helper (Q75)
   def mixInLength (root : Bytes32) (len : Nat) : Bytes32
   def mixInActiveFields (root : Bytes32) (active : List Bool) : Bytes32
   def zeroHashes : Array Base.Bytes32  -- supplied ordered prefix, depths 0..64 (Q73)
@@ -2177,6 +2227,32 @@ is chosen. Future recursive roots may carry the already-planned Rootable premise
 whose exact definition and clauses remain unapproved. No WF/WT conjunction,
 constructor admission, wrapper/class field or acceptance policy is added.
 
+Q75 supplies exactly one ordinary public law, **discharged** by
+`STFSpec/Codec/SszMerkleizeProgressive.lean`:
+
+```lean
+theorem Ssz.merkleizeProgressive_eq (chunks : Array Base.Bytes32) (depth : Nat) :
+    merkleizeProgressive chunks depth =
+      let zero := (Base.FixedBytes.ofNat 0 : Base.Bytes32)
+      let pair := fun (left right : Base.Bytes32) =>
+        STFSpec.Hash.sha256 ((left.toBytes ++ right.toBytes).toByteArray)
+      if chunks.isEmpty then zero else
+        let «prefix» := chunks.toList.take (2 ^ depth)
+        let root := ((List.range depth).foldl
+          (fun layer _ => (List.range (layer.length / 2)).map (fun i =>
+            pair (layer.getD (2 * i) zero) (layer.getD (2 * i + 1) zero)))
+          («prefix» ++ List.replicate (2 ^ depth - «prefix».length) zero)).headD zero
+        pair root
+          (merkleizeProgressive ((chunks.toList.drop (2 ^ depth)).toArray) (depth + 2))
+```
+
+All authored supporting declarations are private. The default 0 argument is
+inserted at calls; the underlying function type still takes Nat. Local prefix
+capacity follows from slicing and is discharged internally. The theorem covers
+all finite arrays and every natural depth without a source-host success premise;
+source correspondence separately retains the local premises in §3. No length or
+activity mix-in, Rootable clause, acceptance/error policy or binding assumption is added.
+
 All other semantic laws below remain prospective conditional obligations. Their
 domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
 
@@ -2187,7 +2263,7 @@ domains and total completions remain open as detailed in §10; the raw model, si
   fixed-element list counts. It is a blueprint awaiting that domain, not a supplied law.
 - [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This prospective theorem replaces EELS's re-encode check (`ssz.py:144`). Equality of the accept set and the image of `encode` additionally needs the converse decoding/inverse premise on a resolved serialization domain (S3; §10); the re-encode check alone does not supply it.
 - [T] `hashTreeRoot` must terminate, and its reference refinement requires the schema’s Rootable domain (length mix-ins fit uint256 and fields have the exact interpretation). O2 freedom requires proving every successfully decoded guest request belongs to that domain; S5 alone does not establish this.
-- [C] `merkleizeProgressive` remains prospective and is characterised by the recurrence in S4. Q74 supplies ordinary physical-capacity Merkleization above.
+- [C] Progressive contents-tree refinement is supplied by Q75 above. Length/activity mix-ins and enclosing roots remain prospective; Q74 owns the ordinary physical helper.
 - [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
@@ -2283,7 +2359,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing plus raw byte packing and zero hashes; the remaining SSZ semantic interfaces
+  and payload typing plus raw byte packing, zero hashes and the Q74/Q75
+  ordinary/progressive contents trees; the remaining SSZ semantic interfaces
   remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
@@ -2292,7 +2369,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied, together with raw `Ssz.pack`, zero hashes and their complete public equations;
+  are supplied, together with raw `Ssz.pack`, zero hashes and the Q74/Q75
+  ordinary/progressive contents trees and their complete public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -2309,10 +2387,17 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Progressive helper limits (Q75).** The two public declarations, all-domain
+  packed/reference recurrence refinement, private progressiveP0–progressiveP9 and facade C0–C9 are supplied.
+  Source-only operational controls remain UNRUN. Source node/backing/class/root/hash/
+  global/alias/cache/per-path zero-table and successful-host premises stay local;
+  bulk construction does not prove append/navigation correspondence. Length/activity
+  mix-ins, exact Rootable clauses, schemas/decoder/adapter support, outcomes,
+  resources/C1–C4, security, EEST, guest and readiness gates remain open.
 - **Merkleization limits (Q74).** Physical helper and its full ordinary law,
   private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
   controls remain UNRUN. Declared count/class/backing admission, exact future
-  Rootable definition, actual decoder/adapter-to-root-support proof, progressive
+  Rootable definition, actual decoder/adapter-to-root-support proof, enclosing
   roots, mix-ins, schemas and binding remain open. The guest still accepts arbitrary
   bytes under CONTRACT; execution-invalid supported payloads root before inner
   validation. No O2/O12/O13, error/handler, resource, security or readiness gate closes.

@@ -26,6 +26,7 @@ import STFSpec.Codec.RlpList
 import STFSpec.Codec.RlpHash32
 
 import STFSpec.Codec.SszMerkleize
+import STFSpec.Codec.SszMerkleizeProgressive
 
 /-!
 # STFSpec.Codec
