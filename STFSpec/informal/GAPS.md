@@ -268,8 +268,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing plus raw byte packing, zero hashes and the Q74/Q75
-  ordinary/progressive contents trees; the remaining SSZ semantic interfaces
+  and payload typing, raw byte packing, zero hashes, the Q74/Q75
+  ordinary/progressive contents trees and the Q76 local length mix-in;
+  the remaining SSZ semantic interfaces
   remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
@@ -278,8 +279,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied, together with raw `Ssz.pack`, zero hashes and the Q74/Q75
-  ordinary/progressive contents trees and their complete public equations;
+  are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
+  ordinary/progressive contents trees, the Q76 local length mix-in
+  and their complete public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -296,12 +298,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Length mix-in limits (Q76).** The two public declarations, complete
+  successful-value equation, private lengthP0–lengthP9 and facade C0–C9 are supplied.
+  Source-only cases remain UNRUN. Actual standard source class/root/backing/
+  endian/hash/global/alias/cache/host premises and whole caller construction/
+  failure/resource order remain separate. Actual decoder/adapter and nested
+  count bounds, exact Rootable clauses, activity mix-ins, enclosing roots/layout/
+  binding, guest/O2/O12/O13, security, EEST, G/S/W/R/C1–C4 and readiness gates
+  remain open; no accepted-domain narrowing or new error mapping is adopted.
 - **Progressive helper limits (Q75).** The two public declarations, all-domain
   packed/reference recurrence refinement, private progressiveP0–progressiveP9 and facade C0–C9 are supplied.
   Source-only operational controls remain UNRUN. Source node/backing/class/root/hash/
   global/alias/cache/per-path zero-table and successful-host premises stay local;
-  bulk construction does not prove append/navigation correspondence. Length/activity
-  mix-ins, exact Rootable clauses, schemas/decoder/adapter support, outcomes,
+  bulk construction does not prove append/navigation correspondence. Q76 supplies
+  the local length mix-in; activity mix-ins, exact Rootable clauses, schemas/decoder/adapter support, outcomes,
   resources/C1–C4, security, EEST, guest and readiness gates remain open.
 - **Merkleization limits (Q74).** Physical helper and its full ordinary law,
   private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
