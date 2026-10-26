@@ -15,6 +15,7 @@ import STFSpec.Codec.Address
 import STFSpec.Codec.SszModel
 import STFSpec.Codec.SszWellTyped
 import STFSpec.Codec.SszWellFormed
+import STFSpec.Codec.SszRootable
 import STFSpec.Codec.SszZeroHash
 import STFSpec.Codec.SszPack
 import STFSpec.Codec.SszFixedSize
