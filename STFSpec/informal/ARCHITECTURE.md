@@ -789,6 +789,18 @@ boundary enables independent public-law clients without a source table cap or
 new rootability, override/cache or resource policy. Compiled sharing and C1–C4
 remain separate from the linear source traversal.
 
+**SSZ Merkleization and recursive root options (Q74).** DECISIONS Q74 owns the
+accepted disposition; EthCodec §5/§7 owns the physical-capacity helper and full
+expanded equation. The selected proof-bounded helper retains ordered supplied
+chunks at the original rounded depth. Alternatives are growth to fit actual
+counts, an unrestricted raw completion with new mismatch behavior, or deferral
+until a root consumer. Future recursive roots may carry the planned Rootable
+premise; its exact definition is not selected here. The actual decoder/adapter
+must supply that support without narrowing the guest's accepted byte domain.
+Packed interval traversal stops at absent subtrees and uses a shared zero prefix;
+all-Nat zero extension, actual-chunk work and depth work are accounted separately.
+No compiled sharing, runtime hash count or C1–C4 result is implied.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

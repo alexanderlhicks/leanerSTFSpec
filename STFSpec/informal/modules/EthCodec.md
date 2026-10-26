@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-26. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1259,6 +1259,29 @@ No original Python execution, digest literals or source-runtime profile is
 released here; source-only groups 0–3 remain UNRUN. Root consumers retain the class/backing,
 per-path table-index, override/alias/history and host premises described above.
 
+### Physical-capacity Merkleization (Q74)
+
+`STFSpec/Codec/SszMerkleize.lean` supplies exactly the helper and complete public
+law in §5/§7. A private readable full List/tree reference and its padded-layer
+fold agree with the packed Array interval traversal on the entire supported
+domain. The executable passes offsets rather than copying child subtrees and
+returns cached zero roots for wholly absent intervals. Existing zeroHashes roots
+are extended above 64 by a single threaded recurrence. Actual-chunk work, depth
+traversal/arithmetic and zero availability/extension are separate; no universal
+all-depth O(chunks), exact runtime hash count, compiled sharing/lifetime or C1–C4
+claim is made. Mathematical singleton paths are symbolic equations only.
+
+| Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
+|---|---|---|---|
+| locked eth-remerkleable 0.1.31 `remerkleable/tree.py:242–263`; EELS `utils/ssz.py:133–146,208–225,243–260,288–296` caller context | `Ssz.merkleize chunks limit h`; physical count ≤ 2 to the inline least covering depth | pure ordered padded root; no overflow result or error converter. Declared constructor admission is separate; source original classes/backing/root/hash/globals/imported aliases/cache history/per-path zero-table availability and successful host execution remain premises | complete ordinary `merkleize_eq`; private merkleP0–merkleP9 and public-facade C0–C9 below |
+
+Limits 0/1 select capacity 1, so a singleton at limit 0 has helper support. Limit 3
+selects capacity 4: counts 3/4 retain depth 2, count 5 has no proof argument. No global
+WF, WT or Rootable hypothesis is needed. Existing raw vocabulary/predicates and
+pack/zero contracts remain unchanged. Plain padding does not bind counts.
+Capacity alone proves no source success or depth 64/255 cap. No original source
+execution/profile is released; source-runtime controls remain UNRUN.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -1469,6 +1492,24 @@ per-path table-index, override/alias/history and host premises described above.
   recurrences are never evaluated by decision procedures. These are ordinary
   mathematical proofs; source-only groups 0–3 remain separately scoped and UNRUN.
 
+- **Merkleization controls (Q74).** `SszMerkleizeControls.lean` supplies private
+  merkleP0 covering/minimality/powers/adjacent powers/same buckets on all Nat; merkleP1 full
+  supported-domain executable/reference/fold equality; merkleP2 arbitrary empty roots
+  and high-depth symbolic cases; merkleP3 depth-zero and complete generic singleton
+  paths; merkleP4 complete ordered two/three/four roots; merkleP5 ordered padded frontiers,
+  even layers/halving/one final root; merkleP6 same-capacity transport and proof
+  independence; merkleP7 unequal-count equal-root padding witnesses and invalid-domain
+  propositions; merkleP8 complete 64-byte/order/FIPS composition; merkleP9 actual byte-count
+  through public pack law to rounded capacity, preserving stronger admission.
+  `SszMerkleizeCallerProofs.lean` imports only Codec and independently derives
+  private C0–C9: empty0/1/arbitrary depth; singleton0/1; two/limit2;
+  three/limits3–4; four/limits3–4; five/limit3 impossibility and related domains;
+  singleton versus appended-zero at limit2; complete ordered SHA/FIPS;
+  arbitrary same-depth replacement; and byte31/32/33/admitted packing bridges.
+  All support is private local List mathematics and public Base/Hash/Codec laws;
+  no provider-private workers, storage or generated equations are consumed.
+  Complete symbolic expressions avoid expensive deep SHA evaluation.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1551,14 +1592,16 @@ inductive SszError where | length | offset | limit | boolByte | trailing | shape
 namespace Ssz
   def encode : SszType → SszValue → ByteArray
   def decode : SszType → ByteArray → Except SszError SszValue          -- strict canonical
-  def hashTreeRoot : SszType → SszValue → Bytes32
+  def hashTreeRoot (t : SszType) (v : SszValue) (h : Rootable t v) : Bytes32 -- future direction; Rootable not yet defined
   def pack : ByteArray → Array Base.Bytes32    -- supplied exported component helper (Q72)
-  def merkleize (chunks : Array Bytes32) (limit : Nat) : Bytes32        -- zero-hash padded
+  def merkleize (chunks : Array Base.Bytes32) (limit : Nat)
+      (h : chunks.size ≤ 2 ^ (if limit ≤ 1 then 0 else Nat.log2 (limit - 1) + 1)) :
+      Base.Bytes32 -- supplied physical-capacity helper (Q74)
   def merkleizeProgressive (chunks : Array Bytes32) : Bytes32
   def mixInLength (root : Bytes32) (len : Nat) : Bytes32
   def mixInActiveFields (root : Bytes32) (active : List Bool) : Bytes32
   def zeroHashes : Array Base.Bytes32  -- supplied ordered prefix, depths 0..64 (Q73)
-  def Rootable (t : SszType) (v : SszValue) : Prop -- actual schema interpretation and representable mix-in lengths
+  def Rootable (t : SszType) (v : SszValue) : Prop -- planned placeholder; exact clauses unapproved (Q74)
   def zeroHash : Nat → Base.Bytes32  -- supplied all-Nat recurrence (Q73)
 end Ssz
 class SszSchema (α : Type) where
@@ -1581,7 +1624,7 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 | `SszType` | nested inductive | itself (raw model) | none; supplied `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
 | `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; `WellTyped t v` is a supplied separate judgment | immutable | raw construction only; codec costs remain future |
 | `zeroHashes` | `Array Bytes32` from a linear prefix traversal | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup after construction; compiled lifetime/cost unmeasured |
-| merkleization | `Array Bytes32` layers | the full padded binary tree | — | local, linear | O(chunks) hashes + O(log limit) zero-hash lookups. **Never O(limit)**: `ByteList[2^16]` has 2048 chunk leaves, and `List[_, 256]` must not hash 256 leaves when it has 3 elements |
+| merkleization | packed `Array Bytes32` with interval offsets and shared zero prefix | private complete ordered List/tree and padded fold | actual count fits rounded physical capacity | immutable input; local traversal/cache | actual populated intervals and depth traversal; absent subtrees use one cached root, without missing-leaf materialization or copied child subtrees. Above 64, extend zeros in one linear recurrence. Depth arithmetic and zero availability/extension are separate from actual-chunk work; no universal all-depth O(chunks), compiled lifetime or C1–C4 claim |
 
 **No derived instances on the nested inductives** (F17). `deriving BEq`, `Repr` or `DecidableEq` on `RlpItem`, `SszType` or `SszValue` generates `partial` constants (for example `instBEqT.beq`), which D21 bans and only the compiled declaration check catches. Write structural instances by hand, as mutual structural recursions (a compiled prototype of the interfaces showed the pattern works). Non-nested types such as `RlpError` and `SszError` may derive them.
 
@@ -2111,6 +2154,29 @@ Neither public law requires WF, WT, Rootable, a schema or a source-table premise
 Actual source correspondence uses §3's premises; root 256 is mathematical only.
 The finite prefix imposes no depth limit on any tree or merkleization consumer.
 
+Q74 supplies exactly one ordinary public law, **discharged** by
+`STFSpec/Codec/SszMerkleize.lean`:
+
+```lean
+theorem Ssz.merkleize_eq (chunks : Array Base.Bytes32) (limit : Nat)
+    (h : chunks.size ≤ 2 ^ (if limit ≤ 1 then 0 else Nat.log2 (limit - 1) + 1)) :
+    merkleize chunks limit h =
+      let depth := if limit ≤ 1 then 0 else Nat.log2 (limit - 1) + 1
+      let zero := (Base.FixedBytes.ofNat 0 : Base.Bytes32)
+      let pair := fun (left right : Base.Bytes32) =>
+        STFSpec.Hash.sha256 ((left.toBytes ++ right.toBytes).toByteArray)
+      ((List.range depth).foldl
+        (fun layer _ => (List.range (layer.length / 2)).map (fun i =>
+          pair (layer.getD (2 * i) zero) (layer.getD (2 * i + 1) zero)))
+        (chunks.toList ++ List.replicate (2 ^ depth - chunks.size) zero)).headD zero
+```
+
+Every helper/reference/derived/control/client declaration stays private. The
+proof argument is independent by proof irrelevance; no overflow runtime behavior
+is chosen. Future recursive roots may carry the already-planned Rootable premise,
+whose exact definition and clauses remain unapproved. No WF/WT conjunction,
+constructor admission, wrapper/class field or acceptance policy is added.
+
 All other semantic laws below remain prospective conditional obligations. Their
 domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
 
@@ -2121,7 +2187,7 @@ domains and total completions remain open as detailed in §10; the raw model, si
   fixed-element list counts. It is a blueprint awaiting that domain, not a supplied law.
 - [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This prospective theorem replaces EELS's re-encode check (`ssz.py:144`). Equality of the accept set and the image of `encode` additionally needs the converse decoding/inverse premise on a resolved serialization domain (S3; §10); the re-encode check alone does not supply it.
 - [T] `hashTreeRoot` must terminate, and its reference refinement requires the schema’s Rootable domain (length mix-ins fit uint256 and fields have the exact interpretation). O2 freedom requires proving every successfully decoded guest request belongs to that domain; S5 alone does not establish this.
-- [C] `merkleize` with `zeroHashes` equals naive merkleization over the full power-of-two padding. `merkleizeProgressive` is characterised by the recurrence in S4.
+- [C] `merkleizeProgressive` remains prospective and is characterised by the recurrence in S4. Q74 supplies ordinary physical-capacity Merkleization above.
 - [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
@@ -2243,6 +2309,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Merkleization limits (Q74).** Physical helper and its full ordinary law,
+  private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
+  controls remain UNRUN. Declared count/class/backing admission, exact future
+  Rootable definition, actual decoder/adapter-to-root-support proof, progressive
+  roots, mix-ins, schemas and binding remain open. The guest still accepts arbitrary
+  bytes under CONTRACT; execution-invalid supported payloads root before inner
+  validation. No O2/O12/O13, error/handler, resource, security or readiness gate closes.
 - **Zero-hash limits (Q73).** The two values/two ordinary laws and twelve private
   mathematical/six independent facade client groups are supplied. Source-only
   groups 0–3 remain UNRUN: mutable/rebound globals, negative Python indices, custom

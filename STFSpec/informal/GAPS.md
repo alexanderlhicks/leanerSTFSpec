@@ -294,6 +294,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Merkleization limits (Q74).** Physical helper and its full ordinary law,
+  private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
+  controls remain UNRUN. Declared count/class/backing admission, exact future
+  Rootable definition, actual decoder/adapter-to-root-support proof, progressive
+  roots, mix-ins, schemas and binding remain open. The guest still accepts arbitrary
+  bytes under CONTRACT; execution-invalid supported payloads root before inner
+  validation. No O2/O12/O13, error/handler, resource, security or readiness gate closes.
 - **Zero-hash limits (Q73).** The two values/two ordinary laws and twelve private
   mathematical/six independent facade client groups are supplied. Source-only
   groups 0–3 remain UNRUN: mutable/rebound globals, negative Python indices, custom
