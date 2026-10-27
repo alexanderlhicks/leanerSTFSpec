@@ -813,6 +813,21 @@ work; no cross-call sharing or lifetime result is assumed. This supplies a conte
 tree, leaving source class/backing/global/cache/table/host and enclosing
 Rootable/decoder/mix-in/resource obligations with their consumers.
 
+**SSZ length mix-in count options (Q76).** DECISIONS Q76 owns the selection;
+EthCodec §5/§7 owns the exact local-Nat-bound operation and full successful-value
+SHA equation. A retains the original natural count with one erased local proof.
+B accepts U256 and moves intended-natural-count preservation to the conversion
+seam; wrapping `ofNat` alone supplies no admission proof. C extends all Nat counts
+by their low 256 bits, identifying 0 and 2^256 without a hash assumption. D checks
+Nat and returns Option, introducing a runtime branch and caller handling. The
+selected A follows checked source count construction without selecting an
+outside-domain digest/error or new global invariant. Source contents construction
+precedes the count check, the final PairNode follows its right-child expression,
+and uncached child hashing is later; a pure successful-value helper does not
+preserve that entire caller order. Actual count bounds, source classes/backings/
+globals/aliases/cache/host, activity mix-ins and enclosing rootability remain
+consumer obligations. No provider change or new Rootable clause is selected.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

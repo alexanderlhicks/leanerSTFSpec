@@ -68,17 +68,34 @@ laws.
 
 [EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) supplies the optional-depth
 `Ssz.merkleizeProgressive` and its complete ordinary public recurrence. Empty at
-any Nat depth is zero32. Each nonempty level uses a prefix of capacity2^depth
-and recurses on the suffix at depth+2; local slicing discharges the ordinary
-provider's physical capacity, so no caller premise is added. Starting0 takes
-capacities1/4/16/64. Ordinary calls may omit depth; first-class clients needing
-Array→Bytes32 fix depth0 explicitly, while `@Ssz.merkleizeProgressive` has the
+any Nat depth is the zero chunk. Each nonempty level uses a prefix of capacity 2^depth
+and recurses on the suffix at depth + 2; local slicing discharges the ordinary
+provider's physical capacity, so no caller premise is added. Starting at 0 takes
+capacities 1/4/16/64. Ordinary calls may omit depth; first-class clients needing
+Array→Bytes32 fix depth 0 explicitly, while `@Ssz.merkleizeProgressive` has the
 underlying Array→Nat→Bytes32 type. Full ordered facade clients derive arbitrary-depth
-recurrence/reference/finite-fold/reconstruction and local64-byte FIPS consequences.
-The contents tree alone does not bind counts. Length/activity mix-ins, source
+recurrence/reference/finite-fold/reconstruction and local 64-byte FIPS consequences.
+The contents tree alone does not bind counts. Q76 supplies the local length mix-in;
+activity mix-ins, source
 node/backing/hash/global/cache/table-path/host correspondence, schema admission and
 actual decoder/adapter-to-Rootable support remain consumer premises/open obligations.
 No O2/O12/O13, error policy, resource, guest or readiness gate follows.
+
+### Supplied SSZ length mix-in handoff (Q76)
+
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) supplies exactly
+`Ssz.mixInLength root len h` and its complete ordinary SHA equation. Natural List
+lengths and Bytes sizes pass directly, with precisely their own `len < 2^256`
+proof, including every nested consumer. No WF, WT or Rootable premise substitutes
+for that local fact. Public Base byte laws expose all 32 count digits; the exact
+64-byte message gives the FIPS bound 512 < 2^64 independently of count range.
+Private facade clients derive full digest/byte consequences, equality/proof
+transport and intended-count U256 observations using existing public laws.
+`U256.ofNat` preserves a natural count only when its range is proved; it is not
+an unrestricted admission bridge. Boundary/outside counts have no API argument,
+not a chosen runtime rejection. Actual decoded count bounds, schema/adapters,
+source order/class/backing/alias/cache/host agreement, activity mix-ins, root
+binding and guest/O2/O12/O13/resource/readiness gates remain open with consumers.
 
 ### Supplied raw SSZ pack handoff (Q72)
 

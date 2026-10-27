@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
 *Status: informal specification, draft. Date: 2026-10-26. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, F13, F17, O2.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1314,6 +1314,32 @@ no cross-call cache-reuse, universal all-depth O(n), exact runtime hash count,
 compiled sharing/cache-lifetime, C1–C4 or resource claim. No D18 exception is adopted.
 
 
+### SSZ length mix-in (Q76)
+
+`STFSpec/Codec/SszMixInLength.lean`, exported through `STFSpec.Codec`, supplies
+exactly the operation and complete ordinary public equation in §5/§7. The direct
+executable SHA expression is also its legible reference. The natural count has
+exactly one local strict bound; no WF, WT, Rootable, source or host premise is
+added to the API. All support, derived/control/client declarations remain private.
+
+| Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
+|---|---|---|---|
+| eth-remerkleable 0.1.31 `remerkleable/basic.py:90–97,226–227,303–309`, `core.py:303–305`, `settings.py:5,16–17`; ordinary `complex.py:336–368`, ByteList `byte_arrays.py:228–232`, progressive `progressive.py:88–119,265–266`; EELS `utils/ssz.py:130–146,214–230,264–325` and `forks/amsterdam/stateless.py:220–226,269–271` | `Ssz.mixInLength root len h`; arbitrary Bytes32 root and Nat count with `len < 2^256` | pure complete SHA256(root32 ++ countLE32); no model effects/error or handler. No input is available at/outside 2^256; no modulo completion, U256 argument, runtime branch or new guest diagnostic is selected | ordinary complete `mixInLength_eq`; private lengthP0–lengthP9 and independent facade C0–C9 in §4 |
+
+Static correspondence retains actual standard source classes, exact 32-byte roots,
+original basic backing/endian/hash/global/import aliases, PairNode cache history
+and successful host operations. Contents backing is constructed before checked
+`uint256(count)`; final PairNode construction follows its right-child expression.
+Uncached child hashing is later, while cached roots may avoid child traversal.
+This extracted successful-value helper proves no whole caller failure/resource
+order. No original source was executed/imported/probed and source-only cases
+remain UNRUN, with no runtime profile. The public Base digit law and Hash FIPS
+law supply complete byte/digest composition, not a formal Python refinement.
+Actual decoder/adapters and every nested count must still supply the local bound.
+No input domain is narrowed to prove rootability; source failure cannot be mapped
+to a new guest error here. Activity mix-ins, exact Rootable clauses, enclosing
+root/layout/binding, guest/O2/O12/O13, resource and readiness gates remain open.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -1545,11 +1571,11 @@ compiled sharing/cache-lifetime, C1–C4 or resource claim. No D18 exception is 
 - **Progressive controls (Q75).** `SszMerkleizeProgressiveControls.lean` supplies
   private progressiveP0 entire all-Array/all-Nat executable/reference/public recurrence;
   progressiveP1 empty all depths and complete singleton symbolic paths; progressiveP2 complete ordered
-  roots at1/2/5/6/21/22 with capacities1/4/16/64; progressiveP3 arbitrary ordered segmentation
+  roots at 1/2/5/6/21/22 with capacities 1/4/16/64; progressiveP3 arbitrary ordered segmentation
   and exact reconstruction; progressiveP4 every local physical bound and strict suffix descent;
   progressiveP5 complete ordinary padded frontier/pair fold plus the public ordinary-helper
   bridge; progressiveP6 default 0 insertion, underlying two-argument function type, odd shifted
-  depths and symbolic64/65/255/256; progressiveP7 complete ordered64-byte preimages and local
+  depths and symbolic 64/65/255/256; progressiveP7 complete ordered 64-byte preimages and local
   public FIPS composition; progressiveP8 arbitrary-data/depth finite right-fold equivalence;
   progressiveP9 unequal-count equal-root padding witness without a collision premise.
   `SszMerkleizeProgressiveCallerProofs.lean` imports only Codec and independently
@@ -1558,6 +1584,24 @@ compiled sharing/cache-lifetime, C1–C4 or resource claim. No D18 exception is 
   provider-private workers, generated equations or private Base/Hash storage.
   Activity/source/Rootable/host separation remains explicit prose/premises, with
   no invented activity theorem or source execution. Deep hashes remain symbolic.
+
+- **Length mix-in controls (Q76).** `SszMixInLengthControls.lean` supplies
+  private lengthP0–lengthP9: complete arbitrary-root/admitted-Nat executable→public
+  equation→List-byte reference; exact64-byte ordered preimage; count0/1 complete
+  SHA expressions; count255/256 low-to-high transition; maximum2^256−1 with
+  all 32 bytes 255 and excluded endpoint; exact root/count transport and proof
+  independence; full local FIPS digest trace with 512 < 2^64; direct actual List/Bytes
+  count consumers with exactly local bounds and full bytes; intended-count U256
+  observation under the bound; and every count≥2^256 lacks the API premise.
+  `SszMixInLengthCallerProofs.lean` imports only Codec and independently derives
+  private C0–C9 through the public mix-in/Base/Hash laws. Each full byte/digest
+  statement preserves arbitrary root bytes, including leading/trailing zeros,
+  and all 32 count digits. Closed digit checks evaluate only finite 32-byte lists;
+  SHA expressions remain symbolic. No generated automatic equation or private
+  provider representation is consumed. lengthP9/C9 assert genuine range impossibility;
+  no reflexivity claim stands in for activity, security or source correspondence.
+  These ordinary mathematical proofs close this finite catalog, not source-runtime,
+  actual count-support, enclosing root/binding or guest/resource/readiness gates.
 
 ## 5. Interface
 
@@ -1648,7 +1692,8 @@ namespace Ssz
       Base.Bytes32 -- supplied physical-capacity helper (Q74)
   def merkleizeProgressive (chunks : Array Base.Bytes32) (depth : Nat := 0) :
       Base.Bytes32 -- supplied contents-tree helper (Q75)
-  def mixInLength (root : Bytes32) (len : Nat) : Bytes32
+  def mixInLength (root : Base.Bytes32) (len : Nat)
+      (h : len < 2^256) : Base.Bytes32 -- supplied local-bound helper (Q76)
   def mixInActiveFields (root : Bytes32) (active : List Bool) : Bytes32
   def zeroHashes : Array Base.Bytes32  -- supplied ordered prefix, depths 0..64 (Q73)
   def Rootable (t : SszType) (v : SszValue) : Prop -- planned placeholder; exact clauses unapproved (Q74)
@@ -2253,6 +2298,32 @@ all finite arrays and every natural depth without a source-host success premise;
 source correspondence separately retains the local premises in §3. No length or
 activity mix-in, Rootable clause, acceptance/error policy or binding assumption is added.
 
+Q76 supplies exactly this ordinary public law, **discharged** by
+`STFSpec/Codec/SszMixInLength.lean`:
+
+```lean
+theorem Ssz.mixInLength_eq (root : Base.Bytes32) (len : Nat)
+    (h : len < 2^256) :
+    mixInLength root len h =
+      STFSpec.Hash.sha256
+        ((root.toBytes ++
+          (Base.FixedBytes.ofLeNat len : Base.Bytes32).toBytes).toByteArray)
+```
+
+Public `FixedBytes.toBytes_ofLeNat` expands all 32 count bytes to
+`Base.Bytes.generate 32 (fun i => UInt8.ofNat (len >>> (8 * i)))`.
+The resulting full List reference is root.toBytes.toList followed by those
+ordered 32 digits; zero bytes are retained throughout. The operation has exactly
+one local Nat bound. Proof irrelevance and exact root/count equality preserve
+its whole result without a hash-injectivity assumption. Natural List/Bytes
+consumers supply the bound directly. Existing `U256.toNat_ofNat_of_lt` gives an
+intended-count observation only under this bound, not wrapping admission.
+All SHA messages have 64 bytes: the local FIPS 512 < 2^64 premise is independent of
+count range. Boundary/outside counts cannot supply the API proof; this is neither
+a runtime result nor a guest error choice. Source success/order, every actual
+nested count bound and rootability, activity interpretation and collision freedom
+remain separate. No global WF/WT/Rootable premise or new public helper is added.
+
 All other semantic laws below remain prospective conditional obligations. Their
 domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
 
@@ -2263,7 +2334,7 @@ domains and total completions remain open as detailed in §10; the raw model, si
   fixed-element list counts. It is a blueprint awaiting that domain, not a supplied law.
 - [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This prospective theorem replaces EELS's re-encode check (`ssz.py:144`). Equality of the accept set and the image of `encode` additionally needs the converse decoding/inverse premise on a resolved serialization domain (S3; §10); the re-encode check alone does not supply it.
 - [T] `hashTreeRoot` must terminate, and its reference refinement requires the schema’s Rootable domain (length mix-ins fit uint256 and fields have the exact interpretation). O2 freedom requires proving every successfully decoded guest request belongs to that domain; S5 alone does not establish this.
-- [C] Progressive contents-tree refinement is supplied by Q75 above. Length/activity mix-ins and enclosing roots remain prospective; Q74 owns the ordinary physical helper.
+- [C] Progressive contents-tree refinement is supplied by Q75 above. Q76 supplies the local length mix-in. Activity mix-ins and enclosing roots remain prospective; Q74 owns the ordinary physical helper.
 - [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
@@ -2318,6 +2389,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+- **Q76** owns the approved Nat count/local-bound disposition. §5/§7 owns
+  exactly the supplied operation/equation; §10 retains actual count/root/source
+  obligations without selecting a new global domain or guest error policy.
+
 - **Q71** owns the approved payload-only typing disposition; §5/§7 owns exactly
   its predicate and complete constructor law. WF is separate and WT⇒WF is false;
   source/operation/codec/root domains in §10 remain open.
@@ -2359,8 +2434,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing plus raw byte packing, zero hashes and the Q74/Q75
-  ordinary/progressive contents trees; the remaining SSZ semantic interfaces
+  and payload typing, raw byte packing, zero hashes, the Q74/Q75
+  ordinary/progressive contents trees and the Q76 local length mix-in;
+  the remaining SSZ semantic interfaces
   remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
@@ -2369,8 +2445,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied, together with raw `Ssz.pack`, zero hashes and the Q74/Q75
-  ordinary/progressive contents trees and their complete public equations;
+  are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
+  ordinary/progressive contents trees, the Q76 local length mix-in
+  and their complete public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -2387,12 +2464,20 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Length mix-in limits (Q76).** The two public declarations, complete
+  successful-value equation, private lengthP0–lengthP9 and facade C0–C9 are supplied.
+  Source-only cases remain UNRUN. Actual standard source class/root/backing/
+  endian/hash/global/alias/cache/host premises and whole caller construction/
+  failure/resource order remain separate. Actual decoder/adapter and nested
+  count bounds, exact Rootable clauses, activity mix-ins, enclosing roots/layout/
+  binding, guest/O2/O12/O13, security, EEST, G/S/W/R/C1–C4 and readiness gates
+  remain open; no accepted-domain narrowing or new error mapping is adopted.
 - **Progressive helper limits (Q75).** The two public declarations, all-domain
   packed/reference recurrence refinement, private progressiveP0–progressiveP9 and facade C0–C9 are supplied.
   Source-only operational controls remain UNRUN. Source node/backing/class/root/hash/
   global/alias/cache/per-path zero-table and successful-host premises stay local;
-  bulk construction does not prove append/navigation correspondence. Length/activity
-  mix-ins, exact Rootable clauses, schemas/decoder/adapter support, outcomes,
+  bulk construction does not prove append/navigation correspondence. Q76 supplies
+  the local length mix-in; activity mix-ins, exact Rootable clauses, schemas/decoder/adapter support, outcomes,
   resources/C1–C4, security, EEST, guest and readiness gates remain open.
 - **Merkleization limits (Q74).** Physical helper and its full ordinary law,
   private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
