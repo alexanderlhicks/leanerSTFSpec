@@ -47,6 +47,31 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
+### Supplied local SSZ root support (Q78)
+
+EthCodec §5/§7 supplies `Ssz.Rootable` and its sole complete ordinary constructor
+law. Consumers use actual child membership, exact equal-length/zip alignment,
+declared sizes/limits, basic uint widths and the strict nested actual count
+bounds in the appropriate units. Bool lists use one byte per basic Bool; fixed
+vectors are composite elements. No typed packer or complete root result is
+supplied. Fixed vectors and containers acquire no count-mix-in bound.
+
+Empty lists of unused malformed composite schemas can be Rootable without WF;
+empty direct uint lists still inspect basic width. Private facade clients derive
+Rootable→WT through public laws, independently by value and descriptor induction.
+They explicitly refute a global Rootable→WF claim. Source construction visits
+unused schemas, so class/name/reflection/order/coercion and the capacity-256
+`more` premise remain local, along with backing/cache/hash/global/alias/host
+coherence. Sparse false activity slots correspond to zero chunks at depth 0 in
+future source-shaped contents, without adding a slot-builder API here.
+
+Actual decoded view→dataclass→fresh-view support and complete root-result laws
+remain separate. Preserve every source-accepted byte input while investigating
+the bridge; request rooting precedes semantic execution checks, including empty
+transactions or headers and execution-invalid requests. No new decoder guard,
+root result, provider or schema field follows. Source failure/resource order,
+O2/O12/O13, security/binding, C1–C4 and readiness remain open with their owners.
+
 ### Supplied SSZ zero-hash handoff (Q73)
 
 [EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the two supplied values and
@@ -112,9 +137,10 @@ commit to the contents tree with inactive zero nodes. Mathematical mask packing
 does not establish those premises or raw-list injectivity: trailingfalse padding
 preserves the preimage. Actual guest masks are all true, with 19 and 5 entries respectively, without a
 user-supplied-mask decoder contract. Source eager construction versus lazy/cache
-hashing and backing/root/hash/global/alias/host coherence stay local. Rootable
-laws, decoder/adapter support, enclosing roots/binding, guest/O2/O12/O13 and
-resource/cost/readiness gates remain separate; Q70/Q71 stay unchanged.
+hashing and backing/root/hash/global/alias/host coherence stay local. Q78 supplies
+the local Rootable law. Actual decoder/adapter-to-Rootable support, enclosing
+roots/binding, guest/O2/O12/O13 and resource/cost/readiness gates remain separate;
+Q70/Q71 stay unchanged.
 
 ### Supplied raw SSZ pack handoff (Q72)
 
@@ -713,11 +739,12 @@ byte/item bound needs a packing/child-root bridge. Physical helper support is
 weaker than declared admission: 31 and 32 bytes both fit one chunk at declared 31,
 while 33 bytes do not fit declared 32's one-chunk capacity. The helper retains
 plain zero-padding ambiguity and supplies no count mix-in or binding theorem.
-Future recursive roots may be proof-bounded using the planned Rootable placeholder;
-its exact clauses and actual successful decoder/adapter-to-support proof remain
-open. Structurally supported execution-invalid requests must still root before
-inner validation. No schema class field, accepted-domain, O2/O12/O13, resource,
-security or readiness change follows.
+Future recursive roots may be proof-bounded using Q78's supplied local Rootable
+predicate and complete constructor law. Actual successful decoder/adapter-to-support
+proofs and enclosing root implementations/laws remain open. Structurally supported
+execution-invalid requests must still root before inner validation. No schema
+class field, accepted-domain, O2/O12/O13, resource, security or readiness change
+follows.
 
 Separately, Q70 supplies `SszType.WellFormed` and the sole ordinary public
 `wellFormed_iff` constructor law, owned by EthCodec §5/§7. Consumers use that

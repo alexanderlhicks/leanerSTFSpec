@@ -794,8 +794,8 @@ accepted disposition; EthCodec §5/§7 owns the physical-capacity helper and ful
 expanded equation. The selected proof-bounded helper retains ordered supplied
 chunks at the original rounded depth. Alternatives are growth to fit actual
 counts, an unrestricted raw completion with new mismatch behavior, or deferral
-until a root consumer. Future recursive roots may carry the planned Rootable
-premise; its exact definition is not selected here. The actual decoder/adapter
+until a root consumer. Future recursive roots may carry the local Rootable
+premise selected separately by Q78. The actual decoder/adapter
 must supply that support without narrowing the guest's accepted byte domain.
 Packed interval traversal stops at absent subtrees and uses a shared zero prefix;
 all-Nat zero extension, actual-chunk work and depth work are accounted separately.
@@ -843,6 +843,21 @@ zero nodes at activity positions; sparse field ordinal is a separate concept.
 Source eager mask/content construction, lazy hashing and backing/cache coherence
 remain consumer premises. No new provider, Rootable clause, actual guest mask
 acceptance rule, error policy or resource/readiness result follows.
+
+**Local SSZ root-support options (Q78).** DECISIONS Q78 owns the approved C
+selection; EthCodec §5/§7 owns exactly the predicate and complete ordinary
+constructor law. C follows declared lengths/limits and actual recursive payloads,
+without global WF of unused composite schemas. A would admit physical-only
+extensions such as over-declared inputs, empty ordinary containers and trailing
+false masks; B would conjoin global schema WF/WT, rejecting unused malformed
+composite children. Both change the selected local domain. Empty direct basic
+uint lists still need supported widths because basic classification reads them.
+Actual source construction visits unused schemas; C alone establishes neither
+class admission nor a decoder/reconstruction theorem. The supplied helpers remain
+unchanged; count units are bytes for byte lists and elements for element lists, while fixed
+vectors/containers have no length mix-in. Actual decoder/adapter support and
+complete root results stay separate and cannot be obtained by adding a decoder
+guard or execution-validity premise.
 
 ## 12. Not yet decided
 

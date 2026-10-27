@@ -81,6 +81,8 @@ import STFSpec.Conformance.Codec.SszWellTypedControls
 import STFSpec.Conformance.Codec.SszWellTypedCallerProofs
 import STFSpec.Conformance.Codec.SszWellFormedControls
 import STFSpec.Conformance.Codec.SszWellFormedCallerProofs
+import STFSpec.Conformance.Codec.SszRootableControls
+import STFSpec.Conformance.Codec.SszRootableCallerProofs
 import STFSpec.Conformance.Codec.SszFixedSizeGuards
 import STFSpec.Conformance.Codec.SszFixedSizeCallerProofs
 import STFSpec.Conformance.Commit.NodeDBGuards
