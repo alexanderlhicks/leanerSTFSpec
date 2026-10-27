@@ -76,7 +76,7 @@ Array→Bytes32 fix depth 0 explicitly, while `@Ssz.merkleizeProgressive` has th
 underlying Array→Nat→Bytes32 type. Full ordered facade clients derive arbitrary-depth
 recurrence/reference/finite-fold/reconstruction and local 64-byte FIPS consequences.
 The contents tree alone does not bind counts. Q76 supplies the local length mix-in;
-activity mix-ins, source
+Q77 supplies the activity mix-in; source
 node/backing/hash/global/cache/table-path/host correspondence, schema admission and
 actual decoder/adapter-to-Rootable support remain consumer premises/open obligations.
 No O2/O12/O13, error policy, resource, guest or readiness gate follows.
@@ -94,8 +94,27 @@ transport and intended-count U256 observations using existing public laws.
 `U256.ofNat` preserves a natural count only when its range is proved; it is not
 an unrestricted admission bridge. Boundary/outside counts have no API argument,
 not a chosen runtime rejection. Actual decoded count bounds, schema/adapters,
-source order/class/backing/alias/cache/host agreement, activity mix-ins, root
+source order/class/backing/alias/cache/host agreement and root
 binding and guest/O2/O12/O13/resource/readiness gates remain open with consumers.
+
+### Supplied active-field mix-in handoff (Q77)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) supplies the local-width helper
+and sole complete ordinary equation. A caller supplies exactly `active.length ≤ 256`;
+private arithmetic derives the numeric 256-bit fit. Public Base laws expand all 32
+low-first mask digits after every supplied root byte; the fixed 64-byte message
+supplies 512 < 2^64 for the full public Hash FIPS digest relation. Private facade
+clients use all named root/active/h arguments and complete public laws.
+Source correspondence additionally requires the actual source class, names,
+nonempty/finaltrue/population/width admission, including `more` membership at
+capacity, and ordered sparse activity positions. The supplied root must already
+commit to the contents tree with inactive zero nodes. Mathematical mask packing
+does not establish those premises or raw-list injectivity: trailingfalse padding
+preserves the preimage. Actual guest masks are all true, with 19 and 5 entries respectively, without a
+user-supplied-mask decoder contract. Source eager construction versus lazy/cache
+hashing and backing/root/hash/global/alias/host coherence stay local. Rootable
+laws, decoder/adapter support, enclosing roots/binding, guest/O2/O12/O13 and
+resource/cost/readiness gates remain separate; Q70/Q71 stay unchanged.
 
 ### Supplied raw SSZ pack handoff (Q72)
 

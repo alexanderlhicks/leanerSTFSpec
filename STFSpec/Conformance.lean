@@ -234,6 +234,8 @@ import STFSpec.Conformance.Codec.SszMerkleizeCallerProofs
 
 import STFSpec.Conformance.Codec.SszMerkleizeProgressiveControls
 import STFSpec.Conformance.Codec.SszMerkleizeProgressiveCallerProofs
+import STFSpec.Conformance.Codec.SszMixInActiveFieldsControls
+import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
