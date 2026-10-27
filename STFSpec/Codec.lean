@@ -25,6 +25,8 @@ import STFSpec.Codec.RlpAddress
 import STFSpec.Codec.RlpList
 import STFSpec.Codec.RlpHash32
 
+import STFSpec.Codec.SszMerkleize
+
 /-!
 # STFSpec.Codec
 

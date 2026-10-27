@@ -654,6 +654,19 @@ static source interpretation supplies no executable/formal Python correspondence
 actual schema or compiled resource theorem; the residual domain questions remain
 open in EthCodec §10.
 
+Q74 additionally supplies the physical-capacity `Ssz.merkleize` helper and its
+complete ordered padded-fold equation, owned by EthCodec §5/§7. Each caller
+supplies the actual chunk-count bound at the selected rounded depth; a declared
+byte/item bound needs a packing/child-root bridge. Physical helper support is
+weaker than declared admission: 31 and 32 bytes both fit one chunk at declared 31,
+while 33 bytes do not fit declared 32's one-chunk capacity. The helper retains
+plain zero-padding ambiguity and supplies no count mix-in or binding theorem.
+Future recursive roots may be proof-bounded using the planned Rootable placeholder;
+its exact clauses and actual successful decoder/adapter-to-support proof remain
+open. Structurally supported execution-invalid requests must still root before
+inner validation. No schema class field, accepted-domain, O2/O12/O13, resource,
+security or readiness change follows.
+
 Separately, Q70 supplies `SszType.WellFormed` and the sole ordinary public
 `wellFormed_iff` constructor law, owned by EthCodec §5/§7. Consumers use that
 nameless structural equation: recursive children remain obligations at limit 0,
