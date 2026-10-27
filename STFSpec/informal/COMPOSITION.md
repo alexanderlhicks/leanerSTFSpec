@@ -64,6 +64,22 @@ source-runtime profile, merkleization, root admission, failure/outcome, compiled
 sharing/resource, C1–C4 or guest/readiness obligation follows from the zero-hash
 laws.
 
+### Supplied progressive SSZ contents-tree handoff (Q75)
+
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) supplies the optional-depth
+`Ssz.merkleizeProgressive` and its complete ordinary public recurrence. Empty at
+any Nat depth is zero32. Each nonempty level uses a prefix of capacity2^depth
+and recurses on the suffix at depth+2; local slicing discharges the ordinary
+provider's physical capacity, so no caller premise is added. Starting0 takes
+capacities1/4/16/64. Ordinary calls may omit depth; first-class clients needing
+Array→Bytes32 fix depth0 explicitly, while `@Ssz.merkleizeProgressive` has the
+underlying Array→Nat→Bytes32 type. Full ordered facade clients derive arbitrary-depth
+recurrence/reference/finite-fold/reconstruction and local64-byte FIPS consequences.
+The contents tree alone does not bind counts. Length/activity mix-ins, source
+node/backing/hash/global/cache/table-path/host correspondence, schema admission and
+actual decoder/adapter-to-Rootable support remain consumer premises/open obligations.
+No O2/O12/O13, error policy, resource, guest or readiness gate follows.
+
 ### Supplied raw SSZ pack handoff (Q72)
 
 [EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the supplied component helper

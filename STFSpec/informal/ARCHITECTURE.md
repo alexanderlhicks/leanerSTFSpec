@@ -801,6 +801,18 @@ Packed interval traversal stops at absent subtrees and uses a shared zero prefix
 all-Nat zero extension, actual-chunk work and depth work are accounted separately.
 No compiled sharing, runtime hash count or C1–C4 result is implied.
 
+**Progressive SSZ public recurrence options (Q75).** DECISIONS Q75 owns the
+selection; EthCodec §5/§7 owns the optional-depth operation and full expanded
+ordinary-prefix recurrence. The alternative exposes only start0 with a complete
+finite segmented-fold law, leaving intermediate shifted states to private caller
+models. Optional depth follows the source helper and permits direct induction at
+any mathematical Nat depth; default insertion does not preserve a one-argument
+first-class function type. Packed disjoint windows call the existing ordinary
+helper with locally derived capacity proofs. Each call owns its zero-prefix/extension
+work; no cross-call sharing or lifetime result is assumed. This supplies a contents
+tree, leaving source class/backing/global/cache/table/host and enclosing
+Rootable/decoder/mix-in/resource obligations with their consumers.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
