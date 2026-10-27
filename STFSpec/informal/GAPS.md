@@ -260,11 +260,22 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
+- **Computational raw roots (Q79) supplied; actual bridges open.** The operation,
+  complete ordinary equation, actual-value termination, local witness availability
+  and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
+  controls/clients, are discharged. Actual source class/name/reflection/coercion/
+  backing/cache/hash/global/alias/endian/host and executed-path zero-table premises,
+  decoder view→dataclass→fresh-view support, typed SszSchema/root adapters, whole
+  source construction/failure/resource order, O2/O12/O13, request binding/external
+  anchors, EEST/guest/security, C1–C4 and readiness remain open. Finite source-vector
+  evidence is bounded and distinguishes mathematical-only cases; it supplies no
+  universal source/decoder or accepted-input theorem and adds no decoder guard.
+
 - **Local root support (Q78) supplied; consuming bridges open.** The two public
   declarations and the complete private rootableP0–rootableP9/rootableC0–rootableC9
   control/client groups are discharged.
-  Actual source view→dataclass→fresh-view support, complete root-result law and
-  implementation, source class/name/backing/cache/hash/global/alias/host premises,
+  Actual source view→dataclass→fresh-view support and source
+  class/name/backing/cache/hash/global/alias/host premises,
   failure/resource order, O2/O12/O13, binding/security and C1–C4/readiness remain
   separate. No new decoder restriction or layer-readiness assertion follows.
 
@@ -277,8 +288,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
-  ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins and
-  Q78 local root support; other SSZ semantic interfaces remain unimplemented.
+  ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
+  Q78 local root support and the Q79 computational raw root; other SSZ semantic
+  interfaces remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -288,7 +300,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
   are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
-  mix-ins, `Ssz.Rootable` and their complete public equations;
+  mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
+  public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -299,6 +312,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
+- **Computational raw root limits (Q79).** The C-indexed operation, complete
+  ordinary constructor equation, rootP0–rootP9 and independent rootC0–rootC9 are
+  supplied. Local projections, capacity/child witnesses and determination cover
+  actual supported values. Finite source observations and executable Lean
+  comparisons are separate evidence; they supply no general Python refinement,
+  schema/class/decoder bridge, source failure/resource ordering or runtime guard.
+  O2/O12/O13, EEST/guest, security/binding, C1–C4 and readiness gates stay open.
 - **SSZ sizing limits (Q67).** The classifier, ordinary equation, structural
   termination and §4 private controls/clients are supplied. Conditional static
   source interpretation is not a formal Python refinement theorem or executed
@@ -333,7 +353,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
   controls remain UNRUN. Q78 supplies local Rootable and its complete law;
   actual declared-count/class/backing admission, decoder/adapter-to-root-support
-  proofs, enclosing root implementations/laws, schemas and binding remain open.
+  proofs, typed-root/schema refinement and binding remain open; Q79 supplies
+  the local raw root operation and its complete result law.
   The local length/activity mix-ins are supplied separately by Q76/Q77. The guest
   still accepts arbitrary bytes under CONTRACT; execution-invalid supported
   payloads root before inner validation. No O2/O12/O13, error/handler, resource, security or readiness gate closes.

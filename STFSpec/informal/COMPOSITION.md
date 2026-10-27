@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-26.*
+*Status: conditional proof plan. Date: 2026-10-27.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -53,8 +53,8 @@ EthCodec §5/§7 supplies `Ssz.Rootable` and its sole complete ordinary construc
 law. Consumers use actual child membership, exact equal-length/zip alignment,
 declared sizes/limits, basic uint widths and the strict nested actual count
 bounds in the appropriate units. Bool lists use one byte per basic Bool; fixed
-vectors are composite elements. No typed packer or complete root result is
-supplied. Fixed vectors and containers acquire no count-mix-in bound.
+vectors are composite elements. No typed packer is exported; Q79 supplies the raw
+root result separately. Fixed vectors and containers acquire no count-mix-in bound.
 
 Empty lists of unused malformed composite schemas can be Rootable without WF;
 empty direct uint lists still inspect basic width. Private facade clients derive
@@ -62,15 +62,41 @@ Rootable→WT through public laws, independently by value and descriptor inducti
 They explicitly refute a global Rootable→WF claim. Source construction visits
 unused schemas, so class/name/reflection/order/coercion and the capacity-256
 `more` premise remain local, along with backing/cache/hash/global/alias/host
-coherence. Sparse false activity slots correspond to zero chunks at depth 0 in
-future source-shaped contents, without adding a slot-builder API here.
+coherence. Q79 supplies sparse false activity slots as depth 0 zero chunks in raw
+contents, without adding a slot-builder API.
 
-Actual decoded view→dataclass→fresh-view support and complete root-result laws
-remain separate. Preserve every source-accepted byte input while investigating
+Actual decoded view→dataclass→fresh-view support remains separate from Q79’s
+raw root-result law. Preserve every source-accepted byte input while investigating
 the bridge; request rooting precedes semantic execution checks, including empty
 transactions or headers and execution-invalid requests. No new decoder guard,
-root result, provider or schema field follows. Source failure/resource order,
-O2/O12/O13, security/binding, C1–C4 and readiness remain open with their owners.
+provider or schema field follows from this predicate alone. Source failure/resource
+order, O2/O12/O13, security/binding, C1–C4 and readiness remain open with their owners.
+
+### Supplied computational SSZ root handoff (Q79)
+
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) owns the exact C-indexed
+`Ssz.hashTreeRoot` and its sole complete ordinary constructor-result equation.
+Callers retain named t/v/h and use the entire public equation. Its inline basic
+bytes, ordered proof-independent child graph, capacities and sparse ranks are
+stable mathematics; private workers are not consumer seams. Rootable's public
+law supplies the actual child support/arity/count/classification premises. Local
+projections, ordered certificates and physical bounds exist under C, and
+actual-value induction determines all recursive results. An empty actual
+composite list visits no unused malformed schema. Fixed vectors/containers gain
+no count-mix bound; Bool lists use bytes and byte vectors remain composite list
+elements. Progressive contents contain exactly the finite activity positions,
+with depth 0 zero chunks at false bits and a separate full mask mix.
+
+These raw roots are computed before inner semantic validation in the source.
+Actual schema names/field order/classes/reflection/coercions, construction of
+unused schemas and capacity 256 `more`, source backing/cache/hash/global/alias/
+endian/host coherence and executed-path zero-table availability remain local.
+The actual decoded view→dataclass→fresh-view bridge must preserve every tag,
+ordered child, declared size and nested count. No decoder guard or execution/
+nonempty-header/transaction premise is added. Finite original comparisons,
+mathematical-only extensions and excluded no-result cases stay distinguished.
+O2/O12/O13, request binding/external anchors, source resource/failure order,
+C1–C4 and readiness are unchanged and remain separate obligations.
 
 ### Supplied SSZ zero-hash handoff (Q73)
 
@@ -739,9 +765,9 @@ byte/item bound needs a packing/child-root bridge. Physical helper support is
 weaker than declared admission: 31 and 32 bytes both fit one chunk at declared 31,
 while 33 bytes do not fit declared 32's one-chunk capacity. The helper retains
 plain zero-padding ambiguity and supplies no count mix-in or binding theorem.
-Future recursive roots may be proof-bounded using Q78's supplied local Rootable
-predicate and complete constructor law. Actual successful decoder/adapter-to-support
-proofs and enclosing root implementations/laws remain open. Structurally supported
+Q79 supplies the proof-bounded raw recursive root and its complete equation on
+Q78’s supplied local Rootable domain. Actual successful decoder/adapter-to-support
+proofs and typed root/schema refinement remain open. Structurally supported
 execution-invalid requests must still root before inner validation. No schema
 class field, accepted-domain, O2/O12/O13, resource, security or readiness change
 follows.

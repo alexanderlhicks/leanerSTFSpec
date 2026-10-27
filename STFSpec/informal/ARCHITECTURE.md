@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-10-26). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-27). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -854,10 +854,27 @@ composite children. Both change the selected local domain. Empty direct basic
 uint lists still need supported widths because basic classification reads them.
 Actual source construction visits unused schemas; C alone establishes neither
 class admission nor a decoder/reconstruction theorem. The supplied helpers remain
-unchanged; count units are bytes for byte lists and elements for element lists, while fixed
-vectors/containers have no length mix-in. Actual decoder/adapter support and
-complete root results stay separate and cannot be obtained by adding a decoder
-guard or execution-validity premise.
+unchanged; count units are bytes for byte lists and elements for element lists,
+while fixed vectors/containers have no length mix-in. Q79 supplies the raw
+root-result operation/law separately. Actual decoder/adapter support cannot be
+obtained by adding a decoder guard or execution-validity premise.
+
+**Computational SSZ root-result options (Q79).** DECISIONS Q79 owns the approved
+D selection; EthCodec §5/§7 owns the exact operation and one complete ordinary
+constructor-result law. D keeps the same C premise and a small stable vocabulary:
+inline digit/chunk/child-graph/slot formulas describe all nine cases. Consumers
+instantiate the local witnesses through public laws; actual-value induction
+establishes availability and determination, including empty unused composite
+schemas. The longer inline result law is the proof-facing tradeoff. A separately
+exported relation would need complete constructor rules plus existence and
+uniqueness; a public reference function would need its own complete equations
+and executable/reference equality. Both alternatives add stable public names and
+consumer obligations without a demonstrated need, and neither is selected.
+Private readable/efficient support and ordinary full model equalities are allowed;
+no typed packer, classifier, slot-builder API, extra law, validator or schema/provider
+change follows. Replacement re-proves the unchanged complete equation. Actual
+source class/reconstruction/host/failure/resource premises, decoder support,
+O2/O12/O13, security and cost/readiness gates remain separate.
 
 ## 12. Not yet decided
 

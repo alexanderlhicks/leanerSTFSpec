@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-26. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, F13, F17, O2.*
+*Status: informal specification, draft. Date: 2026-10-27. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1378,9 +1378,9 @@ runtime validator is introduced. Both public declarations retain named `t`/`v`.
 | Source at pin / locked eth-remerkleable 0.1.31 | Operation/domain | Effects and failures | Law and controls/clients |
 |---|---|---|---|
 | `utils/ssz.py:91–95,179–225,263–325`; `basic.py:24–61,90–97,252–309` | `Ssz.Rootable`, all raw pairs; supported uint byte widths 1/2/4/8/16/32 with mathematical range; Bool stays distinct | pure Prop, no effects/errors/coercion/truncation | complete `rootable_iff`; rootableP0/rootableC0 all nine matches and 36 unmatched tag pairs; rootableP1/rootableC1 scalar widths/range/Bool |
-| `byte_arrays.py:79–103,173–194,225–235`; `progressive.py:88–118,265–266` | same predicate; exact vector size, ordinary byte-list declared bound and actual byte count < 2^256; progressive byte count < 2^256 | no extra vector count bound or progressive ordinary cap | same law; rootableP2/rootableC2 exact/zero vectors and limit0; rootableP4/rootableC4 symbolic byte ceilings |
+| `byte_arrays.py:79–103,173–194,225–235`; `progressive.py:88–118,265–266` | same predicate; exact vector size, ordinary byte-list declared bound and actual byte count < 2^256; progressive byte count < 2^256 | no extra vector count bound or progressive ordinary cap | same law; rootableP2/rootableC2 exact/zero vectors and limit 0; rootableP4/rootableC4 symbolic byte ceilings |
 | `complex.py:135–162,336–399`; `progressive.py:88–134`; `core.py:273–332` | same predicate; ordinary declared element bound, actual element count < 2^256, every actual child and basic classifier; progressive omits declared bound | direct basic widths inspected even when empty; Bool one byte/basic, fixed vectors composite | same law; rootableP3/rootableC3 complete support and child projections, rootableP4/rootableC4 both element ceilings; rootableP8/rootableC8 unused-composite/direct-basic contrasts |
-| `utils/ssz.py:231–260`; `complex.py:768–819`; `progressive.py:460–530` | same predicate; nonempty ordinary fields, exact ordered arity/children; progressive final true, width ≤ 256, population and arity/children | sparse false slots denote future depth 0 zero chunks; no new container count bound, slot API, source name premise or root output | same law; rootableP5/rootableC5 arity/order failures, rootableP6/rootableC6 sparse/population/arity, rootableP7/rootableC7 masks 255/256/257 and malformed masks |
+| `utils/ssz.py:231–260`; `complex.py:768–819`; `progressive.py:460–530` | same predicate; nonempty ordinary fields, exact ordered arity/children; progressive final true, width ≤ 256, population and arity/children | sparse false slots denote depth 0 zero chunks in contents; no new container count bound, slot API, source name premise or root output | same law; rootableP5/rootableC5 arity/order failures, rootableP6/rootableC6 sparse/population/arity, rootableP7/rootableC7 masks 255/256/257 and malformed masks |
 | ordinary structural recursion and public constructor laws | `Ssz.rootable_iff (t) (v)`, complete local-domain equation; private all-t/v Rootable→WT | logical characterization, not class admission or decoder/root-result equivalence | rootableP0–rootableP9 and rootableC0–rootableC9; rootableP9 value induction and rootableC9 independent descriptor induction; rootableP8/rootableC8 exact non-global-WF witnesses |
 
 This is selected C, not a global WF/WT conjunction or physical-only admission.
@@ -1393,10 +1393,49 @@ source-facing premises. The actual guest uses fixed ordinary/progressive schemas
 with masks 19/5 and roots before semantic execution checks. Source-accepted bytes
 retain their acceptance while the actual view→dataclass→fresh-view support bridge
 is investigated. No execution-validity/nonempty-transactions/headers premise or
-new decoder guard is selected. Backing/cache/hash/global/alias/host coherence,
-full root-result implementations/laws, source failure/resource order,
+new decoder guard is selected. Q79 supplies raw roots separately.
+Backing/cache/hash/global/alias/host coherence, source failure/resource order,
 O2/O12/O13, binding/security, C1–C4 and readiness remain separate obligations.
 There is no source execution or differential profile in this Prop-only slice.
+
+### Computational SSZ roots and direct result law (Q79)
+
+`STFSpec/Codec/SszRoot.lean`, exported through `STFSpec.Codec`, supplies exactly
+`Ssz.hashTreeRoot (t) (v) (h : Ssz.Rootable t v)` and the complete ordinary
+`Ssz.hashTreeRoot_eq` in §7, **discharged** on the unchanged Q78 domain. All authored
+support, typed byte projections, actual-child traversal, slot construction,
+references, derived laws, controls and clients remain private. No instance,
+validator, runtime bound check, extra public law or schema/provider change is added.
+
+| Source at pin / locked eth-remerkleable 0.1.31 | Operation/domain | Effects and failures | Law and controls/clients |
+|---|---|---|---|
+| `utils/ssz.py:91–95,133–135,200–225,263–296`; `basic.py:18–27,91–99,226–227,252–309`; `core.py:303–305` | `Ssz.hashTreeRoot`, uint/Bool branches under actual local support | full 32 low-first bytes; Bool byte 00/01, no hash/tag/count mix | complete `hashTreeRoot_eq`; rootP0/rootC0 whole arbitrary t/v/h law; rootP1/rootC1 all six widths/endpoints, full bytes and excluded tags/ranges |
+| `utils/ssz.py:211–214,219–220,276–284`; `byte_arrays.py:80–104,134–140,170–197,228–232`; `progressive.py:88–135,239–266` | same operation, fixed/ordinary/progressive bytes | fixed vectors use declared chunk count without a mix; ordinary byte lists use declared limit in chunks; lists mix actual byte count | same law; rootP2/rootC2 vectors 0/1/31/32/33/48/96/256, byte limits 0/1/32/33 and same-pack/different-count; rootP5/rootC5 progressive empty/one |
+| `utils/ssz.py:215–218,266–273`; `complex.py:140–161,333–399,492–493,512–513`; `core.py:292–293,312–323`; `progressive.py:25–32,88–135` | same operation, ordinary/progressive element lists | supported uint uses consecutive w-byte digits; Bool uses one byte each; every other descriptor is composite, including fixed vectors; count is actual elements | same law; rootP3/rootC3 packed uint64 list 5/Bool 33 and general size/unit/capacity proofs; rootP4/rootC4 composite order/duplicates and empty unused malformed schemas; rootP5/rootC5 boundaries 0/1/5/6/21/22 |
+| `utils/ssz.py:221–222,243–260,264–265,288–296`; `complex.py:726–740,768–819,854–856`; `progressive.py:450–530`; `bitfields.py:378–410`; `core.py:326–341` | same operation, ordinary/progressive containers | exact ordered paired child roots; ordinary fields have no count mix; progressive false positions are depth 0 zeros in exactly mask.length slots, separately mixed with the full activity chunk | same law; rootP6/rootC6 fields/order/arity, rootP7/rootC7 sparse leading/internal gaps, 255/256 and excluded 257; ordinary linear-scan/rank-model equality and actual true-rank bounds |
+| actual-value induction, public Rootable/pack/tree/mix/Base laws; actual schemas `forks/amsterdam/execution_engine/types.py:39–96`, `execution_engine/requests.py:41–126`, `blocks.py:38–63` | complete recursive equation and its local witnesses on C | no recursion into unused schemas; no extra count bound on fixed vectors/containers; no source, error or security completion outside C | rootP8/rootC8 real scalar projections, universally proof-independent ordered child certificates, capacities, nested byte/element counts and whole-law determination; rootP9/rootC9 Amsterdam schema/arity/whole-root recipes |
+
+Every conditional witness in the public law is available under C. Proper actual
+children supply recursive calls; exact arity prevents zip truncation. The private
+linear mask scan equals the entire inline rank expression; true ranks are in
+bounds, so its default root is unobservable under C. Actual-value induction shows
+that any C-indexed function satisfying the entire equation has the same result.
+No SHA injectivity premise is used, and this determination result is not request
+binding or source success. An empty actual composite list does not inspect its
+unused malformed schema; an empty direct unsupported uint list has no C proof.
+
+Source correspondence retains original names/classes/reflection/coercions,
+construction of unused schemas and capacity 256 `more`, genuine root/backing/cache/
+hash/global/alias/endian coherence, actual executed-path zero-table availability,
+successful host execution and decoder view→dataclass→fresh-view preservation.
+The [original PR #239 review record](https://github.com/alexanderlhicks/leanerSTFSpec/pull/239#issuecomment-6433123624)
+reports 72 source-labelled cases, two mathematical-only extensions and 21 excluded
+cases with no root result.
+These observations and the corresponding Lean comparison belong to the original
+run; the ordinary symbolic proofs are separate. No new
+accepted-domain restriction, decoder guard, execution-validity or nonempty-header/
+transaction premise follows. O2/O12/O13, source failure/resource order, external
+anchors, collision/security, C1–C4 and readiness stay with their existing owners.
 
 ## 4. Tests
 
@@ -1704,6 +1743,40 @@ There is no source execution or differential profile in this Prop-only slice.
   slice's deterministic controls; actual codecs/adapters/root consumers retain
   source/differential, root-result, security and resource obligations.
 
+### Computational SSZ root controls (Q79)
+
+The new `SszRootControls.lean` rootP0–rootP9 and independent
+`SszRootCallerProofs.lean` rootC0–rootC9 use the Codec facade and public laws only.
+The groups retain complete bytes/digests or complete symbolic SHA expressions;
+no selected-byte/checksum proxy or unequal-hash assertion is used.
+
+| Family | Complete controls |
+|---|---|
+| rootP0/rootC0 | the entire approved equation for arbitrary t/v/h; the client uses all three named arguments |
+| rootP1/rootC1 | R00–R01: six scalar widths at 0/maximum, uint16=258, both Bool values, unsupported widths, overflow and wrong tags |
+| rootP2/rootC2 | R02–R05: vectors 0/1/31/32/33/48/96/256; declared byte limits 0/1/32/33; count 1/2 despite identical packed chunks; whole windows and ordered trees |
+| rootP3/rootC3 | R06–R07: five uint64 values, 33 Bool values, consecutive typed bytes, complete chunks, general packed sizes/order/capacity and supported-width unit conversion |
+| rootP4/rootC4 | R08–R10: composite vectors 1/32, ordered/swapped/duplicate chunks, empty unused malformed composite schemas, excluded direct uint3 basics |
+| rootP5/rootC5 | R11–R12: progressive empty/one byte, five uint64 values and complete boundary recipes 0/1/5/6/21/22, prefix left/suffix right |
+| rootP6/rootC6 | R13: ordinary uint8/uint16/Bool field order, whole roots, exact arity and no count mix |
+| rootP7/rootC7 | R14–R16: internal/leading false slots, all 3 bits true, exact slot length/order/ranks, widths 255/256, complete activity bytes, excluded 257/empty/trailing-false/population/arity cases |
+| rootP8/rootC8 | R17 and general witnesses: inner byte counts 0/1, outer element count 2, actual-child induction, proof independence and uniqueness from the whole recursive law; count 255/256/uint256 boundaries without huge allocations |
+| rootP9/rootC9 | R18: actual nameless Amsterdam field recipes and arities 4/19/5/4/5/3/3/4/2, timestamp uint64, fee uint256, fixed vectors 48/96/256 and complete ordinary/progressive result recipes; actual supported empty payload/request models |
+
+The finite statements are deliberately closed over complete models and mathematical
+roots. All authored declarations are private. Actual generated matcher/congruence/
+well-founded support is classified by its real provenance, Types, attributes,
+axioms, ownership and incoming edges under the unchanged declaration policy.
+The original PR #239 record reports a separately authenticated finite source/Lean
+comparison passing all 74 complete 32-byte root results: 72 genuine source cases,
+including the actual ExecutionPayload and NewPayloadRequest cases, and two
+separately labelled mathematical-only extensions. The 21 excluded C cases were
+not executed and have no root result. This source comparison was not replayed
+during the current review.
+Mathematical-only extensions and unsupported cases are not source successes.
+No full schema/decoder/guest/security/resource/readiness result is supplied by
+these tests.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1786,7 +1859,7 @@ inductive SszError where | length | offset | limit | boolByte | trailing | shape
 namespace Ssz
   def encode : SszType → SszValue → ByteArray
   def decode : SszType → ByteArray → Except SszError SszValue          -- strict canonical
-  def hashTreeRoot (t : SszType) (v : SszValue) (h : Rootable t v) : Bytes32 -- future direction; local domain supplied by Q78
+  def hashTreeRoot (t : SszType) (v : SszValue) (h : Rootable t v) : Bytes32 -- supplied computational root (Q79); unchanged local support (Q78)
   def pack : ByteArray → Array Base.Bytes32    -- supplied exported component helper (Q72)
   def merkleize (chunks : Array Base.Bytes32) (limit : Nat)
       (h : chunks.size ≤ 2 ^ (if limit ≤ 1 then 0 else Nat.log2 (limit - 1) + 1)) :
@@ -2364,7 +2437,8 @@ public laws; Rootable→WF is false by the §4 witnesses. Fixed vectors/containe
 have no new count-mix-in bound. Lists of basic Bool use byte width 1; every other
 non-uint descriptor, including fixed vectors, is composite. Source class mapping,
 unused-schema construction, names and capacity-256 `more`, actual decoder/
-reconstruction support, root results and security/resource gates stay separate.
+reconstruction support and security/resource gates stay separate; Q79 supplies
+raw root results.
 The predicate supplies no hash, root output or source failure-order theorem.
 
 Q72 supplies exactly this ordinary full-byte raw packing law,
@@ -2505,8 +2579,115 @@ of source class admission. Width > 256 supplies no argument, rather than a runti
 error or truncating completion. Source class validity, contents-root meaning,
 actual decoded/rootable inputs and enclosing roots/binding remain separate.
 
-All other semantic laws below remain prospective conditional obligations. Their
-domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
+Q79 supplies exactly this complete ordinary public constructor-result law,
+**discharged** by `STFSpec/Codec/SszRoot.lean`:
+
+```lean
+theorem Ssz.hashTreeRoot_eq (t : SszType) (v : SszValue)
+    (h : Ssz.Rootable t v) :
+  let R := Ssz.hashTreeRoot
+  let result := R t v h
+  let q : Nat → Nat := fun n => (n + 31) / 32
+  let K : Nat → Nat := fun n =>
+    2 ^ (if n ≤ 1 then 0 else Nat.log2 (n - 1) + 1)
+  let zero := (Base.FixedBytes.ofNat 0 : Base.Bytes32)
+  let digits : Nat → Nat → List UInt8 := fun w n =>
+    (List.range w).map (fun i => UInt8.ofNat (n >>> (8 * i)))
+  let uintChunks : Nat → List Nat → Array Base.Bytes32 := fun w ns =>
+    Ssz.pack ((ns.flatMap (digits w)).toByteArray)
+  let boolChunks : List Bool → Array Base.Bytes32 := fun bs =>
+    Ssz.pack ((bs.map (fun b => if b then (1 : UInt8) else 0)).toByteArray)
+  let children : List (SszType × SszValue) → List Base.Bytes32 → Prop :=
+    fun ps rs =>
+      ps.length = rs.length ∧
+      ∀ p ∈ ps.zip rs, ∀ hx : Ssz.Rootable p.1.1 p.1.2,
+        R p.1.1 p.1.2 hx = p.2
+  let slots : List Bool → List Base.Bytes32 → Array Base.Bytes32 := fun mask rs =>
+    ((List.range mask.length).map (fun i =>
+      if mask.getD i false then
+        rs.getD ((mask.take i).filter id).length zero
+      else zero)).toArray
+  match t, v with
+  | .uint _, .uint n =>
+      result = (Base.FixedBytes.ofLeNat n : Base.Bytes32)
+  | .bool, .bool b =>
+      result = (Base.FixedBytes.ofLeNat (if b then 1 else 0) : Base.Bytes32)
+  | .byteVector n, .bytes b =>
+      ∀ hp : (Ssz.pack b).size ≤ K (q n),
+        result = Ssz.merkleize (Ssz.pack b) (q n) hp
+  | .byteList limit, .bytes b =>
+      ∀ hp : (Ssz.pack b).size ≤ K (q limit), ∀ hn : b.size < 2^256,
+        result = Ssz.mixInLength
+          (Ssz.merkleize (Ssz.pack b) (q limit) hp) b.size hn
+  | .list elem limit, .list xs =>
+      match elem with
+      | .uint w =>
+          ∀ ns : List Nat, xs = ns.map SszValue.uint →
+          ∀ hp : (uintChunks w ns).size ≤ K (q (limit * w)),
+          ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleize (uintChunks w ns) (q (limit * w)) hp) xs.length hn
+      | .bool =>
+          ∀ bs : List Bool, xs = bs.map SszValue.bool →
+          ∀ hp : (boolChunks bs).size ≤ K (q limit),
+          ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleize (boolChunks bs) (q limit) hp) xs.length hn
+      | .byteVector _ | .byteList _ | .list _ _ | .progressiveList _ |
+        .progressiveByteList | .container _ | .progressiveContainer _ _ =>
+          ∀ rs : List Base.Bytes32,
+          children (xs.map (fun x => (elem, x))) rs →
+          ∀ hp : rs.toArray.size ≤ K limit, ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleize rs.toArray limit hp) xs.length hn
+  | .progressiveList elem, .list xs =>
+      match elem with
+      | .uint w =>
+          ∀ ns : List Nat, xs = ns.map SszValue.uint →
+          ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleizeProgressive (uintChunks w ns) 0) xs.length hn
+      | .bool =>
+          ∀ bs : List Bool, xs = bs.map SszValue.bool →
+          ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleizeProgressive (boolChunks bs) 0) xs.length hn
+      | .byteVector _ | .byteList _ | .list _ _ | .progressiveList _ |
+        .progressiveByteList |
+        .container _ | .progressiveContainer _ _ =>
+          ∀ rs : List Base.Bytes32,
+          children (xs.map (fun x => (elem, x))) rs →
+          ∀ hn : xs.length < 2^256,
+            result = Ssz.mixInLength
+              (Ssz.merkleizeProgressive rs.toArray 0) xs.length hn
+  | .progressiveByteList, .bytes b =>
+      ∀ hn : b.size < 2^256,
+        result = Ssz.mixInLength
+          (Ssz.merkleizeProgressive (Ssz.pack b) 0) b.size hn
+  | .container fields, .container xs =>
+      ∀ rs : List Base.Bytes32, children (fields.zip xs) rs →
+      ∀ hp : rs.toArray.size ≤ K fields.length,
+        result = Ssz.merkleize rs.toArray fields.length hp
+  | .progressiveContainer mask fields, .container xs =>
+      ∀ rs : List Base.Bytes32, children (fields.zip xs) rs →
+      ∀ hm : mask.length ≤ 256,
+        result = Ssz.mixInActiveFields
+          (Ssz.merkleizeProgressive (slots mask rs) 0) mask hm
+  | _, _ => False
+```
+
+The captured result precedes the dependent match. Local ns/bs projections,
+proof-independent ordered child certificates and all rounded capacity/count/mask
+bounds exist under C; they are not extra public arguments or vacuous conditions.
+The whole recursive equation determines the supported result by proper actual
+children. Scalar bytes, all byte/element count units, ordinary limits and finite
+sparse positions are fixed by this statement. Source/decoder/class/host refinement,
+failure ordering, O2/O12/O13, binding and cost/readiness obligations remain separate.
+
+The inverse, canonicality, schema, binding and source/guest obligations below
+remain prospective or conditional as qualified in each item. Their unresolved
+domains and total completions remain in §10; the raw model, sizing, structural WF,
+payload typing and raw pack controls alone discharge none of those obligations.
 
 - [T] `decode` must be total. Recursion on the type and validated slice boundaries are the intended proof ingredients. Strictly smaller byte slices alone do not justify every sub-decode: zero-byte fixed children require a separate termination argument and an unresolved serialization domain. Offsets must be validated against the slice length before use.
 - [C] **Incomplete prospective roundtrip:** `WellTyped t v → (encode t v).size < 2^32 → decode t (encode t v) = .ok v`.
@@ -2514,8 +2695,8 @@ domains and total completions remain open as detailed in §10; the raw model, si
   (§10); WT, even with WF and the byte-size bound, does not recover zero-width
   fixed-element list counts. It is a blueprint awaiting that domain, not a supplied law.
 - [C] **Canonicality:** `decode t b = .ok v → WellTyped t v ∧ encode t v = b`. This prospective theorem replaces EELS's re-encode check (`ssz.py:144`). Equality of the accept set and the image of `encode` additionally needs the converse decoding/inverse premise on a resolved serialization domain (S3; §10); the re-encode check alone does not supply it.
-- [T] `hashTreeRoot` must terminate, and its reference refinement requires the schema’s Rootable domain (length mix-ins fit uint256 and fields have the exact interpretation). O2 freedom requires proving every successfully decoded guest request belongs to that domain; S5 alone does not establish this.
-- [C] Progressive contents-tree refinement is supplied by Q75 above. Q76 supplies the local length mix-in. Q77 supplies the local activity mix-in; enclosing roots remain prospective; Q74 owns the ordinary physical helper.
+- [T] Q79 supplies the raw root operation, ordinary constructor law and actual-value termination on C. Actual-source refinement and O2 freedom still require every successfully decoded guest request to preserve its schema/values and inhabit that domain, with local class/host premises; S5 alone does not establish this.
+- [C] Progressive contents-tree refinement is supplied by Q75 above. Q76 supplies the local length mix-in. Q77 supplies the local activity mix-in; Q79 supplies the raw enclosing root law; actual schema/source refinement remains separate. Q74 owns the ordinary physical helper.
 - [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
@@ -2570,6 +2751,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+- **Q79** owns the direct complete root-result disposition; §5/§7 owns exactly
+  the supplied operation/equation. The actual source/decoder/class/host, guest,
+  security and resource obligations remain in §10.
+
 - **Q78** owns the approved local declared/source-shaped Rootable disposition;
   §5/§7 owns exactly the supplied predicate and complete ordinary law.
   The separate source/decoder/root/security/resource obligations remain in §10.
@@ -2615,11 +2800,22 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Computational raw roots (Q79) supplied; actual bridges open.** The operation,
+  complete ordinary equation, actual-value termination, local witness availability
+  and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
+  controls/clients, are discharged. Actual source class/name/reflection/coercion/
+  backing/cache/hash/global/alias/endian/host and executed-path zero-table premises,
+  decoder view→dataclass→fresh-view support, typed SszSchema/root adapters, whole
+  source construction/failure/resource order, O2/O12/O13, request binding/external
+  anchors, EEST/guest/security, C1–C4 and readiness remain open. Finite source-vector
+  evidence is bounded and distinguishes mathematical-only cases; it supplies no
+  universal source/decoder or accepted-input theorem and adds no decoder guard.
+
 - **Local root support (Q78) supplied; consuming bridges open.** The two public
   declarations and the complete private rootableP0–rootableP9/rootableC0–rootableC9
   control/client groups are discharged.
-  Actual source view→dataclass→fresh-view support, complete root-result law and
-  implementation, source class/name/backing/cache/hash/global/alias/host premises,
+  Actual source view→dataclass→fresh-view support and source
+  class/name/backing/cache/hash/global/alias/host premises,
   failure/resource order, O2/O12/O13, binding/security and C1–C4/readiness remain
   separate. No new decoder restriction or layer-readiness assertion follows.
 
@@ -2632,8 +2828,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
-  ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins and
-  Q78 local root support; other SSZ semantic interfaces remain unimplemented.
+  ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
+  Q78 local root support and the Q79 computational raw root; other SSZ semantic
+  interfaces remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -2643,7 +2840,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
   are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
-  mix-ins, `Ssz.Rootable` and their complete public equations;
+  mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
+  public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -2654,6 +2852,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **EIP cross-check missing.** The progressive merkleization order (subtree left, rest right) and the placement of the active-fields chunk were checked only against remerkleable, the pinned dependency. They have not been compared with EIP-7916 or EIP-7495 at the versions the fixtures were generated with. If they disagree, the fixtures still decide, but the discrepancy should be reported.
+- **Computational raw root limits (Q79).** The C-indexed operation, complete
+  ordinary constructor equation, rootP0–rootP9 and independent rootC0–rootC9 are
+  supplied. Local projections, capacity/child witnesses and determination cover
+  actual supported values. Finite source observations and executable Lean
+  comparisons are separate evidence; they supply no general Python refinement,
+  schema/class/decoder bridge, source failure/resource ordering or runtime guard.
+  O2/O12/O13, EEST/guest, security/binding, C1–C4 and readiness gates stay open.
 - **SSZ sizing limits (Q67).** The classifier, ordinary equation, structural
   termination and §4 private controls/clients are supplied. Conditional static
   source interpretation is not a formal Python refinement theorem or executed
@@ -2688,7 +2893,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   private merkleP0–merkleP9 and separate public-only C0–C9 are supplied. Original source-runtime
   controls remain UNRUN. Q78 supplies local Rootable and its complete law;
   actual declared-count/class/backing admission, decoder/adapter-to-root-support
-  proofs, enclosing root implementations/laws, schemas and binding remain open.
+  proofs, typed-root/schema refinement and binding remain open; Q79 supplies
+  the local raw root operation and its complete result law.
   The local length/activity mix-ins are supplied separately by Q76/Q77. The guest
   still accepts arbitrary bytes under CONTRACT; execution-invalid supported
   payloads root before inner validation. No O2/O12/O13, error/handler, resource, security or readiness gate closes.
