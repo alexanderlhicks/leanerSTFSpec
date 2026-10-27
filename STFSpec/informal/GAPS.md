@@ -268,7 +268,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing plus raw byte packing; the remaining SSZ semantic interfaces
+  and payload typing plus raw byte packing and zero hashes; the remaining SSZ semantic interfaces
   remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
@@ -277,7 +277,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied, together with raw `Ssz.pack` and its single complete byte equation;
+  are supplied, together with raw `Ssz.pack`, zero hashes and their complete public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -294,6 +294,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Zero-hash limits (Q73).** The two values/two ordinary laws and twelve private
+  mathematical/six independent facade client groups are supplied. Source-only
+  groups 0–3 remain UNRUN: mutable/rebound globals, negative Python indices, custom
+  hashes, aliases and cached PairNode history have no unconditional refinement.
+  Original table access at 256 is outside its initialized domain, while the
+  mathematical recurrence is total. No merkleization, mix-in, actual codec/root
+  admission, outcome, compiled sharing/stack/resource, C1–C4, security, EEST,
+  guest or readiness gate closes.
 - **Raw pack limits (Q72).** The two declarations, six private ordinary property
   groups, six separate facade client groups and 15 complete mathematical controls
   are supplied. Static dependency/helper correspondence has the original

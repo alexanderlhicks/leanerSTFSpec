@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, F13, F17, O2.*
+*Status: informal specification, draft. Date: 2026-10-26. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -1236,6 +1236,29 @@ they imply no unrestricted Python/class/host or guest correspondence. The
 broader well-typed round trips and strict-decoder mutation comparisons in §4
 remain obligations of the unimplemented typed codecs and their consumers.
 
+### SSZ zero-hash recurrence and prefix (Q73)
+
+`STFSpec/Codec/SszZeroHash.lean` supplies the two existing values and the two
+ordinary public laws in §7, **discharged** for all mathematical Nat depths and
+the complete ordered finite prefix. Every reference, builder, derived property,
+control and client is private. The prefix is constructed by one linear list
+traversal and one array conversion; no entry restarts the recurrence. This source
+structure supplies no compiled sharing, one-time initialization or C1–C4 result.
+
+| Pinned source | Lean operation / domain | Effects, failures and source premises | Laws / controls |
+|---|---|---|---|
+| EELS `utils/ssz.py:133–146,208–225,243–260,288–296` root caller context; eth-remerkleable 0.1.31 `remerkleable/settings.py:13,16–17,21,24–31`; `remerkleable/tree.py:109–110` | `Ssz.zeroHash : Nat → Base.Bytes32`; all-Nat mathematical zero/pair-SHA recurrence | pure; no model error or local handler. Original initialized globals, SHA implementation, aliases, constructors and successful host execution are source-correspondence premises; original table contains indices 0 through 255 only | ordinary `zeroHash_eq`; private zhP0–zhP3/zhP7/zhP9–zhP11 and C0/C1/C3–C5 |
+| same ordered initialization; finite optimization prefix | `Ssz.zeroHashes : Array Base.Bytes32`; exact depths 0 through 64 | immutable mathematical value; no public depth cap, source mutation/cache or resource policy | ordinary complete `zeroHashes_toList`; private zhP4–zhP6/zhP8 and C2 |
+
+Each pair preimage is exactly 64 bytes. Public Base width/append/export laws and
+`Sha256.sha256_fipsDigest` discharge the local FIPS premise `512 < 2^64` and
+retain the complete ordered preimage and digest trace. Symbolic SHA expressions
+check composition; provider contracts supply algorithm fidelity. Mathematical
+root 256 remains defined without claiming source `zero_node(256)` succeeds.
+No original Python execution, digest literals or source-runtime profile is
+released here; source-only groups 0–3 remain UNRUN. Root consumers retain the class/backing,
+per-path table-index, override/alias/history and host premises described above.
+
 ## 4. Tests
 
 - **EEST fixture areas.**
@@ -1428,6 +1451,24 @@ remain obligations of the unimplemented typed codecs and their consumers.
   provider storage/equations. These ordinary kernel proofs are deterministic
   model controls, with no native pack runner or source execution credit.
 
+- **Zero-hash controls (Q73).** `SszZeroHashControls.lean` supplies twelve private
+  mathematical groups: zhP0 complete zero bytes; zhP1 first root/exact 64 zero bytes;
+  zhP2 second root/complete ordered preimage; zhP3 arbitrary successor/size/FIPS bound;
+  zhP4 whole prefix/order/size; zhP5 every eligible lookup; zhP6 present 64/absent 65
+  with defined root 65; zhP7 symbolic 255/256; zhP8 generic linear builder at
+  0/1/2/all lengths, order/length/lookup; zhP9 all-Nat recurrence refinement with
+  64/65; zhP10 arbitrary-step uniqueness and SHA specialization; zhP11 width and
+  arbitrary Bytes32 pair/FIPS composition. Provider-private builder correctness
+  and all-Nat reference equality are proved beside the implementation.
+  `SszZeroHashCallerProofs.lean` imports only Codec and supplies six independent
+  private clients: C0 zero bytes/width; C1 symbolic first roots/full preimages;
+  C2 whole prefix/arbitrary lookup/64–65 boundary; C3 every successor's complete
+  FIPS digest trace through public byte contracts; C4 caller recurrence equality
+  by induction; C5 arbitrary uncached successor plus symbolic 255/256. Clients
+  consume the two public laws and public Base/Hash/core facts only. Deep SHA
+  recurrences are never evaluated by decision procedures. These are ordinary
+  mathematical proofs; source-only groups 0–3 remain separately scoped and UNRUN.
+
 ## 5. Interface
 
 The namespace is `STFSpec.Codec`. All items are public unless marked internal.
@@ -1516,9 +1557,9 @@ namespace Ssz
   def merkleizeProgressive (chunks : Array Bytes32) : Bytes32
   def mixInLength (root : Bytes32) (len : Nat) : Bytes32
   def mixInActiveFields (root : Bytes32) (active : List Bool) : Bytes32
-  def zeroHashes : Array Bytes32                                        -- constant, depth 0..64
+  def zeroHashes : Array Base.Bytes32  -- supplied ordered prefix, depths 0..64 (Q73)
   def Rootable (t : SszType) (v : SszValue) : Prop -- actual schema interpretation and representable mix-in lengths
-  def zeroHash : Nat → Bytes32    -- recurrence for every depth; array prefix is only an optimisation
+  def zeroHash : Nat → Base.Bytes32  -- supplied all-Nat recurrence (Q73)
 end Ssz
 class SszSchema (α : Type) where
   type : SszType
@@ -1539,7 +1580,7 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 | encoded bytes | `ByteArray` | `List UInt8` | canonical (image of `encode`) | linear while being built, then frozen | — |
 | `SszType` | nested inductive | itself (raw model) | none; supplied `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
 | `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; `WellTyped t v` is a supplied separate judgment | immutable | raw construction only; codec costs remain future |
-| `zeroHashes` | `Array Bytes32` built once | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup |
+| `zeroHashes` | `Array Bytes32` from a linear prefix traversal | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup after construction; compiled lifetime/cost unmeasured |
 | merkleization | `Array Bytes32` layers | the full padded binary tree | — | local, linear | O(chunks) hashes + O(log limit) zero-hash lookups. **Never O(limit)**: `ByteList[2^16]` has 2048 chunk leaves, and `List[_, 256]` must not hash 256 leaves when it has 3 elements |
 
 **No derived instances on the nested inductives** (F17). `deriving BEq`, `Repr` or `DecidableEq` on `RlpItem`, `SszType` or `SszValue` generates `partial` constants (for example `instBEqT.beq`), which D21 bans and only the compiled declaration check catches. Write structural instances by hand, as mutual structural recursions (a compiled prototype of the interfaces showed the pattern works). Non-nested types such as `RlpError` and `SszError` may derive them.
@@ -2050,6 +2091,26 @@ They retain the equal-length premise for recovery from equal chunk arrays and
 the first-input 32-byte alignment premise for concatenation. No length/root binding,
 canonicality, typed packing, Merkleization, mix-in or codec-domain law follows.
 
+Q73 supplies exactly these two ordinary public laws, **discharged** by
+`STFSpec/Codec/SszZeroHash.lean`:
+
+```lean
+theorem Ssz.zeroHash_eq (depth : Nat) :
+    zeroHash depth = match depth with
+      | 0 => (Base.FixedBytes.ofNat 0 : Base.Bytes32)
+      | d + 1 =>
+          let z := zeroHash d
+          STFSpec.Hash.sha256 ((z.toBytes ++ z.toBytes).toByteArray)
+
+theorem Ssz.zeroHashes_toList :
+    zeroHashes.toList = (List.range 65).map zeroHash
+```
+
+Derived branch/width/lookup/uniqueness laws and construction support stay private.
+Neither public law requires WF, WT, Rootable, a schema or a source-table premise.
+Actual source correspondence uses §3's premises; root 256 is mathematical only.
+The finite prefix imposes no depth limit on any tree or merkleization consumer.
+
 All other semantic laws below remain prospective conditional obligations. Their
 domains and total completions remain open as detailed in §10; the raw model, sizing, structural WF, payload typing and raw pack controls discharge none of them.
 
@@ -2156,7 +2217,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   inversions and generic List adapters with membership-local model/wire laws,
   leave other encoding/decoding instances and element/schema decoders unimplemented.
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
-  and payload typing plus raw byte packing; the remaining SSZ semantic interfaces
+  and payload typing plus raw byte packing and zero hashes; the remaining SSZ semantic interfaces
   remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
@@ -2165,7 +2226,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   remain open. Raw `SszType`/`SszValue`/`SszError`
   vocabulary and structural
   `fixedSize?`, `WellFormed` and `WellTyped` with their single respective equations
-  are supplied, together with raw `Ssz.pack` and its single complete byte equation;
+  are supplied, together with raw `Ssz.pack`, zero hashes and their complete public equations;
   schema, typed codec/root operations and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
@@ -2182,6 +2243,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source comparison. Actual codec/schema consumers, source class admission,
   compiled feasibility, practical stack/resources and C1–C4 remain open; no
   larger G/S/W/R, EEST or guest readiness claim follows.
+- **Zero-hash limits (Q73).** The two values/two ordinary laws and twelve private
+  mathematical/six independent facade client groups are supplied. Source-only
+  groups 0–3 remain UNRUN: mutable/rebound globals, negative Python indices, custom
+  hashes, aliases and cached PairNode history have no unconditional refinement.
+  Original table access at 256 is outside its initialized domain, while the
+  mathematical recurrence is total. No merkleization, mix-in, actual codec/root
+  admission, outcome, compiled sharing/stack/resource, C1–C4, security, EEST,
+  guest or readiness gate closes.
 - **Raw pack limits (Q72).** The two declarations, six private ordinary property
   groups, six separate facade client groups and 15 complete mathematical controls
   are supplied. Static dependency/helper correspondence has the original

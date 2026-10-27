@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-24.*
+*Status: conditional proof plan. Date: 2026-10-26.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -46,6 +46,23 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied SSZ zero-hash handoff (Q73)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the two supplied values and
+two complete ordinary laws; §3/§4 owns the twelve private mathematical and six
+independent facade client groups. Consumers derive branches, complete zero bytes,
+ordered prefix/lookup/width and every successor's FIPS digest trace from those
+laws and public Base/Hash contracts. Each SHA input has exactly 64 bytes, so the
+local standard-domain premise is discharged without a depth premise.
+The prefix includes 64 and excludes 65, while the recurrence remains defined at
+65, 255, 256 and every Nat. Original source correspondence retains initialized
+globals/aliases/hash behavior, nonnegative actual table indices below 256,
+constructors/cache history and successful host execution. Mathematical root 256
+claims no source table success. Source-only groups 0–3 remain UNRUN; no
+source-runtime profile, merkleization, root admission, failure/outcome, compiled
+sharing/resource, C1–C4 or guest/readiness obligation follows from the zero-hash
+laws.
 
 ### Supplied raw SSZ pack handoff (Q72)
 
