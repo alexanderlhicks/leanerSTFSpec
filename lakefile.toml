@@ -183,3 +183,9 @@ root = "TransactionGasAllocationNativeTests"
 name = "transaction-gas-settlement-native-tests"
 srcDir = "scripts"
 root = "TransactionGasSettlementNativeTests"
+
+# Complete scalar calldata-token observations on the independent finite catalog.
+[[lean_exe]]
+name = "calldata-tokens-native-tests"
+srcDir = "scripts"
+root = "CalldataTokensNativeTests"
