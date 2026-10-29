@@ -195,3 +195,10 @@ root = "SszEncodeNativeTests"
 name = "calldata-tokens-native-tests"
 srcDir = "scripts"
 root = "CalldataTokensNativeTests"
+
+
+# Complete opaque ancestor selection observations, outside the state API.
+[[lean_exe]]
+name = "witness-ancestors-native-tests"
+srcDir = "scripts"
+root = "WitnessAncestorsNativeTests"
