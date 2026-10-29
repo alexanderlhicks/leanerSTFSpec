@@ -411,7 +411,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application, the raw four-operation
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
-  bounded structural preservation and supplied-record ModelsLookups are supplied
+  the raw eight-field TxRevertible carrier, bounded structural preservation and supplied-record ModelsLookups are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -420,6 +420,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and operational source-refinement obligations remain open.
   The EELS default-empty BlockDiff convenience constructor remains deferred. These
   component contracts do not change whole-State readiness.
+- **Raw TxRevertible boundary:** §3/§4/§7 supplies storage and private complete
+  clients only. Actual initialization, snapshot/restore, transient lifetime, views,
+  `asDiff`, tracker operations and observations, write/clear/order coupling,
+  Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
+  TxObs/BlockState's specified HashSet fields still require a separately specified
+  Address/Bytes32 hash-provider seam; no support dictionary or replacement is chosen.
+  S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
+  retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and extraction must still preserve all coupled
   order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and

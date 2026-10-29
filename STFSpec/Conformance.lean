@@ -140,6 +140,7 @@ import STFSpec.Conformance.Commit.TypedRootCallerProofs
 import STFSpec.Conformance.Commit.PreparationCallerProofs
 import STFSpec.Conformance.State.AccountCallerProofs
 import STFSpec.Conformance.State.AccountGuards
+import STFSpec.Conformance.State.TxRevertibleCallerProofs
 
 import STFSpec.Conformance.State.WriteOrderCallerProofs
 import STFSpec.Conformance.State.WriteOrderGuards
