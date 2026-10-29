@@ -438,6 +438,21 @@ Consumers (evm-asm, pancaketh) stay pinned to released commits while semantic ch
 
 The options considered for each decision, and what evidence settles or revisits it. **The chosen option and the status are recorded only in [`STFSpec/informal/DECISIONS.md`](DECISIONS.md).**
 
+**Stack exchange completion (Q82).** The disposition is owned by DECISIONS Q82;
+EthVmCore §5/§7 owns the operation and exact two-law seam. The alternatives are:
+
+| Option | Invalid inputs | Equal valid inputs | Source-domain tradeoff |
+|---|---|---|---|
+| A: bounds first | none if either index is invalid, including equal invalid | some actual original Stack | Uniform bounds law; agrees also with direct `swap_n(0)` on empty input |
+| B: equality first | equal invalid returns some original; other invalid returns none | some actual original Stack | Actual SWAP1–16, SWAPN and EXCHANGE indices are distinct, so none still detects their underflow using the alias/decoder inequality premise; generic equal-invalid/direct empty `swap_n(0)` differ |
+| C: identity on invalid | some original for every invalid input | some actual original Stack | Actual opcode underflow needs separate source bounds validation or equivalent evidence |
+
+The successful equation retains both original cell values and identifies the actual
+returned Stack. Private clients derive availability, size/all-cell effects, equal-valid
+identity, commutation and involution without another public model equality seam.
+The primitive does not implement gas, immediate decoding, errors or PC advancement;
+source handler ordering and actual frame ownership/allocation remain consumer work.
+
 | # | Decision | Options | Settled or revisited by |
 |---|---|---|---|
 | D1 | U256 stored representation | (a) a `structure` wrapping `BitVec 256` *(initial)* · (b) a limb `structure` whose operations are limb implementations, proved to satisfy the same observer laws (a representation replacement under D25; `@[csimp]` is banned by D21) | benchmark through the proof interface in an opcode loop, **and replacement exercise 4**. Callers see only observers and laws, so moving from (a) to (b) is a behaviour-preserving patch |
