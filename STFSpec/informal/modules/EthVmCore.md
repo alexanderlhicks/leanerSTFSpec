@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
@@ -732,6 +732,21 @@ must not exist. Preflight authenticates inputs without invoking a source stack h
 The source command checks unchanged pop/push helpers and the separately labelled
 List-index adapter against all complete frames; it supplies no standalone EELS peek helper.
 
+### Supplied raw frame error vocabulary
+
+`STFSpec/Vm/Core/Exceptions.lean`, exported by `STFSpec.Vm.Core`, supplies exactly
+§5's `FrameError.halt (e : ExceptionalHalt)` and `FrameError.revert`, reusing the
+existing complete `ExceptionalHalt` carrier. The two source classes are distinct;
+this target carrier expresses that distinction without implementing their effects.
+
+| Pinned source | Declaration / domain | Effects and failures | Law / test status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/exceptions.py:17,24` | `FrameError : Type`; arbitrary complete existing ExceptionalHalt payload or nullary revert | **Supplied** nominal construction/elimination only; no runtime failure, producer, gas or settlement behavior | Ten private ordinary facade clients prove arbitrary complete reconstruction/extraction, halt injectivity, branch distinction, exhaustive/dependent elimination and full opcode/reason retention. Complete private guards cover both branches, all nested tags, all 256 opcode bytes and four whole String reasons (§4). No new public law or instance. |
+
+Actual exceptional gas consumption, revert settlement, producer/error priority,
+frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
+separate obligations. This raw vocabulary supplies no G1–G7, resource or readiness gate.
+
 ### Supplied local meter algebra
 
 The following local contracts are **discharged** in `STFSpec/Vm/Core/Exceptions.lean`
@@ -741,7 +756,7 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 
 | Pinned EELS source | Lean declaration and type | Domain, complete success/effect and ordered failure | Public law / test |
 |---|---|---|---|
-| `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer or Revert implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
+| `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer, gas or settlement implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
 | `vm/gas.py:270–336` | `GasMeter : Type` | Public fields `gasLeft stateGasLeft stateGasBaseline : Nat`, `refundCounter : Int := 0`, `stateGasSpilled stateGasCommittedSpill : Nat := 0`; every raw record admitted, including reservoir above baseline, negative refund and both positive spill pools | Complete six-field guards and default-record case |
 | §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`, `commitStateGas_phi`, `restoreStateGas_phi`, `restoreStateGasToEntry_phi`, `creditStateGasRefund_phi`, `repayStateGasSpill_phi`, `forfeitRemainingGas_phi`, `withholdCreateGas_phi`, `drainStateGasReservoir_phi`, `restoreChildGas_phi`; ordinary public clients |
 | `vm/gas.py:374–388` | `checkGas : GasMeter → Nat → Except ExceptionalHalt Unit` | All raw meters/amounts; check execution shortage first, returning `.error .outOfGas` iff `gasLeft < a`; otherwise `.ok ()`, no meter update | `checkGas_eq_ok_iff`, `checkGas_eq_error_iff`; zero/exact/one-over guards |
@@ -1084,6 +1099,13 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
 ```
 
 ## 4. Tests
+
+- **Supplied raw FrameError controls:** §3 owns ten private ordinary facade clients
+  and complete deterministic guards in `FrameErrorCallerProofs.lean` and
+  `FrameErrorGuards.lean`, imported by `STFSpec.Conformance`. Guards retain revert,
+  every nested halt tag, all 256 UInt8 payloads, and complete empty, embedded-NUL,
+  Unicode and 1024-character String reasons. These are carrier controls; no producer,
+  gas, settlement, error adapter or source-runtime differential claim follows.
 
 - **Supplied allocation controls (Q65):** §3 owns the exact 36 complete
   guard/interpreted/native groups, nine public-law client groups, strict normal/`-O`
@@ -2644,6 +2666,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   validation are separate caller obligations, not global meter invariants.
 
 ## 10. Gaps
+
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert
+  carrier, private complete-payload construction/elimination clients and guards.
+  Actual exceptional gas consumption, revert settlement, producers/error priority,
+  frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
+  open with their existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged

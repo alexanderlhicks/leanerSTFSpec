@@ -610,6 +610,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert
+  carrier, private complete-payload construction/elimination clients and guards.
+  Actual exceptional gas consumption, revert settlement, producers/error priority,
+  frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
+  open with their existing owners. No gas, resource or VM/guest readiness result follows.
+
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
   laws, nine private public-law client groups and complete finite controls. Q66 supplies
