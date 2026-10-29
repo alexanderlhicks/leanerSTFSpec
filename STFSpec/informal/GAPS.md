@@ -167,6 +167,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthField`](modules/EthField.md)
 
+- **Bounded supplied status.** §3/§7 discharge only the initial reference carrier, its five
+  operations, six observer laws and three instance families; private controls and clients
+  cover that slice. Reference arithmetic, concrete moduli/aliases, bytes, powMod, inverse,
+  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
+  No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
+  precompile, signature, guest or EEST readiness claim follows.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Montgomery backend not yet in the core.** `W12` (12×32, the same carry-preserving template,
