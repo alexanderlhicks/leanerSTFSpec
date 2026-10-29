@@ -244,6 +244,9 @@ import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
+import STFSpec.Conformance.Fork.AmsterdamVmGuards
+import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
+
 /-!
 # STFSpec.Conformance
 

@@ -183,3 +183,8 @@ root = "TransactionGasAllocationNativeTests"
 name = "transaction-gas-settlement-native-tests"
 srcDir = "scripts"
 root = "TransactionGasSettlementNativeTests"
+
+[[lean_exe]]
+name = "amsterdam-vm-native-tests"
+root = "AmsterdamVmNativeTests"
+srcDir = "scripts"

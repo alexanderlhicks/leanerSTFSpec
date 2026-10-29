@@ -168,6 +168,12 @@ lake exe transaction-gas-settlement-native-tests > .lake/transaction-gas-settlem
 python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
 python3 -B scripts/test_transaction_gas_settlement_output_parser.py
 python3 -B -O scripts/test_transaction_gas_settlement_output_parser.py
+lake build amsterdam-vm-native-tests --wfail
+lake exe check-decls AmsterdamVmNativeTests
+lake exe amsterdam-vm-native-tests > .lake/amsterdam-vm.json
+python3 -B STFSpec/Conformance/Fork/amsterdam_vm_values.py --check-target .lake/amsterdam-vm.json
+python3 -B scripts/test_amsterdam_vm_output_parser.py
+python3 -B -O scripts/test_amsterdam_vm_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
