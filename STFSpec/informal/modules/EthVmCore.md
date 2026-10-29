@@ -20,7 +20,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.2 Frame exit
 
-- **R-INC-1** `incorporateChild parent child` (`__init__.py:194–250`) must add the child's `gas_left`, `state_gas_left`, `state_gas_spilled` and `refund_counter` to the parent's **unconditionally**, then, only if the child succeeded, call `repay_state_gas_spill` on the parent meter, append the child's logs, and union `accounts_to_delete`, `accessed_addresses` and `accessed_storage_keys`. It must be total: the three EELS `assert`s (`:227`, `:232–234`) become preconditions discharged by the runner's settlement lemmas (§7, `L-SETTLE`), never runtime checks. Because a child starts with a copy of the parent's access sets (`instructions/system.py:171–172, 440–441`) and only adds to them, the union equals the child's sets [I]; the implementation may use that (`L-WARM-MONO`).
+- **R-INC-1** `incorporateChild parent child` (`__init__.py:194–250`) must add the child's `gas_left`, `state_gas_left`, `state_gas_spilled` and `refund_counter` to the parent's **unconditionally**, then, only if the child succeeded, call `repay_state_gas_spill` on the parent meter, append the child's logs, and union `accounts_to_delete`, `accessed_addresses` and `accessed_storage_keys`. It must be total: the four EELS `assert`s (`:227`, `:232–234`) become preconditions discharged by the runner's settlement lemmas (§7, `L-SETTLE`), never runtime checks. Because a child starts with a copy of the parent's access sets (`instructions/system.py:171–172, 440–441`) and only adds to them, the union equals the child's sets [I]; the implementation may use that (`L-WARM-MONO`).
 - **R-LOG-1** `emitTransferLog` (`__init__.py:253–289`, EIP-7708) takes a supplied `systemAddress : Address` immediately after Frame. For every supplied address and topic, amount 0 is an exact frame no-op; otherwise append exactly `Log(systemAddress, [topic, pad32 sender, pad32 recipient], be32 amount)` chronologically and preserve every other frame field. The helper does not suppress sender = recipient; its two producers own that guard. F8 assigns the pinned `SYSTEM_ADDRESS` literal (`__init__.py:41–43`) to Fork's `systemAddrs.systemAddress`, carried through `RunnerEnv` and immutable `FrameCtx`; Core declares no closed address constant. Pinned-source agreement instantiates the supplied address with the twenty bytes `ff` repeated nineteen times followed by `fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:40`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), acquired at the caller-owned F20 boundary through `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller projects that existing context field, with local notation `TRANSFER_TOPIC`, and passes the topic to the pure `emitTransferLog` helper. World-consuming operations read the record from that context. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
 
 ### 2.3 Stack
@@ -161,6 +161,26 @@ This supplies R-ENV-3's mutable data partition only. Immutable `FrameCtx`, runni
 output/error control outcomes and parent recursion remain with their existing
 owners. Actual frame creation, code/context consistency, F8 transport/emission,
 handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness remain open.
+
+### Supplied raw child settlement predicate
+
+| Pinned EELS source | Lean declaration and domain | Effects, decidability and private clients | Status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:227,232–234` | `ChildSettled : Frame → Bool → Prop` in `STFSpec/Vm/Core/ChildSettled.lean`, exported by the Core facade | All raw Frames and both flags. Exactly C=0 unconditionally; on failure also S=0, signed refund=0 and reservoir=baseline. Pure logical predicate with no runtime check, effect or failure. | **Supplied** transparent clause contract; no additional public law. |
+| Same four assertions; Core §5's decidability requirement | `instDecidableChildSettled (child : Frame) (failed : Bool) : Decidable (ChildSettled child failed)` | Constructive Nat/Int/Bool decisions only; no Frame/container equality, classical choice or noncomputable code. `ChildSettledCallerProofs.lean` privately checks exact types, all-frame decomposition/reconstruction, both branches, each necessary clause, irrelevant fields and executable decisions. | **Supplied** logical decision procedure; no F11 proof-production choice or runtime caller. |
+
+Successful raw meters may have reservoir above baseline, negative or positive
+refund and both reservoir/pending spill positive. Failed raw meters may retain
+positive execution gas and arbitrary nonempty return data: halt-only gas/output
+conditions are separate. Every other whole-Frame field remains arbitrary.
+Private public-law clients obtain the failed clauses after ordinary rollback,
+with or without forfeiture, using an explicit input committed-spill-zero premise
+and retaining all Frame fields. The complete `(3,10,1,-2,4,7)` meter restores to
+`(7,1,1,0,0,7)` and forfeits to `(0,1,1,0,0,7)`; both still fail C=0.
+These are raw logical controls, not reachability or execution proofs. Actual
+non-top initialization/preservation, incorporation, processCall/processCreate
+settlement and snapshots, returned proof production, child/resume, F11, Q83
+bridges, G1/G2–G7, S2, resources and guest/readiness remain open.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
 
@@ -1135,6 +1155,19 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
 
 ## 4. Tests
 
+**Supplied child settlement controls.** Private facade clients in
+`ChildSettledCallerProofs.lean` cover the exact predicate/instance signatures,
+arbitrary Frame/Bool logical reconstruction and decomposition, success iff C=0,
+the failed four-clause relation, every unused Frame field and execution-gas
+irrelevance. Each failed clause is rejected independently; signed refunds in both
+directions, R>B and positive R/S are accepted on success. Failure admits arbitrary
+execution gas, baseline and return data, including a positive-gas/nonempty-data
+revert control. Public restore/forfeit equations prove conditional complete-frame
+clients and preserve the complete C=7 counterexample. Constructive decisions have
+private true/false controls. No source runtime or parser framework is needed for
+this logical assertion boundary; these controls prove no execution reachability.
+
+
 **F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
 one and maximal U256 amount, independently varied full-byte supplied address/topic,
 equal and unequal sender/recipient, and pre-existing duplicate chronological logs.
@@ -1688,10 +1721,18 @@ def settleTransactionGas
     (hState : stateGasUsed.toNat ≤ txGas - gasLeft - stateGasLeft)
     (hFloor : calldataFloor ≤ txGas) : TransactionGasSettlement
 
--- Frame exit (public)
-def ChildSettled (child : Frame) (failed : Bool) : Prop
+-- Frame exit (public): predicate and constructive instance supplied; operations below open.
+def ChildSettled (child : Frame) (failed : Bool) : Prop :=
+  child.gasMeter.stateGasCommittedSpill = 0 ∧
+    (if failed then
+      child.gasMeter.stateGasSpilled = 0 ∧
+      child.gasMeter.refundCounter = 0 ∧
+      child.gasMeter.stateGasLeft = child.gasMeter.stateGasBaseline
+     else True)
+instance instDecidableChildSettled (child : Frame) (failed : Bool) :
+    Decidable (ChildSettled child failed)
 -- Non-top child meter: committed spill = 0; if failed, spill/refund = 0 and reservoir = baseline.
--- Includes the exact successful-child side conditions of __init__.py:227,232–234 (L-SETTLE).
+-- Includes the exact unconditional and failed-child side conditions of __init__.py:227,232–234 (L-SETTLE).
 -- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
 -- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
 def incorporateChild (parent : Frame) (child : Frame) (childFailed : Bool) (h : ChildSettled child childFailed) : Frame
@@ -2705,7 +2746,18 @@ above. The following list retains the remaining G1 and composition obligations:
   forwarding consequences above. Actual caller derivation and paid-stipend/child
   return accounting remain G2 obligations; the pure helper alone proves no whole
   CALL-family progress or settlement result.
-- **`L-SETTLE`** [C]: after `restoreStateGas` then `forfeitRemainingGas` (halt) or `restoreStateGas` alone (revert), `ChildSettled child true` holds: `stateGasSpilled = 0 ∧ refundCounter = 0 ∧ stateGasLeft = stateGasBaseline`; every non-top frame has `stateGasCommittedSpill = 0` (only `createEvm` commits). These discharge `incorporateChild`'s preconditions.
+- **`L-SETTLE`** [C, execution obligation remains open]: the supplied transparent
+  `ChildSettled` and constructive instance record exactly the four source clauses.
+  Ordinary `restoreStateGas`, optionally followed by `forfeitRemainingGas` for a
+  halt, gives the three failed reset clauses and preserves committed spill. The
+  private conditional clients additionally require input committed spill = 0;
+  neither operation establishes that premise. Prove actual non-top entry and
+  preservation of committed spill = 0 (only `createEvm` commits), and connect the
+  returned frame/error to the real call/create settlement and snapshots. Then
+  failed children satisfy `ChildSettled child true`, successful children satisfy
+  `ChildSettled child false`, and incorporation's proof premises are discharged.
+  Halt-only execution-gas/output conditions remain separate; F11 proof production
+  is unchanged. No extra public law is supplied by this predicate slice.
 - **`L-INC`** [C]: `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi` (the repay step preserves Φ). Together with G2's "child returns potential ≤ potential granted" this gives the cross-frame bound.
 - **`L-WARM-MONO`** [C]: if `p.accessedAddresses ⊆ c.accessedAddresses` then the union is `c.accessedAddresses` (same for slots). [F] the implementation may assign.
 - Settlement [C]: Q66's supplied API and five discharged laws above use exactly the three returned/state/floor bounds and a validated U256 refund. Their actual caller derivation, including the earlier checked signed-counter conversion and unchanged Runner Nat observation bridge (§3), remains unimplemented; R-EXC-2/O13 keep their existing owners.
@@ -2796,6 +2848,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   validation are separate caller obligations, not global meter invariants.
 
 ## 10. Gaps
+
+- **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
+  exactly ChildSettled and its constructive Decidable instance. Private logical,
+  all-frame, each-clause, decision and conditional public rollback/forfeit clients
+  supply no actual non-top C=0 initialization/preservation, incorporation,
+  processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
+  FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
+  G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
+
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free checked carriers, keeping InternalError distinct from frame exits and VmFault; actual lifting/propagation, settlement, F11 and G2–G7 remain open.
 
