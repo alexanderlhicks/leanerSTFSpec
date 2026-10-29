@@ -15,7 +15,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:254` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:125–148`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:310–312`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handlers must not be able to modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean").
+- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:72–120`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
@@ -97,7 +97,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49–67 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125–148 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
-| `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `Frame`; `FrameCtx` and assembled `Evm` remain open | R-ENV-3 mutable partition only; exact row below |
+| `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
 | `forks/amsterdam/vm/__init__.py::incorporate_child` | 194 | `incorporateChild` | total; asserts → preconditions |
 | `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253 | `emitTransferLog` | EIP-7708 |
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
@@ -149,8 +149,8 @@ construction skips or falls back to a default. Reproduce with:
 lake build STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs STFSpec.Conformance.Vm.Core.EnvironmentsGuards --wfail
 ```
 
-This supplies raw data only. FrameCtx/Evm/world assembly, history lookup/admission,
-actual capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+This supplies raw environment data only. Actual frame/world construction, history
+lookup/admission, actual capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
 gas/fuel/resources and VM/guest/EEST/readiness obligations remain open.
 
 ### Supplied raw mutable Frame data
@@ -179,10 +179,55 @@ Reproduce the controls and clients with:
 lake build STFSpec.Conformance.Vm.Core.FrameCallerProofs STFSpec.Conformance.Vm.Core.FrameGuards --wfail
 ```
 
-This supplies R-ENV-3's mutable data partition only. Immutable `FrameCtx`, running/
-output/error control outcomes and parent recursion remain with their existing
-owners. Actual frame creation, code/context consistency, F8 transport/emission,
-handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness remain open.
+This supplies R-ENV-3's mutable data partition only. Raw `FrameCtx` and `Evm` are
+supplied separately below. Running/output/error control outcomes and parent recursion
+remain with their existing owners. Actual frame creation, code/context consistency,
+F8 transport/emission, handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness remain open.
+
+### Supplied raw immutable context and assembled Evm data
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:166,168,173–183`; F8 policy fields; `interpreter.py:84` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance, source coherence and read-only handler signatures remain open |
+| The same source `Evm:153–191`, R-ENV-3 partition | `STFSpec.Vm.Core.Evm` in the same leaf/facade | Exactly `ctx : FrameCtx` and `frame : Frame`. Every pair of supplied values is admitted; no additional coherence/WF proof, state or control field. No effects or failures. | Private complete constructor signature/projections/reconstruction and independent context/frame replacements; all three complete controls retain an arbitrary whole Frame. | **supplied raw data**; no whole source-Evm execution equivalence |
+
+The source Evm has 26 fields: thirteen fixed context fields, nine mutable Frame
+fields and four control fields (`running`, `output`, `error`, `parent_evm`) whose
+abstractions retain their Instructions/Runner owners. `config` and `systemAddress`
+are the existing supplied policy abstraction, not additional source Evm fields.
+This static field/type partition is the source evidence; no source Python runtime
+or complete source-Evm comparison is claimed.
+
+Private generic clients retain complete arbitrary configuration/environment/map
+provider values. Each single-field update retains all unrelated fields. In
+particular config, systemAddress, caller/target/value/data/codeAddress/code/map and
+three flags vary independently. A raw context may contain empty code and a map
+built from different nonempty code. Intended creation must establish code/map,
+source/environment/history/config coherence and inherited policy later; the raw
+record adds none of these restrictions. The future Handler/StepResult signatures
+supply read-only context discipline; raw Evm construction does not prevent context
+replacement by arbitrary Lean callers.
+
+Three complete ordinary boundary controls quantify arbitrary GasCosts, both whole
+environments, systemAddress and Frame. Private raw VmConfig constructors use limits
+7 and 2048 without defaults or an Amsterdam import; depth 1024 still uses only the
+local literal proof. Controls retain every complete supplied provider value, cover
+depths 0/1/1024, None/Some-zero/Some-nonzero codeAddress, distinct zero/high/max
+addresses, zero/max/intermediate U256 values, empty/mixed/all-256-byte code and
+callData, independent flags and code/maps. The map stays abstract in whole-record
+equalities; finite observations use only its public contains equations, including
+an arbitrary empty-map query and a beyond-host-width absent offset. Four ordinary
+guards check all byte values and complete twenty-byte address vectors; a negative
+elaboration control rejects depth 1025. Generic clients retain every possible flag
+combination and every provider input. Reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.Vm.Core.ContextGuards --wfail
+```
+
+Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv and Fork→Block→Runner
+address transport, producers/emitter, world/handler/control/parent integration,
+F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
 
@@ -1162,6 +1207,12 @@ constructor/projection/type/reconstruction/update clients and six full-value
 finite observations, plus the raw-history length control and complete price-update
 proof. Synthetic raw history/authorization/gas values assert no protocol validity.
 
+**Supplied raw context/Evm controls.** §3 owns the complete private generic
+constructor/projection/type/reconstruction/update clients, three full boundary
+observations retaining arbitrary complete providers, independent-map equations,
+four full byte/address guards and the rejected out-of-domain depth. Raw code/map,
+config-limit and environment choices assert no source or protocol admissibility.
+
 **F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
 one and maximal U256 amount, independently varied full-byte supplied address/topic,
 equal and unequal sender/recipient, and pre-existing duplicate chronological logs.
@@ -1373,8 +1424,12 @@ The exact two set aliases, eleven-field `BlockEnvironment`, sixteen-field
 laws or additional admission/proof fields. Public constructor/projection and
 reconstruction equations reduce directly. Raw history has no ordering/count
 premise; oldest-first/at-most-256 belongs to intended construction. Environment
-quantities and options are independent. `FrameCtx` and assembled `Evm` remain
-unimplemented. These carriers make no global meter-WF or context claim.
+quantities and options are independent. The exact fifteen-data-field `FrameCtx`
+with its sole local depth proof, and the two-field `Evm`, are also **supplied**.
+The depth bound is independent of raw configuration limits; code/map and all other
+fields have no additional coherence premise. These carriers make no global meter-WF,
+source/context or execution claim. Actual creation and read-only handler discipline
+remain open.
 
 ```lean
 -- Environments (public)
@@ -1393,6 +1448,7 @@ structure TransactionEnvironment where
 structure BlockGasCounters where blockGasUsed blockStateGasUsed : Nat; blobGasUsed : U64
 
 -- Frame (public)
+abbrev STACK_DEPTH_LIMIT : Nat := 1024   -- existing imported Limits literal (F8)
 structure FrameCtx where
   config : VmConfig           -- immutable policy; children inherit it unchanged
   blockEnv : BlockEnvironment; txEnv : TransactionEnvironment
@@ -1406,7 +1462,6 @@ structure Frame where
   logs : LogRope; accountsToDelete : AddrSet; returnData : Bytes
   accessedAddresses : AddrSet; accessedStorageKeys : SlotSet
 structure Evm where ctx : FrameCtx; frame : Frame        -- the EELS-shaped view
-abbrev STACK_DEPTH_LIMIT : Nat := 1024   -- a literal: depth proofs and indexed types reduce it (F8)
 structure VmLimits where stackDepthLimit maxCodeSize maxInitCodeSize : Nat   -- fork parameters (§8 of ARCHITECTURE); values in EthFork
 structure VmConfig where
   costs : GasCosts; stateCosts : StateGasCosts; limits : VmLimits
@@ -1749,7 +1804,8 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
-| `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
+| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; handler read-only discipline remains a future signature obligation | field access O(1); no compiled sharing/resource claim |
+| `Evm` | supplied raw pair of FrameCtx and Frame | complete fields themselves | only existing field types; no additional coherence/WF proof | value; execution ownership remains a caller obligation | field access O(1); no new operation/cost claim |
 
 ## 7. Contract and laws
 
@@ -1772,6 +1828,17 @@ a negative refund. There are no extra manually authored public Frame laws or raw
 admission predicates. Stack bounds and Memory alignment come from their supplied
 types; context/meter invariants and actual execution remain caller obligations.
 
+
+**Raw FrameCtx/Evm carrier controls are supplied.** §3/§5 own the exact
+fifteen-data-field context, its sole local literal depth proof and two-field Evm.
+Private complete constructor/projection/type/reconstruction and independent-update
+clients use public record reduction, retaining whole provider values and the
+abstract JumpdestMap. Depth replacement supplies only its own new bound; every
+other field remains unrestricted beyond its provider type. Complete controls and
+public contains equations cover both depth boundaries and independent code/maps.
+No manually authored public context/Evm laws, global coherence predicate, defaults
+or extra instances are supplied. Actual creation, inheritance and source coherence
+remain caller obligations; handler signatures must supply read-only context use.
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -2765,26 +2832,41 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
   BlockEnvironment and sixteen-field TransactionEnvironment, private complete
   generic clients and full-value controls. No history/admission/default/proof
-  field or extra public law is added. Actual FrameCtx/Evm/world assembly, source
-  context coherence, intended oldest-first/at-most-256 history and lookup,
-  capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  field or extra public law is added. Raw FrameCtx/Evm are supplied separately;
+  actual frame/world construction, source context coherence, intended
+  oldest-first/at-most-256 history and lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
-  Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
-  StepResult/control and parent execution integration, F8 address transport/emitter,
-  handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
+  Raw FrameCtx/assembled Evm are supplied separately; actual creation, context/code
+  agreement, StepResult/control and parent execution integration, F8 address
+  transport/emitter, handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
 
-- **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
+- **Raw immutable context and assembled Evm are supplied:** §3/§5/§7 own the exact
+  fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
+  private complete generic clients and boundary controls. Raw config limits,
+  code/map choices, supplied addresses, environments, frame and flags remain
+  independent. Actual creation/inheritance, source/config/history/code coherence,
+  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
+  default, instance or global coherence/WF predicate is supplied.
+
+- **F8 system-address transport and emitter:** the raw immutable
+  `FrameCtx.systemAddress` field is supplied above. The supplied-address helper,
+  actual frame creation/child inheritance, Fork→Block→Runner transport and both
+  producer refinements remain unimplemented. Prove the zero identity and complete
+  chronological nonzero equation in §7 for arbitrary address/topic; intended
+  construction and child inheritance are owned by their guides. No Core address
+  literal is supplied by this guidance.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
-  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  actual frame creation and CALL/CREATE depth proofs remain open. Raw
   VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
   gate follows from this literal alone.
 
