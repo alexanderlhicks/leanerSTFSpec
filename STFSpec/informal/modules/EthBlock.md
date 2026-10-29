@@ -395,7 +395,7 @@ coherence and the remaining `BlockConfig` are unimplemented. The raw record alon
 does not implement routing. F8 specifies Fork's `systemAddrs.systemAddress` through
 `BlockConfig.runnerEnv` to `RunnerEnv.systemAddress`, copied into immutable
 `FrameCtx.systemAddress` and inherited by children; both producers pass it explicitly
-to `emitTransferLog` after Frame. The concrete value, actual transport and source
+to `emitTransferLog` after Frame (local helper supplied: EthVmCore §3/§7). The concrete value, actual transport and source
 coherence remain implementation obligations under that selected guidance.
 
 ## 4. Tests

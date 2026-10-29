@@ -172,7 +172,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
-  - The byte strings in R-F2 (checksummed and lowercase decode alike), including all twenty systemAddress bytes and both config.system/config.runnerEnv projections (F8). Actual context/child/producer controls remain with Runner/Instructions/Core; these are future checks, not supplied code.
+  - The byte strings in R-F2 (checksummed and lowercase decode alike), including all twenty systemAddress bytes and both config.system/config.runnerEnv projections (F8). Actual context/child/producer controls remain future work at Runner/Instructions; the local pure helper controls are supplied by EthVmCore §3.
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608`.
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.

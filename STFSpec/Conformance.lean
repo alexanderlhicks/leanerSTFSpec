@@ -254,6 +254,9 @@ import STFSpec.Conformance.Block.TxParamsCallerProofs
 import STFSpec.Conformance.Block.SystemAddrsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
+import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
+import STFSpec.Conformance.Vm.Core.TransferLogGuards
+
 /-!
 # STFSpec.Conformance
 
