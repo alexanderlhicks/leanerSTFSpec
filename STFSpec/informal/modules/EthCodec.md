@@ -124,7 +124,7 @@ allocation proportional to that declaration.
 
   *Verified empirically*: I checked every formula above against remerkleable 0.1.31 on 200 random instances each of `ProgressiveByteList`, `ProgressiveList[ByteList[1024]]`, `List[ByteList[1024], 256]` and `ProgressiveList[uint64]`, plus a 3-field progressive container. The spec follows remerkleable, the pinned dependency. Agreement with the EIP texts was **not** checked (§10).
 - **S5. Totality of the committed root.** `compute_new_payload_request_root` (`stateless.py:226`) is outside the inner handler, so a failure there would give the zero sentinel (O2). The spec must prove that `hashTreeRoot` is total on every decoded value, which would make O2 unreachable; a constructor is added only if that proof fails (CONTRACT O2; DECISIONS §3, O2, open). The `_to_view` conversion observation is evidence only: prove the actual decoded domain is Rootable, including progressive counts/mix-ins and schema adapters; resolve host-resource differences separately. No unrestricted O2-freedom theorem is established.
-- **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when a written offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). Q80 selects the proof-domain `encode` contract in §5/§7: actual recursive support and every emitted start `< 2^32`, without a final-payload bound. Implementation and the guest output consumer theorem remain open.
+- **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when a written offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). Q80 selects the proof-domain `encode` contract in §5/§7: actual recursive support and every emitted start `< 2^32`, without a final-payload bound. The generic forward encoder is supplied (§3); the guest output consumer theorem remains open.
 
 ## 3. EELS source map
 
@@ -1437,21 +1437,26 @@ accepted-domain restriction, decoder guard, execution-validity or nonempty-heade
 transaction premise follows. O2/O12/O13, source failure/resource order, external
 anchors, collision/security, C1–C4 and readiness stay with their existing owners.
 
-### Selected forward SSZ serialization contract (Q80)
+### Computational forward SSZ serialization (Q80)
 
-The §5/§7 four-declaration contract is selected guidance only. No `Serializable`,
-`serializable_iff`, proof-domain `encode` or `encode_eq` implementation, ordinary
-proof, private control/client suite or source execution is supplied by this change.
-The following source-to-prospective-operation rows guide separately reviewed code;
-all existing Q67–Q79 proof/control statuses above remain unchanged.
+`STFSpec/Codec/SszEncode.lean` supplies exactly `Ssz.Serializable`, its complete
+ordinary decoupled `serializable_iff`, proof-domain `Ssz.encode` and the complete
+ordinary `encode_eq` in §5/§7. All support, logical lengths, readable references,
+cached schema metadata, packed writers and derived proofs remain private.
+**Discharged:** structural/proper-child termination; all-raw cached/uncached writer
+equality (`prepareCached_eq`), ordinary executable/readable-reference equality
+(`encode_reference`), supported exact logical length (`encode_size`), supported
+fixed widths, constructive ordered certificate existence, proof independence and
+whole-result determination. The inline recursor in the public support-law type is
+complete and requires no private global name. Q67–Q79 contracts are unchanged.
 
-| Source at pin / locked eth-remerkleable 0.1.31 | Selected operation/domain | Effects and failures | Required law/evidence (open) |
+| Source at pin / locked eth-remerkleable 0.1.31 | Supplied operation/domain | Effects and failures | Ordinary law and private evidence |
 |---|---|---|---|
-| `utils/ssz.py:91–95,208–210,271–272`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | complete `serializable_iff`/`encode_eq`; all widths, endpoints and excluded actual widths0/3/overflow |
-| `utils/ssz.py:211–214,219–224,273–284`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte00/01 or complete original bytes; exact vector size/ordinary limit only | full laws, zeros/order/size0 and wrong-tag/size/limit controls |
-| `utils/ssz.py:215–218,266–270`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | full laws; fixed0, empty unused malformed schema, nested children and offset boundaries |
-| `utils/ssz.py:243–258,263–265,288–296`; `complex.py:768–819,866–878,963–981`; `progressive.py:440–532` | same operation, both container families | exact arity and ordered paired children; mask absent from wire | full mixed head/tail law, wrong arity, mathematical empty containers/arbitrary masks and equal offsets |
-| `complex.py:23–24,104–108,235–242,967–981`; `core.py:173–176`; `settings.py:5` | support at every actually written uint32 start, recursively | mathematical pure byte result; no failure priority or guest error mapping | actual-length/reference equality, proper-child termination, nonvacuous certificates, facade clients and aggregate cost evidence |
+| `utils/ssz.py:91–95,208–210,271–272`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | `serializable_iff`/`encode_eq`; `SszEncodeControls` all widths/endpoints and `SszEncodeCallerProofs` excluded actual widths0/3/overflow |
+| `utils/ssz.py:211–214,219–224,273–284`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte00/01 or complete original bytes; exact vector size/ordinary limit only | both complete laws; whole-byte literal/native controls for zeros/order/size0, public-law wrong-tag/size/limit clients |
+| `utils/ssz.py:215–218,266–270`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | both complete laws; literal/native fixed0, empty unused malformed schema and nested cases; public-law symbolic offset clients |
+| `utils/ssz.py:243–258,263–265,288–296`; `complex.py:768–819,866–878,963–981`; `progressive.py:440–532` | same operation, both container families | exact arity and ordered paired children; mask absent from wire | `encode_eq` mixed head/tail law; literal/native empty containers/arbitrary masks/equal offsets, public-law arity and mask clients |
+| `complex.py:23–24,104–108,235–242,967–981`; `core.py:173–176`; `settings.py:5` | support at every actually written uint32 start, recursively | mathematical pure byte result; no failure priority or guest error mapping | private exact length/reference/cached-planner equality, structural termination/certificates/determination; independent facade clients; static packed-writer structure (§6), compiled allocation/throughput and C1–C4 remain open |
 
 Source success remains conditional on actual names/classes/inheritance/reflection,
 coercions, construction of unused schemas (including `more` at capacity256),
@@ -1806,24 +1811,58 @@ Mathematical-only extensions and unsupported cases are not source successes.
 No full schema/decoder/guest/security/resource/readiness result is supplied by
 these tests.
 
-### Required forward SSZ controls and clients (Q80; not supplied)
+### Supplied forward SSZ controls and clients (Q80)
 
-Separately reviewed code must supply private ordinary complete-law/termination,
-actual-length/reference equality, certificate existence/proof independence and
-whole-law determination arguments, plus independent facade clients using only the
-four public declarations and provider contracts. The decoupled predicate law must
-construct support before any encoder-result reasoning, including nested layout
-bounds; no private helper name may be required in a public theorem type.
-Deterministic whole-byte controls cover all nine clauses and unmatched rejection,
-all scalar widths/endpoints/overflow, byte sizes/limits/order, empty and nested
-lists/containers, fixed-zero children, empty unsupported unused schemas and
-arbitrary raw masks. Mixed fixed/dynamic layouts retain every head/tail byte;
-empty variable children permit equal offsets. Symbolic controls cover emitted
-start 2^32−1 versus 2^32, a final payload beyond 2^32 with fitting starts and a
-later empty child whose emitted start fails, without materializing huge buffers.
-Source comparisons distinguish genuine admitted forward views from mathematical
-extras and excluded inputs under the §3 premises. No differential or control run
-is claimed here; inverse/source-diagnostic/guest and cost gates remain open.
+`SszEncodeControls.lean` and `scripts/SszEncodeNativeTests.lean` retain61 complete
+literal observations:52 EELS dataclass/view paths, three genuine locked-dependency
+sparse-mask paths and six mathematical-only cases. The five byte-local extras cover empty
+containers, a malformed mask and empty unsupported unused schemas. The extra43-byte
+fixed layout has independent ordered vector/Bool/uint digits; it is no actual
+`StatelessValidationResult` schema adapter or guest theorem. Every supported scalar
+width has zero, maximum and asymmetric digit cases. Byte/list/container cases retain
+zeros, empty/fixed-zero children, repeated offsets, nested dynamic heads/tails and
+raw sparse masks. Largest source output32 bytes; largest mathematical output43;
+actual list lengths at most3. No huge value is allocated.
+
+`SszEncodeCallerProofs.lean` uses only the Codec facade and public equations.
+It constructs nested support before result reasoning, derives payload typing by
+induction, extracts exact shape/child support, constructs ordered certificates and
+proves complete nested bytes. Family/mask transport preserves all bytes. Negative
+clients cover actual widths0/3, scalar overflow, wrong tag, vector length, list
+limit and arity. Symbolic clients distinguish written starts2^32−1/2^32, unconstrained
+final payloads and the exact second dynamic start. Private ordinary production
+proofs supply exact actual lengths, supported fixed widths, reference equality,
+certificate existence, proof independence and whole-law determination.
+
+The independent literal inventory is `ssz_encode_literals.json`.
+`ssz_encode_differential.py` strictly checks all61 native rows, rejecting missing,
+duplicate, wrong-class, wrong-size and changed-byte observations; its parser/type
+regressions run normally and with Python `-O`. With an explicit frozen EELS
+checkout, it additionally executes55 actual source paths. It authenticates the
+`reference.toml` commit/lock, clean tracked source, locked ethereum-types and
+eth-remerkleable versions and installed RECORD/current sources; targeted modules
+are compiled freshly from those bytes, bypassing cached bytecode. Raw byte views
+may return their exact original authenticated `RawBytesView` object; other results
+must be exact bytes. Complete child and enclosing wrapper bytes are checked.
+Interpreter/startup, installed RECORD and host execution remain trust inputs.
+Mathematical cases are never executed or reported as source successes.
+
+Reproduce after the ordinary build; no EELS fetch occurs in CI:
+
+```sh
+lake build ssz-encode-native-tests --wfail
+lake exe check-decls SszEncodeNativeTests
+lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
+python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
+python3 -B scripts/test_ssz_encode_output_parser.py
+python3 -B -O scripts/test_ssz_encode_output_parser.py
+<EELS>/.venv/bin/python -I -B STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
+<EELS>/.venv/bin/python -I -B -O STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
+```
+
+These finite original-source/literal/compiled comparisons prove no general source
+refinement, decoder/inverse, class/count/host admission, failure priority, guest,
+resource, security, cost or readiness obligation.
 
 ## 5. Interface
 
@@ -1905,7 +1944,7 @@ def SszValue.WellTyped : SszType → SszValue → Prop   -- supplied payload-onl
 def SszType.fixedSize? : SszType → Option Nat
 inductive SszError where | length | offset | limit | boolByte | trailing | shape
 namespace Ssz
-  -- selected forward contract (Q80), not yet supplied; complete laws in §7:
+  -- supplied forward contract (Q80); complete ordinary laws in §7:
   def Serializable (t : SszType) (v : SszValue) : Prop
   def encode (t : SszType) (v : SszValue) (h : Serializable t v) : ByteArray
   def decode : SszType → ByteArray → Except SszError SszValue          -- strict canonical
@@ -1941,8 +1980,8 @@ def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
 |---|---|---|---|---|---|
 | `RlpItem` | nested inductive over `ByteArray` and `List` | itself (it is the public model) | none | immutable; decoded nodes may be shared by snapshots read-only | `encode` O(n) via a size pass and one pre-sized write. A naive recursive `++` is O(n·depth), which is also what Python's slicing and joining cost, so it should be avoided. `decode` O(n) with a cursor, instead of Python's re-slicing at each level (O(n·depth)) |
 | encoded bytes | `ByteArray` | `List UInt8` | canonical (image of `encode`) | linear while being built, then frozen | — |
-| `SszType` | nested inductive | itself (raw model) | none; supplied `WellFormed` is a separate judgment | immutable | raw construction only; codec costs remain future |
-| `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; `WellTyped t v` is a supplied separate judgment | immutable | raw construction only; codec costs remain future |
+| `SszType` | nested inductive | itself (raw model) | none; supplied `WellFormed` is a separate judgment | immutable | raw construction; supplied forward metadata/writer traversal below, decoder costs remain future |
+| `SszValue` | nested inductive | itself (raw model); future typed views via `SszSchema` | none; `WellTyped t v` is a supplied separate judgment | immutable | raw construction; supplied forward metadata/writer traversal below, decoder costs remain future |
 | `zeroHashes` | `Array Bytes32` from a linear prefix traversal | `z₀ = 0^32`, `z_{i+1} = H(z_i, z_i)` | the recurrence | read-only constant (not a cache in the §7 sense) | O(1) lookup after construction; compiled lifetime/cost unmeasured |
 | merkleization | packed `Array Bytes32` with interval offsets and shared zero prefix | private complete ordered List/tree and padded fold | actual count fits rounded physical capacity | immutable input; local traversal/cache | actual populated intervals and depth traversal; absent subtrees use one cached root, without missing-leaf materialization or copied child subtrees. Above 64, extend zeros in one linear recurrence. Depth arithmetic and zero availability/extension are separate from actual-chunk work; no universal all-depth O(chunks), compiled lifetime or C1–C4 claim |
 
@@ -2009,6 +2048,22 @@ sibling and deep single-child trees plus asymmetric mixed order. Local construct
 timings retain outputs until after timing; output cleanup and whole-process RSS do
 not supply total allocated volume, peak-live allocation accounting, a native-client
 comparison or C1–C4/guest acceptance. Those gates remain open (CONTRIBUTING §3).
+
+**SSZ forward writer structure (Q80).** A private bottom-up cache computes
+structural fixed widths once per raw descriptor node, including metadata of
+unused schemas without checking WF. The actual-value planning pass reads cached
+Option Nat widths in constant time, caches child sizes/writers and builds separate
+ordered head/tail writer compositions. The final pass starts one packed
+`ByteArray.emptyWithCapacity` at the computed size; every payload writer receives
+and returns the same output accumulator, and no subtree wire buffers or recursive
+payload concatenations are constructed. Ordinary cached/uncached writer equality
+and readable-list-reference equality justify these operations. Static traversals
+are linear in raw schema nodes, actual value occurrences/field entries and emitted
+bytes, excluding arbitrary-precision arithmetic; a descriptor subtree reused by a
+list is cached once. This removes repeated nested fixed-schema classification.
+No compiled allocation/sharing/lifetime or throughput measurement is claimed;
+practical host depth, native-client ratios and C1–C4 remain open. No local
+performance exception is selected.
 
 **Implemented raw decoder costs.** Each recursive window references the original
 packed buffer. Byte leaves copy their exact validated scope once, including zero
@@ -2734,10 +2789,10 @@ children. Scalar bytes, all byte/element count units, ordinary limits and finite
 sparse positions are fixed by this statement. Source/decoder/class/host refinement,
 failure ordering, O2/O12/O13, binding and cost/readiness obligations remain separate.
 
-**Selected forward serialization contract (Q80; implementation open).** Exactly
-four public declarations are selected: `Ssz.Serializable`, `Ssz.serializable_iff`,
+**Supplied forward serialization contract (Q80).** Exactly
+four public declarations are supplied: `Ssz.Serializable`, `Ssz.serializable_iff`,
 `Ssz.encode` and `Ssz.encode_eq`. Everything below is a complete informal signature
-and equation, not Lean proof text or a claim of compiled elaboration. All authored
+and equation; §3/§4 records the compiled implementation/proofs and finite evidence. All authored
 workers, references, derived laws, controls and clients remain private; there is
 no public size/layout/reference/helper, validator, instance or error API.
 
@@ -2808,7 +2863,7 @@ The complete decoupled actual-value `serializable_iff` RHS is exactly:
 There is no encoder dependency in this predicate law, nor an implicit WF, WT,
 Rootable, global size/count cap, mask condition, positive fixed-child width or
 source-class premise. Actual scalar widths0/3 are unsupported; unused malformed
-schemas under empty lists are not recursively inspected. Empty ordinary and
+schemas under empty lists are not recursively required by support. Empty ordinary and
 progressive containers encode empty, regardless of mask; all raw masks are
 ignored by bytes. These are intentional mathematical extras relative to source
 class construction (`utils/ssz.py:91–95,208–216`; `basic.py:252–309`;
@@ -2848,10 +2903,10 @@ proposition `RHS(t,v,h)` is exactly:
 Unmatched False is impossible under `h`, not a runtime fallback. Under support,
 actual child support projections and equal-length cert lists must exist by taking
 each child's encode; Prop proof irrelevance removes proof-choice ambiguity.
-Private actual-value induction must prove actual encoded length equals the local
+Private actual-value induction proves actual encoded length equals the local
 logical length, fixed supported widths equal their actual bytes, ordinary full
-reference equality (D25), proof independence and whole-law determination. These
-are implementation obligations, not extra caller hypotheses or vacuous implications.
+reference equality (D25), proof independence and whole-law determination (§3). These
+are discharged component proofs, not extra caller hypotheses or vacuous implications.
 For fixed-element lists the layout is ordered child concatenation; dynamic lists
 start at `4*count`; mixed containers retain all fixed head fields and dynamic
 tails in order. Empty dynamic children allow equal offsets. Only starts actually
@@ -2863,10 +2918,11 @@ Source decoder scope conversion and nested metadata limits are distinct
 
 This forward contract supplies no inverse/canonicality, formal source refinement,
 source diagnostic/failure priority, schema/root/guest admission or resource policy.
-Actual code must validate elaboration and private facade clients, meet D18 aggregate
-copying/allocation requirements or record measured justified debt, and pass separate
-review. A later two-pass writer may replace private support while re-proving this
-unchanged result law and ordinary readable-reference equality.
+The supplied cached packed writer and ordinary reference equalities are described
+in §3/§6; §4 records independent facade clients. Static traversal/copy structure
+does not establish measured allocation, throughput, native-client ratios or C1–C4.
+Later private representation replacements must re-prove this unchanged complete
+result law and ordinary readable-reference equality.
 
 The inverse, canonicality, schema, binding and source/guest obligations below
 remain prospective or conditional as qualified in each item. Their unresolved
@@ -2933,9 +2989,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 - **Q80** owns the forward serialization disposition; §5/§7 owns exactly its
-  four-declaration contract. Implementation, local-recursion elaboration, private
-  controls/clients and source/inverse/decoder/guest/resource bridges remain open
-  in §10. It changes no Q67–Q79 provider contract.
+  four-declaration contract. §3/§4 records its supplied code/proofs/controls;
+  source/inverse/decoder/guest/resource bridges remain open in §10. It changes no Q67–Q79 provider contract.
 
 - **Q79** owns the direct complete root-result disposition; §5/§7 owns exactly
   the supplied operation/equation. The actual source/decoder/class/host, guest,
@@ -2986,20 +3041,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Forward serialization (Q80): selected guidance; implementation open.** None of
-  the four public declarations, local-recursion elaboration, actual-length/full
-  reference equality, proper-child termination, child certificate availability,
-  proof independence/determination, private controls or facade clients in §4/§7
-  is supplied here. Original source comparisons must distinguish admitted views
-  from deliberate mathematical extras and preserve actual class/name/coercion/
-  backing/cache/endian/host premises. A decoupled law must work through its complete
-  local recursor without private global names or extra public helpers; report failed
-  elaboration/client evidence rather than silently expanding the interface. D18
-  aggregate copying/allocation and D25 equality, typed schema/output consumers,
-  source diagnostic/failure/resource order, inverse/strict decoder scopes and
-  fixed-zero count recovery, actual root/guest domains, O1/O2/O12/O13, binding,
-  EEST/security, C1–C4 and readiness remain open. Q67–Q79 proof/control and remaining
-  obligation statuses are unchanged.
+- **Forward serialization (Q80) supplied; actual bridges open.** The exact four
+  declarations, self-contained inline-recursion support law, actual-length/full
+  reference and cached-planner equality, structural termination, constructive
+  certificates, proof independence/determination, facade clients and61 literal/native
+  controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
+  literals; six mathematical cases are separately labelled. Actual class/name/
+  coercion/backing/cache/endian/host premises, universal source refinement and
+  source diagnostic/failure/resource order remain open. Typed schema/output consumers,
+  inverse/strict decoder scopes and fixed-zero count recovery, actual root/guest
+  domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
+  throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
+  obligations are unchanged.
 
 - **Computational raw roots (Q79) supplied; actual bridges open.** The operation,
   complete ordinary equation, actual-value termination, local witness availability
@@ -3139,7 +3192,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
-- **SSZ emitted-offset support** (S6/Q80) has a selected forward contract but no implementation or consumer theorem. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
+- **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3), without an actual output consumer theorem. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.
