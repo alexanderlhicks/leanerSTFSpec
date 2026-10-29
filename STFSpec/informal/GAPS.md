@@ -260,6 +260,21 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
+- **Forward serialization (Q80): selected guidance; implementation open.** None of
+  the four public declarations, local-recursion elaboration, actual-length/full
+  reference equality, proper-child termination, child certificate availability,
+  proof independence/determination, private controls or facade clients in §4/§7
+  is supplied here. Original source comparisons must distinguish admitted views
+  from deliberate mathematical extras and preserve actual class/name/coercion/
+  backing/cache/endian/host premises. A decoupled law must work through its complete
+  local recursor without private global names or extra public helpers; report failed
+  elaboration/client evidence rather than silently expanding the interface. D18
+  aggregate copying/allocation and D25 equality, typed schema/output consumers,
+  source diagnostic/failure/resource order, inverse/strict decoder scopes and
+  fixed-zero count recovery, actual root/guest domains, O1/O2/O12/O13, binding,
+  EEST/security, C1–C4 and readiness remain open. Q67–Q79 proof/control and remaining
+  obligation statuses are unchanged.
+
 - **Computational raw roots (Q79) supplied; actual bridges open.** The operation,
   complete ordinary equation, actual-value termination, local witness availability
   and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
@@ -380,9 +395,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   inheritance/reflection/class admission (including `more` at capacity 256) remain
   source-mapping premises. Payload-only WT, its constructor law, 130 signed
   controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
-  false and consumers needing WF supply it separately. Count/uint256 backing, uint32 offsets,
-  scope, cache and codec/root domains remain open. Zero-fixed-element
-  list serialization/inverse premises and total decoder completion remain open.
+  false and consumers needing WF supply it separately. Count/uint256 backing,
+  scope, cache and actual codec/root bridges remain open. Q80 selects forward
+  offset support separately; its implementation, zero-fixed-element list inverse
+  premises and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,
   acceptance cap, codec/root or larger readiness/resource/cost gate is supplied
@@ -392,12 +408,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic
   inverse argument in the pinned dependency: an offset bound `< 2^32` alone is
   insufficient, and byte-slice decrease is not universal around zero-byte children.
-  The appropriate serialization domain and total completion remain open; no fix is
-  supplied here. Future differential round-trip coverage must include every
+  Q80 selects only the forward domain; an appropriate inverse domain and total
+  decoder completion remain open. No fix is supplied here. Future differential round-trip coverage must include every
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
-- **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
+- **SSZ emitted-offset support** (S6/Q80) has a selected forward contract but no implementation or consumer theorem. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.

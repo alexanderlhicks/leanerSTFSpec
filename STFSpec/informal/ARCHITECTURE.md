@@ -876,6 +876,27 @@ change follows. Replacement re-proves the unchanged complete equation. Actual
 source class/reconstruction/host/failure/resource premises, decoder support,
 O2/O12/O13, security and cost/readiness gates remain separate.
 
+**SSZ forward-serialization options (Q80).** DECISIONS Q80 owns the B0+D
+selection; EthCodec §5/§7 owns the exact four declarations and complete equations.
+B0 recurses through actual children and constrains only actually emitted uint32
+starts, preserving zero-width forward cases and mathematical extras. B1 would
+conjoin global structural WF and recursive source backing-count bounds, rejecting
+unused malformed schemas, empty ordinary containers and invalid progressive masks;
+it would still need actual source class/name/backing/host correspondence. A total
+raw encoder would instead require an explicit result for every mismatch, unsupported
+scalar and offset failure; no such completion is selected. The encoder-coupled
+predicate-law alternative avoids the local length recursor but makes domain proofs
+depend on byte results. D keeps domain premises independent of the encoder by
+including the entire recursive length expression locally in the one public law.
+A separate public size function/law would shorten that statement and create an
+additional stable seam without a named consumer; it is not selected. Failed actual
+elaboration or facade-client use must return to the interface choice rather than
+silently adding helpers. All implementation support/reference/derived laws/controls
+and clients stay private. D25 requires ordinary full reference equality; D18 requires
+appropriate aggregate costs or measured justified debt. Guidance selects no delivered
+code, inverse domain, decoder/guest/root admission rule, source failure/resource
+policy, security or readiness closure.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
