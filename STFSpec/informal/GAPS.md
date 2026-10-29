@@ -167,9 +167,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthField`](modules/EthField.md)
 
-- **Bounded supplied status.** §3/§7 discharge only the initial reference carrier, its five
-  operations, six observer laws and three instance families; private controls and clients
-  cover that slice. Reference arithmetic, concrete moduli/aliases, bytes, powMod, inverse,
+- **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
+  operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
+  five observer laws and four delegating operator instances; private controls and clients
+  cover those slices. Concrete moduli/aliases, bytes, powMod, inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
   No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
   precompile, signature, guest or EEST readiness claim follows.

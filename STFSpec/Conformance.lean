@@ -3,6 +3,8 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Conformance.Field.ReferenceCallerProofs
+import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
+import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
 import STFSpec.Conformance.Vm.Core.PreparationFailureGasCallerProofs

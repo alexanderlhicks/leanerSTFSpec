@@ -63,7 +63,7 @@ Every row is required before claiming that module's corresponding refinement, in
 |---|---|
 | EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Taylor's positive-denominator totality/two zero-value laws and bounded controls are supplied by EthBase §3/§7; DISC-002 practical feasibility remains open. Enumerate checked integer operations and failure sites; specify Envelope's role. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
-| EthField | The initial reference-only carrier/five operations/six observer laws/three instance families and private public-law clients/complete controls are supplied by EthField §3/§7; no arithmetic, executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
+| EthField | The reference-only carrier and basic residue arithmetic, their observer laws/delegating instances and private public-law clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
@@ -185,7 +185,13 @@ rejection, ordinary/checked roundtrips, success preservation and equality recogn
 The complete 42-row controls run under all three metadata choices with actual pairwise
 equality; original optimized FQ synthetic parameter-class comparisons are distinct from
 original EELS concrete-field globals, and checked admission is mathematical support with
-zero original checked-helper executions. Reference arithmetic, executable Montgomery/D6,
+zero original checked-helper executions. Basic reference add/sub/neg/mul/isZero, five ordinary
+observer laws and four delegating operator instances are additionally supplied there, with
+generic signed-model/cancellation clients and complete small-pair/reducing/literal controls
+under arbitrary metadata. Its complete interpreted/native observations agree with both
+authenticated original normal/optimized streams on the independently frozen catalogue
+(EthField §4), retaining full raw constructor inputs and every named/notation result.
+Remaining field operations, executable Montgomery/D6,
 concrete aliases, byte/field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
 This does not change the dated §6 readiness assessment.
 

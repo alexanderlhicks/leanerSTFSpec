@@ -942,6 +942,18 @@ secp256k1 recovery returns Bytes64, the unprefixed x/y bytes. Hash those bytes f
 
 For payload conversion, `Array PublicKey` erases each subtype to its ByteArray for EthBlock while retaining the 65-byte/prefix/verification checks. `AnyHeader` is the existing ParentHeader sum, not a second header representation. [REFERENCE-RECORDS](REFERENCE-RECORDS.md) fixes source field order, widths and inheritance for all wire/schema adapters. Dense transaction/receipt/withdrawal arrays in BlockOutput model index-keyed unsecured tries: root construction uses `rlp i` keys and the reference typed/legacy value encoding; receipt traversal for requests follows recorded receipt_keys, appended in transaction order, rather than sorting RLP keys (fork.py:1124; requests.py:291).
 
+### Natural-reference residue arithmetic premise
+
+[EthField §3/§5/§7](modules/EthField.md#supplied-basic-natural-reference-arithmetic)
+supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero with
+ordinary observer equations and four directly delegating operator instances. Generic
+private facade clients compose those laws for range, both zero-recognition directions,
+signed subtraction/negation and cancellation, for every p>1 and arbitrary unread metadata.
+Consumers use observers and public laws. Composite residue arithmetic supplies no field
+structure or primality fact. Runtime Montgomery aliases/D6, inverse/power/sqrt/encoding,
+concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
+this reference seam supplies no production performance or guest-readiness result.
+
 ## 3. Inductive state invariant
 
 Let `Reachable` mean a trace starting from valid block/transaction construction and using the specified admission, step, call, settlement, BAL and incorporation operations. This trace predicate must be defined; it is stronger than arbitrary calls to public raw helpers.
