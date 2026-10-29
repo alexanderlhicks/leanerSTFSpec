@@ -596,6 +596,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete
+  generic clients and full-value controls. No history/admission/default/proof
+  field or extra public law is added. Actual FrameCtx/Evm/world assembly, source
+  context coherence, intended oldest-first/at-most-256 history and lookup,
+  capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open.
+
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
