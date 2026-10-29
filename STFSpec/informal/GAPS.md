@@ -115,8 +115,8 @@ None: every inventory item is claimed by a module or excluded with a reason.
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
 - **Observation-key support costs (Q84).** The §3 functional provider and private
   public-Std/facade clients supply no actual State carrier/tracker/lifecycle code;
-  the separate bounded raw TxObs carrier is owned by EthState §3. Other State
-  carriers and tracker/lifecycle implementation remain open.
+  the separate bounded raw TxObs and BlockState carriers are owned by EthState §3.
+  Combined transaction state and tracker/lifecycle implementation remain open.
   Real key distributions, construction/duplicates/resizing, allocation, linear
   ownership/retention, representation replacement and C1–C4 remain open. A lawful
   constant-hash stress case and ordered baseline belong to later C2 measurements;
@@ -420,7 +420,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   WF, raw BlockDiff values, raw mathematical application, the raw four-operation
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
   bounded structural preservation, supplied-record ModelsLookups and the raw
-  four-field TxObs carrier are supplied
+  four-field TxObs and thirteen-field BlockState carriers are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -453,7 +453,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
-  §3 without tracker/lifecycle code. BlockState, TxState and StateM remain open.
+  §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
+  TxState and StateM remain open.
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay

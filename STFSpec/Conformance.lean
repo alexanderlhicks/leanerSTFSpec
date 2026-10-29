@@ -144,6 +144,8 @@ import STFSpec.Conformance.State.AccountCallerProofs
 import STFSpec.Conformance.State.AccountGuards
 import STFSpec.Conformance.State.TxObsCallerProofs
 import STFSpec.Conformance.State.TxObsGuards
+import STFSpec.Conformance.State.BlockStateCallerProofs
+import STFSpec.Conformance.State.BlockStateGuards
 
 import STFSpec.Conformance.State.WriteOrderCallerProofs
 import STFSpec.Conformance.State.WriteOrderGuards

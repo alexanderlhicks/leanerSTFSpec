@@ -615,7 +615,7 @@ indexed/reversed and deterministic random inputs, in interpreted and compiled mo
 No EELS runtime oracle is needed for this support model.
 
 State §5 uses these canonical dictionaries for its supplied raw TxObs and
-prospective BlockState raw Std fields; State §3 owns the bounded carrier status. The dictionary is part of the Std type. Same-name/model replacement after
+supplied BlockState raw Std fields; State §3 owns the bounded carrier status. The dictionary is part of the Std type. Same-name/model replacement after
 recompilation is intended to preserve public-law consumer proof source; old binary
 reuse is not promised. Concurrently different dictionaries require explicit identity,
 transport or rehashing; scope alone does not identify them. Clients never unfold
@@ -1125,8 +1125,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
 - **Observation-key support costs (Q84).** The §3 functional provider and private
   public-Std/facade clients supply no actual State carrier/tracker/lifecycle code;
-  the separate bounded raw TxObs carrier is owned by EthState §3. Other State
-  carriers and tracker/lifecycle implementation remain open.
+  the separate bounded raw TxObs and BlockState carriers are owned by EthState §3.
+  Combined transaction state and tracker/lifecycle implementation remain open.
   Real key distributions, construction/duplicates/resizing, allocation, linear
   ownership/retention, representation replacement and C1–C4 remain open. A lawful
   constant-hash stress case and ordered baseline belong to later C2 measurements;
