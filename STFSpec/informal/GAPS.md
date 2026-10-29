@@ -267,6 +267,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
+- **Generic schema forward seam (Q81) supplied; certification remains external.**
+  The five metadata fields, two direct forward wrappers and complete ordinary
+  raw-call equations, with private facade signatures/clients and full small byte/root
+  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
+  certification is supplied. All three per-instance §7 obligations remain required;
+  raw support, source class/name/coercion/reflection refinement, typed decoding,
+  inverse/count recovery, decoded-request support and O2 freedom remain separate.
+  The private output consumer is unchanged. No guest/resource/security/cost or
+  readiness gate closes through this generic seam.
+
 - **Forward serialization (Q80) supplied; actual bridges open.** The exact four
   declarations, self-contained inline-recursion support law, actual-length/full
   reference and cached-planner equality, structural termination, constructive
@@ -274,7 +284,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Typed schema/output consumers,
+  source diagnostic/failure/resource order remain open. Actual certified schema
+  instances and their consumers,
   inverse/strict decoder scopes and fixed-zero count recovery, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -285,7 +296,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
   controls/clients, are discharged. Actual source class/name/reflection/coercion/
   backing/cache/hash/global/alias/endian/host and executed-path zero-table premises,
-  decoder view→dataclass→fresh-view support, typed SszSchema/root adapters, whole
+  decoder view→dataclass→fresh-view support, actual typed schema/root refinement, whole
   source construction/failure/resource order, O2/O12/O13, request binding/external
   anchors, EEST/guest/security, C1–C4 and readiness remain open. Finite source-vector
   evidence is bounded and distinguishes mathematical-only cases; it supplies no
@@ -309,8 +320,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
-  Q78 local root support and the Q79 computational raw root; other SSZ semantic
-  interfaces remain unimplemented.
+  Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
+  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
+  remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -321,8 +333,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
-  public equations;
-  schema, typed codec/root operations and error producers remain unimplemented.
+  public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
+  actual schema instances, typed decoding and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
