@@ -1,6 +1,6 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier and basic residue arithmetic supplied. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic and eight natural moduli supplied. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
@@ -101,7 +101,7 @@ the KZG scalar-field type and its decoder.
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `crypto/kzg.py::BLS_MODULUS` | 59 | `Bls12381.r` (alias `blsModulus`) | equals `py_ecc` `curve_order` for BLS12-381; a `#guard` checks equality with `point_evaluation.py:28` |
+| `crypto/kzg.py::BLS_MODULUS` | 59 | `Bls12381.r` (supplied constant; convenience alias open) | equals `py_ecc` `curve_order` for BLS12-381; a `#guard` checks equality with `point_evaluation.py:28` |
 | `crypto/kzg.py::BLSFieldElement` | 42 | `Bls12381.Fr` | EELS subclasses `U256`; the spec uses the canonical field type, not a `U256` |
 | `crypto/kzg.py::BYTES_PER_FIELD_ELEMENT` | 57 | `Bls12381.Fr.byteWidth = 32` | |
 | `crypto/kzg.py::bytes_to_bls_field` | 96 | `Bls12381.Fr.ofBytesBE? : Bytes32 → Option Fr` | EELS `assert`s `< BLS_MODULUS`; the assertion becomes `none`, mapped by `EthPairing.verifyKzgProof` |
@@ -122,6 +122,34 @@ the KZG scalar-field type and its decoder.
   `.curve_order`, and the BLS12-381 equivalents): R1.
 - Python `pow(a, b, m)` on `int`/`U256` (`crypto/elliptic_curve.py:47`, `modexp.py:71`): R6, R7.
 - `ethereum_types.numeric.U256`/`Uint` conversions at the boundary are `EthBase`'s.
+
+### Supplied exact natural moduli
+
+`STFSpec/Field/Moduli.lean`, reexported by `STFSpec.Field`, supplies exactly the eight
+R1 constants below as `Nat`. These are pure values with no arguments, mutation,
+queries or failure channel. The names distinguish coordinate/base moduli from
+subgroup/scalar orders. No public law, instance, concrete field alias, convenience
+alias, primality certificate, square-root metadata or Montgomery parameter is added.
+The exact dependency is py-ecc 8.0.0 locked by EELS at
+`e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (the current pin).
+
+| Source / complete owning expression | Lean declaration and exact type | Meaning / deterministic control / status |
+|---|---|---|
+| py-ecc `py_ecc/fields/field_properties.py:24`, `bn128.field_modulus` | `Bn254.q : Nat` | Base modulus; full literal, 254 bits; **supplied** |
+| py-ecc `py_ecc/optimized_bn128/optimized_curve.py:17–19`, `curve_order` | `Bn254.r : Nat` | Scalar order; full literal, 254 bits; **supplied** |
+| py-ecc `py_ecc/fields/field_properties.py:29`, `bls12_381.field_modulus` | `Bls12381.q : Nat` | Base modulus; full literal, 381 bits; **supplied** |
+| py-ecc `py_ecc/optimized_bls12_381/optimized_curve.py:17–19`, `curve_order`; EELS `src/ethereum/crypto/kzg.py:59–61`, `BLS_MODULUS`, and `src/ethereum/forks/amsterdam/vm/precompiled_contracts/point_evaluation.py:28` | `Bls12381.r : Nat` | Scalar order, all three source literals equal; 255 bits; **supplied** |
+| EELS `src/ethereum/crypto/elliptic_curve.py:18–20`, `SECP256K1P` | `Secp256k1.p : Nat` | Base modulus; full literal, 256 bits; **supplied** |
+| EELS `src/ethereum/crypto/elliptic_curve.py:21–23`, `SECP256K1N` | `Secp256k1.n : Nat` | Scalar order; full literal, 256 bits; **supplied** |
+| EELS `src/ethereum/crypto/elliptic_curve.py:82–84`, `SECP256R1P` | `P256.p : Nat` | Base modulus; full literal, 256 bits; **supplied** |
+| EELS `src/ethereum/crypto/elliptic_curve.py:79–81`, `SECP256R1N` | `P256.n : Nat` | Scalar order; full literal, 256 bits; **supplied** |
+
+The dependency wheel is authenticated against the pinned `uv.lock`; source files
+are bound to their actual pinned Git blobs and installed dependency members match
+the locked wheel bytes. Static reading of the complete owning literal expressions
+(including the U256/BLSFieldElement argument) does not execute original assignments,
+classes or module initializers. These constants alone discharge no concrete-field,
+primality, alias, precompile, backend, replacement, resource or C1–C4 gate.
 
 ### Supplied initial natural reference carrier
 
@@ -192,6 +220,16 @@ and signed-Int subtraction/negation models. Clients use public laws and instance
 never the carrier projections, constructor equations or semantic operation definitions.
 
 ## 4. Tests
+
+Private facade-only `ModuliCallerProofs.lean` checks all eight exact `Nat` types and
+complete literal equalities by ordinary reflexivity. `ModuliGuards.lean` compares
+all eight labelled full values, distinguishes every base/scalar pair, checks bit
+lengths `254/254/381/255/256/256/256/256`, all values `>1` and `<2^384`, the seven
+non-BLS-base values `<2^256`, and base/scalar residues `3`/`1` modulo four.
+Complete interpreted and native facade-only observations independently agree with
+all eight source-derived values, labels, bit lengths and mod-four residues.
+These elementary finite checks establish no primality theorem or field instance.
+
 
 The supplied reference slice has private full-result guards in
 `STFSpec/Conformance/Field/ReferenceGuards.lean`: 42 input/modulus rows, each under
@@ -335,7 +373,7 @@ def ofBytesBE? : ByteArray → Option (PrimeField p)     -- big-endian, checked
 instance : Add, Sub, Neg, Mul, Div (via div), HPow _ Nat _, DecidableEq, Inhabited, Repr
 end PrimeField
 
--- concrete fields (public)
+-- Exact Nat constants supplied; concrete field aliases below remain unimplemented.
 def Bn254.q Bn254.r Bls12381.q Bls12381.r Secp256k1.p Secp256k1.n P256.p P256.n : Nat
 abbrev Bn254.Fq := PrimeField Bn254.q      -- abbrev over the structure is fine: the
 abbrev Bn254.Fr := PrimeField Bn254.r      -- structure is the abstraction barrier
@@ -380,6 +418,10 @@ Names follow EELS/`py_ecc` in lowerCamelCase (`inv0` rather than `prime_field_in
 can never be picked up.
 
 ## 6. Data structures
+
+The eight R1 constants are immutable ordinary `Nat` literals in a separate leaf;
+no field representation or runtime backend is selected by supplying those values.
+
 
 | Type | Representation (executable; reference in italics) | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
@@ -433,6 +475,12 @@ conversions into and out of Montgomery form, and composition inside the tower an
 snapshotted state (ARCHITECTURE §5.0 does not apply).
 
 ## 7. Contract and laws
+
+**Supplied constant values.** The eight `Nat` definitions in §3 have their exact
+source literals as transparent bodies. Their complete equalities and elementary
+bounds are checked privately; no new authored public law or instance is supplied.
+Primality, square-root metadata and concrete-field/backend contracts remain open.
+
 
 **Supplied reference-only laws (discharged).** In namespace `PrimeFieldRef`, with
 `{p : Nat} [FieldModulus p]`, exactly eleven ordinary public laws are supplied:
@@ -510,6 +558,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+Supplying the eight natural moduli makes no D6 source choice and requires no D18
+performance exception; executable representations and their costs remain open.
+
+
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
   `Native64x8Defs` with the carry fix, or the same fix is upstreamed to a Mathlib-free CompPoly
@@ -535,7 +587,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
   operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
   five observer laws and four delegating operator instances; private controls and clients
-  cover those slices. Concrete moduli/aliases, bytes, powMod, inverse,
+  cover those slices. The eight exact R1 natural moduli are supplied separately;
+  concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
   No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
   precompile, signature, guest or EEST readiness claim follows.

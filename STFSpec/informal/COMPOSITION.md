@@ -969,7 +969,9 @@ supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero
 ordinary observer equations and four directly delegating operator instances. Generic
 private facade clients compose those laws for range, both zero-recognition directions,
 signed subtraction/negation and cancellation, for every p>1 and arbitrary unread metadata.
-Consumers use observers and public laws. Composite residue arithmetic supplies no field
+Consumers use observers and public laws. The eight exact natural moduli are separately
+supplied by EthField §3, without instances, aliases, square-root metadata or backend
+parameters. Composite residue arithmetic and literal modulus values supply no field
 structure or primality fact. Runtime Montgomery aliases/D6, inverse/power/sqrt/encoding,
 concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
 this reference seam supplies no production performance or guest-readiness result.
