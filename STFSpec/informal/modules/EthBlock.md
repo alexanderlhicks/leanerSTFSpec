@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54, Q83.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
 
@@ -497,6 +497,9 @@ def BlockConfig.runnerEnv (cfg : BlockConfig) : RunnerEnv :=
     vm := ⟨cfg.gas, cfg.stateGas, cfg.limits⟩
     systemAddress := cfg.system.systemAddress }
 
+-- Q83: transport the same Monad-only table through runnerEnv, without an observer parameter.
+-- Generic table construction and actual effect/dispatch bridges remain open.
+
 -- types (§2.1)
 structure Withdrawal; structure Header; structure PrevHeader
 inductive ParentHeader | amsterdam (h : Header) | bpo5 (h : PrevHeader)
@@ -684,6 +687,11 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+**Precompile routing (Q83).** BlockConfig transports the same Core table to
+RunnerEnv; Block never imports Precompiles. Action factorization and its exact Id
+law add no observer parameter or construction premise. Actual generic producer
+and Runner lift/dispatch/settlement proofs remain separate obligations.
+
 The supplied raw `BlockParams`, `TxParams` and `SystemAddrs` have ordinary structure
 reduction and reconstruction; §3 records private arbitrary-input projection/update clients for
 every field. No additional public law package or global configuration predicate is supplied.
@@ -762,6 +770,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
 
 ## 10. Gaps
+
+- **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
+  and the existing Monad-only carrier. Core's logical predicate/Id law do not
+  construct the installed table or discharge actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

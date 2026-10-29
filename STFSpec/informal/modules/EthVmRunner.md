@@ -1,7 +1,7 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20.*
+*Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
 
@@ -50,7 +50,7 @@ In this order:
 
 - **R-LOOP-1** The loop calls `step` while the frame runs (`:444–452`). `.continue f'` iterates; `.stop`, `.revert`, `.halt` end the frame and go to settlement. `step` itself handles `pc ≥ |code|` and invalid opcodes (EthVmInstructions R-DSP-2).
 - **R-LOOP-2** On `.call parent req h hs`: build the child context with `childCtxOfCall ctx req h` (depth + 1) and the child frame with `childFrame parent req.gas req.stateGasReservoir` (its warm sets are the parent's); the child context inherits `ctx.systemAddress` unchanged (F8). Run `processCall`, form the `ChildOutcome` (the `ChildSettled` proof: F11, §9), and continue with `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`: likewise with `processCreate` and `resumeAfterCreate` (EELS: `I/system.py:140–192, 409–469`). The parent frame is suspended unchanged while the child runs.
-- **R-LOOP-3 Precompile table.** `PrecompileFn m` (EthVmCore) takes `(input, meter)` and returns, in `m`, either `.ok meter' output` or `.halt e`. The table's `meter_law` guarantees that `meter'` differs from `meter` only by a `gas_left` charge. The runner **installs `meter'` as the frame meter** and sets the output, without charging again; on `.halt` it applies the ordinary frame-halt settlement (R-CALL-4). This matches EELS, whose precompiles read only `evm.call_data`, write only `evm.output` and charge only execution gas on the frame's own meter [V: `grep evm\.` over `precompiled_contracts/` finds only `call_data` and `output`, plus `charge_gas`]. ecrecover and p256verify return empty output on invalid input rather than halting (O9, EthPrecompiles). The table's key set is also the warm-set seed of §2.2 step 3.
+- **R-LOOP-3 Precompile table.** `PrecompileFn m` (EthVmCore) takes `(input, meter)` and returns, in `m`, either `.ok meter' output` or `.halt e`. At Id the table's `meter_law`, via Core's `satisfiesM_id_iff` (Q83), guarantees that `meter'` differs from `meter` only by a `gas_left` charge. For arbitrary m, the action-factorization witness requires a concrete bridge through the actual dispatch/lift before making that observed-result claim. The runner **installs `meter'` as the frame meter** and sets the output, without charging again; on `.halt` it applies the ordinary frame-halt settlement (R-CALL-4). This matches EELS, whose precompiles read only `evm.call_data`, write only `evm.output` and charge only execution gas on the frame's own meter [V: `grep evm\.` over `precompiled_contracts/` finds only `call_data` and `output`, plus `charge_gas`]. ecrecover and p256verify return empty output on invalid input rather than halting (O9, EthPrecompiles). The table's key set is also the warm-set seed of §2.2 step 3.
 
 ### 2.7 Termination and fuel (ARCHITECTURE §5.5; O11; REVIEW §7 G2–G7)
 
@@ -129,6 +129,7 @@ structure TransactionOutput where
 def runFrame      (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) (fuel : Nat) : RunM m FrameResult
 def processCall   (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
 def processCreate (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
+-- The table action stays in base m; Q83 does not supply a VmM/RunM transformer bridge.
 def runPrecompile (p : PrecompileFn m) (f : Frame) (input : Bytes) : m FrameResult   -- internal; installs the returned meter (R-LOOP-3)
 
 -- Top level (public)
@@ -187,7 +188,7 @@ These are separate results: 2 does not give a computable budget and 4 does not g
 
 **Resume and depth** [C]: `childCtxOf*` produces `depth + 1 ≤ 1024`; the EELS depth guard is provably dead (R-CALL-1).
 
-**Precompile dispatch** [C]: `processCall` on a precompile address with `disablePrecompiles = false` equals `runPrecompile` after the value transfer; with `true` it succeeds with empty output without running the precompile or code (`interpreter.py:438–442`). On success the runner installs the returned meter and output, without charging again. On halt it applies the ordinary frame-halt settlement. `meter_law` supplies the potential bound; no opcode proof depends on precompile internals.
+**Precompile dispatch** [C]: `processCall` on a precompile address with `disablePrecompiles = false` equals `runPrecompile` after the value transfer; with `true` it succeeds with empty output without running the precompile or code (`interpreter.py:438–442`). On success the runner installs the returned meter and output, without charging again. On halt it applies the ordinary frame-halt settlement. At Id, `satisfiesM_id_iff` turns `meter_law` into the successful local meter bound, including both spill pools. For generic m the actual dispatch/lift requires its own effect bridge. Settlement remains a separate proof; no opcode proof depends on precompile internals (Q83).
 
 **Authorizations** [C]: `setDelegation` fails only with `outOfGas`; on failure the caller's snapshot restore undoes every applied authorization (R-TOP-2); the `AUTH_BASE` charge is paid at most once per authority per transaction and never credited back (the EELS docstring's claim, `eoa_delegation.py:265–270`, to be proved).
 
@@ -224,6 +225,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F11** (open, choose one): how the runner produces `ChildSettled` for `toChildOutcome`. Either a decidable check whose failure raises a new `InternalError.invariant` (then proved dead with the fuel guarantees, G7; the choice of a compiled prototype of the interfaces), or a settled subtype returned by `processCall`/`processCreate`, which needs `L-SETTLE` proved inline.
 
 ## 10. Gaps
+
+- **Precompile interpretation (Q83):** Core supplies logical action factorization and
+  exact Id reduction only. The table action stays in base m; actual lifting through
+  VmM/RunM and their transformer/error order requires an explicit local bridge.
+  Dispatch, separate halt settlement and potential proofs remain open. This adds
+  no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
 
 - **F8 immutable address transport:** `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 

@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
 
@@ -111,6 +111,12 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction, a `Fin` indexed bound and an ordinary 1024 guard through the public facade. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied logical action factorization (Q83)
+
+| EELS source | Lean declaration | Domain, effects and failures | Law and clients |
+|---|---|---|---|
+| No EELS function: logical shared helper | `SatisfiesM` in `STFSpec/Vm/Core/SatisfiesM.lean`, exported by the Core facade | Every `m : Type → Type` with `Monad m`, `α : Type`, predicate and action; Prop-valued, no runtime action or failure | **Discharged:** `satisfiesM_id_iff` exactly reduces to `P x` at Id. `SatisfiesMCallerProofs.lean` privately checks arbitrary predicates/actions in both directions, true/false Id cases, the complete six-field successful meter relation on all raw meters, a state trace witness, a base Except error witness and nonlawful CountMap rejection of safe pure 7. No table, adapter or generic observation is implemented. |
 
 ### Supplied raw mutable Frame data
 
@@ -1315,6 +1321,15 @@ actual complete records and source/runtime identities beside each fresh run.
   - `(HashConsts.query (m := Id)).transferTopic = keccak256 "Transfer(address,address,uint256)" = 0xddf252ad…b3ef` (owned by EthHash §7, `HashConsts.query (m := Id) = HashConsts.literals`).
 - **Property/differential:** random meter operation sequences against a direct `Nat` model of the six fields, checking Φ laws (§7); random window lists for `extendMemory` against the closed form; Jumpdest's ordinary all-input packed/reference proof and complete finite controls above supply its local functional slice. Random-code differential campaigns and measured 24 KiB/64 KiB linearity/compiled costs remain future checks; merely running those sizes proves no timing bound.
 
+**Action-factorization controls (Q83).** Private public-facade clients in
+`SatisfiesMCallerProofs.lean` check arbitrary-P/x Id introduction/elimination;
+true and false predicates; all six successful GasMeter fields, arbitrary charged
+raw meters and rejection of a committed-spill change; an exact StateM trace
+increment; an Except error with False result predicate; and CountMap safe-pure,
+map-pure and map-composition counterexamples. All local carriers/instances and
+support stay private and total. These logical checks need no native runner or
+EELS differential driver: there is no corresponding EELS operation.
+
 ## 5. Interface
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
@@ -1578,6 +1593,10 @@ abbrev PrecompileFn (m : Type → Type) := Bytes → GasMeter → m PrecompileRe
 def MeterOk (g : GasMeter) : PrecompileResult → Prop       -- the returned meter differs only by a gas_left charge
   | .ok g' _ => g'.gasLeft ≤ g.gasLeft ∧ { g' with gasLeft := g.gasLeft } = g
   | .halt _ => True
+-- Supplied logical helper (Q83); the carrier/result/table sketches remain unimplemented.
+def SatisfiesM {m : Type → Type} [Monad m] {α : Type}
+    (P : α → Prop) (x : m α) : Prop :=
+  ∃ y : m {r : α // P r}, Subtype.val <$> y = x
 structure PrecompileTable (m : Type → Type) [Monad m] where
   lookup : Address → Option (PrecompileFn m)
   addresses : AddrSet
@@ -1659,7 +1678,7 @@ def validJumpDestinations : Bytes → JumpdestMap
 def JumpdestMap.contains : JumpdestMap → Nat → Bool
 ```
 
-`TxState`, `TxRevertible` and `StateError` come from `EthState`. Observations live only at `world.tx.obs`, and ancestor access only at `world.tx.block.oldestAncestorOffset`. A snapshot retains only `TxRevertible`. `Log` and `LogRope` are declared here (D27/D24). Precompile types are also declared here; the producer and runner import them. `PrecompileFn m` is monadic so that ECRECOVER's public-key hash goes through `KeccakQuery` (D5); only `EthPrecompiles` needs `[KeccakQuery m]`. `meter_law` is stated with `SatisfiesM` so that it holds for every `m`; at `m := Id` it is the plain equation, and that instance is the minimum required. It holds by construction for the normal form (EthPrecompiles §5), because the meter is fixed by `chargeGas` before the monadic body runs. `BlobGasArithmeticError`, `BlobFeeError` and `CapacityError` are local errors mapped by `EthBlock`; their complete constructor lists remain a §10 obligation. These are Lean-like signatures: declarations must be ordered before their uses in Lean.
+`TxState`, `TxRevertible` and `StateError` come from `EthState`. Observations live only at `world.tx.obs`, and ancestor access only at `world.tx.block.oldestAncestorOffset`. A snapshot retains only `TxRevertible`. `Log` and `LogRope` are declared here (D27/D24). Precompile types are also declared here; the producer and runner import them. `PrecompileFn m` is monadic so that ECRECOVER's public-key hash goes through `KeccakQuery` (D5); only `EthPrecompiles` needs `[KeccakQuery m]`. `meter_law` uses the supplied logical action factorization `SatisfiesM` (Q83). At `m := Id`, `satisfiesM_id_iff` gives the displayed successful meter consequence for every raw meter, preserving all five nonexecution fields including both spill pools. For arbitrary `m`, constructing a table requires an actual certified action and erasure equality; fixing the meter before the body alone does not prove that equality. Generic adapter equations, their local construction assumptions and concrete consumer bridges remain open (EthPrecompiles §5/§7). `BlobGasArithmeticError`, `BlobFeeError` and `CapacityError` are local errors mapped by `EthBlock`; their complete constructor lists remain a §10 obligation. These are Lean-like signatures: declarations must be ordered before their uses in Lean.
 
 The StateGasCosts, VmLimits and VmConfig signatures above are supplied raw data
 interfaces: the exact stored field order is the constructor order, and all six
@@ -1702,6 +1721,29 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Logical action-factorization law (Q83; supplied/discharged).**
+
+```lean
+theorem satisfiesM_id_iff {α : Type} (P : α → Prop) (x : Id α) :
+  SatisfiesM P x ↔ P x
+```
+
+**Claim.** The supplied predicate in §5 reduces exactly to `P x` at Id.
+**Premises.** Only the displayed types and Monad instance; no lawful-monad,
+raw-meter invariant, successful-return or hash-answer premise.
+**Argument.** Forward, the existing subtype witness carries the property of its
+value, and the erasure equality identifies that value with x. Reverse, x with its
+proof is itself the witness. The proof is constructive. Private facade clients
+apply this law to arbitrary predicates/actions and to the exact successful meter
+relation, deriving all five preserved nonexecution fields on every raw meter.
+**Open obligations.** For arbitrary m this is an action factorization, not a result
+observation or guarantee of a result. An ordinary Except error can factor even
+through an uninhabited result predicate. Conversely, a nonlawful Monad can reject
+even safe pure 7: CountMap map adds a tick and cannot erase to zero-tick pure.
+Map-on-pure/composition and bind-pure/map agreement require their actual local laws;
+no generic table constructor, observer, transformer bridge, adapter or settlement
+proof is supplied here. Halts remain unconstrained by the sketched MeterOk branch.
 
 **Raw Frame carrier controls are supplied.** §3/§5 own the two persistent-set
 aliases and exact nine-field mutable record. Private generic clients verify all
@@ -2674,6 +2716,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+- **Q83:** DECISIONS owns the bounded predicate disposition; §5/§7 supply exactly
+  action factorization and its Id law. Generic construction assumptions, adapter
+  equations, effect/transformer bridges and nominal-halt equivalence remain open.
+
 - **D1** (U256 representation): stack words and all handler-visible arithmetic go through `U256` observers; nothing here may depend on the stored field.
 - **D11** (memory type): `ByteArray` initially; the laws in §7 are the replacement contract (exercise 1).
 - **D13** (call-frame structure): determines whether `Frame` is suspended in the Lean call stack (recursive runner) or in an explicit continuation; `FrameCtx.depth_le` supports both.
@@ -2702,6 +2748,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   validation are separate caller obligations, not global meter invariants.
 
 ## 10. Gaps
+
+- **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
+  SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
+  clients. PrecompileResult, PrecompileFn, MeterOk and PrecompileTable remain
+  sketches. Generic construction needs an actual witness/erasure proof and
+  separately selected local laws or equations; adapter/normal-form/halt equivalence,
+  concrete effect observations and actual Runner bridges/settlement remain open.
+  No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field

@@ -1,7 +1,7 @@
 # `EthFork`: the Amsterdam composition
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8.*
+*Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8, Q83.*
 
 Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or evaluated) at the pin; **[I]** means an inference.
 
@@ -198,6 +198,7 @@ def vmLimits : Vm.Core.VmLimits :=
   ⟨Vm.Core.STACK_DEPTH_LIMIT, maxCodeSize, 2 * maxCodeSize⟩
 def vmConfig : Vm.Core.VmConfig := ⟨gasCosts, stateGasCosts, vmLimits⟩
 theorem vmLimits_depth : vmConfig.limits.stackDepthLimit = Vm.Core.STACK_DEPTH_LIMIT := rfl
+-- Q83 leaves this generic construction sketch open; no lawful premise is selected.
 def precompiles {m} [Monad m] [KeccakQuery m] : Vm.PrecompileTable m := STFSpec.Precompiles.table vmConfig  -- R-F5; EthVmCore's record (lookup, addresses, lookup_iff, meter_law)
 def config       : Block.BlockConfig :=
   { gas := gasCosts, stateGas := stateGasCosts, block := blockParams,
@@ -240,7 +241,7 @@ generic positivity, WF, coherence or subtraction law.
 4. Gas-limit caps: `TX_MAX_GAS_LIMIT ≤ TX_MAX_TOTAL_GAS_LIMIT`. The intrinsic floor constants satisfy `TX_DATA_TOKEN_FLOOR ≥ TX_DATA_TOKEN_STANDARD`. [C]
 5. Termination readiness (`TerminationReady`, the ARCHITECTURE §5.5 hypothesis): every continuing opcode's static charge is ≥ 1 (the minimum is `JUMPDEST = 1` [I]: to be confirmed against the full opcode table); `CALL_STIPEND ≤ CALL_VALUE`; the child grant never exceeds the parent's available gas. The behavioural predicate is stated in `EthVmRunner`; specialising its whole-iteration proof here is outstanding. Numeric positivity is only one premise. [T]
 6. System-call budget: `txGas + maxSstoresPerCall · STORAGE_SET` fits the runner's `Nat` budget. There is no bound to check, since gas is `Nat`. System calls add nothing to block gas counters. [C]
-7. Table law: `precompiles.addresses` is exactly R-F5, and every key maps to the `EthPrecompiles` function of the same EELS name. [R] Consumers use this to identify dispatch.
+7. Table law: `precompiles.addresses` is exactly R-F5, and every key maps to the `EthPrecompiles` function of the same EELS name. [R] Consumers use this to identify dispatch. Q83 supplies Core action factorization and its exact Id law; generic construction still requires an actual witness/erasure proof. No stronger constructor premise or observer parameter is selected, and the same table routes through BlockConfig.runnerEnv.
 8. Conservation (a `WellFormed` field once `EthBlock` §7 states it): `baseFee ≤ effectivePrice` is built into admission, so the fee split never goes negative. [C]
 
 **Derived law.** Every generic theorem `∀ cfg, WellFormed cfg → P cfg` specialises to `P Amsterdam.config` with no further obligation. Adding a fork also requires its behavioural refinement and runner progress proof if opcode or call rules change; `config_wf` alone is insufficient.
@@ -273,6 +274,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Values in `EthFork`, types next to their semantics: resolved by DECISIONS B8 (Q1/Q26/Q43) and F8.
 
 ## 10. Gaps
+
+- **Precompile construction (Q83):** the exact Core predicate/Id law supplies no
+  installed table, adapter equation, constructor law packaging or concrete effect
+  bridge. Generic construction remains open at the unchanged Monad/KeccakQuery
+  sketch; stronger public assumptions need a separate approved proposal. Preserve
+  the same table through BlockConfig.runnerEnv; settlement remains Runner-owned.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

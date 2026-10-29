@@ -1,7 +1,7 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
 **[I]** inference, not yet checked. Paths are relative to
@@ -318,8 +318,8 @@ Public unless marked internal. Namespace `STFSpec.Precompiles`.
 -- Everything below is generic in `{m} [Monad m] [KeccakQuery m]` (D5); only ECRECOVER queries.
 abbrev Precompile (m : Type → Type) := PrecompileFn m
 
--- normal form (§2.1); every precompile has one. Only the body is monadic, so the meter is
--- fixed by `chargeGas` before it runs and `meter_law` holds for every `m`.
+-- Intended normal form (§2.1); per-entry proofs and executable adapter equations remain open.
+-- Fixing the meter before the monadic body is insufficient for generic erasure equality (Q83).
 structure PrecompileSpec (m : Type → Type) where
   precheck : ByteArray → Option ExceptionalHalt        -- pre-charge failures
   gasCost  : ByteArray → Nat
@@ -338,6 +338,9 @@ def ecrecover sha256 ripemd160 identity modexp altBn128Add altBn128Mul
     altBn128PairingCheck blake2f pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
     bls12G2Msm bls12Pairing bls12MapFpToG1 bls12MapFp2ToG2 p256verify (cfg : VmConfig) : Precompile m
 def ecrecoverSpec … p256verifySpec (cfg : VmConfig) : PrecompileSpec m   -- normal forms (public, for proofs)
+
+-- Q83 preserves these Monad-only sketches; no constructor strengthening is selected.
+-- SatisfiesM factors actions; actual toPrecompile equations/witness equality remain open.
 
 namespace Modexp
 def complexity (baseLength modulusLength : Nat) : Nat
@@ -405,10 +408,15 @@ subgroup checks; pairings. These dominate guest runtime on precompile-heavy fixt
 
 Per operation:
 - [C] **Frame law.** At `m := Id`: `p data g = .ok g' out → chargeGas g c = .ok g'` for the
-  precompile's `c`; for general `m`, the same holds under `SatisfiesM`. Only `gas_left` changes
-  (no state gas, refund or other field) [V: all files call only `charge_gas`]. This implies
-  `EthVmCore`'s `meter_law`. Supports the runner's potential Φ (ARCHITECTURE §5.5): a precompile frame never
-  increases Φ.
+  precompile's `c`. For general `m`, state the stronger charge relation through Core's
+  action-factorization predicate `SatisfiesM` (Q83); constructing its witness and
+  erasure equality remains an obligation. Only `gas_left` changes
+  (no state gas, refund or other field) [V: all files call only `charge_gas`]. At Id
+  this implies `EthVmCore`'s `meter_law`; a generic factorization for each relation
+  still needs its own witness/erasure proof. Supports the runner's potential Φ
+  (ARCHITECTURE §5.5): a precompile frame never
+  increases Φ at Id; a generic observed-result consequence additionally needs an
+  actual bridge for the action/effects used by the consumer.
 - [C] **Normal form.** `p = (pSpec).toPrecompile` up to the halt constructor, for every `p`.
   Proved per precompile against an EELS-shaped definition (check order as in EELS).
 - [C] **Gas laws.** Closed forms of §2.2/§2.3, e.g. `sha256Gas n = 60 + 12 * ((n + 31) / 32)`;
@@ -478,7 +486,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D3**: Amsterdam only; the table is not fork-parameterised.
 - **D4**: SHA-256/RIPEMD-160/BLAKE2 are `EthHash` references; their fast paths are D4's.
 - **D5** (broad scope, monad-parametric): ECRECOVER's keccak of the public key goes through
-  `KeccakQuery`, so every precompile is a `PrecompileFn m` and the meter law holds for every `m`
+  `KeccakQuery`, so every precompile is a `PrecompileFn m`. Q83 defines the generic
+  meter predicate; it does not construct the table for every Monad
   (F3's pure form is not adopted). Execution uses `m := Id`.
 - **D18** (accepted): MSM and pairings must use performance-appropriate executables (Pippenger-class MSM; Montgomery fields; easy/hard-part final exponentiation), with the naive or plain forms kept as legible references. Any exception is recorded in `STFSpec/informal/DEBT.md` with its justification.
 - **D6**, **D7**, **D15**: via the crypto libraries.
@@ -490,6 +499,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   working position (uncleared `mapToCurve*`, `mapFp*` wrappers clear exactly once; EthCurve R8).
 
 ## 10. Gaps
+
+- **Generic construction (Q83):** Core supplies action factorization and the exact Id
+  law only. `toPrecompile` equations, per-entry source/normal-form proofs and the
+  meaning of equality up to the halt constructor remain open. A map-shaped adapter
+  needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
+  alone does not); bind-pure/map agreement needs its own law. Public constructor
+  assumptions, erasure-first computation, observers and transformer bridges remain
+  unselected. The four-field Monad-only table sketch is unchanged.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

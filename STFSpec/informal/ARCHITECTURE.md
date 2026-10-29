@@ -293,7 +293,7 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 | Gas meter | a dedicated `GasMeter` record (2-D: execution plus state gas with reservoir/spill), following `gas.py` names | **charge, reserve, return (child gas), and exceptional-halt behaviour** as named operations with laws; gas *policy* (costs) is a separate parameter record | [C] meter laws; [T] the measure (below); exercise 3 |
 | Jumpdest analysis | a bitmap per code; optionally a cache keyed by code hash (§7) | `isValidJumpdest code pc` | [C] equals EELS `get_valid_jump_destinations` |
 | Instructions | one handler per opcode → `StepResult = next frame · halt/revert/exceptional · childRequest` | the per-opcode semantics | [R] per-opcode lemmas stated with stack, memory, gas and state laws only |
-| Precompiles | one module each; dispatch through a table of `PrecompileFn m := Bytes → GasMeter → m PrecompileResult` (monadic because ECRECOVER hashes through `KeccakQuery`, D5); the meter law holds for every `m` | EVM-level behaviour per EELS | conformance; D12 |
+| Precompiles | one module each; dispatch through a table of `PrecompileFn m := Bytes → GasMeter → m PrecompileResult` (monadic because ECRECOVER hashes through `KeccakQuery`, D5); the meter law uses Core action factorization (Q83); generic construction and consumer bridges remain open | EVM-level behaviour per EELS | conformance; D12 |
 | Runner | recursive, EELS-shaped (D13): runs the frame loop, executes a `childRequest` and applies a **named resume operation** (`resumeAfterCall`, `resumeAfterCreate`) | `processMessageCall`/`processCreate` | [T] the termination design (below); resume laws |
 
 **Termination design** (revised 2026-09-28 from prior art: EVMLean, powdr and EVMYulLean, cited below; still a hypothesis until the fuel-adequacy investigation ([REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7) passes). It keeps three things separate: **semantic gas** (Ethereum's), **interpreter fuel** (a Lean artifact), and the **contracts** proofs use.
@@ -468,6 +468,18 @@ The options considered for each decision, and what evidence settles or revisits 
 | D25 | Contract style | laws listed per component · model-based (invariant + commuting equations; laws derived on the model; an abstraction relation for partial structures) | replacement exercises R1, R2, R4 |
 | D26 | secp256k1 recovery for senders and EIP-7702 authorities | `RunnerEnv` parameter · direct `EthCurve` dependency of `EthVmRunner` | — (pure-Lean dependencies only) |
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
+
+**Generic precompile meter predicate options (Q83).** A parameterizes the table and
+its carriers by a successful-result observation; B factors an action through
+proof-carrying results; C parameterizes them by a specification judgment.
+DECISIONS Q83 owns the bounded selection. Core §5/§7 supplies B and its exact Id
+law, preserving the four-field Monad-only table sketch and existing routing.
+B alone supplies no arbitrary-monad result interpretation or table construction.
+A map-shaped adapter needs actual map-on-pure/composition equations; local
+`LawfulApplicative` suffices, while Monad alone does not, and bind-pure/map agreement
+needs its own law. These remain unselected constructor choices, as do erasure-first
+computation, concrete effect bridges and nominal-halt equivalence. Revisit with a
+concrete constructor/consumer proposal; no F11, D5, fuel or resource claim follows.
 
 **System-address transport options (F8).** A1 carries Fork's `SystemAddrs.systemAddress` through new `RunnerEnv` and immutable `FrameCtx` fields, with the explicit helper argument after Frame. It keeps fork policy separate from mutable state and header data while preserving the implemented three-field `VmConfig`. A2 would add one `VmWorld` field, requiring preservation by the specified VM transitions; arbitrary `StateT` actions cannot promise that preservation. A3 would add one immutable `BlockEnvironment` field, mixing fork policy with the header/chain abstraction and changing every environment constructor. B would retain a closed Core constant and broaden F8's literal exception, tying future address changes to Core. A `VmConfig` field would migrate its already implemented constructor/laws and Amsterdam values. A1 accepts two record-construction updates for immutable policy and modular fork changes; DECISIONS F8 owns the selection and authorization. Construction, child inheritance and both producer source refinements remain implementation obligations. The four-hash F20 record, request/handler/runner parameter lists and failure/effect order are unchanged. Revisit for changed source or consumer/context requirements.
 
