@@ -616,6 +616,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
   open with their existing owners. No gas, resource or VM/guest readiness result follows.
 
+- **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
+  `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
+  clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
+  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
+  gate follows from this literal alone.
+
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
   laws, nine private public-law client groups and complete finite controls. Q66 supplies
