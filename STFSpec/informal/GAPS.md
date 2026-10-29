@@ -598,8 +598,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
-  clients. PrecompileResult, PrecompileFn, MeterOk and PrecompileTable remain
-  sketches. Generic construction needs an actual witness/erasure proof and
+  clients. The four raw shared declarations PrecompileResult, PrecompileFn,
+  MeterOk and PrecompileTable are supplied separately in §3/§5/§7, with private
+  complete payload/meter/table clients and logical controls. Actual generic
+  producer construction needs an actual witness/erasure proof and
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
@@ -712,13 +714,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
-- **Generic construction (Q83):** Core supplies action factorization and the exact Id
-  law only. `toPrecompile` equations, per-entry source/normal-form proofs and the
+- **Generic construction (Q83):** Core supplies the raw result/function/MeterOk/
+  certified-table carriers, action factorization and the exact Id law (Core §3/§5/§7).
+  `toPrecompile` equations, per-entry source/normal-form proofs and the
   meaning of equality up to the halt constructor remain open. A map-shaped adapter
   needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
   alone does not); bind-pure/map agreement needs its own law. Public constructor
   assumptions, erasure-first computation, observers and transformer bridges remain
-  unselected. The four-field Monad-only table sketch is unchanged.
+  unselected. The supplied four-field Monad-only table carrier does not construct
+  this installed table.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -752,8 +756,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
-- **Precompile interpretation (Q83):** Core supplies logical action factorization and
-  exact Id reduction only. The table action stays in base m; actual lifting through
+- **Precompile interpretation (Q83):** Core supplies the raw shared carriers,
+  transparent MeterOk, logical action factorization and exact Id reduction
+  (Core §3/§5/§7). The table action stays in base m; actual lifting through
   VmM/RunM and their transformer/error order requires an explicit local bridge.
   Dispatch, separate halt settlement and potential proofs remain open. This adds
   no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
@@ -776,8 +781,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthBlock`](modules/EthBlock.md)
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
-  and the existing Monad-only carrier. Core's logical predicate/Id law do not
-  construct the installed table or discharge actual effect/settlement bridges.
+  and the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and
+  Core's logical predicate/Id law do not construct the installed table or discharge
+  actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -805,9 +811,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthFork`](modules/EthFork.md)
 
-- **Precompile construction (Q83):** the exact Core predicate/Id law supplies no
-  installed table, adapter equation, constructor law packaging or concrete effect
-  bridge. Generic construction remains open at the unchanged Monad/KeccakQuery
+- **Precompile construction (Q83):** the supplied raw Core carriers and exact
+  predicate/Id law (Core §3/§5/§7) supply no installed table, adapter equation,
+  constructor law packaging or concrete effect bridge. Generic construction
+  remains open at the unchanged Monad/KeccakQuery
   sketch; stronger public assumptions need a separate approved proposal. Preserve
   the same table through BlockConfig.runnerEnv; settlement remains Runner-owned.
 

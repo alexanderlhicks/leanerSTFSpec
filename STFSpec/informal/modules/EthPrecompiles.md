@@ -500,13 +500,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Generic construction (Q83):** Core supplies action factorization and the exact Id
-  law only. `toPrecompile` equations, per-entry source/normal-form proofs and the
+- **Generic construction (Q83):** Core supplies the raw result/function/MeterOk/
+  certified-table carriers, action factorization and the exact Id law (Core §3/§5/§7).
+  `toPrecompile` equations, per-entry source/normal-form proofs and the
   meaning of equality up to the halt constructor remain open. A map-shaped adapter
   needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
   alone does not); bind-pure/map agreement needs its own law. Public constructor
   assumptions, erasure-first computation, observers and transformer bridges remain
-  unselected. The four-field Monad-only table sketch is unchanged.
+  unselected. The supplied four-field Monad-only table carrier does not construct
+  this installed table.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

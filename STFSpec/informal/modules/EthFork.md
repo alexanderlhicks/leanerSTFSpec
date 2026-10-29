@@ -275,9 +275,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Precompile construction (Q83):** the exact Core predicate/Id law supplies no
-  installed table, adapter equation, constructor law packaging or concrete effect
-  bridge. Generic construction remains open at the unchanged Monad/KeccakQuery
+- **Precompile construction (Q83):** the supplied raw Core carriers and exact
+  predicate/Id law (Core §3/§5/§7) supply no installed table, adapter equation,
+  constructor law packaging or concrete effect bridge. Generic construction
+  remains open at the unchanged Monad/KeccakQuery
   sketch; stronger public assumptions need a separate approved proposal. Preserve
   the same table through BlockConfig.runnerEnv; settlement remains Runner-owned.
 

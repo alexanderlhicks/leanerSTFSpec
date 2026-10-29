@@ -116,7 +116,20 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 
 | EELS source | Lean declaration | Domain, effects and failures | Law and clients |
 |---|---|---|---|
-| No EELS function: logical shared helper | `SatisfiesM` in `STFSpec/Vm/Core/SatisfiesM.lean`, exported by the Core facade | Every `m : Type → Type` with `Monad m`, `α : Type`, predicate and action; Prop-valued, no runtime action or failure | **Discharged:** `satisfiesM_id_iff` exactly reduces to `P x` at Id. `SatisfiesMCallerProofs.lean` privately checks arbitrary predicates/actions in both directions, true/false Id cases, the complete six-field successful meter relation on all raw meters, a state trace witness, a base Except error witness and nonlawful CountMap rejection of safe pure 7. No table, adapter or generic observation is implemented. |
+| No EELS function: logical shared helper | `SatisfiesM` in `STFSpec/Vm/Core/SatisfiesM.lean`, exported by the Core facade | Every `m : Type → Type` with `Monad m`, `α : Type`, predicate and action; Prop-valued, no runtime action or failure | **Discharged:** `satisfiesM_id_iff` exactly reduces to `P x` at Id. `SatisfiesMCallerProofs.lean` privately checks arbitrary predicates/actions in both directions, true/false Id cases, the complete six-field successful meter relation on all raw meters, a state trace witness, a base Except error witness and nonlawful CountMap rejection of safe pure 7. This helper supplies no table constructor, adapter or generic observation. |
+
+### Supplied shared precompile carriers
+
+These source-free shared abstractions are implemented in
+`STFSpec/Vm/Core/Precompile.lean` and exported by the Core facade. They implement
+no EELS operation, actual precompile entry, installed table or consumer bridge.
+
+| Source | Lean declaration | Domain, effects and failures | Proof/client status |
+|---|---|---|---|
+| No EELS function: shared result carrier | `PrecompileResult` | Every complete raw GasMeter/Bytes success pair or existing nominal ExceptionalHalt payload; no effects, admission or failure conversion | **Supplied:** exact two constructors; private `PrecompileCallerProofs.lean` generic signature and complete payload clients. |
+| No EELS function: shared function alias | `PrecompileFn` | Every `m : Type → Type`; Bytes then GasMeter then `m PrecompileResult`; no Monad or KeccakQuery premise | **Supplied:** private exact-type client. Actual functions remain open. |
+| No EELS function: shared transparent predicate | `MeterOk` | Every raw input meter/result; success bounds execution gas and preserves all five nonexecution fields by the exact reset-record equality; arbitrary output; halt is True | **Supplied:** exact §5 definition; private constructor-equation/all-six-field clients and acceptance/rejection controls, including negative refund and both spill pools. No extra public equation or consequence law. |
+| No EELS function: shared certified carrier | `PrecompileTable` | Every `m : Type → Type` with only Monad; exact ordered lookup/addresses/lookup_iff/meter_law fields; logical proof fields perform no runtime action | **Supplied:** private complete constructor/projection/reconstruction and generic proof-field clients. Local empty generic and arbitrary-address Id singleton inhabitants use actual public sets and Q83 factorization; neither is `Precompiles.table`. |
 
 ### Supplied raw mutable Frame data
 
@@ -1330,6 +1343,20 @@ map-pure and map-composition counterexamples. All local carriers/instances and
 support stay private and total. These logical checks need no native runner or
 EELS differential driver: there is no corresponding EELS operation.
 
+**Shared precompile carrier controls.** `PrecompileCallerProofs.lean` privately
+checks exact constructor/function types, arbitrary complete success/halt payloads,
+both transparent predicate branches and every meter dimension. Generic arbitrary
+outputs and unchanged/decreased execution gas are accepted; a generic gas increase
+and independent changes to reservoir, baseline, signed refund and each spill pool
+are rejected. The complete raw control meter has reservoir 101 above baseline 2,
+refund −17 and nonzero independent spills. The zero-execution control preserves
+all five nonexecution fields. Nominal bare-reason and invalid-opcode halts remain
+unconstrained. Complete table construction/projections/reconstruction, arbitrary
+Monad factorization proof projection and conditional Id success use the facade.
+The empty generic and arbitrary-address Id singleton examples prove actual lookup
+certificates; four guards retain ordered bytes and distinguish addresses 1/256.
+These are logical/data controls, without an EELS producer or effect interpretation.
+
 ## 5. Interface
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
@@ -1593,7 +1620,7 @@ abbrev PrecompileFn (m : Type → Type) := Bytes → GasMeter → m PrecompileRe
 def MeterOk (g : GasMeter) : PrecompileResult → Prop       -- the returned meter differs only by a gas_left charge
   | .ok g' _ => g'.gasLeft ≤ g.gasLeft ∧ { g' with gasLeft := g.gasLeft } = g
   | .halt _ => True
--- Supplied logical helper (Q83); the carrier/result/table sketches remain unimplemented.
+-- Supplied logical helper (Q83); the shared result/function/predicate/table carriers are supplied.
 def SatisfiesM {m : Type → Type} [Monad m] {α : Type}
     (P : α → Prop) (x : m α) : Prop :=
   ∃ y : m {r : α // P r}, Subtype.val <$> y = x
@@ -1743,7 +1770,28 @@ through an uninhabited result predicate. Conversely, a nonlawful Monad can rejec
 even safe pure 7: CountMap map adds a tick and cannot erase to zero-tick pure.
 Map-on-pure/composition and bind-pure/map agreement require their actual local laws;
 no generic table constructor, observer, transformer bridge, adapter or settlement
-proof is supplied here. Halts remain unconstrained by the sketched MeterOk branch.
+proof is supplied here. Halts remain unconstrained by the supplied MeterOk branch.
+
+**Shared precompile carriers (supplied).** The exact transparent `MeterOk`
+definition in §5 is the contract, without additional public equations or laws.
+**Claim.** Constructors preserve complete success and nominal halt payloads;
+success admits only a nonincreasing execution amount with every other meter
+field unchanged, and table fields retain their exact supplied proofs.
+**Premises.** Only the displayed types and the table's Monad binder; raw meters
+have no global invariant, sign restriction or settlement premise.
+**Argument.** Private facade clients reduce the result constructors, both
+predicate branches and all four table projections/reconstruction. Whole-record
+reset equality yields every nonexecution projection, including signed refund and
+both spill pools. Generic table premises expose their actual factorization
+witness; the existing Id law yields the successful reset-record relation at Id.
+A generic empty table is vacuous; an Id singleton proves its exact finite domain
+and supplies the actual witness through the existing Id law.
+**Open obligations.** These inhabitants do not construct the installed table.
+Actual entry/source/normal-form proofs, generic construction assumptions and
+adapter equations, arbitrary-monad observation, effect/transformer/dispatch and
+halt-settlement bridges remain open. CountMap's Q83 limitation still applies;
+True on halt asserts no gas, progress, error or settlement policy. F11, D5
+coupling and all resource/fuel/VM/guest readiness gates remain separate.
 
 **Raw Frame carrier controls are supplied.** §3/§5 own the two persistent-set
 aliases and exact nine-field mutable record. Private generic clients verify all
@@ -2751,8 +2799,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
-  clients. PrecompileResult, PrecompileFn, MeterOk and PrecompileTable remain
-  sketches. Generic construction needs an actual witness/erasure proof and
+  clients. The four raw shared declarations PrecompileResult, PrecompileFn,
+  MeterOk and PrecompileTable are supplied separately in §3/§5/§7, with private
+  complete payload/meter/table clients and logical controls. Actual generic
+  producer construction needs an actual witness/erasure proof and
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.

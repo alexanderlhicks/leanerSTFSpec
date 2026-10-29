@@ -176,6 +176,15 @@ assessment is unchanged.
 
 ## 4. Agent implementation contract
 
+EthVmCore §3/§5/§7 supplies the four source-free shared precompile declarations:
+exact result constructors, function alias, transparent MeterOk and ordered
+four-field Monad-only table carrier, reusing Q83 unchanged. Private facade clients
+check complete payloads, all six meter dimensions, arbitrary output/unconstrained
+halts, exact table construction/projection/reconstruction, generic proof fields
+and local empty/Id-singleton inhabitants. These supply no actual installed table,
+source/normal-form/adapter law, arbitrary-monad observer, effect/dispatch/settlement
+bridge, F11/D5 choice or fuel/resource/VM/guest readiness result.
+
 EthVmCore §3/§5/§7 owns the supplied raw mutable Frame partition of EELS
 `src/ethereum/forks/amsterdam/vm/__init__.py:153–191`: exactly two ExtTreeSet
 aliases and nine independent fields, without extra admission/proof fields,

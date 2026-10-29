@@ -772,8 +772,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
-  and the existing Monad-only carrier. Core's logical predicate/Id law do not
-  construct the installed table or discharge actual effect/settlement bridges.
+  and the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and
+  Core's logical predicate/Id law do not construct the installed table or discharge
+  actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
