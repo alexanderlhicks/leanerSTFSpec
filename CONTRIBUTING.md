@@ -186,6 +186,12 @@ lake exe requests-hash-native-tests > .lake/requests-hash.jsonl
 python3 -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
 python3 -B scripts/test_requests_hash_output_parser.py
 python3 -B -O scripts/test_requests_hash_output_parser.py
+lake build logs-bloom-native-tests --wfail
+lake exe check-decls LogsBloomNativeTests
+lake exe logs-bloom-native-tests > .lake/logs-bloom.jsonl
+python3 -B STFSpec/Conformance/Block/logs_bloom_differential.py --check-target .lake/logs-bloom.jsonl
+python3 -B scripts/test_logs_bloom_output_parser.py
+python3 -B -O scripts/test_logs_bloom_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
