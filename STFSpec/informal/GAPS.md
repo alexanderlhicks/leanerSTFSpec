@@ -731,7 +731,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
-- **Implemented bounded scope:** only `countTokensInData` and its complete all-finite source-formula law are supplied (§3/§5/§7). The 266-case complete native/source comparisons supply finite coupling only; source/runtime authentication, host-resource guarantees, composed intrinsic gas/floor and the remaining block pipeline stay outside this slice. No readiness or resource gate closes.
+- **Implemented bounded scope:** `countTokensInData` and `extractDepositData`, with their complete all-finite result laws and the extraction success-size law, are supplied (§3/§5/§7). Their 266-case and 142-case complete native/source observations supply finite coupling only. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

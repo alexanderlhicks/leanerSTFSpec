@@ -243,6 +243,8 @@ import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
+import STFSpec.Conformance.Block.DepositDataCallerProofs
+import STFSpec.Conformance.Block.DepositDataGuards
 import STFSpec.Conformance.Block.CalldataTokensCallerProofs
 import STFSpec.Conformance.Block.CalldataTokensGuards
 

@@ -104,6 +104,14 @@ jobs:
           python3 -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
           python3 -B scripts/test_count_tokens_output_parser.py
           python3 -B -O scripts/test_count_tokens_output_parser.py
+      - name: Complete deposit extraction regressions
+        run: |
+          lake build deposit-data-native-tests --wfail
+          lake exe check-decls DepositDataNativeTests
+          lake exe deposit-data-native-tests > .lake/deposit-data.jsonl
+          python3 -B STFSpec/Conformance/Block/deposit_data_differential.py --check-target .lake/deposit-data.jsonl
+          python3 -B scripts/test_deposit_data_output_parser.py
+          python3 -B -O scripts/test_deposit_data_output_parser.py
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

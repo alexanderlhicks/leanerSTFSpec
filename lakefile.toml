@@ -189,3 +189,9 @@ root = "TransactionGasSettlementNativeTests"
 name = "calldata-tokens-native-tests"
 srcDir = "scripts"
 root = "CalldataTokensNativeTests"
+
+# Complete deposit extraction bytes and constructor observations on a frozen catalog.
+[[lean_exe]]
+name = "deposit-data-native-tests"
+srcDir = "scripts"
+root = "DepositDataNativeTests"

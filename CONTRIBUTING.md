@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-10-06.*
+*Status: current contributor guidance. Date: 2026-10-29.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -174,6 +174,12 @@ lake exe calldata-tokens-native-tests > .lake/calldata-tokens.jsonl
 python3 -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
 python3 -B scripts/test_count_tokens_output_parser.py
 python3 -B -O scripts/test_count_tokens_output_parser.py
+lake build deposit-data-native-tests --wfail
+lake exe check-decls DepositDataNativeTests
+lake exe deposit-data-native-tests > .lake/deposit-data.jsonl
+python3 -B STFSpec/Conformance/Block/deposit_data_differential.py --check-target .lake/deposit-data.jsonl
+python3 -B scripts/test_deposit_data_output_parser.py
+python3 -B -O scripts/test_deposit_data_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
