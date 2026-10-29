@@ -803,6 +803,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateless`](modules/EthStateless.md)
 
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Fork activation (explicit exclusion).** The guest never checks the payload timestamp against Amsterdam activation (`stateless.py:275–277`), and nothing checks that witness headers belong to the forks their shape suggests. A payload from before activation, or a chain whose parent header is of the previous-fork shape at any timestamp, is validated with Amsterdam rules. The spec follows the reference; any consumer claiming "valid Ethereum block" must add this check or take it as an external anchor (CONTRACT §7).

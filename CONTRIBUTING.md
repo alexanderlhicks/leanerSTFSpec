@@ -186,6 +186,12 @@ lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
 python3 -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
 python3 -B scripts/test_witness_ancestors_output_parser.py
 python3 -B -O scripts/test_witness_ancestors_output_parser.py
+lake build stateless-output-native-tests --wfail
+lake exe check-decls StatelessOutputNativeTests
+lake exe stateless-output-native-tests > .lake/stateless-output.txt
+python3 -B STFSpec/Conformance/Stateless/output_differential.py --check-target .lake/stateless-output.txt
+python3 -B scripts/test_stateless_output_output_parser.py
+python3 -B -O scripts/test_stateless_output_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
