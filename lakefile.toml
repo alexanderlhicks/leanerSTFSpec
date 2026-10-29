@@ -214,3 +214,9 @@ root = "StatelessOutputNativeTests"
 name = "amsterdam-vm-native-tests"
 root = "AmsterdamVmNativeTests"
 srcDir = "scripts"
+
+# Complete deposit extraction bytes and constructor observations on a frozen catalog.
+[[lean_exe]]
+name = "deposit-data-native-tests"
+srcDir = "scripts"
+root = "DepositDataNativeTests"
