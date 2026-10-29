@@ -11,6 +11,8 @@ import STFSpec.Vm.Core.GasCosts
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.BlockGas
 import STFSpec.Vm.Core.Logs
+import STFSpec.Vm.Core.Sets
+import STFSpec.Vm.Core.Frame
 import STFSpec.Vm.Core.CallGas
 import STFSpec.Vm.Core.Jumpdest
 import STFSpec.Vm.Core.Memory
