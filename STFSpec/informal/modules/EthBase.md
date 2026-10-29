@@ -614,8 +614,8 @@ UInt64 results for zero, max, every bit/byte position, high words, leading zeros
 indexed/reversed and deterministic random inputs, in interpreted and compiled modes.
 No EELS runtime oracle is needed for this support model.
 
-State §5 uses these canonical dictionaries for its unchanged prospective raw Std
-fields. The dictionary is part of the Std type. Same-name/model replacement after
+State §5 uses these canonical dictionaries for its supplied raw TxObs and
+prospective BlockState raw Std fields; State §3 owns the bounded carrier status. The dictionary is part of the Std type. Same-name/model replacement after
 recompilation is intended to preserve public-law consumer proof source; old binary
 reuse is not promised. Concurrently different dictionaries require explicit identity,
 transport or rehashing; scope alone does not identify them. Clients never unfold
@@ -1124,7 +1124,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`taylor_exponential` feasibility (DISC-002).** Ordinary positive-denominator totality, the two zero-value laws and bounded source/interpreted/native controls are supplied in §3/§7. The private logical lexicographic measure is not a runtime budget. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. Practical large-input cost/stack/cycle feasibility and actual consumer exception/reachability obligations remain open; mathematical totality and 28 finite results do not discharge them.
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
 - **Observation-key support costs (Q84).** The §3 functional provider and private
-  public-Std/facade clients supply no actual State carrier/tracker/lifecycle code.
+  public-Std/facade clients supply no actual State carrier/tracker/lifecycle code;
+  the separate bounded raw TxObs carrier is owned by EthState §3. Other State
+  carriers and tracker/lifecycle implementation remain open.
   Real key distributions, construction/duplicates/resizing, allocation, linear
   ownership/retention, representation replacement and C1–C4 remain open. A lawful
   constant-hash stress case and ordered baseline belong to later C2 measurements;
