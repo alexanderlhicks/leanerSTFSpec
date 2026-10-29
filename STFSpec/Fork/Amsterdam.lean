@@ -2,13 +2,14 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Block.SystemAddrs
 import STFSpec.Block.TxParams
 import STFSpec.Fork.Amsterdam.BlockParams
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Limits
 
 /-!
-# Amsterdam transaction parameters, VM pricing and limits
+# Amsterdam system and transaction parameters, VM pricing and limits
 
 Library `EthFork`. Complete fixed values for the Block- and Core-owned raw records, in
 pinned EELS dependency order. Raw policy fields remain independent in Core.
@@ -16,6 +17,23 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 -/
 
 namespace STFSpec.Fork.Amsterdam
+
+/-- Complete Amsterdam system addresses and independent call budgets; EELS
+`src/ethereum/forks/amsterdam/fork.py:117–141` and
+`src/ethereum/forks/amsterdam/requests.py:49` at the pin.
+The system caller also matches `src/ethereum/forks/amsterdam/vm/__init__.py:41–43`.
+This is fixed data; configuration assembly and address transport are separate. -/
+def systemAddrs : Block.SystemAddrs where
+  systemAddress := Base.Address.ofNat 0xfffffffffffffffffffffffffffffffffffffffe
+  beaconRoots := Base.Address.ofNat 0x000f3df6d732807ef1319fb7b8bb8522d0beac02
+  historyStorage := Base.Address.ofNat 0x0000f90827f1c53a10cb7a02335b175320002935
+  withdrawalRequests := Base.Address.ofNat 0x00000961ef480eb55e80d19ad83579a64c007002
+  consolidationRequests := Base.Address.ofNat 0x0000bbddc7ce488642fb579f8b00f3a590007251
+  builderDeposits := Base.Address.ofNat 0x0000bff46984e3725691fa540a8c7589300d8282
+  builderExits := Base.Address.ofNat 0x000064d678505ad48f8ccb093bc65613800e8282
+  depositContract := Base.Address.ofNat 0x00000000219ab540356cbb839cbe05303d7705fa
+  txGas := 30000000
+  maxSstoresPerCall := 16
 
 /-- Amsterdam transaction parameters; EELS
 `src/ethereum/forks/amsterdam/transactions.py:64,74,82` at the pin.

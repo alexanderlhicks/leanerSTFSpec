@@ -390,12 +390,13 @@ ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
 |---|---|---|---|
 | §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
 
-Concrete Amsterdam values, actual system-call/request consumers, configuration
-coherence and the remaining `BlockConfig` are unimplemented. The raw record alone
+EthFork §3 supplies the concrete R-F2 value and its full-field controls. Actual
+system-call/request consumers, configuration coherence and the remaining
+`BlockConfig` are unimplemented. The raw record alone
 does not implement routing. F8 specifies Fork's `systemAddrs.systemAddress` through
 `BlockConfig.runnerEnv` to `RunnerEnv.systemAddress`, copied into immutable
 `FrameCtx.systemAddress` and inherited by children; both producers pass it explicitly
-to `emitTransferLog` after Frame. The concrete value, actual transport and source
+to `emitTransferLog` after Frame. Actual transport and source
 coherence remain implementation obligations under that selected guidance.
 
 ## 4. Tests
@@ -408,7 +409,7 @@ logs at both user and unchecked-system entries. The checked-system path must use
 the same delegated environment after its existing code check, preserving first
 failures and effect order.
 
-- **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value/consumer controls remain EthFork obligations.
+- **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value controls are supplied by EthFork §3; consumer controls remain separate.
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
@@ -766,7 +767,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
-- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
