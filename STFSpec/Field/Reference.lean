@@ -8,7 +8,7 @@ import Std.Tactic
 # Canonical natural residue reference
 
 Library `EthField`. This legible reference admits every modulus greater than one,
-including composites; it supplies no field arithmetic or executable Montgomery backend.
+including composites; its residue arithmetic is separate from the executable Montgomery backend.
 Spec guidance: `STFSpec/informal/modules/EthField.md` §§3–7.
 -/
 
@@ -107,6 +107,62 @@ instance : Inhabited (PrimeFieldRef p) where
 `py_ecc/fields/optimized_field_elements.py:187–188`. -/
 instance : Repr (PrimeFieldRef p) where
   reprPrec a prec := reprPrec a.toNat prec
+
+/-- Residue addition, as `FQ.__add__` in pinned
+`py_ecc/fields/optimized_field_elements.py:70–80`. -/
+def add (a b : PrimeFieldRef p) : PrimeFieldRef p := ofNat (a.toNat + b.toNat)
+
+/-- Residue subtraction, as `FQ.__sub__` in pinned
+`py_ecc/fields/optimized_field_elements.py:112–122`.
+The canonical bound on `b` makes `a + p - b` ordinary nontruncating subtraction. -/
+def sub (a b : PrimeFieldRef p) : PrimeFieldRef p := ofNat (a.toNat + p - b.toNat)
+
+/-- Residue negation, as `FQ.__neg__` in pinned
+`py_ecc/fields/optimized_field_elements.py:184–185`. -/
+def neg (a : PrimeFieldRef p) : PrimeFieldRef p := ofNat (p - a.toNat)
+
+/-- Residue multiplication, as `FQ.__mul__` in pinned
+`py_ecc/fields/optimized_field_elements.py:82–92`. -/
+def mul (a b : PrimeFieldRef p) : PrimeFieldRef p := ofNat (a.toNat * b.toNat)
+
+/-- Recognize canonical zero, as comparison with integer zero through `FQ.__eq__`
+in pinned `py_ecc/fields/optimized_field_elements.py:171–175`. -/
+def isZero (a : PrimeFieldRef p) : Bool := decide (a.toNat = 0)
+
+/-- Addition observes natural addition followed by reduction. -/
+theorem toNat_add (a b : PrimeFieldRef p) :
+    (add a b).toNat = (a.toNat + b.toNat) % p := rfl
+
+/-- Subtraction observes the nonnegative representative of the signed difference. -/
+theorem toNat_sub (a b : PrimeFieldRef p) :
+    (sub a b).toNat = (a.toNat + p - b.toNat) % p := rfl
+
+/-- Negation observes the reduced complement to the modulus. -/
+theorem toNat_neg (a : PrimeFieldRef p) :
+    (neg a).toNat = (p - a.toNat) % p := rfl
+
+/-- Multiplication observes natural multiplication followed by reduction. -/
+theorem toNat_mul (a b : PrimeFieldRef p) :
+    (mul a b).toNat = (a.toNat * b.toNat) % p := rfl
+
+/-- Zero recognition decides exactly equality of the canonical observation to zero. -/
+theorem isZero_eq (a : PrimeFieldRef p) : isZero a = decide (a.toNat = 0) := rfl
+
+/-- Addition notation delegates to the named reference operation. -/
+instance : Add (PrimeFieldRef p) where
+  add := add
+
+/-- Subtraction notation delegates to the named reference operation. -/
+instance : Sub (PrimeFieldRef p) where
+  sub := sub
+
+/-- Negation notation delegates to the named reference operation. -/
+instance : Neg (PrimeFieldRef p) where
+  neg := neg
+
+/-- Multiplication notation delegates to the named reference operation. -/
+instance : Mul (PrimeFieldRef p) where
+  mul := mul
 
 end PrimeFieldRef
 end STFSpec.Field
