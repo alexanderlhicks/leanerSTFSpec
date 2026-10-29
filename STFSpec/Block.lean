@@ -2,6 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Block.BlockParams
 import STFSpec.Block.TxParams
 import STFSpec.Block.SystemAddrs
 
@@ -11,7 +12,8 @@ import STFSpec.Block.SystemAddrs
 Transactions, headers, receipts, validation, `processTransaction`, `applyBody`, `executeBlock`, block access lists, bloom, requests, withdrawals.
 
 Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). Raw transaction parameters and system address/budget records are supplied;
+(see `STFSpec/informal/ARCHITECTURE.md` §3). Raw block and transaction parameters and
+system address/budget records are supplied;
 the remaining block semantics are open.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

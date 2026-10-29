@@ -3,6 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Block.TxParams
+import STFSpec.Fork.Amsterdam.BlockParams
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Limits
 

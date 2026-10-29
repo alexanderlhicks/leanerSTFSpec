@@ -341,6 +341,26 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
 
+### Supplied raw block parameters
+
+`STFSpec.Block.BlockParams` is exported through `STFSpec.Block`, with exactly the
+three independent Nat fields in §5 order. This guided runtime abstraction is not
+an EELS record. EthFork retains all five R-F1 source-quantity obligations:
+`fork.py:114–115` supply the denominator and elasticity; `:144–145` are private
+Fork-owned `MAX_BLOCK_SIZE` and `SAFETY_MARGIN` operands; `:146` supplies their
+subtraction as the third public field ([EthFork §3](EthFork.md#3-eels-source-map)).
+There are no `maxBlockSize` or `safetyMargin` fields or public operand accessors.
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `fork.py:114–115,144–146` parameter context, all values owned by EthFork | `STFSpec.Block.BlockParams : Type`; `BlockParams.mk : Nat → Nat → Nat → BlockParams`; projections `baseFeeMaxChangeDenominator`, `elasticityMultiplier`, `maxRlpBlockSize : BlockParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/BlockParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and every single-field update preserving both other fields; complete zero/distinct/large guards. No extra public law, default, instance or WF/coherence predicate. |
+
+The source reads only the derived RLP limit in `fork.py:309`, elasticity in `:412`
+and the denominator in `:425,439`. The raw record supplies none of the size or
+base-fee operations, their errors, division safety or complete configuration.
+EthFork §3 maps and checks the two actual private operands as well as all three
+actual public projections, retaining the subtraction rather than a literal.
+
 ### Supplied raw transaction parameters
 
 `STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
@@ -376,6 +396,8 @@ neither where the system caller is supplied to VM execution nor any additional
 context or helper signature; the system-address ownership question is unchanged.
 
 ## 4. Tests
+
+- **Raw BlockParams.** The private public-facade clients in §3 quantify all three arbitrary Nat fields, reconstruct the complete record and update each field independently. Complete zero/distinct/large controls retain the unrestricted domain. All five R-F1 quantity controls and the actual subtraction expression belong to EthFork §3–§4.
 
 - **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value/consumer controls remain EthFork obligations.
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
@@ -636,6 +658,7 @@ Execution threads `BlockState`, transaction observations and `BalBuilder` explic
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
 |---|---|---|---|---|---|
+| `BlockParams` | three unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | Header, transactions, withdrawals, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
 | `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
@@ -650,8 +673,8 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
-The supplied raw `TxParams` and `SystemAddrs` have ordinary structure reduction and
-reconstruction; §3 records private arbitrary-input projection/update clients for
+The supplied raw `BlockParams`, `TxParams` and `SystemAddrs` have ordinary structure
+reduction and reconstruction; §3 records private arbitrary-input projection/update clients for
 every field. No additional public law package or global configuration predicate is supplied.
 
 Per operation (model-based, D25):
@@ -729,6 +752,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
 - **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, system-caller transport and configuration coherence remain open.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
