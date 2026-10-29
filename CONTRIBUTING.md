@@ -174,6 +174,12 @@ lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
 python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
 python3 -B scripts/test_ssz_encode_output_parser.py
 python3 -B -O scripts/test_ssz_encode_output_parser.py
+lake build calldata-tokens-native-tests --wfail
+lake exe check-decls CalldataTokensNativeTests
+lake exe calldata-tokens-native-tests > .lake/calldata-tokens.jsonl
+python3 -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
+python3 -B scripts/test_count_tokens_output_parser.py
+python3 -B -O scripts/test_count_tokens_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
