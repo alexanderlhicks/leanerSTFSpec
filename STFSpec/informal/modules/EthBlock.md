@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
 
@@ -121,7 +121,7 @@ It returns `IntrinsicGasCost`.
 8. `bal := buildBlockAccessList builder blockState`.
 9. `validateBlockAccessListGasLimit bal header.gasLimit`.
 
-**System calls** (`:706–822`). An unchecked call runs `process_top_level` with `origin = SYSTEM_ADDRESS`, value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:730–743`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
+**System calls** (`:706–822`). An unchecked call runs `process_top_level` with `origin = cfg.system.systemAddress` (source `SYSTEM_ADDRESS`, F8), value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It invokes `processTopLevelChecked cfg.runnerEnv`, supplying the same configured address to the emitter context for system and user calls (F8). It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:730–743`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
 
 ### 2.9 Transaction processing (R-PT, `process_transaction`, `:1050–1139`), in order
 
@@ -130,7 +130,7 @@ It returns `IntrinsicGasCost`.
 3. `chainId tx`; a mismatch raises `wrongChainId expected actual`.
 4. `checkTransaction`.
 5. `updateSenderState` (`:970`): the nonce is incremented and `balance := balance − gas·effectivePrice − blobFee`, where `blobFee = blobGas · blobGasPrice(excess)`. The **actual** blob price is charged, not the cap.
-6. `processTopLevel` (G4 runner, with `cfg.precompiles`).
+6. `processTopLevelChecked cfg.runnerEnv` (G4 runner, with the precompile table, three-field VmConfig and `cfg.system.systemAddress`, F8).
 7. `settle_transaction_gas` (`gas.py:1178`, G4): `before = gas − gasLeft − stateGasLeft`; `refund = min(before / 5, refundCounter)`; `gasUsed = max(before − refund, floor)`; `stateUsed = max(0, stateGasUsed)`; `execUsed = max(before − stateUsed, floor)`; `gasLeft' = gas − gasUsed`.
 8. `disburseGasFees` (`:1011`): `createEther origin (gasLeft' · price)` and then `createEther coinbase (gasUsed · (price − baseFee))`. Both are applied even when the amount is 0. [I] This is a touch whose BAL/state effect is `EthState`'s `create_ether` contract.
 9. `blockGasUsed += execUsed` (pre-refund, EIP-7778); `blockStateGasUsed += stateUsed`; `blobGasUsed += blobGas`; `cumulativeGasUsed += gasUsed` (post-refund).
@@ -391,13 +391,22 @@ ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
 | §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
 
 Concrete Amsterdam values, actual system-call/request consumers, configuration
-coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
-neither where the system caller is supplied to VM execution nor any additional
-context or helper signature; the system-address ownership question is unchanged.
+coherence and the remaining `BlockConfig` are unimplemented. The raw record alone
+does not implement routing. F8 specifies Fork's `systemAddrs.systemAddress` through
+`BlockConfig.runnerEnv` to `RunnerEnv.systemAddress`, copied into immutable
+`FrameCtx.systemAddress` and inherited by children; both producers pass it explicitly
+to `emitTransferLog` after Frame. The concrete value, actual transport and source
+coherence remain implementation obligations under that selected guidance.
 
 ## 4. Tests
 
 - **Raw BlockParams.** The private public-facade clients in §3 quantify all three arbitrary Nat fields, reconstruct the complete record and update each field independently. Complete zero/distinct/large controls retain the unrestricted domain. All five R-F1 quantity controls and the actual subtraction expression belong to EthFork §3–§4.
+
+**F8 runner-entry controls (unimplemented).** Vary cfg.system.systemAddress
+independently of the F20 topic and check the exact runnerEnv projection and complete
+logs at both user and unchecked-system entries. The checked-system path must use
+the same delegated environment after its existing code check, preserving first
+failures and effect order.
 
 - **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value/consumer controls remain EthFork obligations.
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
@@ -484,7 +493,9 @@ structure BlockConfig where
   limits : Vm.VmLimits                             -- supplies FrameCtx.config via RunnerEnv
 
 def BlockConfig.runnerEnv (cfg : BlockConfig) : RunnerEnv :=
-  { precompiles := cfg.precompiles, vm := ⟨cfg.gas, cfg.stateGas, cfg.limits⟩ }
+  { precompiles := cfg.precompiles
+    vm := ⟨cfg.gas, cfg.stateGas, cfg.limits⟩
+    systemAddress := cfg.system.systemAddress }
 
 -- types (§2.1)
 structure Withdrawal; structure Header; structure PrevHeader
@@ -677,6 +688,8 @@ The supplied raw `BlockParams`, `TxParams` and `SystemAddrs` have ordinary struc
 reduction and reconstruction; §3 records private arbitrary-input projection/update clients for
 every field. No additional public law package or global configuration predicate is supplied.
 
+**System-address construction** [C] (F8; unimplemented): for every raw cfg, `cfg.runnerEnv.systemAddress = cfg.system.systemAddress`. Both actual runner entries, `processTransaction` and `processUncheckedSystemTransaction`, pass this environment; the checked-system path delegates to the unchecked path after its code check. Runner creation and child inheritance then preserve the field. Raw SystemAddrs and BlockConfig stay unrestricted: pinned-source coherence is an intended assembly/refinement obligation, without a runtime validator or new gas/admission premise. BlockEnvironment, VmWorld, HashConsts and existing block/runner function parameter lists are unchanged.
+
 Per operation (model-based, D25):
 
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
@@ -753,7 +766,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
-- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, system-caller transport and configuration coherence remain open.
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.

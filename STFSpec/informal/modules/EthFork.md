@@ -19,7 +19,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 - **R-F1 (block parameters)** (`fork.py:114–146`):
   - `baseFeeMaxChangeDenominator = 8`, `elasticityMultiplier = 2`;
   - Private source operands `MAX_BLOCK_SIZE = 10 485 760` and `SAFETY_MARGIN = 2 097 152` define `blockParams.maxRlpBlockSize = MAX_BLOCK_SIZE − SAFETY_MARGIN = 8 388 608` (EIP-7934). Use the actual operands' subtraction. The three public fields are exactly EthBlock §5; the operands are private Fork definitions, not extra fields or public accessors.
-- **R-F2 (system addresses and system-call budget)** (`fork.py:117–141`; `requests.py:49`). The addresses must be byte-exact:
+- **R-F2 (system addresses and system-call budget)** (`fork.py:117–141`; `requests.py:49`; matching VM `SYSTEM_ADDRESS` at `vm/__init__.py:41–43`). The addresses must be byte-exact:
   - `systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe`;
   - `beaconRoots = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02` (EIP-4788);
   - `historyStorage = 0x0000F90827F1C53a10cb7A02335B175320002935` (EIP-2935);
@@ -28,7 +28,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
   - `builderDeposits = 0x0000BFF46984E3725691FA540A8C7589300D8282` and `builderExits = 0x000064D678505AD48F8CCB093BC65613800E8282` (EIP-8282);
   - `depositContract = 0x00000000219ab540356cbb839cbe05303d7705fa` (EIP-6110, the mainnet address, used for every chain id; see Gaps).
   
-  The system-call budget is `txGas = 30 000 000` and `maxSstoresPerCall = 16`.
+  F8 assigns this literal to `systemAddrs.systemAddress`, reused by `config.system`. `config.runnerEnv` forwards it, createEvm copies it into immutable `FrameCtx.systemAddress`, and both child constructors inherit it; processCall and SELFDESTRUCT pass that field to Core's pure emitter. Core defines no address literal. The system-call budget is `txGas = 30 000 000` and `maxSstoresPerCall = 16`.
 - **R-F3 (transaction parameters)** (`transactions.py:64–88`): `blobCountLimit = 6` (per transaction, EIP-7594); `accessListAddressFloorTokens = 80` and `accessListStorageKeyFloorTokens = 128` (EIP-7981).
 - **R-F4 (gas, state-gas, VM-limit and blob schedule: the values).** `EthFork` defines the Amsterdam values of `EthVmCore`'s `GasCosts`, `StateGasCosts` and `VmLimits` record types (DECISIONS B8, F8). The record types, and the source-map claims on `vm/gas.py:48–266`, stay with `EthVmCore`. `vmLimits.stackDepthLimit` must be definitionally `EthVmCore`'s `abbrev STACK_DEPTH_LIMIT : Nat := 1024`, stated as `vmLimits_depth : vmConfig.limits.stackDepthLimit = STACK_DEPTH_LIMIT := rfl` (the depth proofs need a kernel-reducible literal). `GasCosts` includes **every** precompile pricing dependency as fields (B8, F9): the EIP-2537 pairing base 37 700 and per-pair cost 32 600 (literals in `vm/precompiled_contracts/bls12_381/bls12_381_pairing.py:46`), the G1/G2 MSM discount tables `G1_K_DISCOUNT`/`G2_K_DISCOUNT`, the maximum discounts `G1_MAX_DISCOUNT`/`G2_MAX_DISCOUNT` and `MULTIPLIER` (`vm/precompiled_contracts/bls12_381/__init__.py:37–301`); `EthPrecompiles` reads them from the config and holds no pricing literals. The values `EthBlock` depends on must hold for these records. They are checked by `#guard` against [V] values evaluated at the pin:
   - transaction costs: `TX_BASE 12000`, `TX_VALUE_COST 6000`, `CREATE_ACCESS 12000`, `COLD_ACCOUNT_ACCESS 3000`, `TX_DATA_TOKEN_STANDARD 4`, `TX_DATA_TOKEN_FLOOR 16`, `TX_ACCESS_LIST_ADDRESS 2900`, `TX_ACCESS_LIST_STORAGE_KEY 2000`, `EXECUTION_PER_AUTH_BASE_COST 7816`;
@@ -70,7 +70,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 |---|---|---|---|
 | `forks/amsterdam/fork.py::BASE_FEE_MAX_CHANGE_DENOMINATOR` | 114 | `STFSpec.Fork.Amsterdam.blockParams.baseFeeMaxChangeDenominator` | 8; supplied public projection |
 | `forks/amsterdam/fork.py::ELASTICITY_MULTIPLIER` | 115 | `STFSpec.Fork.Amsterdam.blockParams.elasticityMultiplier` | 2; supplied public projection |
-| `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `amsterdam.system.systemAddress` | `0xff…fe` |
+| `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `systemAddrs.systemAddress`, reused by `config.system.systemAddress` | `0xff…fe`; same literal as vm/__init__.py:41–43, whose source-map claim stays with EthVmCore; F8 supplies its context route |
 | `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `amsterdam.system.beaconRoots` | EIP-4788 |
 | `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `amsterdam.system.txGas` | 30 000 000 execution gas |
 | `forks/amsterdam/fork.py::SYSTEM_MAX_SSTORES_PER_CALL` | 122 | `amsterdam.system.maxSstoresPerCall` | 16; reservoir = 16 · STORAGE_SET |
@@ -172,7 +172,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
-  - The byte strings in R-F2 (checksummed and lowercase decode alike).
+  - The byte strings in R-F2 (checksummed and lowercase decode alike), including all twenty systemAddress bytes and both config.system/config.runnerEnv projections (F8). Actual context/child/producer controls remain with Runner/Instructions/Core; these are future checks, not supplied code.
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608`.
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.
@@ -230,6 +230,8 @@ The supplied R-F1 value has ordinary complete record reduction, with two private
 operand checks (§3). The raw provider admits every Nat triple; this slice adds no
 generic positivity, WF, coherence or subtraction law.
 
+**System-address assembly** [C] (F8; unimplemented): `config.system.systemAddress = systemAddrs.systemAddress`, and `config.runnerEnv.systemAddress = systemAddrs.systemAddress`, whose twenty bytes are nineteen `ff` bytes followed by `fe` (R-F2). Combined with the Runner creation and Instructions child equations, intended Amsterdam contexts supply the exact address to both producers. Their source refinement separately uses the correct F20 topic. The raw records and local helper laws remain arbitrary; this construction/source agreement adds no global raw admission predicate, runtime check, gas/fuel premise or extra HashConsts field.
+
 `Block.BlockConfig.WellFormed cfg` collects the hypotheses generic block proofs take. `Amsterdam.config_wf` discharges each by computation on the constants. [C]
 
 1. Division safety: `elasticityMultiplier > 0`, `baseFeeMaxChangeDenominator > 0`, `LIMIT_ADJUSTMENT_FACTOR ≥ elasticityMultiplier`. With the `checkGasLimit` lemma of `EthBlock` §7, the latter gives `parentGasTarget > 0` whenever the base fee is computed. `BLOCK_ACCESS_LIST_ITEM > 0` and `BLOB_BASE_FEE_UPDATE_FRACTION > 0` (the Taylor denominator). [T]
@@ -249,7 +251,7 @@ generic positivity, WF, coherence or subtraction law.
 
 **Premises.** Correct parameter values and table entries; numeric WellFormed checks; semantic correctness of the selected step/runner/precompile implementations; the runner's separate whole-iteration progress theorem.
 
-**Argument.** Compare each literal to the pinned constant inventory. Arithmetic evaluation establishes positive denominators, range bounds and cost inequalities. Construct one VmConfig and use it both for FrameCtx/RunnerEnv and for pricing closures in PrecompileTable; the lookup/address law supplies warm-address and dispatch agreement. Construct BlockConfig from those same values. Generic block theorems then specialise by substituting this config and supplying their proofs. The termination premise concerns complete execution paths, including child forwarding and returns: evaluating JUMPDEST or stipend constants only supplies some inputs to that proof. Activation remains external because the pinned guest does not check it. A future fork whose opcode behaviour changes requires a behaviour refinement as well as new values.
+**Argument.** Compare each literal to the pinned constant inventory. Arithmetic evaluation establishes positive denominators, range bounds and cost inequalities. Construct one VmConfig and use it both for FrameCtx/RunnerEnv and for pricing closures in PrecompileTable; the lookup/address law supplies warm-address and dispatch agreement. Construct BlockConfig from those same values and the single Fork-owned systemAddrs; compose its runnerEnv address projection, successful createEvm copy and child inheritance to relate both transfer-log producers to the pinned address. This coherence is required by intended assembly/source refinement, independently of local arbitrary-address helper and gas laws. Generic block theorems then specialise by substituting this config and supplying their proofs. The termination premise concerns complete execution paths, including child forwarding and returns: evaluating JUMPDEST or stipend constants only supplies some inputs to that proof. Activation remains external because the pinned guest does not check it. A future fork whose opcode behaviour changes requires a behaviour refinement as well as new values.
 
 **Open obligations.** The complete R-F1 block value, R-F3 transaction value, R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
 
@@ -275,6 +277,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
+- **System address assembly (F8):** the concrete R-F2 value, full systemAddrs/config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].

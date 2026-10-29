@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-10-27. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-10-29. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -82,7 +82,7 @@ A compiled prototype of the interfaces tested how the spec guidance composes. It
 | F5 | `Vector (Option Node) 16` in a nested inductive is rejected by the kernel | **Adopted:** `Array (Option Node)` with a separately stated size-16 invariant. |
 | F6 | Storage-trie decoding memo | **Open** (owner: EthStateWitness). Specify memo ownership, lifetime and decode triggers; cache mechanics stay outside semantic state; preserve B4 triggers and B15 precedence. It is a [DEBT](DEBT.md) candidate until then. |
 | F7 | Iteration order of storage clears in the witness root replay | **Open** (owners: EthState, EthStateWitness). The prototype's traversal is not adopted until agreement covers failures and observations as well as roots. A first-clear order alone does not reproduce Python set iteration. |
-| F8 | Where the Amsterdam values live | **Adopted** (B8): `abbrev STACK_DEPTH_LIMIT : Nat := 1024` in `EthVmCore`. Every Amsterdam value lives in `EthFork`, with `vmLimits_depth : … = STACK_DEPTH_LIMIT := rfl`. |
+| F8 | Where the Amsterdam values live | **Adopted** (B8): `abbrev STACK_DEPTH_LIMIT : Nat := 1024` in `EthVmCore`. Every Amsterdam value lives in `EthFork`, with `vmLimits_depth : … = STACK_DEPTH_LIMIT := rfl`. **SYSTEM_ADDRESS clarification approved by the maintainer (2026-10-29), recorded in [issue #269](https://github.com/alexanderlhicks/leanerSTFSpec/issues/269):** select A1, keeping the literal in Fork's `systemAddrs.systemAddress`. Add `systemAddress : Address` to `RunnerEnv` and immutable `FrameCtx`, and an Address argument after Frame in `emitTransferLog`. `BlockConfig.runnerEnv` forwards `cfg.system.systemAddress`, `createEvm` copies it, child contexts inherit it, and both `processCall` and SELFDESTRUCT use `ctx.systemAddress`. Existing request/handler/runner function parameter lists and the three-field `VmConfig` are unchanged. Local emitter laws quantify arbitrary supplied address and topic; pinned-source coherence belongs to intended construction/refinement, without a new raw admission or gas/fuel premise. This approves guidance and separately reviewed implementation, not completed context/emitter/transport/value code. `STACK_DEPTH_LIMIT` remains the sole Core literal exception; ARCHITECTURE §11 records the alternatives. |
 | F9 | Precompile pricing constants | **Adopted** (B8): the EIP-2537 pairing constants, discount tables, maximum discounts and multiplier are `GasCosts` fields. |
 | F10 | Resume preconditions | **Adopted:** `StepResult.call/.create` carry `hs : parent.stack.size < STACK_DEPTH_LIMIT`, and resume takes the config. |
 | F11 | How `ChildSettled` is produced | **Open** (owner: EthVmRunner). Choose one: a decidable check raising `InternalError.invariant` (then proved dead with the fuel guarantees), or a settled subtype returned by the runner. |

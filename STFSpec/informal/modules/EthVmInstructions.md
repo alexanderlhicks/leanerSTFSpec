@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference.
 
@@ -155,7 +155,7 @@ In order: (1) static → `WriteInStaticContext`; (2) pop key, new; (3) `cost := 
 
 ### 2.7 SELFDESTRUCT (`I/system.py:713–785`; EIP-6780, EIP-8246)
 
-Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check_gas(cost)`; warm `b`; if `¬alive(b) ∧ balance(target) ≠ 0`: state gas `NEW_ACCOUNT` and execution `+9000`; `charge_gas` **before** `charge_state_gas`; move the whole balance to `b` (a no-op when `b = target`); if `b ≠ target`, `emit_transfer_log` (EIP-7708; nothing for 0); if `target ∈ created_accounts` add it to `accounts_to_delete`; `.stop` with output ∅. Deletion happens after the transaction via `clear_account_preserving_balance` (`fork.py:1134–1135`, EthBlock), so under EIP-8246 a self-destruct to itself of an account created in the same transaction **keeps** its balance [V: the called function's name and the EIP title; its body is EthState's].
+Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check_gas(cost)`; warm `b`; if `¬alive(b) ∧ balance(target) ≠ 0`: state gas `NEW_ACCOUNT` and execution `+9000`; `charge_gas` **before** `charge_state_gas`; move the whole balance to `b` (a no-op when `b = target`); if `b ≠ target`, use `emitTransferLog f ctx.systemAddress world.tx.block.consts.transferTopic target b balance` with the previously read originator balance (EIP-7708; helper is a no-op for 0); if `target ∈ created_accounts` add it to `accounts_to_delete`; `.stop` with output ∅. Deletion happens after the transaction via `clear_account_preserving_balance` (`fork.py:1134–1135`, EthBlock), so under EIP-8246 a self-destruct to itself of an account created in the same transaction **keeps** its balance [V: the called function's name and the EIP title; its body is EthState's].
 
 ### 2.8 EIP-7702 delegation (`eoa_delegation.py`)
 
@@ -193,6 +193,12 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 **External semantics.** `ethereum_types` `U256` operations used by handlers: `wrapping_add/sub/mul`, `//`, `%`, `to_signed`, `from_signed` (raises for out-of-range; unreachable from these handlers because all results are in range) [V], `from_be_bytes`, `to_be_bytes32`, `bit_length`, `~`, `&`, `|`, `^`, `>>`; `Uint(...)` conversions (exact, unbounded); `U8` for immediates; Python's `pow(b, e, 2^256)`; Python negative list indexing in BLOCKHASH (IndexError beyond length) and in DUPN/SWAPN/EXCHANGE (always in range after the checks). Each must be given by an `EthBase` `U256`/`Nat` law, not by Lean `BitVec` instances (D1).
 
 ## 4. Tests
+
+**F8 inheritance/producer controls (unimplemented).** Check both child-context
+systemAddress equations with a nonliteral parent address, independently varying
+the F20 topic. SELFDESTRUCT cases compare complete logs for zero/nonzero balances
+and equal/unequal beneficiaries, including all existing static/gas/state-fault
+precedence and runner-owned revert/halt discard.
 
 - **EEST fixture areas** (`blockchain_tests/for_amsterdam/…`, plus `for_bpo2toamsterdamattime15k` variants, which need bpo2 execution; the `_engine` copies carry no guest records, GAPS-CROSSCUTTING X5):
   - arithmetic/bitwise/comparison: `ported_static/vmArithmeticTest`, `vmBitwiseLogicOperation`, `stShift`, `constantinople/eip145_bitwise_shift`, `osaka/eip7939_count_leading_zeros`, `frontier/opcodes`;
@@ -315,6 +321,8 @@ theorem step_add_oog (h₁ : …) (h₂ : f.stack.toList = a :: b :: s) (h₃ : 
 
 Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v))` with `e = expandBy`, and gas `3 + cost`; storage ops state the read/write through `getStorage`/`setStorage` laws and the exact SSTORE cost/refund/state-gas table of §2.4 as a function `sstoreCharges original current new cold`. CALL/CREATE lemmas state the request fields and the parent frame at suspension (the exact meter after withholding), and separately the resume equations. The lemma set must also give **exception precedence** (R-GEN-2) as in powdr's `StepDeterminism.lean`.
 
+**Child context policy** [C] (F8): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
+
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
 **Gas progress** [T] (feeds EthVmRunner G2): for every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
@@ -358,6 +366,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
+
+- **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

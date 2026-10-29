@@ -1,7 +1,7 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F3, F10, F11, F12, F14 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
 
@@ -26,7 +26,7 @@ In this order:
 3. Warm `coinbase`, **every precompile address of the table**, `origin`, the access-list addresses, and the target (`:171–175`).
 4. Creation: if `¬account_deployable(target)` raise `AddressCollision`; if the **pre-state** account of the target (`get_pre_state_account`, not the current account) equals `EMPTY_ACCOUNT`, charge `NEW_ACCOUNT` state gas; code := `tx_env.data` (`:178–188`). This differs from the CREATE opcode, which tests `is_account_alive` of the current state.
 5. Call: `charge_value_transfer_to_non_alive_account` (`:124–135`: `NEW_ACCOUNT` state gas iff `value > 0 ∧ ¬alive(recipient)`); then `resolve_delegated_code_address` (charges warm/cold and warms the delegate) and load the code of the resolved address (`:189–202`).
-6. Build the depth-0 frame: `caller = origin`, `should_transfer_value = true`, not static, `disable_precompiles` from step 5 (`:205–238`).
+6. Build the depth-0 frame: `caller = origin`, `should_transfer_value = true`, not static, `disable_precompiles` from step 5 (`:205–238`). Copy `ctx.config := env.vm` and `ctx.systemAddress := env.systemAddress` (F8); these supplied immutable policy fields refine source module policy rather than new source Evm fields.
 
 ### 2.3 EIP-7702 authorizations (`eoa_delegation.py:116–335`)
 
@@ -37,7 +37,7 @@ In this order:
 ### 2.4 Message call (`process_call`, `interpreter.py:401–475`)
 
 - **R-CALL-1** The depth guard `depth > 1024 → StackDepthLimitError` (`:417–418`, outside the `try`) is **unreachable**: the top frame has depth 0 and a child is only requested when `depth < 1024` (EthVmInstructions `StepResult.call` carries the proof). The Lean runner must not re-check; the `FrameCtx.depth_le` field records the bound.
-- **R-CALL-2** Snapshot the transaction state (`:420`). If `should_transfer_value ∧ value ≠ 0`: `move_ether(caller → target)` and, if `caller ≠ target`, `emitTransferLog` (EIP-7708, into this frame's logs) (`:424–437`).
+- **R-CALL-2** Snapshot the transaction state (`:420`). If `should_transfer_value ∧ value ≠ 0`: `move_ether(caller → target)` and, if `caller ≠ target`, `emitTransferLog f ctx.systemAddress world.tx.block.consts.transferTopic ctx.caller ctx.currentTarget ctx.value` (EIP-7708, into this frame's logs) (`:424–437`). The address comes from the immutable context; the topic retains its F20 context path. This adds no query, guard or effect before the existing transfer.
 - **R-CALL-3** If `code_address` is a key of the precompile table: run it unless `disable_precompiles`, in which case **nothing runs and the frame succeeds with empty output** (`:438–442`). Otherwise run the frame loop (§2.6).
 - **R-CALL-4** Settlement (`:456–471`): on an exceptional halt, `restore_state_gas`, `forfeit_remaining_gas`, output := ∅; on `Revert`, `restore_state_gas` only (unspent `gas_left` returns to the parent); in both cases record the error and restore the snapshot (`:473–474`). After settlement a non-top frame satisfies `ChildSettled` (EthVmCore `L-SETTLE`).
 
@@ -49,7 +49,7 @@ In this order:
 ### 2.6 Frame loop and children
 
 - **R-LOOP-1** The loop calls `step` while the frame runs (`:444–452`). `.continue f'` iterates; `.stop`, `.revert`, `.halt` end the frame and go to settlement. `step` itself handles `pc ≥ |code|` and invalid opcodes (EthVmInstructions R-DSP-2).
-- **R-LOOP-2** On `.call parent req h hs`: build the child context with `childCtxOfCall ctx req h` (depth + 1) and the child frame with `childFrame parent req.gas req.stateGasReservoir` (its warm sets are the parent's), run `processCall`, form the `ChildOutcome` (the `ChildSettled` proof: F11, §9), and continue with `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`: likewise with `processCreate` and `resumeAfterCreate` (EELS: `I/system.py:140–192, 409–469`). The parent frame is suspended unchanged while the child runs.
+- **R-LOOP-2** On `.call parent req h hs`: build the child context with `childCtxOfCall ctx req h` (depth + 1) and the child frame with `childFrame parent req.gas req.stateGasReservoir` (its warm sets are the parent's); the child context inherits `ctx.systemAddress` unchanged (F8). Run `processCall`, form the `ChildOutcome` (the `ChildSettled` proof: F11, §9), and continue with `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`: likewise with `processCreate` and `resumeAfterCreate` (EELS: `I/system.py:140–192, 409–469`). The parent frame is suspended unchanged while the child runs.
 - **R-LOOP-3 Precompile table.** `PrecompileFn m` (EthVmCore) takes `(input, meter)` and returns, in `m`, either `.ok meter' output` or `.halt e`. The table's `meter_law` guarantees that `meter'` differs from `meter` only by a `gas_left` charge. The runner **installs `meter'` as the frame meter** and sets the output, without charging again; on `.halt` it applies the ordinary frame-halt settlement (R-CALL-4). This matches EELS, whose precompiles read only `evm.call_data`, write only `evm.output` and charge only execution gas on the frame's own meter [V: `grep evm\.` over `precompiled_contracts/` finds only `call_data` and `output`, plus `charge_gas`]. ecrecover and p256verify return empty output on invalid input rather than halting (O9, EthPrecompiles). The table's key set is also the warm-set seed of §2.2 step 3.
 
 ### 2.7 Termination and fuel (ARCHITECTURE §5.5; O11; REVIEW §7 G2–G7)
@@ -65,10 +65,10 @@ In this order:
 |---|---|---|---|
 | `forks/amsterdam/vm/interpreter.py::TransactionOutput` | 91 | `structure TransactionOutput` | `refundCounter : Nat` after the checked conversion |
 | `forks/amsterdam/vm/interpreter.py::charge_value_transfer_to_non_alive_account` | 124 | `chargeValueTransferToNonAliveAccount` | |
-| `forks/amsterdam/vm/interpreter.py::create_evm` | 138 | `createEvm` | returns `Except ExceptionalHalt` inside `VmM` |
+| `forks/amsterdam/vm/interpreter.py::create_evm` | 138 | `createEvm` | returns `Except ExceptionalHalt` inside `VmM`; copies supplied env.vm and env.systemAddress into immutable context (F8) |
 | `forks/amsterdam/vm/interpreter.py::process_top_level` | 241 | `processTopLevelChecked` | O11 checked form |
 | `forks/amsterdam/vm/interpreter.py::process_create` | 330 | `processCreate` | |
-| `forks/amsterdam/vm/interpreter.py::process_call` | 401 | `processCall`, `runFrame`, `runPrecompile` | the `while` loop becomes `runFrame` |
+| `forks/amsterdam/vm/interpreter.py::process_call` | 401 | `processCall`, `runFrame`, `runPrecompile` | loop becomes runFrame; :424–437 transfers then emits with ctx.systemAddress and F20 topic |
 | `forks/amsterdam/vm/eoa_delegation.py::SET_CODE_TX_MAGIC` | 35 | `SET_CODE_TX_MAGIC : Bytes := 0x05` | |
 | `forks/amsterdam/vm/eoa_delegation.py::NULL_ADDRESS` | 39 | `NULL_ADDRESS : Address := 0` | |
 | `forks/amsterdam/vm/eoa_delegation.py::recover_authority` | 116 | `recoverAuthority` | calls `EthCurve.secp256k1Recover` directly (D26, resolving NEW-VM-5) |
@@ -80,6 +80,12 @@ The interpreter's limits (`STACK_DEPTH_LIMIT`, `MAX_CODE_SIZE`, `MAX_INIT_CODE_S
 **External semantics.** `ethereum_rlp.rlp.encode` of `(U256 chain_id, Address, U64 nonce)` in `recover_authority` (EthCodec: canonical integer encoding without leading zeros); `U256(...)`/`U64` range checks (`OverflowError`); Python `set` semantics for warm sets (EthVmCore `AddrSet`). `ethereum.trace.evm_trace` events (`OpStart`, `OpEnd`, `OpException`, `PrecompileStart/End`, `EvmStop`, `TransactionEnd`) are diagnostics (ARCHITECTURE §7): they must be emitted through the event interface with the same order, but have no semantic effect.
 
 ## 4. Tests
+
+**F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
+RunnerEnv address and an independently varied F20 topic. Check successful createEvm
+copying and complete logs through user/system entry, nested CALL/CREATE and
+processCreate→processCall, including zero/self-transfer suppression. Keep child
+success and outer revert/halt discard cases under the existing settlement contract.
 
 - **EEST fixture areas:** depth and recursion: `ported_static/stCallCreateCallCodeTest`, `stDelegatecallTestHomestead`, `stSystemOperationsTest`, `stRecursiveCreate`, `stCallCodes`; creation: `stCreateTest`, `stCreate2`, `stInitCodeTest`, `stCodeSizeLimit`, `frontier/create`, `amsterdam/eip7954_increase_max_contract_size`, `amsterdam/eip7997_deterministic_factory_contract`; top frame and authorizations: `prague/eip7702_set_code_tx` (86), `amsterdam/eip2780_reduce_intrinsic_tx_gas` (`test_top_frame_charges.py`), `amsterdam/eip8037_state_creation_gas_cost_increase` (`test_state_gas_set_code.py`, `test_state_gas_reservoir.py`, `test_state_gas_system_calls.py`, `test_state_gas_cross_frame_refund.py`), `amsterdam/eip8038_*` (`test_set_code_auth_gas.py`, `test_set_code_auth_refunds.py`), `ported_static/stEIP3607`, `stTransactionTest`; revert/halt settlement: `stRevertTest`, `stZeroCallsRevert`, `stReturnDataTest`; precompile dispatch: `frontier/precompiles`, `ported_static/stPreCompiledContracts`, `stPreCompiledContracts2`, the BLS/BN/P256/KZG/modexp/blake2 areas (`prague/eip2537_bls_12_381_precompiles`, `byzantium/eip196_ec_add_mul`, `eip197_ec_pairing`, `osaka/eip7951_p256verify_precompiles`, `istanbul/eip152_blake2`, `osaka/eip7883_modexp_gas_increase`); transfer logs at frame entry: `amsterdam/eip7708_eth_transfer_logs`; time-sensitive: `stQuadraticComplexityTest`, `stAttackTest`, `paris/security`.
 - **EELS unit tests:** none for `interpreter.py` or `eoa_delegation.py` at e1a316a0 [V]; `tests/json_loader/test_trace.py` checks only trace hooks.
@@ -96,6 +102,7 @@ The interpreter's limits (`STACK_DEPTH_LIMIT`, `MAX_CODE_SIZE`, `MAX_INIT_CODE_S
 structure RunnerEnv (m : Type → Type) [Monad m] where
   precompiles : PrecompileTable m
   vm : VmConfig
+  systemAddress : Address     -- Fork-owned value, supplied by the block projection (F8)
 
 -- Internal errors (public; O11)
 inductive InternalError | fuelExhausted (depth : Nat)
@@ -159,6 +166,8 @@ inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → V
 
 ## 7. Contract and laws
 
+**Context construction** [C] (F8): whenever `createEvm env be te paidWrites g` successfully returns `(ctx, f, paidWrites')`, `ctx.config = env.vm` and `ctx.systemAddress = env.systemAddress`. Both child constructors preserve `systemAddress` exactly (EthVmInstructions §7). Actual `processCall` emission reads `ctx.systemAddress`, including when `processCreate` delegates to it. Intended block assembly supplies `env = cfg.runnerEnv`; pinned-source refinement then instantiates the inherited address with Fork's pinned value and the separately coherent F20 topic. These are construction/refinement obligations, not an added admission predicate on arbitrary raw RunnerEnv/FrameCtx, Step/Exec, independent gas laws or all StateT actions. Whole-context equalities must retain the new field.
+
 **Structural** [T]: the mutual definition is accepted by `termination_by` with the measure of R-TERM-1 (G3). No `partial`, no global fuel, no helper without its own measure.
 
 **Settlement** [C]: after `processCall`/`processCreate` returns `r` with `r.error = some _`: for non-top frames, `ChildSettled r.frame true` (spill 0, refund 0, reservoir = baseline, committed spill 0 for non-top frames), the transaction state equals the snapshot taken at entry of that call (processCall) or of the create (processCreate), and observations are a superset of those at entry (EthState). On `r.error = none`, the non-top child satisfies `ChildSettled r.frame false`. Top-level settlement has its separate entry/committed-spill law. Halts additionally have `r.frame.gasMeter.gasLeft = 0` and `r.output = ∅`.
@@ -199,7 +208,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 8. Composition
 
 - **Depends on:** `EthVmInstructions`, `EthCurve` (secp256k1 recovery for EIP-7702 authorities, D26; the runner calls `secp256k1Recover` directly, as EELS does).
-- **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles` and one `VmConfig`; recovery is a direct `EthCurve` call).
+- **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles`, one `VmConfig` and `systemAddress` through BlockConfig.runnerEnv; recovery is a direct `EthCurve` call).
 - **Seams:** consumes `step`, the request/resume operations and delegation resolution (EthVmInstructions), the meter and settlement laws (EthVmCore), EthState snapshot/restore and account operations; provides the transaction-level execution function and the four fuel guarantees. Cross-module invariants relied on: `EthBlock` validates the transaction before calling (intrinsic gas affordable, sender balance and nonce, `is_create → authorizations = ()`); `EthFork`'s table satisfies `lookup_iff`/`meter_law`. Guaranteed: settlement post-conditions above; `InternalError` is the only non-`VmFault` failure.
 
 ## 9. Open decisions
@@ -215,6 +224,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F11** (open, choose one): how the runner produces `ChildSettled` for `toChildOutcome`. Either a decidable check whose failure raises a new `InternalError.invariant` (then proved dead with the fuel guarantees, G7; the choice of a compiled prototype of the interfaces), or a settled subtype returned by `processCall`/`processCreate`, which needs `L-SETTLE` proved inline.
 
 ## 10. Gaps
+
+- **F8 immutable address transport:** `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
