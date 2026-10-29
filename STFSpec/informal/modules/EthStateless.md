@@ -334,6 +334,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Fork activation (explicit exclusion).** The guest never checks the payload timestamp against Amsterdam activation (`stateless.py:275–277`), and nothing checks that witness headers belong to the forks their shape suggests. A payload from before activation, or a chain whose parent header is of the previous-fork shape at any timestamp, is validated with Amsterdam rules. The spec follows the reference; any consumer claiming "valid Ethereum block" must add this check or take it as an external anchor (CONTRACT §7).

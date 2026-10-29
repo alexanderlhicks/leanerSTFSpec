@@ -106,6 +106,22 @@ The generic witness client uses the stored table's actual `meter_law`, without
 observing arbitrary-monad results or strengthening Q83. Assembly, dispatch,
 transformer bridges, copying into FrameCtx and all execution remain unimplemented.
 
+**Supplied checked control carriers (source-free).** These Lean-side carriers
+have no corresponding EELS runtime operation; no source execution correspondence
+is asserted. EELS uses a different operational termination model.
+
+| Source | Exact declaration | Domain, effects and failure alternatives | Private facade clients / status |
+|---|---|---|---|
+| None (O11 control vocabulary) | `InternalError.fuelExhausted : Nat → InternalError` | Every Nat depth, retained exactly; constructor only, no operation or effects | Arbitrary depth projection; zero and beyond-word controls; supplied |
+| None (D14/F14 control shape) | `CheckedResult (ε α : Type) := Except InternalError (Except ε α)` | All Type-level error/success payloads; outer internal failure, inner rejection or success; no class premise or effects | Exact alias type/unfolding and complete three-alternative reconstruction/payload clients; supplied |
+| None (F14 transformer order) | `CheckedT (ε : Type) (m : Type → Type) := ExceptT ε (ExceptT InternalError m)` | All Type-level base constructors, without Monad/hash/lawful premise; `.run.run : m (Except InternalError (Except ε α))` retains the entire base action | Exact type/unfolding, arbitrary complete action preservation and local Id composition clients; supplied |
+
+All checked-carrier clients are private in
+`STFSpec/Conformance/Vm/Runner/CheckedCallerProofs.lean`, importing only the
+public Runner facade. Only `fuelExhausted` is supplied; the conditional future
+`invariant` option remains reserved by F11. This supplies no propagation,
+execution adapter, budget, exhaustion-unreachability or guest projection.
+
 ## 4. Tests
 
 **Supplied carrier controls.** The private facade clients in §3 check the exact
@@ -118,6 +134,15 @@ refund and both spill pools. Full arbitrary GasCosts and raw independent state
 costs/limits include zero and beyond-word values. Distinct nonliteral addresses
 retain all twenty bytes and byte order. These are carrier controls; the actual
 construction/producer and runtime controls below remain unimplemented.
+
+**Supplied checked-carrier controls.** Private clients check both aliases' exact
+Type domains without class premises, complete arbitrary error/success payloads,
+arbitrary depth and the underlying base action through actual `.run.run` nesting.
+Complete tagged observations distinguish internal failure (including depth zero
+and `2^300 + 71`), structured inner rejection and structured success. Actual local
+Id binds show that each first failure suppresses a later failure in the other
+channel, and successful binds can retain each of the three alternatives. These
+are control-carrier examples, without an EELS operation or runtime-runner claim.
 
 **F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
 RunnerEnv address and an independently varied F20 topic. Check successful createEvm
@@ -144,7 +169,7 @@ structure RunnerEnv (m : Type → Type) [Monad m] where
   vm : VmConfig
   systemAddress : Address     -- Fork-owned value, supplied by the block projection (F8)
 
--- Internal errors (public; O11)
+-- Internal errors and checked carriers (supplied; source-free; O11/F14)
 inductive InternalError | fuelExhausted (depth : Nat)
   -- `| invariant (what : String)` only if F11 chooses the checked option (§9); G7 must then prove it dead
 abbrev CheckedResult (ε α : Type) := Except InternalError (Except ε α)
@@ -206,6 +231,15 @@ inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → V
 | fuel | `Nat` per frame | — | decreases by 1 per iteration | — | — |
 
 ## 7. Contract and laws
+
+**Checked control storage (supplied).** §3/§5 own exactly `InternalError` with
+`fuelExhausted (depth : Nat)`, `CheckedResult` and `CheckedT`, with ordinary
+inductive infrastructure and no authored public law/default/instance package.
+Private facade proofs preserve arbitrary complete payloads, both exact alias
+unfoldings and the entire underlying `m` action without a Monad, KeccakQuery or
+lawful-monad premise. Local Id binds exercise distinct short-circuit channels.
+F11's optional future invariant remains unselected. Actual propagation, adapters,
+execution, budget policy, G2–G7 and O11 guest projection remain open.
 
 **Raw RunnerEnv storage (supplied).** §3/§5 own the exact three-field record,
 with ordinary generated structure support and no authored public law package.
@@ -273,9 +307,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D24**: child logs merge as a rope append.
 - NEW-VM-5: resolved by D26 (DECISIONS Q27).
 - **NEW-VM-6** (DECISIONS B11, Q28): Φ + 1 remains an unproved candidate, settled by the fuel-adequacy investigation; also open is whether the fuel-indexed family for guarantees 2–3 is `constBudget n` or "all policies pointwise ≥ some policy".
+- **Checked carriers:** the minimal source-free control storage in §3/§5/§7 is supplied; it does not select F11 or prove any internal-error branch unreachable.
 - **F11** (open, choose one): how the runner produces `ChildSettled` for `toChildOutcome`. Either a decidable check whose failure raises a new `InternalError.invariant` (then proved dead with the fuel guarantees, G7; the choice of a compiled prototype of the interfaces), or a settled subtype returned by `processCall`/`processCreate`, which needs `L-SETTLE` proved inline.
 
 ## 10. Gaps
+
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
 - **Precompile interpretation (Q83):** Core supplies the raw shared carriers,
   transparent MeterOk, logical action factorization and exact Id reduction

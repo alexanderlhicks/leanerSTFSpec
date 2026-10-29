@@ -596,6 +596,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free checked carriers, keeping InternalError distinct from frame exits and VmFault; actual lifting/propagation, settlement, F11 and G2–G7 remain open.
+
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
@@ -756,6 +758,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
+
 - **Precompile interpretation (Q83):** Core supplies the raw shared carriers,
   transparent MeterOk, logical action factorization and exact Id reduction
   (Core §3/§5/§7). The table action stays in base m; actual lifting through
@@ -781,6 +785,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Pre-dispatch vs dispatch rollback** (delegations kept after a dispatched failure, reverted after a preparation failure) is specified from comments and code (`gas.py:471–502`, `interpreter.py:276–282`); no targeted `#guard` exists yet.
 
 ### [`EthBlock`](modules/EthBlock.md)
+
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
   and the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and
@@ -835,6 +841,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
 
 ### [`EthStateless`](modules/EthStateless.md)
+
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

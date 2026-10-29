@@ -46,7 +46,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | VmWorld, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, MeterOk, `PrecompileTable m`, SatisfiesM | EthVmCore | Core §3/§5/§7 supplies the exact two-constructor result, unconstrained function alias, transparent meter predicate and four-field Monad-only certified table carrier, reusing Q83 action factorization and its exact Id law. Preserve complete meter/output and nominal halt payloads and supply the actual lookup-domain and erasure proofs. Intended routing is Precompiles/Fork→BlockConfig.runnerEnv→RunnerEnv; actual installed-table construction, adapters, effect/dispatch bridges and halt settlement remain open. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
-| InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
+| InternalError, CheckedResult, `CheckedT` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; adapters, execution and guest projection remain open, as do F11 and G2–G7. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
@@ -918,7 +918,7 @@ seams, consumer coherence and generic oracle coupling remain open.
 - `.ok (.error e)`: a validation/backend fault, projected according to its guest phase;
 - `.error i`: spec-internal failure, retained by the checked guest.
 
-Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. For an action run on world `w`:
+Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. Only the checked carriers are supplied (EthVmRunner §3/§5/§7); the following adapter and its execution equations remain unimplemented. F11 remains open. For an action run on world `w`:
 
 ```text
 action w = .error vf                    => .ok (.error vf)

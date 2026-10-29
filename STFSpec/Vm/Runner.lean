@@ -2,6 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Vm.Runner.Checked
 import STFSpec.Vm.Runner.Environment
 
 /-!
@@ -10,7 +11,7 @@ import STFSpec.Vm.Runner.Environment
 The recursive call executor: the frame loop, child execution, named resume operations, and termination.
 
 Library `EthVmRunner`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). The raw `RunnerEnv` carrier is supplied;
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The raw `RunnerEnv` and checked control carriers are supplied;
 execution remains scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md`.
 -/

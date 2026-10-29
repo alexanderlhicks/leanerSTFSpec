@@ -771,6 +771,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
+
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
   and the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and
   Core's logical predicate/Id law do not construct the installed table or discharge
