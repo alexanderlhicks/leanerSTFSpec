@@ -472,6 +472,8 @@ These are future consumer checks; the guidance clarification claims no new confo
 
 ## 5. Interface
 
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values with full StateError payloads. The displayed BlockError embeddings and ofStateError/ofVmFault adapters remain unimplemented; nominal storage supplies neither actual system-call propagation nor O4/O13 projection.
+
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All items are public unless marked (internal). Namespace `STFSpec.Block`.

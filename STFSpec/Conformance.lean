@@ -2,6 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
 import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
