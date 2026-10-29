@@ -63,7 +63,7 @@ Every row is required before claiming that module's corresponding refinement, in
 |---|---|
 | EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Taylor's positive-denominator totality/two zero-value laws and bounded controls are supplied by EthBase §3/§7; DISC-002 practical feasibility remains open. Enumerate checked integer operations and failure sites; specify Envelope's role. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
-| EthField | The reference-only carrier and basic residue arithmetic, their observer laws/delegating instances and private public-law clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
+| EthField | The reference-only carrier and basic residue arithmetic, their observer laws/delegating instances, eight exact Nat modulus constants and private facade clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
@@ -175,6 +175,13 @@ G1/G2–G7, compiled/resource and VM/guest/readiness gates remain open. The date
 assessment is unchanged.
 
 ## 4. Agent implementation contract
+
+The eight exact natural moduli are supplied by EthField §3, in a separate leaf
+reexported by the public Field facade. Private clients check complete `Nat` literal
+equalities; complete guards/interpreted/native observations distinguish base/scalar
+values and elementary widths/ranges/residues against authenticated pinned source.
+No new public law, field instance, alias, primality/square-root metadata, backend,
+replacement, resource/C1–C4 or whole-module/readiness gate is discharged.
 
 The bounded initial natural-reference carrier is supplied by
 [EthField §3/§5/§7](modules/EthField.md#supplied-initial-natural-reference-carrier).

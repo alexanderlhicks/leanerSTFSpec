@@ -2,6 +2,8 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Conformance.Field.ModuliCallerProofs
+import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
