@@ -431,6 +431,59 @@ abbrev Bloom := FixedBytes 256
 /-- Sixty-four-byte hash content; EELS `src/ethereum/crypto/hash.py:20` (`Hash64`). -/
 abbrev Hash64 := FixedBytes 64
 
+/-! ### Private observation-key table-support loop -/
+
+private def observationHashByte (width value i : Nat) : UInt8 :=
+  UInt8.ofNat (value >>> (8 * (width - 1 - i)))
+
+private def observationHashStep (acc : UInt64) (byte : UInt8) : UInt64 :=
+  (acc ^^^ byte.toUInt64) * 1099511628211
+
+private def observationHashFold (step : Nat → UInt64 → UInt64) : Nat → Nat → UInt64 → UInt64
+  | 0, _, acc => acc
+  | remaining + 1, i, acc => observationHashFold step remaining (i + 1) (step i acc)
+
+private theorem observationHashFold_eq (step : Nat → UInt64 → UInt64)
+    (remaining i : Nat) (acc : UInt64) :
+    observationHashFold step remaining i acc =
+      (List.range' i remaining).foldl (fun acc j ↦ step j acc) acc := by
+  induction remaining generalizing i acc with
+  | zero => simp [observationHashFold]
+  | succ remaining ih =>
+    simp only [observationHashFold, ih, List.range'_succ, List.foldl_cons]
+
+namespace Bytes32
+
+/-- Nonprotocol table-support model over all 32 big-endian digits, including leading zeros.
+The UInt64 xor/multiply recurrence wraps modulo `2^64` (Q84); no hash query is issued. -/
+def tableHashReference (x : Bytes32) : UInt64 :=
+  ((List.range 32).map (observationHashByte 32 x.toNat)).foldl
+    observationHashStep 14695981039346656037
+
+/-- Structural streaming table support, without an intermediate byte list or buffer.
+Nat shifts, callbacks and UInt64 boxing may allocate. -/
+def tableHash (x : Bytes32) : UInt64 :=
+  observationHashFold (fun i acc ↦ observationHashStep acc (observationHashByte 32 x.toNat i))
+    32 0 14695981039346656037
+
+/-- Executable table support equals the complete 32-digit reference on every value. -/
+theorem tableHash_eq_reference (x : Bytes32) : tableHash x = tableHashReference x := by
+  simpa only [tableHash, tableHashReference, List.foldl_map, List.range_eq_range'] using
+    observationHashFold_eq
+      (fun i acc ↦ observationHashStep acc (observationHashByte 32 x.toNat i))
+      32 0 14695981039346656037
+
+/-- Canonical nonprotocol table support (Q84). Existing actual equality supplies the
+lawful hash classes; support collisions are allowed and no protocol query is performed. -/
+instance instHashable : Hashable Bytes32 where
+  hash := tableHash
+
+/-- The canonical Hashable instance exposes the same complete nonprotocol model. -/
+theorem hash_eq_reference (x : Bytes32) : hash x = tableHashReference x :=
+  tableHash_eq_reference x
+
+end Bytes32
+
 /-- A 20-byte value kept distinct from `FixedBytes 20`; EELS `src/ethereum/state.py:33`.
 Byte contents give EELS equality across the distinct Lean types. -/
 structure Address where
@@ -546,6 +599,38 @@ theorem compare_toNat (x y : Address) : compare x y = compare x.toNat y.toNat :=
 theorem compare_toBytes (x y : Address) :
     compare x y = compare (Bytes.toList x.toBytes) (Bytes.toList y.toBytes) :=
   FixedBytes.compare_toBytes x.toFixed y.toFixed
+
+end Address
+
+namespace Address
+
+/-- Nonprotocol table-support model over all 20 big-endian digits, including leading zeros.
+The UInt64 xor/multiply recurrence wraps modulo `2^64` (Q84); no hash query is issued. -/
+def tableHashReference (x : Address) : UInt64 :=
+  ((List.range 20).map (observationHashByte 20 x.toNat)).foldl
+    observationHashStep 14695981039346656037
+
+/-- Structural streaming table support, without an intermediate byte list or buffer.
+Nat shifts, callbacks and UInt64 boxing may allocate. -/
+def tableHash (x : Address) : UInt64 :=
+  observationHashFold (fun i acc ↦ observationHashStep acc (observationHashByte 20 x.toNat i))
+    20 0 14695981039346656037
+
+/-- Executable table support equals the complete 20-digit reference on every value. -/
+theorem tableHash_eq_reference (x : Address) : tableHash x = tableHashReference x := by
+  simpa only [tableHash, tableHashReference, List.foldl_map, List.range_eq_range'] using
+    observationHashFold_eq
+      (fun i acc ↦ observationHashStep acc (observationHashByte 20 x.toNat i))
+      20 0 14695981039346656037
+
+/-- Canonical nonprotocol table support (Q84). Existing actual equality supplies the
+lawful hash classes; support collisions are allowed and no protocol query is performed. -/
+instance instHashable : Hashable Address where
+  hash := tableHash
+
+/-- The canonical Hashable instance exposes the same complete nonprotocol model. -/
+theorem hash_eq_reference (x : Address) : hash x = tableHashReference x :=
+  tableHash_eq_reference x
 
 end Address
 

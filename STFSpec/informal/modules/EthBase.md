@@ -1,13 +1,13 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54, Q84.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
 
 ## 1. Purpose
 
-`EthBase` is layer L0 (ARCHITECTURE §2): the primitive value types every other library uses. These are the EVM word `U256` with its full EVM arithmetic API, bounded and unbounded integers (`Uint`, `U8`…`U64`), byte sequences (`Bytes`) with their content order (Q54), fixed-width byte types (`Address`, `Hash32`, `Bytes32`, `Bloom`, …) with their lawful orderings, big/little-endian conversions, a few numeric helpers from `utils/`, the `HashConsts` record of keccak-derived constants (D5; values only, computed by `EthHash`), and the `Envelope` record of implementation limits. It contains no fork policy, no protocol or cryptographic hashing and no codecs. Q51 permits the explicitly named nonprotocol Hash32 table-support instance; every Keccak query still belongs to EthHash under D5. Its main architectural job is to make replacement exercise 4 (ARCHITECTURE §1) pass: callers see `U256` only through stable observers and representation-independent laws.
+`EthBase` is layer L0 (ARCHITECTURE §2): the primitive value types every other library uses. These are the EVM word `U256` with its full EVM arithmetic API, bounded and unbounded integers (`Uint`, `U8`…`U64`), byte sequences (`Bytes`) with their content order (Q54), fixed-width byte types (`Address`, `Hash32`, `Bytes32`, `Bloom`, …) with their lawful orderings, big/little-endian conversions, a few numeric helpers from `utils/`, the `HashConsts` record of keccak-derived constants (D5; values only, computed by `EthHash`), and the `Envelope` record of implementation limits. It contains no fork policy, no protocol or cryptographic hashing and no codecs. Q51 and Q84 permit the explicitly named nonprotocol Hash32 and Address/Bytes32 table-support instances; every Keccak query still belongs to EthHash under D5. Its main architectural job is to make replacement exercise 4 (ARCHITECTURE §1) pass: callers see `U256` only through stable observers and representation-independent laws.
 
 ## 2. Requirements
 
@@ -540,7 +540,7 @@ may be unfolded; callers use public observer/equality laws for Hash32.
 |---|---|---|---|---|
 | Q51; nonprotocol Lean support, no EELS hash counterpart | `Hash32.tableHashReference : Hash32 → UInt64` | All Hash32 values; exact 32-digit model above; no state/oracle effect or failure channel | Functional model **discharged** | `Hash32TableGuards.lean`; independent Python arithmetic in `STFSpec/Conformance/Base/hash32_table_support.py` |
 | Q51; D25 executable/model seam | `Hash32.tableHash : Hash32 → UInt64` | All Hash32 values; structural 32-step loop, no intermediate byte buffer/list | `Hash32.tableHash_eq_reference (x : Hash32) : tableHash x = tableHashReference x`; **discharged** | Zero/all-255, every bit and byte position, leading-zero/indexed/random inputs; complete UInt64 comparisons |
-| Q51; Std table adapter | `Hashable Hash32`; `hash_eq_reference (x : Hash32) : hash x = tableHashReference x` | Actual equality retained; no additional BEq, seed, dependency or rejection | Generic `LawfulBEq`, `EquivBEq`, `LawfulHashable`; functional compatibility **discharged** | `Hash32TableCallerProofs.lean`: model, numeric/byte congruence and public Std insertion/overwrite/different-key/equal-observer clients; guards reject instances for Address/Bytes32 |
+| Q51; Std table adapter | `Hashable Hash32`; `hash_eq_reference (x : Hash32) : hash x = tableHashReference x` | Actual equality retained; no additional BEq, seed, dependency or rejection | Generic `LawfulBEq`, `EquivBEq`, `LawfulHashable`; functional compatibility **discharged** | `Hash32TableCallerProofs.lean`: model, numeric/byte congruence and public Std insertion/overwrite/different-key/equal-observer clients; guards synthesize Q84 Address/Bytes32 support and reject unapproved widths |
 
 The actual Hash32 instance supplies the prerequisites of public Std map laws.
 Distinct keys retain independent lookups even when support hashes or buckets
@@ -571,6 +571,58 @@ mean allocation-free. No distribution, throughput, worst-case or expected-cost
 claim follows. C1–C4 and D2 fixed-byte representation measurements remain open;
 compare actual future NodeDB construction and adversarial distributions as
 ARCHITECTURE §5.0 requires. No measured cost exception is adopted here.
+
+### Implemented observation-key table support (Q84)
+
+`STFSpec/Base/FixedBytes.lean` supplies exactly these ten additive public declarations.
+For Address let `w = 20` and use `Address.toNat`; for Bytes32 let `w = 32` and
+use `FixedBytes.toNat`. Enumerate `i = 0,…,w−1`, including all leading zeros, with
+`byte_i = UInt8.ofNat (x.toNat >>> (8 * (w - 1 - i)))`. The List-range/map/left-fold
+reference starts at `14695981039346656037 : UInt64` and steps by
+`(acc xor byte_i.toUInt64) * 1099511628211`, modulo `2^64` after each step.
+There is no EELS numeric hash counterpart: Q84 owns this nonprotocol support.
+All existing values are admitted, with no state/query effect, failure or extra premise.
+
+| Support authority | Public declaration and type | Model / law / status | Regression evidence |
+|---|---|---|---|
+| Q84; no EELS operation | `Address.tableHashReference : Address → UInt64` | Complete 20-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
+| Q84; D25 | `Address.tableHash : Address → UInt64` | Structural 20-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D21 | `Address.tableHash_eq_reference (x : Address) : Address.tableHash x = Address.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
+| Q84; canonical Std dictionary | `Address.instHashable : Hashable Address` with `hash := Address.tableHash` | Existing actual equality retained; **discharged** | Canonical identity, lawful classes and actual Std clients |
+| Q84 | `Address.hash_eq_reference (x : Address) : hash x = Address.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
+| Q84; no EELS operation | `Bytes32.tableHashReference : Bytes32 → UInt64` | Complete 32-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
+| Q84; D25 | `Bytes32.tableHash : Bytes32 → UInt64` | Structural 32-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D21 | `Bytes32.tableHash_eq_reference (x : Bytes32) : Bytes32.tableHash x = Bytes32.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
+| Q84; canonical Std dictionary | `Bytes32.instHashable : Hashable Bytes32` with `hash := Bytes32.tableHash` | Covers FixedBytes 32 and definitionally equal aliases; **discharged** | Alias identity, lawful classes and actual Std clients |
+| Q84 | `Bytes32.hash_eq_reference (x : Bytes32) : hash x = Bytes32.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
+
+Private digit/step/fold helpers and their ordinary structural proof add no public
+width, seed or general-Nat API. The existing Hash32 source/model is preserved.
+No new equality, order, pair-hash, coercion, default, dependency or protocol-hash
+interface is added. Nominal Address supplies no FixedBytes 20 instance; all other
+widths and variable-width support remain absent. Both guard suites preserve that
+boundary. Existing DecidableEq and generic LawfulBEq/EquivBEq/LawfulHashable supply
+compatibility with actual equality, without a distinct-hash assumption.
+
+The private public-Base-facade clients consume each ordinary execution/model and
+canonical-hash law, complete numeric/byte injectivity and reconstruction. Public
+Std clients cover member/insert/union/duplicate and unequal-key preservation plus
+complete lookup/overwrite equations for Address, Address × Bytes32 and
+Address × Hash32; evaluated guards vary each pair component independently.
+Independent integer-arithmetic vectors compare entire executable/reference/actual
+UInt64 results for zero, max, every bit/byte position, high words, leading zeros,
+indexed/reversed and deterministic random inputs, in interpreted and compiled modes.
+No EELS runtime oracle is needed for this support model.
+
+State §5 uses these canonical dictionaries for its unchanged prospective raw Std
+fields. The dictionary is part of the Std type. Same-name/model replacement after
+recompilation is intended to preserve public-law consumer proof source; old binary
+reuse is not promised. Concurrently different dictionaries require explicit identity,
+transport or rehashing; scope alone does not identify them. Clients never unfold
+private fixed-byte storage or Std buckets. Streaming permits Nat shifts, captured
+callbacks and UInt64 boxing to allocate. Actual distributions, construction,
+duplicates/resizing, ownership/retention, replacement and C1–C4 costs remain open;
+these functional results supply no benchmark, security or lifecycle theorem.
 
 ### Integer byte conversions
 
@@ -723,6 +775,12 @@ obligations are listed in §10.
   - `taylorExponential 1 0 1 = 1`, plus the blob base fee values from EIP-4844's table.
   - Byte sequences: empty input and zero width; equal/short/long target widths; no truncation of oversize inputs; left/right padding idempotence and per-byte prefix/suffix observations; in-bounds, partially and fully unavailable windows; exact padded-read length; zero-length and small reads at huge natural offsets (`2^256−1`, `2^4096`). The byte-sequence, fixed/domain and scoped Uint/U256/U64 integer endian/minimal suites are implemented; unspecified U8/U16/U32 byte cases remain open.
   - Adversarial: `exp` with a 256-bit exponent completes in bounded time.
+- **Observation-key support (Q84).** Complete 20/32-digit UInt64 literal guards,
+  public-facade ordinary model clients, canonical/alias/lawful synthesis and negative
+  other/variable-width guards; actual Std member/insert/overwrite/union/duplicate
+  observations for all three State read-key domains. Whole-value interpreted/native
+  vectors cover every bit/byte, high words, leading zeros, indexed and seeded inputs.
+  Q51 Hash32 models and existing regression expectations remain unchanged.
 - **Property / differential tests.**
   - Public universal model laws (§7), plus the external differential drivers for random and boundary inputs (0, 1, 2^255±1, 2^256−1).
   - A differential harness against `ethereum_types` at the pinned dependency version (bug-finding only; CONTRIBUTING §1).
@@ -875,6 +933,24 @@ def Hash32.tableHashReference : Hash32 → UInt64
 def Hash32.tableHash : Hash32 → UInt64
 -- tableHash_eq_reference and hash_eq_reference hold on all Hash32 values.
 instance : Hashable Hash32
+-- Q84: exactly two canonical observation-key dictionaries; full model is in §3.
+namespace Address
+  def tableHashReference (x : Address) : UInt64
+  def tableHash (x : Address) : UInt64
+  theorem tableHash_eq_reference (x : Address) : tableHash x = tableHashReference x
+  instance instHashable : Hashable Address          -- hash := tableHash
+  theorem hash_eq_reference (x : Address) : hash x = tableHashReference x
+end Address
+namespace Bytes32
+  def tableHashReference (x : Bytes32) : UInt64
+  def tableHash (x : Bytes32) : UInt64
+  theorem tableHash_eq_reference (x : Bytes32) : tableHash x = tableHashReference x
+  instance instHashable : Hashable Bytes32          -- hash := tableHash
+  theorem hash_eq_reference (x : Bytes32) : hash x = tableHashReference x
+end Bytes32
+-- Bytes32 = FixedBytes 32, including all definitionally equal aliases.
+-- Address is nominal; no FixedBytes 20/general-width support is provided.
+-- Existing product Hashable combines component hashes with mixHash.
 -- Acquired through `EthHash.HashConsts.query` at the caller-owned boundary (F20).
 -- Consumers take the record explicitly until their state or backend holds it.
 structure HashConsts where
@@ -914,6 +990,12 @@ structure Envelope where
 | `FixedBytes n`, `Address`, `Hash32` | `structure` over `BitVec (8n)` (D2) | `Vector UInt8 n` (byte list of length `n`), via `toBytes` | size fixed by type | immutable: snapshot-safe; used as `Std.TreeMap` keys | `compare` uses numeric model; conversions O(n) byte steps (bignum/allocation costs open) |
 | `Authorization`, `StateGasPerByte`, `HashConsts` | records | themselves | none (EthHash §3 owns the concrete Id byte-field guards and remaining oracle obligations) | immutable | O(1) field access; charge uses unbounded `Nat` multiplication |
 | `Envelope` | record of `Nat` | itself | none | immutable | — |
+
+Q84 support takes exactly 20/32 digit steps from complete bounded numeric observers.
+It builds no intermediate byte sequence; bignum shifts, callbacks and boxing may
+allocate. HashSet/HashMap expected costs additionally require suitable distributions
+and the caller's ownership discipline (ARCHITECTURE §5.0). No bound on aggregate
+construction, collisions, resizing, retention or cleanup is discharged here.
 
 **Representation note (D2).** `BitVec` provides numeric comparison; conversions
 still need cost measurements at the consumed widths. The representation must keep
@@ -960,6 +1042,12 @@ F19 separately governs EthState's ordered address/byte-slot keys; the BAL does n
 - `extractPadded b start len` has size `len`; byte `i < len` is the source byte at `start+i` when in bounds and zero otherwise. Its list equation is `(b.toList.drop start).take len ++ replicate (len - min len (b.size - start)) 0`. Zero-length reads are empty at every offset; wholly unavailable reads are zero lists. Appending explicit source zeros agrees with zero extension for windows contained in that extension. These laws are implemented in `Bytes.lean`; VM memory/gas effects are separate.
 
 **Fixed bytes** [C]:
+- Q84's exact ordinary all-input execution/reference and canonical-hash equations
+  are given in §5. The §3 finite models process all 20/32 digits, including leading
+  zeros. Actual equality supplies generic lawful hashing; all three observation-key
+  domains use public Std insert/member/union/overwrite laws without distinct hashes.
+  These are functional support laws, with no lifecycle, distribution or cost premise
+  discharged by hashing. Consumers retain the canonical dictionary in the raw Std type.
 - Q51 table support equals its all-32-digit reference for every Hash32. Existing actual equality supplies lawful hashing; public Std lookup laws need no distinct-hash assumption. This is nonprotocol support with no failure/effect channel, not a security or map-cost theorem.
 - `ofBytes? b = some x ↔ b.size = n ∧ x.toBytes = b`;
 - `(FixedBytes.ofNat v : FixedBytes n).toNat = v % 2^(8*n)` and `FixedBytes.ofNat x.toNat = x`. Its byte observer selects big-endian digits; `ofLeNat` selects their reversal, including empty output at width zero. These total model adapters do not replace checked source-constructor guards.
@@ -1019,6 +1107,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D18** (accepted): `U64` should be `UInt64`-backed (unboxed), which is performance-appropriate. A `BitVec`-backed `U64` would need a recorded legibility or proof-friendliness justification in `STFSpec/informal/DEBT.md` (the measurable limitation is boxing).
 - **D14** (accepted): checked-arithmetic failures must map to explicit block-level error constructors; reachable unrowed sites are CONTRACT O13 members, each with a named constructor.
 - **Q51:** the Hash32 nonprotocol table-support disposition and interface authorization are owned by DECISIONS §4; model/laws/evidence are in §3. No D5 status or routing change.
+- **Q84:** canonical Address/Bytes32 support follows §3/§5/§7; DECISIONS owns its authorization and ARCHITECTURE §11 its alternatives. Dictionary identity, D22/D23, F7 and actual C1–C4 costs retain their stated boundaries.
 - **D5** (provisional, broad scope): the keccak-derived constants are the `HashConsts` record here, not literals used directly (DECISIONS §3, F2).
 - Implicit Python exceptions as semantics: resolved by DECISIONS B14 (Q15); the sites were enumerated by the failure ledger (maintained outside this repository); see §10.
 - `fork_types.py` placement: resolved, DECISIONS Q16 (done).
@@ -1034,6 +1123,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`forks/amsterdam/vm/gas.py:931, 945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). For the final addition at `forks/amsterdam/vm/gas.py:944`, see [EthBlock §2.12](EthBlock.md#212-failure-mapping). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
 - **`taylor_exponential` feasibility (DISC-002).** Ordinary positive-denominator totality, the two zero-value laws and bounded source/interpreted/native controls are supplied in §3/§7. The private logical lexicographic measure is not a runtime budget. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. Practical large-input cost/stack/cycle feasibility and actual consumer exception/reachability obligations remain open; mathematical totality and 28 finite results do not discharge them.
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
+- **Observation-key support costs (Q84).** The §3 functional provider and private
+  public-Std/facade clients supply no actual State carrier/tracker/lifecycle code.
+  Real key distributions, construction/duplicates/resizing, allocation, linear
+  ownership/retention, representation replacement and C1–C4 remain open. A lawful
+  constant-hash stress case and ordered baseline belong to later C2 measurements;
+  no cost exception, security guarantee or F7 replay choice is adopted.
 - **Hash32 table-support costs.** The functional seam is discharged in §3; actual NodeDB construction, adversarial-distribution and allocation/throughput measurements remain open under ARCHITECTURE §5.0/C1–C4. Fixed-byte representation replacement evidence remains open. NodeDB authenticity, eager witness decoding, root agreement and oracle/resource policy are separate consumer obligations.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); the local `U64` checked-bounds allocation exception is recorded in [DEBT-U64-CHECKED](../DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds). Native storage and that local diagnostic do not discharge aggregate cost checks.
   EthBase maintainers own reassessment of the bounded little-endian construction

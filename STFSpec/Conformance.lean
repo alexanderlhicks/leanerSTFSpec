@@ -18,6 +18,8 @@ import STFSpec.Conformance.Base.BytesOrderGuards
 import STFSpec.Conformance.Base.FixedBytesCallerProofs
 import STFSpec.Conformance.Base.FixedBytesGuards
 import STFSpec.Conformance.Base.Hash32TableCallerProofs
+import STFSpec.Conformance.Base.ObservationHashCallerProofs
+import STFSpec.Conformance.Base.ObservationHashGuards
 import STFSpec.Conformance.Base.Hash32TableGuards
 import STFSpec.Conformance.Base.IntegerBytesCallerProofs
 import STFSpec.Conformance.Base.IntegerBytesGuards
