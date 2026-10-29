@@ -782,6 +782,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
@@ -805,6 +806,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
