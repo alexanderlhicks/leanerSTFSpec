@@ -246,6 +246,8 @@ import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
 import STFSpec.Conformance.Fork.AmsterdamVmGuards
 import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
+import STFSpec.Conformance.Block.TxParamsCallerProofs
+import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
 /-!
 # STFSpec.Conformance

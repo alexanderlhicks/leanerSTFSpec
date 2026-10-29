@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
@@ -341,7 +341,26 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
 
+### Supplied raw transaction parameters
+
+`STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
+fields are `Nat`, in the §5 order. This is the guided parameter abstraction, not
+an EELS transaction class. EthFork retains source-inventory ownership of the
+three Amsterdam constants and supplies their value ([EthFork §3](EthFork.md#3-eels-source-map)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `transactions.py:64,74,82` parameter context, values owned by EthFork | `STFSpec.Block.TxParams : Type`; `TxParams.mk : Nat → Nat → Nat → TxParams`; projections `blobCountLimit`, `accessListAddressFloorTokens`, `accessListStorageKeyFloorTokens : TxParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no state effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/TxParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and each single-field update preserving both other fields; zero/distinct/large guards. No extra public law or WF predicate. |
+
+The floor inputs count tokens per access-list occurrence, before multiplication
+by the separate VM floor-token gas price (`transactions.py:752–769`). Blob admission
+reads the current module global (`:653–659`). Future consumer/source correspondence
+must bind those original globals and dependency interpretation; constructing this
+record implements neither admission nor intrinsic costing.
+
 ## 4. Tests
+
+- **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
 typed transaction/receipt forms, already-RLP withdrawal identity and keys
@@ -612,6 +631,10 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+The supplied raw `TxParams` has ordinary structure reduction and reconstruction;
+§3 records private arbitrary-input projection/update clients. No additional public
+TxParams law package or global configuration predicate is supplied.
+
 Per operation (model-based, D25):
 
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
@@ -687,6 +710,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.

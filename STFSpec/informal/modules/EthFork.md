@@ -83,15 +83,30 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/fork.py::SAFETY_MARGIN` | 145 | `amsterdam.block.safetyMargin` | 2 097 152 |
 | `forks/amsterdam/fork.py::MAX_RLP_BLOCK_SIZE` | 146 | `amsterdam.block.maxRlpBlockSize` | 8 388 608 (derived) |
 | `forks/amsterdam/fork.py::apply_fork` | 179 | `applyFork` | identity; not on the guest path |
-| `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `amsterdam.tx.blobCountLimit` | 6 |
-| `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `amsterdam.tx.accessListAddressFloorTokens` | 80 (EIP-7981) |
-| `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `amsterdam.tx.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
+| `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `STFSpec.Fork.Amsterdam.txParams.blobCountLimit` | 6 |
+| `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `STFSpec.Fork.Amsterdam.txParams.accessListAddressFloorTokens` | 80 (EIP-7981) |
+| `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `STFSpec.Fork.Amsterdam.txParams.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
 | `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `amsterdam.system.depositContract` | mainnet `0x00000000219a…05fa` |
 | `forks/amsterdam/__init__.py::FORK_CRITERIA` | 43 | `forkCriteria` | `Unscheduled(order_index=3)`; unused by the guest (O-exclusion) |
 
+### Supplied Amsterdam transaction parameters
+
+| Pinned EELS value | Lean declaration and complete value | Domain / effects / failures / status | Validation |
+|---|---|---|---|
+| `transactions.py:64,74,82`: original Python `int` literal `6`, `Uint(80)`, `Uint(128)` | `STFSpec.Fork.Amsterdam.txParams : STFSpec.Block.TxParams`, named fields `blobCountLimit := 6`, `accessListAddressFloorTokens := 80`, `accessListStorageKeyFloorTokens := 128` | **supplied:** immutable complete value; no inputs, effects, errors or proof premises. `Uint` is the pinned arbitrary-width nonnegative integer interpreted as Nat (EthBase §2). | `Conformance/Fork/AmsterdamTxParamsGuards.lean` imports public facades, checks the exact type and complete record equality privately, and guards every actual projection plus the complete 6/80/128 triple. |
+
+The source constants are current module globals, with no consumer default capture:
+blob admission uses the first (`transactions.py:653–659`), and intrinsic costing
+adds the other two per access-list occurrence before multiplying by
+`GasCosts.TX_DATA_TOKEN_FLOOR` (`:752–769`). These are token counts, distinct from
+VM access-list gas prices. Full-field source/target comparison binds all three
+original values and exact int/Uint interpretations under normal and optimized
+Python. This bounded data value supplies no admission/cost implementation,
+full configuration coherence, guest conformance or resource conclusion.
+
 ### Supplied Amsterdam VM values
 
-The public `STFSpec.Fork` facade exports exactly the five existing declarations below
+The public `STFSpec.Fork` facade exports the five existing VM declarations below
 from `STFSpec/Fork/Amsterdam.lean`. Core retains source-inventory ownership of the
 record types and `STACK_DEPTH_LIMIT`; these rows record their Amsterdam instantiation.
 
@@ -131,7 +146,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - the transition set `for_bpo2toamsterdamattime15k/*` (15 areas), with a pre-fork parent header.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
-  - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F1–R-F3 values and the separate state amount observations remain to be implemented and checked.
+  - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1–R-F2 values and the separate state amount observations remain to be implemented and checked.
   - The byte strings in R-F2 (checksummed and lowercase decode alike).
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608`.
@@ -144,7 +159,9 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
 namespace STFSpec.Fork.Amsterdam                       -- public
 def blockParams  : Block.BlockParams              -- R-F1
 def systemAddrs  : Block.SystemAddrs              -- R-F2
-def txParams     : Block.TxParams                 -- R-F3
+def txParams : Block.TxParams :=
+  { blobCountLimit := 6, accessListAddressFloorTokens := 80,
+    accessListStorageKeyFloorTokens := 128 }       -- R-F3 supplied
 def gasCosts     : Vm.Core.GasCosts      where …     -- R-F4, the Amsterdam values (incl. BLS pricing fields)
 def stateGasCosts: Vm.Core.StateGasCosts where …
 def vmLimits : Vm.Core.VmLimits :=
@@ -171,7 +188,8 @@ theorem termination_ready : Vm.Runner.TerminationReady config             -- pub
 
 | Item | Representation | Model | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
-| Parameter records | plain structures of `Nat`/`Address`/`U64` | themselves | `WellFormed` (§7) | read-only constants, shared | O(1) access |
+| Raw TxParams | three unrestricted Nat fields | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
+| Remaining parameter records | plain structures of `Nat`/`Address`/`U64` | themselves | `WellFormed` (§7) | read-only constants, shared | O(1) access |
 | Precompile table | `EthVmCore`'s `PrecompileTable`: `lookup : Address → Option (PrecompileFn m)` (a total function by `match` on the address), `addresses : AddrSet`, with the fields `lookup_iff` and `meter_law` | finite partial map `A ⇀ PrecompileFn m` | `lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses`; `meter_law` as stated in `EthVmCore` | read-only | dispatch O(1) (a match on a small integer; [I] compiles to a decision tree); warming O(18 log n) per transaction |
 
 No mutable or snapshot-reachable state lives here.
@@ -199,7 +217,7 @@ No mutable or snapshot-reachable state lives here.
 
 **Argument.** Compare each literal to the pinned constant inventory. Arithmetic evaluation establishes positive denominators, range bounds and cost inequalities. Construct one VmConfig and use it both for FrameCtx/RunnerEnv and for pricing closures in PrecompileTable; the lookup/address law supplies warm-address and dispatch agreement. Construct BlockConfig from those same values. Generic block theorems then specialise by substituting this config and supplying their proofs. The termination premise concerns complete execution paths, including child forwarding and returns: evaluating JUMPDEST or stipend constants only supplies some inputs to that proof. Activation remains external because the pinned guest does not check it. A future fork whose opcode behaviour changes requires a behaviour refinement as well as new values.
 
-**Open obligations.** The complete R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
+**Open obligations.** The complete R-F3 transaction value, R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -222,6 +240,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
