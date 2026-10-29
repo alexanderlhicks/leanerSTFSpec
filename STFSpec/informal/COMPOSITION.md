@@ -952,7 +952,13 @@ signed subtraction/negation and cancellation, for every p>1 and arbitrary unread
 Consumers use observers and public laws. The eight exact natural moduli are separately
 supplied by EthField §3, without instances, aliases, square-root metadata or backend
 parameters. Composite residue arithmetic and literal modulus values supply no field
-structure or primality fact. Runtime Montgomery aliases/D6, inverse/power/sqrt/encoding,
+structure or primality fact. The separate natural-reference power leaf supplies
+`pow`, `toNat_pow` and direct natural-exponent notation for all canonical bases and
+Nat exponents, including composite/nonunit cases and zero-to-zero. Private facade
+clients derive range, zero/one, square/product/exponent-add/iterated-power laws using
+public observations alone, with arbitrary unread metadata. The positive-modulus
+private worker chooses no public powMod-zero completion. Runtime Montgomery
+aliases/D6, inverse/sqrt/encoding, public powMod,
 concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
 this reference seam supplies no production performance or guest-readiness result.
 
