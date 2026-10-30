@@ -116,7 +116,8 @@ Private Field reference-power clients and complete finite controls are imported 
 `STFSpec.Conformance`; their supplied semantics, source map and evidence boundaries
 are owned by [EthField §3/§4/§7](EthField.md#supplied-natural-reference-powers).
 The evidence-only interpreted/native adapter used for EthField §4's comparisons is
-out of tree (not committed); it adds no public runner/parser API or tier implementation. Public powMod, field hierarchy and guest conformance remain open.
+out of tree (not committed). Public powMod, field hierarchy and guest conformance
+remain open.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).
