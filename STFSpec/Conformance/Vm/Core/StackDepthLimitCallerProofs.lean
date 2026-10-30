@@ -7,9 +7,9 @@ import STFSpec.Vm.Core
 /-!
 # Public stack depth literal clients
 
-Library `EthConformance`. Private facade clients check the Nat signature,
-reflexive and reducible-transparency literal reduction and a reducible indexed bound
-and literal without provider internals.
+Library `EthConformance`. Private facade clients check the Nat signature, literal
+reduction, an indexed bound and, at reducible transparency, the literal and a numeric
+`Fin STACK_DEPTH_LIMIT` value, without provider internals.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5.
 -/
 
@@ -20,7 +20,8 @@ private def natSignature : Nat := STACK_DEPTH_LIMIT
 
 private theorem literal : STACK_DEPTH_LIMIT = 1024 := rfl
 
--- Fails if the limit stops being reducible (for example, if it becomes a `def`).
+-- The next two clients fail if the limit stops being reducible (for example, if it
+-- becomes a `def`).
 private theorem reducible_literal : STACK_DEPTH_LIMIT = 1024 := by with_reducible rfl
 
 private def literalIndex : Fin STACK_DEPTH_LIMIT := 5
