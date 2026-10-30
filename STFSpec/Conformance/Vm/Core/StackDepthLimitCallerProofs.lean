@@ -15,13 +15,13 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5.
 namespace STFSpec.Conformance.Vm.Core.StackDepthLimitCallerProofs
 open STFSpec.Vm.Core
 
-private def nat_signature : Nat := STACK_DEPTH_LIMIT
+private def natSignature : Nat := STACK_DEPTH_LIMIT
 
 private theorem literal : STACK_DEPTH_LIMIT = 1024 := rfl
 
-private def indexed_bound (i : Fin 1024) : Fin STACK_DEPTH_LIMIT := i
+private def indexedBound (i : Fin 1024) : Fin STACK_DEPTH_LIMIT := i
 
-private theorem indexed_value (i : Fin 1024) : (indexed_bound i).val = i.val := rfl
+private theorem indexed_value (i : Fin 1024) : (indexedBound i).val = i.val := rfl
 
 #guard STACK_DEPTH_LIMIT == 1024
 
