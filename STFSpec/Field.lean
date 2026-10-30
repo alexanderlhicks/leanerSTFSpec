@@ -2,12 +2,15 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Field.Reference
+
 /-!
 # STFSpec.Field
 
 Prime fields and extension towers for the precompiles.
 
 Library `EthField`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). No definitions yet: scaffolding only.
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The canonical natural reference carrier is
+supplied; arithmetic and towers remain open.
 Spec guidance: `STFSpec/informal/modules/EthField.md`.
 -/
