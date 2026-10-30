@@ -14,6 +14,7 @@ import STFSpec.Codec.RlpCanonical
 import STFSpec.Codec.Address
 import STFSpec.Codec.SszModel
 import STFSpec.Codec.SszWellTyped
+import STFSpec.Codec.SszCountRecoverable
 import STFSpec.Codec.SszWellFormed
 import STFSpec.Codec.SszRootable
 import STFSpec.Codec.SszRoot
@@ -42,7 +43,7 @@ RLP and SSZ codecs, SSZ `hash_tree_root`, and CREATE/CREATE2 address derivation.
 Library `EthCodec`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). RLP encoding and typed model leaf
 adapters, raw decoding, derived addresses and the raw SSZ vocabulary are implemented;
-structural SSZ sizing and schema well-formedness are supplied;
+structural SSZ sizing, schema well-formedness and local count recovery are supplied;
 local proof-bounded raw SSZ roots and forward serialization, plus generic schema
 metadata and forward wrappers, are supplied; typed SSZ decoding and actual schema
 instances remain unimplemented.

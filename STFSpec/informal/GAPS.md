@@ -271,13 +271,25 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
+- **Local count recovery (Q87) supplied; decoder/inverse still open.** Exactly
+  the predicate and complete ordinary iff, structural actual-child recursion,
+  45 raw tag pairs/eight semantic groups and ten symbolic public-law clients are
+  supplied (§3/§4/§7). The future inverse domain is resolved as Serializable plus
+  CountRecoverable; no decoder, inverse theorem, success-domain characterization,
+  completion or diagnostic/failure-order law is supplied. Adopted bounded source
+  evidence retains actual routes, historical source-root metadata and nominal
+  internal-observer limits (§3). Actual source/class/name/coercion/backing/cache/
+  stream/host and visited `uint32(scope)` premises, universal refinement,
+  schemas/adapters/Rootable/request support, O2/O12/O13, EEST/guest/security and
+  resource/C1–C4/readiness remain open.
+
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
   controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
   certification is supplied. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
-  inverse/count recovery, decoded-request support and O2 freedom remain separate.
+  inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
   The private output consumer is unchanged. No guest/resource/security/cost or
   readiness gate closes through this generic seam.
 
@@ -290,7 +302,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   coercion/backing/cache/endian/host premises, universal source refinement and
   source diagnostic/failure/resource order remain open. Actual certified schema
   instances and their consumers,
-  inverse/strict decoder scopes and fixed-zero count recovery, actual root/guest
+  inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
   obligations are unchanged.
@@ -418,8 +430,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
   false and consumers needing WF supply it separately. Count/uint256 backing,
   scope, cache and actual codec/root bridges remain open. Q80 supplies forward
-  offset support and serialization separately; zero-fixed-element list inverse
-  premises and total decoder completion remain open.
+  offset support and serialization separately; Q87 local count recovery
+  is supplied separately; its inverse theorem and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,
   acceptance cap, codec/root or larger readiness/resource/cost gate is supplied
@@ -429,8 +441,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic
   inverse argument in the pinned dependency: an offset bound `< 2^32` alone is
   insufficient, and byte-slice decrease is not universal around zero-byte children.
-  Q80 selects only the forward domain; an appropriate inverse domain and total
-  decoder completion remain open. No fix is supplied here. Future differential round-trip coverage must include every
+  Q80 selects the forward domain; Q87 supplies the local inverse premise. The
+  inverse theorem and total decoder completion remain open. Future differential round-trip coverage must include every
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.

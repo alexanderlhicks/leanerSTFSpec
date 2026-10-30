@@ -100,6 +100,8 @@ import STFSpec.Conformance.Codec.SszEncodeControls
 import STFSpec.Conformance.Codec.SszEncodeCallerProofs
 import STFSpec.Conformance.Codec.SszSchemaCallerProofs
 import STFSpec.Conformance.Codec.SszSchemaControls
+import STFSpec.Conformance.Codec.SszCountRecoverableControls
+import STFSpec.Conformance.Codec.SszCountRecoverableCallerProofs
 import STFSpec.Conformance.Codec.SszWellTypedControls
 import STFSpec.Conformance.Codec.SszWellTypedCallerProofs
 import STFSpec.Conformance.Codec.SszWellFormedControls
