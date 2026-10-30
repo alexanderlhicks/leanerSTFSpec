@@ -232,3 +232,9 @@ root = "DepositDataNativeTests"
 name = "requests-hash-native-tests"
 srcDir = "scripts"
 root = "RequestsHashNativeTests"
+
+# Complete logsBloom values, actual ordered queries and supplied failure effects.
+[[lean_exe]]
+name = "logs-bloom-native-tests"
+srcDir = "scripts"
+root = "LogsBloomNativeTests"
