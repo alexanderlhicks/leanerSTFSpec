@@ -53,9 +53,10 @@ def main():
     ]
     executions = 0
     base = Path(os.environ.get("BUDGET_POLICY_PARSER_EVIDENCE", str(ROOT / ".lake")))
-    # One fixed evidence directory, replaced on each run: the latest receipts are kept
-    # without accumulating a new directory per invocation.
-    evidence = base / "budget-parser"
+    # One fixed evidence directory per interpreter optimization level, replaced on each
+    # run: the latest receipts are kept without accumulating a directory per invocation,
+    # and concurrent normal and -O invocations do not share a directory.
+    evidence = base / f"budget-parser-O{sys.flags.optimize}"
     if evidence.exists():
         shutil.rmtree(evidence)
     evidence.mkdir(parents=True)

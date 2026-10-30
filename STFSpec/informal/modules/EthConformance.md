@@ -102,7 +102,7 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 The selectable budget vocabulary's private clients, bounded guards, input-only
 interpreted/native producer and independent mathematical parser controls are owned
-by EthVmRunner §3/§4/§7. They are imported through the Conformance facade; they make
+by EthVmRunner §3/§4/§5/§7. They are imported through the Conformance facade; they make
 no original-source budget execution or guest/EEST claim.
 
 The nominal execution entry-kind carrier's private public-facade constructor,
