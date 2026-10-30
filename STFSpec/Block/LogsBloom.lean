@@ -189,7 +189,8 @@ private theorem selector_eq (x : Hash32) (j : Nat) (hj : j + 1 < 32) :
   rw [show 2047 = 2 ^ 11 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod]
   exact selector_mod x j hj
 
-/-- The pinned EELS byte index `(2047 - b) / 8` (`bloom.py`) equals the big-endian
+/-- The pinned EELS byte index `(2047 - b) / 8`
+(`src/ethereum/forks/amsterdam/bloom.py:55–58`) equals the big-endian
 byte `255 - b / 8` used here; recorded as a checked correspondence, not a client. -/
 private theorem byte_index_from_top (b : Nat) (hb : b < 2048) :
     (2047 - b) / 8 = 255 - b / 8 := by omega
