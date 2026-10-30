@@ -331,7 +331,11 @@ native modes; inputs contain no expected results. Kernel proof, finite source ex
 and compiled observations remain distinct. Compiler/loader/core-runtime and exact
 bignum assumptions remain explicit; original import raises the recursion limit.
 These controls establish no universal Python host completion/resource result, cost,
-precompile, guest or EEST conformance claim.
+precompile, guest or EEST conformance claim. The 16,232-input comparison, its frozen
+catalogue, the original streams and the interpreted/native adapter are out of tree: no
+harness or data for them is committed, so they are recorded observations that cannot
+be reproduced from this repository. The in-tree checks are the 4,863 finite controls
+and the public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,

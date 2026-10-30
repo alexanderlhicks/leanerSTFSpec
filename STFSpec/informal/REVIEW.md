@@ -208,7 +208,8 @@ authenticated original normal/optimized streams on the independently frozen cata
 The separate reference-power leaf also supplies exactly pow/toNat_pow/direct HPow,
 with an ordinary all-Nat-exponent proof, generic public-law clients, 4,863 complete
 finite controls and full 48,696-row interpreted/native comparisons per mode against
-both original streams and fresh original replays (EthField §4). This admits every
+both original streams and fresh original replays (EthField §4; those comparisons are
+out of tree and not reproducible from this repository). This admits every
 p>1 and arbitrary unread metadata, without a public powMod-zero choice.
 Remaining field operations, executable Montgomery/D6,
 concrete aliases, byte/field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
