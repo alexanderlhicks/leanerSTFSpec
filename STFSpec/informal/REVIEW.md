@@ -214,9 +214,11 @@ p>1 and arbitrary unread metadata, without a public powMod-zero choice.
 The separate canonical-sign leaf supplies exactly sgn0/sgn0_eq, admitting every p>1
 and arbitrary unread metadata. Public-law clients derive Boolean recognition, zero/one,
 construction parity and metadata irrelevance without equating differently parameterized
-carriers. Its 933 literal controls and complete 2,298-row interpreted/native observations
-per mode agree with both original normal/optimized streams and unchanged-producer
-replays; EthField §3/§4/§7 owns the exact scope and evidence limits.
+carriers. Its 945 finite controls are checked in tree; its complete 2,298-row
+interpreted/native observations per mode, which agree with both original
+normal/optimized streams and unchanged-producer replays, are out of tree and not
+reproducible from this repository. EthField §3/§4/§7 owns the exact scope and evidence
+limits.
 Remaining field operations, executable Montgomery/D6,
 concrete aliases, byte/field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
 This does not change the dated §6 readiness assessment.

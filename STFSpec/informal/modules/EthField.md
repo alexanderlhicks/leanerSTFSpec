@@ -369,11 +369,13 @@ harness or data for them is committed, so they are recorded observations that ca
 be reproduced from this repository. The in-tree checks are the 4,863 finite controls
 and the public-law clients.
 
-The sign slice adds private `ReferenceSignGuards.lean`: 311 complete literal
+The sign slice adds private `ReferenceSignGuards.lean`: 315 complete
 raw/canonical/Bool rows, each under `none`, `some 0` and `some (2^4096+17)` metadata
-(933 controls). They exhaust canonical residues for p=2,3,4,5,6,8,9,15,17 and cover
+(945 controls). They exhaust canonical residues for p=2,3,4,5,6,8,9,15,17 and cover
 zero, one, p−1, raw wraps, the p3/raw4 parity trap and adjacent bit boundaries through
-2048 bits. Expected residues and Boolean outcomes are complete literal controls.
+2048 bits; four further rows check p−1 and p−2 in the BN254 and BLS12-381 base fields
+through the public modulus constants. All Boolean outcomes are literal, and every other
+expected residue is literal.
 
 On 2026-10-30, fresh facade-importing interpreted and native target executions each
 observe every one of the independently frozen 766 natural source inputs under all
@@ -394,7 +396,11 @@ objects, archive, link and execution receipts bind the native observations to th
 fresh source closure. Source host/runtime/core-primitive and compiler/loader
 assumptions remain explicit: finite successful executions and the ordinary Lean
 law establish no universal Python host/resource completion, C1–C4 cost, actual
-curve/precompile composition, guest or EEST result.
+curve/precompile composition, guest or EEST result. These sign comparisons, their
+frozen inputs, the original streams and the interpreted/native adapter are out of tree:
+nothing for them is committed, so they are recorded observations that cannot be
+reproduced from this repository. The in-tree checks are the 945 controls and the
+public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
@@ -693,9 +699,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 9. Open decisions
 
 Supplying the eight natural moduli, reference-only binary powers and canonical sign
-makes no D6 source choice
-and requires no D18
-performance exception; executable representations and their costs remain open.
+makes no D6 source choice and requires no D18 performance exception; executable
+representations and their costs remain open.
 
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
@@ -727,8 +732,8 @@ performance exception; executable representations and their costs remain open.
   concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
   unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
-  measurement, whole-module,
-  precompile, signature, guest or EEST readiness claim follows.
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

@@ -175,8 +175,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
   unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
-  measurement, whole-module,
-  precompile, signature, guest or EEST readiness claim follows.
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

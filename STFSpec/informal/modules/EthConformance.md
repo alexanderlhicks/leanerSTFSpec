@@ -1,6 +1,6 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `44cfcb54…be1a`), the pinned source, or by running pinned EELS on fixture inputs; **[I]** marks an inference.
