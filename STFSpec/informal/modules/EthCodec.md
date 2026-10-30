@@ -1517,7 +1517,9 @@ semantics; accepted values use the complete typed recursive observer. Instrument
 is not a formal semantics or unrestricted Python theorem.
 The source/venv descendant physical manifests and actual Git bytes were authenticated
 before/after; source-root directory stat metadata was captured only at final audit,
-so historical root-directory metadata equality was not measured.
+so historical root-directory metadata equality was not measured. These decoder inputs,
+encoder witnesses and original streams are out of tree: nothing in this repository
+reproduces them or the counts above.
 
 E001–E012 contain four fixed-zero-child groups, each with distinct counts 0/1/2
 and the same empty wire. Direct zero-byte vectors/products decode empty bytes in
@@ -3155,7 +3157,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q87** owns the local inverse-domain disposition; §5/§7 owns exactly the
   supplied predicate/iff and the prospective inverse wording. The decoder, inverse
   proof, total completion and source/guest bridges remain open in §10.
-
 
 - **Q81** owns the generic forward metadata/support disposition; §5/§7 owns its
   supplied class, two wrappers and two ordinary equations. Actual instances,
