@@ -147,6 +147,8 @@ import STFSpec.Conformance.State.TxObsGuards
 import STFSpec.Conformance.State.BlockStateCallerProofs
 import STFSpec.Conformance.State.BlockInitializationCallerProofs
 import STFSpec.Conformance.State.BlockInitializationGuards
+import STFSpec.Conformance.State.ReadSetsCallerProofs
+import STFSpec.Conformance.State.ReadSetsGuards
 import STFSpec.Conformance.State.BlockStateGuards
 
 import STFSpec.Conformance.State.WriteOrderCallerProofs

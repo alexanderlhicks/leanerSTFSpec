@@ -13,6 +13,7 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.BlockInitialization
+import STFSpec.State.ReadSets
 import STFSpec.State.ModelsLookups
 
 /-!
@@ -27,6 +28,7 @@ Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.t
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values and the nominal
 StateError, raw TxObs and raw BlockState carriers, block initialization with its F20 law,
+logical account/storage read views and membership laws,
 bounded structural preservation and
 supplied-record success-only `ModelsLookups`.
 Lookup providers, model mutation, combined transaction state, tracker effects and lifecycle laws
