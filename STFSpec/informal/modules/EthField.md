@@ -210,7 +210,6 @@ synthetic-class observations in normal and optimized CPython runs. Checked resul
 arbitrary metadata remain mathematical/Lean-only controls; zero original checked-helper
 executions are claimed. The target execution mode is interpreted, not a native cost run.
 
-
 The arithmetic slice adds `ReferenceArithmeticGuards.lean`: all 649 ordered canonical
 pairs for p=2,3,4,5,9,15,17 under three metadata choices (1,947 complete controls),
 plus all 49 ordered pairs of `0,1,p−1,p,p+1,2p+3,2^4096+17` for each modulus and metadata
@@ -236,7 +235,6 @@ EELS source/lock, loaded methods, interpreter and unchanged source/venv manifest
 independently authenticated; an owned-copy original replay repeats both whole streams.
 These are finite reference-arithmetic correctness observations under the stated typed and
 host-runtime premises, without a universal source theorem, cost or EEST/guest claim.
-
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
