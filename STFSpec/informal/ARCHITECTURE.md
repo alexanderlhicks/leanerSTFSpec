@@ -917,6 +917,21 @@ change follows. Replacement re-proves the unchanged complete equation. Actual
 source class/reconstruction/host/failure/resource premises, decoder support,
 O2/O12/O13, security and cost/readiness gates remain separate.
 
+**Raw extraction metadata options (Q85).** DECISIONS Q85 owns the selection;
+EthState §3/§7 owns the exact raw operation and seven whole-field laws. A copies
+all four effects and transports the existing ordered observers, mapping every
+supplied slot-index value while preserving the outer domain. B-preserve would
+filter each list against raw write presence, retaining the supplied outer domain;
+tombstones and zero writes would count as present. B-drop-extra additionally
+removes metadata at absent write addresses, while B-fill-domain emits exactly
+the storage-write outer domain, defaulting missing metadata to some []. These
+alternatives differ on stale/foreign occurrences and missing/empty/extra entries;
+Q58's structural premises do not select among them; Q85 owns the choice. A does not
+repair malformed indexes or preserve discarded next/forward fields. Reachable
+first-write history, full optional-map WF and F7 clear failure/observation order
+remain separate. Equal mathematical application effects imply no witness replay
+agreement, source mutable alias identity or resource/readiness result.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
