@@ -209,7 +209,7 @@ D3/B8/F8 concern selected Amsterdam parameters. This interpretation needs no new
 configuration field, public version argument or decision. There is no explicit KZG
 exemption, and none is claimed. Future PointEvaluation convenience names must reuse or
 alias the canonical Kzg value. The pinned source repeats the same byte in
-`point_evaluation.py:29` and in `src/ethereum/forks/amsterdam/transactions.py:69`, which
+`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:69`, which
 EthBlock §3 plans as `versionedHashVersionKzg`; both are source duplicates of this one
 value, not competing owners. EthBlock cannot import EthPrecompiles
 (`scripts/boundaries.toml`), so a shared lower owner for the tag remains open.
@@ -349,19 +349,20 @@ integration, security and the rest of this module remain open.
 normal/optimized observations agree on all 917 results, retaining the raw/typed
 constructor distinction and complete traces separately. Expected host hashlib and source
 may share OpenSSL; this is not an independent SHA algorithm. Nine independently chosen
-ordering/padding-boundary inputs add lengths 55/56/63/64/65/119/120/127/128.
-All 926 complete inputs/results are emitted by both interpreted and compiled execution
-of `scripts/KzgVersionedHashNativeTests.lean`. The strict comparator checks framing,
-types (integer booleans rejected), exact record sets/IDs/order, input bytes and all 32
-output bytes against the catalog. Optional paired-source mode additionally binds the
-exact adopted full observation-row hash and supplied sidecar bytes; runtime/environment
-authentication is a separate source gate. The adopted source observations and sidecar are
-out of tree, so paired-source mode cannot be exercised from this repository; the in-tree
-checks compare interpreted and compiled output with the catalog. Generated guards supply 41 literal anchors,
-including searched zero-suffix cases; generator freshness and the parser's actual
-CLI/library malformed-record tests run in normal and optimized Python. The suite covers
-empty/non48/48 inputs, every input byte, order, SHA block boundaries and leading/trailing
-suffix zeros. The all-input ordinary theorem remains the primary specification.
+ordering/padding-boundary inputs add lengths 55/56/63/64/65/119/120/127/128. All 926
+complete inputs/results are emitted by both interpreted and compiled execution of
+`scripts/KzgVersionedHashNativeTests.lean`. The strict comparator checks framing, types
+(integer booleans rejected), exact record sets/IDs/order, input bytes and all 32 output
+bytes against the catalog. Optional paired-source mode additionally binds the exact
+adopted full observation-row hash and supplied sidecar bytes; runtime/environment
+authentication is a separate source gate. The adopted source observations and sidecar
+are out of tree, so paired-source mode cannot be exercised from this repository; the
+in-tree checks compare interpreted and compiled output with the catalog. Generated
+guards supply 41 literal anchors, including searched zero-suffix cases; generator
+freshness and the parser's actual CLI/library malformed-record tests run in normal and
+optimized Python. The suite covers empty/non48/48 inputs, every input byte, order, SHA
+block boundaries and leading/trailing suffix zeros. The all-input ordinary theorem
+remains the primary specification.
 
 ## 5. Interface
 
@@ -573,6 +574,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
   described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
   comparisons do not close precompile, host, security, resource or whole-guest gates.
+
+- **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
+  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:69`,
+  and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
+  dependency. A shared lower owner for the tag is not yet chosen.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
