@@ -1,0 +1,150 @@
+{
+  "format": 1,
+  "scope": "concrete output serialization only",
+  "rows": [
+    {
+      "name": "zero_false",
+      "root_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "successful_validation": false,
+      "chain_id_hex": "0000000000000000",
+      "schema_id_hex": "0000",
+      "expected_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "zero_true",
+      "root_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "successful_validation": true,
+      "chain_id_hex": "0000000000000000",
+      "schema_id_hex": "0000",
+      "expected_hex": "00000000000000000000000000000000000000000000000000000000000000000100000000000000000000"
+    },
+    {
+      "name": "base_false",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00efcdab89674523013412"
+    },
+    {
+      "name": "bool_only",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": true,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f01efcdab89674523013412"
+    },
+    {
+      "name": "root_only",
+      "root_hex": "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a0908070605040302010000efcdab89674523013412"
+    },
+    {
+      "name": "chain_only",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdee",
+      "schema_id_hex": "1234",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00eecdab89674523013412"
+    },
+    {
+      "name": "schema_only",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1235",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00efcdab89674523013512"
+    },
+    {
+      "name": "schema_zero_nonzero_fields",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": true,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "0000",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f01efcdab89674523010000"
+    },
+    {
+      "name": "schema_amsterdam",
+      "root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1501",
+      "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00efcdab89674523010115"
+    },
+    {
+      "name": "maximum",
+      "root_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "successful_validation": true,
+      "chain_id_hex": "ffffffffffffffff",
+      "schema_id_hex": "ffff",
+      "expected_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01ffffffffffffffffffff"
+    },
+    {
+      "name": "known_eels_literal",
+      "root_hex": "0d663a7de3d811fbc797f605a65d2745df3a97d9f1994dfb685ff66d2917009f",
+      "successful_validation": true,
+      "chain_id_hex": "0000000000000001",
+      "schema_id_hex": "1501",
+      "expected_hex": "0d663a7de3d811fbc797f605a65d2745df3a97d9f1994dfb685ff66d2917009f0101000000000000000115"
+    },
+    {
+      "name": "root_20_3f",
+      "root_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f00efcdab89674523013412"
+    },
+    {
+      "name": "root_40_5f",
+      "root_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f00efcdab89674523013412"
+    },
+    {
+      "name": "root_60_7f",
+      "root_hex": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f00efcdab89674523013412"
+    },
+    {
+      "name": "root_80_9f",
+      "root_hex": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f00efcdab89674523013412"
+    },
+    {
+      "name": "root_a0_bf",
+      "root_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf00efcdab89674523013412"
+    },
+    {
+      "name": "root_c0_df",
+      "root_hex": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf00efcdab89674523013412"
+    },
+    {
+      "name": "root_e0_ff",
+      "root_hex": "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+      "successful_validation": false,
+      "chain_id_hex": "0123456789abcdef",
+      "schema_id_hex": "1234",
+      "expected_hex": "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff00efcdab89674523013412"
+    }
+  ]
+}

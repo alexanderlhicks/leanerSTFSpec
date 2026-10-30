@@ -347,6 +347,23 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/transactions.py:804–814`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
 
+### Supplied raw transaction parameters
+
+`STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
+fields are `Nat`, in the §5 order. This is the guided parameter abstraction, not
+an EELS transaction class. EthFork retains source-inventory ownership of the
+three Amsterdam constants and supplies their value ([EthFork §3](EthFork.md#3-eels-source-map)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `transactions.py:64,74,82` parameter context, values owned by EthFork | `STFSpec.Block.TxParams : Type`; `TxParams.mk : Nat → Nat → Nat → TxParams`; projections `blobCountLimit`, `accessListAddressFloorTokens`, `accessListStorageKeyFloorTokens : TxParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no state effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/TxParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and each single-field update preserving both other fields; zero/distinct/large guards. No extra public law or WF predicate. |
+
+The floor inputs count tokens per access-list occurrence, before multiplication
+by the separate VM floor-token gas price (`transactions.py:752–769`). Blob admission
+reads the current module global (`:653–659`). Future consumer/source correspondence
+must bind those original globals and dependency interpretation; constructing this
+record implements neither admission nor intrinsic costing.
+
 
 ### Implemented fixed deposit extraction
 
@@ -389,8 +406,9 @@ Python hashlib share OpenSSL; this supplies no independent cryptographic
 implementation claim. Both exact original-source observation projections are
 checked separately from their packet/interpreter/native-library authentication.
 Cases retain empty and repeated requests, reverse order, every singleton prefix,
-unknown prefixes, split-boundary contrasts, inner lengths 55–65 and outer count
-256. These are finite observations, not a universal host/source equivalence proof.
+unknown prefixes, split-boundary contrasts, inner lengths at the 55/56 and 64 SHA-256
+padding boundaries and outer count 256. These are finite observations, not a universal
+host/source equivalence proof.
 
 The private packed builder reserves `32 * requests.length` and emits all 32 bytes
 of each inner digest through public byte folds. Its ordinary equality identifies
@@ -441,6 +459,8 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
+
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
 typed transaction/receipt forms, already-RLP withdrawal identity and keys
 `80/01/7f/8180/820100` for ordinals `0/1/127/128/256`. Prove validity/nonempty
@@ -481,7 +501,7 @@ These are future consumer checks; the guidance clarification claims no new confo
     forwarding layers. Interpreted and native controls are required alongside the
     complete 20-case source catalog, without inferring universal coupling from tests.
   - `HashConsts.query` at `Id`: `emptyOmmerHash = 1dcc4de8…9347`.
-  - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner SHA padding lengths 55–65 and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
+  - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner lengths at the 55/56 and 64 SHA-256 padding boundaries and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
   - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
   - `validateBlockAccessListGasLimit` at the limit and one past it.
@@ -752,12 +772,16 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+The supplied raw `TxParams` has ordinary structure reduction and reconstruction;
+§3 records private arbitrary-input projection/update clients. No additional public
+TxParams law package or global configuration predicate is supplied.
+
 Per operation (model-based, D25):
 
 - **Calldata tokens (supplied).** `countTokensInData_eq` gives the complete zeros + 4·(size − zeros) equation on every finite `ByteArray`. The private ordinary packed/reference equality relates a linear packed weighted fold to a structural list reference; the reference formula identifies the exact source expression. Filter length ≤ input length discharges the source `Uint` subtraction, and `Nat` preserves its unbounded result. Private public-law clients establish empty = 0, concatenation additivity and size ≤ tokens ≤ 4·size. This helper's zero-sensitive token count does not change the separate all-bytes calldata-floor rule in R-IG. [R][T]
 
-
 - **Deposit extraction (supplied).** `extractDepositData_eq` preserves the first reached constructor among the eleven source guards and every successful output byte, without a domain premise. Full unbounded BE reads reject high-bit corruptions. All offsets are admitted before size checks, so fixed size/data windows equal the source's reached dynamic offsets. `size_extractDepositData` derives exact 192-byte output from success and the admitted 576-byte length using public slice/append/export laws. No ignored-padding or field-content check is added. Source intermediate slice allocation/failure and O12 host resources remain separate. [R][T]
+
 - **Execution-request commitment (supplied).** `computeRequestsHash_eq` identifies the complete ordered SHA-of-SHA result through the existing pure SHA provider and exact `Hash32.ofBytes32` bridge. A private ordinary packed/List equality proves that reservation and per-digest byte emission preserve the entire outer preimage. Empty requests and duplicates are retained; no request typing, order normalization or content validation occurs. Private facade clients derive complete output-byte, empty/singleton/pair and exact model-preimage-size consequences using public contracts only. Source/FIPS agreement retains each inner and outer Q46 bound and host/API/native premises; source streaming storage and crypto binding are separate. [R][T]
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
@@ -849,6 +873,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
