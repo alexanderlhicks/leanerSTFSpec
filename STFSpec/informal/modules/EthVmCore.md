@@ -723,8 +723,9 @@ commutation and actual involution, without unfolding Stack or adding public laws
 `StackSwapGuards.lean` supplies 29 concise complete-list controls through public push:
 whole high/max/asymmetric words, duplicates, empty/singleton, equal-valid/invalid,
 each/both invalid and independent 2^4096 indices, complete capacity-1024 exchanges,
-held input models and swap-back observations. A size-1025 failed-construction control
-fails explicitly. Operand capacity is separate from the call-depth constant.
+held input models and swap-back observations. Two size-1025 controls check that the
+1025th public push fails with exactly `stackOverflow` and that a failed construction
+fails the control rather than being skipped. Operand capacity is separate from the call-depth constant.
 
 There is no original arbitrary-two-index helper. Mathematical all-Nat controls are
 model tests. Source adaptation uses `swap? s 0 k` for SWAP1–16 (1≤k≤16),
