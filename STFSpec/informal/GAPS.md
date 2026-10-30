@@ -765,6 +765,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Implemented bounded scope:** only `countTokensInData` and its complete all-finite source-formula law are supplied (§3/§5/§7). The 266-case complete native/source comparisons supply finite coupling only; source/runtime authentication, host-resource guarantees, composed intrinsic gas/floor and the remaining block pipeline stay outside this slice. No readiness or resource gate closes.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.

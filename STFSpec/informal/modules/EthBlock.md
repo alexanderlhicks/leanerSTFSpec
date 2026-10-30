@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
@@ -228,7 +228,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::decode_transaction` | 562 | `decodeTransaction` | R-TX-DEC |
 | `forks/amsterdam/transactions.py::validate_transaction` | 592 | `validateTransaction` | order R-VT |
 | `forks/amsterdam/transactions.py::calculate_intrinsic_cost` | 692 | `calculateIntrinsicCost` | R-IG |
-| `forks/amsterdam/transactions.py::count_tokens_in_data` | 804 | `countTokensInData` |  |
+| `forks/amsterdam/transactions.py::count_tokens_in_data` | 804–814 | `countTokensInData : ByteArray → Nat` | Supplied on every finite input; whole result law and validation below |
 | `forks/amsterdam/transactions.py::calculate_effective_gas_price` | 816 | `calculateEffectiveGasPrice` | legacy/2930 below base fee ⇒ `BlockError`, not `TxError` |
 | `forks/amsterdam/transactions.py::calculate_max_gas_fee` | 845 | `calculateMaxGasFee` |  |
 | `forks/amsterdam/transactions.py::check_nonce` | 855 | `checkNonce` |  |
@@ -341,6 +341,12 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
 
+### Implemented calldata token count
+
+| EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/transactions.py:804–814`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
+
 ## 4. Tests
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
@@ -401,6 +407,8 @@ These are future consumer checks; the guidance clarification claims no new confo
     check or new rejection is introduced.
   - Run the wrapper twice; each run acquires independently. Ordinary later queries of a constant preimage remain ordinary queries, not record acquisitions.
   - Raise a provider fault or internal/fuel error; it stays in the inner or outer checked channel, respectively.
+
+- **Calldata token count:** empty, zero/nonzero and mixed inputs, every UInt8 singleton, all-byte and all-nonzero sequences, 10 KiB zero/nonzero buffers, alternating and asymmetric endpoint cases. Compare every actual input byte and the complete result with the independent 266-case catalog and, separately, the original pinned function in isolated normal/optimized locked Python. Strict-reader negative controls remain effective under `-O`.
 
 ## 5. Interface
 
@@ -595,6 +603,13 @@ is implied. Equality to a separately sequenced preparation reference needs
 
 Execution threads `BlockState`, transaction observations and `BalBuilder` explicitly. Pure admission/codec checks return `Except BlockError`; functions that hash return in `m`; functions enclosing a runner call run in `BlockM m`, retaining the outer `InternalError` through system calls, body execution and stateful drivers. `runVmChecked` returns `m (CheckedResult …)` (F14); its `VmFault` is mapped through `BlockError.ofVmFault` into the inner channel, and an internal error passes through unchanged (see COMPOSITION.md). No global `IO` or mutable reference is used. Decoding (`decodeTransaction`, `decodeReceipt`, `extractDepositData`) stays pure.
 
+**Supplied calldata-token law.** `countTokensInData_eq data` states the whole result
+`zeros + 4 * (data.size - zeros)`, where `zeros` is the length of
+`data.data.toList.filter (fun byte => byte == 0)`. It has no domain premise.
+The implementation uses the public Base packed fold; references, zero counting
+and derived clients are private. No transaction/configuration/error carrier is
+introduced by this helper.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
@@ -613,6 +628,8 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 ## 7. Contract and laws
 
 Per operation (model-based, D25):
+
+- **Calldata tokens (supplied).** `countTokensInData_eq` gives the complete zeros + 4·(size − zeros) equation on every finite `ByteArray`. The private ordinary packed/reference equality relates a linear packed weighted fold to a structural list reference; the reference formula identifies the exact source expression. Filter length ≤ input length discharges the source `Uint` subtraction, and `Nat` preserves its unbounded result. Private public-law clients establish empty = 0, concatenation additivity and size ≤ tokens ≤ 4·size. This helper's zero-sensitive token count does not change the separate all-bytes calldata-floor rule in R-IG. [R][T]
 
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
@@ -684,6 +701,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
 
 ## 10. Gaps
+
+- **Implemented bounded scope:** only `countTokensInData` and its complete all-finite source-formula law are supplied (§3/§5/§7). The 266-case complete native/source comparisons supply finite coupling only; source/runtime authentication, host-resource guarantees, composed intrinsic gas/floor and the remaining block pipeline stay outside this slice. No readiness or resource gate closes.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
