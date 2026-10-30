@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-27.*
+*Status: conditional proof plan. Date: 2026-10-30.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -957,7 +957,10 @@ structure or primality fact. The separate natural-reference power leaf supplies
 Nat exponents, including composite/nonunit cases and zero-to-zero. Private facade
 clients derive range, zero/one, square/product/exponent-add/iterated-power laws using
 public observations alone, with arbitrary unread metadata. The positive-modulus
-private worker chooses no public powMod-zero completion. Runtime Montgomery
+private worker chooses no public powMod-zero completion. The separate canonical-sign
+leaf supplies sgn0/sgn0_eq; private facade clients derive true/false, zero/one,
+reducing-constructor parity and metadata irrelevance through equal natural observations,
+for every p>1. This reference premise supplies no Fp2, sqrt or negation-sign law. Runtime Montgomery
 aliases/D6, inverse/sqrt/encoding, public powMod,
 concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
 this reference seam supplies no production performance or guest-readiness result.
