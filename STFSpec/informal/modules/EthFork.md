@@ -1,6 +1,6 @@
 # `EthFork`: the Amsterdam composition
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8.*
 
 Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or evaluated) at the pin; **[I]** means an inference.
@@ -18,7 +18,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 
 - **R-F1 (block parameters)** (`fork.py:114–146`):
   - `baseFeeMaxChangeDenominator = 8`, `elasticityMultiplier = 2`;
-  - `maxBlockSize = 10 485 760`, `safetyMargin = 2 097 152`, `maxRlpBlockSize = maxBlockSize − safetyMargin = 8 388 608` (EIP-7934). The derived value must be defined by the same subtraction, not as a literal.
+  - Private source operands `MAX_BLOCK_SIZE = 10 485 760` and `SAFETY_MARGIN = 2 097 152` define `blockParams.maxRlpBlockSize = MAX_BLOCK_SIZE − SAFETY_MARGIN = 8 388 608` (EIP-7934). Use the actual operands' subtraction. The three public fields are exactly EthBlock §5; the operands are private Fork definitions, not extra fields or public accessors.
 - **R-F2 (system addresses and system-call budget)** (`fork.py:117–141`; `requests.py:49`). The addresses must be byte-exact:
   - `systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe`;
   - `beaconRoots = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02` (EIP-4788);
@@ -68,8 +68,8 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/fork.py::BASE_FEE_MAX_CHANGE_DENOMINATOR` | 114 | `amsterdam.block.baseFeeMaxChangeDenominator` | 8 |
-| `forks/amsterdam/fork.py::ELASTICITY_MULTIPLIER` | 115 | `amsterdam.block.elasticityMultiplier` | 2 |
+| `forks/amsterdam/fork.py::BASE_FEE_MAX_CHANGE_DENOMINATOR` | 114 | `STFSpec.Fork.Amsterdam.blockParams.baseFeeMaxChangeDenominator` | 8; supplied public projection |
+| `forks/amsterdam/fork.py::ELASTICITY_MULTIPLIER` | 115 | `STFSpec.Fork.Amsterdam.blockParams.elasticityMultiplier` | 2; supplied public projection |
 | `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `amsterdam.system.systemAddress` | `0xff…fe` |
 | `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `amsterdam.system.beaconRoots` | EIP-4788 |
 | `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `amsterdam.system.txGas` | 30 000 000 execution gas |
@@ -79,15 +79,87 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/fork.py::BUILDER_DEPOSIT_CONTRACT_ADDRESS` | 135 | `amsterdam.system.builderDeposits` | EIP-8282 |
 | `forks/amsterdam/fork.py::BUILDER_EXIT_CONTRACT_ADDRESS` | 138 | `amsterdam.system.builderExits` | EIP-8282 |
 | `forks/amsterdam/fork.py::HISTORY_STORAGE_ADDRESS` | 141 | `amsterdam.system.historyStorage` | EIP-2935 |
-| `forks/amsterdam/fork.py::MAX_BLOCK_SIZE` | 144 | `amsterdam.block.maxBlockSize` | 10 485 760 |
-| `forks/amsterdam/fork.py::SAFETY_MARGIN` | 145 | `amsterdam.block.safetyMargin` | 2 097 152 |
-| `forks/amsterdam/fork.py::MAX_RLP_BLOCK_SIZE` | 146 | `amsterdam.block.maxRlpBlockSize` | 8 388 608 (derived) |
+| `forks/amsterdam/fork.py::MAX_BLOCK_SIZE` | 144 | private source-level `MAX_BLOCK_SIZE` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 10 485 760; actual subtraction operand, no public API |
+| `forks/amsterdam/fork.py::SAFETY_MARGIN` | 145 | private source-level `SAFETY_MARGIN` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 2 097 152; actual subtraction operand, no public API |
+| `forks/amsterdam/fork.py::MAX_RLP_BLOCK_SIZE` | 146 | `STFSpec.Fork.Amsterdam.blockParams.maxRlpBlockSize` | 8 388 608; actual private operand subtraction |
 | `forks/amsterdam/fork.py::apply_fork` | 179 | `applyFork` | identity; not on the guest path |
-| `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `amsterdam.tx.blobCountLimit` | 6 |
-| `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `amsterdam.tx.accessListAddressFloorTokens` | 80 (EIP-7981) |
-| `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `amsterdam.tx.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
+| `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `STFSpec.Fork.Amsterdam.txParams.blobCountLimit` | 6 |
+| `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `STFSpec.Fork.Amsterdam.txParams.accessListAddressFloorTokens` | 80 (EIP-7981) |
+| `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `STFSpec.Fork.Amsterdam.txParams.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
 | `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `amsterdam.system.depositContract` | mainnet `0x00000000219a…05fa` |
 | `forks/amsterdam/__init__.py::FORK_CRITERIA` | 43 | `forkCriteria` | `Unscheduled(order_index=3)`; unused by the guest (O-exclusion) |
+
+### Supplied Amsterdam block parameters
+
+`STFSpec.Fork.Amsterdam.blockParams : STFSpec.Block.BlockParams` is exported by
+the public `STFSpec.Fork` facade. All five R-F1 quantities retain EthFork source
+ownership. The two operand rows name private source-level declarations in their
+owner module, not public projections or stable private kernel names.
+
+| Pinned EELS quantity / domain | Actual Lean target / value | Effects / failures / laws / status | Validation |
+|---|---|---|---|
+| `fork.py:114`, `BASE_FEE_MAX_CHANGE_DENOMINATOR : Uint`, 8 | `STFSpec.Fork.Amsterdam.blockParams.baseFeeMaxChangeDenominator : Nat`, 8 | **supplied:** fixed data, no inputs, effects, errors or proof premises; ordinary record reduction | Public-facade exact type, complete record equality and actual projection/triple guards in `Conformance/Fork/AmsterdamBlockParamsGuards.lean` |
+| `fork.py:115`, `ELASTICITY_MULTIPLIER : Uint`, 2 | `STFSpec.Fork.Amsterdam.blockParams.elasticityMultiplier : Nat`, 2 | **supplied:** same pure data contract | Same complete record and actual projection/triple controls |
+| `fork.py:144`, `MAX_BLOCK_SIZE : int`, 10 485 760 | private `MAX_BLOCK_SIZE : Nat := 10485760` in `Fork/Amsterdam/BlockParams.lean` | **supplied:** actual source-level operand, no public accessor, effects, errors or proof premises | Same-owner `#guard MAX_BLOCK_SIZE == 10485760`; inspect its actual use in the subtraction |
+| `fork.py:145`, `SAFETY_MARGIN : int`, 2 097 152 | private `SAFETY_MARGIN : Nat := 2097152` in the same owner | **supplied:** actual source-level operand, same pure data contract | Same-owner `#guard SAFETY_MARGIN == 2097152`; inspect its actual use in the subtraction |
+| `fork.py:146`, `MAX_RLP_BLOCK_SIZE : int`, 8 388 608 | `STFSpec.Fork.Amsterdam.blockParams.maxRlpBlockSize : Nat := MAX_BLOCK_SIZE - SAFETY_MARGIN` | **supplied:** fixed derived data, same pure contract; no generic raw-record subtraction law | Public-facade complete record equality and actual projection/triple guards, plus owner-body inspection of both operands |
+
+The pinned `Uint` values are arbitrary-width nonnegative integers (EthBase §2).
+The three plain `int` values are nonnegative and represented exactly by Nat.
+All paths above are under `STFSpec/`. The RLP size guard uses only the derived
+global (`fork.py:309`); base-fee calculation reads elasticity at `:412` and the
+denominator at `:425,439`. Within the fork module these globals are read directly,
+without a default value. (Outside the guest path, the spec-tools loader reads
+`MAX_RLP_BLOCK_SIZE` with a `None` default, `src/ethereum_spec_tools/loaders/fork_loader.py:259`.)
+This data slice implements none of those consumers or their failure behavior,
+division safety, full BlockConfig coherence, index adequacy or guest readiness.
+Full-field source comparison must bind all five original quantities and their
+exact `Uint`/`int` interpretations under normal and optimized Python.
+
+### Supplied Amsterdam transaction parameters
+
+| Pinned EELS value | Lean declaration and complete value | Domain / effects / failures / status | Validation |
+|---|---|---|---|
+| `transactions.py:64,74,82`: original Python `int` literal `6`, `Uint(80)`, `Uint(128)` | `STFSpec.Fork.Amsterdam.txParams : STFSpec.Block.TxParams`, named fields `blobCountLimit := 6`, `accessListAddressFloorTokens := 80`, `accessListStorageKeyFloorTokens := 128` | **supplied:** immutable complete value; no inputs, effects, errors or proof premises. `Uint` is the pinned arbitrary-width nonnegative integer interpreted as Nat (EthBase §2). | `Conformance/Fork/AmsterdamTxParamsGuards.lean` imports public facades, checks the exact type and complete record equality privately, and guards every actual projection plus the complete 6/80/128 triple. |
+
+The source constants are current module globals, with no consumer default capture:
+blob admission uses the first (`transactions.py:653–659`), and intrinsic costing
+adds the other two per access-list occurrence before multiplying by
+`GasCosts.TX_DATA_TOKEN_FLOOR` (`:752–769`). These are token counts, distinct from
+VM access-list gas prices. Full-field source/target comparison binds all three
+original values and exact int/Uint interpretations under normal and optimized
+Python. This bounded data value supplies no admission/cost implementation,
+full configuration coherence, guest conformance or resource conclusion.
+
+### Supplied Amsterdam VM values
+
+The public `STFSpec.Fork` facade exports the five existing VM declarations below
+from `STFSpec/Fork/Amsterdam.lean`. Core retains source-inventory ownership of the
+record types and `STACK_DEPTH_LIMIT`; these rows record their Amsterdam instantiation.
+
+| Pinned EELS value/provider | Lean declaration | Value/law status | Complete controls |
+|---|---|---|---|
+| `vm/gas.py:78–259`; BLS `__init__.py:37–301`, `bls12_381_pairing.py:46` | `STFSpec.Fork.Amsterdam.gasCosts` | **supplied:** all 144 stored fields in provider order: 137 Nat, one Int refund, four Base.U64, two Array Nat. Original aliases/dependencies remain expressions; refund computes Nat arithmetic before Int injection. Both full 128-entry discount arrays are retained. | `AmsterdamVmGuards.lean` guards every field/full array; public U64 laws establish all four concrete ranges and the successful checked product. Native producer emits every actual projection. |
+| `vm/gas.py:56–59` | `STFSpec.Fork.Amsterdam.stateGasCosts` | **supplied:** exactly the four existing inputs 1530/120/64/23. Separate derived state amounts are outside this record and slice. | Four stored projection guards; complete native output. |
+| `vm/interpreter.py:84–86` | `STFSpec.Fork.Amsterdam.vmLimits` | **supplied:** Core literal depth, code size `0x10000`, init size `2 * maxCodeSize`. | Three stored projection guards and private dependency/literal clients; complete native output. |
+| B8/F8 grouping of the three complete records | `STFSpec.Fork.Amsterdam.vmConfig` | **supplied:** exactly `⟨gasCosts, stateGasCosts, vmLimits⟩`, with actual whole-record grouping equality. | Private whole equality and public-import typed reconstruction, depth, memory/init-pricing clients; native output also emits all grouped projections. |
+| F8 | `STFSpec.Fork.Amsterdam.vmLimits_depth` | **discharged:** `vmConfig.limits.stackDepthLimit = STFSpec.Vm.Core.STACK_DEPTH_LIMIT`, by `rfl`. | Public-import literal/indexed-depth clients. |
+
+All paths in the controls column are under `STFSpec/Conformance/Fork/`.
+`amsterdam_vm_catalogue.json` contains the complete ordered field/type/literal
+catalogue; 137 rows carry a pinned source file/line and the remaining 14 a source
+description. Its `provenance` block records SHA-256 digests of the out-of-tree
+acquisition material (an independent catalogue and a full provider catalogue taken
+from the unchanged pinned providers) for traceability only: that material is not in
+this repository, and no in-tree check compares the catalogue with pinned EELS.
+The checked-in reader `amsterdam_vm_values.py` imports no EELS and recomputes no
+source oracle. It compares complete native output from
+`scripts/AmsterdamVmNativeTests.lean`, including direct records and the actual
+VmConfig projections, with recursively exact numeric types and full ordered arrays.
+Parser controls reject changed values, Bool/number confusion, duplicate/extra/missing
+fields, array edits/order/length changes and malformed JSON under normal Python
+and `-O`. CONTRIBUTING §6.3 and CI build/audit/run the producer and both reader modes.
+No benchmark or whole-config/behaviour/readiness conclusion follows.
 
 **External semantics.** `hex_to_address` (`utils/hexadecimal.py`, G1) must be case-insensitive and left-pad to 20 bytes. The addresses above are given checksummed, and `0x01`/`0x100` are short forms. `ForkCriteria`/`Unscheduled` (`ethereum/fork_criteria.py`) are outside the inventory. They are recorded as a comment and have no semantics here.
 
@@ -101,10 +173,10 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
   - the transition set `for_bpo2toamsterdamattime15k/*` (15 areas), with a pre-fork parent header.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
-  - Every value in R-F1–R-F4 equals the constant evaluated from the pinned Python. A prototype generator (not yet in this repository) emits the `GasCosts` record (in REFERENCE-RECORDS order) and the Amsterdam values, including the BLS pricing fields, from the pinned EELS. It prints Lean fragments that are pasted by hand. It is a candidate to promote to `scripts/` with a `--check` mode, alongside `scripts/gen_eels_inventory.py`.
+  - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
   - The byte strings in R-F2 (checksummed and lowercase decode alike).
   - `precompiles.addresses` equals the 18-element set.
-  - `maxRlpBlockSize = 8 388 608`.
+  - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.
 - **Adversarial.** A call to `0x12` or `0xff` (not a precompile, so it is not warm); a call to `0x100` (warm); a block whose deposit log comes from a non-mainnet deposit address (ignored).
 
@@ -112,14 +184,22 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 
 ```lean
 namespace STFSpec.Fork.Amsterdam                       -- public
-def blockParams  : Block.BlockParams              -- R-F1
+private def MAX_BLOCK_SIZE : Nat := 10485760       -- R-F1, Fork owner only
+private def SAFETY_MARGIN : Nat := 2097152
+def blockParams : Block.BlockParams :=
+  { baseFeeMaxChangeDenominator := 8, elasticityMultiplier := 2,
+    maxRlpBlockSize := MAX_BLOCK_SIZE - SAFETY_MARGIN }  -- R-F1 supplied
 def systemAddrs  : Block.SystemAddrs              -- R-F2
-def txParams     : Block.TxParams                 -- R-F3
-def gasCosts     : Vm.GasCosts      where …     -- R-F4, the Amsterdam values (incl. BLS pricing fields)
-def stateGasCosts: Vm.StateGasCosts where …
-def vmLimits     : Vm.VmLimits := ⟨Vm.STACK_DEPTH_LIMIT, 0x10000, 0x20000⟩
-def vmConfig : Vm.VmConfig := ⟨gasCosts, stateGasCosts, vmLimits⟩
-theorem vmLimits_depth : vmConfig.limits.stackDepthLimit = Vm.STACK_DEPTH_LIMIT := rfl
+def txParams : Block.TxParams :=
+  { blobCountLimit := 6, accessListAddressFloorTokens := 80,
+    accessListStorageKeyFloorTokens := 128 }       -- R-F3 supplied
+def gasCosts     : Vm.Core.GasCosts      where …     -- R-F4, the Amsterdam values (incl. BLS pricing fields)
+def stateGasCosts: Vm.Core.StateGasCosts where …
+def vmLimits : Vm.Core.VmLimits :=
+  let maxCodeSize := 0x10000
+  ⟨Vm.Core.STACK_DEPTH_LIMIT, maxCodeSize, 2 * maxCodeSize⟩
+def vmConfig : Vm.Core.VmConfig := ⟨gasCosts, stateGasCosts, vmLimits⟩
+theorem vmLimits_depth : vmConfig.limits.stackDepthLimit = Vm.Core.STACK_DEPTH_LIMIT := rfl
 def precompiles {m} [Monad m] [KeccakQuery m] : Vm.PrecompileTable m := STFSpec.Precompiles.table vmConfig  -- R-F5; EthVmCore's record (lookup, addresses, lookup_iff, meter_law)
 def config       : Block.BlockConfig :=
   { gas := gasCosts, stateGas := stateGasCosts, block := blockParams,
@@ -139,12 +219,18 @@ theorem termination_ready : Vm.Runner.TerminationReady config             -- pub
 
 | Item | Representation | Model | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
-| Parameter records | plain structures of `Nat`/`Address`/`U64` | themselves | `WellFormed` (§7) | read-only constants, shared | O(1) access |
+| Raw BlockParams | three unrestricted Nat fields; two private Nat operands in the Fork owner | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
+| Raw TxParams | three unrestricted Nat fields | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
+| Remaining parameter records | plain structures of `Nat`/`Address`/`U64` | themselves | `WellFormed` (§7) | read-only constants, shared | O(1) access |
 | Precompile table | `EthVmCore`'s `PrecompileTable`: `lookup : Address → Option (PrecompileFn m)` (a total function by `match` on the address), `addresses : AddrSet`, with the fields `lookup_iff` and `meter_law` | finite partial map `A ⇀ PrecompileFn m` | `lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses`; `meter_law` as stated in `EthVmCore` | read-only | dispatch O(1) (a match on a small integer; [I] compiles to a decision tree); warming O(18 log n) per transaction |
 
 No mutable or snapshot-reachable state lives here.
 
 ## 7. Contract and laws
+
+The supplied R-F1 value has ordinary complete record reduction, with two private
+operand checks (§3). The raw provider admits every Nat triple; this slice adds no
+generic positivity, WF, coherence or subtraction law.
 
 `Block.BlockConfig.WellFormed cfg` collects the hypotheses generic block proofs take. `Amsterdam.config_wf` discharges each by computation on the constants. [C]
 
@@ -167,7 +253,7 @@ No mutable or snapshot-reachable state lives here.
 
 **Argument.** Compare each literal to the pinned constant inventory. Arithmetic evaluation establishes positive denominators, range bounds and cost inequalities. Construct one VmConfig and use it both for FrameCtx/RunnerEnv and for pricing closures in PrecompileTable; the lookup/address law supplies warm-address and dispatch agreement. Construct BlockConfig from those same values. Generic block theorems then specialise by substituting this config and supplying their proofs. The termination premise concerns complete execution paths, including child forwarding and returns: evaluating JUMPDEST or stipend constants only supplies some inputs to that proof. Activation remains external because the pinned guest does not check it. A future fork whose opcode behaviour changes requires a behaviour refinement as well as new values.
 
-**Open obligations.** Pin full parameter records, prove config coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
+**Open obligations.** The complete R-F1 block value, R-F3 transaction value, R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -190,10 +276,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
+- **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
 - **Transition fixtures** `for_bpo2toamsterdamattime15k`: pre-fork blocks are bpo2, which is not instantiated (D3). Their `blockchain_tests` form cannot be run in full by `EthConformance`, and the runnable subset is unlisted. The parent-header fallback decodes a bpo2 header as a bpo5 `PrevHeader`; the shapes are assumed identical [I, not checked for bpo2].
-- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): if a future release patches them, this module's values and `#guard`s must be regenerated. A prototype generator exists outside this repository but runs by hand and has no `--check` mode; promoting it to `scripts/` with a CI check is outstanding.
+- **R-F4 stored VM values are supplied:** §3 owns the exact bounded implementation, `rfl` depth law and complete literal/native/parser controls. Remaining BlockConfig values, precompile table, state amount-provider observations, module-derived blob maximum placement, actual FrameCtx/consumer coherence, behavioural termination and guest/EEST/resource/cost gates stay open.
+- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule. The acquisition tooling is outside this repository and has no `--check` mode; promoting a catalogue-versus-pinned-EELS check to `scripts/` and CI is outstanding.
 - The **minimum transaction encoding size** needed for law 3 is not established.
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).

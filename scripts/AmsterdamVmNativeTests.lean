@@ -1,0 +1,190 @@
+/-
+Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
+-/
+
+import STFSpec.Conformance.Fork.AmsterdamVmGuards
+import Lean
+
+/-!
+# Complete Amsterdam VM native values
+
+Emit actual public stored projections from both the direct records and VmConfig.
+The independent expected catalogue is read only by the separate Python reader.
+Spec guidance: `STFSpec/informal/modules/EthFork.md` §§3–4.
+-/
+
+open STFSpec STFSpec.Vm.Core STFSpec.Fork.Amsterdam Lean
+
+private def gasCostsJson (c : GasCosts) : Json := Json.mkObj [
+  ("base", toJson (c.base)),
+  ("veryLow", toJson (c.veryLow)),
+  ("low", toJson (c.low)),
+  ("mid", toJson (c.mid)),
+  ("high", toJson (c.high)),
+  ("warmAccess", toJson (c.warmAccess)),
+  ("coldAccountAccess", toJson (c.coldAccountAccess)),
+  ("coldStorageAccess", toJson (c.coldStorageAccess)),
+  ("storageWrite", toJson (c.storageWrite)),
+  ("callStipend", toJson (c.callStipend)),
+  ("accountWrite", toJson (c.accountWrite)),
+  ("callValue", toJson (c.callValue)),
+  ("codeInitPerWord", toJson (c.codeInitPerWord)),
+  ("createAccess", toJson (c.createAccess)),
+  ("zero", toJson (c.zero)),
+  ("memoryPerWord", toJson (c.memoryPerWord)),
+  ("fastStep", toJson (c.fastStep)),
+  ("refundStorageClear", toJson (c.refundStorageClear)),
+  ("precompileEcrecover", toJson (c.precompileEcrecover)),
+  ("precompileP256Verify", toJson (c.precompileP256Verify)),
+  ("precompileSha256Base", toJson (c.precompileSha256Base)),
+  ("precompileSha256PerWord", toJson (c.precompileSha256PerWord)),
+  ("precompileRipemd160Base", toJson (c.precompileRipemd160Base)),
+  ("precompileRipemd160PerWord", toJson (c.precompileRipemd160PerWord)),
+  ("precompileIdentityBase", toJson (c.precompileIdentityBase)),
+  ("precompileIdentityPerWord", toJson (c.precompileIdentityPerWord)),
+  ("precompileBlake2FPerRound", toJson (c.precompileBlake2FPerRound)),
+  ("precompilePointEvaluation", toJson (c.precompilePointEvaluation)),
+  ("precompileBlsG1Add", toJson (c.precompileBlsG1Add)),
+  ("precompileBlsG1Mul", toJson (c.precompileBlsG1Mul)),
+  ("precompileBlsG1Map", toJson (c.precompileBlsG1Map)),
+  ("precompileBlsG2Add", toJson (c.precompileBlsG2Add)),
+  ("precompileBlsG2Mul", toJson (c.precompileBlsG2Mul)),
+  ("precompileBlsG2Map", toJson (c.precompileBlsG2Map)),
+  ("precompileEcAdd", toJson (c.precompileEcAdd)),
+  ("precompileEcMul", toJson (c.precompileEcMul)),
+  ("precompileEcPairingBase", toJson (c.precompileEcPairingBase)),
+  ("precompileEcPairingPerPoint", toJson (c.precompileEcPairingPerPoint)),
+  ("perBlob", toJson (c.perBlob.toNat)),
+  ("blobScheduleTarget", toJson (c.blobScheduleTarget.toNat)),
+  ("blobTargetGasPerBlock", toJson (c.blobTargetGasPerBlock.toNat)),
+  ("blobBaseCost", toJson (c.blobBaseCost)),
+  ("blobScheduleMax", toJson (c.blobScheduleMax.toNat)),
+  ("blobMinGasPrice", toJson (c.blobMinGasPrice)),
+  ("blobBaseFeeUpdateFraction", toJson (c.blobBaseFeeUpdateFraction)),
+  ("blockAccessListItem", toJson (c.blockAccessListItem)),
+  ("txBase", toJson (c.txBase)),
+  ("txValueCost", toJson (c.txValueCost)),
+  ("txDataTokenStandard", toJson (c.txDataTokenStandard)),
+  ("txDataTokenFloor", toJson (c.txDataTokenFloor)),
+  ("txAccessListAddress", toJson (c.txAccessListAddress)),
+  ("txAccessListStorageKey", toJson (c.txAccessListStorageKey)),
+  ("txMaxGasLimit", toJson (c.txMaxGasLimit)),
+  ("txMaxTotalGasLimit", toJson (c.txMaxTotalGasLimit)),
+  ("authTupleBytes", toJson (c.authTupleBytes)),
+  ("executionPerAuthBaseCost", toJson (c.executionPerAuthBaseCost)),
+  ("limitAdjustmentFactor", toJson (c.limitAdjustmentFactor)),
+  ("limitMinimum", toJson (c.limitMinimum)),
+  ("opcodeAdd", toJson (c.opcodeAdd)),
+  ("opcodeSub", toJson (c.opcodeSub)),
+  ("opcodeMul", toJson (c.opcodeMul)),
+  ("opcodeDiv", toJson (c.opcodeDiv)),
+  ("opcodeSdiv", toJson (c.opcodeSdiv)),
+  ("opcodeMod", toJson (c.opcodeMod)),
+  ("opcodeSmod", toJson (c.opcodeSmod)),
+  ("opcodeAddmod", toJson (c.opcodeAddmod)),
+  ("opcodeMulmod", toJson (c.opcodeMulmod)),
+  ("opcodeSignextend", toJson (c.opcodeSignextend)),
+  ("opcodeLt", toJson (c.opcodeLt)),
+  ("opcodeGt", toJson (c.opcodeGt)),
+  ("opcodeSlt", toJson (c.opcodeSlt)),
+  ("opcodeSgt", toJson (c.opcodeSgt)),
+  ("opcodeEq", toJson (c.opcodeEq)),
+  ("opcodeIsZero", toJson (c.opcodeIsZero)),
+  ("opcodeAnd", toJson (c.opcodeAnd)),
+  ("opcodeOr", toJson (c.opcodeOr)),
+  ("opcodeXor", toJson (c.opcodeXor)),
+  ("opcodeNot", toJson (c.opcodeNot)),
+  ("opcodeByte", toJson (c.opcodeByte)),
+  ("opcodeShl", toJson (c.opcodeShl)),
+  ("opcodeShr", toJson (c.opcodeShr)),
+  ("opcodeSar", toJson (c.opcodeSar)),
+  ("opcodeClz", toJson (c.opcodeClz)),
+  ("opcodeJump", toJson (c.opcodeJump)),
+  ("opcodeJumpi", toJson (c.opcodeJumpi)),
+  ("opcodeJumpDest", toJson (c.opcodeJumpDest)),
+  ("opcodeCallDataLoad", toJson (c.opcodeCallDataLoad)),
+  ("opcodeBlockHash", toJson (c.opcodeBlockHash)),
+  ("opcodeCoinbase", toJson (c.opcodeCoinbase)),
+  ("opcodePop", toJson (c.opcodePop)),
+  ("opcodeMsize", toJson (c.opcodeMsize)),
+  ("opcodePc", toJson (c.opcodePc)),
+  ("opcodeGas", toJson (c.opcodeGas)),
+  ("opcodeAddress", toJson (c.opcodeAddress)),
+  ("opcodeOrigin", toJson (c.opcodeOrigin)),
+  ("opcodeCaller", toJson (c.opcodeCaller)),
+  ("opcodeCallValue", toJson (c.opcodeCallValue)),
+  ("opcodeCallDataSize", toJson (c.opcodeCallDataSize)),
+  ("opcodeCodeSize", toJson (c.opcodeCodeSize)),
+  ("opcodeGasPrice", toJson (c.opcodeGasPrice)),
+  ("opcodeTimestamp", toJson (c.opcodeTimestamp)),
+  ("opcodeNumber", toJson (c.opcodeNumber)),
+  ("opcodeGasLimit", toJson (c.opcodeGasLimit)),
+  ("opcodePrevRandao", toJson (c.opcodePrevRandao)),
+  ("opcodeReturnDataSize", toJson (c.opcodeReturnDataSize)),
+  ("opcodeChainId", toJson (c.opcodeChainId)),
+  ("opcodeSelfBalance", toJson (c.opcodeSelfBalance)),
+  ("opcodeBaseFee", toJson (c.opcodeBaseFee)),
+  ("opcodeBlobBaseFee", toJson (c.opcodeBlobBaseFee)),
+  ("opcodeSlotNum", toJson (c.opcodeSlotNum)),
+  ("opcodeBlobHash", toJson (c.opcodeBlobHash)),
+  ("opcodePush", toJson (c.opcodePush)),
+  ("opcodePush0", toJson (c.opcodePush0)),
+  ("opcodeDup", toJson (c.opcodeDup)),
+  ("opcodeSwap", toJson (c.opcodeSwap)),
+  ("opcodeDupn", toJson (c.opcodeDupn)),
+  ("opcodeSwapn", toJson (c.opcodeSwapn)),
+  ("opcodeExchange", toJson (c.opcodeExchange)),
+  ("opcodeTload", toJson (c.opcodeTload)),
+  ("opcodeTstore", toJson (c.opcodeTstore)),
+  ("opcodeReturnDataCopyBase", toJson (c.opcodeReturnDataCopyBase)),
+  ("opcodeReturnDataCopyPerWord", toJson (c.opcodeReturnDataCopyPerWord)),
+  ("opcodeCallDataCopyBase", toJson (c.opcodeCallDataCopyBase)),
+  ("opcodeCodeCopyBase", toJson (c.opcodeCodeCopyBase)),
+  ("opcodeMcopyBase", toJson (c.opcodeMcopyBase)),
+  ("opcodeMloadBase", toJson (c.opcodeMloadBase)),
+  ("opcodeMstoreBase", toJson (c.opcodeMstoreBase)),
+  ("opcodeMstore8Base", toJson (c.opcodeMstore8Base)),
+  ("opcodeCopyPerWord", toJson (c.opcodeCopyPerWord)),
+  ("opcodeExpBase", toJson (c.opcodeExpBase)),
+  ("opcodeExpPerByte", toJson (c.opcodeExpPerByte)),
+  ("opcodeKeccak256Base", toJson (c.opcodeKeccak256Base)),
+  ("opcodeKeccak256PerWord", toJson (c.opcodeKeccak256PerWord)),
+  ("opcodeLogBase", toJson (c.opcodeLogBase)),
+  ("opcodeLogDataPerByte", toJson (c.opcodeLogDataPerByte)),
+  ("opcodeLogTopic", toJson (c.opcodeLogTopic)),
+  ("opcodeSelfDestructBase", toJson (c.opcodeSelfDestructBase)),
+  ("blsPairingBase", toJson (c.blsPairingBase)),
+  ("blsPairingPerPair", toJson (c.blsPairingPerPair)),
+  ("blsG1KDiscount", toJson (c.blsG1KDiscount.toList)),
+  ("blsG2KDiscount", toJson (c.blsG2KDiscount.toList)),
+  ("blsG1MaxDiscount", toJson (c.blsG1MaxDiscount)),
+  ("blsG2MaxDiscount", toJson (c.blsG2MaxDiscount)),
+  ("blsMultiplier", toJson (c.blsMultiplier))
+]
+
+private def stateGasCostsJson (c : StateGasCosts) : Json := Json.mkObj [
+  ("costPerStateByte", toJson (c.costPerStateByte)),
+  ("bytesPerNewAccount", toJson (c.bytesPerNewAccount)),
+  ("bytesPerStorageSet", toJson (c.bytesPerStorageSet)),
+  ("bytesPerAuthBase", toJson (c.bytesPerAuthBase))
+]
+
+private def vmLimitsJson (c : VmLimits) : Json := Json.mkObj [
+  ("stackDepthLimit", toJson (c.stackDepthLimit)),
+  ("maxCodeSize", toJson (c.maxCodeSize)),
+  ("maxInitCodeSize", toJson (c.maxInitCodeSize))
+]
+
+private def configJson (c : VmConfig) : Json := Json.mkObj [
+  ("costs", gasCostsJson c.costs),
+  ("stateCosts", stateGasCostsJson c.stateCosts),
+  ("limits", vmLimitsJson c.limits)]
+
+/-- Native conformance executable entry point. -/
+def main : IO Unit := do
+  let out ← IO.getStdout
+  out.putStrLn <| (Json.mkObj [
+    ("gasCosts", gasCostsJson gasCosts),
+    ("stateGasCosts", stateGasCostsJson stateGasCosts),
+    ("vmLimits", vmLimitsJson vmLimits),
+    ("vmConfig", configJson vmConfig)]).compress
