@@ -224,7 +224,6 @@ independence and potential-equality transport; `addRefund_phi` and
 unfolding Core semantics. No public equation theorem, monotonicity, execution,
 termination or fuel-adequacy result is added. The remaining laws below are planned.
 
-
 **Structural** [T]: the mutual definition is accepted by `termination_by` with the measure of R-TERM-1 (G3). No `partial`, no global fuel, no helper without its own measure.
 
 **Settlement** [C]: after `processCall`/`processCreate` returns `r` with `r.error = some _`: for non-top frames, `ChildSettled r.frame true` (spill 0, refund 0, reservoir = baseline, committed spill 0 for non-top frames), the transaction state equals the snapshot taken at entry of that call (processCall) or of the create (processCreate), and observations are a superset of those at entry (EthState). On `r.error = none`, the non-top child satisfies `ChildSettled r.frame false`. Top-level settlement has its separate entry/committed-spill law. Halts additionally have `r.frame.gasMeter.gasLeft = 0` and `r.output = ∅`.

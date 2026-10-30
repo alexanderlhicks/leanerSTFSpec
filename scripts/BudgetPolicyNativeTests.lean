@@ -34,7 +34,8 @@ private def meterJson (m : GasMeter) : Json := Json.mkObj [
 private def emit (line : String) : IO Unit := do
   match line.splitOn "\t" with
   | [id, e, r, b, q, s, c, n] =>
-    let meter := GasMeter.mk (← nat e) (← nat r) (← nat b) (← integer q) (← nat s) (← nat c)
+    let meter :=
+      GasMeter.mk (← nat e) (← nat r) (← nat b) (← integer q) (← nat s) (← nat c)
     let constant ← nat n
     let policy : BudgetPolicy := constBudget constant
     (← IO.getStdout).putStrLn (Json.mkObj [
