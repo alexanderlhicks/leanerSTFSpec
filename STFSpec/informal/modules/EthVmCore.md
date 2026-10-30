@@ -720,7 +720,7 @@ ordinary laws; private model injectivity discharges the reverse success implicat
 Public-only `StackSwapCallerProofs.lean` derives availability, size preservation,
 every cell (including out of range), equal-valid actual identity, all-input actual
 commutation and actual involution, without unfolding Stack or adding public laws.
-`StackSwapGuards.lean` supplies 28 concise complete-list controls through public push:
+`StackSwapGuards.lean` supplies 29 concise complete-list controls through public push:
 whole high/max/asymmetric words, duplicates, empty/singleton, equal-valid/invalid,
 each/both invalid and independent 2^4096 indices, complete capacity-1024 exchanges,
 held input models and swap-back observations. A size-1025 failed-construction control
@@ -1242,7 +1242,7 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
 
 - **Supplied scalar decoder controls:** All 256 bytes per decoder have complete literal guards and actual interpreted target/source frames. These include the boundaries 81/82, 90/91, 127/128, equal-nibble branch cases, byte255, both ordered pair coordinates and exact errors. Public-only clients exercise all eight laws, successful progress, arbitrary-error exclusion and actual input equality. Strict normal/`-O` parsing passes 81 positive and 79 rejection controls per mode; complete images, partitions and valid-input injectivity are also checked. These are local semantic controls, not native allocation, handler or guest evidence.
 
-- **Supplied exchange controls (Q82):** The 28 complete-model controls and six private public-law client groups are owned by §3. Reproduce with `lake build STFSpec.Conformance.Vm.Core.StackSwapCallerProofs STFSpec.Conformance.Vm.Core.StackSwapGuards --wfail`. Arbitrary Nat bounds, simultaneous original cells and actual Stack identity/commutation/involution are proved ordinarily; source handler ordering and resource limits remain separate.
+- **Supplied exchange controls (Q82):** The 29 complete-model controls and six private public-law client groups are owned by §3. Reproduce with `lake build STFSpec.Conformance.Vm.Core.StackSwapCallerProofs STFSpec.Conformance.Vm.Core.StackSwapGuards --wfail`. Arbitrary Nat bounds, simultaneous original cells and actual Stack identity/commutation/involution are proved ordinarily; source handler ordering and resource limits remain separate.
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
 
 `TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation

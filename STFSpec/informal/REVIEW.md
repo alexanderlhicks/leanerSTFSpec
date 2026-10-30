@@ -245,7 +245,7 @@ controls cover empty/full transitions, complete returned words/remainders, huge
 Nat depths and sequence intermediates. Source correspondence covers only fresh typed
 bounded lists and unchanged pop/push helpers; peek is a labelled List-index adapter.
 The exchange laws additionally support private public-only availability/size/all-cell,
-equal-valid actual identity, commutation and involution clients and 28 complete-model
+equal-valid actual identity, commutation and involution clients and 29 complete-model
 controls. All-Nat mathematical cases are distinct from original opcode execution;
 the pure helper implements no gas/decode/PC behavior. Actual handler order, frame
 reachability, compiler allocations and
