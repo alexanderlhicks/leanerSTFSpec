@@ -3,8 +3,6 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.State
-import Init.Data.List.TakeDrop
-import Lean.Elab.Tactic.Omega
 
 /-!
 # Witness ancestor public-equation clients
