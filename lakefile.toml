@@ -209,3 +209,8 @@ root = "WitnessAncestorsNativeTests"
 name = "stateless-output-native-tests"
 srcDir = "scripts"
 root = "StatelessOutputNativeTests"
+
+[[lean_exe]]
+name = "amsterdam-vm-native-tests"
+root = "AmsterdamVmNativeTests"
+srcDir = "scripts"
