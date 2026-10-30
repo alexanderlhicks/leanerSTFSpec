@@ -972,8 +972,13 @@ result; metadata is arbitrary and unread. Public-only clients derive range, zero
 raw-input reduction and metadata observer congruence. The product law alone takes
 local gcd-one; concrete prime/nonzero-to-gcd bridges stay with future consumers.
 Replacements prove output graph membership under canonical input observation,
-without unfolding the private Euclidean worker. No raw-Nat operation, Inv/Div
-instance, division, field structure or actual curve/precompile composition is supplied.
+without unfolding the private Euclidean worker. The separate reference-division
+leaf supplies div/toNat_div/direct Div by composing multiplication with this inverse.
+Consumers use the complete observer and inverse graph for every p>1 pair, including
+zero/nonunits and arbitrary unread metadata. Zero and gcd-qualified self-division
+follow privately through public laws; no extra caller premise or global cancellation
+law is introduced. No raw-Nat inverse, Inv instance, field structure or actual
+curve/precompile composition is supplied.
 
 ## 3. Inductive state invariant
 

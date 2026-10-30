@@ -96,6 +96,14 @@ jobs:
           python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
           python3 -B scripts/test_transaction_gas_settlement_output_parser.py
           python3 -B -O scripts/test_transaction_gas_settlement_output_parser.py
+      - name: Complete reference division regressions
+        run: |
+          lake build reference-division-native-tests --wfail
+          lake exe check-decls ReferenceDivisionNativeTests
+          lake exe reference-division-native-tests > .lake/reference-division.jsonl
+          python3 -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division.jsonl
+          python3 -B scripts/test_reference_division_output_parser.py
+          python3 -B -O scripts/test_reference_division_output_parser.py
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail

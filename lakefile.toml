@@ -183,3 +183,9 @@ root = "TransactionGasAllocationNativeTests"
 name = "transaction-gas-settlement-native-tests"
 srcDir = "scripts"
 root = "TransactionGasSettlementNativeTests"
+
+# Complete all-p>1 reference division observations from input-only runtime rows.
+[[lean_exe]]
+name = "reference-division-native-tests"
+srcDir = "scripts"
+root = "ReferenceDivisionNativeTests"

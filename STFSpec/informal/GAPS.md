@@ -171,7 +171,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
   five observer laws and four delegating operator instances, plus natural pow/toNat_pow
   and its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
-  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
+  clients cover those slices. The complete Q86 inverse is supplied as recorded above;
+  reference div/toNat_div/direct Div adds exactly three authored declarations and
+  preserves every zero/nonunit result. The eight exact R1 natural moduli are supplied separately;
   concrete-field instances/aliases, convenience aliases, bytes, powMod, executable/tower inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
   No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,

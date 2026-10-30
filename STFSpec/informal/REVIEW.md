@@ -63,7 +63,7 @@ Every row is required before claiming that module's corresponding refinement, in
 |---|---|
 | EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Taylor's positive-denominator totality/two zero-value laws and bounded controls are supplied by EthBase §3/§7; DISC-002 practical feasibility remains open. Enumerate checked integer operations and failure sites; specify Envelope's role. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
-| EthField | The reference-only carrier, basic residue arithmetic, natural powers, canonical sign and Q86 graph-specified inverse, their observer laws/delegating instances, eight exact Nat modulus constants and private facade clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
+| EthField | The reference-only carrier, basic residue arithmetic, natural powers, canonical sign, Q86 graph-specified inverse and reference division, their observer laws/delegating instances, eight exact Nat modulus constants and private facade clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Instantiate every schema; prove both inverse directions and strict acceptance; establish rootable/encodable domains, progressive lengths and host-depth policy. |
@@ -218,6 +218,14 @@ metadata. Full comparison against all four sealed and four fresh original
 685-row streams uses the explicit reducing-input bridge (EthField §4). The
 approved inverse-only low-remainder totality exception grants no runtime fuel,
 resource/time bound or backend permission.
+The separate reference-division leaf supplies exactly div/toNat_div/direct Div,
+composing the existing multiplication and Q86 inverse on every canonical same-p
+pair at every p>1. Private facade clients, 54 literal controls and complete 2,787-row
+interpreted/native observations preserve all zero/nonunit results and arbitrary
+unread metadata; all four sealed 929-pair original streams and independent complete
+Bezout controls supply bounded correspondence (EthField §3/§4/§7). The runtime
+producer reads input-only rows; the strict full-value comparator and malformed CLI
+controls are separate. No inverse/model/policy or ordinary-caller premise changes.
 Remaining field operations, executable Montgomery/D6,
 concrete aliases, byte/field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
 This does not change the dated §6 readiness assessment.
