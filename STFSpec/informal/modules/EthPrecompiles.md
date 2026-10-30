@@ -209,10 +209,10 @@ D3/B8/F8 concern selected Amsterdam parameters. This interpretation needs no new
 configuration field, public version argument or decision. There is no explicit KZG
 exemption, and none is claimed. Future PointEvaluation convenience names must reuse or
 alias the canonical Kzg value. The pinned source repeats the same byte in
-`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:69`, which
-EthBlock §3 plans as `versionedHashVersionKzg`; both are source duplicates of this one
-value, not competing owners. EthBlock cannot import EthPrecompiles
-(`scripts/boundaries.toml`), so a shared lower owner for the tag remains open.
+`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:69`, which EthBlock §3
+plans as `versionedHashVersionKzg`; both are source duplicates of this one value, not
+competing owners. EthBlock cannot import EthPrecompiles (`scripts/boundaries.toml`), so
+a shared lower owner for the tag remains open.
 
 ## 3. EELS source map
 
