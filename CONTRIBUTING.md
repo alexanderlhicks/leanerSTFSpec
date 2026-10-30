@@ -217,6 +217,15 @@ lake exe requests-hash-native-tests > .lake/requests-hash.jsonl
 python3 -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
 python3 -B scripts/test_requests_hash_output_parser.py
 python3 -B -O scripts/test_requests_hash_output_parser.py
+lake build kzg-versioned-hash-native-tests --wfail
+lake exe check-decls KzgVersionedHashNativeTests
+lake exe kzg-versioned-hash-native-tests > .lake/kzg-versioned-hash-native.jsonl
+python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-native.jsonl
+lake env lean --run scripts/KzgVersionedHashNativeTests.lean > .lake/kzg-versioned-hash-interpreted.jsonl
+python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-interpreted.jsonl
+python3 -B scripts/test_kzg_versioned_hash_output_parser.py
+python3 -B -O scripts/test_kzg_versioned_hash_output_parser.py
+python3 -B scripts/gen_kzg_versioned_hash_guards.py --check
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail

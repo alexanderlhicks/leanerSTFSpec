@@ -733,6 +733,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
+- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
+  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
+  comparisons do not close precompile, host, security, resource or whole-guest gates.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Host-level escapes (O12).** A Python exception that is not an `ExceptionalHalt` inside a

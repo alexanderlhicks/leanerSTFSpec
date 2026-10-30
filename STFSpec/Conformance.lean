@@ -277,6 +277,9 @@ import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
 import STFSpec.Conformance.Block.TxParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
+import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
+import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
+
 /-!
 # STFSpec.Conformance
 

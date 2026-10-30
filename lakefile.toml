@@ -232,3 +232,8 @@ root = "DepositDataNativeTests"
 name = "requests-hash-native-tests"
 srcDir = "scripts"
 root = "RequestsHashNativeTests"
+
+[[lean_exe]]
+name = "kzg-versioned-hash-native-tests"
+root = "KzgVersionedHashNativeTests"
+srcDir = "scripts"
