@@ -66,7 +66,7 @@ def fixtures():
     changed[0], changed[1] = changed[1], changed[0]
     yield "case-order", encode(changed), False
     yield "null-versus-empty", change(0, "result", None), False
-    # Single-byte change at the last byte of a complete 256-byte header.
+    # Single-byte change at the last byte of case 47's final (four-byte) header.
     changed = copy.deepcopy(rows)
     value = changed[47]["result"][-1]
     changed[47]["result"][-1] = value[:-2] + ("00" if value[-2:] != "00" else "01")
