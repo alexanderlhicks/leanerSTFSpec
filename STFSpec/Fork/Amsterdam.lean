@@ -2,18 +2,27 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Block.TxParams
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Limits
 
 /-!
-# Amsterdam VM pricing and limits
+# Amsterdam transaction parameters, VM pricing and limits
 
-Library `EthFork`. Complete fixed values for the Core-owned raw records, in
-pinned EELS dependency order. Raw policy fields remain independent in Core.
+Library `EthFork`. Complete fixed values for the Block- and Core-owned raw records, in
+pinned EELS dependency order. Raw policy fields remain independent in their owning modules.
 Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 -/
 
 namespace STFSpec.Fork.Amsterdam
+
+/-- Amsterdam transaction parameters; EELS
+`src/ethereum/forks/amsterdam/transactions.py:64,74,82` at the pin.
+The floor fields are token counts, separate from VM gas prices. -/
+def txParams : Block.TxParams where
+  blobCountLimit := 6
+  accessListAddressFloorTokens := 80
+  accessListStorageKeyFloorTokens := 128
 
 /-- Complete Amsterdam execution and precompile pricing; EELS
 `src/ethereum/forks/amsterdam/vm/gas.py:78–259`,
