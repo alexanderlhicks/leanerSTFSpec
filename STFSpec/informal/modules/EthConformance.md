@@ -105,6 +105,11 @@ interpreted/native producer and independent mathematical parser controls are own
 by EthVmRunner §3/§4/§7. They are imported through the Conformance facade; they make
 no original-source budget execution or guest/EEST claim.
 
+The nominal execution entry-kind carrier's private public-facade constructor,
+exhaustive/dependent elimination, branch and ordered disjointness clients are owned
+by EthVmRunner §3/§4/§7 and imported through the Conformance facade. They establish
+only the specified carrier shape, with no `Exec` relation or guest/EEST claim.
+
 ## 4. Tests
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
