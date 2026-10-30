@@ -44,8 +44,8 @@ private def observe : FrameError → String × Option UInt8 × Option String
 #guard observe (.halt .addressCollision) == ("halt.addressCollision", none, none)
 #guard observe (.halt .kzgProofError) == ("halt.kzgProofError", none, none)
 
-#guard (List.range 256).map (fun n => observe (.halt (.invalidOpcode n.toUInt8))) ==
-  (List.range 256).map (fun n => ("halt.invalidOpcode", some n.toUInt8, none))
+#guard (List.range 256).map (fun n ↦ observe (.halt (.invalidOpcode n.toUInt8))) ==
+  (List.range 256).map (fun n ↦ ("halt.invalidOpcode", some n.toUInt8, none))
 
 #guard observe (.halt (.precompileHalt "")) == ("halt.precompileHalt", none, some "")
 #guard observe (.halt (.precompileHalt "a\x00b")) ==
