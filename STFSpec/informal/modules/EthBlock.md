@@ -364,6 +364,22 @@ reads the current module global (`:653–659`). Future consumer/source correspon
 must bind those original globals and dependency interpretation; constructing this
 record implements neither admission nor intrinsic costing.
 
+### Supplied raw system addresses and budgets
+
+`STFSpec.Block.SystemAddrs` is exported through `STFSpec.Block`, with the exact
+§5 order: eight independent `EthBase` `Address` fields followed by two independent
+`Nat` fields. This is the guided runtime parameter abstraction; EELS has no
+corresponding record. EthFork retains R-F2 source-constant and concrete-value
+ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
+
+Concrete Amsterdam values, actual system-call/request consumers, configuration
+coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
+neither where the system caller is supplied to VM execution nor any additional
+context or helper signature; the system-address ownership question is unchanged.
 
 ### Implemented fixed deposit extraction
 
@@ -459,23 +475,6 @@ and array traversal; they establish no compiled uniqueness, allocation-volume,
 peak-space, source-host failure, timing or C1–C4 claim. Receipt/header/BlockOutput
 integration, F20 coherence, full block execution and guest/EEST readiness remain
 separate obligations.
-
-### Supplied raw system addresses and budgets
-
-`STFSpec.Block.SystemAddrs` is exported through `STFSpec.Block`, with the exact
-§5 order: eight independent `EthBase` `Address` fields followed by two independent
-`Nat` fields. This is the guided runtime parameter abstraction; EELS has no
-corresponding record. EthFork retains R-F2 source-constant and concrete-value
-ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
-
-| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
-|---|---|---|---|
-| §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
-
-Concrete Amsterdam values, actual system-call/request consumers, configuration
-coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
-neither where the system caller is supplied to VM execution nor any additional
-context or helper signature; the system-address ownership question is unchanged.
 
 ## 4. Tests
 
