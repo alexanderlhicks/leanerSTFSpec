@@ -406,8 +406,9 @@ Python hashlib share OpenSSL; this supplies no independent cryptographic
 implementation claim. Both exact original-source observation projections are
 checked separately from their packet/interpreter/native-library authentication.
 Cases retain empty and repeated requests, reverse order, every singleton prefix,
-unknown prefixes, split-boundary contrasts, inner lengths 55–65 and outer count
-256. These are finite observations, not a universal host/source equivalence proof.
+unknown prefixes, split-boundary contrasts, inner lengths at the 55/56 and 64 SHA-256
+padding boundaries and outer count 256. These are finite observations, not a universal
+host/source equivalence proof.
 
 The private packed builder reserves `32 * requests.length` and emits all 32 bytes
 of each inner digest through public byte folds. Its ordinary equality identifies
@@ -445,7 +446,7 @@ These are future consumer checks; the guidance clarification claims no new confo
   - `checkGasLimit` at `parent ± parent/1024` exactly (both rejected).
   - Bloom: the EIP known-answer vector for one log.
   - `HashConsts.query` at `Id`: `emptyOmmerHash = 1dcc4de8…9347`.
-  - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner SHA padding lengths 55–65 and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
+  - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner lengths at the 55/56 and 64 SHA-256 padding boundaries and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
   - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
   - `validateBlockAccessListGasLimit` at the limit and one past it.
