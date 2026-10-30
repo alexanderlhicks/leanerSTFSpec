@@ -970,19 +970,22 @@ For payload conversion, `Array PublicKey` erases each subtype to its ByteArray f
 supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero with
 ordinary observer equations and four directly delegating operator instances. Generic
 private facade clients compose those laws for range, both zero-recognition directions,
-signed subtraction/negation and cancellation, for every p>1 and arbitrary unread metadata.
-Consumers use observers and public laws. The eight exact natural moduli are separately
-supplied by EthField §3, without instances, aliases, square-root metadata or backend
-parameters. Composite residue arithmetic and literal modulus values supply no field
-structure or primality fact. The separate natural-reference power leaf supplies
-`pow`, `toNat_pow` and direct natural-exponent notation for all canonical bases and
-Nat exponents, including composite/nonunit cases and zero-to-zero. Private facade
-clients derive range, zero/one, square/product/exponent-add/iterated-power laws using
-public observations alone, with arbitrary unread metadata. The positive-modulus
-private worker chooses no public powMod-zero completion. Runtime Montgomery
-aliases/D6, inverse/sqrt/encoding, public powMod,
-concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
-this reference seam supplies no production performance or guest-readiness result.
+signed subtraction/negation and cancellation, for every p>1 and arbitrary unread
+metadata. Consumers use observers and public laws. The eight exact natural moduli are
+separately supplied by EthField §3, without instances, aliases, square-root metadata or
+backend parameters. Composite residue arithmetic and literal modulus values supply no
+field structure or primality fact. The separate natural-reference power leaf supplies
+`pow`, `toNat_pow` and direct natural-exponent notation for all canonical bases and Nat
+exponents, including composite/nonunit cases and zero-to-zero. Private facade clients
+derive range, zero/one, square/product/exponent-add/iterated-power laws using public
+observations alone, with arbitrary unread metadata. The positive-modulus private worker
+chooses no public powMod-zero completion. The separate canonical-sign leaf supplies
+sgn0/sgn0_eq; private facade clients derive true/false, zero/one, reducing-constructor
+parity and metadata irrelevance through equal natural observations, for every p>1. This
+reference premise supplies no Fp2, sqrt or negation-sign law. Runtime Montgomery
+aliases/D6, inverse/sqrt/encoding, public powMod, concrete fields/towers/Mathlib bridges
+and actual curve/precompile composition remain open; this reference seam supplies no
+production performance or guest-readiness result.
 
 ## 3. Inductive state invariant
 

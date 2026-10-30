@@ -170,12 +170,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
   operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
   observer laws and four delegating operator instances, plus natural pow/toNat_pow and
-  its delegating HPow instance; private controls and clients cover those slices. The
-  eight exact R1 natural moduli are supplied separately; concrete-field
-  instances/aliases, convenience aliases, bytes, powMod, inverse, Euler/sqrt, towers,
-  executable PrimeField/Montgomery and their bridges remain unimplemented. No D6 source
-  choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
-  precompile, signature, guest or EEST readiness claim follows.
+  its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
+  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
+  concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
+  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
+  unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
