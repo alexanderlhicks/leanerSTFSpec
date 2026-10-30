@@ -10,6 +10,7 @@ import STFSpec.Field.Reference
 Prime fields and extension towers for the precompiles.
 
 Library `EthField`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). The canonical natural reference carrier is supplied; arithmetic and towers remain open.
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The canonical natural reference carrier is
+supplied; arithmetic and towers remain open.
 Spec guidance: `STFSpec/informal/modules/EthField.md`.
 -/
