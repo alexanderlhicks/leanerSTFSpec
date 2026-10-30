@@ -145,11 +145,11 @@ record types and `STACK_DEPTH_LIMIT`; these rows record their Amsterdam instanti
 
 All paths in the controls column are under `STFSpec/Conformance/Fork/`.
 `amsterdam_vm_catalogue.json` contains the complete ordered field/type/literal
-catalogue and source references. Its provenance hashes bind this compact projection
-to the independent catalogue frozen before source execution and to its full
-provider catalogue and sealed acquisition packet at the pin. That acquisition
-observed the unchanged original providers in normal and optimized Python; its
-470 source/provider crosschecks supply bounded source input, not a Lean verdict.
+catalogue; 137 rows carry a pinned source file/line and the remaining 14 a source
+description. Its `provenance` block records SHA-256 digests of the out-of-tree
+acquisition material (an independent catalogue and a full provider catalogue taken
+from the unchanged pinned providers) for traceability only: that material is not in
+this repository, and no in-tree check compares the catalogue with pinned EELS.
 The checked-in reader `amsterdam_vm_values.py` imports no EELS and recomputes no
 source oracle. It compares complete native output from
 `scripts/AmsterdamVmNativeTests.lean`, including direct records and the actual
@@ -281,6 +281,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
 - **Transition fixtures** `for_bpo2toamsterdamattime15k`: pre-fork blocks are bpo2, which is not instantiated (D3). Their `blockchain_tests` form cannot be run in full by `EthConformance`, and the runnable subset is unlisted. The parent-header fallback decodes a bpo2 header as a bpo5 `PrevHeader`; the shapes are assumed identical [I, not checked for bpo2].
 - **R-F4 stored VM values are supplied:** §3 owns the exact bounded implementation, `rfl` depth law and complete literal/native/parser controls. Remaining BlockConfig values, precompile table, state amount-provider observations, module-derived blob maximum placement, actual FrameCtx/consumer coherence, behavioural termination and guest/EEST/resource/cost gates stay open.
-- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule.
+- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule. The acquisition tooling is outside this repository and has no `--check` mode; promoting a catalogue-versus-pinned-EELS check to `scripts/` and CI is outstanding.
 - The **minimum transaction encoding size** needed for law 3 is not established.
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
