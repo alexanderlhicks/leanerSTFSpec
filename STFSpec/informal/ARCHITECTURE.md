@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-10-29). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-30). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -755,7 +755,8 @@ schema admission; a uint256 actual-count cap would further couple the relation
 to source backing representation. The chosen raw mathematical meaning keeps
 those consumer premises separate. WT⇒WF is deliberately false. Constructor/
 backing counts (including recursive sites), offsets/scope/cache, positive-width
-inverse recovery and codec/root domains remain local/open. Q67/Q70 stay unchanged.
+inverse recovery uses the separate Q87 premise; its theorem/decoder and actual
+codec/root bridges remain open. Q67/Q70 stay unchanged.
 
 **Raw SSZ packing visibility options (Q72).** DECISIONS Q72 owns the approved
 exported-helper disposition; EthCodec §5/§7 owns the exact operation and one
@@ -926,6 +927,24 @@ outside-domain result/error policies; no such policy is selected. All private
 support/clients/controls remain private. Existing raw contracts and the private
 output consumer are unchanged. Actual instance/source/decoder/guest bridges and
 resource/security/cost/readiness gates remain separate.
+
+**SSZ inverse-domain options (Q87).** DECISIONS Q87 owns the local actual-value
+selection; EthCodec §5/§7 owns exactly the predicate and complete constructor iff.
+An immediate fixed-zero list child prevents recovery even for an empty list or
+limit 0; direct zero-byte vectors and fixed products remain eligible. Empty outer
+variable-child lists visit no child values, so unused nested zero-child or malformed
+schemas add no obligation. A stronger schema-wide sufficient premise would inspect
+all nested descriptors and reject those otherwise eligible empty outer values. It
+can be a private convenience lemma for a concrete schema, without a new public seam.
+A blanket positive-fixed-width requirement would additionally exclude direct zero-byte
+products that need no list count recovery. WF/WT, a final-size bound or re-encoding
+alone cannot restore counts lost by forward fixed-zero concatenation. An inverse on
+all Serializable values is therefore unavailable; Q80's forward support stays intact.
+The selected premise is sufficient proposed inverse support, with no maximality or
+minimality claim. Its complete logical law is supplied, while the future inverse
+law, raw decoder completion, diagnostics and source/guest/resource/security/cost
+bridges remain separate. Source nonempty-variable-list `uint32(scope)` bounds are
+local invocation premises, distinct from Q80's representable emitted starts.
 
 ## 12. Not yet decided
 

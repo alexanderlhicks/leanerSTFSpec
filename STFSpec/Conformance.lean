@@ -10,11 +10,17 @@ import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerGuards
+import STFSpec.Conformance.Field.ReferenceSignCallerProofs
+import STFSpec.Conformance.Field.ReferenceSignGuards
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
+import STFSpec.Conformance.Block.BlockParamsCallerProofs
+import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
 import STFSpec.Conformance.Vm.Core.PreparationFailureGasCallerProofs
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationGuards
@@ -94,6 +100,8 @@ import STFSpec.Conformance.Codec.SszEncodeControls
 import STFSpec.Conformance.Codec.SszEncodeCallerProofs
 import STFSpec.Conformance.Codec.SszSchemaCallerProofs
 import STFSpec.Conformance.Codec.SszSchemaControls
+import STFSpec.Conformance.Codec.SszCountRecoverableControls
+import STFSpec.Conformance.Codec.SszCountRecoverableCallerProofs
 import STFSpec.Conformance.Codec.SszWellTypedControls
 import STFSpec.Conformance.Codec.SszWellTypedCallerProofs
 import STFSpec.Conformance.Codec.SszWellFormedControls
@@ -265,6 +273,8 @@ import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
+import STFSpec.Conformance.Block.LogsBloomCallerProofs
+import STFSpec.Conformance.Block.LogsBloomGuards
 import STFSpec.Conformance.Block.RequestsHashCallerProofs
 import STFSpec.Conformance.Block.RequestsHashGuards
 import STFSpec.Conformance.Block.DepositDataCallerProofs
@@ -275,6 +285,7 @@ import STFSpec.Conformance.Block.CalldataTokensGuards
 import STFSpec.Conformance.Fork.AmsterdamVmGuards
 import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
 import STFSpec.Conformance.Block.TxParamsCallerProofs
+import STFSpec.Conformance.Block.SystemAddrsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs

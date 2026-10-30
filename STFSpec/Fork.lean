@@ -10,7 +10,7 @@ import STFSpec.Fork.Amsterdam
 Fork composition: Amsterdam parameter records, changed-behaviour fork modules, and the precompile table.
 
 Library `EthFork`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). Amsterdam transaction parameters,
+(see `STFSpec/informal/ARCHITECTURE.md` §3). Amsterdam block and transaction parameters,
 VM pricing and limits are supplied; remaining composition is open.
 Spec guidance: `STFSpec/informal/modules/EthFork.md`.
 -/
