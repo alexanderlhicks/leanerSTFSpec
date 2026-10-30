@@ -256,8 +256,8 @@ lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py
 ```
 
-The fixed-endian, log-rope and packed-keccak benchmarks are built and audited here; timing measurements
-remain manual.
+The fixed-endian, log-rope and packed-keccak benchmarks are built and audited here; timing
+measurements remain manual.
 The Taylor producer is built, audited and executed before its complete captured stdout
 is checked against the handwritten literals; source coupling is separate.
 
