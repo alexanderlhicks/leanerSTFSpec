@@ -1,6 +1,6 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `44cfcb54…be1a`), the pinned source, or by running pinned EELS on fixture inputs; **[I]** marks an inference.
@@ -102,6 +102,12 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 ## 4. Tests
 
+- **Mathematical State block-view controls.** EthState §3/§4/§7.2 owns the
+  two declarations and complete private clients/guards imported by EthConformance.
+  Independent numerical/list models retain full account/storage/code payloads,
+  present-empty inners, every key byte, arbitrary metadata/unused fields and retained
+  parents/siblings. Full interpreted/native comparisons establish finite mathematical
+  composition, without an original Python view operation, EEST, witness or cost claim.
 - **Raw State extraction controls (Q85).** EthState §3/§4/§7 owns the operation, seven laws and bounded complete-value corpus. Private facade clients and all-private guards are imported by EthConformance; numerical/list expectations retain every field, byte, optional tag and malformed metadata occurrence. Interpreted/native comparison supplies local functional evidence, without executing EEST, an original EELS malformed-index runtime, a tracker or backend.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.

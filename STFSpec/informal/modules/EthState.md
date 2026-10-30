@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58, Q84, Q85.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
@@ -204,6 +204,24 @@ their raw next/forward fields through the existing observer; full index retentio
 is not claimed. Q58's structural premises and full-WF/history/F7 obligations remain
 separate. No application equality supplies witness failure/observation agreement.
 
+### Implemented mathematical block view
+
+`State/BlockView.lean`, exported by State, composes the two existing public
+operations exactly; it adds no new source runtime function or domain policy.
+
+| Source/model support at the pin | Lean declaration and domain | Value/effects and ordered failures | Law and deterministic validation |
+|---|---|---|---|
+| Mathematical composition of `src/ethereum/forks/amsterdam/state_tracker.py:880–900`, `src/ethereum/state.py:66–89`, and `src/ethereum/state_mpt.py:133–161`; no standalone Python view function | `BlockState.view {m : Type → Type} (σ₀ : MathState) (b : BlockState m) : MathState` | Every finite raw state and block carrier, without class, WF or history premise. Exactly `σ₀.apply (extractBlockDiff b)`; no provider action, constants acquisition, hashing, normalization or failure. | **Discharged for this slice:** ordinary `BlockState.apply_extractBlockDiff` (§7.2). Private facade clients derive the complete application result, all three raw-field and observer equations, arbitrary metadata/unused-field independence and the contravariant class-free signature. `BlockViewGuards.lean` supplies independent complete numerical/list controls (§4). |
+
+The view inherits raw mathematical application's deletion, clear-before-write,
+zero-erasure, touched-empty pruning and code replacement behavior. Replay metadata
+is forgotten by apply; malformed/missing/present-empty/extra Q85 metadata remains an
+admitted input. Mathematical equality supplies no witness failure/observation or
+mutable-alias agreement. S1/S2/W1, full WF/history, F7, actual tracker/lifecycle and
+resource/readiness gates remain open. Static source reading grounds composition;
+interpreted and freshly compiled native controls compare mathematical models,
+without original-source numerical or EEST execution.
+
 ### Implemented internal order support
 
 `STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
@@ -335,6 +353,19 @@ production provider, progress, root/authentication, resource or release result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented mathematical block-view cases:** private `BlockViewCallerProofs.lean`
+  clients use only the public view equation, seven extraction laws and public
+  application/observer laws. `BlockViewGuards.lean` compares 1,598 complete framed
+  observations from 94 independent numerical/list recipes. Cases cover deletion
+  without clear, clear/rewrite, orphan/zero/empty patches, untouched empty/zero
+  maps, reserved and empty code, every 20/32-byte key position, huge nonce/counter/
+  offset, reconstructed keys and insertion permutations. Independent changes to
+  provider/constants/read sets/offset and all three metadata fields leave the
+  result equal; retained parents and effect-changing siblings keep complete maps.
+  Complete raw map framing retains absent versus present-empty storage and all
+  payload bytes. Interpreted/native and independent external full-output comparisons
+  are mathematical composition controls, without an original Python view oracle,
+  source runtime, replay/failure-order, EEST or cost claim.
 - **Implemented extraction cases (Q85):** all tests are private. `BlockExtractionCallerProofs.lean` consumes only the seven laws, `BlockDiff.ext`, public Std/order laws and `MathState.apply_congr_effects`: exact class-free/contravariant signature, complete reconstruction, optional lookup, arbitrary discarded-field independence and ordered-observer congruence. `BlockExtractionGuards.lean` compares 1,560 complete framed actual/expected observations from 120 numerical/list recipes: the nine raw order examples independently at each index, six absent/present-empty/extra slot-map cases, all 20/32-byte positions, full code bytes, huge nonce/counter, tombstones/zero/empty patches, insertion permutations, retained parents/siblings and independent provider/constants/read-set/offset variations. Every seven-field observation includes full payloads; separate optional tags distinguish none from some []. Seven field-omission sensitivity controls check the observer. Interpreted/generated-C native full-output comparison is bounded functional evidence, with no EELS malformed-index runtime, tracker/backend/EEST, resource or cost claim.
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
@@ -421,7 +452,9 @@ MathState record and structural `WF` are also supplied. The raw PreState carrier
 coarse nominal WitnessItem/WitnessError values are supplied without a Monad premise.
 The nominal StateError carrier in §5/R29, raw four-field TxObs carrier and raw
 thirteen-field BlockState carrier are also supplied. BlockState.new and its explicit
-F20 new_consts law and raw extraction with its seven Q85 laws are supplied separately below; no tracker or adapter is supplied.
+F20 new_consts law and raw extraction with its seven Q85 laws are supplied separately below.
+The mathematical BlockState.view and its application equation are supplied (§3/§7.2);
+no tracker or adapter is supplied.
 The bounded structural predicate and preservation laws are supplied (§3/§7.4).
 MathState mutation, diff WF/history/reachable preservation, actual PreState providers/
 tracker operations remain unimplemented targets. The R8 lookup relation is supplied
@@ -587,7 +620,10 @@ def trackAncestorAccess (offset : Nat) : StateM m Unit
 def getWitnessAncestors (headers : List ByteArray) (offset : Option Nat) : List ByteArray
 
 -- model views (public, for laws)
-def BlockState.view (σ₀ : MathState) (b : BlockState m) : MathState   -- σ₀.apply (extractBlockDiff b)
+def BlockState.view {m : Type → Type} (σ₀ : MathState) (b : BlockState m) : MathState
+  -- exactly σ₀.apply (extractBlockDiff b), supplied without a class premise
+theorem BlockState.apply_extractBlockDiff {m : Type → Type}
+    (σ₀ : MathState) (b : BlockState m) : σ₀.apply (extractBlockDiff b) = b.view σ₀
 def TxState.view (σ₀ : MathState) (t : TxState m) : MathState         -- (b.view σ₀).apply t.rev.asDiff
 def TxState.originalAt (σ₀) (t) (a) (k) : U256
 def TxRevertible.asDiff (r : TxRevertible) : BlockDiff               -- internal
@@ -689,7 +725,8 @@ Forward-only entries remain invisible under the existing observer, rather than
 being reconstructed. Full raw indexes are not preserved. Provider functions,
 constants, three read sets and the ancestor offset are discarded independently.
 Whole-result, optional lookup, congruence, application and independence clients
-stay private; no extra public helper, view, WF or history interface is supplied.
+stay private. Raw extraction adds no extra helper, view, WF or history interface;
+the separate mathematical block view is supplied in §3/§7.2.
 Full optional-map WF is still open under Q58; Q85 selects only raw extraction.
 
 **Account value seam.** (R1–R3)
@@ -819,7 +856,10 @@ that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
 - **Snapshot/revert:** `restoreTxState (copyTxState t)` after any sequence returns `rev` to exactly `t.rev`; observations are **monotone** across it (`t.obs ⊆ t'.obs` componentwise) and `createdAccounts` is kept; `block.oldestAncestorOffset` is kept.
 - **Split invisibility:** for every EELS operation, projecting (`rev`, `obs`, `block`) back to an EELS `TransactionState` gives the EELS result [R].
 - **Lifecycle:** `(incorporateTxIntoBlock t).1.view σ₀ = t.view σ₀` (the transaction view becomes the block view); transient storage and `createdAccounts` are empty in the returned transaction state; block read sets are the unions. This rests on `(σ.apply d₁).apply d₂ = σ.apply (d₁.merge d₂)`.
-- **Diff law:** `σ₀.apply (extractBlockDiff b) = b.view σ₀` (definitional) and `BlockDiff.WF σ₀ (extractBlockDiff b)` (§7.4).
+- **Diff law:** `BlockState.apply_extractBlockDiff` discharges exactly
+  `σ₀.apply (extractBlockDiff b) = b.view σ₀` definitionally, for every raw σ₀/b
+  and arbitrary m without class premises. The separate
+  `BlockDiff.WF σ₀ (extractBlockDiff b)` target remains open (§7.4).
 - **Observation laws for the BAL and witness:** every `(a,k)` whose pending transaction write is dropped by `destroyStorage` is in `storageReads` from then on (write→read conversion; a write dropped by `restoreTxState` leaves no read, R24); every account written through `modifyState` was read in the same transaction.
 
 ### 7.3 Pre-state contract obligations
@@ -904,6 +944,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Internal support supplied:** `WriteOrder` and its component laws (§7.5); actual Address/Bytes32 clients use EthBase's lawful comparison and byte inverse seams. Future consumers preserve WF and Agrees together and use ordered State observers; no external overlay seam is supplied by this component.
 - **Depends on:** `EthBase`
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
+- **Mathematical block view supplied:** the view and its exact application equation
+  compose existing public operations on every raw input (§3/§7.2). Complete private
+  public-law clients and finite model controls add no tracker/WF/history/replay,
+  provider/progress, D5/F20 or resource/readiness guarantee.
 - **Raw extraction supplied (Q85):** the class-free operation and seven complete equations are in §3/§7; full ordered-write integration/WF/history remains separate.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
 - **Constants context (F20).** `BlockState.new` preserves the supplied record: `(BlockState.new ps consts).consts = consts`. State operations read it through their existing `TxState`/`BlockState` context; they receive no parallel constants argument. Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their necessary data parameter and EELS-named local notation. The constructor equality is supplied as BlockState.new_consts, for arbitrary m and
@@ -934,6 +978,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - F20: initialization supplies only the explicit new_consts law; a broader stable
   consumer-law basis requires a named consumer and separate contract review. Acquisition,
   coherence and preservation through future contexts/operations remain open.
+- Mathematical BlockState.view follows the existing §5/§7.2 composition; its
+  supplied equation selects no new domain or policy. Full WF/history and operational
+  witness agreement remain separate.
 - Q85: raw extraction follows the §7 direct observer/domain-preserving equations; the disposition is owned by DECISIONS. Full WF, history and F7 remain separate.
 - Q58: the bounded structural predicate and laws in §7.4; full optional slot-order-map policy, replay history and reachability remain open.
 
@@ -945,7 +992,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
   bounded structural preservation, supplied-record ModelsLookups and the raw
   four-field TxObs and thirteen-field BlockState carriers, plus block initialization
-  and its explicit F20 new_consts law, plus raw extraction and its seven Q85 laws, are supplied
+  and its explicit F20 new_consts law, raw extraction and its seven Q85 laws,
+  and the mathematical BlockState.view with its exact application equation are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,

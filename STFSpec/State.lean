@@ -14,6 +14,7 @@ import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.BlockInitialization
 import STFSpec.State.BlockExtraction
+import STFSpec.State.BlockView
 import STFSpec.State.ModelsLookups
 
 /-!
@@ -29,6 +30,7 @@ support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values and the nominal
 StateError, raw TxObs and raw BlockState carriers, block initialization with its F20 law,
 raw block-diff extraction with seven complete field equations,
+the mathematical block view with its ordinary application equation,
 bounded structural preservation and
 supplied-record success-only `ModelsLookups`.
 Lookup providers, model mutation, combined transaction state, tracker effects and lifecycle laws

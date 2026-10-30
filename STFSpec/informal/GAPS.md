@@ -421,7 +421,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
   bounded structural preservation, supplied-record ModelsLookups and the raw
   four-field TxObs and thirteen-field BlockState carriers, plus block initialization
-  and its explicit F20 new_consts law, plus raw extraction and its seven Q85 laws, are supplied
+  and its explicit F20 new_consts law, raw extraction and its seven Q85 laws,
+  and the mathematical BlockState.view with its exact application equation are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
