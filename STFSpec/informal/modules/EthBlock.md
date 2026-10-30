@@ -265,7 +265,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/requests.py::AMOUNT_SIZE` | 153 | `DepositLayout.amountSize` | 8 |
 | `forks/amsterdam/requests.py::SIGNATURE_SIZE` | 158 | `DepositLayout.signatureSize` | 96 |
 | `forks/amsterdam/requests.py::INDEX_SIZE` | 163 | `DepositLayout.indexSize` | 8 |
-| `forks/amsterdam/requests.py::extract_deposit_data` | 170 | `extractDepositData` | 11 checks, R-RQ |
+| `forks/amsterdam/requests.py::extract_deposit_data` | 170–271 | `extractDepositData : ByteArray → Except DepositError ByteArray` | Supplied on every finite input; eleven ordered checks, R-RQ; complete result/size laws below |
 | `forks/amsterdam/requests.py::parse_deposit_requests` | 274 | `parseDepositRequests` | reads receipts, not a log list |
 | `forks/amsterdam/requests.py::compute_requests_hash` | 307 | `computeRequestsHash` | SHA-256 of SHA-256s |
 | `forks/amsterdam/block_access_lists.py::StorageChange` | 34 | `StorageChange` |  |
@@ -364,6 +364,34 @@ reads the current module global (`:653–659`). Future consumer/source correspon
 must bind those original globals and dependency interpretation; constructing this
 record implements neither admission nor intrinsic costing.
 
+
+### Implemented fixed deposit extraction
+
+| EELS operation/domain | Lean definition | Ordinary laws | Tests / limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` admits exact full bytes and tags; optional original-source packet coupling checks the exact eleven `InvalidBlock` messages/class/args. `scripts/test_deposit_data_output_parser.py` checks malformed framing/keys/types, every successful output byte position and wrong error identities/messages in normal and optimized Python. The catalog includes pinned `test_modified_contract.py`'s default 576-byte log, independently matched to the pinned fixture's literal emitter, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
+
+The standalone helper supplies the existing R-RQ extraction only. Its constants
+are local literals, not a new `DepositLayout` public API. The readable definition
+uses public packed slices and unbounded Uint reads directly; no separate fast path,
+representation substitution or additional public helper is introduced. Each word
+window has at most 32 bytes, and each assembled output buffer has at most
+192 bytes; these per-buffer bounds make no total allocation-volume claim. The independently sealed
+source observations retain interpreter/installed-RECORD/native-library/host trust
+limits; the committed parser checks their observation projection, not the seal.
+
+The frozen catalog identity is SHA-256
+`1d1388e3d29c39e373fbcb7c423e744d3badfd97de7facb5e4593c571c717b85`.
+Its `pinned_test_default_log` is the complete default log in EELS
+`tests/prague/eip6110_deposits/test_modified_contract.py:48–75`, emitted at
+`:142–155`. Independent literal PUSH/MSTORE/LOG inspection matched every byte to
+fixture member
+`fixtures/blockchain_tests/for_amsterdam/prague/eip6110_deposits/modified_contract/extra_logs.json`
+(SHA-256 `eb0633cedf46233f7e577721f85f18b676fbcd29a1a000aa145cace5ca0d57a8`),
+test `test_extra_logs` with `include_deposit_event_True` and
+`extra_event_type_no_topics`. The original helper was called on that exact payload;
+the inspection did not execute the fixture transaction or EVM.
+
 ## 4. Tests
 
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
@@ -392,7 +420,7 @@ These are future consumer checks; the guidance clarification claims no new confo
   - Bloom: the EIP known-answer vector for one log.
   - `HashConsts.query` at `Id`: `emptyOmmerHash = 1dcc4de8…9347`.
   - `computeRequestsHash []` = `sha256 ""`.
-  - `extractDepositData`: a real 576-byte event, and each of the 11 corruptions.
+  - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
   - `validateBlockAccessListGasLimit` at the limit and one past it.
   - Signing hashes against EEST transaction vectors.
@@ -629,6 +657,14 @@ The implementation uses the public Base packed fold; references, zero counting
 and derived clients are private. No transaction/configuration/error carrier is
 introduced by this helper.
 
+**Supplied deposit laws.** `extractDepositData_eq data` states the entire ordered
+result on every finite byte array: length 576 first; five complete 32-byte BE
+offsets 160/256/320/384/512; then sizes 48/32/8/96/8; then the concatenated
+windows `[192:240]`, `[288:320]`, `[352:360]`, `[416:512]`, `[544:552]`.
+`size_extractDepositData data result h` concludes `result.size = 192` when
+`h : extractDepositData data = .ok result`. No carrier instances or convenience
+API are supplied; private clients use the public laws.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
@@ -653,6 +689,8 @@ TxParams law package or global configuration predicate is supplied.
 Per operation (model-based, D25):
 
 - **Calldata tokens (supplied).** `countTokensInData_eq` gives the complete zeros + 4·(size − zeros) equation on every finite `ByteArray`. The private ordinary packed/reference equality relates a linear packed weighted fold to a structural list reference; the reference formula identifies the exact source expression. Filter length ≤ input length discharges the source `Uint` subtraction, and `Nat` preserves its unbounded result. Private public-law clients establish empty = 0, concatenation additivity and size ≤ tokens ≤ 4·size. This helper's zero-sensitive token count does not change the separate all-bytes calldata-floor rule in R-IG. [R][T]
+
+- **Deposit extraction (supplied).** `extractDepositData_eq` preserves the first reached constructor among the eleven source guards and every successful output byte, without a domain premise. Full unbounded BE reads reject high-bit corruptions. All offsets are admitted before size checks, so fixed size/data windows equal the source's reached dynamic offsets. `size_extractDepositData` derives exact 192-byte output from success and the admitted 576-byte length using public slice/append/export laws. No ignored-padding or field-content check is added. Source intermediate slice allocation/failure and O12 host resources remain separate. [R][T]
 
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
@@ -725,7 +763,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented bounded scope:** only `countTokensInData` and its complete all-finite source-formula law are supplied (§3/§5/§7). The 266-case complete native/source comparisons supply finite coupling only; source/runtime authentication, host-resource guarantees, composed intrinsic gas/floor and the remaining block pipeline stay outside this slice. No readiness or resource gate closes.
+- **Implemented bounded scope:** `countTokensInData` and `extractDepositData`, with their complete all-finite result laws and the extraction success-size law, are supplied (§3/§5/§7). Their 266-case and 142-case complete native/source observations supply finite coupling only. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
