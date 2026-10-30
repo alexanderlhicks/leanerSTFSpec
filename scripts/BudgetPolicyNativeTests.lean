@@ -5,8 +5,13 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Conformance.Vm.Runner.BudgetGuards
 import Lean
 
-/-! Input-only complete raw-meter producer. Expected arithmetic lives in the independent
-Python model, never in this executable. Guidance: `EthVmRunner` §§3/4/7. -/
+/-!
+# Complete compiled budget-policy observations
+
+Library `EthConformance`. Input-only complete raw-meter producer; expected arithmetic
+lives in the independent Python model, never in this executable.
+Spec guidance: `STFSpec/informal/modules/EthVmRunner.md` §§3/4/7.
+-/
 
 open STFSpec.Vm.Core STFSpec.Vm.Runner Lean
 
