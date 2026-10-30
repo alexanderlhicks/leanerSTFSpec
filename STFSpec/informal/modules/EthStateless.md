@@ -128,7 +128,8 @@ known encoding (`tests/json_loader/test_stateless_guest.py:546–552`). The stri
 `output_differential.py` consumer and normal/`-O` parser regression controls check complete
 native output against `output_literals.json` (18 frozen cases and one sentinel).
 These bounded serializer checks do not run a guest or establish EEST
-outcomes; actual pinned-source coupling is a separate check.
+outcomes. No in-tree check replays the pinned EELS serializer; the frozen literals,
+including the known encoding above, are the source evidence.
 
 **`core` `#guard` cases.**
 - Typical: a minimal valid input (one parent header, empty block, empty witness DB except the root node) → `(root, true, 1, 0x1501)`; the expected root computed independently.
