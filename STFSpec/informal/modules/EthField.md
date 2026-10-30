@@ -1,6 +1,6 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
@@ -104,7 +104,7 @@ the KZG scalar-field type and its decoder.
 | `crypto/kzg.py::BLS_MODULUS` | 59 | `Bls12381.r` (supplied constant; convenience alias open) | equals `py_ecc` `curve_order` for BLS12-381; a `#guard` checks equality with `point_evaluation.py:28` |
 | `crypto/kzg.py::BLSFieldElement` | 42 | `Bls12381.Fr` | EELS subclasses `U256`; the spec uses the canonical field type, not a `U256` |
 | `crypto/kzg.py::BYTES_PER_FIELD_ELEMENT` | 57 | `Bls12381.Fr.byteWidth = 32` | |
-| `crypto/kzg.py::bytes_to_bls_field` | 96 | `Bls12381.Fr.ofBytesBE? : Bytes32 → Option Fr` | EELS `assert`s `< BLS_MODULUS`; the assertion becomes `none`, mapped by `EthPairing.verifyKzgProof` |
+| `crypto/kzg.py::bytes_to_bls_field` | 96–104 | `PrimeFieldRef.ofBytesBE?` (reference helper supplied; concrete alias/consumer adapter open) | Conditional on typed 32-byte inputs and active assertions; optimized source retains noncanonical values. See the checked-reference slice below. |
 
 **External semantics.** This library must specify, as ordinary total Lean definitions:
 
@@ -160,7 +160,7 @@ separate five-operation arithmetic slice that follows. The class has exactly
 including 2, even composites and odd composites. Metadata is unread by this slice;
 its presence does not assert that an exponent is correct. The structure uses the literal
 private constructor; `val`/`isLt` projections remain internal by convention, not hidden.
-Consumers use the thirteen observer laws in §7.
+Consumers use the fourteen observer laws in §7.
 
 The dependency references below are py-ecc 8.0.0 at the lock pinned by `reference.toml`.
 These synthetic parameter-class comparisons execute original optimized `FQ` methods;
@@ -281,6 +281,37 @@ under a `toNat` equality premise; they never equate those carriers or inspect pr
 constructors, provider definitions or metadata. No algebra hierarchy or new instance
 is added. The direct legible observer needs no alternate fast algorithm.
 
+### Supplied checked natural-reference byte decoder
+
+`STFSpec/Field/ReferenceDecode.lean`, reexported by `STFSpec.Field`, adds exactly
+`PrimeFieldRef.ofBytesBE?` and its complete ordinary success iff. The public input
+is `ByteArray`. Every finite length is admitted, with no width cap, reduction,
+exception, mutation or query. Every p>1, including 2, even and odd composites,
+and arbitrary unread square-root metadata is supported. The implementation composes
+existing public `Bytes.ofByteArray`, unbounded `Uint.ofBeBytes` and `PrimeFieldRef.ofNat?`.
+
+| Source / contract | Lean declaration and exact type (`{p : Nat} [FieldModulus p]`) | Domain, complete result and ordered failure | Ordinary law / controls / status |
+|---|---|---|---|
+| R2/R8/R10 mathematical helper; EELS `src/ethereum/crypto/kzg.py:96–104` conditionally on typed 32-byte, assertion-active inputs; `src/ethereum/forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py:426–454` conditionally on exactly 64 bytes | `PrimeFieldRef.ofBytesBE? (b : ByteArray) : Option (PrimeFieldRef p)` | Interpret all bytes as a big-endian Nat n, then accept precisely n<p as `some` with original n; otherwise `none`; no consumer length guard or outcome adapter | `ofBytesBE?_eq_some_iff`; all-input ordinary proof and complete finite controls; **discharged** |
+| R2/R8/R10 / §5 reference observer API | `PrimeFieldRef.ofBytesBE?_eq_some_iff (b) (a)` | `ofBytesBE? b = some a ↔ Uint.ofBeBytes (Bytes.ofByteArray b) < p ∧ a.toNat = Uint.ofBeBytes (Bytes.ofByteArray b)` (Base-qualified providers) | Ordinary iff, without a primality/width/metadata premise; **discharged** |
+
+There is no original unbounded all-width field helper: generic checked semantics are
+mathematical support. Normal KZG asserts range before the original U256-derived
+BLSFieldElement constructor; optimized execution omits that assertion and returns four
+noncanonical values in the finite corpus. Only admitted-value agreement is claimed
+for optimized KZG, with all four actual differences retained. BLS first rejects lengths
+other than 64, then decodes, then checks range before FQ construction. A wrong-width
+zero may therefore be accepted by this generic helper while rejected by the original
+consumer. The exact-width premises, original exception payloads and first consuming
+handler/outcome mapping remain consumer-owned; no new guest fault or O row is supplied.
+
+Private facade-only `ReferenceDecodeCallerProofs.lean` derives complete rejection iff,
+successful original-value/range, equality for identical positional Nats, empty/all-zero
+canonical zero, leading-zero preservation and metadata irrelevance of `Option.map toNat`.
+Clients use public laws without unfolding foreign semantic definitions or inspecting
+carrier projections. Differently parameterized carriers are never equated. Encoding,
+paired roundtrip/size and undersized-width behavior remain open.
+
 ## 4. Tests
 
 Private facade-only `ModuliCallerProofs.lean` checks all eight exact `Nat` types and
@@ -396,6 +427,35 @@ assumptions remain explicit: finite successful executions and the ordinary Lean
 law establish no universal Python host/resource completion, C1–C4 cost, actual
 curve/precompile composition, guest or EEST result.
 
+The checked-decoder slice adds private `ReferenceDecodeGuards.lean` literal controls
+and full facade-importing observations of the 762 independently frozen byte inputs,
+each under none, some 0 and some (2^4096+17) metadata (2,286 complete rows per mode).
+Interpreted and fresh native observations compare complete IDs/groups/p/bytes/labels,
+metadata and optional natural values against independent Horner and positional-sum
+strict-admission models. Controls distinguish BE/LE, p−1/p/p+1, zero/one, some zero/none,
+empty/leading zeros, asymmetric/reversed bytes and lengths 0/1/31/32/33/48/63/64/65/128/512,
+long zero versus overflow, actual BLS q/r boundaries and p=2/3/4/9/17.
+
+All 97 genuine original typed wrapper inputs (10 exact-32 KZG and 87 BLS byte inputs)
+are retained from all four authenticated source streams and four fresh unchanged-producer
+replays. The other 665 inputs are mathematical-only and claim no original helper calls.
+Normal KZG gives six successes and four empty-args AssertionErrors; optimized KZG gives
+ten unreduced successes, four noncanonical. Target admission agrees with normal KZG;
+optimized agreement is asserted only for n<p, and all four outside-domain differences
+remain explicit. BLS gives four successes and 83 InvalidParameters: 77 length failures
+precede decoding, and six of the ten 64-byte cases fail range. Full target/BLS comparison
+requires exactly 64 bytes. Wrong-width original results and exception payloads are retained.
+
+Source pin/blobs/modes, both locked dependency archives and static installed members,
+original loaded methods/fresh compilation/dispatch, runtime and source/venv preservation
+are authenticated. A fresh trust-zero warnings-fatal recursive provider/Field/client closure
+and generated C, objects, archive, link and execution receipts bind native observations.
+Strict external full-row parsing rejects malformed framing/schema/order/count, duplicate
+keys, floats/nonfinite numbers and Bool-as-Nat/byte/metadata/Option values in normal and
+optimized readers. These finite observations retain host bignum, loader/compiler/core
+primitive and source-domain premises; they prove no universal source-host completion,
+resource/cost/C1–C4, actual curve/precompile composition, guest or EEST claim.
+
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
   `cancun/eip4844_blobs` (the `point_evaluation_precompile*` files), `osaka/eip7951_p256verify_precompiles`,
@@ -453,6 +513,7 @@ def neg : PrimeFieldRef p → PrimeFieldRef p
 def isZero : PrimeFieldRef p → Bool
 def pow : PrimeFieldRef p → Nat → PrimeFieldRef p
 def sgn0 : PrimeFieldRef p → Bool  -- canonical toNat parity; ordinary sgn0_eq in §7
+def ofBytesBE? : ByteArray → Option (PrimeFieldRef p)  -- checked, any finite length
 instance : HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)  -- direct pow delegation
 instance : Add, Sub, Neg, Mul (PrimeFieldRef p)  -- direct named-operation delegation
 end PrimeFieldRef
@@ -608,7 +669,7 @@ Primality, square-root metadata and concrete-field/backend contracts remain open
 
 
 **Supplied reference-only laws (discharged).** In namespace `PrimeFieldRef`, with
-`{p : Nat} [FieldModulus p]`, exactly thirteen ordinary public laws are supplied:
+`{p : Nat} [FieldModulus p]`, exactly fourteen ordinary public laws are supplied:
 
 - `toNat_lt (a) : a.toNat < p`.
 - `toNat_ofNat (n) : (ofNat (p := p) n).toNat = n % p`.
@@ -623,6 +684,9 @@ Primality, square-root metadata and concrete-field/backend contracts remain open
 - `isZero_eq (a) : isZero a = decide (a.toNat = 0)`.
 - `toNat_pow (a) (e) : (pow a e).toNat = a.toNat ^ e % p`.
 - `sgn0_eq (a) : sgn0 a = decide (a.toNat % 2 = 1)`.
+- `ofBytesBE?_eq_some_iff (b) (a) : ofBytesBE? b = some a ↔
+  STFSpec.Base.Uint.ofBeBytes (STFSpec.Base.Bytes.ofByteArray b) < p ∧
+  a.toNat = STFSpec.Base.Uint.ofBeBytes (STFSpec.Base.Bytes.ofByteArray b)`.
 
 These require only `1 < p`, retain arbitrary metadata and have no global simp attributes.
 Range follows canonical construction; reduction is remainder; checked admission branches
@@ -633,7 +697,9 @@ Canonical bounds make subtraction/negation agree with signed modular arithmetic.
 Boolean equation determines both outcomes. Binary halving plus modular multiplication proves the power equation on every Nat exponent;
 its canonical construction gives range and `0^0 = one`. The canonical sign equation
 directly decides oddness of the observation; it does not read metadata. These results
-assert no field for composites or sign-change-under-negation law.
+assert no field for composites or sign-change-under-negation law. Composing the public
+byte ingress/unbounded decoder with checked construction gives the complete decoder iff;
+its private consequences require no width or metadata hypothesis.
 
 **Remaining contracts (unimplemented for the executable `PrimeField` API).** Per operation, the commuting equation with the `Nat` model (core) — stated once, proved once per
 representation:
@@ -671,7 +737,7 @@ the ring structure, never the `val` field.
 **Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. Inversion splits zero from nonzero; Fermat/Euclid supplies the nonzero inverse only under primality. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
 
 **Open obligations.** The reference carrier, basic residue arithmetic, natural powers
-  and canonical sign above are discharged;
+  canonical sign and checked byte decoding above are discharged;
   inverse/Euler/sqrt, public powMod, encoding and executable-reference bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain required. The Montgomery implementation must prove these same observer equations relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
@@ -681,8 +747,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthBase`
 - **Used by:** `EthCurve` directly; `EthPairing` and `EthPrecompiles` transitively (MODEXP uses
   `powMod`; KZG decoders use `Bls12381.Fr.ofBytesBE?`). `EthFieldMathlib` (Mathlib bridge package).
-- **Seams.** Consumes from `EthBase` only `ByteArray`/`Bytes32` and `U256.toNat`/`ofNat`
-  conversions. Provides the `PrimeField` observer contract; guarantees every value is canonical.
+- **Seams.** Consumes the public `Bytes.ofByteArray`/`Uint.ofBeBytes` providers for the
+  supplied reference decoder; prospective consumers also use `ByteArray`/`Bytes32`
+  and `U256.toNat`/`ofNat` conversions. Provides the `PrimeField` observer contract; guarantees every value is canonical.
   The runtime source for the fast path is CompPoly's zero-import `…Defs` in the
   carry-preserving variant (D6), not CompPoly's current `2p < R` code.
   Importing it must not pull in Mathlib (the D6 Lake check found that a `require` of CompPoly
@@ -690,7 +757,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-Supplying the eight natural moduli, reference-only binary powers and canonical sign
+Supplying the eight natural moduli, reference-only binary powers, canonical sign and checked byte decoding
 makes no D6 source choice
 and requires no D18
 performance exception; executable representations and their costs remain open.
@@ -721,9 +788,11 @@ performance exception; executable representations and their costs remain open.
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
   operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
   five observer laws and four delegating operator instances, plus natural pow/toNat_pow
-  and its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
+  and its delegating HPow instance, plus canonical sgn0/sgn0_eq and checked
+  ofBytesBE?/ofBytesBE?_eq_some_iff; private controls and
   clients cover those slices. The eight exact R1 natural moduli are supplied separately;
-  concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
+  concrete-field instances/aliases, convenience aliases, byte encoding and paired
+  roundtrip/size laws, powMod, inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
   No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
   precompile, signature, guest or EEST readiness claim follows.

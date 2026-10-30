@@ -1,6 +1,6 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `44cfcb54…be1a`), the pinned source, or by running pinned EELS on fixture inputs; **[I]** marks an inference.
@@ -102,10 +102,11 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 ## 4. Tests
 
-Private Field reference-power and canonical-sign clients and complete finite controls are imported by
+Private Field reference-power, canonical-sign and checked-byte-decoder clients and complete finite controls are imported by
 `STFSpec.Conformance`; their supplied semantics, source map and evidence boundaries
 are owned by [EthField §3/§4/§7](EthField.md#supplied-natural-reference-powers)
-and [the canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign).
+[the canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign)
+and [the checked-decoder slice](EthField.md#supplied-checked-natural-reference-byte-decoder).
 The evidence-only interpreted/native adapter adds no public runner/parser API or tier
 implementation. Public powMod, field hierarchy and guest conformance remain open.
 
