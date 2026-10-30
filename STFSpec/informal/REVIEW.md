@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-24.*
+*Status: live implementation gates; dated findings retained. Date: 2026-10-29.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -190,6 +190,15 @@ concrete aliases, byte/field/tower/Mathlib and C1–C4/replacement/guest gates r
 This does not change the dated §6 readiness assessment.
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
+
+The generic SSZ schema forward seam is bounded by Q81 and
+[EthCodec §3/§5/§7](modules/EthCodec.md#generic-ssz-schema-forward-seam-q81):
+five metadata fields, two direct wrappers and two ordinary raw-call equations.
+Private facade clients retain actual dictionaries/values and operation-local proofs;
+explicit uncertified controls supply full small bytes/roots. Every actual instance
+still owes external descriptor WF and both adapter certifications; none is supplied
+by this generic carrier. No decoder/request-support, guest/resource/security/cost
+or readiness gate closes.
 
 EthBase's `utils/numeric.py:177–216` operation is supplied as
 `STFSpec.Base.taylorExponential (factor numerator denominator : Nat)

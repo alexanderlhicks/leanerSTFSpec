@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-27.*
+*Status: conditional proof plan. Date: 2026-10-29.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -47,6 +47,25 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied generic SSZ schema forward handoff (Q81)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the five-field metadata
+carrier and two direct forward wrappers with complete ordinary raw-call equations.
+Consumers retain the actual dictionary `s`, actual `s.toValue a` and only the
+requested operation's Serializable or Rootable proof. The forward equations need
+no validity, descriptor WF, inverse or opposite-operation support premise.
+
+Every actual instance owner still separately proves all three external §7
+certifications: descriptor WF and both adapter directions. These are required
+obligations, not generic class laws; no actual instances are supplied. Consumers
+needing certification cite those actual proofs or state their hypotheses. Neither
+metadata nor the three certifications alone establishes raw operation support.
+Actual source schema/name/order/coercion/reflection correspondence and successful
+decode→dataclass→fresh-view support stay with the concrete owner. No decoder guard
+or execution-validity premise follows; O2 freedom and guest/resource/security/cost
+and readiness claims remain separate. The existing private output consumer stays
+unchanged.
 
 ### Supplied local SSZ root support (Q78)
 
