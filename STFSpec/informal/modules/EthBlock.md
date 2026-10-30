@@ -444,7 +444,10 @@ use integer bitset composition and PyCryptodome Keccak; the actual original sour
 uses mutable-byte updates and observed OpenSSL Keccak dispatch. The independent
 composition and distinct observed backend dispatches do not prove cryptographic
 correctness. Original-source/runtime authentication is a separate evidence gate
-from strict admission of those observation projections.
+from strict admission of those observation projections. The source-catalogue
+preparation, the original-source runs and their authentication are out of tree: in
+this repository, `logs_bloom_differential.py --check-target` compares the native
+output with the frozen catalogue only.
 
 Production threads one fixed-size packed byte buffer through log/topic array
 folds. Each answer selects byte pairs 0/1, 2/3 and 4/5, masks to eleven bits and
@@ -677,7 +680,7 @@ def updateSenderState (cfg) : BlockEnvironment → TransactionEnvironment → Tr
     → StateM m Unit
 def disburseGasFees : BlockEnvironment → TransactionEnvironment → TransactionGasSettlement
     → Address → StateM m Unit
-def makeReceipt : Transaction → Option VmError → Nat → Array Log → m EncodedReceipt   -- bloom hashes
+def makeReceipt : Transaction → Option VmError → Nat → Array Vm.Core.Log → m EncodedReceipt   -- bloom hashes
 def processWithdrawals (cfg) : BlockEnvironment → BlockAcc m → Array Withdrawal → BlockM m (BlockAcc m)
 def processGeneralPurposeRequests (cfg) : BlockEnvironment → BlockAcc m → BlockM m (BlockAcc m)
 def applyBody (cfg) : BlockEnvironment → Array BlockTx → Array Withdrawal
