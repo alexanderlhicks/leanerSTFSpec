@@ -191,11 +191,11 @@ private theorem selector_eq (x : Hash32) (j : Nat) (hj : j + 1 < 32) :
 
 /-- The pinned EELS byte index `(2047 - b) / 8` (`bloom.py`) equals the big-endian
 byte `255 - b / 8` used here; recorded as a checked correspondence, not a client. -/
-private theorem eels_byte_index (b : Nat) (hb : b < 2048) :
+private theorem byte_index_from_top (b : Nat) (hb : b < 2048) :
     (2047 - b) / 8 = 255 - b / 8 := by omega
 
 /-- The pinned EELS bit `7 - (2047 - b) % 8` within that byte equals `b % 8`. -/
-private theorem eels_byte_bit (b : Nat) (hb : b < 2048) :
+private theorem bit_index_from_top (b : Nat) (hb : b < 2048) :
     7 - (2047 - b) % 8 = b % 8 := by omega
 
 private theorem selector_lt (x : Hash32) (j : Nat) (hj : j + 1 < 32) :
