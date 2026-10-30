@@ -14,8 +14,12 @@ namespace STFSpec.Vm.Runner
 
 /-- The three entry kinds specified for the prospective execution relation. -/
 inductive ExecKind
+  /-- The opcode loop of one frame (`runFrame`); pinned EELS `vm/interpreter.py:444–452`. -/
   | frameLoop
+  /-- A message call (`processCall`); pinned EELS `process_call`, `vm/interpreter.py:401`. -/
   | call
+  /-- A contract creation (`processCreate`); pinned EELS `process_create`,
+  `vm/interpreter.py:330`. -/
   | create
 
 end STFSpec.Vm.Runner

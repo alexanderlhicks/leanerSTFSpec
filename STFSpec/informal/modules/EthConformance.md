@@ -107,7 +107,7 @@ no original-source budget execution or guest/EEST claim.
 
 The nominal execution entry-kind carrier's private public-facade constructor,
 exhaustive/dependent elimination, branch and ordered disjointness clients are owned
-by EthVmRunner §3/§4/§7 and imported through the Conformance facade. They establish
+by EthVmRunner §3/§4/§5/§7 and imported through the Conformance facade. They establish
 only the specified carrier shape, with no `Exec` relation or guest/EEST claim.
 
 ## 4. Tests

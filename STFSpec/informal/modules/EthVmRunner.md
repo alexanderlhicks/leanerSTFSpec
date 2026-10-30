@@ -98,7 +98,7 @@ budget call or differential claim.
 
 | Source/model | Lean declaration | Domain, effects and failures | Validation |
 |---|---|---|---|
-| Project vocabulary already specified in §5; no original EELS enum or source call | `ExecKind : Type` with `frameLoop`, `call`, `create` in that order | Exactly three nullary constructors; no parameters, effects or failures; no authored instance, default or observer | Private public-facade constructor clients, exhaustive symbolic and dependent elimination, all three match branches and all six ordered constructor inequalities |
+| Project vocabulary already specified in §5; no original EELS enum or source call | `ExecKind : Type` with `frameLoop`, `call`, `create` | Exactly three nullary constructors; no parameters, effects or failures; no authored instance, default or observer | Private public-facade constructor clients, exhaustive symbolic and dependent elimination, all three match branches and all six ordered constructor inequalities |
 
 The carrier is supplied in the Runner-owned `ExecKind` leaf and exported by the
 Runner facade. Its authored public inventory is the type and three constructors;

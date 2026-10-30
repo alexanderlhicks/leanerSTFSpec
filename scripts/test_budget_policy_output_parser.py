@@ -6,9 +6,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
-import time
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = ROOT / "STFSpec/Conformance/Vm/Runner/budget_policy_model.py"
@@ -53,8 +53,12 @@ def main():
     ]
     executions = 0
     base = Path(os.environ.get("BUDGET_POLICY_PARSER_EVIDENCE", str(ROOT / ".lake")))
-    evidence = base / f"budget-parser-{time.time_ns()}-{os.getpid()}"
-    evidence.mkdir(parents=True, exist_ok=False)
+    # One fixed evidence directory, replaced on each run: the latest receipts are kept
+    # without accumulating a new directory per invocation.
+    evidence = base / "budget-parser"
+    if evidence.exists():
+        shutil.rmtree(evidence)
+    evidence.mkdir(parents=True)
     for flags in ([], ["-O"]):
         for label, raw, reason in cases:
             stem = evidence / (("optimized-" if flags else "normal-") + label)
