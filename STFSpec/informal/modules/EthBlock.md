@@ -631,7 +631,6 @@ Per operation (model-based, D25):
 
 - **Calldata tokens (supplied).** `countTokensInData_eq` gives the complete zeros + 4·(size − zeros) equation on every finite `ByteArray`. The private ordinary packed/reference equality relates a linear packed weighted fold to a structural list reference; the reference formula identifies the exact source expression. Filter length ≤ input length discharges the source `Uint` subtraction, and `Nat` preserves its unbounded result. Private public-law clients establish empty = 0, concatenation additivity and size ≤ tokens ≤ 4·size. This helper's zero-sensitive token count does not change the separate all-bytes calldata-floor rule in R-IG. [R][T]
 
-
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
