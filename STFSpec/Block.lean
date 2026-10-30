@@ -6,6 +6,7 @@ import STFSpec.Block.LogsBloom
 import STFSpec.Block.RequestsHash
 import STFSpec.Block.DepositData
 import STFSpec.Block.CalldataTokens
+import STFSpec.Block.BlockParams
 import STFSpec.Block.TxParams
 import STFSpec.Block.SystemAddrs
 
@@ -16,7 +17,7 @@ Transactions, headers, receipts, validation, `processTransaction`, `applyBody`, 
 
 Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The calldata token, fixed deposit extraction,
-ordered request commitment and logs bloom helpers, raw transaction parameters and
-system address/budget records are supplied; the remaining pipeline is scaffolding.
+ordered request commitment and logs bloom helpers, raw block and transaction parameters
+and system address/budget records are supplied; the remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/
