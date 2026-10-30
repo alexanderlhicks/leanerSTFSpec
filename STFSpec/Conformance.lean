@@ -4,6 +4,9 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Conformance.Vm.Core.FrameErrorCallerProofs
 import STFSpec.Conformance.Vm.Core.FrameErrorGuards
+import STFSpec.Conformance.Vm.Runner.BudgetCallerProofs
+import STFSpec.Conformance.Vm.Runner.BudgetGuards
+import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
