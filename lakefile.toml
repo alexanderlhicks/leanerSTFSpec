@@ -98,8 +98,8 @@ root = "BytesNativeTests"
 
 [[lean_exe]]
 name = "kzg-versioned-hash-native-tests"
-root = "KzgVersionedHashNativeTests"
 srcDir = "scripts"
+root = "KzgVersionedHashNativeTests"
 
 # Build and audit the local cost diagnostic in CI; measurements run manually.
 [[lean_exe]]
@@ -237,3 +237,9 @@ root = "DepositDataNativeTests"
 name = "requests-hash-native-tests"
 srcDir = "scripts"
 root = "RequestsHashNativeTests"
+
+# Complete logsBloom values, actual ordered queries and supplied failure effects.
+[[lean_exe]]
+name = "logs-bloom-native-tests"
+srcDir = "scripts"
+root = "LogsBloomNativeTests"

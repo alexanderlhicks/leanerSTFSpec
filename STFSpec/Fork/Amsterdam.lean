@@ -3,11 +3,12 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Block.TxParams
+import STFSpec.Fork.Amsterdam.BlockParams
 import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Limits
 
 /-!
-# Amsterdam transaction parameters, VM pricing and limits
+# Amsterdam block and transaction parameters, VM pricing and limits
 
 Library `EthFork`. Complete fixed values for the Block- and Core-owned raw records, in
 pinned EELS dependency order. Raw policy fields remain independent in their owning modules.
