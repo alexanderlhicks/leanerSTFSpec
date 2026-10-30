@@ -180,7 +180,6 @@ synthetic-class observations in normal and optimized CPython runs. Checked resul
 arbitrary metadata remain mathematical/Lean-only controls; zero original checked-helper
 executions are claimed. The target execution mode is interpreted, not a native cost run.
 
-
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
   `cancun/eip4844_blobs` (the `point_evaluation_precompile*` files), `osaka/eip7951_p256verify_precompiles`,
@@ -216,7 +215,7 @@ def powMod (b e m : Nat) : Nat                         -- public; spec: b ^ e % 
 class FieldModulus (p : Nat) where
   one_lt : 1 < p               -- enough for the Nat reference; NOT enough for Montgomery (p = 2
                                -- satisfies it, but a power-of-two radix is not invertible mod 2)
-  sqrtExp? : Option Nat        -- unconstrained metadata; intended (p+1)/4 for suitable moduli
+  sqrtExp? : Option Nat        -- (p+1)/4 when p ≡ 3 mod 4, else none (unenforced; unread here)
 
 -- LEGIBLE REFERENCE carrier (not the executable one): the Nat residue.
 structure PrimeFieldRef (p : Nat) [FieldModulus p] where   -- NOT an abbrev (cf. D1)
