@@ -230,7 +230,6 @@ Complete interpreted and native facade-only observations independently agree wit
 all eight source-derived values, labels, bit lengths and mod-four residues.
 These elementary finite checks establish no primality theorem or field instance.
 
-
 The supplied reference slice has private full-result guards in
 `STFSpec/Conformance/Field/ReferenceGuards.lean`: 42 input/modulus rows, each under
 `none`, `some 0`, and `some (2^4096+17)` metadata (126 complete controls), plus all
@@ -422,7 +421,6 @@ can never be picked up.
 The eight R1 constants are immutable ordinary `Nat` literals in a separate leaf;
 no field representation or runtime backend is selected by supplying those values.
 
-
 | Type | Representation (executable; reference in italics) | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
 | `PrimeField p` | **executable:** Montgomery residue `x̃ = x·R mod p` in fixed limbs, carry-preserving CIOS needing only `p < R`: `Wide8` (8×32-bit limbs in `UInt64`, `R = 2^256`) for every modulus `< 2^256`; `W12` (12×32, same template, `R = 2^384`) for BLS12-381 `q` (prototyped; not yet in the core or upstream). *Reference:* `val : Nat` with `val < p` | residues mod `p`; `ZMod p` in `EthFieldMathlib` | executable → reference: `α x̃ = x̃ · R⁻¹ mod p`; reference → model: `toNat` (core), `toZMod` (Mathlib) | executable: `Bounded x̃ ∧ x̃.toNat < p`; reference: `val < p` | immutable value; freely shareable | executable: CIOS Montgomery multiplication, add/sub with a conditional subtraction; reference: `Nat` arithmetic with `% p` (basic residue arithmetic supplied; other operations open) |
@@ -480,7 +478,6 @@ snapshotted state (ARCHITECTURE §5.0 does not apply).
 source literals as transparent bodies. Their complete equalities and elementary
 bounds are checked privately; no new authored public law or instance is supplied.
 Primality, square-root metadata and concrete-field/backend contracts remain open.
-
 
 **Supplied reference-only laws (discharged).** In namespace `PrimeFieldRef`, with
 `{p : Nat} [FieldModulus p]`, exactly eleven ordinary public laws are supplied:
@@ -560,7 +557,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 Supplying the eight natural moduli makes no D6 source choice and requires no D18
 performance exception; executable representations and their costs remain open.
-
 
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
