@@ -3,7 +3,6 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Block
-import STFSpec.Conformance.Block.LogsBloomGuards
 import Lean
 
 /-!

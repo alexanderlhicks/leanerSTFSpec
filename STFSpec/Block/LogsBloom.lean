@@ -102,7 +102,6 @@ private theorem size_setBit (bytes : ByteArray) (hs : bytes.size = 256) (b : Nat
   rw [Array.size_set]
   exact hs
 
-
 private def observe (bytes : ByteArray) : Nat := positional bytes.data.toList
 
 private theorem observe_setBit (bytes : ByteArray) (hs : bytes.size = 256)
@@ -131,7 +130,6 @@ private theorem observe_fixed (bytes : ByteArray) (x : FixedBytes 256)
     observe bytes = x.toNat := by
   have h := (FixedBytes.ofBytes?_eq_some_iff.mp hx).2
   rw [observe_eq_fold, ← h, ← FixedBytes.toNat_eq_fold]
-
 
 private def finish (bytes : ByteArray) (hs : bytes.size = 256) : FixedBytes 256 :=
   (FixedBytes.ofBytes? (Bytes.ofByteArray bytes)).get (by
@@ -191,12 +189,14 @@ private theorem selector_eq (x : Hash32) (j : Nat) (hj : j + 1 < 32) :
   rw [show 2047 = 2 ^ 11 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod]
   exact selector_mod x j hj
 
+/-- The pinned EELS byte index `(2047 - b) / 8` (`bloom.py`) equals the big-endian
+byte `255 - b / 8` used here; recorded as a checked correspondence, not a client. -/
 private theorem eels_byte_index (b : Nat) (hb : b < 2048) :
     (2047 - b) / 8 = 255 - b / 8 := by omega
 
+/-- The pinned EELS bit `7 - (2047 - b) % 8` within that byte equals `b % 8`. -/
 private theorem eels_byte_bit (b : Nat) (hb : b < 2048) :
     7 - (2047 - b) % 8 = b % 8 := by omega
-
 
 private theorem selector_lt (x : Hash32) (j : Nat) (hj : j + 1 < 32) :
     selector x j hj < 2048 := by
