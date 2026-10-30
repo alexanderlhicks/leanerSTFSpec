@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft. Date: 2026-10-24. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget vocabulary supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F10, F11, F12, F14 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -79,8 +79,37 @@ The interpreter's limits (`STACK_DEPTH_LIMIT`, `MAX_CODE_SIZE`, `MAX_INIT_CODE_S
 
 **External semantics.** `ethereum_rlp.rlp.encode` of `(U256 chain_id, Address, U64 nonce)` in `recover_authority` (EthCodec: canonical integer encoding without leading zeros); `U256(...)`/`U64` range checks (`OverflowError`); Python `set` semantics for warm sets (EthVmCore `AddrSet`). `ethereum.trace.evm_trace` events (`OpStart`, `OpEnd`, `OpException`, `PrecompileStart/End`, `EvmStop`, `TransactionEnd`) are diagnostics (ARCHITECTURE §7): they must be emitted through the event interface with the same order, but have no semantic effect.
 
+### Supplied mathematical budget vocabulary
+
+| Source/model | Lean declaration | Domain, effects and failures | Validation |
+|---|---|---|---|
+| Project mathematical policy (§5); no EELS budget function | `BudgetPolicy := GasMeter → Nat` | Every finite raw six-field Core meter; pure callback type with no class or proof premise | Private exact-signature and ordinary callback clients |
+| Project candidate (§5), consuming Core `GasMeter.phi` | `phiBudget : BudgetPolicy` | Exactly `m.phi + 1`; no meter update, query, cast, cap or failure | Private defining/positive/transport clients; signed-refund and reservoir-drain independence through public Core laws; complete finite observations |
+| Project constant policy (§5); no EELS budget function | `constBudget (n : Nat) : BudgetPolicy` | Exactly `n` for every meter and every Nat, including zero; no update or failure | Private defining/callback/input-independence clients and complete finite observations |
+
+These are the only three authored public declarations in `STFSpec.Vm.Runner.Budget`,
+exported by `STFSpec.Vm.Runner`. No new public theorem is supplied. This is selectable
+vocabulary only: no runner, installed default, fuel-indexed family choice or G2–G7 result.
+B11/Q28 remains open as recorded in DECISIONS. The source grounding is the existing
+complete Core meter and its project mathematical potential, not an original Python
+budget call or differential claim.
+
 ## 4. Tests
 
+- **Supplied budget controls:** `BudgetGuards` checks zero, independent unit potential
+  inputs, combined spills, unrelated reservoir/baseline, signed refunds and constant zero.
+  `BudgetCallerProofs` supplies private all-meter defining/callback/positive/transport
+  proofs without unfolding foreign semantics. `BudgetPolicyNativeTests` consumes input-only
+  TSV controls and emits all six meter fields, the chosen constant and all three natural
+  observations (`phi`, `phiBudget`, `constBudget`). The independent Python integer model
+  `budget_policy_model.py` checks 64 complete cases: all three potential fields separately
+  and combined, zero/one/beyond-word/4096-bit amounts, mutually independent reservoir and
+  baseline, negative and huge positive refunds, and four constants including zero and a
+  4096-bit value across multiple meters. Interpreted/native stdout is compared completely;
+  the strict recursive parser rejects Bool/float/nonfinite numbers, duplicate/missing/extra
+  keys, bad IDs/count/order/framing and changed payloads through actual normal/`-O` CLIs.
+  These controls model only the mathematical definitions; they execute no original budget
+  function and establish no runner progress or sufficiency.
 - **EEST fixture areas:** depth and recursion: `ported_static/stCallCreateCallCodeTest`, `stDelegatecallTestHomestead`, `stSystemOperationsTest`, `stRecursiveCreate`, `stCallCodes`; creation: `stCreateTest`, `stCreate2`, `stInitCodeTest`, `stCodeSizeLimit`, `frontier/create`, `amsterdam/eip7954_increase_max_contract_size`, `amsterdam/eip7997_deterministic_factory_contract`; top frame and authorizations: `prague/eip7702_set_code_tx` (86), `amsterdam/eip2780_reduce_intrinsic_tx_gas` (`test_top_frame_charges.py`), `amsterdam/eip8037_state_creation_gas_cost_increase` (`test_state_gas_set_code.py`, `test_state_gas_reservoir.py`, `test_state_gas_system_calls.py`, `test_state_gas_cross_frame_refund.py`), `amsterdam/eip8038_*` (`test_set_code_auth_gas.py`, `test_set_code_auth_refunds.py`), `ported_static/stEIP3607`, `stTransactionTest`; revert/halt settlement: `stRevertTest`, `stZeroCallsRevert`, `stReturnDataTest`; precompile dispatch: `frontier/precompiles`, `ported_static/stPreCompiledContracts`, `stPreCompiledContracts2`, the BLS/BN/P256/KZG/modexp/blake2 areas (`prague/eip2537_bls_12_381_precompiles`, `byzantium/eip196_ec_add_mul`, `eip197_ec_pairing`, `osaka/eip7951_p256verify_precompiles`, `istanbul/eip152_blake2`, `osaka/eip7883_modexp_gas_increase`); transfer logs at frame entry: `amsterdam/eip7708_eth_transfer_logs`; time-sensitive: `stQuadraticComplexityTest`, `stAttackTest`, `paris/security`.
 - **EELS unit tests:** none for `interpreter.py` or `eoa_delegation.py` at e1a316a0 [V]; `tests/json_loader/test_trace.py` checks only trace hooks.
 - **`core` `#guard` cases:** top-level call to a precompile; call to an EOA delegated to a precompile (runs nothing, succeeds, empty output); delegation chain of length 2 (halts with InvalidOpcode 0xEF); preparation OOG in `setDelegation` (delegations reverted, `restoreStateGasToEntry`, all gas forfeited); create transaction to a collision address; code deposit of exactly `0x10000` and `0x10001` bytes; code starting with `0xEF`; revert in init code (parent sees revert data); value transfer to self (no transfer log); `refundCounter` negative in a child that later succeeds.
@@ -105,6 +134,7 @@ abbrev CheckedT (ε : Type) (m : Type → Type) := ExceptT ε (ExceptT InternalE
 abbrev RunM (m : Type → Type) := ExceptT InternalError (VmM m)
 def runVmChecked (action : VmM m (Except InternalError α)) (world : VmWorld m)
     : m (CheckedResult VmFault (α × VmWorld m))  -- explicit adapter, in `m` (F14); equations in COMPOSITION.md
+-- Supplied selectable vocabulary; no default installation or adequate-policy claim.
 abbrev BudgetPolicy := GasMeter → Nat
 def phiBudget : BudgetPolicy := fun m => m.phi + 1
 def constBudget (n : Nat) : BudgetPolicy := fun _ => n
@@ -159,6 +189,18 @@ inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → V
 
 ## 7. Contract and laws
 
+**Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
+`phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
+The alias accepts ordinary `GasMeter → Nat` callbacks without Monad, Keccak, WF or
+local proof premises. Every field is unrestricted, including signed refunds and
+independent reservoir/baseline/spills. These are pure total observations, with no
+failure channel or state effect. Private clients derive positivity, constant-input
+independence and potential-equality transport; `addRefund_phi` and
+`drainStateGasReservoir_phi` give the corresponding unused-field cases without
+unfolding Core semantics. No public equation theorem, monotonicity, execution,
+termination or fuel-adequacy result is added. The remaining laws below are planned.
+
+
 **Structural** [T]: the mutual definition is accepted by `termination_by` with the measure of R-TERM-1 (G3). No `partial`, no global fuel, no helper without its own measure.
 
 **Settlement** [C]: after `processCall`/`processCreate` returns `r` with `r.error = some _`: for non-top frames, `ChildSettled r.frame true` (spill 0, refund 0, reservoir = baseline, committed spill 0 for non-top frames), the transaction state equals the snapshot taken at entry of that call (processCall) or of the create (processCreate), and observations are a superset of those at entry (EthState). On `r.error = none`, the non-top child satisfies `ChildSettled r.frame false`. Top-level settlement has its separate entry/committed-spill law. Halts additionally have `r.frame.gasMeter.gasLeft = 0` and `r.output = ∅`.
@@ -198,6 +240,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 8. Composition
 
+- **Supplied budget seam:** reuse the existing `EthVmCore.GasMeter` and its `phi`
+  directly; the public Runner facade exports the three policies and EthConformance
+  imports their private clients/guards. Callbacks accept every raw meter. No runner
+  consumes a policy yet and no default is installed; B11/F11 and O11 remain open.
 - **Depends on:** `EthVmInstructions`, `EthCurve` (secp256k1 recovery for EIP-7702 authorities, D26; the runner calls `secp256k1Recover` directly, as EELS does).
 - **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles` and one `VmConfig`; recovery is a direct `EthCurve` call).
 - **Seams:** consumes `step`, the request/resume operations and delegation resolution (EthVmInstructions), the meter and settlement laws (EthVmCore), EthState snapshot/restore and account operations; provides the transaction-level execution function and the four fuel guarantees. Cross-module invariants relied on: `EthBlock` validates the transaction before calling (intrinsic gas affordable, sender balance and nonce, `is_create → authorizations = ()`); `EthFork`'s table satisfies `lookup_iff`/`meter_law`. Guaranteed: settlement post-conditions above; `InternalError` is the only non-`VmFault` failure.
@@ -218,7 +264,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no Lean definition exists. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the three selectable budget declarations of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:318` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:285` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).

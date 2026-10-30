@@ -189,3 +189,9 @@ root = "TransactionGasSettlementNativeTests"
 name = "ssz-encode-native-tests"
 srcDir = "scripts"
 root = "SszEncodeNativeTests"
+
+# Complete mathematical budget observations over input-only raw-meter controls.
+[[lean_exe]]
+name = "budget-policy-native-tests"
+srcDir = "scripts"
+root = "BudgetPolicyNativeTests"

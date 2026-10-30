@@ -104,6 +104,15 @@ jobs:
           python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
           python3 -B scripts/test_ssz_encode_output_parser.py
           python3 -B -O scripts/test_ssz_encode_output_parser.py
+      - name: Complete mathematical budget policy regressions
+        run: |
+          lake build budget-policy-native-tests --wfail
+          lake exe check-decls BudgetPolicyNativeTests
+          python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --write-input .lake/budget-policy-input.tsv
+          lake exe budget-policy-native-tests .lake/budget-policy-input.tsv > .lake/budget-policy.jsonl
+          python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --check-target .lake/budget-policy.jsonl
+          python3 -B scripts/test_budget_policy_output_parser.py
+          python3 -B -O scripts/test_budget_policy_output_parser.py
       - name: Fixed-endian benchmark build and declaration audit
         run: |
           lake build fixed-endian-bench --wfail
