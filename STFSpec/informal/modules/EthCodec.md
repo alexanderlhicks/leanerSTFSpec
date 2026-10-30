@@ -1452,14 +1452,14 @@ complete and requires no private global name. Q67–Q79 contracts are unchanged.
 
 | Source at pin / locked eth-remerkleable 0.1.31 | Supplied operation/domain | Effects and failures | Ordinary law and private evidence |
 |---|---|---|---|
-| `utils/ssz.py:91–95,208–210,271–272`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | `serializable_iff`/`encode_eq`; `SszEncodeControls` all widths/endpoints and `SszEncodeCallerProofs` excluded actual widths0/3/overflow |
-| `utils/ssz.py:211–214,219–224,273–284`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte00/01 or complete original bytes; exact vector size/ordinary limit only | both complete laws; whole-byte literal/native controls for zeros/order/size0, public-law wrong-tag/size/limit clients |
-| `utils/ssz.py:215–218,266–270`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | both complete laws; literal/native fixed0, empty unused malformed schema and nested cases; public-law symbolic offset clients |
+| `utils/ssz.py:91–95,208–210,271–272`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | `serializable_iff`/`encode_eq`; `SszEncodeControls` all widths/endpoints and `SszEncodeCallerProofs` excluded actual widths 0/3/overflow |
+| `utils/ssz.py:211–214,219–224,273–284`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte 00/01 or complete original bytes; exact vector size/ordinary limit only | both complete laws; whole-byte literal/native controls for zeros/order/size 0, public-law wrong-tag/size/limit clients |
+| `utils/ssz.py:215–218,266–270`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | both complete laws; literal/native fixed-zero, empty unused malformed schema and nested cases; public-law symbolic offset clients |
 | `utils/ssz.py:243–258,263–265,288–296`; `complex.py:768–819,866–878,963–981`; `progressive.py:440–532` | same operation, both container families | exact arity and ordered paired children; mask absent from wire | `encode_eq` mixed head/tail law; literal/native empty containers/arbitrary masks/equal offsets, public-law arity and mask clients |
 | `complex.py:23–24,104–108,235–242,967–981`; `core.py:173–176`; `settings.py:5` | support at every actually written uint32 start, recursively | mathematical pure byte result; no failure priority or guest error mapping | private exact length/reference/cached-planner equality, structural termination/certificates/determination; independent facade clients; static packed-writer structure (§6), compiled allocation/throughput and C1–C4 remain open |
 
 Source success remains conditional on actual names/classes/inheritance/reflection,
-coercions, construction of unused schemas (including `more` at capacity256),
+coercions, construction of unused schemas (including `more` at capacity 256),
 standard methods/builtins/little-endian bindings, faithful typed views/backing,
 cache coherence and successful host streams/allocation/navigation. Source fresh
 List/ProgressiveList and byte-list backing counts use uint256
@@ -1813,32 +1813,32 @@ these tests.
 
 ### Supplied forward SSZ controls and clients (Q80)
 
-`SszEncodeControls.lean` and `scripts/SszEncodeNativeTests.lean` retain61 complete
+`SszEncodeControls.lean` and `scripts/SszEncodeNativeTests.lean` retain 61 complete
 literal observations:52 EELS dataclass/view paths, three genuine locked-dependency
 sparse-mask paths and six mathematical-only cases. The five byte-local extras cover empty
-containers, a malformed mask and empty unsupported unused schemas. The extra43-byte
+containers, a malformed mask and empty unsupported unused schemas. The extra 43-byte
 fixed layout has independent ordered vector/Bool/uint digits; it is no actual
 `StatelessValidationResult` schema adapter or guest theorem. Every supported scalar
 width has zero, maximum and asymmetric digit cases. Byte/list/container cases retain
 zeros, empty/fixed-zero children, repeated offsets, nested dynamic heads/tails and
-raw sparse masks. Largest source output32 bytes; largest mathematical output43;
-actual list lengths at most3. No huge value is allocated.
+raw sparse masks. Largest source output 32 bytes; largest mathematical output 43;
+actual list lengths at most 3. No huge value is allocated.
 
 `SszEncodeCallerProofs.lean` uses only the Codec facade and public equations.
 It constructs nested support before result reasoning, derives payload typing by
 induction, extracts exact shape/child support, constructs ordered certificates and
 proves complete nested bytes. Family/mask transport preserves all bytes. Negative
-clients cover actual widths0/3, scalar overflow, wrong tag, vector length, list
-limit and arity. Symbolic clients distinguish written starts2^32−1/2^32, unconstrained
+clients cover actual widths 0/3, scalar overflow, wrong tag, vector length, list
+limit and arity. Symbolic clients distinguish written starts 2^32−1/2^32, unconstrained
 final payloads and the exact second dynamic start. Private ordinary production
 proofs supply exact actual lengths, supported fixed widths, reference equality,
 certificate existence, proof independence and whole-law determination.
 
 The independent literal inventory is `ssz_encode_literals.json`.
-`ssz_encode_differential.py` strictly checks all61 native rows, rejecting missing,
+`ssz_encode_differential.py` strictly checks all 61 native rows, rejecting missing,
 duplicate, wrong-class, wrong-size and changed-byte observations; its parser/type
 regressions run normally and with Python `-O`. With an explicit frozen EELS
-checkout, it additionally executes55 actual source paths. It authenticates the
+checkout, it additionally executes 55 actual source paths. It authenticates the
 `reference.toml` commit/lock, clean tracked source, locked ethereum-types and
 eth-remerkleable versions and installed RECORD/current sources; targeted modules
 are compiled freshly from those bytes, bypassing cached bytecode. Raw byte views
@@ -2800,7 +2800,7 @@ The ordinary public predicate law has exactly parameters `(t : SszType)` and
 `(v : SszValue)` and conclusion `Ssz.Serializable t v ↔ RHS(t,v)`. Its statement
 begins with the following entire lexical local recursive Nat-valued expression
 `byteLength`, followed by the local folds below. Lists/sums are finite and ordered;
-empty sums are0. This expression is complete even off support:
+empty sums are 0. This expression is complete even off support:
 
 ```text
 byteLength(uint w, uint n) = w
@@ -2862,7 +2862,7 @@ The complete decoupled actual-value `serializable_iff` RHS is exactly:
 
 There is no encoder dependency in this predicate law, nor an implicit WF, WT,
 Rootable, global size/count cap, mask condition, positive fixed-child width or
-source-class premise. Actual scalar widths0/3 are unsupported; unused malformed
+source-class premise. Actual scalar widths 0/3 are unsupported; unused malformed
 schemas under empty lists are not recursively required by support. Empty ordinary and
 progressive containers encode empty, regardless of mask; all raw masks are
 ignored by bytes. These are intentional mathematical extras relative to source
@@ -2911,7 +2911,7 @@ For fixed-element lists the layout is ordered child concatenation; dynamic lists
 start at `4*count`; mixed containers retain all fixed head fields and dynamic
 tails in order. Empty dynamic children allow equal offsets. Only starts actually
 emitted must fit, recursively; no final cursor/payload `< 2^32` is required.
-For example a single variable payload of mathematical length2^32 has only start4;
+For example a single variable payload of mathematical length 2^32 has only start 4;
 a later empty variable field can still require an unrepresentable written start.
 Source decoder scope conversion and nested metadata limits are distinct
 (`complex.py:210,956–960`; `progressive.py:248–249`).
@@ -3044,7 +3044,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Forward serialization (Q80) supplied; actual bridges open.** The exact four
   declarations, self-contained inline-recursion support law, actual-length/full
   reference and cached-planner equality, structural termination, constructive
-  certificates, proof independence/determination, facade clients and61 literal/native
+  certificates, proof independence/determination, facade clients and 61 literal/native
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
@@ -3175,8 +3175,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source-mapping premises. Payload-only WT, its constructor law, 130 signed
   controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
   false and consumers needing WF supply it separately. Count/uint256 backing,
-  scope, cache and actual codec/root bridges remain open. Q80 selects forward
-  offset support separately; its implementation, zero-fixed-element list inverse
+  scope, cache and actual codec/root bridges remain open. Q80 supplies forward
+  offset support and serialization separately; zero-fixed-element list inverse
   premises and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,

@@ -20,12 +20,12 @@ open STFSpec.Codec
 private theorem supported_scalar (w n : Nat)
     (h : Ssz.Serializable (.uint w) (.uint n)) :
     (w = 1 ∨ w = 2 ∨ w = 4 ∨ w = 8 ∨ w = 16 ∨ w = 32) ∧
-      n < 2^(8*w) := (Ssz.serializable_iff _ _).mp h
+      n < 2 ^ (8 * w) := (Ssz.serializable_iff _ _).mp h
 
 private theorem scalar_bytes (w n : Nat)
     (h : Ssz.Serializable (.uint w) (.uint n)) :
     (Ssz.encode (t := .uint w) (v := .uint n) (h := h)).data.toList =
-      (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256^i) % 256)) :=
+      (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256 ^ i) % 256)) :=
   Ssz.encode_eq _ _ h
 
 private theorem bytes_preserved (b : ByteArray)
@@ -139,32 +139,32 @@ private theorem empty_container_supported :
 -- A symbolic head at the largest representable start; the final payload size is
 -- unrestricted. There is no allocation of the quantified prefix or payload.
 private theorem final_payload_unbounded (leading payload : ByteArray)
-    (hp : leading.size = 2^32 - 5) :
-    Ssz.Serializable (.container [.byteVector (2^32 - 5), .progressiveByteList])
+    (hp : leading.size = 2 ^ 32 - 5) :
+    Ssz.Serializable (.container [.byteVector (2 ^ 32 - 5), .progressiveByteList])
       (.container [.bytes leading, .bytes payload]) := by
-  have hv : Ssz.Serializable (.byteVector (2^32 - 5)) (.bytes leading) :=
+  have hv : Ssz.Serializable (.byteVector (2 ^ 32 - 5)) (.bytes leading) :=
     (Ssz.serializable_iff _ _).mpr hp
   have hb : Ssz.Serializable .progressiveByteList (.bytes payload) :=
     (Ssz.serializable_iff _ _).mpr True.intro
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨rfl, ?_, ?_⟩
   · simpa using And.intro hv hb
-  · change ∀ o ∈ [2^32 - 1], o < 2^32
+  · change ∀ o ∈ [2 ^ 32 - 1], o < 2 ^ 32
     decide
 
 private theorem written_start_overflow (leading payload : ByteArray) :
-    ¬ Ssz.Serializable (.container [.byteVector (2^32 - 4), .progressiveByteList])
+    ¬ Ssz.Serializable (.container [.byteVector (2 ^ 32 - 4), .progressiveByteList])
       (.container [.bytes leading, .bytes payload]) := by
   intro h
   have hs := (Ssz.serializable_iff _ _).mp h
-  have hf : (2^32 : Nat) < 2^32 := hs.2.2 (2^32) (by
-    change (2^32 : Nat) ∈ [2^32]
+  have hf : (2 ^ 32 : Nat) < 2 ^ 32 := hs.2.2 (2 ^ 32) (by
+    change (2 ^ 32 : Nat) ∈ [2 ^ 32]
     simp)
   exact (Nat.lt_irrefl _) hf
 
 private theorem two_dynamic_starts (a b : ByteArray) :
     Ssz.Serializable (.container [.progressiveByteList, .progressiveByteList])
-      (.container [.bytes a, .bytes b]) ↔ 8 + a.size < 2^32 := by
+      (.container [.bytes a, .bytes b]) ↔ 8 + a.size < 2 ^ 32 := by
   have ha : Ssz.Serializable .progressiveByteList (.bytes a) :=
     (Ssz.serializable_iff _ _).mpr True.intro
   have hb : Ssz.Serializable .progressiveByteList (.bytes b) :=
@@ -173,11 +173,11 @@ private theorem two_dynamic_starts (a b : ByteArray) :
   change (2 = 2 ∧
     (∀ p ∈ [(.progressiveByteList, .bytes a), (.progressiveByteList, .bytes b)],
       Ssz.Serializable p.1 p.2) ∧
-    (∀ o ∈ [8, 8 + a.size], o < 2^32)) ↔ 8 + a.size < 2^32
+    (∀ o ∈ [8, 8 + a.size], o < 2 ^ 32)) ↔ 8 + a.size < 2 ^ 32
   simp [ha, hb]
 
 private theorem later_empty_start_overflow (a : ByteArray)
-    (ha : a.size = 2^32 - 8) :
+    (ha : a.size = 2 ^ 32 - 8) :
     ¬ Ssz.Serializable (.container [.progressiveByteList, .progressiveByteList])
       (.container [.bytes a, .bytes ByteArray.empty]) := by
   rw [two_dynamic_starts]
@@ -189,8 +189,8 @@ private theorem serializable_wellTyped (t : SszType) (v : SszValue)
       Ssz.Serializable t v → SszValue.WellTyped t v := by
     intro t
     refine SszType.rec
-      (motive_1 := fun t => ∀ v : SszValue, Ssz.Serializable t v → SszValue.WellTyped t v)
-      (motive_2 := fun fields => ∀ field ∈ fields, ∀ v : SszValue,
+      (motive_1 := fun t ↦ ∀ v : SszValue, Ssz.Serializable t v → SszValue.WellTyped t v)
+      (motive_2 := fun fields ↦ ∀ field ∈ fields, ∀ v : SszValue,
         Ssz.Serializable field v → SszValue.WellTyped field v) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ t
     · intro w v h
       cases v <;> simp only [Ssz.serializable_iff (.uint w) _,
@@ -210,22 +210,22 @@ private theorem serializable_wellTyped (t : SszType) (v : SszValue)
     · intro elem limit ih v h
       cases v <;> simp only [Ssz.serializable_iff (.list elem limit) _,
         SszValue.wellTyped_iff (.list elem limit) _] at h ⊢
-      exact ⟨h.1, fun x hx => ih x (h.2.1 x hx)⟩
+      exact ⟨h.1, fun x hx ↦ ih x (h.2.1 x hx)⟩
     · intro elem ih v h
       cases v <;> simp only [Ssz.serializable_iff (.progressiveList elem) _,
         SszValue.wellTyped_iff (.progressiveList elem) _] at h ⊢
-      exact fun x hx => ih x (h.1 x hx)
+      exact fun x hx ↦ ih x (h.1 x hx)
     · intro v h
       cases v <;> simp only [Ssz.serializable_iff .progressiveByteList _,
         SszValue.wellTyped_iff .progressiveByteList _] at h ⊢
     · intro fields ih v h
       cases v <;> simp only [Ssz.serializable_iff (.container fields) _,
         SszValue.wellTyped_iff (.container fields) _] at h ⊢
-      exact ⟨h.1, fun pair hp => ih pair.1 (List.of_mem_zip hp).1 _ (h.2.1 pair hp)⟩
+      exact ⟨h.1, fun pair hp ↦ ih pair.1 (List.of_mem_zip hp).1 _ (h.2.1 pair hp)⟩
     · intro mask fields ih v h
       cases v <;> simp only [Ssz.serializable_iff (.progressiveContainer mask fields) _,
         SszValue.wellTyped_iff (.progressiveContainer mask fields) _] at h ⊢
-      exact ⟨h.1, fun pair hp =>
+      exact ⟨h.1, fun pair hp ↦
         ih pair.1 (List.of_mem_zip hp).1 _ (h.2.1 pair hp)⟩
     · intro field hf
       exact False.elim (List.not_mem_nil hf)

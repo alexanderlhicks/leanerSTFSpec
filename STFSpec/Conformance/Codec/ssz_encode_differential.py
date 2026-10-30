@@ -3,7 +3,7 @@
 """Check complete compiled SSZ bytes against independent literals and pinned EELS.
 
 Use --check-target FILE for local native stdout validation. Add --eels CHECKOUT
-under that checkout's frozen Python -I -B for52 EELS and3 dependency source cases.
+under that checkout's frozen Python -I -B for 52 EELS and 3 dependency source cases.
 Six mathematical cases are checked only against literals. No decoder, source
 failure-order, huge-view, universal refinement or guest claim follows. Interpreter,
 startup, installed distribution RECORD files and host execution remain trusted.
@@ -99,7 +99,7 @@ def load_inventory(path=HERE / 'ssz_encode_literals.json'):
         validate_schema(row['type'])
         validate_value(row['type'], row['value'])
         hex_bytes(row['expected_hex'])
-    require(len(rows) == 61, 'complete61-case inventory required')
+    require(len(rows) == 61, 'complete 61-case inventory required')
     return rows
 
 

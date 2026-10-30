@@ -103,7 +103,8 @@ private theorem support_u8_max : Ssz.Serializable (.uint 8) (.uint 1844674407370
   decide
 private def output_u8_max : ByteArray :=
   Ssz.encode (.uint 8) (.uint 18446744073709551615) support_u8_max
-private def expected_u8_max : ByteArray := (⟨#[255, 255, 255, 255, 255, 255, 255, 255]⟩ : ByteArray)
+private def expected_u8_max : ByteArray :=
+  (⟨#[255, 255, 255, 255, 255, 255, 255, 255]⟩ : ByteArray)
 
 -- u8_pattern: eels_dataclass; low-to-high bytes 01 through 08.
 private theorem support_u8_pattern : Ssz.Serializable (.uint 8) (.uint 578437695752307201) := by
@@ -193,8 +194,8 @@ private def output_bool_true : ByteArray :=
 private def expected_bool_true : ByteArray := (⟨#[1]⟩ : ByteArray)
 
 -- vector0: eels_dataclass; exact raw bytes, no header or padding.
-private theorem support_vector0 : Ssz.Serializable (.byteVector 0) (.bytes (⟨#[]⟩ : ByteArray)) :=
-  by
+private theorem support_vector0 :
+    Ssz.Serializable (.byteVector 0) (.bytes (⟨#[]⟩ : ByteArray)) := by
   apply (Ssz.serializable_iff _ _).mpr
   decide
 private def output_vector0 : ByteArray :=
@@ -242,8 +243,8 @@ private def output_bl0 : ByteArray :=
 private def expected_bl0 : ByteArray := (⟨#[]⟩ : ByteArray)
 
 -- bl4_empty: eels_dataclass; raw byte-list payload, no length prefix.
-private theorem support_bl4_empty : Ssz.Serializable (.byteList 4) (.bytes (⟨#[]⟩ : ByteArray)) :=
-  by
+private theorem support_bl4_empty :
+    Ssz.Serializable (.byteList 4) (.bytes (⟨#[]⟩ : ByteArray)) := by
   apply (Ssz.serializable_iff _ _).mpr
   decide
 private def output_bl4_empty : ByteArray :=
@@ -353,8 +354,8 @@ private def expected_list_bool : ByteArray := (⟨#[0, 1, 0]⟩ : ByteArray)
 
 -- list_vec0_empty: eels_dataclass; fixed children concatenate; dynamic children use listed
 -- four-byte starts and ordered payloads.
-private theorem support_list_vec0_empty : Ssz.Serializable (.list (.byteVector 0) 4) (.list []) :=
-  by
+private theorem support_list_vec0_empty :
+    Ssz.Serializable (.list (.byteVector 0) 4) (.list []) := by
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨by decide, ?_, by decide⟩
   simp
@@ -364,9 +365,9 @@ private def expected_list_vec0_empty : ByteArray := (⟨#[]⟩ : ByteArray)
 
 -- list_vec0_three: eels_dataclass; fixed children concatenate; dynamic children use listed
 -- four-byte starts and ordered payloads.
-private theorem support_list_vec0_three : Ssz.Serializable (.list (.byteVector 0) 4) (.list
-  [(.bytes (⟨#[]⟩ : ByteArray)), (.bytes (⟨#[]⟩ : ByteArray)), (.bytes (⟨#[]⟩ : ByteArray))]) :=
-  by
+private theorem support_list_vec0_three : Ssz.Serializable (.list (.byteVector 0) 4)
+    (.list [(.bytes (⟨#[]⟩ : ByteArray)), (.bytes (⟨#[]⟩ : ByteArray)),
+      (.bytes (⟨#[]⟩ : ByteArray))]) := by
   have h0 : Ssz.Serializable (.byteVector 0) (.bytes (⟨#[]⟩ : ByteArray)) := by
     apply (Ssz.serializable_iff _ _).mpr
     decide
@@ -431,7 +432,8 @@ private def expected_list_vec2 : ByteArray := (⟨#[170, 187, 0, 255]⟩ : ByteA
 
 -- list_bytes_empty: eels_dataclass; fixed children concatenate; dynamic children use listed
 -- four-byte starts and ordered payloads.
-private theorem support_list_bytes_empty : Ssz.Serializable (.list (.byteList 3) 4) (.list []) := by
+private theorem support_list_bytes_empty :
+    Ssz.Serializable (.list (.byteList 3) 4) (.list []) := by
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨by decide, ?_, by decide⟩
   simp
@@ -593,7 +595,8 @@ private def expected_nested_plists : ByteArray := (⟨#[12, 0, 0, 0, 12, 0, 0, 0
 private theorem support_triple_dynamic : Ssz.Serializable (.list (.list (.byteList 2) 3) 3) (.list
   [(.list [(.bytes (⟨#[170]⟩ : ByteArray))]), (.list []), (.list [(.bytes (⟨#[]⟩ : ByteArray)),
   (.bytes (⟨#[187]⟩ : ByteArray))])]) := by
-  have h0 : Ssz.Serializable (.list (.byteList 2) 3) (.list [(.bytes (⟨#[170]⟩ : ByteArray))]) := by
+  have h0 :
+      Ssz.Serializable (.list (.byteList 2) 3) (.list [(.bytes (⟨#[170]⟩ : ByteArray))]) := by
     have h0 : Ssz.Serializable (.byteList 2) (.bytes (⟨#[170]⟩ : ByteArray)) := by
       apply (Ssz.serializable_iff _ _).mpr
       decide
@@ -838,9 +841,9 @@ private def expected_container_list : ByteArray := (⟨#[1, 6, 0, 0, 0, 9, 8, 0,
   170, 187]⟩ : ByteArray)
 
 -- progressive_container: eels_dataclass; all-active progressive container head6, payload aa.
-private theorem support_progressive_container : Ssz.Serializable (.progressiveContainer [true,
-  true] [(.uint 2), (.byteList 3)]) (.container [(.uint 513), (.bytes (⟨#[170]⟩ : ByteArray))]) :=
-  by
+private theorem support_progressive_container :
+    Ssz.Serializable (.progressiveContainer [true, true] [(.uint 2), (.byteList 3)])
+      (.container [(.uint 513), (.bytes (⟨#[170]⟩ : ByteArray))]) := by
   have h0 : Ssz.Serializable (.uint 2) (.uint 513) := by
     apply (Ssz.serializable_iff _ _).mpr
     decide
@@ -1051,7 +1054,8 @@ def main : IO Unit := do
   check "plist_vec0_three" output_plist_vec0_three expected_plist_vec0_three
   check "list_vec2" output_list_vec2 expected_list_vec2
   check "list_bytes_empty" output_list_bytes_empty expected_list_bytes_empty
-  check "list_bytes_equal_offsets" output_list_bytes_equal_offsets expected_list_bytes_equal_offsets
+  check "list_bytes_equal_offsets" output_list_bytes_equal_offsets
+    expected_list_bytes_equal_offsets
   check "plist_bytes_equal_offsets" output_plist_bytes_equal_offsets
     expected_plist_bytes_equal_offsets
   check "list_pbytes" output_list_pbytes expected_list_pbytes
@@ -1061,7 +1065,8 @@ def main : IO Unit := do
   check "container_fixed" output_container_fixed expected_container_fixed
   check "container_zero_fixed" output_container_zero_fixed expected_container_zero_fixed
   check "container_mixed" output_container_mixed expected_container_mixed
-  check "container_empty_dynamics" output_container_empty_dynamics expected_container_empty_dynamics
+  check "container_empty_dynamics" output_container_empty_dynamics
+    expected_container_empty_dynamics
   check "container_nested" output_container_nested expected_container_nested
   check "list_containers" output_list_containers expected_list_containers
   check "container_list" output_container_list expected_container_list

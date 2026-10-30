@@ -263,7 +263,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Forward serialization (Q80) supplied; actual bridges open.** The exact four
   declarations, self-contained inline-recursion support law, actual-length/full
   reference and cached-planner equality, structural termination, constructive
-  certificates, proof independence/determination, facade clients and61 literal/native
+  certificates, proof independence/determination, facade clients and 61 literal/native
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
@@ -394,8 +394,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source-mapping premises. Payload-only WT, its constructor law, 130 signed
   controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
   false and consumers needing WF supply it separately. Count/uint256 backing,
-  scope, cache and actual codec/root bridges remain open. Q80 selects forward
-  offset support separately; its implementation, zero-fixed-element list inverse
+  scope, cache and actual codec/root bridges remain open. Q80 supplies forward
+  offset support and serialization separately; zero-fixed-element list inverse
   premises and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,

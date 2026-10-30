@@ -15,54 +15,54 @@ Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7 (Q80).
 
 namespace STFSpec.Codec
 
-private noncomputable def byteLengthModel : SszType → SszValue → Nat := fun t v =>
-    SszValue.rec (motive_1 := fun _ => SszType → Nat)
-      (motive_2 := fun _ => List (SszType → Nat))
-      (fun _ t => match t with | .uint w => w | _ => 0)
-      (fun _ t => match t with | .bool => 1 | _ => 0)
-      (fun b t => match t with
+private noncomputable def byteLengthModel : SszType → SszValue → Nat := fun t v ↦
+    SszValue.rec (motive_1 := fun _ ↦ SszType → Nat)
+      (motive_2 := fun _ ↦ List (SszType → Nat))
+      (fun _ t ↦ match t with | .uint w => w | _ => 0)
+      (fun _ t ↦ match t with | .bool => 1 | _ => 0)
+      (fun b t ↦ match t with
         | .byteVector _ | .byteList _ | .progressiveByteList => b.size
         | _ => 0)
-      (fun xs lengths t => match t with
+      (fun xs lengths t ↦ match t with
         | .list e _ | .progressiveList e =>
           match SszType.fixedSize? e with
           | some w => w * xs.length
-          | none => 4 * xs.length + (lengths.map (fun k => k e)).sum
+          | none => 4 * xs.length + (lengths.map (fun k ↦ k e)).sum
         | _ => 0)
-      (fun _ lengths t => match t with
+      (fun _ lengths t ↦ match t with
         | .container fs | .progressiveContainer _ fs =>
-          ((fs.zip lengths).map (fun (f, k) =>
+          ((fs.zip lengths).map (fun (f, k) ↦
             match SszType.fixedSize? f with | some w => w | none => 4 + k f)).sum
         | _ => 0)
-      [] (fun _ _ child rest => child :: rest) v t
+      [] (fun _ _ child rest ↦ child :: rest) v t
 
 private noncomputable def childLengths (xs : List SszValue) : List (SszType → Nat) :=
-  SszValue.rec_1 (motive_1 := fun _ => SszType → Nat)
-      (motive_2 := fun _ => List (SszType → Nat))
-      (fun _ t => match t with | .uint w => w | _ => 0)
-      (fun _ t => match t with | .bool => 1 | _ => 0)
-      (fun b t => match t with
+  SszValue.rec_1 (motive_1 := fun _ ↦ SszType → Nat)
+      (motive_2 := fun _ ↦ List (SszType → Nat))
+      (fun _ t ↦ match t with | .uint w => w | _ => 0)
+      (fun _ t ↦ match t with | .bool => 1 | _ => 0)
+      (fun b t ↦ match t with
         | .byteVector _ | .byteList _ | .progressiveByteList => b.size
         | _ => 0)
-      (fun xs lengths t => match t with
+      (fun xs lengths t ↦ match t with
         | .list e _ | .progressiveList e =>
           match SszType.fixedSize? e with
           | some w => w * xs.length
-          | none => 4 * xs.length + (lengths.map (fun k => k e)).sum
+          | none => 4 * xs.length + (lengths.map (fun k ↦ k e)).sum
         | _ => 0)
-      (fun _ lengths t => match t with
+      (fun _ lengths t ↦ match t with
         | .container fs | .progressiveContainer _ fs =>
-          ((fs.zip lengths).map (fun (f, k) =>
+          ((fs.zip lengths).map (fun (f, k) ↦
             match SszType.fixedSize? f with | some w => w | none => 4 + k f)).sum
         | _ => 0)
-      [] (fun _ _ child rest => child :: rest) xs
+      [] (fun _ _ child rest ↦ child :: rest) xs
 
 private theorem child_byteLengthModels (xs : List SszValue) :
-    childLengths xs = xs.map (fun x t => byteLengthModel t x) := by
+    childLengths xs = xs.map (fun x t ↦ byteLengthModel t x) := by
   induction xs with
   | nil => rfl
   | cons x xs ih =>
-    change (fun t => byteLengthModel t x) :: childLengths xs = _
+    change (fun t ↦ byteLengthModel t x) :: childLengths xs = _
     rw [ih]
     rfl
 
@@ -76,9 +76,9 @@ private theorem byteLengthModel_recurrence (t : SszType) (v : SszValue) :
     | .list e _, .list xs | .progressiveList e, .list xs =>
       match SszType.fixedSize? e with
       | some w => w * xs.length
-      | none => 4 * xs.length + (xs.map (fun x => byteLengthModel e x)).sum
+      | none => 4 * xs.length + (xs.map (fun x ↦ byteLengthModel e x)).sum
     | .container fs, .container xs | .progressiveContainer _ fs, .container xs =>
-      ((fs.zip xs).map (fun (f, x) =>
+      ((fs.zip xs).map (fun (f, x) ↦
         match SszType.fixedSize? f with | some w => w | none => 4 + byteLengthModel f x)).sum
     | _, _ => 0 := by
   cases v with
@@ -90,14 +90,14 @@ private theorem byteLengthModel_recurrence (t : SszType) (v : SszValue) :
     | list e limit =>
       change (match SszType.fixedSize? e with
         | some w => w * xs.length
-        | none => 4 * xs.length + ((childLengths xs).map (fun (k : SszType → Nat) => k e)).sum) = _
+        | none => 4 * xs.length + ((childLengths xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
       rw [child_byteLengthModels]
       simp only [List.map_map]
       rfl
     | progressiveList e =>
       change (match SszType.fixedSize? e with
         | some w => w * xs.length
-        | none => 4 * xs.length + ((childLengths xs).map (fun (k : SszType → Nat) => k e)).sum) = _
+        | none => 4 * xs.length + ((childLengths xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
       rw [child_byteLengthModels]
       simp only [List.map_map]
       rfl
@@ -105,12 +105,12 @@ private theorem byteLengthModel_recurrence (t : SszType) (v : SszValue) :
   | container xs =>
     cases t with
     | container fs =>
-      change (((fs.zip (childLengths xs)).map (fun (f, k) =>
+      change (((fs.zip (childLengths xs)).map (fun (f, k) ↦
         match SszType.fixedSize? f with | some w => w | none => 4 + k f)).sum) = _
       rw [child_byteLengthModels, List.zip_map_right, List.map_map]
       rfl
     | progressiveContainer mask fs =>
-      change (((fs.zip (childLengths xs)).map (fun (f, k) =>
+      change (((fs.zip (childLengths xs)).map (fun (f, k) ↦
         match SszType.fixedSize? f with | some w => w | none => 4 + k f)).sum) = _
       rw [child_byteLengthModels, List.zip_map_right, List.map_map]
       rfl
@@ -126,12 +126,12 @@ private def starts (ps : List (SszType × SszValue)) (ls : List Nat) : List Nat 
     | none => (state.1 + p.2, state.2 ++ [state.1])) (headSize ps, [])).2
 
 private def fits (ps : List (SszType × SszValue)) : Prop :=
-  ∀ o ∈ starts ps (ps.map (fun p ↦ byteLengthModel p.1 p.2)), o < 2^32
+  ∀ o ∈ starts ps (ps.map (fun p ↦ byteLengthModel p.1 p.2)), o < 2 ^ 32
 
 mutual
   private def serializable : SszType → SszValue → Prop
     | .uint w, .uint n =>
-        (w = 1 ∨ w = 2 ∨ w = 4 ∨ w = 8 ∨ w = 16 ∨ w = 32) ∧ n < 2^(8*w)
+        (w = 1 ∨ w = 2 ∨ w = 4 ∨ w = 8 ∨ w = 16 ∨ w = 32) ∧ n < 2 ^ (8 * w)
     | .bool, .bool _ => True
     | .byteVector n, .bytes b => b.size = n
     | .byteList limit, .bytes b => b.size ≤ limit
@@ -179,57 +179,57 @@ private theorem serializableFields_iff (fs : List SszType) (xs : List SszValue) 
 length. Every actual child is visited; empty actual composites need no unused WF. -/
 theorem Ssz.serializable_iff (t : SszType) (v : SszValue) :
   Ssz.Serializable t v ↔
-  let byteLength : SszType → SszValue → Nat := fun t v =>
-    SszValue.rec (motive_1 := fun _ => SszType → Nat)
-      (motive_2 := fun _ => List (SszType → Nat))
-      (fun _ t => match t with | .uint w => w | _ => 0)
-      (fun _ t => match t with | .bool => 1 | _ => 0)
-      (fun b t => match t with
+  let byteLength : SszType → SszValue → Nat := fun t v ↦
+    SszValue.rec (motive_1 := fun _ ↦ SszType → Nat)
+      (motive_2 := fun _ ↦ List (SszType → Nat))
+      (fun _ t ↦ match t with | .uint w => w | _ => 0)
+      (fun _ t ↦ match t with | .bool => 1 | _ => 0)
+      (fun b t ↦ match t with
         | .byteVector _ | .byteList _ | .progressiveByteList => b.size
         | _ => 0)
-      (fun xs lengths t => match t with
+      (fun xs lengths t ↦ match t with
         | .list e _ | .progressiveList e =>
           match SszType.fixedSize? e with
           | some w => w * xs.length
-          | none => 4 * xs.length + (lengths.map (fun k => k e)).sum
+          | none => 4 * xs.length + (lengths.map (fun k ↦ k e)).sum
         | _ => 0)
-      (fun _ lengths t => match t with
+      (fun _ lengths t ↦ match t with
         | .container fs | .progressiveContainer _ fs =>
-          ((fs.zip lengths).map (fun (f, k) =>
+          ((fs.zip lengths).map (fun (f, k) ↦
             match SszType.fixedSize? f with | some w => w | none => 4 + k f)).sum
         | _ => 0)
-      [] (fun _ _ child rest => child :: rest) v t
-  let headSize := fun (ps : List (SszType × SszValue)) =>
-    (ps.map (fun q => (SszType.fixedSize? q.1).getD 4)).sum
-  let starts := fun (ps : List (SszType × SszValue)) (ls : List Nat) =>
-    ((ps.zip ls).foldl (fun (state : Nat × List Nat) q =>
+      [] (fun _ _ child rest ↦ child :: rest) v t
+  let headSize := fun (ps : List (SszType × SszValue)) ↦
+    (ps.map (fun q ↦ (SszType.fixedSize? q.1).getD 4)).sum
+  let starts := fun (ps : List (SszType × SszValue)) (ls : List Nat) ↦
+    ((ps.zip ls).foldl (fun (state : Nat × List Nat) q ↦
       match SszType.fixedSize? q.1.1 with
       | some _ => state
       | none => (state.1 + q.2, state.2 ++ [state.1])) (headSize ps, [])).2
-  let fits := fun (ps : List (SszType × SszValue)) (ls : List Nat) =>
-    ∀ o ∈ starts ps ls, o < 2^32
+  let fits := fun (ps : List (SszType × SszValue)) (ls : List Nat) ↦
+    ∀ o ∈ starts ps ls, o < 2 ^ 32
   match t, v with
   | .uint w, .uint n => (w = 1 ∨ w = 2 ∨ w = 4 ∨ w = 8 ∨ w = 16 ∨ w = 32) ∧
-    n < 2^(8*w)
+    n < 2 ^ (8 * w)
   | .bool, .bool _ => True
   | .byteVector n, .bytes b => b.size = n
   | .byteList limit, .bytes b => b.size ≤ limit
   | .progressiveByteList, .bytes _ => True
   | .list e limit, .list xs =>
-    let ps := xs.map (fun x => (e, x))
-    xs.length ≤ limit ∧ (∀ x ∈ xs, Ssz.Serializable e x) ∧ fits ps (ps.map (fun q => byteLength
-      q.1 q.2))
+    let ps := xs.map (fun x ↦ (e, x))
+    xs.length ≤ limit ∧ (∀ x ∈ xs, Ssz.Serializable e x) ∧
+      fits ps (ps.map (fun q ↦ byteLength q.1 q.2))
   | .progressiveList e, .list xs =>
-    let ps := xs.map (fun x => (e, x))
-    (∀ x ∈ xs, Ssz.Serializable e x) ∧ fits ps (ps.map (fun q => byteLength q.1 q.2))
+    let ps := xs.map (fun x ↦ (e, x))
+    (∀ x ∈ xs, Ssz.Serializable e x) ∧ fits ps (ps.map (fun q ↦ byteLength q.1 q.2))
   | .container fs, .container xs =>
     let ps := fs.zip xs
-    fs.length = xs.length ∧ (∀ q ∈ ps, Ssz.Serializable q.1 q.2) ∧ fits ps (ps.map (fun q =>
-      byteLength q.1 q.2))
+    fs.length = xs.length ∧ (∀ q ∈ ps, Ssz.Serializable q.1 q.2) ∧
+      fits ps (ps.map (fun q ↦ byteLength q.1 q.2))
   | .progressiveContainer _ fs, .container xs =>
     let ps := fs.zip xs
-    fs.length = xs.length ∧ (∀ q ∈ ps, Ssz.Serializable q.1 q.2) ∧ fits ps (ps.map (fun q =>
-      byteLength q.1 q.2))
+    fs.length = xs.length ∧ (∀ q ∈ ps, Ssz.Serializable q.1 q.2) ∧
+      fits ps (ps.map (fun q ↦ byteLength q.1 q.2))
   | _, _ => False
  := by
   change serializable t v ↔ _
@@ -238,7 +238,7 @@ theorem Ssz.serializable_iff (t : SszType) (v : SszValue) :
       fits, starts, headSize, and_assoc] <;> rfl
 
 private def littleEndian (w n : Nat) : List UInt8 :=
-  (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256^i) % 256))
+  (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256 ^ i) % 256))
 
 private structure Writer where
   size : Nat
@@ -829,19 +829,19 @@ private theorem encode_proof_independent (t : SszType) (v : SszValue)
 under support; the final cursor is never encoded merely because it is final. -/
 theorem Ssz.encode_eq (t : SszType) (v : SszValue) (h : Ssz.Serializable t v) :
   let r := (Ssz.encode t v h).data.toList
-  let littleEndian := fun (w n : Nat) =>
-    (List.range w).map (fun i => UInt8.ofNat ((n / 256^i) % 256))
-  let headSize := fun (ps : List (SszType × SszValue)) =>
-    (ps.map (fun q => (SszType.fixedSize? q.1).getD 4)).sum
-  let layout := fun (ps : List (SszType × SszValue)) (bs : List ByteArray) =>
+  let littleEndian := fun (w n : Nat) ↦
+    (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256 ^ i) % 256))
+  let headSize := fun (ps : List (SszType × SszValue)) ↦
+    (ps.map (fun q ↦ (SszType.fixedSize? q.1).getD 4)).sum
+  let layout := fun (ps : List (SszType × SszValue)) (bs : List ByteArray) ↦
     let state := (ps.zip bs).foldl
-      (fun (state : Nat × List UInt8 × List UInt8) q =>
+      (fun (state : Nat × List UInt8 × List UInt8) q ↦
         match SszType.fixedSize? q.1.1 with
         | some _ => (state.1, state.2.1 ++ q.2.data.toList, state.2.2)
         | none => (state.1 + q.2.size, state.2.1 ++ littleEndian 4 state.1,
           state.2.2 ++ q.2.data.toList)) (headSize ps, [], [])
     state.2.1 ++ state.2.2
-  let cert := fun (ps : List (SszType × SszValue)) (bs : List ByteArray) =>
+  let cert := fun (ps : List (SszType × SszValue)) (bs : List ByteArray) ↦
     ps.length = bs.length ∧
       ∀ q ∈ ps.zip bs, ∀ hc : Ssz.Serializable q.1.1 q.1.2, Ssz.encode q.1.1 q.1.2 hc = q.2
   match t, v with
@@ -851,10 +851,10 @@ theorem Ssz.encode_eq (t : SszType) (v : SszValue) (h : Ssz.Serializable t v) :
   | .byteList _, .bytes b => r = b.data.toList
   | .progressiveByteList, .bytes b => r = b.data.toList
   | .list e _, .list xs =>
-    let ps := xs.map (fun x => (e, x))
+    let ps := xs.map (fun x ↦ (e, x))
     ∀ bs : List ByteArray, cert ps bs → r = layout ps bs
   | .progressiveList e, .list xs =>
-    let ps := xs.map (fun x => (e, x))
+    let ps := xs.map (fun x ↦ (e, x))
     ∀ bs : List ByteArray, cert ps bs → r = layout ps bs
   | .container fs, .container xs =>
     let ps := fs.zip xs
