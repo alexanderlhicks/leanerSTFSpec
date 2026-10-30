@@ -138,6 +138,8 @@ import STFSpec.Conformance.Commit.PreparationGuards
 import STFSpec.Conformance.Commit.TypedRootGuards
 import STFSpec.Conformance.Commit.TypedRootCallerProofs
 import STFSpec.Conformance.Commit.PreparationCallerProofs
+import STFSpec.Conformance.State.WitnessAncestorsCallerProofs
+import STFSpec.Conformance.State.WitnessAncestorsGuards
 import STFSpec.Conformance.State.AccountCallerProofs
 import STFSpec.Conformance.State.AccountGuards
 
