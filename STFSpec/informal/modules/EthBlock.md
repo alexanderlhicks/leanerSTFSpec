@@ -380,7 +380,8 @@ Concrete Amsterdam values, actual system-call/request consumers, configuration
 coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
 neither where the system caller is supplied to VM execution nor any additional
 context or helper signature. EthVmCore §5 separately declares `SYSTEM_ADDRESS : Address`
-(the EIP-7708 log emitter); this record does not reconcile the two.
+(the EIP-7708 log emitter, also used for EthBlock system calls), overlapping this record's
+`systemAddress`; this record does not reconcile the two.
 
 ### Implemented fixed deposit extraction
 
