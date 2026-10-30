@@ -202,3 +202,10 @@ root = "CalldataTokensNativeTests"
 name = "witness-ancestors-native-tests"
 srcDir = "scripts"
 root = "WitnessAncestorsNativeTests"
+
+
+# Complete concrete stateless output observations; source comparison is separate.
+[[lean_exe]]
+name = "stateless-output-native-tests"
+srcDir = "scripts"
+root = "StatelessOutputNativeTests"
