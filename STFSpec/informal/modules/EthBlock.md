@@ -364,6 +364,24 @@ reads the current module global (`:653–659`). Future consumer/source correspon
 must bind those original globals and dependency interpretation; constructing this
 record implements neither admission nor intrinsic costing.
 
+### Supplied raw system addresses and budgets
+
+`STFSpec.Block.SystemAddrs` is exported through `STFSpec.Block`, with the exact
+§5 order: eight independent `EthBase` `Address` fields followed by two independent
+`Nat` fields. This is the guided runtime parameter abstraction; EELS has no
+corresponding record. EthFork retains R-F2 source-constant and concrete-value
+ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
+
+Concrete Amsterdam values, actual system-call/request consumers, configuration
+coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
+neither where the system caller is supplied to VM execution nor any additional
+context or helper signature. EthVmCore §5 separately declares `SYSTEM_ADDRESS : Address`
+(the EIP-7708 log emitter, also used for EthBlock system calls), overlapping this record's
+`systemAddress`; this record does not reconcile the two.
 
 ### Implemented fixed deposit extraction
 
@@ -462,6 +480,7 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value/consumer controls remain EthFork obligations.
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
@@ -762,6 +781,7 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
 |---|---|---|---|---|---|
+| `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | Header, transactions, withdrawals, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
 | `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
 | Transaction, receipt and withdrawal tries | an `Array ByteArray` of values in index order, built linearly; the root is computed once by `EthCommit` over `rlp i ↦ v` | finite map `Nat ⇀ Bytes` with domain `[0, n)` | α = `fun a i => a[i]?`; invariant: dense | linear-only (`Array`), never snapshotted | O(1) amortised append; root O(n log n) or better (EthCommit) |
@@ -775,9 +795,9 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
-The supplied raw `TxParams` has ordinary structure reduction and reconstruction;
-§3 records private arbitrary-input projection/update clients. No additional public
-TxParams law package or global configuration predicate is supplied.
+The supplied raw `TxParams` and `SystemAddrs` have ordinary structure reduction and
+reconstruction; §3 records private arbitrary-input projection/update clients for
+every field. No additional public law package or global configuration predicate is supplied.
 
 Per operation (model-based, D25):
 
@@ -876,6 +896,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, system-caller transport and configuration coherence remain open.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
