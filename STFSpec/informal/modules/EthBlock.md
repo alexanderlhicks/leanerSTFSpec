@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-10-19. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
@@ -146,7 +146,7 @@ It returns `IntrinsicGasCost`.
   1. deposits: scan the receipts **in the recorded receipt_keys order (transaction order, not sorted RLP keys)**, decoding each, for logs whose `address = cfg.system.depositContract` and whose `topics[0] = DEPOSIT_EVENT_SIGNATURE_HASH`. Each such log gives `extractDepositData data`, and the results are concatenated. They are appended as `0x00 ++ concat` only if non-empty;
   2. four checked system calls with empty calldata: withdrawal requests `0x01` (EIP-7002), consolidations `0x02` (EIP-7251), builder deposits `0x03` and builder exits `0x04` (**EIP-8282, present at the pin**). Each appends `type ++ returnData` if the return data is non-empty.
 
-  `extractDepositData` (`requests.py:170`) raises `deposit .length` unless `len = 576`. Then it checks the five head offsets against `160, 256, 320, 384, 512` and the five length words against `48, 32, 8, 96, 8`, in that order, each with its own `deposit` constructor. It returns `pubkey ++ wc ++ amount ++ sig ++ index` (192 bytes). `computeRequestsHash rs = sha256 (concat (map sha256 rs))` (`:307`).
+  `extractDepositData` (`requests.py:170`) raises `deposit .length` unless `len = 576`. Then it checks the five head offsets against `160, 256, 320, 384, 512` and the five length words against `48, 32, 8, 96, 8`, in that order, each with its own `deposit` constructor. It returns `pubkey ++ wc ++ amount ++ sig ++ index` (192 bytes). `computeRequestsHash rs = sha256 (concat (map sha256 rs))` (`:307–328`), using every complete 32-byte inner digest in supplied list order. The standalone hash does not filter, sort, deduplicate or validate request prefixes; those production rules belong to the caller. Empty requests are retained. The existing pure `EthHash.sha256` provider applies; D5 adds no SHA query effect. All finite inputs use Q46's total extension; source/FIPS agreement separately requires every inner `8 * request.size < 2^64` and outer `8 * (32 * rs.length) < 2^64`, plus host/API premises, with no new runtime guard.
 - **R-BLOOM** (`bloom.py:29–87`). For each log, add its address and then each topic. For each entry `h = keccak e` and each `j ∈ {0, 2, 4}`: `b = be16(h[j..j+2]) & 0x7FF`, then set bit `7 − (i mod 8)` of byte `i / 8`, where `i = 0x7FF − b`.
 - **R-TRIE.** Transaction, receipt and withdrawal roots are the **unsecured** MPT roots (`EthCommit`) of `rlp i ↦ value`. All three source tries have default `None` (`vm/__init__.py:107–117`), distinct from empty Bytes. EthBlock owns the Q53 value interpretations: `encodeTransaction` leaves legacy records for one RLP encoding and returns typed envelopes as Bytes (`transactions.py:540–559`); receipts likewise use legacy records or typed Bytes (`blocks.py:394–414`, `fork.py:669–703,1119–1130`); withdrawals actually enter the trie as already-RLP Bytes (`fork.py:1152–1157`). C10 returns every actual Bytes value unchanged, including typed envelopes and withdrawal encodings, so no extra RLP layer is added. Dense arrays (§5–§6) store these final encodings once. Their root composition uses EthCommit's existing `root`/`mathRoot` with the stored context's F20 empty root; typed calls supply lawful byte keys, `secured = false` and stored-value `PrepareSafe` (Q53), not just default inequality.
 
@@ -228,7 +228,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::decode_transaction` | 562 | `decodeTransaction` | R-TX-DEC |
 | `forks/amsterdam/transactions.py::validate_transaction` | 592 | `validateTransaction` | order R-VT |
 | `forks/amsterdam/transactions.py::calculate_intrinsic_cost` | 692 | `calculateIntrinsicCost` | R-IG |
-| `forks/amsterdam/transactions.py::count_tokens_in_data` | 804 | `countTokensInData` |  |
+| `forks/amsterdam/transactions.py::count_tokens_in_data` | 804–814 | `countTokensInData : ByteArray → Nat` | Supplied on every finite input; whole result law and validation below |
 | `forks/amsterdam/transactions.py::calculate_effective_gas_price` | 816 | `calculateEffectiveGasPrice` | legacy/2930 below base fee ⇒ `BlockError`, not `TxError` |
 | `forks/amsterdam/transactions.py::calculate_max_gas_fee` | 845 | `calculateMaxGasFee` |  |
 | `forks/amsterdam/transactions.py::check_nonce` | 855 | `checkNonce` |  |
@@ -265,9 +265,9 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/requests.py::AMOUNT_SIZE` | 153 | `DepositLayout.amountSize` | 8 |
 | `forks/amsterdam/requests.py::SIGNATURE_SIZE` | 158 | `DepositLayout.signatureSize` | 96 |
 | `forks/amsterdam/requests.py::INDEX_SIZE` | 163 | `DepositLayout.indexSize` | 8 |
-| `forks/amsterdam/requests.py::extract_deposit_data` | 170 | `extractDepositData` | 11 checks, R-RQ |
+| `forks/amsterdam/requests.py::extract_deposit_data` | 170–271 | `extractDepositData : ByteArray → Except DepositError ByteArray` | Supplied on every finite input; eleven ordered checks, R-RQ; complete result/size laws below |
 | `forks/amsterdam/requests.py::parse_deposit_requests` | 274 | `parseDepositRequests` | reads receipts, not a log list |
-| `forks/amsterdam/requests.py::compute_requests_hash` | 307 | `computeRequestsHash` | SHA-256 of SHA-256s |
+| `forks/amsterdam/requests.py::compute_requests_hash` | 307–328 | `computeRequestsHash : List ByteArray → Hash32` | Supplied ordered complete SHA-256-of-digests result law; no request validation; Q46/host limits below |
 | `forks/amsterdam/block_access_lists.py::StorageChange` | 34 | `StorageChange` |  |
 | `forks/amsterdam/block_access_lists.py::BalanceChange` | 61 | `BalanceChange` |  |
 | `forks/amsterdam/block_access_lists.py::NonceChange` | 88 | `NonceChange` |  |
@@ -341,7 +341,87 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
 
+### Implemented calldata token count
+
+| EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/transactions.py:804–814`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
+
+### Supplied raw transaction parameters
+
+`STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
+fields are `Nat`, in the §5 order. This is the guided parameter abstraction, not
+an EELS transaction class. EthFork retains source-inventory ownership of the
+three Amsterdam constants and supplies their value ([EthFork §3](EthFork.md#3-eels-source-map)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `transactions.py:64,74,82` parameter context, values owned by EthFork | `STFSpec.Block.TxParams : Type`; `TxParams.mk : Nat → Nat → Nat → TxParams`; projections `blobCountLimit`, `accessListAddressFloorTokens`, `accessListStorageKeyFloorTokens : TxParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no state effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/TxParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and each single-field update preserving both other fields; zero/distinct/large guards. No extra public law or WF predicate. |
+
+The floor inputs count tokens per access-list occurrence, before multiplication
+by the separate VM floor-token gas price (`transactions.py:752–769`). Blob admission
+reads the current module global (`:653–659`). Future consumer/source correspondence
+must bind those original globals and dependency interpretation; constructing this
+record implements neither admission nor intrinsic costing.
+
+
+### Implemented fixed deposit extraction
+
+| EELS operation/domain | Lean definition | Ordinary laws | Tests / limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` admits exact full bytes and tags; optional original-source packet coupling checks the exact eleven `InvalidBlock` messages/class/args. `scripts/test_deposit_data_output_parser.py` checks malformed framing/keys/types, every successful output byte position and wrong error identities/messages in normal and optimized Python. The catalog includes pinned `test_modified_contract.py`'s default 576-byte log, independently matched to the pinned fixture's literal emitter, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
+
+The standalone helper supplies the existing R-RQ extraction only. Its constants
+are local literals, not a new `DepositLayout` public API. The readable definition
+uses public packed slices and unbounded Uint reads directly; no separate fast path,
+representation substitution or additional public helper is introduced. Each word
+window has at most 32 bytes, and each assembled output buffer has at most
+192 bytes; these per-buffer bounds make no total allocation-volume claim. The independently sealed
+source observations retain interpreter/installed-RECORD/native-library/host trust
+limits; the committed parser checks their observation projection, not the seal.
+
+The frozen catalog identity is SHA-256
+`1d1388e3d29c39e373fbcb7c423e744d3badfd97de7facb5e4593c571c717b85`.
+Its `pinned_test_default_log` is the complete default log in EELS
+`tests/prague/eip6110_deposits/test_modified_contract.py:48–75`, emitted at
+`:142–155`. Independent literal PUSH/MSTORE/LOG inspection matched every byte to
+fixture member
+`fixtures/blockchain_tests/for_amsterdam/prague/eip6110_deposits/modified_contract/extra_logs.json`
+(SHA-256 `eb0633cedf46233f7e577721f85f18b676fbcd29a1a000aa145cace5ca0d57a8`),
+test `test_extra_logs` with `include_deposit_event_True` and
+`extra_event_type_no_topics`. The original helper was called on that exact payload;
+the inspection did not execute the fixture transaction or EVM.
+
+### Implemented ordered execution-request commitment
+
+| EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/requests.py:307–328`, every finite ordered list of finite bytes | `STFSpec/Block/RequestsHash.lean`: `computeRequestsHash : List ByteArray → Hash32`; pure value, no failure channel/consumer; **discharged for provider composition** | `computeRequestsHash_eq` identifies every ordered inner SHA digest byte, the exact concatenated outer preimage, outer SHA and `Hash32.ofBytes32`; private packed/List equality | `RequestsHashCallerProofs.lean` privately checks the whole facade law and derives full output bytes, empty/singleton/pair equations and exact model preimage size via public providers. `RequestsHashGuards.lean` checks complete empty/one-empty/two-empty/three-empty/abc anchor digests. `scripts/RequestsHashNativeTests.lean` emits all ordered request byte strings and all 32 actual output bytes for 298 independently frozen cases. `requests_hash_differential.py` checks complete rows and optionally both original-source modes; `scripts/test_requests_hash_output_parser.py` rejects altered digest bytes, request bytes/order/length, omitted/extra/duplicate rows, malformed framing/keys/hex and wrong types including bool-as-int counts, in normal and optimized Python. Source/environment/seal authentication is separate from observation admission. |
+
+The catalog `STFSpec/Conformance/Block/requests-hash-cases.json` has SHA-256
+`98796c0f42b6672d35b706372f4af409e0197ea98f1fa35bda8660ac23e43be2`.
+Its expected bytes were frozen before EELS or Lean observations, using separate
+OpenSSL CLI inner/outer composition and fixed empty/abc anchors. The CLI and
+Python hashlib share OpenSSL; this supplies no independent cryptographic
+implementation claim. Both exact original-source observation projections are
+checked separately from their packet/interpreter/native-library authentication.
+Cases retain empty and repeated requests, reverse order, every singleton prefix,
+unknown prefixes, split-boundary contrasts, inner lengths at the 55/56 and 64 SHA-256
+padding boundaries and outer count 256. These are finite observations, not a universal
+host/source equivalence proof.
+
+The private packed builder reserves `32 * requests.length` and emits all 32 bytes
+of each inner digest through public byte folds. Its ordinary equality identifies
+the readable private List model. Assembly pushes each inner byte once without
+repeated whole-prefix copying. The materialized preimage has exactly 32 bytes per
+request; this analytical storage statement is separate from EELS's incremental
+hashlib API and from SHA provider working storage, total allocation volume,
+compiled ownership, throughput and C1–C4 cost claims. No public helper, hash seam,
+carrier instance, validator, prefix guard or Keccak query is added.
+
 ## 4. Tests
+
+- **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
 typed transaction/receipt forms, already-RLP withdrawal identity and keys
@@ -366,8 +446,8 @@ These are future consumer checks; the guidance clarification claims no new confo
   - `checkGasLimit` at `parent ± parent/1024` exactly (both rejected).
   - Bloom: the EIP known-answer vector for one log.
   - `HashConsts.query` at `Id`: `emptyOmmerHash = 1dcc4de8…9347`.
-  - `computeRequestsHash []` = `sha256 ""`.
-  - `extractDepositData`: a real 576-byte event, and each of the 11 corruptions.
+  - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner lengths at the 55/56 and 64 SHA-256 padding boundaries and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
+  - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
   - `validateBlockAccessListGasLimit` at the limit and one past it.
   - Signing hashes against EEST transaction vectors.
@@ -401,6 +481,8 @@ These are future consumer checks; the guidance clarification claims no new confo
     check or new rejection is introduced.
   - Run the wrapper twice; each run acquires independently. Ordinary later queries of a constant preimage remain ordinary queries, not record acquisitions.
   - Raise a provider fault or internal/fuel error; it stays in the inner or outer checked channel, respectively.
+
+- **Calldata token count:** empty, zero/nonzero and mixed inputs, every UInt8 singleton, all-byte and all-nonzero sequences, 10 KiB zero/nonzero buffers, alternating and asymmetric endpoint cases. Compare every actual input byte and the complete result with the independent 266-case catalog and, separately, the original pinned function in isolated normal/optimized locked Python. Strict-reader negative controls remain effective under `-O`.
 
 ## 5. Interface
 
@@ -595,6 +677,29 @@ is implied. Equality to a separately sequenced preparation reference needs
 
 Execution threads `BlockState`, transaction observations and `BalBuilder` explicitly. Pure admission/codec checks return `Except BlockError`; functions that hash return in `m`; functions enclosing a runner call run in `BlockM m`, retaining the outer `InternalError` through system calls, body execution and stateful drivers. `runVmChecked` returns `m (CheckedResult …)` (F14); its `VmFault` is mapped through `BlockError.ofVmFault` into the inner channel, and an internal error passes through unchanged (see COMPOSITION.md). No global `IO` or mutable reference is used. Decoding (`decodeTransaction`, `decodeReceipt`, `extractDepositData`) stays pure.
 
+**Supplied calldata-token law.** `countTokensInData_eq data` states the whole result
+`zeros + 4 * (data.size - zeros)`, where `zeros` is the length of
+`data.data.toList.filter (fun byte => byte == 0)`. It has no domain premise.
+The implementation uses the public Base packed fold; references, zero counting
+and derived clients are private. No transaction/configuration/error carrier is
+introduced by this helper.
+
+**Supplied deposit laws.** `extractDepositData_eq data` states the entire ordered
+result on every finite byte array: length 576 first; five complete 32-byte BE
+offsets 160/256/320/384/512; then sizes 48/32/8/96/8; then the concatenated
+windows `[192:240]`, `[288:320]`, `[352:360]`, `[416:512]`, `[544:552]`.
+`size_extractDepositData data result h` concludes `result.size = 192` when
+`h : extractDepositData data = .ok result`. No carrier instances or convenience
+API are supplied; private clients use the public laws.
+
+**Supplied execution-request commitment law.** `computeRequestsHash_eq requests`
+states the entire result as `Hash32.ofBytes32` of the outer SHA of the ordered
+flattened complete inner digest byte lists. The equation has no domain premise.
+`Hash32.toBytes_ofBytes32` preserves the exact digest bytes. Q46's all-finite
+total extension does not establish FIPS/pinned-host agreement above either inner
+or outer bound in R-RQ. No new error/result/guard is introduced; production,
+filtering, BlockOutput/header/BlockError and guest integration remain separate.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
@@ -612,8 +717,17 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+The supplied raw `TxParams` has ordinary structure reduction and reconstruction;
+§3 records private arbitrary-input projection/update clients. No additional public
+TxParams law package or global configuration predicate is supplied.
+
 Per operation (model-based, D25):
 
+- **Calldata tokens (supplied).** `countTokensInData_eq` gives the complete zeros + 4·(size − zeros) equation on every finite `ByteArray`. The private ordinary packed/reference equality relates a linear packed weighted fold to a structural list reference; the reference formula identifies the exact source expression. Filter length ≤ input length discharges the source `Uint` subtraction, and `Nat` preserves its unbounded result. Private public-law clients establish empty = 0, concatenation additivity and size ≤ tokens ≤ 4·size. This helper's zero-sensitive token count does not change the separate all-bytes calldata-floor rule in R-IG. [R][T]
+
+- **Deposit extraction (supplied).** `extractDepositData_eq` preserves the first reached constructor among the eleven source guards and every successful output byte, without a domain premise. Full unbounded BE reads reject high-bit corruptions. All offsets are admitted before size checks, so fixed size/data windows equal the source's reached dynamic offsets. `size_extractDepositData` derives exact 192-byte output from success and the admitted 576-byte length using public slice/append/export laws. No ignored-padding or field-content check is added. Source intermediate slice allocation/failure and O12 host resources remain separate. [R][T]
+
+- **Execution-request commitment (supplied).** `computeRequestsHash_eq` identifies the complete ordered SHA-of-SHA result through the existing pure SHA provider and exact `Hash32.ofBytes32` bridge. A private ordinary packed/List equality proves that reservation and per-digest byte emission preserve the entire outer preimage. Empty requests and duplicates are retained; no request typing, order normalization or content validation occurs. Private facade clients derive complete output-byte, empty/singleton/pair and exact model-preimage-size consequences using public contracts only. Source/FIPS agreement retains each inner and outer Q46 bound and host/API/native premises; source streaming storage and crypto binding are separate. [R][T]
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
@@ -685,8 +799,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Implemented bounded scope:** `countTokensInData`, `extractDepositData` and `computeRequestsHash`, with their complete all-finite result laws and the extraction success-size law, are supplied (§3/§5/§7). Their 266-case, 142-case and 298-case complete native/source observations supply finite coupling only. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.

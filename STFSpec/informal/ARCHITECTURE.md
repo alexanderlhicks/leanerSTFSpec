@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-10-27). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-29). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -437,6 +437,21 @@ Consumers (evm-asm, pancaketh) stay pinned to released commits while semantic ch
 ## 11. Decision points
 
 The options considered for each decision, and what evidence settles or revisits it. **The chosen option and the status are recorded only in [`STFSpec/informal/DECISIONS.md`](DECISIONS.md).**
+
+**Stack exchange completion (Q82).** The disposition is owned by DECISIONS Q82;
+EthVmCore §5/§7 owns the operation and exact two-law seam. The alternatives are:
+
+| Option | Invalid inputs | Equal valid inputs | Source-domain tradeoff |
+|---|---|---|---|
+| A: bounds first | none if either index is invalid, including equal invalid | some actual original Stack | Uniform bounds law; agrees also with direct `swap_n(0)` on empty input |
+| B: equality first | equal invalid returns some original; other invalid returns none | some actual original Stack | Actual SWAP1–16, SWAPN and EXCHANGE indices are distinct, so none still detects their underflow using the alias/decoder inequality premise; generic equal-invalid/direct empty `swap_n(0)` differ |
+| C: identity on invalid | some original for every invalid input | some actual original Stack | Actual opcode underflow needs separate source bounds validation or equivalent evidence |
+
+The successful equation retains both original cell values and identifies the actual
+returned Stack. Private clients derive availability, size/all-cell effects, equal-valid
+identity, commutation and involution without another public model equality seam.
+The primitive does not implement gas, immediate decoding, errors or PC advancement;
+source handler ordering and actual frame ownership/allocation remain consumer work.
 
 | # | Decision | Options | Settled or revisited by |
 |---|---|---|---|
@@ -896,6 +911,21 @@ and clients stay private. D25 requires ordinary full reference equality; D18 req
 appropriate aggregate costs or measured justified debt. Guidance selects no delivered
 code, inverse domain, decoder/guest/root admission rule, source failure/resource
 policy, security or readiness closure.
+
+**Generic SSZ schema forward options (Q81).** DECISIONS Q81 owns the A
+selection; EthCodec §5/§7 owns the five metadata fields, two local-support forward
+wrappers and complete ordinary raw-call equations. Each call retains the actual
+supplied dictionary and converted value. Descriptor WF and both adapter directions
+remain required external certifications per actual instance; metadata publication
+certifies no arbitrary dictionary and supplies no instances. B would add two
+valid-to-support fields and require both operations for every valid value, excluding
+raw-supported values outside valid and broadening every instance owner's duties.
+A certified/law-bearing carrier would require a separate exact proposal. Total or
+Result wrappers would separately need executable support decisions and explicit
+outside-domain result/error policies; no such policy is selected. All private
+support/clients/controls remain private. Existing raw contracts and the private
+output consumer are unchanged. Actual instance/source/decoder/guest bridges and
+resource/security/cost/readiness gates remain separate.
 
 ## 12. Not yet decided
 

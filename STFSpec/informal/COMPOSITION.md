@@ -28,7 +28,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
-| Stack | EthVmCore | Use the six public bounded-stack APIs and eight ordinary laws owned by EthVmCore §3/§7. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; swap, handler failure order, actual frame ownership and compiled allocation remain separate. |
+| Stack | EthVmCore | Use the seven public bounded-stack APIs and ten ordinary laws owned by EthVmCore §3/§7; the Stack exchange row below covers `swap?`. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; handler failure order, actual frame ownership and compiled allocation remain separate. |
 | `decodeSingle`, `decodePair` | EthVmCore | Use the existing UInt8-to-Except APIs and eight discharged ordinary equations/error/bounds/injectivity laws owned by EthVmCore §3/§7. Preserve complete ordered pair payloads and the existing nullary invalidParameter. Valid-domain progress and alternative-error exclusion follow from those equations. Handler ordering, gas/PC effects, Stack operations, compiled costs and guest gates remain separate. |
 | JumpdestMap | EthVmCore | Use the abstract immutable map, existing factory/contains operations and three supplied ordinary equations owned by EthVmCore §3/§5/§7. Empty/out-of-code absence, PUSH exclusion/resumption and true-hit byte identity are public-law consequences. Supply the intended complete code and establish actual frame code/map agreement; cache provenance, JUMP/JUMPI gas/error ordering and compiled costs/ownership remain separate. |
 | `bufferRead` | EthVmCore | Use the existing Base Bytes/U256 types and the three supplied ordinary bridge/List/size laws owned by EthVmCore §3/§7; no Memory/gas/host-cap premise. Source correspondence retains typed-dependency/representable-width/allocation premises. |
@@ -37,6 +37,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockGasCounters | EthVmCore | Use the raw constructor/projections and two ordinary ext/eta laws owned by EthVmCore §3/§7; retain complete independent execution, state and blob fields. Full BlockOutput belongs to EthBlock; actual block coherence, capacity arithmetic and checked failure precedence remain separate obligations. |
 | StateGasCosts, VmLimits, VmConfig | EthVmCore | Use the exact raw data constructors/projections and six ordinary ext/eta laws owned by EthVmCore §3/§5/§7. StateGasCosts retains four Nat inputs; VmLimits retains three Nat fields; VmConfig retains the complete costs/stateCosts/limits records. Equal selected opcodeAdd prices and the same meter give equal complete chargeGas results even when unused stateCosts/limits differ. EthFork values, state amount observations/coherence, limit specialization and actual frame/target consistency remain separate; Q63 pricing is supplied separately through its ten ordinary laws; actual caller/coherence/resource obligations remain open. |
 | MessageCallGas, `calculateMessageCallGas`, `initCodeCost` | EthVmCore | Q64 and EthVmCore §5/§7 own the supplied VmConfig-first signatures/default and six discharged ordinary laws. Retain the complete cost/subCall result; local transport needs only selected effective-stipend or init-price equality. Private public-law clients derive complete actual charge/error, affordability, rounding and explicitly financed local potential consequences. Bounded typed comparisons and their current/captured-default/host premises are owned by Core §3. Actual cfg/frame/target coherence, general source/default agreement, earlier CALL payments/state spill, child return and settlement remain caller-owned; no global WF or whole G2 result is supplied. |
+| Stack exchange | EthVmCore | Q82 and EthVmCore §3/§5/§7 own the supplied all-Nat Option operation and exact two ordinary laws. Public-only private clients derive actual identity/commutation/involution and complete cell/size effects. SWAP1–16 uses (0,k), SWAPN (0,n), EXCHANGE (n,m); source gas/decode/bounds/mutation/PC order remains with handlers. Capacity and private Array preservation supply no frame ownership, compiled allocation or C1–C4 result. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | EvmGasAllocation, `allocateEvmGas` | EthVmCore | Q65 and EthVmCore §3/§5/§7 own the supplied VmConfig-first API, two local subtraction proofs, raw two-field result and four discharged ordinary laws. Nine private public-law client groups and finite complete controls are supplied; actual caller bridges remain open. Preserve floor/admission ordering; establish relevant admission/allocation cap consistency or the allocation cap proof independently. System transactions supply separate grants and bypass this helper. |
 | TransactionGasSettlement, `settleTransactionGas` | EthVmCore | Q66 and EthVmCore §5/§7 own the supplied U256-refund API, three local gas proofs, raw complete four-field result and five discharged ordinary laws. Private public-law clients and complete finite controls are supplied in Core §3; actual callers remain open. Retain the signed-state clamp and pre-refund block dimensions, all source subtraction domains and the original checked refund-conversion boundary described below. |
@@ -47,7 +48,26 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
-| StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+| StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied generic SSZ schema forward handoff (Q81)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the five-field metadata
+carrier and two direct forward wrappers with complete ordinary raw-call equations.
+Consumers retain the actual dictionary `s`, actual `s.toValue a` and only the
+requested operation's Serializable or Rootable proof. The forward equations need
+no validity, descriptor WF, inverse or opposite-operation support premise.
+
+Every actual instance owner still separately proves all three external §7
+certifications: descriptor WF and both adapter directions. These are required
+obligations, not generic class laws; no actual instances are supplied. Consumers
+needing certification cite those actual proofs or state their hypotheses. Neither
+metadata nor the three certifications alone establishes raw operation support.
+Actual source schema/name/order/coercion/reflection correspondence and successful
+decode→dataclass→fresh-view support stay with the concrete owner. No decoder guard
+or execution-validity premise follows; O2 freedom and guest/resource/security/cost
+and readiness claims remain separate. The existing private output consumer stays
+unchanged.
 
 ### Supplied local SSZ root support (Q78)
 
@@ -943,6 +963,20 @@ Install `m'` directly, with no second charge. The table's address set equals its
 secp256k1 recovery returns Bytes64, the unprefixed x/y bytes. Hash those bytes for an address; a 65-byte public-key hint includes prefix 0x04 and must be checked against recovery/signature semantics. Boolean parity recovery completeness is restricted to the documented `x=r<n` domain. `mapToCurveG1/G2` stop before cofactor clearing; EVM mapping wrappers clear exactly once. These are semantic adapters, not representational conveniences.
 
 For payload conversion, `Array PublicKey` erases each subtype to its ByteArray for EthBlock while retaining the 65-byte/prefix/verification checks. `AnyHeader` is the existing ParentHeader sum, not a second header representation. [REFERENCE-RECORDS](REFERENCE-RECORDS.md) fixes source field order, widths and inheritance for all wire/schema adapters. Dense transaction/receipt/withdrawal arrays in BlockOutput model index-keyed unsecured tries: root construction uses `rlp i` keys and the reference typed/legacy value encoding; receipt traversal for requests follows recorded receipt_keys, appended in transaction order, rather than sorting RLP keys (fork.py:1124; requests.py:291).
+
+### Natural-reference residue arithmetic premise
+
+[EthField §3/§5/§7](modules/EthField.md#supplied-basic-natural-reference-arithmetic)
+supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero with
+ordinary observer equations and four directly delegating operator instances. Generic
+private facade clients compose those laws for range, both zero-recognition directions,
+signed subtraction/negation and cancellation, for every p>1 and arbitrary unread metadata.
+Consumers use observers and public laws. The eight exact natural moduli are separately
+supplied by EthField §3, without instances, aliases, square-root metadata or backend
+parameters. Composite residue arithmetic and literal modulus values supply no field
+structure or primality fact. Runtime Montgomery aliases/D6, inverse/power/sqrt/encoding,
+concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
+this reference seam supplies no production performance or guest-readiness result.
 
 ## 3. Inductive state invariant
 

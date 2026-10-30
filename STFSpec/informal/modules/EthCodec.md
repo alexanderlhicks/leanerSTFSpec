@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-27. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, F13, F17, O2.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, Q81, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -124,7 +124,7 @@ allocation proportional to that declaration.
 
   *Verified empirically*: I checked every formula above against remerkleable 0.1.31 on 200 random instances each of `ProgressiveByteList`, `ProgressiveList[ByteList[1024]]`, `List[ByteList[1024], 256]` and `ProgressiveList[uint64]`, plus a 3-field progressive container. The spec follows remerkleable, the pinned dependency. Agreement with the EIP texts was **not** checked (§10).
 - **S5. Totality of the committed root.** `compute_new_payload_request_root` (`stateless.py:226`) is outside the inner handler, so a failure there would give the zero sentinel (O2). The spec must prove that `hashTreeRoot` is total on every decoded value, which would make O2 unreachable; a constructor is added only if that proof fails (CONTRACT O2; DECISIONS §3, O2, open). The `_to_view` conversion observation is evidence only: prove the actual decoded domain is Rootable, including progressive counts/mix-ins and schema adapters; resolve host-resource differences separately. No unrestricted O2-freedom theorem is established.
-- **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when a written offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). Q80 selects the proof-domain `encode` contract in §5/§7: actual recursive support and every emitted start `< 2^32`, without a final-payload bound. The generic forward encoder is supplied (§3); the guest output consumer theorem remains open.
+- **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when a written offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). Q80 selects the proof-domain `encode` contract in §5/§7: actual recursive support and every emitted start `< 2^32`, without a final-payload bound. The generic forward encoder is supplied (§3), and EthStateless supplies the concrete 43-byte output serializer and its byte-layout theorem on it (`STFSpec/Stateless/Output.lean`); the guest-level output theorem remains open.
 
 ## 3. EELS source map
 
@@ -1471,7 +1471,39 @@ EELS `_to_view` converts ordered fields before enclosing view construction
 coercion, stream or allocation failure order. Decoder scopes/metadata, source
 admission, inverse/typed adapters, roots and guest outcomes stay separate.
 
+### Generic SSZ schema forward seam (Q81)
+
+`STFSpec/Codec/SszSchema.lean` supplies the five-field metadata carrier and
+exactly the two forward wrappers with two ordinary raw-call equations in §5/§7.
+**Discharged:** each wrapper forwards the actual named dictionary's descriptor,
+`toValue a` and operation-local proof directly. No actual instances are supplied;
+descriptor WF and both adapter obligations remain external per actual instance.
+The class does not certify arbitrary dictionaries or provide generic schema laws.
+
+| EELS source at pin | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and regression |
+|---|---|---|---|---|
+| `utils/ssz.py:129–146,179–325` | `SszSchema (α : Type)`; exactly `type`, `fieldNames`, `valid`, `toValue`, `ofValue?` (§5) | supplied metadata; all three §7 instance certifications remain external | no validator or error producer | private facade dictionaries deliberately use false validity and broken inverses; no certified instance claim |
+| `utils/ssz.py:129–131` | `SszSchema.encodeBytes {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Serializable s.type (s.toValue a)) : ByteArray` | exact raw call; pure, only actual-value Serializable | no runtime guard or out-of-domain result | `SszSchema.encodeBytes_eq`; full polymorphic caller and differing explicit dictionaries/values with complete bytes |
+| `utils/ssz.py:133–135` | `SszSchema.hashTreeRoot {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Rootable s.type (s.toValue a)) : Base.Bytes32` | exact raw call; pure, only actual-value Rootable | no runtime guard or out-of-domain result | `SszSchema.hashTreeRoot_eq`; full polymorphic caller and differing explicit dictionaries/values with all 32 root bytes |
+
+All clients and controls are private. These forwarding equations assert no
+source-class/conversion refinement, instance certification, decoder/inverse,
+request-root support, guest/resource/security, C1–C4 or readiness result. The
+existing private output consumer is unchanged; Q78–Q80 raw contracts are unchanged.
+
 ## 4. Tests
+
+**Schema forward seam (Q81).** `SszSchemaCallerProofs.lean` imports only the
+Codec facade and compiles both complete polymorphic signatures/equations with
+one operation's proof, including two independently supplied dictionaries and
+values. `SszSchemaControls.lean` separately imports that facade. Two private
+Nat dictionaries use different widths/conversions, false `valid` and
+`ofValue? := none`; they are deliberately uncertified controls. Public wrapper/provider
+laws establish complete bytes `[2]`, `[2,1]`, `[1,2]` and corresponding complete
+32-byte roots for values 258/513. Generic scalar clients retain actual-value
+dependence. No unrelated metadata law or opposite-operation support is needed.
+There is no new native producer or Python differential runner for direct forwarding;
+the existing raw-provider campaigns retain their separate scope below.
 
 - **EEST fixture areas.**
   - All 29030 guest records decode SSZ and compute the output root.
@@ -1928,7 +1960,8 @@ def computeContractAddressQ [Monad m] [KeccakQuery m] : Address → Nat → m Ad
 def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
--- SSZ: raw vocabulary, sizing, WF, WT and raw pack are supplied; other items remain future.
+-- SSZ: raw vocabulary/providers and generic forward metadata/wrappers are supplied;
+-- raw/typed decoding and actual schema instances remain future.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -1963,15 +1996,19 @@ namespace Ssz
   def Rootable (t : SszType) (v : SszValue) : Prop -- supplied Q78 local support; complete law in §7
   def zeroHash : Nat → Base.Bytes32  -- supplied all-Nat recurrence (Q73)
 end Ssz
+-- supplied metadata carrier (Q81); all three per-instance certifications remain external:
 class SszSchema (α : Type) where
   type : SszType
   fieldNames : List String   -- source field names in order (F13); checked against REFERENCE-RECORDS
   valid : α → Prop           -- the owner's wire-domain predicate, not an execution-validity test
   toValue : α → SszValue
   ofValue? : SszValue → Option α
-def SszSchema.decodeBytes [SszSchema α] : ByteArray → Except SszError α
-def SszSchema.encodeBytes [SszSchema α] : α → ByteArray
-def SszSchema.hashTreeRoot [SszSchema α] : α → Bytes32
+def SszSchema.decodeBytes [SszSchema α] : ByteArray → Except SszError α -- future
+-- supplied (Q81); each operation takes only its exact raw support proof:
+def SszSchema.encodeBytes {α : Type} [s : SszSchema α]
+    (a : α) (h : Ssz.Serializable s.type (s.toValue a)) : ByteArray
+def SszSchema.hashTreeRoot {α : Type} [s : SszSchema α]
+    (a : α) (h : Ssz.Rootable s.type (s.toValue a)) : Base.Bytes32
 ```
 
 ## 6. Data structures
@@ -2934,7 +2971,32 @@ payload typing and raw pack controls alone discharge none of those obligations.
 - [C] **Prospective canonicality:** `decode t b = .ok v` must imply `WellTyped t v` and provide `h : Ssz.Serializable t v` with `Ssz.encode t v h = b`. This is the future typed form of EELS's re-encode check (`ssz.py:144`). Equality of the accept set with an encoder image additionally needs the converse decoding/inverse premise on a resolved domain (S3; §10); the re-encode check alone does not supply it.
 - [T] Q79 supplies the raw root operation, ordinary constructor law and actual-value termination on C. Actual-source refinement and O2 freedom still require every successfully decoded guest request to preserve its schema/values and inhabit that domain, with local class/host premises; S5 alone does not establish this.
 - [C] Progressive contents-tree refinement is supplied by Q75 above. Q76 supplies the local length mix-in. Q77 supplies the local activity mix-in; Q79 supplies the raw enclosing root law; actual schema/source refinement remains separate. Q74 owns the ordinary physical helper.
-- [C] Schema laws per `SszSchema α` instance: `valid a → ofValue? (toValue a) = some a ∧ WellTyped type (toValue a)`; conversely `WellTyped type v ∧ ofValue? v = some a → valid a ∧ toValue a = v`. This second direction prevents lossy schema conversions from changing the decoded request's commitment. The schema type itself is well formed.
+**Generic schema forward laws (Q81), discharged.** The two complete ordinary
+raw-call equalities retain the actual named dictionary and actual converted value:
+
+```lean
+theorem SszSchema.encodeBytes_eq {α : Type} [s : SszSchema α]
+    (a : α) (h : Ssz.Serializable s.type (s.toValue a)) :
+    SszSchema.encodeBytes a h = Ssz.encode s.type (s.toValue a) h
+
+theorem SszSchema.hashTreeRoot_eq {α : Type} [s : SszSchema α]
+    (a : α) (h : Ssz.Rootable s.type (s.toValue a)) :
+    SszSchema.hashTreeRoot a h = Ssz.hashTreeRoot s.type (s.toValue a) h
+```
+
+Neither equation needs `valid`, WF, an inverse or the other operation's support.
+There is no completion outside the selected proof domain or runtime support check.
+
+- [C] **External certification per actual `SszSchema α` instance.** Its owner must
+  separately prove all three obligations for the actual dictionary `s`:
+  `s.type.WellFormed`;
+  `∀ a, s.valid a → s.ofValue? (s.toValue a) = some a ∧ SszValue.WellTyped s.type (s.toValue a)`;
+  and `∀ v a, SszValue.WellTyped s.type v ∧ s.ofValue? v = some a → s.valid a ∧ s.toValue a = v`.
+  The second adapter direction prevents lossy conversions from changing the decoded
+  request's commitment. These obligations remain required and external; none is a
+  class field or unconditional generic theorem, and no actual instance is supplied.
+  Consumers needing them cite their actual instance's proofs or state hypotheses.
+
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
 
 **Addresses.**
@@ -2962,7 +3024,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthHash`.
 - **Used by:** `EthCommit` (node RLP), `EthVmInstructions` (CREATE/CREATE2 addresses), `EthBlock` (transaction/header/receipt RLP, withdrawal and request SSZ, BAL encoding), and transitively `EthStateCommit` (account leaf RLP), `EthStateWitness` and `EthStateless` (`StatelessInput` schema, output encoding, the request root).
-- **Seams provided.** Generic RLP and SSZ with canonicality theorems. Schema owners write `SszSchema`/`RlpDecode` instances and prove only the per-instance schema laws. Contract-address derivation.
+- **Seams provided.** Supplied RLP laws and raw SSZ operations are listed in §3/§7;
+  SSZ decoding/canonicality remains prospective. Q81 supplies generic metadata and
+  the two local-support forward wrappers/equations. Schema owners supply actual
+  instances, all three external §7 certifications and actual operation support;
+  neither metadata nor certification alone supplies Serializable or Rootable.
+  Contract-address derivation is supplied.
 - **Cross-module invariants.** Future consumers use `decodeTo` wherever EELS uses
   `decode_to`, with Q68's exact result preservation and single-channel observation.
   This alone does not make D2r unobservable: actual schema-depth, local
@@ -2987,6 +3054,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Relies on.** `EthHash.sha256` and `keccak256`, and `EthBase` byte conversions (in particular `Uint.toBeBytes 0 = empty`).
 
 ## 9. Open decisions
+
+- **Q81** owns the generic forward metadata/support disposition; §5/§7 owns its
+  supplied class, two wrappers and two ordinary equations. Actual instances,
+  certification and source/decoder/guest bridges remain open in §10.
 
 - **Q80** owns the forward serialization disposition; §5/§7 owns exactly its
   four-declaration contract. §3/§4 records its supplied code/proofs/controls;
@@ -3041,6 +3112,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Generic schema forward seam (Q81) supplied; certification remains external.**
+  The five metadata fields, two direct forward wrappers and complete ordinary
+  raw-call equations, with private facade signatures/clients and full small byte/root
+  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
+  certification is supplied. All three per-instance §7 obligations remain required;
+  raw support, source class/name/coercion/reflection refinement, typed decoding,
+  inverse/count recovery, decoded-request support and O2 freedom remain separate.
+  The private output consumer is unchanged. No guest/resource/security/cost or
+  readiness gate closes through this generic seam.
+
 - **Forward serialization (Q80) supplied; actual bridges open.** The exact four
   declarations, self-contained inline-recursion support law, actual-length/full
   reference and cached-planner equality, structural termination, constructive
@@ -3048,7 +3129,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Typed schema/output consumers,
+  source diagnostic/failure/resource order remain open. Actual certified schema
+  instances and their consumers,
   inverse/strict decoder scopes and fixed-zero count recovery, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -3059,7 +3141,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
   controls/clients, are discharged. Actual source class/name/reflection/coercion/
   backing/cache/hash/global/alias/endian/host and executed-path zero-table premises,
-  decoder view→dataclass→fresh-view support, typed SszSchema/root adapters, whole
+  decoder view→dataclass→fresh-view support, actual typed schema/root refinement, whole
   source construction/failure/resource order, O2/O12/O13, request binding/external
   anchors, EEST/guest/security, C1–C4 and readiness remain open. Finite source-vector
   evidence is bounded and distinguishes mathematical-only cases; it supplies no
@@ -3083,8 +3165,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
-  Q78 local root support and the Q79 computational raw root; other SSZ semantic
-  interfaces remain unimplemented.
+  Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
+  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
+  remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -3095,8 +3178,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
-  public equations;
-  schema, typed codec/root operations and error producers remain unimplemented.
+  public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
+  actual schema instances, typed decoding and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -3192,7 +3275,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
-- **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3), without an actual output consumer theorem. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
+- **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3); its concrete output consumer is EthStateless `serializeStatelessOutput` (`STFSpec/Stateless/Output.lean`), and the guest-level output theorem remains open. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.
