@@ -185,6 +185,8 @@ import STFSpec.Conformance.Vm.Core.JumpdestCallerProofs
 import STFSpec.Conformance.Vm.Core.JumpdestGuards
 import STFSpec.Conformance.Vm.Core.LogsCallerProofs
 import STFSpec.Conformance.Vm.Core.LogsGuards
+import STFSpec.Conformance.Vm.Core.StackSwapCallerProofs
+import STFSpec.Conformance.Vm.Core.StackSwapGuards
 import STFSpec.Conformance.Vm.Core.StackCallerProofs
 import STFSpec.Conformance.Vm.Core.StackDepthLimitCallerProofs
 import STFSpec.Conformance.Vm.Core.StackGuards
