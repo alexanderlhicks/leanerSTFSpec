@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-29.*
+*Status: conditional proof plan. Date: 2026-10-30.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -47,6 +47,20 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied local SSZ count-recovery handoff (Q87)
+
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) owns the actual-value
+predicate and complete ordinary constructor iff. Consumers compose immediate list
+width and every actual-member obligation, or exact container arity and every ordered
+paired-field obligation. Empty variable-child outer lists inspect no unused nested
+values; direct zero-byte fixed products remain eligible. Leaves, limits and masks
+add no support or typing certification. Q80 forward support remains independent.
+The future raw inverse needs both actual Serializable and CountRecoverable proofs;
+its theorem and decoder are unimplemented. Canonical successes still owe WT and
+existential Serializable/reencoding, without a CountRecoverable conclusion. Actual
+schema adapters, source invocation/large-scope/host premises, Rootable and guest O2
+bridges remain separate; no readiness gate closes.
 
 ### Supplied generic SSZ schema forward handoff (Q81)
 
@@ -799,7 +813,8 @@ ordinary fields are nonempty, and progressive masks use final activity, length
 and population rather than an all-one assumption. Source names/reflection/class
 construction, including `more` at capacity 256, are supplied locally; the predicate
 alone proves none of them. Q71 supplies payload typing separately below; count/backing/offset/scope,
-cache, codec/root and zero-width-list inverse domains remain separate. Some fixed-zero
+cache and codec/root domains remain separate. Q87 supplies the local count-recovery
+premise; its future inverse and decoder completion remain open. Some fixed-zero
 schemas are WF, so division/recovery must establish positivity locally. Q67 stays
 total on every malformed schema; logical controls assert no executable source,
 codec, root, guest, resource or cost agreement.
@@ -809,8 +824,9 @@ ordinary complete `wellTyped_iff`, owned by EthCodec §5/§7. Consumers use actu
 member recursion and exact equal-length/zip field alignment. Masks do not change
 payload typing, and empty actual lists visit no child values. WT⇒WF is false;
 consumers needing WF state it separately. Source classes/names/coercions,
-recursive uint256 constructor/backing counts and mix-ins, offsets/scope/cache,
-positive-width count recovery and codec/inverse/root domains remain local/open.
+recursive uint256 constructor/backing counts and mix-ins, and offsets/scope/cache
+remain local premises. Q87 count recovery is supplied separately; its inverse/decoder and actual
+codec/root bridges remain open.
 Private public-law clients compose these independent judgments and give fixed-zero
 count-size counterexamples without a codec claim. This Prop slice supplies no
 source execution or guest/resource/security/cost/readiness result.
