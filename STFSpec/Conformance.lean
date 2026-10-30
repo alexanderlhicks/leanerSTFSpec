@@ -288,6 +288,9 @@ import STFSpec.Conformance.Block.TxParamsCallerProofs
 import STFSpec.Conformance.Block.SystemAddrsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
+import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
+import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
+
 /-!
 # STFSpec.Conformance
 

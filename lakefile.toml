@@ -96,6 +96,11 @@ name = "bytes-native-tests"
 srcDir = "scripts"
 root = "BytesNativeTests"
 
+[[lean_exe]]
+name = "kzg-versioned-hash-native-tests"
+srcDir = "scripts"
+root = "KzgVersionedHashNativeTests"
+
 # Build and audit the local cost diagnostic in CI; measurements run manually.
 [[lean_exe]]
 name = "fixed-endian-bench"

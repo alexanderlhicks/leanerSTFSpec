@@ -747,6 +747,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
+- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
+  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
+  comparisons do not close precompile, host, security, resource or whole-guest gates.
+
+- **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
+  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:69`,
+  and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
+  dependency. A shared lower owner for the tag is not yet chosen.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Host-level escapes (O12).** A Python exception that is not an `ExceptionalHalt` inside a

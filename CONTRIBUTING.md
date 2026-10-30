@@ -136,6 +136,15 @@ Run before opening a pull request (CI runs the same):
 lake build --wfail
 lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
+lake build kzg-versioned-hash-native-tests --wfail
+lake exe check-decls KzgVersionedHashNativeTests
+lake exe kzg-versioned-hash-native-tests > .lake/kzg-versioned-hash-native.jsonl
+python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-native.jsonl
+lake env lean --run scripts/KzgVersionedHashNativeTests.lean > .lake/kzg-versioned-hash-interpreted.jsonl
+python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-interpreted.jsonl
+python3 -B scripts/test_kzg_versioned_hash_output_parser.py
+python3 -B -O scripts/test_kzg_versioned_hash_output_parser.py
+python3 -B scripts/gen_kzg_versioned_hash_guards.py --check
 lake build write-order-native-tests --wfail
 lake exe check-decls WriteOrderNativeTests && lake exe write-order-native-tests
 lake build math-state-native-tests --wfail
