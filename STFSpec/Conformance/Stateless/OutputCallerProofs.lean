@@ -19,8 +19,8 @@ open STFSpec.Base STFSpec.Stateless
 private theorem output_fields (root : Hash32) (valid : Bool) (chain : U64) (schema : UInt16) :
     (serializeStatelessOutput ⟨root, valid, chain, schema⟩).data.toList =
       root.toBytes.toList ++ [if valid then 1 else 0] ++
-      (List.range 8).map (fun i ↦ UInt8.ofNat ((chain.toNat / 256^i) % 256)) ++
-      (List.range 2).map (fun i ↦ UInt8.ofNat ((schema.toNat / 256^i) % 256)) :=
+      (List.range 8).map (fun i ↦ UInt8.ofNat ((chain.toNat / 256 ^ i) % 256)) ++
+      (List.range 2).map (fun i ↦ UInt8.ofNat ((schema.toNat / 256 ^ i) % 256)) :=
   serializeStatelessOutput_eq _
 
 private theorem all_fields_preserved (a b : StatelessValidationResult) :

@@ -42,7 +42,7 @@ private theorem bool_supported (b : Bool) : Ssz.Serializable .bool (.bool b) :=
   (Ssz.serializable_iff _ _).mpr True.intro
 
 private theorem uint_supported (w n : Nat)
-    (hw : w = 2 ∨ w = 8) (hn : n < 2^(8*w)) :
+    (hw : w = 2 ∨ w = 8) (hn : n < 2 ^ (8 * w)) :
     Ssz.Serializable (.uint w) (.uint n) :=
   (Ssz.serializable_iff _ _).mpr ⟨by omega, hn⟩
 
@@ -79,7 +79,7 @@ def serializeStatelessOutput (r : StatelessValidationResult) : ByteArray :=
   Ssz.encode outputSchema (outputValue r) (output_supported r)
 
 private def digits (w n : Nat) : List UInt8 :=
-  (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256^i) % 256))
+  (List.range w).map (fun i ↦ UInt8.ofNat ((n / 256 ^ i) % 256))
 
 private theorem bytes_ext {a b : ByteArray} (h : a.data.toList = b.data.toList) : a = b :=
   ByteArray.ext (Array.toList_inj.mp h)
@@ -94,8 +94,8 @@ chain-ID digits and two little-endian schema-ID digits, in that order. -/
 theorem serializeStatelessOutput_eq (r : StatelessValidationResult) :
     (serializeStatelessOutput r).data.toList =
       r.newPayloadRequestRoot.toBytes.toList ++ [if r.successfulValidation then 1 else 0] ++
-      (List.range 8).map (fun i ↦ UInt8.ofNat ((r.chainId.toNat / 256^i) % 256)) ++
-      (List.range 2).map (fun i ↦ UInt8.ofNat ((r.schemaId.toNat / 256^i) % 256)) := by
+      (List.range 8).map (fun i ↦ UInt8.ofNat ((r.chainId.toNat / 256 ^ i) % 256)) ++
+      (List.range 2).map (fun i ↦ UInt8.ofNat ((r.schemaId.toNat / 256 ^ i) % 256)) := by
   have hc := Ssz.encode_eq outputSchema (outputValue r) (output_supported r)
   let bs := [r.newPayloadRequestRoot.toBytes.toByteArray,
     ([if r.successfulValidation then 1 else 0] : List UInt8).toByteArray,
@@ -137,10 +137,10 @@ private theorem digits_eq_fixed (w n : Nat) :
   intro i _
   rw [Nat.shiftRight_eq_div_pow, Nat.pow_mul]
   apply UInt8.toNat_inj.mp
-  change (n / 256^i) % 256 % 256 = (n / 256^i) % 256
+  change (n / 256 ^ i) % 256 % 256 = (n / 256 ^ i) % 256
   exact Nat.mod_mod _ _
 
-private theorem digits_inj (w a b : Nat) (ha : a < 2^(8*w)) (hb : b < 2^(8*w))
+private theorem digits_inj (w a b : Nat) (ha : a < 2 ^ (8 * w)) (hb : b < 2 ^ (8 * w))
     (h : digits w a = digits w b) : a = b := by
   rw [digits_eq_fixed, digits_eq_fixed, FixedBytes.toBytes_ofLeNat_eq_reverse,
     FixedBytes.toBytes_ofLeNat_eq_reverse, Bytes.toList_ofList, Bytes.toList_ofList] at h
