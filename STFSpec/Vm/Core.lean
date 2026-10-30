@@ -22,7 +22,7 @@ import STFSpec.Vm.Core.StackDecoders
 # STFSpec.Vm.Core
 
 The `Evm` frame, `Message`, environments, operand stack, memory, gas meter and gas
-parameters, and jumpdest analysis.
+parameters, raw exceptional-halt/revert vocabulary, and jumpdest analysis.
 
 Library `EthVmCore`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Implementation and ordinary-law status

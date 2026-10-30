@@ -10,7 +10,7 @@ import STFSpec.Vm.Core.Limits
 # Amsterdam transaction parameters, VM pricing and limits
 
 Library `EthFork`. Complete fixed values for the Block- and Core-owned raw records, in
-pinned EELS dependency order. Raw policy fields remain independent in Core.
+pinned EELS dependency order. Raw policy fields remain independent in their owning modules.
 Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 -/
 

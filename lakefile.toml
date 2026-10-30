@@ -184,7 +184,57 @@ name = "transaction-gas-settlement-native-tests"
 srcDir = "scripts"
 root = "TransactionGasSettlementNativeTests"
 
+# Complete proof-domain SSZ encoder observations; original-source comparison is separate.
+[[lean_exe]]
+name = "ssz-encode-native-tests"
+srcDir = "scripts"
+root = "SszEncodeNativeTests"
+
+# Complete mathematical budget observations over input-only raw-meter controls.
+[[lean_exe]]
+name = "budget-policy-native-tests"
+srcDir = "scripts"
+root = "BudgetPolicyNativeTests"
+
+# Complete scalar calldata-token observations on the independent finite catalog.
+[[lean_exe]]
+name = "calldata-tokens-native-tests"
+srcDir = "scripts"
+root = "CalldataTokensNativeTests"
+
+
+# Complete opaque ancestor selection observations, outside the state API.
+[[lean_exe]]
+name = "witness-ancestors-native-tests"
+srcDir = "scripts"
+root = "WitnessAncestorsNativeTests"
+
+
+# Complete concrete stateless output observations; source comparison is separate.
+[[lean_exe]]
+name = "stateless-output-native-tests"
+srcDir = "scripts"
+root = "StatelessOutputNativeTests"
+
 [[lean_exe]]
 name = "amsterdam-vm-native-tests"
 root = "AmsterdamVmNativeTests"
 srcDir = "scripts"
+
+# Complete deposit extraction bytes and constructor observations on a frozen catalog.
+[[lean_exe]]
+name = "deposit-data-native-tests"
+srcDir = "scripts"
+root = "DepositDataNativeTests"
+
+# Complete ordered request bytes and 32-byte commitment observations.
+[[lean_exe]]
+name = "requests-hash-native-tests"
+srcDir = "scripts"
+root = "RequestsHashNativeTests"
+
+# Complete logsBloom values, actual ordered queries and supplied failure effects.
+[[lean_exe]]
+name = "logs-bloom-native-tests"
+srcDir = "scripts"
+root = "LogsBloomNativeTests"
