@@ -190,6 +190,12 @@ name = "ssz-encode-native-tests"
 srcDir = "scripts"
 root = "SszEncodeNativeTests"
 
+# Complete mathematical budget observations over input-only raw-meter controls.
+[[lean_exe]]
+name = "budget-policy-native-tests"
+srcDir = "scripts"
+root = "BudgetPolicyNativeTests"
+
 # Complete scalar calldata-token observations on the independent finite catalog.
 [[lean_exe]]
 name = "calldata-tokens-native-tests"
@@ -226,3 +232,9 @@ root = "DepositDataNativeTests"
 name = "requests-hash-native-tests"
 srcDir = "scripts"
 root = "RequestsHashNativeTests"
+
+# Complete logsBloom values, actual ordered queries and supplied failure effects.
+[[lean_exe]]
+name = "logs-bloom-native-tests"
+srcDir = "scripts"
+root = "LogsBloomNativeTests"

@@ -246,8 +246,8 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::signing_hash_7702` | 1147 | `signingHash7702` |  |
 | `forks/amsterdam/transactions.py::get_transaction_hash` | 1175 | `getTransactionHash` |  |
 | `forks/amsterdam/transactions.py::has_access_list` | 1191 | `hasAccessList` |  |
-| `forks/amsterdam/bloom.py::add_to_bloom` | 29 | `addToBloom` | internal; linear builder |
-| `forks/amsterdam/bloom.py::logs_bloom` | 62 | `logsBloom` |  |
+| `forks/amsterdam/bloom.py::add_to_bloom` | 29 | private `addToBloom` in `LogsBloom.lean` | packed 256-byte builder; full ordinary refinement below |
+| `forks/amsterdam/bloom.py::logs_bloom` | 62 | `logsBloom` | complete generic action, empty and sequential-append laws supplied below |
 | `forks/amsterdam/requests.py::DEPOSIT_EVENT_SIGNATURE_HASH` | 60 | `depositEventSignatureHash` |  |
 | `forks/amsterdam/requests.py::DEPOSIT_REQUEST_TYPE` | 71 | `RequestType.deposit` | 0x00 |
 | `forks/amsterdam/requests.py::WITHDRAWAL_REQUEST_TYPE` | 78 | `RequestType.withdrawal` | 0x01 |
@@ -347,6 +347,26 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/transactions.py:804–814`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
 
+### Supplied raw block parameters
+
+`STFSpec.Block.BlockParams` is exported through `STFSpec.Block`, with exactly the
+three independent Nat fields in §5 order. This guided runtime abstraction is not
+an EELS record. EthFork retains all five R-F1 source-quantity obligations:
+`fork.py:114–115` supply the denominator and elasticity; `:144–145` are private
+Fork-owned `MAX_BLOCK_SIZE` and `SAFETY_MARGIN` operands; `:146` supplies their
+subtraction as the third public field ([EthFork §3](EthFork.md#3-eels-source-map)).
+There are no `maxBlockSize` or `safetyMargin` fields or public operand accessors.
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `fork.py:114–115,144–146` parameter context, all values owned by EthFork | `STFSpec.Block.BlockParams : Type`; `BlockParams.mk : Nat → Nat → Nat → BlockParams`; projections `baseFeeMaxChangeDenominator`, `elasticityMultiplier`, `maxRlpBlockSize : BlockParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/BlockParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and every single-field update preserving both other fields; complete zero/distinct/large guards. No extra public law, default, instance or WF/coherence predicate. |
+
+Within the fork module, the source reads only the derived RLP limit in `fork.py:309`,
+elasticity in `:412` and the denominator in `:425,439`. The raw record supplies none of the size or
+base-fee operations, their errors, division safety or complete configuration.
+EthFork §3 maps and checks the two actual private operands as well as all three
+actual public projections, retaining the subtraction rather than a literal.
+
 ### Supplied raw transaction parameters
 
 `STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
@@ -364,6 +384,24 @@ reads the current module global (`:653–659`). Future consumer/source correspon
 must bind those original globals and dependency interpretation; constructing this
 record implements neither admission nor intrinsic costing.
 
+### Supplied raw system addresses and budgets
+
+`STFSpec.Block.SystemAddrs` is exported through `STFSpec.Block`, with the exact
+§5 order: eight independent `EthBase` `Address` fields followed by two independent
+`Nat` fields. This is the guided runtime parameter abstraction; EELS has no
+corresponding record. EthFork retains R-F2 source-constant and concrete-value
+ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
+
+| Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
+|---|---|---|---|
+| §5; EELS `fork.py:117–141` and `requests.py:49` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
+
+Concrete Amsterdam values, actual system-call/request consumers, configuration
+coherence and the remaining `BlockConfig` are unimplemented. Raw storage determines
+neither where the system caller is supplied to VM execution nor any additional
+context or helper signature. EthVmCore §5 separately declares `SYSTEM_ADDRESS : Address`
+(the EIP-7708 log emitter, also used for EthBlock system calls), overlapping this record's
+`systemAddress`; this record does not reconcile the two.
 
 ### Implemented fixed deposit extraction
 
@@ -419,8 +457,52 @@ hashlib API and from SHA provider working storage, total allocation volume,
 compiled ownership, throughput and C1–C4 cost claims. No public helper, hash seam,
 carrier instance, validator, prefix guard or Keccak query is added.
 
+### Implemented ordered logs bloom
+
+| EELS operation/domain | Lean definition and effects/failures | Ordinary laws / status | Validation and limits |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/bloom.py:29–87`; every finite array of existing `Core.Log`, with arbitrary topic counts and duplicates | `STFSpec/Block/LogsBloom.lean`: `logsBloom {m} [Monad m] [KeccakQuery m] (logs : Array Core.Log) : m Bloom`; query each exact 20-byte address, then its exact ordered 32-byte topics, once per occurrence; ignore data; underlying failures stop traversal and retain the supplied monad's effects without translation, retries or queries after failure | `logsBloom_eq` identifies the complete flattened ordered query/fold action and all 256 result bytes; `logsBloom_empty` and `logsBloom_append` give zero/no-query and same-context sequential composition. All three ordinary laws are discharged under `LawfulMonad` for sequencing normalization; the operation needs only `Monad`. Private packed-size/bit-update/Hash32-selector/full-action reference equality is discharged; no oracle purity/stability/concrete-answer premise | `LogsBloomCallerProofs.lean` privately checks each complete facade type and derives data irrelevance and the address-only action through public providers. `LogsBloomGuards.lean` checks 74 interpreted controls (72 synthetic/effect controls, concrete empty and the complete single-log known answer in §4); `scripts/LogsBloomNativeTests.lean` emits all 112 complete frames described below, retaining synthetic answers and complete state/error/query observations. All 20 frozen cases retain every input byte, 85 ordered complete preimages/digests and complete 256-byte results; `logs_bloom_differential.py --check-target` strictly checks exact full native rows against the frozen catalogue; it imports no EELS and runs no source observations. `scripts/test_logs_bloom_output_parser.py` rejects malformed framing/schema/types, duplicate/omitted/extra/order/value changes in normal and optimized Python. Tests and finite source coupling do not establish generic oracle interpretation coupling or host/crypto/resource equivalence. |
+
+The independent 20-case source catalog has SHA-256
+`c71977a78af98659336dc051fbcb00c6d9df0856a289eeb1d4d7d0dea70aa940`.
+It is retained unchanged as `source_catalogue` within
+`STFSpec/Conformance/Block/logs_bloom_cases.json`; the complete combined file has
+SHA-256 `6fe020501102507a348d249da59332a822f691a867279e1153f092249a91160a`.
+The combined catalog freezes 112 complete target frames: 20 actual `Id` runs,
+20 recording-State runs whose oracle delegates to `KeccakQuery Id`, and 72
+synthetic/effect controls. Frames retain each actual call's complete inputs, result,
+query preimages/digests, cursor and forwarding state. The `logs-bloom-v1` header
+binds count 112, source count 20, source query count 85 and synthetic count 72;
+the footer binds the complete catalog identity and frame count. Its synthetic inputs,
+answers and full expected frames were frozen before the conformance engineer read
+or executed the new operation. The source catalog's full inputs, complete expected
+outputs, digests and bit positions were prepared
+before reading/invoking original Bloom source or new Lean Bloom code. Expectations
+use integer bitset composition and PyCryptodome Keccak; the actual original source
+uses mutable-byte updates and observed OpenSSL Keccak dispatch. The independent
+composition and distinct observed backend dispatches do not prove cryptographic
+correctness. Original-source/runtime authentication is a separate evidence gate
+from strict admission of those observation projections. The source-catalogue
+preparation, the original-source runs and their authentication are out of tree: in
+this repository, `logs_bloom_differential.py --check-target` compares the native
+output with the frozen catalogue only.
+
+Production threads one fixed-size packed byte buffer through log/topic array
+folds. Each answer selects byte pairs 0/1, 2/3 and 4/5, masks to eleven bits and
+performs three byte OR updates; exact index bounds and big-endian orientation
+are proved with public Base/Hash32 contracts. Final checked fixed-byte construction
+is proved successful at size 256. List and growing-Nat bitset models stay outside
+the production call path. The code and generated C expose bounded buffer updates
+and array traversal; they establish no compiled uniqueness, allocation-volume,
+peak-space, source-host failure, timing or C1–C4 claim. Receipt/header/BlockOutput
+integration, F20 coherence, full block execution and guest/EEST readiness remain
+separate obligations.
+
 ## 4. Tests
 
+- **Raw BlockParams.** The private public-facade clients in §3 quantify all three arbitrary Nat fields, reconstruct the complete record and update each field independently. Complete zero/distinct/large controls retain the unrestricted domain. All five R-F1 quantity controls and the actual subtraction expression belong to EthFork §3–§4.
+
+- **Raw SystemAddrs.** The complete private public-facade clients and zero/distinct/large controls in §3 preserve all eight nominal addresses, all twenty bytes of each address, and both independent budgets; each update observes every unrelated field. Concrete R-F2 value/consumer controls remain EthFork obligations.
 - **Raw TxParams.** The private public-facade clients and complete zero/distinct/large controls in §3 preserve the unrestricted raw domain. Amsterdam literal controls belong to EthFork §3–§4.
 
 Q53's root-input seam remains unimplemented. Require complete bytes for legacy and all
@@ -444,7 +526,24 @@ These are future consumer checks; the guidance clarification claims no new confo
   - Intrinsic gas: one value for each branch of R-IG (creation with 33-byte init code, self-transfer with value, 2 addresses × 3 slots, 1 and 2 authorizations), plus the floor exceeding the execution cost for a 10 KiB zero calldata.
   - `calculateBaseFeePerGas`: at, above and below target; the minimum increase of 1; a parent gas limit below 1024, where `checkGasLimit` is always false.
   - `checkGasLimit` at `parent ± parent/1024` exactly (both rejected).
-  - Bloom: the EIP known-answer vector for one log.
+  - Bloom (supplied locally): the independently frozen complete single-log known answer
+    `zero_address_zero_topic` in `logs_bloom_cases.json`: one all-zero 20-byte
+    address, one all-zero 32-byte topic, empty data. The complete 256-byte expected
+    result, both full preimages/digests and all six bit positions are retained.
+    This replaces the unsupported phrase “the EIP known-answer vector for one log”,
+    which identified no EIP, input or output. A bounded primary-source search did
+    not identify its intended literal; historical EIP attribution remains unknown.
+    EIP-2481's ReceiptsPacket illustration has an all-zero Bloom for a nonempty
+    log and explicitly tests RLP message encoding; it is not used as a Bloom KAT.
+    No published-EIP vector or broader EIP coverage is claimed. The independent
+    complete case and normal fixture/pinned-source authority are retained.
+    Synthetic controls cover bits 0/1/7/8/2047, all three selectors, eleven-bit
+    masking, equal selectors and irrelevant digest bytes 6–31. Stateful duplicate
+    answers and same-context append distinguish restarting, deduplication and
+    reordering. Failures at each address/topic query preserve complete original
+    errors, exact prefixes and no later query across both transformer orders and
+    forwarding layers. Interpreted and native controls are required alongside the
+    complete 20-case source catalog, without inferring universal coupling from tests.
   - `HashConsts.query` at `Id`: `emptyOmmerHash = 1dcc4de8…9347`.
   - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner lengths at the 55/56 and 64 SHA-256 padding boundaries and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
   - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
@@ -587,7 +686,7 @@ def checkGasLimit (cfg) : Nat → Nat → Bool
 def calculateBaseFeePerGas (cfg) : Nat → Nat → Nat → Nat → Except BlockError Nat
 def validateHeader (cfg) (consts : HashConsts) : ParentHeader → Header → BlockM m Unit   -- parent hash queried
 -- bloom, requests
-def logsBloom : Array Log → m Bloom
+def logsBloom {m : Type → Type} [Monad m] [KeccakQuery m] : Array Vm.Core.Log → m Bloom
 def extractDepositData : ByteArray → Except DepositError ByteArray
 def parseDepositRequests (cfg) : BlockOutput → Except BlockError ByteArray
 def computeRequestsHash : List ByteArray → Hash32
@@ -622,7 +721,7 @@ def updateSenderState (cfg) : BlockEnvironment → TransactionEnvironment → Tr
     → StateM m Unit
 def disburseGasFees : BlockEnvironment → TransactionEnvironment → TransactionGasSettlement
     → Address → StateM m Unit
-def makeReceipt : Transaction → Option VmError → Nat → Array Log → m EncodedReceipt   -- bloom hashes
+def makeReceipt : Transaction → Option VmError → Nat → Array Vm.Core.Log → m EncodedReceipt   -- bloom hashes
 def processWithdrawals (cfg) : BlockEnvironment → BlockAcc m → Array Withdrawal → BlockM m (BlockAcc m)
 def processGeneralPurposeRequests (cfg) : BlockEnvironment → BlockAcc m → BlockM m (BlockAcc m)
 def applyBody (cfg) : BlockEnvironment → Array BlockTx → Array Withdrawal
@@ -704,12 +803,14 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 
 | Type | Representation | Model | Abstraction / invariant | Persistence | Cost |
 |---|---|---|---|---|---|
+| `BlockParams` | three unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
+| `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | Header, transactions, withdrawals, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
 | `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
 | Transaction, receipt and withdrawal tries | an `Array ByteArray` of values in index order, built linearly; the root is computed once by `EthCommit` over `rlp i ↦ v` | finite map `Nat ⇀ Bytes` with domain `[0, n)` | α = `fun a i => a[i]?`; invariant: dense | linear-only (`Array`), never snapshotted | O(1) amortised append; root O(n log n) or better (EthCommit) |
 | `receiptKeys` | implicit (`0…n−1`) | list of `rlp i` | α = `(List.range n).map rlp` | — | — |
 | `blockLogs` and per-transaction logs | **rope** (D24, owned by `EthState`/`EthVmCore`); flattened once, per receipt and for the bloom, by the linear traversal of ARCHITECTURE §5.3 | `List Log` | rope → list | persistent, O(1) concat | flatten O(total) |
-| Bloom builder | `ByteArray` of 256 bytes, updated in place | `Finset (Fin 2048)` | bit *k* set ⇔ *k* ∈ set | linear-only | O(entries) |
+| Bloom builder | fixed 256-byte `ByteArray`, latest-owner byte updates | private positional Nat bitset and ordered `m Bloom` action | exact size and complete action equality; three selected bits per answer | threaded linearly; compiled uniqueness unclaimed | O(entries), excluding oracle/provider costs; no measured C gate |
 | `BalBuilder` | `accounts : Std.ExtTreeMap Address AccountData`; `AccountData = {storageChanges : ExtTreeMap U256 (ExtTreeMap U32 U256), storageReads : ExtTreeSet U256, balance : ExtTreeMap U32 U256, nonce : ExtTreeMap U32 U64, code : ExtTreeMap U32 ByteArray}`; memo tables `ExtTreeMap (U32 × Address) (Option Account)` and `ExtTreeMap (U32 × Address × Bytes32) U256`; `index : U32` | `Address ⇀ (slot ⇀ idx ⇀ value) × Set slot × (idx ⇀ bal) × (idx ⇀ nonce) × (idx ⇀ code)` | α forgets the tree structure; invariant: Std's `Ordered`/WF, **no empty inner storage map** (matching `:539`), and memo entries equal the pre-values at their index | linear (threaded once through the block; never inside a call snapshot) | each add/remove O(log n); build O(N) through ordered `toList` |
 | `BlockAccessList` | `Array AccountChanges` | a sorted list | invariants: addresses strictly increasing; per account, slots strictly increasing, reads strictly increasing and disjoint from written slots, change lists strictly increasing by index | read-only | hash O(size) |
 
@@ -717,9 +818,9 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
-The supplied raw `TxParams` has ordinary structure reduction and reconstruction;
-§3 records private arbitrary-input projection/update clients. No additional public
-TxParams law package or global configuration predicate is supplied.
+The supplied raw `BlockParams`, `TxParams` and `SystemAddrs` have ordinary structure
+reduction and reconstruction; §3 records private arbitrary-input projection/update clients for
+every field. No additional public law package or global configuration predicate is supplied.
 
 Per operation (model-based, D25):
 
@@ -732,7 +833,22 @@ Per operation (model-based, D25):
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
   - `readsDisjoint`: read slots minus written slots. [C]
-- **Receipts and bloom.** `logsBloom (l₁ ++ l₂) = logsBloom l₁ ||| logsBloom l₂`; `logsBloom [] = 0²⁵⁶`. [C] The receipt of transaction `i` carries the cumulative gas `Σ_{j≤i} gasUsed_j`. [C]
+- **Logs bloom (supplied).** `logsBloom_eq` gives the complete `m Bloom` action:
+  flatten each address-byte preimage followed by its ordered topic-byte preimages,
+  fold left from Nat zero, bind exactly one `KeccakQuery.keccak` per entry, and
+  OR the accumulator with `2^((h.toNat / 2^240) % 2048)`,
+  `2^((h.toNat / 2^224) % 2048)` and `2^((h.toNat / 2^208) % 2048)`;
+  return `(FixedBytes.ofNat result : Bloom)`. The private packed/reference theorem
+  proves this full result/action equality for all inputs. `logsBloom_empty` is
+  `logsBloom #[] = pure (FixedBytes.ofNat 0 : Bloom)`. Under lawful sequencing,
+  `logsBloom_append` is `logsBloom (a ++ b) = do let ba ← logsBloom a;
+  let bb ← logsBloom b; pure (FixedBytes.ofNat (ba.toNat ||| bb.toNat) : Bloom)`.
+  Both calls share the same evolving oracle context. `LawfulMonad` is used only by
+  these ordinary sequencing-normalization proofs; the operation remains under
+  plain `Monad`. No oracle law, stable answer or reset is assumed. Duplicates and
+  arbitrary topic counts remain observable, and data is irrelevant. [R][T]
+- **Receipts.** The receipt of transaction `i` carries the cumulative gas
+  `Σ_{j≤i} gasUsed_j`; actual receipt/transaction integration remains unimplemented. [C]
 - **Tries (Q53; unimplemented).** Each root is `mathRoot emptyRoot` of the dense encoded ordinal map specified in §5, equal to EthCommit's typed `root emptyRoot t unsecured safe` by its pure preparation equation. EthBlock establishes value validity, lawful byte keys (conditionally using Q54 providers when choosing existing Bytes), source equality/encoding and complete schema/assembled `Encodable` premises, and supplies the coherent F20 context root. The stateless-path header derives it from the same bytes, so for canonical encodings the comparison is [I] a tautology. [C, once the required provider/consumer and EthCodec round-trip laws exist]
 - **Arithmetic safety.** Each lemma discharges an EELS `-` that would raise:
   - `updateSenderState` never underflows after `checkTransaction` succeeds, since `maxGasFee ≥ gas·price + blobFee`;
@@ -799,10 +915,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Implemented bounded scope:** `countTokensInData`, `extractDepositData` and `computeRequestsHash`, with their complete all-finite result laws and the extraction success-size law, are supplied (§3/§5/§7). Their 266-case, 142-case and 298-case complete native/source observations supply finite coupling only. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+- **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, system-caller transport and configuration coherence remain open.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.

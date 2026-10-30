@@ -1,6 +1,6 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `44cfcb54…be1a`), the pinned source, or by running pinned EELS on fixture inputs; **[I]** marks an inference.
@@ -100,7 +100,25 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 **External semantics.** In `stateless_host.py`: `ethereum_rlp.rlp` (`rlp.encode(header)` for the block hash, `rlp.encode(tx)` for legacy transactions, `rlp.encode(block_access_list)`), `ethereum_types` `Bytes`/`U64`; behaviour specified by `EthCodec`/`EthBase`. In `requests.py` decoders: `ethereum_types` `Bytes32/48/96`, `U64.from_le_bytes` (little-endian), `slotted_freezable` (no semantics). JSON parsing (`Lean.Json`, allowed as part of `Lean`) and hex decoding are local and must reject odd-length and non-hex strings as *fixture malformed*.
 
+The selectable budget vocabulary's private clients, bounded guards, input-only
+interpreted/native producer and independent mathematical parser controls are owned
+by EthVmRunner §3/§4/§5/§7. They are imported through the Conformance facade; they make
+no original-source budget execution or guest/EEST claim.
+
+The nominal execution entry-kind carrier's private public-facade constructor,
+exhaustive/dependent elimination, branch and ordered disjointness clients are owned
+by EthVmRunner §3/§4/§5/§7 and imported through the Conformance facade. They establish
+only the specified carrier shape, with no `Exec` relation or guest/EEST claim.
+
 ## 4. Tests
+
+Private Field reference-power and canonical-sign clients and complete finite controls
+are imported by `STFSpec.Conformance`; their supplied semantics, source map and evidence
+boundaries are owned by [EthField
+§3/§4/§7](EthField.md#supplied-natural-reference-powers) and [the canonical-sign
+slice](EthField.md#supplied-canonical-natural-reference-sign). The evidence-only
+interpreted/native adapter used for EthField §4's comparisons is out of tree (not
+committed). Public powMod, field hierarchy and guest conformance remain open.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).

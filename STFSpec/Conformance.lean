@@ -4,14 +4,23 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Conformance.Vm.Core.FrameErrorCallerProofs
 import STFSpec.Conformance.Vm.Core.FrameErrorGuards
+import STFSpec.Conformance.Vm.Runner.BudgetCallerProofs
+import STFSpec.Conformance.Vm.Runner.BudgetGuards
+import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerGuards
+import STFSpec.Conformance.Field.ReferenceSignCallerProofs
+import STFSpec.Conformance.Field.ReferenceSignGuards
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
+import STFSpec.Conformance.Block.BlockParamsCallerProofs
+import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
 import STFSpec.Conformance.Vm.Core.PreparationFailureGasCallerProofs
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationGuards
@@ -264,6 +273,8 @@ import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
 
+import STFSpec.Conformance.Block.LogsBloomCallerProofs
+import STFSpec.Conformance.Block.LogsBloomGuards
 import STFSpec.Conformance.Block.RequestsHashCallerProofs
 import STFSpec.Conformance.Block.RequestsHashGuards
 import STFSpec.Conformance.Block.DepositDataCallerProofs
@@ -274,6 +285,7 @@ import STFSpec.Conformance.Block.CalldataTokensGuards
 import STFSpec.Conformance.Fork.AmsterdamVmGuards
 import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
 import STFSpec.Conformance.Block.TxParamsCallerProofs
+import STFSpec.Conformance.Block.SystemAddrsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
 
 /-!

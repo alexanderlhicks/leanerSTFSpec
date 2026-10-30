@@ -1,6 +1,6 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic and eight natural moduli supplied. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
@@ -160,7 +160,7 @@ separate five-operation arithmetic slice that follows. The class has exactly
 including 2, even composites and odd composites. Metadata is unread by this slice;
 its presence does not assert that an exponent is correct. The structure uses the literal
 private constructor; `val`/`isLt` projections remain internal by convention, not hidden.
-Consumers use the eleven observer laws in §7.
+Consumers use the thirteen observer laws in §7.
 
 The dependency references below are py-ecc 8.0.0 at the lock pinned by `reference.toml`.
 These synthetic parameter-class comparisons execute original optimized `FQ` methods;
@@ -219,6 +219,68 @@ zero/self subtraction, zero negation, subtraction/addition and negation/addition
 and signed-Int subtraction/negation models. Clients use public laws and instance delegation,
 never the carrier projections, constructor equations or semantic operation definitions.
 
+### Supplied natural-reference powers
+
+`STFSpec/Field/ReferencePower.lean`, reexported by `STFSpec.Field`, adds exactly
+`PrimeFieldRef.pow`, its ordinary `toNat_pow` observer law and one directly delegating
+`HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)` instance. Every helper and derived law
+is private. This reference-only operation admits every p>1, including 2 and even/odd
+composites, every canonical base and every natural exponent. Square-root metadata is
+arbitrary and unread. There is no primality, nonzero-base or exponent-bound premise.
+
+| Source / contract | Lean declaration and exact type (`{p : Nat} [FieldModulus p]`) | Complete behavior / effects / ordered failure | Law / controls / status |
+|---|---|---|---|
+| py-ecc 8.0.0 `py_ecc/fields/optimized_field_elements.py:161–169`, `FQ.__pow__`; constructor :57–68 and multiplication :82–92 | `PrimeFieldRef.pow (a : PrimeFieldRef p) (e : Nat) : PrimeFieldRef p` | Return the canonical residue `a.toNat ^ e % p`; `0^0` is one; pure, no query/mutation/failure | `toNat_pow (a) (e) : (pow a e).toNat = a.toNat ^ e % p`; all-input ordinary proof and complete finite controls; **discharged** |
+| §5 reference observer API and operator delegation | `PrimeFieldRef.toNat_pow (a : PrimeFieldRef p) (e : Nat)` and `HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)` | The theorem is ordinary equality; notation delegates directly to `pow` | Private public-facade clients and named/notation controls; **discharged** |
+
+The private positive-modulus natural worker halves the exponent, squares the returned
+half-power modulo p, and multiplies by the reduced base on an odd bit. This rearranges
+the source's equivalent square-base-before-recursion shape. Each product is reduced;
+the implementation never constructs the unreduced natural power. The natural measure
+strictly decreases at every recursive call; strong induction and natural modular
+multiplication prove the full observer equation. No exponent is reduced modulo p,
+p−1, an order or a machine width. The private worker's positivity premise follows
+from the existing class bound and selects no public `powMod` zero-modulus completion.
+
+Private `ReferencePowerCallerProofs.lean` clients import only the public Field facade.
+They derive named/notation equations, canonical range, exponents zero/one, zero at
+positive exponents, one at every exponent, square, exponent addition, product powers
+and iterated powers from the public observer laws and delegation. An explicit symbolic
+client quantifies over every `Option Nat` metadata value. No field/Euler/cancellation
+assumption or equality between differently parameterized metadata instances is used.
+
+### Supplied canonical natural-reference sign
+
+`STFSpec/Field/ReferenceSign.lean`, reexported by `STFSpec.Field`, adds exactly
+`PrimeFieldRef.sgn0` and its ordinary `sgn0_eq` observer law. This is R5's Fp
+canonical-parity observer on the existing reference carrier and §5's same observer
+API. Every admitted p>1, including 2 and even/odd composites, every canonical element
+and arbitrary unread `sqrtExp? : Option Nat` are supported. No primality, oddness,
+metadata coherence or additional proof argument is required.
+
+| Source / contract | Lean declaration and exact type (`{p : Nat} [FieldModulus p]`) | Complete behavior / effects / ordered failure | Law / controls / status |
+|---|---|---|---|
+| py-ecc 8.0.0 `py_ecc/fields/optimized_field_elements.py:204–215`, optimized `FQ.sgn0`; constructor :57–68 and `__int__` :190–191 | `PrimeFieldRef.sgn0 (a : PrimeFieldRef p) : Bool` | Return exactly `decide (a.toNat % 2 = 1)`; canonical residue parity, pure Lean observer, no query/mutation/failure | `sgn0_eq`; exhaustive small canonical residues, wraps, p3/raw4 trap and adjacent large bit controls under all three metadata choices; **discharged** |
+| R5 / §5 reference observer API / §7 model equation | `PrimeFieldRef.sgn0_eq (a : PrimeFieldRef p) : sgn0 a = decide (a.toNat % 2 = 1)` | Ordinary equality for every canonical element and arbitrary admitted instance | Private facade-only true/false, zero/one, reducing-constructor and arbitrary-metadata observer clients; **discharged** |
+
+The original cached property's exact Python integer zero/one is compared to Lean
+Bool explicitly as false→0 and true→1. The source first reduces the natural
+constructor input: p3/raw4 has canonical residue one and sign true, although raw
+four is even. The finite source claim covers successfully constructed fresh
+optimized FQ objects, including the actual original BN254/BLS12-381 base classes.
+Source cache entry/profile observations authenticate that property access; the pure
+Lean API claims no mutable-cache effect correspondence. Signed/copy/mixed/mutated
+source objects, ordinary/scalar/secp256k1/P256 named sign properties, Fp2 sign,
+square roots, a negation-sign identity and an RFC-wide hierarchy are outside this slice.
+
+Private `ReferenceSignCallerProofs.lean` imports only the Field facade and derives
+both Boolean recognition directions, zero/one and reducing-constructor parity from
+`sgn0_eq` and the public provider laws. Symbolic clients quantify over every metadata
+value and compare Boolean observations of potentially different instance carriers
+under a `toNat` equality premise; they never equate those carriers or inspect private
+constructors, provider definitions or metadata. No algebra hierarchy or new instance
+is added. The direct legible observer needs no alternate fast algorithm.
+
 ## 4. Tests
 
 Private facade-only `ModuliCallerProofs.lean` checks all eight exact `Nat` types and
@@ -272,6 +334,73 @@ EELS source/lock, loaded methods, interpreter and unchanged source/venv manifest
 independently authenticated; an owned-copy original replay repeats both whole streams.
 These are finite reference-arithmetic correctness observations under the stated typed and
 host-runtime premises, without a universal source theorem, cost or EEST/guest claim.
+
+The power slice adds private `ReferencePowerGuards.lean` controls: 1,621 complete
+raw-base/exponent rows, each under `none`, `some 0` and `some (2^4096+17)` metadata
+(4,863 controls). Moduli are 2,3,4,5,6,8,9,15,17; bases are 0,1,p−1,p,p+1 and
+2^4096+17, plus the explicit p4/base2/exponent4 nonunit witness.
+Exponents include zero/one, adjacent bit boundaries through 255 bits,
+and 2^256+1. Every row checks actual canonical base, full named and notation values
+and range. The p4/base2/exponent4 result is zero; exponent reduction modulo p−1
+would incorrectly give two. These finite controls supplement the universal proof.
+
+On 2026-10-29, complete facade-importing interpreted and native target observations
+each cover all 16,232 independently frozen source inputs under all three metadata
+choices (48,696 rows per mode). All raw-base/exponent/id/context/kind/family/group/
+label/modulus fields, metadata, actual canonical base and both named/notation residues
+agree with both complete original normal/optimized streams and fresh whole-stream
+original replays. The 22 contexts comprise 18 synthetic small-modulus classes across
+ordinary and optimized FQ families and four actual original BN254/BLS12-381 base
+classes. Ordinary FQ observations broaden finite evidence without adding an optimized
+FQ contract. Only successfully constructed natural, same-class source operands are
+claimed; no signed/mixed/mutated source domain is added.
+
+The source packet, actual pinned Git blobs/modes, locked py-ecc 8.0.0 wheel members,
+loaded original methods and Python runtime are authenticated; before/after source and
+venv manifests agree. Strict parsed type identity rejects Bool-as-int equivalence.
+Target results come from executing the facade API, separately in interpreted and
+native modes; inputs contain no expected results. Kernel proof, finite source execution
+and compiled observations remain distinct. Compiler/loader/core-runtime and exact
+bignum assumptions remain explicit; original import raises the recursion limit.
+These controls establish no universal Python host completion/resource result, cost,
+precompile, guest or EEST conformance claim. The 16,232-input comparison, its frozen
+catalogue, the original streams and the interpreted/native adapter are out of tree: no
+harness or data for them is committed, so they are recorded observations that cannot
+be reproduced from this repository. The in-tree checks are the 4,863 finite controls
+and the public-law clients.
+
+The sign slice adds private `ReferenceSignGuards.lean`: 315 complete
+raw/canonical/Bool rows, each under `none`, `some 0` and `some (2^4096+17)` metadata
+(945 controls). They exhaust canonical residues for p=2,3,4,5,6,8,9,15,17 and cover
+zero, one, p−1, raw wraps, the p3/raw4 parity trap and adjacent bit boundaries through
+2048 bits; four further rows check p−1 and p−2 in the BN254 and BLS12-381 base fields
+through the public modulus constants. All Boolean outcomes are literal, and every other
+expected residue is literal.
+
+On 2026-10-30, fresh facade-importing interpreted and native target executions each
+observe every one of the independently frozen 766 natural source inputs under all
+three metadata choices (2,298 complete rows per mode). Complete id/context/kind/
+family/group/label/p/raw input, metadata, canonical observation and explicitly encoded
+Bool sign agree with both complete original normal/optimized streams and fresh
+unchanged-producer replays. Eleven source contexts are the nine synthetic moduli
+above and the actual original optimized BN254/BLS12-381 base classes. No generated
+expected result is substituted for a target observation.
+
+The frozen input-only stage predates original body/import/runtime observation.
+Both source packets, actual pinned EELS Git blobs/modes, the locked py-ecc 8.0.0
+wheel and installed members, original loaded methods and fresh owning-source
+compilations, interpreter and source/venv identity are authenticated. Strict parsed
+types reject Bool where a Nat is required. A fresh trust-zero, warnings-fatal closure
+checks the leaf, facade and all old/new Field clients; separately generated C,
+objects, archive, link and execution receipts bind the native observations to that
+fresh source closure. Source host/runtime/core-primitive and compiler/loader
+assumptions remain explicit: finite successful executions and the ordinary Lean
+law establish no universal Python host/resource completion, C1–C4 cost, actual
+curve/precompile composition, guest or EEST result. These sign comparisons, their
+frozen inputs, the original streams and the interpreted/native adapter are out of tree:
+nothing for them is committed, so they are recorded observations that cannot be
+reproduced from this repository. The in-tree checks are the 945 controls and the
+public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
@@ -328,6 +457,9 @@ instance : Repr (PrimeFieldRef p)       -- canonical Nat
 def add sub mul : PrimeFieldRef p → PrimeFieldRef p → PrimeFieldRef p
 def neg : PrimeFieldRef p → PrimeFieldRef p
 def isZero : PrimeFieldRef p → Bool
+def pow : PrimeFieldRef p → Nat → PrimeFieldRef p
+def sgn0 : PrimeFieldRef p → Bool  -- canonical toNat parity; ordinary sgn0_eq in §7
+instance : HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)  -- direct pow delegation
 instance : Add, Sub, Neg, Mul (PrimeFieldRef p)  -- direct named-operation delegation
 end PrimeFieldRef
 
@@ -423,7 +555,7 @@ no field representation or runtime backend is selected by supplying those values
 
 | Type | Representation (executable; reference in italics) | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
-| `PrimeField p` | **executable:** Montgomery residue `x̃ = x·R mod p` in fixed limbs, carry-preserving CIOS needing only `p < R`: `Wide8` (8×32-bit limbs in `UInt64`, `R = 2^256`) for every modulus `< 2^256`; `W12` (12×32, same template, `R = 2^384`) for BLS12-381 `q` (prototyped; not yet in the core or upstream). *Reference:* `val : Nat` with `val < p` | residues mod `p`; `ZMod p` in `EthFieldMathlib` | executable → reference: `α x̃ = x̃ · R⁻¹ mod p`; reference → model: `toNat` (core), `toZMod` (Mathlib) | executable: `Bounded x̃ ∧ x̃.toNat < p`; reference: `val < p` | immutable value; freely shareable | executable: CIOS Montgomery multiplication, add/sub with a conditional subtraction; reference: `Nat` arithmetic with `% p` (basic residue arithmetic supplied; other operations open) |
+| `PrimeField p` | **executable:** Montgomery residue `x̃ = x·R mod p` in fixed limbs, carry-preserving CIOS needing only `p < R`: `Wide8` (8×32-bit limbs in `UInt64`, `R = 2^256`) for every modulus `< 2^256`; `W12` (12×32, same template, `R = 2^384`) for BLS12-381 `q` (prototyped; not yet in the core or upstream). *Reference:* `val : Nat` with `val < p` | residues mod `p`; `ZMod p` in `EthFieldMathlib` | executable → reference: `α x̃ = x̃ · R⁻¹ mod p`; reference → model: `toNat` (core), `toZMod` (Mathlib) | executable: `Bounded x̃ ∧ x̃.toNat < p`; reference: `val < p` | immutable value; freely shareable | executable: CIOS Montgomery multiplication, add/sub with a conditional subtraction; reference: `Nat` arithmetic with `% p` (basic residue arithmetic and binary natural powers supplied; other operations open) |
 | `Fp2 F` | two `F` | `F[i]/(i²−β)` | componentwise | components canonical | immutable | mul 3–4 `F`-muls (Karatsuba optional) |
 | `Fp6 F`, `Fp12 F` | tower of `Fp2` | `Fp2[v]/(v³−ξ)`, `Fp6[w]/(w²−v)` | componentwise; `toFlat` for R4 | components canonical | immutable | `Fp12` mul ≈ 54 `Fp`-muls with Karatsuba [I] |
 | `powMod` workspace | `Nat` accumulators | `b^e mod m` | — | `acc < m` | local | O(log e · M(log m)) |
@@ -480,7 +612,7 @@ bounds are checked privately; no new authored public law or instance is supplied
 Primality, square-root metadata and concrete-field/backend contracts remain open.
 
 **Supplied reference-only laws (discharged).** In namespace `PrimeFieldRef`, with
-`{p : Nat} [FieldModulus p]`, exactly eleven ordinary public laws are supplied:
+`{p : Nat} [FieldModulus p]`, exactly thirteen ordinary public laws are supplied:
 
 - `toNat_lt (a) : a.toNat < p`.
 - `toNat_ofNat (n) : (ofNat (p := p) n).toNat = n % p`.
@@ -493,14 +625,20 @@ Primality, square-root metadata and concrete-field/backend contracts remain open
 - `toNat_neg (a) : (neg a).toNat = (p - a.toNat) % p`.
 - `toNat_mul (a b) : (mul a b).toNat = (a.toNat * b.toNat) % p`.
 - `isZero_eq (a) : isZero a = decide (a.toNat = 0)`.
+- `toNat_pow (a) (e) : (pow a e).toNat = a.toNat ^ e % p`.
+- `sgn0_eq (a) : sgn0 a = decide (a.toNat % 2 = 1)`.
 
-These require only `1 < p`, retain arbitrary metadata and have no global simp attributes.
-Range follows canonical construction; reduction is remainder; checked admission branches
-once on range; canonical residues determine equality. Zero and one use `1 < p`. These
-facts prove the carrier slice. Arithmetic construction reduces the corresponding natural
-expression, so its observer equations follow directly from the reducing constructor.
-Canonical bounds make subtraction/negation agree with signed modular arithmetic. The
-Boolean equation determines both outcomes. These results assert no field for composites.
+These require only `1 < p`, retain arbitrary metadata and have no global simp
+attributes. Range follows canonical construction; reduction is remainder; checked
+admission branches once on range; canonical residues determine equality. Zero and one
+use `1 < p`. These facts prove the carrier slice. Arithmetic construction reduces the
+corresponding natural expression, so its observer equations follow directly from the
+reducing constructor. Canonical bounds make subtraction/negation agree with signed
+modular arithmetic. The Boolean equation determines both outcomes. Binary halving plus
+modular multiplication proves the power equation on every Nat exponent; its canonical
+construction gives range and `0^0 = one`. The canonical sign equation directly decides
+oddness of the observation; it does not read metadata. These results assert no field for
+composites or sign-change-under-negation law.
 
 **Remaining contracts (unimplemented for the executable `PrimeField` API).** Per operation, the commuting equation with the `Nat` model (core) — stated once, proved once per
 representation:
@@ -537,7 +675,12 @@ the ring structure, never the `val` field.
 
 **Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. Inversion splits zero from nonzero; Fermat/Euclid supplies the nonzero inverse only under primality. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
 
-**Open obligations.** The reference carrier and basic residue arithmetic above are discharged; power/inverse/Euler/sqrt, encoding and executable-reference bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain required. The Montgomery implementation must prove these same observer equations relative to the `Nat` reference.
+**Open obligations.** The reference carrier, basic residue arithmetic, natural powers
+and canonical sign above are discharged; inverse/Euler/sqrt, public powMod, encoding and
+executable-reference bridges stay open. Prime and irreducibility certificates,
+algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain
+required. The Montgomery implementation must prove these same observer equations
+relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -555,8 +698,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-Supplying the eight natural moduli makes no D6 source choice and requires no D18
-performance exception; executable representations and their costs remain open.
+Supplying the eight natural moduli, reference-only binary powers and canonical sign
+makes no D6 source choice and requires no D18 performance exception; executable
+representations and their costs remain open.
 
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
@@ -581,13 +725,15 @@ performance exception; executable representations and their costs remain open.
 ## 10. Gaps
 
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
-  operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
-  five observer laws and four delegating operator instances; private controls and clients
-  cover those slices. The eight exact R1 natural moduli are supplied separately;
+  operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
+  observer laws and four delegating operator instances, plus natural pow/toNat_pow and
+  its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
+  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
   concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
-  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
-  No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
-  precompile, signature, guest or EEST readiness claim follows.
+  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
+  unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

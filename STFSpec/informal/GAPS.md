@@ -168,13 +168,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthField`](modules/EthField.md)
 
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
-  operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
-  five observer laws and four delegating operator instances; private controls and clients
-  cover those slices. The eight exact R1 natural moduli are supplied separately;
+  operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
+  observer laws and four delegating operator instances, plus natural pow/toNat_pow and
+  its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
+  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
   concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
-  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
-  No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
-  precompile, signature, guest or EEST readiness claim follows.
+  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
+  unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -779,23 +781,25 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no Lean definition exists. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the three selectable budget declarations and the nominal entry-kind carrier of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:318` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:285` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
 - **`move_ether` preconditions**: the sender-balance assertion in EthState's `move_ether` is unreachable only because of preflight checks (CALL/CREATE) and transaction validation (top level). EthVmRunner owns the CALL/CREATE caller proof; EthBlock owns the top-level admission proof; both consume EthState's checked `moveEther` contract. Record both proofs before treating the assertion as unreachable.
 - **System transactions** (`fork.py:770–822`) run with 30 M execution gas and a 16-SSTORE reservoir; `phiBudget` gives ≈ 3·10⁷ fuel, which is fine as a bound but the error path (`fork.py:757–760` raises on a failed system call) belongs to EthBlock.
 - **Trace schema** (ARCHITECTURE §12) is undecided; the event order of `OpStart`/`OpEnd`/`OpException`/`EvmStop` is specified only as "EELS order".
-- **The `Exec` relation** is not yet defined; its exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
+- **The `Exec` relation** is not yet defined; the supplied `ExecKind` carrier settles only its entry-tag vocabulary; `Exec`'s exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
 - **EIP-8037 cross-frame refunds** (`test_state_gas_cross_frame_refund.py`) exercise the repay path whose Φ-neutrality is only source-checked.
 - **Pre-dispatch vs dispatch rollback** (delegations kept after a dispatched failure, reverted after a preparation failure) is specified from comments and code (`gas.py:471–502`, `interpreter.py:276–282`); no targeted `#guard` exists yet.
 
 ### [`EthBlock`](modules/EthBlock.md)
 
-- **Implemented bounded scope:** `countTokensInData`, `extractDepositData` and `computeRequestsHash`, with their complete all-finite result laws and the extraction success-size law, are supplied (§3/§5/§7). Their 266-case, 142-case and 298-case complete native/source observations supply finite coupling only. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+- **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, system-caller transport and configuration coherence remain open.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
@@ -820,6 +824,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].

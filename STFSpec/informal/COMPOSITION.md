@@ -44,6 +44,8 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | VmWorld, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
+| BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
+| ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
@@ -984,13 +986,22 @@ For payload conversion, `Array PublicKey` erases each subtype to its ByteArray f
 supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero with
 ordinary observer equations and four directly delegating operator instances. Generic
 private facade clients compose those laws for range, both zero-recognition directions,
-signed subtraction/negation and cancellation, for every p>1 and arbitrary unread metadata.
-Consumers use observers and public laws. The eight exact natural moduli are separately
-supplied by EthField §3, without instances, aliases, square-root metadata or backend
-parameters. Composite residue arithmetic and literal modulus values supply no field
-structure or primality fact. Runtime Montgomery aliases/D6, inverse/power/sqrt/encoding,
-concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
-this reference seam supplies no production performance or guest-readiness result.
+signed subtraction/negation and cancellation, for every p>1 and arbitrary unread
+metadata. Consumers use observers and public laws. The eight exact natural moduli are
+separately supplied by EthField §3, without instances, aliases, square-root metadata or
+backend parameters. Composite residue arithmetic and literal modulus values supply no
+field structure or primality fact. The separate natural-reference power leaf supplies
+`pow`, `toNat_pow` and direct natural-exponent notation for all canonical bases and Nat
+exponents, including composite/nonunit cases and zero-to-zero. Private facade clients
+derive range, zero/one, square/product/exponent-add/iterated-power laws using public
+observations alone, with arbitrary unread metadata. The positive-modulus private worker
+chooses no public powMod-zero completion. The separate canonical-sign leaf supplies
+sgn0/sgn0_eq; private facade clients derive true/false, zero/one, reducing-constructor
+parity and metadata irrelevance through equal natural observations, for every p>1. This
+reference premise supplies no Fp2, sqrt or negation-sign law. Runtime Montgomery
+aliases/D6, inverse/sqrt/encoding, public powMod, concrete fields/towers/Mathlib bridges
+and actual curve/precompile composition remain open; this reference seam supplies no
+production performance or guest-readiness result.
 
 ## 3. Inductive state invariant
 

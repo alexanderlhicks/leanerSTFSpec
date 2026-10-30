@@ -174,6 +174,13 @@ lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
 python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
 python3 -B scripts/test_ssz_encode_output_parser.py
 python3 -B -O scripts/test_ssz_encode_output_parser.py
+lake build budget-policy-native-tests --wfail
+lake exe check-decls BudgetPolicyNativeTests
+python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --write-input .lake/budget-policy-input.tsv
+lake exe budget-policy-native-tests .lake/budget-policy-input.tsv > .lake/budget-policy.jsonl
+python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --check-target .lake/budget-policy.jsonl
+python3 -B scripts/test_budget_policy_output_parser.py
+python3 -B -O scripts/test_budget_policy_output_parser.py
 lake build calldata-tokens-native-tests --wfail
 lake exe check-decls CalldataTokensNativeTests
 lake exe calldata-tokens-native-tests > .lake/calldata-tokens.jsonl
@@ -210,6 +217,12 @@ lake exe requests-hash-native-tests > .lake/requests-hash.jsonl
 python3 -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
 python3 -B scripts/test_requests_hash_output_parser.py
 python3 -B -O scripts/test_requests_hash_output_parser.py
+lake build logs-bloom-native-tests --wfail
+lake exe check-decls LogsBloomNativeTests
+lake exe logs-bloom-native-tests > .lake/logs-bloom.jsonl
+python3 -B STFSpec/Conformance/Block/logs_bloom_differential.py --check-target .lake/logs-bloom.jsonl
+python3 -B scripts/test_logs_bloom_output_parser.py
+python3 -B -O scripts/test_logs_bloom_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
