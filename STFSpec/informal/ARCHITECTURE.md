@@ -468,6 +468,17 @@ The options considered for each decision, and what evidence settles or revisits 
 | D26 | secp256k1 recovery for senders and EIP-7702 authorities | `RunnerEnv` parameter · direct `EthCurve` dependency of `EthVmRunner` | — (pure-Lean dependencies only) |
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
 
+**Natural-reference inverse options (Q86).** (A) a callable positive-Nat helper
+and functional coefficient reference, including modulus one; (B) full existing
+canonical carrier with a public finite signed Euclidean graph, exactly done/step,
+and a private evaluator; (C) a restricted zero-or-unit call requiring a local proof.
+DECISIONS Q86 owns the selected option and exact inverse-only R9/§7[T] exception.
+EthField §5/§7 owns the ten authored declarations/two constructors and complete
+model; graph membership/uniqueness isolates consumers from private evaluation.
+The well-founded low-remainder proof introduces no runtime fuel/resource/time bound
+or D6/backend permission. Revisit for a changed pin, carrier or consumer boundary;
+primality, backend/replacement and C1–C4 gates remain separate.
+
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
 
 **Two-item field diagnostic options (Q52).** Name the path-list and leaf-value-list failures separately; reuse unrelated existing diagnostics; or introduce a generic shape catch-all. The source checks the first field at `incremental_mpt.py:946` before compact decoding and the second at `:951` only on a successfully decoded leaf flag. DECISIONS Q52 owns the disposition. The distinct names retain that order, Q48 and existing O4 projection; whole decoding and witness/guest adapters remain open.

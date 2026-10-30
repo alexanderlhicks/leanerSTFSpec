@@ -1,7 +1,7 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, graph-specified inverse and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45, Q86.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
 (venv `esvenv`, versions as in `reference.toml`); **[I]** inference, not yet checked.
@@ -47,6 +47,8 @@ every EVM decoder uses the checked form (for example `alt_bn128.py:68–71`,
 draft) [V], and `normalize` of the point at infinity divides by `z = 0`, which is how the
 precompiles produce the all-zero encoding of infinity (`optimized_curve.py:146–150`) [V: `normalize`
 of `P + (−P)` and of `0·P` gives `(0, 0)` for BN254]. Any representation must preserve this.
+The supplied Q86 reference inverse additionally fixes every composite-nonunit result by
+the complete signed Euclidean graph in §3/§5/§7; division remains unimplemented.
 
 **R4. Extension conventions.** `Fp2 = Fp[i]/(i² + 1)` for both BN254 and BLS12-381
 (`fq2_modulus_coeffs = (1, 0)`) [V]. The element `c0 + c1·i` is stored as `(c0, c1)`; the EVM
@@ -88,8 +90,12 @@ checked `ofBytesBE? : ByteArray → Option F` (`int.from_bytes(…, "big")` then
 (`bls12_381/__init__.py:449–452`) [V], so no separate padding check exists or is needed.
 
 **R9. Totality and purity.** Every function is total, `partial`-free, `sorry`-free and uses no
-`@[extern]`/`@[implemented_by]` (CONTRIBUTING §4). Exponentiation, inversion and square roots
-recurse structurally on exponent bits or a fixed loop count.
+`@[extern]`/`@[implemented_by]` (CONTRIBUTING §4). Exponentiation and square roots
+recurse structurally on exponent bits or a fixed loop count. The approved natural-reference
+inverse, and its approved reference helpers, follow the source guard `1 < low` and recur
+on `high % low` with the explicit well-founded natural measure `low`. This is a logical
+totality argument; it introduces no runtime fuel, rejection, resource policy or claimed
+time/cycle bound (Q86).
 
 **R10. Failure behaviour.** `EthField` never raises: invalid encodings are `none`, and every
 arithmetic operation is total (R3). Outcome mapping (O8/O9) is done by `EthPrecompiles`.
@@ -281,6 +287,40 @@ under a `toNat` equality premise; they never equate those carriers or inspect pr
 constructors, provider definitions or metadata. No algebra hierarchy or new instance
 is added. The direct legible observer needs no alternate fast algorithm.
 
+### Supplied graph-specified natural-reference inverse
+
+`STFSpec/Field/ReferenceInverse.lean`, reexported by `STFSpec.Field`, supplies the
+Q86 inverse on **every** existing canonical `PrimeFieldRef p`: every p>1, including
+2, even composites and odd composite nonunits. Arbitrary `sqrtExp? : Option Nat`
+is unread. Ordinary callers supply no primality, oddness, coherence, nonzero or
+coprimality proof. The exact ten authored public declarations and two graph
+constructors are in §5/§7; all evaluators, arithmetic support, derived laws and
+clients are private. Compiler-generated induction/elimination/equation declarations
+are support for those declarations, rather than an additional authored operation API.
+
+| Source / contract | Lean declaration and exact type (`{p : Nat} [FieldModulus p]`) | Complete behavior / effects / ordered failure | Law / controls / status |
+|---|---|---|---|
+| py-ecc 8.0.0 `py_ecc/utils.py:21–39`, `prime_field_inv`; reducing initialization :29 and zero branch :31–32 | `PrimeFieldRef.inv0 (a : PrimeFieldRef p) : PrimeFieldRef p` | Zero returns zero. Otherwise initialize `(a.toNat,p,1,0)`; while `1 < low`, simultaneously replace `(low,high,lm,hm)` with `(high % low,low,hm-lm*(high/low),lm)`. Return canonical `(lm % (p : Int)).toNat`, including termination at low zero on nonunits. Pure, no mutation/query/error/rejection. | `Inv0Model` / `toNat_inv0_iff`; totality, uniqueness, range, zero and local gcd-unit law; **discharged** |
+| Exact mathematical graph, §5 | `EuclideanCoefficient`, `euclideanCoefficient_total`, `euclideanCoefficient_unique`; `PrimeFieldRef.Inv0Model`, `inv0Model_total`, `inv0Model_lt`, `toNat_inv0_iff`, `inv0_zero`, `mul_inv0_of_gcd_one` | Complete graph determines every output, including nonunits; the sole multiplicative law assumes `Nat.gcd a.toNat p = 1` locally | Public-only graph, nonunit, range, reduction and arbitrary-metadata clients; **discharged** |
+
+The source accepts raw natural input and first reduces modulo p. `toNat_lt` gives
+`a.toNat % p = a.toNat`, the ordinary mathematical initialization bridge; target
+controls construct `ofNat raw` and retain raw inputs separately. The private ordinary
+signed Euclidean worker follows the source guard and decreases the explicit natural
+measure `low` because `high % low < low` when `1 < low`. Its ordinary graph bridge
+and public graph uniqueness establish the complete consumer contract independently
+of the private evaluator. Signed Euclidean remainder occurs **before** `Int.toNat`.
+No `Inv`/`Div` instance, division, callable raw-Nat inverse, modulus-zero/one inverse
+completion or alternate public helper is supplied. The graph's arithmetic on all
+coefficient states does not enlarge the operation's existing p>1 carrier domain.
+
+The direct original helper observations use exact Python natural `int` arguments,
+p>1, actual original code/globals/builtins and its locked interpreter; they invoke
+no FQ constructor, division, curve or EELS concrete-field initializer. The target's
+reducing constructor is related mathematically. Finite successful source executions
+retain exact bignum/compiler/loader/core-runtime and Python host-resource premises;
+they establish no universal host completion, cost, precompile or guest result.
+
 ## 4. Tests
 
 Private facade-only `ModuliCallerProofs.lean` checks all eight exact `Nat` types and
@@ -396,6 +436,34 @@ assumptions remain explicit: finite successful executions and the ordinary Lean
 law establish no universal Python host/resource completion, C1–C4 cost, actual
 curve/precompile composition, guest or EEST result.
 
+The inverse slice adds private `ReferenceInverseCallerProofs.lean` clients for
+complete output/range/uniqueness, zero, the gcd-qualified product, reducing inputs,
+and observer congruence under arbitrary metadata without equating different instance
+carriers. Explicit finite public graph derivations prove (a,p)=(2,4)→2, (2,6)→3,
+(3,9)→6, composite unit (2,15)→8 and the negative-coefficient trap (2,3)→2.
+`ReferenceInverseGuards.lean` checks all 685 frozen raw/p inputs and independent
+complete literal canonical/inverse results under none, some0 and some(2^4096+17):
+2,055 controls. These include even p2, zero/one/p−1, wraps, small units/nonunits and
+adjacent high-bit inputs through 4096 bits, with four planned BN254/BLS base/scalar
+modulus contexts. Planned modulus contexts do not assert original named classes.
+
+Fresh facade-importing interpreted and native target observations each retain all
+2,055 ID/group/raw/p/canonical/metadata/full-inverse rows. Strict external readers
+check complete framing, exact parsed types/count/order/results and reject duplicate
+keys, Bool-as-Nat/metadata, floats and nonfinite values in both reader modes.
+The independent mathematical Euclidean model retains complete transition traces,
+range/zero/gcd-unit checks and nonunit actual outputs, distinct from source evidence.
+All rows compare through the explicit raw→canonical bridge against all four sealed
+original 685-row normal/optimized/replay streams and four fresh unchanged-original
+producer streams (normal and optimized twice each), with complete stable sidecars.
+Actual original code/class/global dispatch, owning-source compilation, locked wheel,
+interpreter and unchanged before/after source/venv identities are authenticated.
+Fresh trust-zero/warnings-fatal Field/provider/facade and all old/new client closures,
+ordinary axioms and all-depth declaration audits are separate from the generated
+C/object/archive/link/runtime evidence binding both complete target modes. These
+finite controls supply no universal Python host/resource result, performance bound,
+backend/replacement/C1–C4, actual curve/precompile, guest or EEST conformance result.
+
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
   `cancun/eip4844_blobs` (the `point_evaluation_precompile*` files), `osaka/eip7951_p256verify_precompiles`,
@@ -439,6 +507,15 @@ structure PrimeFieldRef (p : Nat) [FieldModulus p] where   -- NOT an abbrev (cf.
   val : Nat                                            -- internal field; use toNat
   isLt : val < p
 
+-- Complete coefficient graph; exactly these two constructors.
+inductive EuclideanCoefficient : Nat → Nat → Int → Int → Int → Prop where
+  | done (low high : Nat) (lm hm : Int) (h : low ≤ 1) :
+      EuclideanCoefficient low high lm hm lm
+  | step (low high : Nat) (lm hm z : Int) (h : 1 < low)
+      (rest : EuclideanCoefficient (high % low) low
+        (hm - lm * (high / low : Nat)) lm z) :
+      EuclideanCoefficient low high lm hm z
+
 namespace PrimeFieldRef
 -- Supplied reference carrier and basic residue arithmetic (other operations remain open).
 def toNat : PrimeFieldRef p → Nat
@@ -453,6 +530,7 @@ def neg : PrimeFieldRef p → PrimeFieldRef p
 def isZero : PrimeFieldRef p → Bool
 def pow : PrimeFieldRef p → Nat → PrimeFieldRef p
 def sgn0 : PrimeFieldRef p → Bool  -- canonical toNat parity; ordinary sgn0_eq in §7
+def inv0 (a : PrimeFieldRef p) : PrimeFieldRef p  -- complete Inv0Model in §7
 instance : HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)  -- direct pow delegation
 instance : Add, Sub, Neg, Mul (PrimeFieldRef p)  -- direct named-operation delegation
 end PrimeFieldRef
@@ -635,6 +713,49 @@ its canonical construction gives range and `0^0 = one`. The canonical sign equat
 directly decides oddness of the observation; it does not read metadata. These results
 assert no field for composites or sign-change-under-negation law.
 
+**Supplied inverse graph contract (Q86; discharged).** Besides the §5 relation and
+its only two constructors, the exact authored public declarations are below.
+The field binders are exactly `{p : Nat} [FieldModulus p]`.
+
+```lean
+euclideanCoefficient_total (low high : Nat) (lm hm : Int) :
+  ∃ z : Int, EuclideanCoefficient low high lm hm z
+
+euclideanCoefficient_unique (low high : Nat) (lm hm x y : Int)
+    (hx : EuclideanCoefficient low high lm hm x)
+    (hy : EuclideanCoefficient low high lm hm y) : x = y
+
+-- namespace PrimeFieldRef
+def Inv0Model (a : PrimeFieldRef p) (y : Nat) : Prop :=
+  if a.toNat = 0 then y = 0 else
+    ∃ z : Int, EuclideanCoefficient a.toNat p 1 0 z ∧ y = (z % (p : Int)).toNat
+
+inv0Model_total (a : PrimeFieldRef p) :
+  ∃ y : Nat, Inv0Model a y ∧ ∀ z : Nat, Inv0Model a z → z = y
+
+inv0Model_lt (a : PrimeFieldRef p) (y : Nat) (hy : Inv0Model a y) : y < p
+
+inv0 (a : PrimeFieldRef p) : PrimeFieldRef p
+
+toNat_inv0_iff (a : PrimeFieldRef p) (y : Nat) :
+  Inv0Model a y ↔ (inv0 a).toNat = y
+
+inv0_zero : inv0 (zero : PrimeFieldRef p) = zero
+
+mul_inv0_of_gcd_one (a : PrimeFieldRef p) (hg : Nat.gcd a.toNat p = 1) :
+  mul a (inv0 a) = one
+```
+
+Strong induction on low establishes graph existence; inversion of done/step and
+induction on the finite derivation establish uniqueness. Signed remainder is
+nonnegative and below positive p, so the model has exactly one canonical result.
+The private executable worker constructs a graph derivation; uniqueness then gives
+the complete observer equivalence. The coefficient congruence invariant and gcd
+preservation force terminal low one under the **local** gcd hypothesis, proving
+the unit law without primality. Composite nonunit results remain determined by
+the graph but need not multiply to one. Consumers can replace the evaluator by
+reestablishing membership in this graph, without unfolding the original worker.
+
 **Remaining contracts (unimplemented for the executable `PrimeField` API).** Per operation, the commuting equation with the `Nat` model (core) — stated once, proved once per
 representation:
 
@@ -648,7 +769,11 @@ representation:
 - [C] `ofBytesBE? (toBytesBE w a) = some a` and `(toBytesBE w a).size = w` when `p ≤ 256^w`. Both laws require a sufficient width; left padding alone does not truncate an oversized value.
 - [C] Extension fields: componentwise laws for `add`/`sub`/`neg`; `mul` law against the
   polynomial model; `Fp12.toFlat` is a ring isomorphism onto `py_ecc`'s flat representation (R4).
-- [T] every definition total by structural recursion (no `partial`, cf. cryptography-specs'
+- [T] every definition total by structural recursion, with exactly the Q86 natural-reference
+  inverse/helper exception in R9: source guard `1 < low`, recurrence on `high % low`,
+  explicit well-founded natural measure `low`; no runtime fuel, rejection, resource policy
+  or claimed time/cycle bound. This exception grants no backend permission (no `partial`,
+  cf. cryptography-specs'
   `partial def powNat` in `Bls/Fp2.lean:64`, `Bls/Fp12.lean:65`, which must not be copied).
 - [F] each executable (Montgomery) operation commutes with `α` onto the `Nat` reference, so every
   law above holds for the executable representation. At limb level (proved for `Wide8.mul` in the
@@ -668,11 +793,14 @@ the ring structure, never the `val` field.
 
 **Premises.** Prime modulus for field laws, irreducibility/nonresidue facts for every tower layer, EthBase byte laws, and p ≤ 256^w for a w-byte encoding. The current modulus class's 1 < p alone does not establish a field.
 
-**Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. Inversion splits zero from nonzero; Fermat/Euclid supplies the nonzero inverse only under primality. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
+**Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. The supplied reference inverse splits zero from nonzero and specifies every result by
+the Euclidean graph. Its unit law needs only local coprimality. A prime/nonzero-to-gcd
+bridge and the executable/tower inverse contracts remain separate obligations. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
 
 **Open obligations.** The reference carrier, basic residue arithmetic, natural powers
-  and canonical sign above are discharged;
-  inverse/Euler/sqrt, public powMod, encoding and executable-reference bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain required. The Montgomery implementation must prove these same observer equations relative to the `Nat` reference.
+  and canonical sign above, plus the complete graph-specified reference inverse
+  and local gcd-unit law, are discharged;
+  Euler/sqrt, public powMod, encoding and executable-reference bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain required. The Montgomery implementation must prove these same observer equations relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -681,6 +809,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthBase`
 - **Used by:** `EthCurve` directly; `EthPairing` and `EthPrecompiles` transitively (MODEXP uses
   `powMod`; KZG decoders use `Bls12381.Fr.ofBytesBE?`). `EthFieldMathlib` (Mathlib bridge package).
+- **Inverse handoff (Q86).** Consumers use `Inv0Model`/`toNat_inv0_iff` for complete
+  output, `inv0Model_lt` for range and zero/gcd-qualified laws for algebra; arbitrary
+  metadata and composite nonunit behavior are retained. A backend proves graph
+  membership after observing its canonical input, without unfolding the private worker.
 - **Seams.** Consumes from `EthBase` only `ByteArray`/`Bytes32` and `U256.toNat`/`ofNat`
   conversions. Provides the `PrimeField` observer contract; guarantees every value is canonical.
   The runtime source for the fast path is CompPoly's zero-import `…Defs` in the
@@ -690,12 +822,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-Supplying the eight natural moduli, reference-only binary powers and canonical sign
+Supplying the eight natural moduli, reference-only binary powers, canonical sign
+and Q86 graph-specified inverse
 makes no D6 source choice
 and requires no D18
 performance exception; executable representations and their costs remain open.
 
 
+- **Q86** owns the approved full-carrier graph boundary and inverse-only R9/[T]
+  clarification. No raw-Nat inverse or restricted zero-or-unit caller domain is selected.
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
   `Native64x8Defs` with the carry fix, or the same fix is upstreamed to a Mathlib-free CompPoly
@@ -723,7 +858,7 @@ performance exception; executable representations and their costs remain open.
   five observer laws and four delegating operator instances, plus natural pow/toNat_pow
   and its delegating HPow instance, plus canonical sgn0/sgn0_eq; private controls and
   clients cover those slices. The eight exact R1 natural moduli are supplied separately;
-  concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
+  concrete-field instances/aliases, convenience aliases, bytes, powMod, executable/tower inverse,
   Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
   No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
   precompile, signature, guest or EEST readiness claim follows.

@@ -961,9 +961,19 @@ private worker chooses no public powMod-zero completion. The separate canonical-
 leaf supplies sgn0/sgn0_eq; private facade clients derive true/false, zero/one,
 reducing-constructor parity and metadata irrelevance through equal natural observations,
 for every p>1. This reference premise supplies no Fp2, sqrt or negation-sign law. Runtime Montgomery
-aliases/D6, inverse/sqrt/encoding, public powMod,
+aliases/D6, sqrt/encoding, executable/tower inverse, public powMod,
 concrete fields/towers/Mathlib bridges and actual curve/precompile composition remain open;
 this reference seam supplies no production performance or guest-readiness result.
+
+The separate Q86 inverse leaf supplies the complete public finite signed
+`EuclideanCoefficient` graph and canonical `Inv0Model`/`toNat_inv0_iff` contract.
+Every existing p>1 element, including composite nonunits, has exactly one canonical
+result; metadata is arbitrary and unread. Public-only clients derive range, zero,
+raw-input reduction and metadata observer congruence. The product law alone takes
+local gcd-one; concrete prime/nonzero-to-gcd bridges stay with future consumers.
+Replacements prove output graph membership under canonical input observation,
+without unfolding the private Euclidean worker. No raw-Nat operation, Inv/Div
+instance, division, field structure or actual curve/precompile composition is supplied.
 
 ## 3. Inductive state invariant
 

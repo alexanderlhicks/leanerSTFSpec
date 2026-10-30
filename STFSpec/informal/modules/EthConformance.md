@@ -102,10 +102,15 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 ## 4. Tests
 
-Private Field reference-power and canonical-sign clients and complete finite controls are imported by
+Private Field reference-power, canonical-sign and graph-specified-inverse clients and complete finite controls are imported by
 `STFSpec.Conformance`; their supplied semantics, source map and evidence boundaries
 are owned by [EthField §3/§4/§7](EthField.md#supplied-natural-reference-powers)
-and [the canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign).
+and [the canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign),
+plus [the inverse slice](EthField.md#supplied-graph-specified-natural-reference-inverse).
+The inverse controls retain all 685 raw/p inputs under three metadata choices
+(2,055 complete cases), public-only graph/nonunit/gcd/range/reduction/metadata
+clients and complete interpreted/native comparisons against original streams.
+They supply no field/backend/cost/curve/precompile/guest or EEST result.
 The evidence-only interpreted/native adapter adds no public runner/parser API or tier
 implementation. Public powMod, field hierarchy and guest conformance remain open.
 
