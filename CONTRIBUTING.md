@@ -204,6 +204,12 @@ lake exe deposit-data-native-tests > .lake/deposit-data.jsonl
 python3 -B STFSpec/Conformance/Block/deposit_data_differential.py --check-target .lake/deposit-data.jsonl
 python3 -B scripts/test_deposit_data_output_parser.py
 python3 -B -O scripts/test_deposit_data_output_parser.py
+lake build requests-hash-native-tests --wfail
+lake exe check-decls RequestsHashNativeTests
+lake exe requests-hash-native-tests > .lake/requests-hash.jsonl
+python3 -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
+python3 -B scripts/test_requests_hash_output_parser.py
+python3 -B -O scripts/test_requests_hash_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail

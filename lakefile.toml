@@ -220,3 +220,9 @@ srcDir = "scripts"
 name = "deposit-data-native-tests"
 srcDir = "scripts"
 root = "DepositDataNativeTests"
+
+# Complete ordered request bytes and 32-byte commitment observations.
+[[lean_exe]]
+name = "requests-hash-native-tests"
+srcDir = "scripts"
+root = "RequestsHashNativeTests"
