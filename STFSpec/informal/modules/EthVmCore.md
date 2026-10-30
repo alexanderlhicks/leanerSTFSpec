@@ -108,7 +108,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/runtime.py::get_valid_jump_destinations` | 22–69 | `validJumpDestinations`, `JumpdestMap.contains` | supplied packed/reference refinement and three ordinary laws; raw bytes, no Lean `Ops` import |
-| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STACK_DEPTH_LIMIT : Nat := 1024`; field `VmLimits.stackDepthLimit` | declared here because `FrameCtx` and the CALL/CREATE preflight need it and neither may import the runner. A literal, because the depth proofs and indexed types need a kernel-reducible value (F8); `EthFork` sets the field to it, with `vmLimits_depth := rfl` |
+| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
@@ -2672,6 +2672,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Actual exceptional gas consumption, revert settlement, producers/error priority,
   frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
   open with their existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
+  `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
+  clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
+  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
+  gate follows from this literal alone.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
