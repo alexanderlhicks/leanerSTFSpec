@@ -236,6 +236,10 @@ lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
 lake exe check-decls LogRopeBench
+lake build packed-keccak-bench --wfail
+lake exe check-decls PackedKeccakBench
+python3 scripts/gen_packed_keccak.py --check
+python3 scripts/test_packed_keccak_generator.py
 python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
@@ -252,8 +256,9 @@ lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py
 ```
 
-The fixed-endian and log-rope benchmarks are built and audited here; timing measurements
-remain manual.
+The fixed-endian, log-rope and packed-keccak benchmarks are built and audited here, and the
+packed-keccak generator is checked for freshness and by its regression test; timing
+measurements remain manual.
 The Taylor producer is built, audited and executed before its complete captured stdout
 is checked against the handwritten literals; source coupling is separate.
 
