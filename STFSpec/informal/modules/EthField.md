@@ -303,7 +303,6 @@ independently authenticated; an owned-copy original replay repeats both whole st
 These are finite reference-arithmetic correctness observations under the stated typed and
 host-runtime premises, without a universal source theorem, cost or EEST/guest claim.
 
-
 The power slice adds private `ReferencePowerGuards.lean` controls: 1,621 complete
 raw-base/exponent rows, each under `none`, `some 0` and `some (2^4096+17)` metadata
 (4,863 controls). Moduli are 2,3,4,5,6,8,9,15,17; bases are 0,1,p−1,p,p+1 and
@@ -333,7 +332,6 @@ and compiled observations remain distinct. Compiler/loader/core-runtime and exac
 bignum assumptions remain explicit; original import raises the recursion limit.
 These controls establish no universal Python host completion/resource result, cost,
 precompile, guest or EEST conformance claim.
-
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
@@ -559,14 +557,15 @@ Primality, square-root metadata and concrete-field/backend contracts remain open
 - `isZero_eq (a) : isZero a = decide (a.toNat = 0)`.
 - `toNat_pow (a) (e) : (pow a e).toNat = a.toNat ^ e % p`.
 
-These require only `1 < p`, retain arbitrary metadata and have no global simp attributes.
-Range follows canonical construction; reduction is remainder; checked admission branches
-once on range; canonical residues determine equality. Zero and one use `1 < p`. These
-facts prove the carrier slice. Arithmetic construction reduces the corresponding natural
-expression, so its observer equations follow directly from the reducing constructor.
-Canonical bounds make subtraction/negation agree with signed modular arithmetic. The
-Boolean equation determines both outcomes. Binary halving plus modular multiplication proves the power equation on every Nat exponent;
-its canonical construction gives range and `0^0 = one`. These results assert no field for composites.
+These require only `1 < p`, retain arbitrary metadata and have no global simp
+attributes. Range follows canonical construction; reduction is remainder; checked
+admission branches once on range; canonical residues determine equality. Zero and one
+use `1 < p`. These facts prove the carrier slice. Arithmetic construction reduces the
+corresponding natural expression, so its observer equations follow directly from the
+reducing constructor. Canonical bounds make subtraction/negation agree with signed
+modular arithmetic. The Boolean equation determines both outcomes. Binary halving plus
+modular multiplication proves the power equation on every Nat exponent; its canonical
+construction gives range and `0^0 = one`. These results assert no field for composites.
 
 **Remaining contracts (unimplemented for the executable `PrimeField` API).** Per operation, the commuting equation with the `Nat` model (core) — stated once, proved once per
 representation:
@@ -603,8 +602,12 @@ the ring structure, never the `val` field.
 
 **Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. Inversion splits zero from nonzero; Fermat/Euclid supplies the nonzero inverse only under primality. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
 
-**Open obligations.** The reference carrier, basic residue arithmetic and natural powers above are discharged;
-  inverse/Euler/sqrt, public powMod, encoding and executable-reference bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain required. The Montgomery implementation must prove these same observer equations relative to the `Nat` reference.
+**Open obligations.** The reference carrier, basic residue arithmetic and natural powers
+above are discharged; inverse/Euler/sqrt, public powMod, encoding and
+executable-reference bridges stay open. Prime and irreducibility certificates,
+algorithm-specific sqrt completeness/sign laws, and public-operation bridges remain
+required. The Montgomery implementation must prove these same observer equations
+relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -649,12 +652,13 @@ performance exception; executable representations and their costs remain open.
 ## 10. Gaps
 
 - **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
-  operations/six laws/three instance families and basic add/sub/neg/mul/isZero,
-  five observer laws and four delegating operator instances, plus natural pow/toNat_pow
-  and its delegating HPow instance; private controls and clients cover those slices. The eight exact R1 natural moduli are supplied separately;
-  concrete-field instances/aliases, convenience aliases, bytes, powMod, inverse,
-  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain unimplemented.
-  No D6 source choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
+  operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
+  observer laws and four delegating operator instances, plus natural pow/toNat_pow and
+  its delegating HPow instance; private controls and clients cover those slices. The
+  eight exact R1 natural moduli are supplied separately; concrete-field
+  instances/aliases, convenience aliases, bytes, powMod, inverse, Euler/sqrt, towers,
+  executable PrimeField/Montgomery and their bridges remain unimplemented. No D6 source
+  choice, primality/Mathlib result, replacement/C1–C4 measurement, whole-module,
   precompile, signature, guest or EEST readiness claim follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
