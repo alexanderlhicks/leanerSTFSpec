@@ -70,7 +70,7 @@ private theorem list_exchange_twice (l : List U256) (i j : Nat) (x y : U256)
     (((l.set i y).set j x).set i x).set j y = l := by
   have hi := (List.getElem?_eq_some_iff.mp hx).1
   have hj := (List.getElem?_eq_some_iff.mp hy).1
-  have heq : i = j → x = y := fun h => Option.some.inj (hx.symm.trans (h ▸ hy))
+  have heq : i = j → x = y := fun h ↦ Option.some.inj (hx.symm.trans (h ▸ hy))
   apply List.ext_getElem?
   intro k
   by_cases hik : i = k <;> by_cases hjk : j = k <;>
