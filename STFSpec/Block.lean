@@ -10,6 +10,7 @@ import STFSpec.Block.CalldataTokens
 Transactions, headers, receipts, validation, `processTransaction`, `applyBody`, `executeBlock`, block access lists, bloom, requests, withdrawals.
 
 Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). The calldata token helper is supplied; the remaining pipeline is scaffolding.
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The calldata token helper is supplied; the
+remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

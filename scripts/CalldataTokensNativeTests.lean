@@ -40,5 +40,6 @@ def main : IO Unit := do
   emitCase "alternating_513" (generated 1026 (fun i ↦ if i % 2 = 0 then 0 else 255))
   emitCase "endpoint_zero" (generated 1025 (fun i ↦ if i = 0 ∨ i = 1024 then 0 else 171))
   for i in List.range 256 do
-    emitCase ("singleton_" ++ (if i < 10 then "00" else if i < 100 then "0" else "") ++ toString i) (ByteArray.mk #[UInt8.ofNat i])
+    let pad := if i < 10 then "00" else if i < 100 then "0" else ""
+    emitCase ("singleton_" ++ pad ++ toString i) (ByteArray.mk #[UInt8.ofNat i])
   emit (Json.mkObj [("end", toJson true), ("count", toJson (266 : Nat))])
