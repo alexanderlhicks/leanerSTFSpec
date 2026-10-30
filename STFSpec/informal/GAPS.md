@@ -774,7 +774,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`move_ether` preconditions**: the sender-balance assertion in EthState's `move_ether` is unreachable only because of preflight checks (CALL/CREATE) and transaction validation (top level). EthVmRunner owns the CALL/CREATE caller proof; EthBlock owns the top-level admission proof; both consume EthState's checked `moveEther` contract. Record both proofs before treating the assertion as unreachable.
 - **System transactions** (`fork.py:770–822`) run with 30 M execution gas and a 16-SSTORE reservoir; `phiBudget` gives ≈ 3·10⁷ fuel, which is fine as a bound but the error path (`fork.py:757–760` raises on a failed system call) belongs to EthBlock.
 - **Trace schema** (ARCHITECTURE §12) is undecided; the event order of `OpStart`/`OpEnd`/`OpException`/`EvmStop` is specified only as "EELS order".
-- **The `Exec` relation** is not yet defined; the supplied `ExecKind` carrier settles only its entry-tag vocabulary; its exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
+- **The `Exec` relation** is not yet defined; the supplied `ExecKind` carrier settles only its entry-tag vocabulary; `Exec`'s exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
 - **EIP-8037 cross-frame refunds** (`test_state_gas_cross_frame_refund.py`) exercise the repay path whose Φ-neutrality is only source-checked.
 - **Pre-dispatch vs dispatch rollback** (delegations kept after a dispatched failure, reverted after a preparation failure) is specified from comments and code (`gas.py:471–502`, `interpreter.py:276–282`); no targeted `#guard` exists yet.
 

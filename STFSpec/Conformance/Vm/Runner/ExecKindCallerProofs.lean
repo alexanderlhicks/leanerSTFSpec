@@ -18,11 +18,11 @@ open STFSpec.Vm.Runner
 
 universe u
 
-private def frame_loop_constructor : ExecKind := ExecKind.frameLoop
+private def frameLoopConstructor : ExecKind := ExecKind.frameLoop
 
-private def call_constructor : ExecKind := ExecKind.call
+private def callConstructor : ExecKind := ExecKind.call
 
-private def create_constructor : ExecKind := ExecKind.create
+private def createConstructor : ExecKind := ExecKind.create
 
 private theorem exhaustive (kind : ExecKind) :
     kind = .frameLoop ∨ kind = .call ∨ kind = .create := by
