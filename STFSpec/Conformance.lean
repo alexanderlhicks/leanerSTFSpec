@@ -10,6 +10,8 @@ import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerCallerProofs
+import STFSpec.Conformance.Field.ReferencePowerGuards
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
