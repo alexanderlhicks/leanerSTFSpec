@@ -361,8 +361,8 @@ There are no `maxBlockSize` or `safetyMargin` fields or public operand accessors
 |---|---|---|---|
 | §5; EELS `fork.py:114–115,144–146` parameter context, all values owned by EthFork | `STFSpec.Block.BlockParams : Type`; `BlockParams.mk : Nat → Nat → Nat → BlockParams`; projections `baseFeeMaxChangeDenominator`, `elasticityMultiplier`, `maxRlpBlockSize : BlockParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/BlockParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and every single-field update preserving both other fields; complete zero/distinct/large guards. No extra public law, default, instance or WF/coherence predicate. |
 
-The source reads only the derived RLP limit in `fork.py:309`, elasticity in `:412`
-and the denominator in `:425,439`. The raw record supplies none of the size or
+Within the fork module, the source reads only the derived RLP limit in `fork.py:309`,
+elasticity in `:412` and the denominator in `:425,439`. The raw record supplies none of the size or
 base-fee operations, their errors, division safety or complete configuration.
 EthFork §3 maps and checks the two actual private operands as well as all three
 actual public projections, retaining the subtraction rather than a literal.

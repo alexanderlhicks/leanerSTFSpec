@@ -108,7 +108,9 @@ The pinned `Uint` values are arbitrary-width nonnegative integers (EthBase §2).
 The three plain `int` values are nonnegative and represented exactly by Nat.
 All paths above are under `STFSpec/`. The RLP size guard uses only the derived
 global (`fork.py:309`); base-fee calculation reads elasticity at `:412` and the
-denominator at `:425,439`. There is no captured consumer default for these globals.
+denominator at `:425,439`. Within the fork module these globals are read directly,
+without a default value. (Outside the guest path, the spec-tools loader reads
+`MAX_RLP_BLOCK_SIZE` with a `None` default, `src/ethereum_spec_tools/loaders/fork_loader.py:259`.)
 This data slice implements none of those consumers or their failure behavior,
 division safety, full BlockConfig coherence, index adequacy or guest readiness.
 Full-field source comparison must bind all five original quantities and their
@@ -174,7 +176,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
   - The byte strings in R-F2 (checksummed and lowercase decode alike).
   - `precompiles.addresses` equals the 18-element set.
-  - `maxRlpBlockSize = 8 388 608`.
+  - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.
 - **Adversarial.** A call to `0x12` or `0xff` (not a precompile, so it is not warm); a call to `0x100` (warm); a block whose deposit log comes from a non-mainnet deposit address (ignored).
 
