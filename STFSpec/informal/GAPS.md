@@ -664,6 +664,19 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
+- **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
+  SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
+  clients. PrecompileResult, PrecompileFn, MeterOk and PrecompileTable remain
+  sketches. Generic construction needs an actual witness/erasure proof and
+  separately selected local laws or equations; adapter/normal-form/halt equivalence,
+  concrete effect observations and actual Runner bridges/settlement remain open.
+  No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
+
+- **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
+  `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
+  `STFSpec.Vm.Core` would see an ambiguous name; such files should qualify it and add a
+  bridge lemma if they need both.
+
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
@@ -787,6 +800,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
   dependency. A shared lower owner for the tag is not yet chosen.
 
+- **Generic construction (Q83):** Core supplies only the Q83 predicate and Id law
+  (EthVmCore §7). `toPrecompile` equations, per-entry source/normal-form proofs and the
+  meaning of equality up to the halt constructor remain open. A map-shaped adapter
+  needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
+  alone does not); bind-pure/map agreement needs its own law. Public constructor
+  assumptions, erasure-first computation, observers and transformer bridges remain
+  unselected. The four-field Monad-only table sketch is unchanged.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Host-level escapes (O12).** A Python exception that is not an `ExceptionalHalt` inside a
@@ -819,6 +840,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
+- **Precompile interpretation (Q83):** Core supplies only the Q83 predicate and Id law
+  (EthVmCore §7). The table action stays in base m; actual lifting through
+  VmM/RunM and their transformer/error order requires an explicit local bridge.
+  Dispatch, separate halt settlement and potential proofs remain open. This adds
+  no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
+
 - **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
@@ -837,6 +864,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthBlock`](modules/EthBlock.md)
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+
+- **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
+  and the existing Monad-only carrier. The Q83 predicate and Id law (EthVmCore §7) do
+  not construct the installed table or discharge actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -863,6 +894,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
 
 ### [`EthFork`](modules/EthFork.md)
+
+- **Precompile construction (Q83):** the Q83 predicate and Id law (EthVmCore §7) supply
+  no installed table, adapter equation, constructor law packaging or concrete effect
+  bridge. Generic construction remains open at the unchanged Monad/KeccakQuery sketch;
+  stronger public assumptions need a separate approved proposal. Preserve the same table
+  through BlockConfig.runnerEnv; settlement remains Runner-owned.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

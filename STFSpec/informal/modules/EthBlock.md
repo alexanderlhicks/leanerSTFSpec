@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
 *Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54, Q83.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
 
@@ -618,6 +618,9 @@ def BlockConfig.runnerEnv (cfg : BlockConfig) : RunnerEnv :=
     vm := ⟨cfg.gas, cfg.stateGas, cfg.limits⟩
     systemAddress := cfg.system.systemAddress }
 
+-- Q83: transport the same Monad-only table through runnerEnv, without an observer parameter.
+-- Generic table construction and actual effect/dispatch bridges remain open.
+
 -- types (§2.1)
 structure Withdrawal; structure Header; structure PrevHeader
 inductive ParentHeader | amsterdam (h : Header) | bpo5 (h : PrevHeader)
@@ -828,6 +831,11 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+**Precompile routing (Q83).** BlockConfig transports the same Core table to
+RunnerEnv; Block never imports Precompiles. Action factorization and its exact Id
+law add no observer parameter or construction premise. Actual generic producer
+and Runner lift/dispatch/settlement proofs remain separate obligations.
+
 The supplied raw `BlockParams`, `TxParams` and `SystemAddrs` have ordinary structure
 reduction and reconstruction; §3 records private arbitrary-input projection/update clients for
 every field. No additional public law package or global configuration predicate is supplied.
@@ -928,6 +936,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+
+- **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
+  and the existing Monad-only carrier. The Q83 predicate and Id law (EthVmCore §7) do
+  not construct the installed table or discharge actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
