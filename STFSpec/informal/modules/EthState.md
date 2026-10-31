@@ -194,7 +194,7 @@ F20 constants and the three B1 indexes are deliberate guidance adaptations.
 
 | Source/support at the pin | Lean declaration and domain | Value/effects and ordered failures | Law and deterministic validation |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/state_tracker.py:57–86`, used at `fork.py:325`; F20/B1 | `BlockState.new {m : Type → Type} (ps : PreState m) (consts : HashConsts) : BlockState m`, with no class premise | Whole arbitrary ps and consts retained; every write/clear/read collection empty, both global order indexes WriteOrder.empty, per-address slot indexes absent, oldestAncestorOffset none. Pure total construction, no provider call, acquisition, coherence check, normalization or failure | **Supplied:** ordinary `BlockState.new_consts`; private owner whole-result reduction proves every default and whole arbitrary provider retention. `BlockInitializationCallerProofs.lean` checks exact class-free signature and consumes only that public law; `BlockInitializationGuards.lean` supplies complete independent interpreted/native controls (§4). |
+| `src/ethereum/forks/amsterdam/state_tracker.py:57–86`, used at `fork.py:325`; F20/B1 | `BlockState.new {m : Type → Type} (ps : PreState m) (consts : HashConsts) : BlockState m`, with no class premise | Whole arbitrary ps and consts retained; every write/clear/read collection empty, both global order indexes WriteOrder.empty, per-address slot indexes absent, oldestAncestorOffset none. Pure total construction, no provider call, acquisition, coherence check, normalization or failure | **Supplied:** ordinary `BlockState.new_consts`; private owner whole-result reduction proves every default and whole arbitrary provider retention. `BlockInitializationCallerProofs.lean` checks exact class-free signature and consumes only that public law; `BlockInitializationGuards.lean` supplies complete independent interpreted `#guard` controls (§4). |
 
 Only `new_consts` is an authored public law for this operation. Default-field and
 whole-provider facts stay private to the implementation owner; external component
@@ -405,19 +405,22 @@ resource or C1–C4 result.
   These interpreted `#guard` observations are bounded functional controls (no native
   runner is committed for this slice), with no EELS operation, generic effect
   interpretation or resource claim.
-- **Implemented BlockState initialization controls:** private class-free facade clients
-  include a contravariant type constructor with no installed Monad and derive complete
-  constant-byte retention through new_consts. Owner-private ordinary reduction retains
-  the whole arbitrary provider, beyond any finite callback observations. The private
-  BlockInitializationGuards corpus has 138 provider/constants inputs and 1,104 complete
-  actual/expected comparisons: all eleven empty/default outputs, both maps and zero
-  counters in B1 indexes, all four constants independently through every 32-byte
-  position, arbitrary/incoherent records, complete callback inputs/results/error
-  payloads, None versus Some 0, and retained providers/constants/parents/siblings.
+- **Implemented BlockState initialization controls:** private class-free facade
+  clients include a contravariant type constructor with no installed Monad and
+  derive complete constant-byte retention through new_consts. Owner-private
+  ordinary reduction retains the whole arbitrary provider, beyond any finite
+  callback observations. The private BlockInitializationGuards corpus has 138
+  provider/constants inputs and 1,104 actual/expected entries (eight per input;
+  three of them repeat an earlier pure observation, so 690 comparisons are
+  distinct): all eleven empty/default outputs, both maps and zero counters in B1
+  indexes, all four constants independently through every 32-byte position,
+  arbitrary/incoherent records, complete callback inputs/results/error payloads,
+  None versus Some 0, and retained providers/constants/parents/siblings.
   Independent literal empty frames and numeric byte recipes supply expectations.
-  Interpreted and compiled native execution inspect complete public outputs; no
-  external proof client unfolds new, no raw HashSet equality follows from membership,
-  and no original Python allocation identity or lifetime/cost theorem is claimed.
+  Interpreted `#guard` execution inspects complete public outputs (no native
+  runner is committed for this slice); no external proof client unfolds new, no
+  raw HashSet equality follows from membership, and no original Python allocation
+  identity or lifetime/cost theorem is claimed.
 - **Implemented TxObs controls:** private generic clients use whole raw field equality,
   without inferring raw HashSet equality from membership. Complete guards observe
   every 20/32-byte key, every byte position, high bits, both pair components
@@ -956,9 +959,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthBase`
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
-- **Constants context (F20).** `BlockState.new` preserves the supplied record: `(BlockState.new ps consts).consts = consts`. State operations read it through their existing `TxState`/`BlockState` context; they receive no parallel constants argument. Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their necessary data parameter and EELS-named local notation. The constructor equality is supplied as BlockState.new_consts, for arbitrary m and
-  constants without a class premise. Subsequent operation/context preservation and
-  caller acquisition/coherence remain implementation obligations.
+- **Constants context (F20).** `BlockState.new` preserves the supplied record:
+  `(BlockState.new ps consts).consts = consts`. State operations read it through their
+  existing `TxState`/`BlockState` context; they receive no parallel constants argument.
+  Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their
+  necessary data parameter and EELS-named local notation. The constructor equality is
+  supplied as BlockState.new_consts, for arbitrary m and constants without a class
+  premise. Subsequent operation/context preservation and caller acquisition/coherence
+  remain implementation obligations.
 - **Relies on:** execution's supplied `consts` and `ps : PreState Id` satisfy `ModelsLookups consts ps σ₀` for an appropriate structurally WF σ₀. Concrete full `Models ps σ₀` supplies this lookup premise when the execution record is coherent with its concrete Id record; the provider-factory type alone does not establish F20 coherence. `EthBase` supplies checked `U256` add/sub, lawful `compare` on `Address`/`Bytes32`/`Hash32` keys (D2), the orderings for `(Address × Bytes32)` keys and `LawfulEqCmp Address` (F19), and the `HashConsts` record (R2).
 - **Guarantees:** the laws of §7; `BlockDiff.WF` and `AccountWritesLookedUp` for `EthStateCommit`/`EthStateWitness`; the first-write order in `BlockDiff.accountOrder`.
 - **Ordering contract with `EthBlock`:** `update_builder_from_tx` runs on the unmerged states immediately before `incorporateTxIntoBlock` (R25(1)); `EthState` does not import the builder.
@@ -999,12 +1007,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   domains. MathState mutation, diff WF/history/reachable preservation, actual provider
   operations/contextual tracker/full-model proofs, StateError operation/adapter
   semantics and freezing, witness diagnostic refinement, tracker effects/errors,
-  ordered-write integration, reachability, snapshot and operational source-refinement
-  obligations remain open. Additional public initialization consumer laws await a
-  named consumer and separately reviewed contract. Acquisition/coherence, future
-  context preservation and all tracker/lifetime obligations remain open. The EELS
-  default-empty BlockDiff convenience constructor remains deferred. These component
-  contracts do not change whole-State readiness.
+  ordered-write integration, reachability, snapshot, acquisition/coherence, future
+  context preservation and operational source-refinement obligations remain open.
+  Additional public initialization consumer laws await a named consumer and separately
+  reviewed contract. The EELS default-empty BlockDiff convenience constructor remains
+  deferred. These component contracts do not change whole-State readiness.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,

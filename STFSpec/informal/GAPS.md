@@ -479,12 +479,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   domains. MathState mutation, diff WF/history/reachable preservation, actual provider
   operations/contextual tracker/full-model proofs, StateError operation/adapter
   semantics and freezing, witness diagnostic refinement, tracker effects/errors,
-  ordered-write integration, reachability, snapshot and operational source-refinement
-  obligations remain open. Additional public initialization consumer laws await a
-  named consumer and separately reviewed contract. Acquisition/coherence, future
-  context preservation and all tracker/lifetime obligations remain open. The EELS
-  default-empty BlockDiff convenience constructor remains deferred. These component
-  contracts do not change whole-State readiness.
+  ordered-write integration, reachability, snapshot, acquisition/coherence, future
+  context preservation and operational source-refinement obligations remain open.
+  Additional public initialization consumer laws await a named consumer and separately
+  reviewed contract. The EELS default-empty BlockDiff convenience constructor remains
+  deferred. These component contracts do not change whole-State readiness.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,

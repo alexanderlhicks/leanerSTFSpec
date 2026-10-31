@@ -413,24 +413,25 @@ or lifecycle equivalence is claimed. Actual tracker/TxState/StateM,
 D23 ownership/monotonicity, F7, S1/S2/W1 and C1–C4/resource/guest gates remain open.
 The dated §6 readiness assessment is unchanged.
 
-EthState §3/§5/§7 supplies the exact thirteen-field raw BlockState for arbitrary
-m without Monad/hash-query premises: complete PreState, F20 constants, persistent
-writes/clears/three B1 order indexes, independent canonical Std read sets and optional
-unbounded offset. Private State-facade clients check exact constructor/projection
-types, whole eta/component reconstruction, every full update and disjoint commutations,
-including a non-Monad type constructor. Complete independent payload controls retain
-callback successes/errors, all constant/key bytes, tombstones/zero/empty inners,
-raw order maps/counters/duplicate occurrences, None/Some 0/huge offsets and siblings.
-State §3 binds the nine EELS fields and the four deliberate guidance additions.
-The separate State/BlockInitialization leaf supplies exactly BlockState.new and its
-explicit F20 new_consts law without class premises. Whole arbitrary provider/constants
-retention and all eleven default fields are privately verified in the owner; facade
-proof clients use only new_consts. Complete independent interpreted/native outputs
-cover arbitrary constants, all four 32-byte fields, callback inputs/success/error
-payloads, empty B1 maps/counters, None versus Some 0 and retained siblings/providers.
-Static source reading fixes the original defaults; no Python runtime/allocation
-identity is claimed. Further stable public consumer laws await a named consumer and
-separately reviewed contract. No tracker operation or invariant is supplied.
+EthState §3/§5/§7 supplies the exact thirteen-field raw BlockState for arbitrary m
+without Monad/hash-query premises: complete PreState, F20 constants, persistent
+writes/clears/three B1 order indexes, independent canonical Std read sets and
+optional unbounded offset. Private State-facade clients check exact
+constructor/projection types, whole eta/component reconstruction, every full update
+and disjoint commutations, including a non-Monad type constructor. Complete
+independent payload controls retain callback successes/errors, all constant/key
+bytes, tombstones/zero/empty inners, raw order maps/counters/duplicate occurrences,
+None/Some 0/huge offsets and siblings. State §3 binds the nine EELS fields and the
+four deliberate guidance additions. The separate State/BlockInitialization leaf
+supplies exactly BlockState.new and its explicit F20 new_consts law without class
+premises. Whole arbitrary provider/constants retention and all eleven default
+fields are privately verified in the owner; facade proof clients use only
+new_consts. Complete independent interpreted `#guard` outputs cover arbitrary
+constants, all four 32-byte fields, callback inputs/success/error payloads, empty
+B1 maps/counters, None versus Some 0 and retained siblings/providers. Static source
+reading fixes the original defaults; no Python runtime/allocation identity is
+claimed. Further stable public consumer laws await a named consumer and separately
+reviewed contract. No tracker operation or invariant is supplied.
 Acquisition/coherence, actual providers/sharing/linear ownership/order history,
 D22/D23, F7, D5/S1/S2/W1, replacement and C1–C4/resource/guest gates remain open.
 The dated §6 readiness assessment is unchanged.
