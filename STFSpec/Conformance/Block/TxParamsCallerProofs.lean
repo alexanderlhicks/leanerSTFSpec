@@ -14,10 +14,10 @@ Spec guidance: `STFSpec/informal/modules/EthBlock.md` §§3–7.
 
 open STFSpec.Block
 
-private def constructor_type : Nat → Nat → Nat → TxParams := TxParams.mk
-private def blob_type : TxParams → Nat := TxParams.blobCountLimit
-private def address_type : TxParams → Nat := TxParams.accessListAddressFloorTokens
-private def storage_type : TxParams → Nat := TxParams.accessListStorageKeyFloorTokens
+private def constructorType : Nat → Nat → Nat → TxParams := TxParams.mk
+private def blobType : TxParams → Nat := TxParams.blobCountLimit
+private def addressType : TxParams → Nat := TxParams.accessListAddressFloorTokens
+private def storageType : TxParams → Nat := TxParams.accessListStorageKeyFloorTokens
 
 private theorem blob_projection (b a s : Nat) : (TxParams.mk b a s).blobCountLimit = b := rfl
 

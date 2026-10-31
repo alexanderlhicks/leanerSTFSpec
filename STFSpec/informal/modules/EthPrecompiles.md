@@ -1,7 +1,7 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
 **[I]** inference, not yet checked. Paths are relative to
@@ -185,6 +185,35 @@ holds the conservative superset of candidate sites: the
 frame-exit consumer set is fully witnessed on the fixture corpus, and some static
 sites remain unresolved.
 
+### 2.4 Raw KZG versioned-hash helper
+
+The supplied pure helper is separate from the precompile calling convention.
+EELS crypto/kzg.py:65–74 directly hashes its raw byte argument, constructs Bytes32,
+drops SHA byte zero, prepends the global one-byte tag and constructs VersionedHash.
+The annotation does not invoke the separate KZGCommitment constructor.
+The raw helper has no 48-byte guard, curve/proof check, gas charge, configuration,
+state or hashing effect. Its result is Base.VersionedHash, the existing Hash32
+semantic domain; there is no competing Kzg type.
+
+The complete all-input equation in §7 uses Q46's total SHA-256 extension.
+Pinned source/FIPS correspondence separately requires actual 8 * commitment.size < 2^64
+and successful host/hash/constructor operations. Typed callers constructing KZGCommitment
+retain their separate 48-byte admission. Frozen source observations exercise 917 raw
+inputs (262 of width 48 and 655 of other widths); all raw calls return. Separate
+constructors admit the 262 and reject the 655. Finite observations and source inspection
+do not establish universal Python-host execution.
+
+The wire tag is the fixed global algorithm value at `crypto/kzg.py:54`, already owned
+here. Under adopted F2 and accepted Q73, shared algorithm values stay outside Fork;
+D3/B8/F8 concern selected Amsterdam parameters. This interpretation needs no new
+configuration field, public version argument or decision. There is no explicit KZG
+exemption, and none is claimed. Future PointEvaluation convenience names must reuse or
+alias the canonical Kzg value. The pinned source repeats the same byte in
+`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:69`, which EthBlock §3
+plans as `versionedHashVersionKzg`; both are source duplicates of this one value, not
+competing owners. EthBlock cannot import EthPrecompiles (`scripts/boundaries.toml`), so
+a shared lower owner for the tag remains open.
+
 ## 3. EELS source map
 
 | EELS item | Line | Spec declaration | Notes |
@@ -226,9 +255,9 @@ sites remain unresolved.
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::BLS_MODULUS` | 28 | `PointEvaluation.blsModulus` | `#guard` = `EthField.Bls12381.r` |
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::VERSIONED_HASH_VERSION_KZG` | 29 | `PointEvaluation.versionedHashVersionKzg` | duplicate of the `crypto/kzg.py` constant |
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::point_evaluation` | 32 | `pointEvaluation : Precompile` | |
-| `crypto/kzg.py::VersionedHash` | 48 | `Kzg.VersionedHash` (a `Bytes32`/`Hash32`) | here because it needs SHA-256 |
-| `crypto/kzg.py::VERSIONED_HASH_VERSION_KZG` | 54 | `Kzg.versionedHashVersionKzg : UInt8 := 0x01` | |
-| `crypto/kzg.py::kzg_commitment_to_versioned_hash` | 65 | `Kzg.commitmentToVersionedHash : ByteArray → Hash32` | `EthPairing` cannot see `EthHash` |
+| `crypto/kzg.py::VersionedHash` | 48 | `Base.VersionedHash` (existing Hash32) | semantic domain reused; no new declaration |
+| `crypto/kzg.py::VERSIONED_HASH_VERSION_KZG` | 54 | `Kzg.versionedHashVersionKzg : UInt8 := 0x01` | implemented; fixed global wire tag |
+| `crypto/kzg.py::kzg_commitment_to_versioned_hash` | 65 | `Kzg.commitmentToVersionedHash : ByteArray → Base.VersionedHash` | implemented in Precompiles/KzgVersionedHash.lean; pure SHA provider |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::G1_K_DISCOUNT` | 37 | field `GasCosts.blsG1KDiscount` | 128 entries; value in `EthFork` (B8) |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::G2_K_DISCOUNT` | 168 | field `GasCosts.blsG2KDiscount` | 128 entries; value in `EthFork` (B8) |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::G1_MAX_DISCOUNT` | 299 | field `GasCosts.blsG1MaxDiscount` (519) | value in `EthFork` (B8) |
@@ -264,6 +293,12 @@ Bytes32, Bytes48}` conversions (via `EthBase`). The `py_ecc` names imported by t
 `optimized_bls12_381.*`, `bls.hash_to_curve.*`, `py_ecc.typing.Optimized_Point3D`) are
 specified in `EthField`, `EthCurve` and `EthPairing`; this library uses them only through those
 libraries' public API.
+
+The KZG slice supplies exactly these two operations and the ordinary complete law
+Kzg.commitmentToVersionedHash_toBytes (§7), all discharged. Private conformance clients
+derive size, tag, every suffix position and extensional result determination using only
+public Base/Hash/Kzg contracts. KZG proof verification, PointEvaluation, gas/table/Frame
+integration, security and the rest of this module remain open.
 
 ## 4. Tests
 
@@ -308,6 +343,27 @@ libraries' public API.
   (Python harness calling the functions with a stub `Evm`), and against evmone/revm precompile
   suites; disagreements are settled by fixtures or pinned EELS.
 
+**Supplied KZG controls.** The single canonical catalog
+`STFSpec/Conformance/Precompiles/kzg-versioned-hash-cases.json` retains every byte of
+917 preimplementation frozen inputs and mathematical outputs. Actual pinned-source
+normal/optimized observations agree on all 917 results, retaining the raw/typed
+constructor distinction and complete traces separately. Expected host hashlib and source
+may share OpenSSL; this is not an independent SHA algorithm. Nine independently chosen
+ordering/padding-boundary inputs add lengths 55/56/63/64/65/119/120/127/128. All 926
+complete inputs/results are emitted by both interpreted and compiled execution of
+`scripts/KzgVersionedHashNativeTests.lean`. The strict comparator checks framing, types
+(integer booleans rejected), exact record sets/IDs/order, input bytes and all 32 output
+bytes against the catalog. Optional paired-source mode additionally binds the exact
+adopted full observation-row hash and supplied sidecar bytes; runtime/environment
+authentication is a separate source gate. The adopted source observations and sidecar
+are out of tree, so paired-source mode cannot be exercised from this repository; the
+in-tree checks compare interpreted and compiled output with the catalog. Generated
+guards supply 41 literal anchors, including searched zero-suffix cases; generator
+freshness and the parser's actual CLI/library malformed-record tests run in normal and
+optimized Python. The suite covers empty/non48/48 inputs, every input byte, order, SHA
+block boundaries and leading/trailing suffix zeros. The all-input ordinary theorem
+remains the primary specification.
+
 ## 5. Interface
 
 Public unless marked internal. Namespace `STFSpec.Precompiles`.
@@ -318,8 +374,8 @@ Public unless marked internal. Namespace `STFSpec.Precompiles`.
 -- Everything below is generic in `{m} [Monad m] [KeccakQuery m]` (D5); only ECRECOVER queries.
 abbrev Precompile (m : Type → Type) := PrecompileFn m
 
--- normal form (§2.1); every precompile has one. Only the body is monadic, so the meter is
--- fixed by `chargeGas` before it runs and `meter_law` holds for every `m`.
+-- Intended normal form (§2.1); per-entry proofs and executable adapter equations remain open.
+-- Fixing the meter before the monadic body is insufficient for generic erasure equality (Q83).
 structure PrecompileSpec (m : Type → Type) where
   precheck : ByteArray → Option ExceptionalHalt        -- pre-charge failures
   gasCost  : ByteArray → Nat
@@ -338,6 +394,9 @@ def ecrecover sha256 ripemd160 identity modexp altBn128Add altBn128Mul
     altBn128PairingCheck blake2f pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
     bls12G2Msm bls12Pairing bls12MapFpToG1 bls12MapFp2ToG2 p256verify (cfg : VmConfig) : Precompile m
 def ecrecoverSpec … p256verifySpec (cfg : VmConfig) : PrecompileSpec m   -- normal forms (public, for proofs)
+
+-- Q83 preserves these Monad-only sketches; no constructor strengthening is selected.
+-- SatisfiesM factors actions; actual toPrecompile equations/witness equality remain open.
 
 namespace Modexp
 def complexity (baseLength modulusLength : Nat) : Nat
@@ -367,13 +426,12 @@ end Bls12
 
 namespace PointEvaluation
 def fieldElementsPerBlob blsModulus : Nat
-def versionedHashVersionKzg : UInt8
+def versionedHashVersionKzg : UInt8   -- reuses or aliases Kzg.versionedHashVersionKzg (§2.4)
 end PointEvaluation
 
 namespace Kzg
-abbrev VersionedHash := Hash32
 def versionedHashVersionKzg : UInt8
-def commitmentToVersionedHash (commitment : ByteArray) : VersionedHash
+def commitmentToVersionedHash (commitment : ByteArray) : Base.VersionedHash
 end Kzg
 ```
 
@@ -382,6 +440,10 @@ end Kzg
 (ARCHITECTURE §8). The EIP-2537 pairing literals (`bls12_381_pairing.py:46`), the MSM discount
 tables, the maximum discounts and the multiplier are `GasCosts` fields too (DECISIONS B8, F9), with
 their Amsterdam values in `EthFork`.
+
+For Kzg these are the complete authored public declarations together with the §7
+byte-result law. The helper is pure and does not use the precompile monad, configuration
+or error vocabulary above.
 
 ## 6. Data structures
 
@@ -393,6 +455,11 @@ their Amsterdam values in `EthFork`.
 | output | fresh `ByteArray` | byte list | size laws (§7) | linear, handed to the runner | O(size) |
 | points, scalars | `EthCurve`/`EthField` values | as there | on-curve after decoding | immutable | as there |
 
+The raw KZG helper hashes once, then packs exactly 32 bytes through the public checked
+Hash32.ofBytes? constructor with a proof that failure is impossible. Packing is constant
+width; SHA cost and its total-length domain remain owned by EthHash. No performance
+exception or host allocation bound is claimed.
+
 No precompile keeps state across calls. The EELS `lru_cache` (maxsize 128) is omitted; if a
 cache is ever added it must satisfy the memoisation-consistency invariant (ARCHITECTURE §7).
 
@@ -403,12 +470,29 @@ subgroup checks; pairings. These dominate guest runtime on precompile-heavy fixt
 
 ## 7. Contract and laws
 
-Per operation:
+**Supplied raw KZG law** (ordinary Lean theorem; discharged):
+`Kzg.commitmentToVersionedHash_toBytes (commitment : ByteArray)` states
+`(commitmentToVersionedHash commitment).toBytes.toList =
+versionedHashVersionKzg :: (STFSpec.Hash.sha256 commitment).toBytes.toList.drop 1`,
+with both helper and constant in namespace Kzg. Private packing proofs establish exact
+width and checked-constructor success using public Base laws. The equation determines
+every result byte, including all 31 ordered suffix bytes and zeros, with no input-width
+premise or failure/effect channel. Private consumer clients derive size 32, first byte
+0x01, every suffix position and extensional result determination. SHA byte zero is
+deliberately discarded; no injectivity, full-SHA binding, collision-resistance or
+KZG-security result follows.
+
+Per precompile operation (the raw helper is separate):
 - [C] **Frame law.** At `m := Id`: `p data g = .ok g' out → chargeGas g c = .ok g'` for the
-  precompile's `c`; for general `m`, the same holds under `SatisfiesM`. Only `gas_left` changes
-  (no state gas, refund or other field) [V: all files call only `charge_gas`]. This implies
-  `EthVmCore`'s `meter_law`. Supports the runner's potential Φ (ARCHITECTURE §5.5): a precompile frame never
-  increases Φ.
+  precompile's `c`. For general `m`, state the stronger charge relation through Core's
+  action-factorization predicate `SatisfiesM` (Q83); constructing its witness and
+  erasure equality remains an obligation. Only `gas_left` changes
+  (no state gas, refund or other field) [V: all files call only `charge_gas`]. At Id
+  this implies `EthVmCore`'s `meter_law`; a generic factorization for each relation
+  still needs its own witness/erasure proof. Supports the runner's potential Φ
+  (ARCHITECTURE §5.5): a precompile frame never
+  increases Φ at Id; a generic observed-result consequence additionally needs an
+  actual bridge for the action/effects used by the consumer.
 - [C] **Normal form.** `p = (pSpec).toPrecompile` up to the halt constructor, for every `p`.
   Proved per precompile against an EELS-shaped definition (check order as in EELS).
 - [C] **Gas laws.** Closed forms of §2.2/§2.3, e.g. `sha256Gas n = 60 + 12 * ((n + 31) / 32)`;
@@ -448,7 +532,8 @@ output and zero returned gas" (via the runner's halt law), and "a successful cal
 
 **Argument.** Split execution at each ordered input/length/field/subgroup check. For accepted inputs, adapter inverses transfer bytes to the mathematical inputs; the lower component's correctness gives the output, and the encoding law returns the same bytes. Mirror the reference's placement of gas charging relative to validation, since swapping them changes which exception wins. On success chargeGas changes only execution gas, hence the returned meter satisfies meter_law; on halt the runner performs ordinary halt settlement. ECRecover's accepted invalid signatures may return empty output rather than halt, and KZG/pairing require their distinct infinity/subgroup rules. Mapping precompiles apply clearCofactor exactly once to mapToCurve. MODEXP complexity/gas uses the reference exponent head at the offset determined by baseLength; varying that offset invalidates an unconditional monotonicity claim.
 
-**Open obligations.** Complete adapter/error equations and exact pricing closures under VmConfig; pairings' algebraic proofs remain conditional. Tests of valid outputs do not establish rejection order or justify replacing a cryptographic algorithm by any function satisfying a weaker abstract property.
+**Open obligations.** The raw KZG byte equation is discharged; its SHA premises are
+owned by EthHash. PointEvaluation integration and all complete precompile adapter/error equations and exact pricing closures under VmConfig; pairings' algebraic proofs remain conditional. Tests of valid outputs do not establish rejection order or justify replacing a cryptographic algorithm by any function satisfying a weaker abstract property.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -463,6 +548,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and the BLAKE2 F compression with parameter extraction (`crypto/blake2.py`, including
   `Blake2b`'s `get_blake2_parameters` and `compress`). From `EthPairing`/`EthCurve`/`EthField`:
   everything mathematical, with their subgroup and predicate preconditions discharged here.
+- **Raw KZG seam:** the existing Base VersionedHash domain, fixed global tag, pure helper
+  and complete byte-result law are supplied. PointEvaluation must consume them; no
+  PointEvaluation/table/frame implementation or meter result follows.
 - **Seams provided:** the `Precompile` calling convention and the frame, normal-form and size
   laws. **Cross-module invariants:** the runner must treat `.halt` exactly like an opcode
   exceptional halt (O8), and must not call a precompile when precompiles are disabled for the
@@ -478,7 +566,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D3**: Amsterdam only; the table is not fork-parameterised.
 - **D4**: SHA-256/RIPEMD-160/BLAKE2 are `EthHash` references; their fast paths are D4's.
 - **D5** (broad scope, monad-parametric): ECRECOVER's keccak of the public key goes through
-  `KeccakQuery`, so every precompile is a `PrecompileFn m` and the meter law holds for every `m`
+  `KeccakQuery`, so every precompile is a `PrecompileFn m`. Q83 defines the generic
+  meter predicate; it does not construct the table for every Monad
   (F3's pure form is not adopted). Execution uses `m := Id`.
 - **D18** (accepted): MSM and pairings must use performance-appropriate executables (Pippenger-class MSM; Montgomery fields; easy/hard-part final exponentiation), with the naive or plain forms kept as legible references. Any exception is recorded in `STFSpec/informal/DEBT.md` with its justification.
 - **D6**, **D7**, **D15**: via the crypto libraries.
@@ -490,6 +579,23 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   working position (uncleared `mapToCurve*`, `mapFp*` wrappers clear exactly once; EthCurve R8).
 
 ## 10. Gaps
+
+- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
+  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
+  comparisons do not close precompile, host, security, resource or whole-guest gates.
+
+- **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
+  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:69`,
+  and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
+  dependency. A shared lower owner for the tag is not yet chosen.
+
+- **Generic construction (Q83):** Core supplies only the Q83 predicate and Id law
+  (EthVmCore §7). `toPrecompile` equations, per-entry source/normal-form proofs and the
+  meaning of equality up to the halt constructor remain open. A map-shaped adapter
+  needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
+  alone does not); bind-pure/map agreement needs its own law. Public constructor
+  assumptions, erasure-first computation, observers and transformer bridges remain
+  unselected. The four-field Monad-only table sketch is unchanged.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
