@@ -10,7 +10,7 @@ import STFSpec.State.StateError
 Library `EthVmCore`: named non-frame fault values with complete supplied payloads.
 These carriers implement no fault producer, propagation adapter or outcome projection.
 Failure-ledger classification and freezing remain separate obligations (B14).
-Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.6/5/10.
+Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.6/3/4/5/7/10.
 -/
 
 namespace STFSpec.Vm.Core

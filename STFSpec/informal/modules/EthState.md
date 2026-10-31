@@ -325,7 +325,7 @@ resource or C1–C4 result.
 
 ## 5. Interface
 
-Core §3/§5/§7 now supplies nominal `VmFault.state` consuming this actual StateError, retaining the complete nested WitnessError. This adds no state operation, lift or diagnostic/outcome adapter; R29/B14 obligations remain open.
+Core §3/§4/§5/§7 now supplies nominal `VmFault.state` consuming this actual StateError, retaining the complete nested WitnessError. This adds no state operation, lift or diagnostic/outcome adapter; R29/B14 obligations remain open.
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
