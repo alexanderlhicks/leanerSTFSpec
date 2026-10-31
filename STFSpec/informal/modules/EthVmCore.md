@@ -83,13 +83,26 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 ### 2.6 Exceptions
 
 - **R-EXC-1** `ExceptionalHalt` (`exceptions.py:17`) has the subclasses `StackUnderflowError`, `StackOverflowError`, `OutOfGasError`, `InvalidOpcode(code)`, `InvalidJumpDestError`, `StackDepthLimitError`, `WriteInStaticContext`, `OutOfBoundsRead`, `InvalidParameter`, `InvalidContractPrefix`, `AddressCollision`, `KZGProofError`; precompiles also raise bare `ExceptionalHalt` (`precompiled_contracts/modexp.py:34, 38, 42`). `Revert` (`:24`) is **not** an exceptional halt. The Lean type must keep one constructor per class (for traces and receipts' diagnostics) although every exceptional halt has the same effect (O8): spill restored, remaining execution gas forfeited, output empty.
-- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:303` catches `Exception`): `witness` (missing trie/code data, O4, from `EthState`), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: an out-of-range top-level refund in `U256(refund_counter)` (`interpreter.py:285,318`; §3 preserves both checked casts and their order, with the preparation-zero argument owned by EthVmRunner R-TOP-2), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The `U256(...)` casts in NUMBER, GASLIMIT and BASEFEE cannot overflow, because the SSZ payload field widths (`uint64`, `uint64`, `uint256`) rule it out, so they have no constructor. These faults are CONTRACT **O13** members (D14): the existing invalid output, one named constructor each, never a catch-all. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor`; the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
+- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:303` catches `Exception`): `state` (a complete `StateError`; missing trie/code data arrives as `state (.witness e)` and maps to O4 through the adapters), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: an out-of-range top-level refund in `U256(refund_counter)` (`interpreter.py:285,318`; §3 preserves both checked casts and their order, with the preparation-zero argument owned by EthVmRunner R-TOP-2), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The `U256(...)` casts in NUMBER, GASLIMIT and BASEFEE cannot overflow, because the SSZ payload field widths (`uint64`, `uint64`, `uint256`) rule it out, so they have no constructor. The non-witness faults are CONTRACT **O13** members (D14): the existing invalid output, one named constructor each, never a catch-all; witness failures map to O4. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor`; the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
 
 ### 2.7 Jumpdest analysis
 
 - **R-JD-1** `validJumpDestinations code` (`runtime.py:22–69`) must equal the set of `pc < |code|` such that `code[pc] = 0x5B` and `pc` is not inside PUSH1–PUSH32 immediate data, scanning from 0 and skipping `n` bytes after an opcode `0x60 + n − 1`. Bytes that are not opcodes (for example `0xFE`, `0x0C`) advance by one. It must be defined on raw bytes: `EthVmCore` cannot import the opcode enum.
 
 ## 3. EELS source map
+
+### Supplied nominal non-frame fault vocabulary
+
+| Source/contract | Lean declaration and complete domain | Effect | Client evidence | Status |
+|---|---|---|---|---|
+| R-EXC-2/§5; `instructions/environment.py:606–607`, `interpreter.py:285,318` identify future conversion sites | `OverflowSite.blobBaseFee`, `OverflowSite.refundCounter : OverflowSite` | Pure nominal construction/elimination only | Private `Conformance/Vm/Core/VmFaultCallerProofs.lean` exact types, exhaustive dependent eliminator and distinct-site proof | Carrier supplied; actual checked casts unimplemented |
+| R-EXC-2/§5; State R29, `instructions/block.py:58–63` and the above conversion sites | `VmFault.state : STFSpec.State.StateError → VmFault`; `ancestorHashUnavailable : Nat → VmFault`; `u256Overflow : OverflowSite → VmFault` | Retains the complete supplied state error, raw unbounded offset or conversion site; no action or output projection | Private public-Core-facade exact constructors, exhaustive dependent eliminator, whole-value reconstruction, three injectivity proofs, all pairwise outer-tag disjointness and complete controls (§4) | Carrier supplied; producers, propagation, classification proofs and B14 freezing remain open |
+
+`Core/VmFault.lean` imports the actual State-owned `StateError`, which already wraps
+`WitnessError`; there is no separate `VmFault.witness`. Core exports the leaf through
+its public facade. These two nominal types add no custom public law, instance,
+default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` and
+`FrameError` retain their separate owners and channels.
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
@@ -1386,6 +1399,17 @@ private true/false controls. No source runtime or parser framework is needed for
 this logical assertion boundary; these controls prove no execution reachability.
 Reproduce with `lake build STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs --wfail`.
 
+- **Supplied nominal fault controls:** private public-facade clients in
+  `VmFaultCallerProofs.lean` compare 350 complete values: all 340 StateError cases
+  (every StateError/WitnessError/WitnessItem tag, zero/max/mixed and every-position
+  high/low 32-byte payloads), both overflow sites and eight raw Nat offsets
+  `0, 1, 255, 256, 257, 2^64, 2^256, 2^4096`. Expectations retain complete nested
+  tags and every hash byte, or the entire Nat, without projection checksums.
+  Generic eliminators/reconstruction/injectivity/disjointness supplement finite
+  controls. No EELS runtime comparison is needed for supplied nominal storage;
+  these controls execute no source fault site and assert no offset reachability.
+  Reproduce with `lake build STFSpec.Conformance.Vm.Core.VmFaultCallerProofs --wfail`.
+
 - **Supplied allocation controls (Q65):** §3 owns the exact 36 complete
   guard/interpreted/native groups, nine public-law client groups, strict normal/`-O`
   parser controls, 14 whole successful original comparisons and three source-only
@@ -1603,6 +1627,12 @@ Reproduce with `lake build STFSpec.Conformance.Vm.Core.PrecompileCallerProofs --
 
 ## 5. Interface
 
+The two nominal types `OverflowSite` and `VmFault` displayed below are supplied
+exactly, in declaration-before-use order in Lean. `VmFault.state` consumes the
+existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
+arbitrarily large values, is admitted by the carrier; this says nothing about
+BLOCKHASH reachability. World/monad/lifting declarations remain targets.
+
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All public unless marked internal. Names follow EELS in lowerCamelCase.
@@ -1661,10 +1691,10 @@ structure VmConfig where
 -- the hash-query class of EthHash; handlers that hash (EthVmInstructions) add it.
 structure VmWorld (m : Type → Type) where
   tx : TxState m             -- single owner of block, revertible writes, and observations
-abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)
-inductive OverflowSite | blobBaseFee | refundCounter   -- NUMBER/GASLIMIT/BASEFEE cannot overflow (R-EXC-2)
-inductive VmFault | state (e : StateError) | ancestorHashUnavailable (offset : Nat)
-                  | u256Overflow (site : OverflowSite)   -- O13 members (R-EXC-2)
+inductive OverflowSite | blobBaseFee | refundCounter   -- supplied nominal sites (R-EXC-2)
+inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
+                  | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
+abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- target
 def liftState [Monad m] : StateM m α → VmM m α  -- run on world.tx; map every StateError to VmFault.state
 
 -- Exceptions (public)
@@ -2021,6 +2051,15 @@ retain all fields, ordered occurrences and option distinctions. There is no
 manually authored public law package, admission/WF predicate or history guard.
 Intended construction supplies history/source coherence; actual consumers still
 owe admission, lookup, policy, state and execution obligations.
+
+**Supplied nominal fault carriers.** Ordinary generated inductive infrastructure
+supports construction and exhaustive elimination of every `OverflowSite` and
+`VmFault`, preserving their whole supplied payloads. Private facade clients prove
+reconstruction, payload injectivity and constructor disjointness; no custom public
+law or instance is added. This supplies no fault producer, checked conversion,
+state lift, error adapter, failure precedence or classification/reachability proof.
+The raw offset domain carries no admissibility claim. D14/O4/O11/O13 and B14 retain
+their existing owners; failure-ledger closure and freezing remain open.
 
 **Logical action-factorization law (Q83; supplied/discharged).**
 
@@ -3143,6 +3182,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
   FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
   G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
+
+- **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
+  OverflowSite and VmFault with private complete facade clients/controls. Actual
+  state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
+  original refund checked casts, error propagation/outcome adapters, reachability
+  and B14 failure-ledger classification/freezing remain unimplemented or unproved.
+  No VmWorld/VmM, F11 choice, G1–G7, resource or VM/guest/EEST/readiness gate follows.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample

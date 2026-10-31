@@ -208,6 +208,8 @@ success and outer revert/halt discard cases under the existing settlement contra
 
 ## 5. Interface
 
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values, including `.u256Overflow .refundCounter`. Both original top-level unsigned casts and their order/bounds remain obligations of R-TOP-2/R-TOP-3; checked propagation, F11 and G2–G7 remain open.
+
 ```lean
 -- PrecompileResult, PrecompileFn, PrecompileTable and VmConfig are imported from EthVmCore.
 -- Execution interfaces that hash are generic in `{m} [Monad m] [KeccakQuery m]` (D5).

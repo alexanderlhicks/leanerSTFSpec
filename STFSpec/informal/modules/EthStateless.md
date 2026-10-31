@@ -155,6 +155,8 @@ including the known encoding above, are the source evidence.
 
 ## 5. Interface
 
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values, retaining whole StateError, raw Nat offset or conversion site. The complete block/guest adapters and O4/O13 outcome projection remain unimplemented; this storage slice proves no classification, reachability or B14 freezing.
+
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All in namespace `STFSpec.Stateless`; public unless marked.
