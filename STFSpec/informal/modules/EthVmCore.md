@@ -304,7 +304,7 @@ every provider input. Reproduce with:
 lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.Vm.Core.ContextGuards --wfail
 ```
 
-Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv and Fork→Block→Runner
+Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv assembly and Fork→Block→Runner
 address transport, actual producer emission, world/handler/control/parent integration,
 F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
 

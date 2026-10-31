@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary and raw RunnerEnv carrier supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -106,6 +106,33 @@ ordinary generated inductive support is subject to the declaration policy.
 No manually authored public helper or theorem is added. This supplies entry-kind
 vocabulary only; it does not define `Exec` or choose its unresolved relation form.
 
+### Supplied raw runner environment
+
+`STFSpec/Vm/Runner/Environment.lean`, exported by `STFSpec.Vm.Runner`, supplies
+exactly the existing three-field `RunnerEnv` data contract. This is a source-free
+abstraction grouping Core's complete certified table and VM policy with Base's
+supplied Address; it claims no new EELS operation. F8 owns the intended address
+route. The carrier needs only `m : Type → Type` and `[Monad m]`; storing data
+neither queries a hash nor executes an action. No default, instance, selected
+policy, admission predicate or manually authored public law/factory is supplied.
+
+| Source / operation | Lean declaration and type | Domain, effects and ordered failures | Client / status |
+|---|---|---|---|
+| Source-free grouping (F8) | `RunnerEnv (m : Type → Type) [Monad m] : Type` | All supplied complete table/config/address triples; storage only, no effects or failures | Private exact-type client; supplied |
+| Source-free construction | `RunnerEnv.mk : PrecompileTable m → VmConfig → Address → RunnerEnv m` | Every ordered triple under Monad alone; retains whole fields, including table certificates; no validation or effects | Private constructor, complete projection and reconstruction clients; supplied |
+| Source-free table projection | `RunnerEnv.precompiles : RunnerEnv m → PrecompileTable m` | Every raw environment; retains actual lookup, domain and certified actions; no execution or effects | Private complete table/update, lookup-domain and actual factorization-witness clients; supplied |
+| Source-free config projection | `RunnerEnv.vm : RunnerEnv m → VmConfig` | Every raw environment; retains complete costs/stateCosts/limits, without coherence or bounds; no effects | Private complete config/update and arbitrary full-cost/zero/beyond-word limit controls; supplied |
+| Source-free address projection | `RunnerEnv.systemAddress : RunnerEnv m → Address` | Every raw environment; preserves the supplied nominal address; no literal or endian conversion, effects or failures | Private complete address/update and distinct nonliteral byte-order controls; supplied |
+
+All clients are private in
+`STFSpec/Conformance/Vm/Runner/EnvironmentCallerProofs.lean` and import only the
+public Runner facade. A parameterized local Id singleton supplies its actual
+lookup-domain proof and successful action certificate through Core's existing
+`satisfiesM_id_iff`; it is an inhabitant, not the installed Ethereum table.
+The generic witness client uses the stored table's actual `meter_law`, without
+observing arbitrary-monad results or strengthening Q83. Assembly, dispatch,
+transformer bridges, copying into FrameCtx and all execution remain unimplemented.
+
 ## 4. Tests
 
 - **Supplied entry-kind clients:** `ExecKindCallerProofs` imports the public Runner
@@ -129,6 +156,18 @@ vocabulary only; it does not define `Exec` or choose its unresolved relation for
   These controls model only the mathematical definitions; they execute no original budget
   function and establish no runner progress or sufficiency.
 
+- **Supplied runner-environment clients:** `EnvironmentCallerProofs` imports the public
+  Runner facade and privately checks the exact Monad-only type/constructor/projection
+  signatures, arbitrary whole-field preservation, complete reconstruction and all three
+  whole-field updates retaining the other two fields. Supplied generic domain and actual
+  action witnesses remain accessible through the stored table. A local Id singleton
+  varies address, cost, input/output and arbitrary raw meter; the complete literal
+  result retains signed refund and both spill pools. Full arbitrary GasCosts and raw
+  independent state costs/limits include zero and beyond-word values. Distinct
+  nonliteral addresses retain all twenty bytes and byte order. These are carrier
+  controls; the actual construction/producer and runtime controls below remain
+  unimplemented.
+
 **F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
 RunnerEnv address and an independently varied F20 topic. Check successful createEvm
 copying and complete logs through user/system entry, nested CALL/CREATE and
@@ -145,8 +184,10 @@ success and outer revert/halt discard cases under the existing settlement contra
 
 ```lean
 -- PrecompileResult, PrecompileFn, PrecompileTable and VmConfig are imported from EthVmCore.
--- Everything is generic in `{m} [Monad m] [KeccakQuery m]` (D5); public callers use `m := Id`.
--- Parameters supplied by EthFork (public); recovery calls EthCurve directly (D26).
+-- Execution interfaces that hash are generic in `{m} [Monad m] [KeccakQuery m]` (D5).
+-- The supplied raw RunnerEnv below needs only Monad; public execution callers use `m := Id`.
+-- Raw storage is supplied; actual parameter assembly by EthFork remains open.
+-- Recovery calls EthCurve directly (D26).
 structure RunnerEnv (m : Type → Type) [Monad m] where
   precompiles : PrecompileTable m
   vm : VmConfig
@@ -221,6 +262,17 @@ constructors specified in §5, with exhaustive dependent elimination and pairwis
 disjointness checked by private ordinary facade clients. There are no parameters
 and no authored instance, default or observer. No `Exec` relation or execution law is supplied;
 D13/B11, F11 and G2–G7 remain open.
+
+**Raw RunnerEnv storage (supplied).** §3/§5 own the exact three-field record,
+with ordinary generated structure support and no authored public law package.
+Private facade proofs retain arbitrary complete fields, reconstruct the record
+and update each whole field independently, preserving the other fields exactly.
+The table includes its actual domain/certification proofs; clients obtain its
+existing generic factorization witness and exact Id consequence through Core's
+public contract. This storage introduces no effects, hash query, failure,
+coherence/global invariant, KeccakQuery or lawful-monad premise. It establishes
+no successful createEvm copy, child inheritance, emission, installed-table/config
+assembly, transformer/dispatch/settlement bridge, F11 or G2–G7 result.
 
 **Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
 `phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
@@ -307,7 +359,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   settlement and potential proofs remain open. This adds no observer API, base-error
   reinterpretation, F11 choice or G2–G7 claim.
 
-- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
+
+- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
