@@ -16,6 +16,10 @@ import STFSpec.Vm.Core.BlockGas
 import STFSpec.Vm.Core.Logs
 import STFSpec.Vm.Core.Sets
 import STFSpec.Vm.Core.Frame
+import STFSpec.Vm.Core.TransferLog
+import STFSpec.Vm.Core.Environments
+import STFSpec.Vm.Core.Context
+import STFSpec.Vm.Core.ChildSettled
 import STFSpec.Vm.Core.CallGas
 import STFSpec.Vm.Core.Jumpdest
 import STFSpec.Vm.Core.Memory
@@ -27,7 +31,7 @@ import STFSpec.Vm.Core.StackDecoders
 # STFSpec.Vm.Core
 
 The `Evm` frame, `Message`, environments, operand stack, memory, gas meter and gas
-parameters, and jumpdest analysis.
+parameters, raw exceptional-halt/revert vocabulary, and jumpdest analysis.
 
 Library `EthVmCore`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Implementation and ordinary-law status

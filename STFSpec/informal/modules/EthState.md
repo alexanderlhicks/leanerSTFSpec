@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
@@ -122,7 +122,7 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `forks/amsterdam/state_tracker.py::restore_tx_state` | 799 | `restoreTxState` (`revert`) | |
 | `forks/amsterdam/state_tracker.py::incorporate_tx_into_block` | 823 | `incorporateTxIntoBlock` | BAL hook in `EthBlock` |
 | `forks/amsterdam/state_tracker.py::extract_block_diff` | 880 | `extractBlockDiff` | |
-| `forks/amsterdam/state_tracker.py::get_witness_ancestors` | 903 | `getWitnessAncestors` | host-side; generic list slice |
+| `forks/amsterdam/state_tracker.py::get_witness_ancestors` | 903 | `getWitnessAncestors` | supplied: opaque list selection; complete equation and tests below |
 | `forks/amsterdam/state_tracker.py::track_ancestor_access` | 925 | `trackAncestorAccess` | |
 
 `state.py` is claimed item by item above; no item of either file is left unclaimed.
@@ -132,7 +132,7 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 ### Implemented internal order support
 
 `STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
-operations in the source map above remain **unimplemented**; a dictionary ordering
+overlay operations in the source map above remain **unimplemented**; a dictionary ordering
 helper does not implement `setAccount`, `setStorage`, clear, snapshot, incorporation
 or extraction. The following support rows are **discharged for the
 stated component laws**, with no error or hashing channel. Python dictionary
@@ -244,6 +244,26 @@ The predicate's arbitrary-record domain does not assert correspondence to concre
 EELS hashes without F20 coherence. Private supplied callbacks establish whole-predicate
 positive cases, error-only vacuity and wrong-success rejection; they provide no
 production provider, progress, root/authentication, resource or release result.
+
+### Implemented opaque witness ancestor selection
+
+`State/WitnessAncestors.lean` supplies the standalone tracker helper, independently
+of the absent state overlays. The same-name host copy is a separate source definition;
+this row attributes execution only to the tracker helper.
+
+| Source at the pin | Lean declaration and domain | Value/effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:903–922` | `getWitnessAncestors : List ByteArray → Option Nat → List ByteArray` | Every finite ordered list of arbitrary opaque byte payloads and optional Nat; none returns empty, some zero returns all headers, positive n returns the last min(n,length) headers in order, including clipping huge offsets. Total and pure, no validation, provider, hashing, state premise or failure. Both arguments are required. | **Supplied:** `getWitnessAncestors_eq`, the complete ordinary equation (§7). Private facade clients derive none/zero/positive/large-offset/length cases. `WitnessAncestorsGuards` and `witness-ancestors-native-tests` retain all ordered input/output bytes and nullable offsets in 48 independently frozen preimplementation cases. Strict output-reader controls run normally and with `-O`. |
+
+The exact frozen catalog is `Conformance/State/witness_ancestors_cases.json`.
+It covers empty, single, distinguishable, repeated and empty headers, arbitrary
+invalid-RLP bytes, ascending/descending 256-byte payloads and offsets through 2^1024.
+The original tracker helper agrees in both Python modes; source/runtime authentication
+and fresh target binding are separate acceptance evidence. The committed reader imports
+no EELS and computes no suffix oracle. List-value correspondence does not assert
+Python's fresh outer-list identity, immutable element identity or allocation behavior.
+This supplies no witness generator, actual host-call wiring, Q7, S1/S2, guest/EEST,
+resource or C1–C4 result.
 
 ## 4. Tests
 
@@ -480,6 +500,11 @@ def BlockState.accountReadSet : BlockState m → Set Address
 def BlockState.storageReadSet : BlockState m → Set (Address × Bytes32)
 ```
 
+The supplied `getWitnessAncestors` helper accepts every list and optional Nat.
+It is independent of `StateM`: none selects empty, some zero selects all headers,
+and some positive n selects `headers.drop (headers.length - n)`. It introduces no
+header-format or positive-offset guard.
+
 ## 6. Data structures
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
@@ -499,6 +524,32 @@ Observation sets could become `TreeSet`s if `EthBlock` needs sorted output direc
 **Account value seam.** (R1–R3)
 
 `State/Account.lean` supplies `Account.nonce_mk`, `balance_mk`, `codeHash_mk`, `eta` and `ext`, together with ordinary `DecidableEq` from the public fields. The record is its own model; its constructors add no nonce cap, state validity predicate, hash acquisition or codec. For every supplied `consts`, `emptyAccount_nonce`, `emptyAccount_balance` and `emptyAccount_codeHash` preserve zero, `U256.zero` and exactly `consts.emptyCodeHash`. Absence is `none : Option Account`, distinct from a present empty account. These value laws supply no tracker operation, state/error invariant or lifecycle refinement.
+
+### Opaque witness ancestor equation
+
+`getWitnessAncestors_eq headers offset` states the complete match on the supplied
+offset: none gives `[]`; some n gives `if n = 0 then headers else
+headers.drop (headers.length - n)`. It holds without a state, WF, length, positivity,
+format or oracle premise. Private clients import the State facade and use this equation
+and Std List/Nat laws to derive the empty, zero, suffix, clipped and size properties.
+The size is min(length,n) for positive n; zero deliberately returns length.
+The direct expression performs bounded List traversal for positive offsets and shares
+immutable payload values. No composed timing, allocation or resource claim follows.
+
+**Claim.** The helper preserves the source's selected sequence of opaque byte values.
+
+**Premises.** Source inputs are finite typed lists of immutable bytes and None or pinned
+Uint; Lean inputs are arbitrary finite lists of ByteArray and optional Nat, interpreted
+by equal byte values and equal natural offsets. Host execution succeeds.
+
+**Argument.** None follows the explicit empty branch. For zero Python's negative-zero
+slice begins at zero. For positive n, Python's suffix start is max(0,length−n),
+which is natural subtraction; dropping that prefix preserves all remaining payloads
+and their order. Offsets at least length therefore retain the whole sequence.
+
+**Open obligations.** This bounded value statement does not formalize CPython slicing,
+mutable identity, the witness generator or host resource behavior; whole-State gates
+remain as listed in §10.
 
 ### Raw mathematical-state observer laws
 
@@ -738,7 +789,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application, the raw four-operation
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
-  bounded structural preservation and supplied-record ModelsLookups are supplied
+  bounded structural preservation, supplied-record ModelsLookups and opaque witness
+  ancestor selection are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -767,7 +819,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.
+- **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation:** `HashSet` expected bounds and adversarial hash distributions are unmeasured (ARCHITECTURE §5.0); sorted output for the BAL is `EthBlock`'s, but the hand-off type is not fixed.
 - **`Std` costs:** `ExtTreeMap` has no proved height/cost theorem; incorporate's merge relies on a fold whose cost is analytical only.

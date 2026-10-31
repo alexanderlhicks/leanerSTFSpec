@@ -102,7 +102,7 @@ private def singleton (address : Address) (cost : Nat) (output : Bytes) :
       exact (satisfiesM_id_iff _ _).mpr ⟨Nat.sub_le _ _, rfl⟩
     · contradiction
 
--- Full arbitrary GasCosts are retained, including arrays, signed refunds and U64 values.
+-- Full arbitrary GasCosts are retained, including arrays, a signed refund and U64 values.
 -- Raw state prices and independent limits admit zero and values beyond word width.
 private theorem varied_full_records (costs replacement : GasCosts) (output : Bytes) :
     let table := singleton (Address.ofNat 0x010203) 7 output
@@ -130,6 +130,8 @@ private theorem singleton_stored (cfg : VmConfig) (address system : Address)
 private def output : Bytes := Bytes.ofList [0, 255, 1, 128, 0]
 private def meter : GasMeter := ⟨13, 101, 2, -17, 5, 11⟩
 
+#guard output.toList == [0, 255, 1, 128, 0]
+
 private theorem complete_debit_result :
     debit 7 output Bytes.empty meter = .ok ⟨6, 101, 2, -17, 5, 11⟩ output := rfl
 
@@ -137,6 +139,7 @@ private theorem complete_debit_result :
   Address.toNat) == [0x010203]
 #guard ((singleton (Address.ofNat 0x010203) 7 output).lookup
   (Address.ofNat 0x030201)).isSome == false
+
 private theorem stored_address_byte_order {m : Type → Type} [Monad m]
     (table : PrecompileTable m) (cfg : VmConfig) :
     let env := RunnerEnv.mk table cfg (Address.ofNat 0x020100)
@@ -151,7 +154,5 @@ private theorem stored_address_byte_order {m : Type → Type} [Monad m]
     decide
   · change (Address.ofNat 0x000102).toBytes.toList = _
     decide
-
-#guard output.toList == [0, 255, 1, 128, 0]
 
 end STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
