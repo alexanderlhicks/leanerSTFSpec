@@ -77,8 +77,8 @@ private theorem complete_observation (gas reservoir : Nat) (endowment : U256)
 
 private theorem byte_construction (gas reservoir : Nat) (endowment : U256)
     (caller target : Address) (bytes : List UInt8) (charged : Bool) :
-    (construct gas reservoir endowment caller target (Bytes.ofList bytes) charged).initCode.toList =
-      bytes := Bytes.toList_ofList bytes
+    (construct gas reservoir endowment caller target (Bytes.ofList bytes)
+      charged).initCode.toList = bytes := Bytes.toList_ofList bytes
 
 private def control (gas reservoir word caller target : Nat) (bytes : List UInt8)
     (charged : Bool) : CreateRequest :=
