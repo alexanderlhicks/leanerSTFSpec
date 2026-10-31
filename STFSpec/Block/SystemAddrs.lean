@@ -36,7 +36,9 @@ structure SystemAddrs where
   depositContract : Address
   /-- System transaction execution gas grant. -/
   txGas : Nat
-  /-- Maximum storage writes per system call. -/
+  /-- Expected upper bound on new storage slots written by one system call (pinned EELS
+  `src/ethereum/forks/amsterdam/fork.py:122–126`); it sizes the state-gas reservoir and
+  is not enforced as a cap. -/
   maxSstoresPerCall : Nat
 
 end STFSpec.Block

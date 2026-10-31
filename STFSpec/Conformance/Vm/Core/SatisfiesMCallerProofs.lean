@@ -25,10 +25,10 @@ private theorem id_introduction {α : Type} (P : α → Prop) (x : Id α)
     (h : P x) : SatisfiesM (m := Id) P x :=
   (satisfiesM_id_iff P x).mpr h
 
-private theorem true_id : SatisfiesM (m := Id) (fun n : Nat => n = 7) (7 : Id Nat) :=
+private theorem true_id : SatisfiesM (m := Id) (fun n : Nat ↦ n = 7) (7 : Id Nat) :=
   (satisfiesM_id_iff _ _).mpr rfl
 
-private theorem false_id : ¬ SatisfiesM (m := Id) (fun n : Nat => n = 8) (7 : Id Nat) := by
+private theorem false_id : ¬ SatisfiesM (m := Id) (fun n : Nat ↦ n = 8) (7 : Id Nat) := by
   intro h
   have := (satisfiesM_id_iff _ _).mp h
   contradiction
@@ -65,16 +65,16 @@ private theorem spill_change_rejected (g : GasMeter) :
   change g.stateGasCommittedSpill + 1 = g.stateGasCommittedSpill at hSpill
   omega
 
-private def traceAction : StateM Nat Nat := fun s => (7, s + 1)
+private def traceAction : StateM Nat Nat := fun s ↦ (7, s + 1)
 
-private theorem state_witness : SatisfiesM (fun n => n = 7) traceAction := by
-  refine ⟨(fun s => (⟨7, rfl⟩, s + 1)), ?_⟩
+private theorem state_witness : SatisfiesM (fun n ↦ n = 7) traceAction := by
+  refine ⟨(fun s ↦ (⟨7, rfl⟩, s + 1)), ?_⟩
   rfl
 
 private theorem state_trace (s : Nat) : traceAction.run s = (7, s + 1) := rfl
 
 private theorem except_error_witness :
-    SatisfiesM (fun _ : Nat => False) (Except.error "query" : Except String Nat) := by
+    SatisfiesM (fun _ : Nat ↦ False) (Except.error "query" : Except String Nat) := by
   exact ⟨Except.error "query", rfl⟩
 
 -- Ordinary logged bind, but map adds a tick. Monad carries no law forcing agreement.
@@ -88,7 +88,7 @@ private instance : Monad CountMap where
   map f x := ⟨x.ticks + 1, f x.value⟩
 
 private theorem countMap_safe_pure_rejected :
-    ¬ SatisfiesM (fun n : Nat => n = 7) (pure 7 : CountMap Nat) := by
+    ¬ SatisfiesM (fun n : Nat ↦ n = 7) (pure 7 : CountMap Nat) := by
   rintro ⟨y, h⟩
   have hticks := congrArg CountMap.ticks h
   change y.ticks + 1 = 0 at hticks
@@ -102,8 +102,8 @@ private theorem countMap_map_pure_fails :
   contradiction
 
 private theorem countMap_map_composition_fails :
-    ((fun n : Nat => n + 1) <$> ((fun n : Nat => n + 2) <$> (pure 7 : CountMap Nat))) ≠
-      ((fun n : Nat => (n + 2) + 1) <$> (pure 7 : CountMap Nat)) := by
+    ((fun n : Nat ↦ n + 1) <$> ((fun n : Nat ↦ n + 2) <$> (pure 7 : CountMap Nat))) ≠
+      ((fun n : Nat ↦ (n + 2) + 1) <$> (pure 7 : CountMap Nat)) := by
   intro h
   have hticks := congrArg CountMap.ticks h
   contradiction
