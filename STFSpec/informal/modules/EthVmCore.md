@@ -94,7 +94,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
-| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
+| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
@@ -1367,7 +1367,7 @@ structure FrameCtx where
   codeAddress : Option Address; code : Bytes; jumpdests : JumpdestMap
   depth : Nat; depth_le : depth ≤ STACK_DEPTH_LIMIT
   shouldTransferValue isStatic disablePrecompiles : Bool
-  systemAddress : Address     -- supplied F8 policy; children inherit it unchanged
+  systemAddress : Address     -- specified F8 policy; children inherit it unchanged
 structure Frame where
   pc : Nat; stack : Stack; memory : Memory; gasMeter : GasMeter
   logs : LogRope; accountsToDelete : AddrSet; returnData : Bytes
