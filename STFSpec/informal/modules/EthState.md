@@ -444,9 +444,9 @@ def WriteOrder.WF (r : WriteOrder K) : Prop :=
 def WriteOrder.Agrees (r : WriteOrder K) (writes : Std.ExtTreeMap K V) : Prop :=
   ∀ k, r.positions[k]?.isSome = writes[k]?.isSome
 
--- supplied raw carrier only; operational invariants/lifetimes remain targets
 -- overlays (D22 persistent trees; D23 split)
-structure TxRevertible where          -- raw construction imposes no WF or agreement
+-- supplied raw carrier only; operational invariants/lifetimes remain targets
+structure TxRevertible where  -- snapshot-reachable, worst-case persistent; no WF imposed
   accountWrites : Std.ExtTreeMap Address (Option Account)
   accountOrder  : WriteOrder Address
   storageWrites : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)
@@ -830,21 +830,20 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bounded component support:** Account and supplied empty-account values,
-  internal WriteOrder support, raw MathState with its pure observers and structural
-  WF, raw BlockDiff values, raw mathematical application, the raw four-operation
-  PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
-  the raw eight-field TxRevertible carrier, bounded structural preservation, supplied-record ModelsLookups and opaque witness
-  ancestor selection are supplied
-  (§3/§5/§7). The owning laws and test rows specify their domains.
-  MathState mutation, diff WF/history/reachable preservation, actual provider operations/
-  contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
-  witness diagnostic
-  refinement, tracker effects/errors, ordered-write integration, reachability, snapshot
-  and operational source-refinement obligations remain open.
-  The EELS default-empty BlockDiff convenience constructor remains deferred. These
-  component contracts do not change whole-State readiness.
-- **Raw TxRevertible boundary:** §3/§4/§7 supplies storage and private complete
+- **Bounded component support:** Account and supplied empty-account values, internal
+  WriteOrder support, raw MathState with its pure observers and structural WF, raw
+  BlockDiff values, raw mathematical application, the raw four-operation PreState
+  carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
+  eight-field TxRevertible carrier, bounded structural preservation, supplied-record
+  ModelsLookups and opaque witness ancestor selection are supplied (§3/§5/§7). The
+  owning laws and test rows specify their domains. MathState mutation, diff
+  WF/history/reachable preservation, actual provider operations/contextual
+  tracker/full-model proofs, StateError operation/adapter semantics and freezing,
+  witness diagnostic refinement, tracker effects/errors, ordered-write integration,
+  reachability, snapshot and operational source-refinement obligations remain open. The
+  EELS default-empty BlockDiff convenience constructor remains deferred. These component
+  contracts do not change whole-State readiness.
+- **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.

@@ -24,9 +24,10 @@ overlays, lifetimes, `BlockDiff`, and their laws. Independent of commitments.
 Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
-application, the raw PreState carrier with coarse witness-error values and the nominal
-StateError carrier and raw eight-field TxRevertible carrier are supplied, together with
-bounded structural preservation and supplied-record success-only `ModelsLookups` and opaque witness ancestor selection.
+application, the raw PreState carrier with coarse witness-error values, the nominal
+StateError carrier and the raw eight-field TxRevertible carrier are supplied, together
+with bounded structural preservation, supplied-record success-only `ModelsLookups` and
+opaque witness ancestor selection.
 Lookup providers, model mutation, state overlays, tracker effects and lifecycle laws
 remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.

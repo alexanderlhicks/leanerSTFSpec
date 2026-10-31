@@ -208,7 +208,7 @@ correspondence. Actual frame/world construction, history lookup/admission,
 capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
 gas/fuel/resources and VM/guest/EEST/readiness remain separate obligations.
 
-EthState §3/§5/§7 owns the supplied raw eight-field TxRevertible carrier, following
+EthState §3/§4/§5/§7 owns the supplied raw eight-field TxRevertible carrier, following
 D22/D23/B1 without extra fields, authored public laws, instances or operations.
 Private facade clients check its exact constructor type, complete projections/
 reconstruction and eight independent updates for arbitrary inputs. Ordinary kernel
@@ -921,7 +921,7 @@ The component records distinguish source checks, analytical bounds and runtime m
 
 ### 7.6 Report and implementation handoff
 
-Raw TxRevertible carrier evidence is scoped by EthState §3/§4/§7; its §10 owns
+Raw TxRevertible carrier evidence is scoped by EthState §3/§4/§5/§7; its §10 owns
 all remaining tracker, lifetime, coupled-order and provider obligations. Complete
 record retention and finite sibling controls discharge no S1/S2/W1 or C1–C4 gate.
 

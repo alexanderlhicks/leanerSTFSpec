@@ -131,7 +131,8 @@ private def observe (r : TxRevertible) : Observation :=
     r.storageWrites.toList.map (fun (a, slots) ↦
       (addressBytes a, slots.toList.map (fun (k, v) ↦ (slotBytes k, v.toNat)))),
     orderValue addressBytes r.storageAddressOrder,
-    r.storageSlotOrder.toList.map (fun (a, order) ↦ (addressBytes a, orderValue slotBytes order)),
+    r.storageSlotOrder.toList.map (fun (a, order) ↦
+      (addressBytes a, orderValue slotBytes order)),
     r.codeWrites.toList.map (fun (h, code) ↦ (hashBytes h, (Bytes.ofByteArray code).toList)),
     r.storageClears.toList.map addressBytes,
     r.transient.toList.map (fun ((a, k), v) ↦ ((addressBytes a, slotBytes k), v.toNat)))

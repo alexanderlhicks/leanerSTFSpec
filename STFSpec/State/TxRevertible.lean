@@ -11,9 +11,10 @@ import Std.Data.ExtTreeSet
 
 Library `EthState`: exactly the persistent write, order, clear and transient fields.
 Construction retains arbitrary raw values, including disagreeing order indexes.
-D22/D23 split the revertible fields of EELS TransactionState from observations;
-B1 adds explicit write-order indexes. Snapshot and tracker operations remain separate.
-Spec guidance: `STFSpec/informal/modules/EthState.md` §§3/5/7.
+D23 splits the revertible fields of EELS TransactionState from observations, and D22
+keeps them in persistent trees; B1 adds explicit write-order indexes. Snapshot and
+tracker operations remain separate.
+Spec guidance: `STFSpec/informal/modules/EthState.md` §§3/4/5/7.
 -/
 
 namespace STFSpec.State
