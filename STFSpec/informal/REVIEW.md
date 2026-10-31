@@ -420,14 +420,15 @@ public-facade clients stay private. Validate exact names/types/instance identity
 existing actual equality and lawful classes, alias reach and other/variable-width
 negative guards. In tree, 19 literal vectors per type compare whole UInt64
 executable, reference and actual-hash results as interpreted guards; the
-every-bit/byte, random and compiled-mode comparisons are out of tree: nothing for them
-is committed, so they cannot be reproduced from this repository. Public Std clients cover
-member/insert/union/duplicate/unequal preservation and map lookup/overwrite for all
-three observation domains, without a distinct-hash premise. Preserve Q51's Hash32
-model and existing expectations. This is functional support only: the raw TxObs carrier is supplied separately;
-other State carriers and D22/D23 lifecycle/ownership, F7 replay failures/observations, actual distributions,
-construction/resizing/allocation, replacement and C1–C4 remain separate obligations.
-The dated §6 readiness assessment is unchanged.
+every-bit/byte, random and compiled-mode comparisons are out of tree: nothing for
+them is committed, so they cannot be reproduced from this repository. Public Std
+clients cover member/insert/union/duplicate/unequal preservation and map
+lookup/overwrite for all three observation domains, without a distinct-hash
+premise. Preserve Q51's Hash32 model and existing expectations. This is functional
+support only: the raw TxObs carrier is supplied separately; other State carriers
+and D22/D23 lifecycle/ownership, F7 replay failures/observations, actual
+distributions, construction/resizing/allocation, replacement and C1–C4 remain
+separate obligations. The dated §6 readiness assessment is unchanged.
 
 EthBase's `utils/numeric.py:177–216` operation is supplied as
 `STFSpec.Base.taylorExponential (factor numerator denominator : Nat)

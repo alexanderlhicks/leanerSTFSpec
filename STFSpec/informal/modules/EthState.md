@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58, Q84.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
@@ -597,15 +597,16 @@ Observation sets could become `TreeSet`s if `EthBlock` needs sorted output direc
 
 **Observation-set proof boundary (Q84).** Base's complete numeric/byte injectivity
 and two named model equations per new domain, together with public Std
-member/insert/union/duplicate and lookup/overwrite laws, supply functional key support
-without distinct hashes. Raw Std types retain their dictionary parameters: consumers
-construct sets using the same canonical names. Same-name/model replacement after
-recompilation should preserve public-law proof source, without reusing old binaries;
-concurrent dictionaries need explicit identity/transport or rehashing. No client
-unfolds private fixed-byte fields or buckets. Membership agreement alone does not
-assert raw HashSet equality. Actual State observations use their semantic set model;
-the supplied TxObs carrier adds no State operation or authored public law. Lean iteration is not Python set order,
-and F7 still covers replay failures and observations as well as roots.
+member/insert/union/duplicate and lookup/overwrite laws, supply functional key
+support without distinct hashes. Raw Std types retain their dictionary parameters:
+consumers construct sets using the same canonical names. Same-name/model replacement
+after recompilation should preserve public-law proof source, without reusing old
+binaries; concurrent dictionaries need explicit identity/transport or rehashing. No
+client unfolds private fixed-byte fields or buckets. Membership agreement alone does
+not assert raw HashSet equality. Actual State observations use their semantic set
+model; the supplied TxObs carrier adds no State operation or authored public law.
+Lean iteration is not Python set order, and F7 still covers replay failures and
+observations as well as roots.
 
 **Raw TxObs contract.** The exact §5 constructor/projections preserve every supplied
 whole set, including arbitrary raw representations. Private ordinary clients prove

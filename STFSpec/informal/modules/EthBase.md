@@ -619,14 +619,16 @@ cannot be reproduced from this repository.
 No EELS runtime oracle is needed for this support model.
 
 State §5 uses these canonical dictionaries for its supplied raw TxObs and
-prospective BlockState raw Std fields; State §3 owns the bounded carrier status. The dictionary is part of the Std type. Same-name/model replacement after
+prospective BlockState raw Std fields; State §3 owns the bounded carrier status.
+The dictionary is part of the Std type. Same-name/model replacement after
 recompilation is intended to preserve public-law consumer proof source; old binary
-reuse is not promised. Concurrently different dictionaries require explicit identity,
-transport or rehashing; scope alone does not identify them. Clients never unfold
-private fixed-byte storage or Std buckets. Streaming permits Nat shifts, captured
-callbacks and UInt64 boxing to allocate. Actual distributions, construction,
-duplicates/resizing, ownership/retention, replacement and C1–C4 costs remain open;
-these functional results supply no benchmark, security or lifecycle theorem.
+reuse is not promised. Concurrently different dictionaries require explicit
+identity, transport or rehashing; scope alone does not identify them. Clients never
+unfold private fixed-byte storage or Std buckets. Streaming permits Nat shifts,
+captured callbacks and UInt64 boxing to allocate. Actual distributions,
+construction, duplicates/resizing, ownership/retention, replacement and C1–C4 costs
+remain open; these functional results supply no benchmark, security or lifecycle
+theorem.
 
 ### Integer byte conversions
 
