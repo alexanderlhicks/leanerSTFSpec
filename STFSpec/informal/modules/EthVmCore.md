@@ -129,16 +129,16 @@ The zero law preserves actual raw rope shape; chronology uses public rope equati
 The committed `transfer_log_differential.py` generates and executes a complete
 interpreted Lean producer through the public Core facade. It needs a SOURCE catalogue
 and two SOURCE captures as inputs. SOURCE is an out-of-tree harness that ran the pinned
-EELS `emit_transfer_log` under normal and optimized Python; the catalogue, both
-captures and the harness are out of tree: nothing for them is committed, so the
-comparison cannot be reproduced from this repository. With those inputs it binds all
-32 authenticated finite SOURCE inputs/results and eight synthetic arbitrary-address/topic cases, retaining
-all nine Frame models, every log byte and the input after the call. The SOURCE
+EELS `emit_transfer_log` under normal and optimized Python; the catalogue, both captures
+and the harness are out of tree: nothing for them is committed, so the comparison cannot
+be reproduced from this repository. With those inputs it binds all 32 authenticated
+finite SOURCE inputs/results and eight synthetic arbitrary-address/topic cases,
+retaining all nine Frame models, every log byte and the input after the call. The SOURCE
 catalogue hash is `fad89d538c7e6b9e188432de31564e4fecd90d8c6ba698af49f1f69b432e4779`;
-its original address/topic instantiation is coherent only at the pinned values.
-Target stacks use checked public pushes in SOURCE bottom-first storage order and
-observe `Stack.toList.reverse`; direct Stack list identity is not claimed. Exactly
-three finite-set arrays compare by membership, with slot-pair coordinates intact;
+its original address/topic instantiation is coherent only at the pinned values. Target
+stacks use checked public pushes in SOURCE bottom-first storage order and observe
+`Stack.toList.reverse`; direct Stack list identity is not claimed. Exactly three
+finite-set arrays compare by membership, with slot-pair coordinates intact;
 logs/topics/bytes remain ordered. Memory is constructed with public aligned
 expansion/write and local proofs; failed construction fails the producer.
 
@@ -2856,14 +2856,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
-- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single
-  supplied-address operation and exactly two ordinary complete-Frame laws, private
-  public-facade clients (including the exact padding bridge) and complete controls. Immutable
+- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
+  operation and exactly two ordinary complete-Frame laws, private public-facade clients
+  (including the exact padding bridge) and complete controls. Immutable
   `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
   transfer/static/gas ordering, intended Fork→Block→Runner construction and child
-  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling,
-  F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core
-  literal, global admission predicate or new runtime policy is introduced.
+  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling, F11
+  settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core literal,
+  global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed

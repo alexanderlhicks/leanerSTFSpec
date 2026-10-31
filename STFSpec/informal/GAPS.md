@@ -664,14 +664,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
-- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single
-  supplied-address operation and exactly two ordinary complete-Frame laws, private
-  public-facade clients (including the exact padding bridge) and complete controls. Immutable
+- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
+  operation and exactly two ordinary complete-Frame laws, private public-facade clients
+  (including the exact padding bridge) and complete controls. Immutable
   `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
   transfer/static/gas ordering, intended Fork→Block→Runner construction and child
-  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling,
-  F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core
-  literal, global admission predicate or new runtime policy is introduced.
+  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling, F11
+  settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core literal,
+  global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed

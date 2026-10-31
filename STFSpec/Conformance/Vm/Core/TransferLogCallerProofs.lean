@@ -9,7 +9,8 @@ import STFSpec.Vm.Core
 
 Library `EthConformance`. Private generic clients derive complete frame identity,
 chronological full-log observations and every unchanged field from the two public
-whole-Frame laws, and prove that the numeric topic spelling is the source `pad32`. No foreign container representation is unfolded.
+whole-Frame laws, and prove that the numeric topic spelling is the source `pad32`.
+No foreign container representation is unfolded.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/4/7.
 -/
 
