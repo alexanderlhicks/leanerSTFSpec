@@ -14,6 +14,8 @@ import STFSpec.Conformance.Field.ReferencePowerCallerProofs
 import STFSpec.Conformance.Field.ReferencePowerGuards
 import STFSpec.Conformance.Field.ReferenceInverseCallerProofs
 import STFSpec.Conformance.Field.ReferenceInverseGuards
+import STFSpec.Conformance.Field.ReferenceDivisionCallerProofs
+import STFSpec.Conformance.Field.ReferenceDivisionGuards
 import STFSpec.Conformance.Field.ReferenceSignCallerProofs
 import STFSpec.Conformance.Field.ReferenceSignGuards
 import STFSpec.Conformance.Field.ReferenceDecodeCallerProofs

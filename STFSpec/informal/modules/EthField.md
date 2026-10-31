@@ -1,6 +1,6 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse, reference division and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45, Q86.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
@@ -48,7 +48,7 @@ draft) [V], and `normalize` of the point at infinity divides by `z = 0`, which i
 precompiles produce the all-zero encoding of infinity (`optimized_curve.py:146–150`) [V: `normalize`
 of `P + (−P)` and of `0·P` gives `(0, 0)` for BN254]. Any representation must preserve this.
 The supplied Q86 reference inverse additionally fixes every composite-nonunit result by
-the complete signed Euclidean graph in §3/§5/§7; division remains unimplemented.
+the complete signed Euclidean graph in §3/§5/§7; reference division composes it with multiplication.
 
 **R4. Extension conventions.** `Fp2 = Fp[i]/(i² + 1)` for both BN254 and BLS12-381
 (`fq2_modulus_coeffs = (1, 0)`) [V]. The element `c0 + c1·i` is stored as `(c0, c1)`; the EVM
@@ -342,8 +342,9 @@ signed Euclidean worker follows the source guard and decreases the explicit natu
 measure `low` because `high % low < low` when `1 < low`. Its ordinary graph bridge
 and public graph uniqueness establish the complete consumer contract independently
 of the private evaluator. Signed Euclidean remainder occurs **before** `Int.toNat`.
-No `Inv`/`Div` instance, division, callable raw-Nat inverse, modulus-zero/one inverse
-completion or alternate public helper is supplied. The graph's arithmetic on all
+This inverse leaf supplies no `Inv`/`Div` instance, division, callable raw-Nat inverse,
+modulus-zero/one inverse completion or alternate public helper. The separate division
+leaf below supplies the guided composition and `Div` delegation. The graph's arithmetic on all
 coefficient states does not enlarge the operation's existing p>1 carrier domain.
 
 The direct original helper observations use exact Python natural `int` arguments,
@@ -352,6 +353,35 @@ no FQ constructor, division, curve or EELS concrete-field initializer. The targe
 reducing constructor is related mathematically. Finite successful source executions
 retain exact bignum/compiler/loader/core-runtime and Python host-resource premises;
 they establish no universal host completion, cost, precompile or guest result.
+
+### Supplied natural-reference division
+
+`STFSpec/Field/ReferenceDivision.lean`, reexported by `STFSpec.Field`, adds exactly
+three authored public declarations with `{p : Nat} [FieldModulus p]`: `div`,
+`toNat_div` and the directly delegating `Div` instance. Every same-p canonical
+pair is admitted at every p>1, including zero denominators, even moduli and
+composite nonunits, with arbitrary unread `sqrtExp?`. No ordinary-caller proof,
+`Inv` instance, helper, field hierarchy or new inverse completion is added.
+
+| Source / contract | Lean declaration and exact type | Complete behavior / effects / ordered failure | Law / controls / status |
+|---|---|---|---|
+| py-ecc 8.0.0 `py_ecc/fields/optimized_field_elements.py:141–142`, `FQ.__truediv__` → `__div__` :127–139, imported `py_ecc/utils.py:21–39`, constructor :57–68 and observer :190–191 | `PrimeFieldRef.div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)` | Multiply the canonical numerator by the complete Q86 inverse of the canonical denominator, reducing modulo p. Zero denominator gives zero; every nonunit retains the existing graph result. Pure, no mutation, query, rejection or failure. | `toNat_div`; asymmetric/wrap/zero/nonunit/Fermat/signed controls and all 929 frozen pairs; **discharged** |
+| Existing public `toNat_mul` composed with Q86 inverse | `PrimeFieldRef.toNat_div (a b) : (div a b).toNat = (a.toNat * (inv0 b).toNat) % p` | Ordinary complete observer equation; no extra premise, attribute or model | Generic public-only graph composition, range and zero/unit consequences; **discharged** |
+| §5 reference operator delegation (cf. executable `Div (via div)`) | `Div (PrimeFieldRef p)` | `/` delegates directly to `PrimeFieldRef.div` | Named/notation full-result equality; **discharged** |
+
+The source correspondence is bounded to freshly constructed natural-input FQ operands of
+the same class and modulus. It executes original optimized `/`, its distinct wrapper,
+actual imported inverse, result constructor and integer observer. The four sealed
+normal/optimized/replay streams cover two actual BN254/BLS12-381 base classes and
+fifteen synthetic inherited parameter classes; those streams and the baseline's
+generator are out of tree (nothing for them is committed, so they cannot be reproduced
+from this repository), and the committed `reference_division_expected.jsonl` baseline is
+the in-tree record of their results. Synthetic classes are not native
+scalar/secp256k1/P-256 FQ classes. Cross-class/mixed/signed/reflected operations,
+mutated objects, Fp2/curve/precompile execution and general Python host completion are
+outside the claim. Exact bignum, typed construction, source/runtime identity,
+compiler/core-runtime and successful host-resource premises remain explicit. Target
+metadata has no source analogue; source never executes those three metadata choices.
 
 ## 4. Tests
 
@@ -541,6 +571,36 @@ out of tree: nothing for them is committed, so they cannot be reproduced from th
 repository. The in-tree checks are the 2,055 literal controls, the finite graph
 derivations and the public-law clients.
 
+The division slice adds private `ReferenceDivisionCallerProofs.lean` generic clients
+for the exact signatures, defining composition, notation delegation, complete graph
+composition, range, actual equality, zero numerator/denominator, local gcd-qualified
+self-division, raw-input reduction and arbitrary-metadata observer congruence.
+Clients use public provider laws, not carrier projections or private inverse workers.
+`ReferenceDivisionGuards.lean` checks eighteen literal pairs under three metadata
+choices (54 controls), including p4 zero divisors, p9 nonunits/Fermat traps, p5
+signed coefficients and asymmetric p17 cases.
+
+`reference_division_inputs.tsv` retains exactly the 929 frozen input-only natural pairs.
+`ReferenceDivisionNativeTests` loads those inputs at runtime and emits all 2,787
+expanded rows per interpreted/native mode: ID/context/p/raw numerator and denominator,
+metadata, both canonical operands, full inverse, named and `/` results and range. The
+separate `reference_division_expected.jsonl` baseline retains all 929 actual original
+results; the strict differential reader expands metadata only on the target side and
+checks every complete value, exact recursive type, row order, count, the fixed catalogue
+label and framing. Normal and optimized CLI controls reject Bool-as-Nat,
+floats/nonfinite values, duplicate keys, wrong/missing/extra fields, rows, metadata,
+values and provenance. No expected result is loaded by the Lean producer. The following
+evidence is out of tree: nothing for it is committed, so it cannot be reproduced from
+this repository. An independent complete-to-zero Bezout model with gcd-dependent
+coefficient selection checks every source inverse, including all nonunits, separately
+from production code. All four sealed 929-row original streams agree through explicit
+raw-to-canonical construction. Fresh trust-zero/warnings-fatal provider/facade/client
+compilation and generated C/object/archive/link/native observations provide separate
+evidence. In tree, the evidence is the frozen baseline, the native and interpreted
+differentials, the parser controls, the declaration check, the 54 guards and the
+public-law clients. These are finite semantic controls, with no host-policy,
+timing/C1–C4, backend, field/curve/precompile or guest/EEST result.
+
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
   `cancun/eip4844_blobs` (the `point_evaluation_precompile*` files), `osaka/eip7951_p256verify_precompiles`,
@@ -609,8 +669,10 @@ def pow : PrimeFieldRef p → Nat → PrimeFieldRef p
 def sgn0 : PrimeFieldRef p → Bool  -- canonical toNat parity; ordinary sgn0_eq in §7
 def ofBytesBE? : ByteArray → Option (PrimeFieldRef p)  -- checked, any finite length
 def inv0 (a : PrimeFieldRef p) : PrimeFieldRef p  -- complete Inv0Model in §7
+def div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)
+-- ordinary complete toNat_div observer in §7; all binders {p : Nat} [FieldModulus p]
 instance : HPow (PrimeFieldRef p) Nat (PrimeFieldRef p)  -- direct pow delegation
-instance : Add, Sub, Neg, Mul (PrimeFieldRef p)  -- direct named-operation delegation
+instance : Add, Sub, Neg, Mul, Div (PrimeFieldRef p)  -- direct named-operation delegation
 end PrimeFieldRef
 
 -- EXECUTABLE carrier: a Montgomery residue in fixed limbs (§6). Exposes the same observers
@@ -840,6 +902,16 @@ the unit law without primality. Composite nonunit results remain determined by
 the graph but need not multiply to one. Consumers can replace the evaluator by
 reestablishing membership in this graph, without unfolding the original worker.
 
+**Supplied reference division contract (discharged).** With exactly
+`{p : Nat} [FieldModulus p]`, `div a b := mul a (inv0 b)` and direct `Div` delegation
+supply the ordinary complete equation
+`toNat_div (a b) : (div a b).toNat = (a.toNat * (inv0 b).toNat) % p`.
+The proof applies public `toNat_mul` to the existing inverse; Q86 fixes every
+inverse observation. Range is canonical; zero denominator follows from
+`inv0_zero` and `toNat_mul`, and self-division equals one only under the existing
+local gcd-one premise. No global cancellation, nonzero-implies-unit, new model or
+field claim follows. All support and derived laws stay private.
+
 **Remaining contracts (unimplemented for the executable `PrimeField` API).** Per operation, the commuting equation with the `Nat` model (core) — stated once, proved once per
 representation:
 
@@ -883,11 +955,11 @@ bridge and the executable/tower inverse contracts remain separate obligations. E
 
 **Open obligations.** The reference carrier, basic residue arithmetic, natural powers,
 canonical sign and checked byte decoding above, plus the complete graph-specified
-reference inverse and local gcd-unit law, are discharged; Euler/sqrt, public powMod,
-encoding and executable-reference bridges stay open. Prime and irreducibility
-certificates, algorithm-specific sqrt completeness/sign laws, and public-operation
-bridges remain required. The Montgomery implementation must prove these same observer
-equations relative to the `Nat` reference.
+reference inverse and local gcd-unit law, plus reference division and its complete
+observer, are discharged; Euler/sqrt, public powMod, encoding and executable-reference
+bridges stay open. Prime and irreducibility certificates, algorithm-specific sqrt
+completeness/sign laws, and public-operation bridges remain required. The Montgomery
+implementation must prove these same observer equations relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -901,6 +973,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   output, `inv0Model_lt` for range and zero/gcd-qualified laws for algebra; arbitrary
   metadata and composite nonunit behavior are retained. A backend proves graph
   membership after observing its canonical input, without unfolding the private worker.
+- **Division handoff.** Consumers compose `toNat_div` with `toNat_inv0_iff` for
+  every complete result, including nonunits, with no extra caller premise. Zero and
+  locally gcd-qualified self-division are private public-law consequences.
 - **Seams.** Consumes the public `Bytes.ofByteArray`/`Uint.ofBeBytes` providers for the
   supplied reference decoder; prospective consumers also use `ByteArray`/`Bytes32`
   and `U256.toNat`/`ofNat` conversions. Provides the `PrimeField` observer contract; guarantees every value is canonical.
@@ -945,13 +1020,15 @@ open.
   observer laws and four delegating operator instances, plus natural pow/toNat_pow and
   its delegating HPow instance, plus canonical sgn0/sgn0_eq and checked
   ofBytesBE?/ofBytesBE?_eq_some_iff, plus the Q86 graph-specified inverse inv0 with its
-  five PrimeFieldRef laws and two EuclideanCoefficient graph laws; private controls and
-  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
-  concrete-field instances/aliases, convenience aliases, byte encoding and paired
-  roundtrip/size laws, powMod, executable/tower inverse, Euler/sqrt, towers, executable
-  PrimeField/Montgomery and their bridges remain unimplemented. No D6 source choice,
-  primality/Mathlib result, replacement/C1–C4 measurement, whole-module, precompile,
-  signature, guest or EEST readiness claim follows.
+  five PrimeFieldRef laws and two EuclideanCoefficient graph laws, plus reference
+  div/toNat_div/direct Div (exactly three authored declarations, preserving every
+  zero/nonunit result); private controls and clients cover those slices. The eight exact
+  R1 natural moduli are supplied separately; concrete-field instances/aliases,
+  convenience aliases, byte encoding and paired roundtrip/size laws, powMod,
+  executable/tower inverse, Euler/sqrt, towers, executable PrimeField/Montgomery and
+  their bridges remain unimplemented. No D6 source choice, primality/Mathlib result,
+  replacement/C1–C4 measurement, whole-module, precompile, signature, guest or EEST
+  readiness claim follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

@@ -243,3 +243,9 @@ root = "RequestsHashNativeTests"
 name = "logs-bloom-native-tests"
 srcDir = "scripts"
 root = "LogsBloomNativeTests"
+
+# Complete all-p>1 reference division observations from input-only runtime rows.
+[[lean_exe]]
+name = "reference-division-native-tests"
+srcDir = "scripts"
+root = "ReferenceDivisionNativeTests"

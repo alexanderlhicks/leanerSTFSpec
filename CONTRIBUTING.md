@@ -232,6 +232,14 @@ lake exe logs-bloom-native-tests > .lake/logs-bloom.jsonl
 python3 -B STFSpec/Conformance/Block/logs_bloom_differential.py --check-target .lake/logs-bloom.jsonl
 python3 -B scripts/test_logs_bloom_output_parser.py
 python3 -B -O scripts/test_logs_bloom_output_parser.py
+lake build reference-division-native-tests --wfail
+lake exe check-decls ReferenceDivisionNativeTests
+lake exe reference-division-native-tests > .lake/reference-division.jsonl
+python3 -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division.jsonl
+lake env lean --run scripts/ReferenceDivisionNativeTests.lean > .lake/reference-division-interpreted.jsonl
+python3 -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division-interpreted.jsonl
+python3 -B scripts/test_reference_division_output_parser.py
+python3 -B -O scripts/test_reference_division_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
