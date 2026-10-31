@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-10-01):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
+**Status (2026-10-31):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 
@@ -441,3 +441,29 @@ success/failure/observer, canonical inverse and normalization laws, keep public 
 proofs unchanged, and pass authenticated source and native full-result checks. Measure
 complete construction/conversion/allocation and lifetime cost before closing the entry.
 No input restriction or host-error policy is authorized.
+
+## DEBT-OPS-DECODE — linear opcode decoder
+
+**Status:** open, 2026-10-31. **Owner:** EthVmInstructions maintainers. **Authority:** D18.
+
+`Ops.ofByte? : UInt8 → Option Ops` in `STFSpec/Vm/Instructions/Ops.lean` preserves its
+complete public contract: `Ops.ofByte_toByte`, `Ops.toByte_ofByte`, and the 256 literal
+decoder equations in `OpsCallerProofs` (153 assigned bytes, 103 holes). It is a direct
+153-arm literal match on `b.toNat`, mirroring the pinned source table, so every equation
+closes by `rfl`. On pinned Lean 4.34.0 the compiler turns it into a nested chain of up to
+153 natural equality tests in source order. Every unassigned byte, including INVALID
+`0xFE`, takes all 153 tests; `toByte` is a constant-time tag switch. Reproduce with
+`lake build STFSpec.Vm.Instructions.Ops --wfail` and inspect `Ops.ofByte?` in
+`.lake/build/ir/STFSpec/Vm/Instructions/Ops.c`. This is static code-shape evidence, not a
+throughput measurement.
+
+No consumer decodes opcodes yet; `step` dispatch is the expected hot-path caller, and
+fuzzed code hits holes often. The literal match keeps the reference legible and its
+proofs trivial until then.
+
+Replace before `step` dispatch integrates the decoder, or at the next toolchain update if
+earlier. The replacement keeps the literal match as the legible reference and adds a
+constant-time decoder beside it (D25): a 256-entry `Vector (Option Ops) 256` indexed under
+`b.toNat < 256`, or a high-/low-nibble match. It proves an ordinary equality with the
+reference by a 256-case split, preserves both public laws and all 256 literal equations,
+and records the compiled code shape. Close this entry with that evidence.
