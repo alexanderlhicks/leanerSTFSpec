@@ -6,6 +6,7 @@ import STFSpec.Field.Reference
 import STFSpec.Field.ReferencePower
 import STFSpec.Field.ReferenceInverse
 import STFSpec.Field.ReferenceSign
+import STFSpec.Field.ReferenceDecode
 import STFSpec.Field.Moduli
 
 /-!
@@ -15,8 +16,8 @@ Prime fields and extension towers for the precompiles.
 
 Library `EthField`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The canonical natural reference carrier,
-basic residue arithmetic, natural powers, canonical sign, graph-specified inverse and eight exact natural moduli
-are supplied;
-other field operations, executable Montgomery arithmetic and towers remain open.
+basic residue arithmetic, natural powers, canonical sign, checked big-endian decoding,
+graph-specified inverse and eight exact natural moduli are supplied; other field operations,
+executable Montgomery arithmetic and towers remain open.
 Spec guidance: `STFSpec/informal/modules/EthField.md`.
 -/

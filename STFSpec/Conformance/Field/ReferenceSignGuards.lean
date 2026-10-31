@@ -8,7 +8,8 @@ import STFSpec.Field
 # Canonical sign complete finite controls
 
 Library `EthConformance`. Full canonical residues and independent literal parity
-results cover small moduli, reduction traps, wraps and adjacent large bit boundaries.
+results cover small moduli, reduction traps, wraps, adjacent large bit boundaries and
+large canonical residues in the BN254 and BLS12-381 base fields.
 Spec guidance: `STFSpec/informal/modules/EthField.md` §§3–7.
 -/
 
@@ -333,5 +334,11 @@ private def checkSign (p : Nat) (hp : 1 < p) (raw canonical : Nat)
 #guard checkSign 17 (by decide) (2 ^ 2048 - 1) 0 false
 #guard checkSign 17 (by decide) (2 ^ 2048) 1 true
 #guard checkSign 17 (by decide) (2 ^ 2048 + 1) 2 false
+
+-- Large canonical residues in the BN254 and BLS12-381 base fields (both moduli odd).
+#guard checkSign Bn254.q (by decide) (Bn254.q - 1) (Bn254.q - 1) false
+#guard checkSign Bn254.q (by decide) (Bn254.q - 2) (Bn254.q - 2) true
+#guard checkSign Bls12381.q (by decide) (Bls12381.q - 1) (Bls12381.q - 1) false
+#guard checkSign Bls12381.q (by decide) (Bls12381.q - 2) (Bls12381.q - 2) true
 
 end STFSpec.Conformance.Field

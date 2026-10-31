@@ -1,0 +1,1048 @@
+[
+  {
+    "id": "u1_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      1
+    ],
+    "value": 0,
+    "expected_hex": "00",
+    "derivation": "1 zero little-endian bytes"
+  },
+  {
+    "id": "u1_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      1
+    ],
+    "value": 255,
+    "expected_hex": "ff",
+    "derivation": "1 maximal little-endian bytes"
+  },
+  {
+    "id": "u1_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      1
+    ],
+    "value": 1,
+    "expected_hex": "01",
+    "derivation": "low-to-high bytes 01 through 01"
+  },
+  {
+    "id": "u2_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      2
+    ],
+    "value": 0,
+    "expected_hex": "0000",
+    "derivation": "2 zero little-endian bytes"
+  },
+  {
+    "id": "u2_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      2
+    ],
+    "value": 65535,
+    "expected_hex": "ffff",
+    "derivation": "2 maximal little-endian bytes"
+  },
+  {
+    "id": "u2_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      2
+    ],
+    "value": 513,
+    "expected_hex": "0102",
+    "derivation": "low-to-high bytes 01 through 02"
+  },
+  {
+    "id": "u4_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      4
+    ],
+    "value": 0,
+    "expected_hex": "00000000",
+    "derivation": "4 zero little-endian bytes"
+  },
+  {
+    "id": "u4_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      4
+    ],
+    "value": 4294967295,
+    "expected_hex": "ffffffff",
+    "derivation": "4 maximal little-endian bytes"
+  },
+  {
+    "id": "u4_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      4
+    ],
+    "value": 67305985,
+    "expected_hex": "01020304",
+    "derivation": "low-to-high bytes 01 through 04"
+  },
+  {
+    "id": "u8_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      8
+    ],
+    "value": 0,
+    "expected_hex": "0000000000000000",
+    "derivation": "8 zero little-endian bytes"
+  },
+  {
+    "id": "u8_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      8
+    ],
+    "value": 18446744073709551615,
+    "expected_hex": "ffffffffffffffff",
+    "derivation": "8 maximal little-endian bytes"
+  },
+  {
+    "id": "u8_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      8
+    ],
+    "value": 578437695752307201,
+    "expected_hex": "0102030405060708",
+    "derivation": "low-to-high bytes 01 through 08"
+  },
+  {
+    "id": "u16_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      16
+    ],
+    "value": 0,
+    "expected_hex": "00000000000000000000000000000000",
+    "derivation": "16 zero little-endian bytes"
+  },
+  {
+    "id": "u16_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      16
+    ],
+    "value": 340282366920938463463374607431768211455,
+    "expected_hex": "ffffffffffffffffffffffffffffffff",
+    "derivation": "16 maximal little-endian bytes"
+  },
+  {
+    "id": "u16_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      16
+    ],
+    "value": 21345817372864405881847059188222722561,
+    "expected_hex": "0102030405060708090a0b0c0d0e0f10",
+    "derivation": "low-to-high bytes 01 through 10"
+  },
+  {
+    "id": "u32_zero",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      32
+    ],
+    "value": 0,
+    "expected_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+    "derivation": "32 zero little-endian bytes"
+  },
+  {
+    "id": "u32_max",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      32
+    ],
+    "value": 115792089237316195423570985008687907853269984665640564039457584007913129639935,
+    "expected_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "derivation": "32 maximal little-endian bytes"
+  },
+  {
+    "id": "u32_pattern",
+    "path": "eels_dataclass",
+    "type": [
+      "uint",
+      32
+    ],
+    "value": 14528991250861404666834535435384615765856667510756806797353855100662256435713,
+    "expected_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "derivation": "low-to-high bytes 01 through 20"
+  },
+  {
+    "id": "bool_false",
+    "path": "eels_dataclass",
+    "type": [
+      "bool"
+    ],
+    "value": false,
+    "expected_hex": "00",
+    "derivation": "false byte"
+  },
+  {
+    "id": "bool_true",
+    "path": "eels_dataclass",
+    "type": [
+      "bool"
+    ],
+    "value": true,
+    "expected_hex": "01",
+    "derivation": "true byte"
+  },
+  {
+    "id": "vector0",
+    "path": "eels_dataclass",
+    "type": [
+      "byteVector",
+      0
+    ],
+    "value": "",
+    "expected_hex": "",
+    "derivation": "exact raw bytes, no header or padding"
+  },
+  {
+    "id": "vector1",
+    "path": "eels_dataclass",
+    "type": [
+      "byteVector",
+      1
+    ],
+    "value": "a5",
+    "expected_hex": "a5",
+    "derivation": "exact raw bytes, no header or padding"
+  },
+  {
+    "id": "vector3",
+    "path": "eels_dataclass",
+    "type": [
+      "byteVector",
+      3
+    ],
+    "value": "00a5ff",
+    "expected_hex": "00a5ff",
+    "derivation": "exact raw bytes, no header or padding"
+  },
+  {
+    "id": "vector32",
+    "path": "eels_dataclass",
+    "type": [
+      "byteVector",
+      32
+    ],
+    "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "expected_hex": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "derivation": "exact raw bytes, no header or padding"
+  },
+  {
+    "id": "bl0",
+    "path": "eels_dataclass",
+    "type": [
+      "byteList",
+      0
+    ],
+    "value": "",
+    "expected_hex": "",
+    "derivation": "raw byte-list payload, no length prefix"
+  },
+  {
+    "id": "bl4_empty",
+    "path": "eels_dataclass",
+    "type": [
+      "byteList",
+      4
+    ],
+    "value": "",
+    "expected_hex": "",
+    "derivation": "raw byte-list payload, no length prefix"
+  },
+  {
+    "id": "bl4_full",
+    "path": "eels_dataclass",
+    "type": [
+      "byteList",
+      4
+    ],
+    "value": "00a5ff7e",
+    "expected_hex": "00a5ff7e",
+    "derivation": "raw byte-list payload, no length prefix"
+  },
+  {
+    "id": "pbytes_empty",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveByteList"
+    ],
+    "value": "",
+    "expected_hex": "",
+    "derivation": "raw byte-list payload, no length prefix"
+  },
+  {
+    "id": "pbytes",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveByteList"
+    ],
+    "value": "00a5ff7e",
+    "expected_hex": "00a5ff7e",
+    "derivation": "raw byte-list payload, no length prefix"
+  },
+  {
+    "id": "list_u16_empty",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "uint",
+        2
+      ],
+      4
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_u16",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "uint",
+        2
+      ],
+      4
+    ],
+    "value": [
+      0,
+      513,
+      65535
+    ],
+    "expected_hex": "00000102ffff",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "plist_u16",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveList",
+      [
+        "uint",
+        2
+      ]
+    ],
+    "value": [
+      0,
+      513,
+      65535
+    ],
+    "expected_hex": "00000102ffff",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_bool",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "bool"
+      ],
+      4
+    ],
+    "value": [
+      false,
+      true,
+      false
+    ],
+    "expected_hex": "000100",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_vec0_empty",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "byteVector",
+        0
+      ],
+      4
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_vec0_three",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "byteVector",
+        0
+      ],
+      4
+    ],
+    "value": [
+      "",
+      "",
+      ""
+    ],
+    "expected_hex": "",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "plist_vec0_three",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveList",
+      [
+        "byteVector",
+        0
+      ]
+    ],
+    "value": [
+      "",
+      "",
+      ""
+    ],
+    "expected_hex": "",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_vec2",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "byteVector",
+        2
+      ],
+      3
+    ],
+    "value": [
+      "aabb",
+      "00ff"
+    ],
+    "expected_hex": "aabb00ff",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_bytes_empty",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "byteList",
+        3
+      ],
+      4
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_bytes_equal_offsets",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "byteList",
+        3
+      ],
+      4
+    ],
+    "value": [
+      "",
+      "aabb",
+      ""
+    ],
+    "expected_hex": "0c0000000c0000000e000000aabb",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "plist_bytes_equal_offsets",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveList",
+      [
+        "byteList",
+        3
+      ]
+    ],
+    "value": [
+      "",
+      "aabb",
+      ""
+    ],
+    "expected_hex": "0c0000000c0000000e000000aabb",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "list_pbytes",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "progressiveByteList"
+      ],
+      4
+    ],
+    "value": [
+      "aa",
+      "",
+      "bbcc"
+    ],
+    "expected_hex": "0c0000000d0000000d000000aabbcc",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "nested_lists",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "list",
+        [
+          "uint",
+          1
+        ],
+        3
+      ],
+      3
+    ],
+    "value": [
+      [],
+      [
+        1,
+        2
+      ],
+      [
+        255
+      ]
+    ],
+    "expected_hex": "0c0000000c0000000e0000000102ff",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "nested_plists",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveList",
+      [
+        "progressiveList",
+        [
+          "uint",
+          1
+        ]
+      ]
+    ],
+    "value": [
+      [],
+      [
+        1,
+        2
+      ],
+      [
+        255
+      ]
+    ],
+    "expected_hex": "0c0000000c0000000e0000000102ff",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "triple_dynamic",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "list",
+        [
+          "byteList",
+          2
+        ],
+        3
+      ],
+      3
+    ],
+    "value": [
+      [
+        "aa"
+      ],
+      [],
+      [
+        "",
+        "bb"
+      ]
+    ],
+    "expected_hex": "0c000000110000001100000004000000aa0800000008000000bb",
+    "derivation": "fixed children concatenate; dynamic children use listed four-byte starts and ordered payloads"
+  },
+  {
+    "id": "container_fixed",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "bool"
+        ],
+        [
+          "byteVector",
+          3
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      true,
+      "aabbcc"
+    ],
+    "expected_hex": "010201aabbcc",
+    "derivation": "fixed fields 0102,01,aabbcc inline"
+  },
+  {
+    "id": "container_zero_fixed",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "byteVector",
+          0
+        ],
+        [
+          "uint",
+          1
+        ]
+      ]
+    ],
+    "value": [
+      "",
+      17
+    ],
+    "expected_hex": "11",
+    "derivation": "zero-width field contributes no bytes"
+  },
+  {
+    "id": "container_mixed",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "byteList",
+          3
+        ],
+        [
+          "bool"
+        ],
+        [
+          "progressiveByteList"
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      "aa",
+      true,
+      "bbcc"
+    ],
+    "expected_hex": "01020b000000010c000000aabbcc",
+    "derivation": "head=2+4+1+4=11; starts11,12; tails aa,bbcc"
+  },
+  {
+    "id": "container_empty_dynamics",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "byteList",
+          0
+        ],
+        [
+          "byteList",
+          2
+        ],
+        [
+          "byteList",
+          0
+        ]
+      ]
+    ],
+    "value": [
+      "",
+      "aabb",
+      ""
+    ],
+    "expected_hex": "0c0000000c0000000e000000aabb",
+    "derivation": "head12; empty first/last payload; starts12,12,14"
+  },
+  {
+    "id": "container_nested",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "container",
+          [
+            [
+              "uint",
+              1
+            ],
+            [
+              "byteList",
+              2
+            ]
+          ]
+        ],
+        [
+          "byteVector",
+          0
+        ],
+        [
+          "progressiveByteList"
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      [
+        7,
+        "aabb"
+      ],
+      "",
+      "cc"
+    ],
+    "expected_hex": "01020a000000110000000705000000aabbcc",
+    "derivation": "outer head10; inner bytes0705000000aabb length7; starts10,17"
+  },
+  {
+    "id": "list_containers",
+    "path": "eels_dataclass",
+    "type": [
+      "list",
+      [
+        "container",
+        [
+          [
+            "uint",
+            1
+          ],
+          [
+            "byteList",
+            2
+          ]
+        ]
+      ],
+      3
+    ],
+    "value": [
+      [
+        7,
+        "aa"
+      ],
+      [
+        8,
+        ""
+      ]
+    ],
+    "expected_hex": "080000000e0000000705000000aa0805000000",
+    "derivation": "list head8; child sizes6,5; starts8,14; inner heads5"
+  },
+  {
+    "id": "container_list",
+    "path": "eels_dataclass",
+    "type": [
+      "container",
+      [
+        [
+          "bool"
+        ],
+        [
+          "list",
+          [
+            "byteList",
+            2
+          ],
+          3
+        ],
+        [
+          "uint",
+          1
+        ]
+      ]
+    ],
+    "value": [
+      true,
+      [
+        "",
+        "aabb"
+      ],
+      9
+    ],
+    "expected_hex": "0106000000090800000008000000aabb",
+    "derivation": "outer head6; nested list starts8,8"
+  },
+  {
+    "id": "progressive_container",
+    "path": "eels_dataclass",
+    "type": [
+      "progressiveContainer",
+      [
+        true,
+        true
+      ],
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "byteList",
+          3
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      "aa"
+    ],
+    "expected_hex": "010206000000aa",
+    "derivation": "all-active progressive container head6, payload aa"
+  },
+  {
+    "id": "sparse_101",
+    "path": "dependency_sparse",
+    "type": [
+      "progressiveContainer",
+      [
+        true,
+        false,
+        true
+      ],
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "byteList",
+          3
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      "aa"
+    ],
+    "expected_hex": "010206000000aa",
+    "derivation": "active mask absent from wire; head6, payload aa"
+  },
+  {
+    "id": "sparse_00101",
+    "path": "dependency_sparse",
+    "type": [
+      "progressiveContainer",
+      [
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      [
+        [
+          "uint",
+          2
+        ],
+        [
+          "byteList",
+          3
+        ]
+      ]
+    ],
+    "value": [
+      513,
+      "aa"
+    ],
+    "expected_hex": "010206000000aa",
+    "derivation": "active mask absent from wire; head6, payload aa"
+  },
+  {
+    "id": "sparse_zero",
+    "path": "dependency_sparse",
+    "type": [
+      "progressiveContainer",
+      [
+        false,
+        true,
+        false,
+        true
+      ],
+      [
+        [
+          "byteVector",
+          0
+        ],
+        [
+          "byteList",
+          2
+        ]
+      ]
+    ],
+    "value": [
+      "",
+      "aabb"
+    ],
+    "expected_hex": "04000000aabb",
+    "derivation": "zero fixed first field; one offset4 then aabb"
+  },
+  {
+    "id": "extra_empty_container",
+    "path": "mathematical",
+    "type": [
+      "container",
+      []
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "approved B0 actual-value recursion; no source-success claim"
+  },
+  {
+    "id": "extra_empty_progressive",
+    "path": "mathematical",
+    "type": [
+      "progressiveContainer",
+      [],
+      []
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "approved B0 actual-value recursion; no source-success claim"
+  },
+  {
+    "id": "extra_bad_mask",
+    "path": "mathematical",
+    "type": [
+      "progressiveContainer",
+      [
+        false
+      ],
+      [
+        [
+          "uint",
+          1
+        ]
+      ]
+    ],
+    "value": [
+      17
+    ],
+    "expected_hex": "11",
+    "derivation": "approved B0 actual-value recursion; no source-success claim"
+  },
+  {
+    "id": "extra_empty_bad_uint_list",
+    "path": "mathematical",
+    "type": [
+      "list",
+      [
+        "uint",
+        3
+      ],
+      0
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "approved B0 actual-value recursion; no source-success claim"
+  },
+  {
+    "id": "extra_empty_bad_progressive_list",
+    "path": "mathematical",
+    "type": [
+      "progressiveList",
+      [
+        "uint",
+        0
+      ]
+    ],
+    "value": [],
+    "expected_hex": "",
+    "derivation": "approved B0 actual-value recursion; no source-success claim"
+  },
+  {
+    "id": "mathematical_fixed43",
+    "path": "mathematical",
+    "type": [
+      "container",
+      [
+        [
+          "byteVector",
+          32
+        ],
+        [
+          "bool"
+        ],
+        [
+          "uint",
+          8
+        ],
+        [
+          "uint",
+          2
+        ]
+      ]
+    ],
+    "value": [
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      true,
+      2820983053732684064,
+      10536
+    ],
+    "expected_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0120212223242526272829",
+    "derivation": "32 vector bytes00..1f; Bool01; low-first uint digits20..27 and28..29; layout only, no guest schema adapter"
+  }
+]
