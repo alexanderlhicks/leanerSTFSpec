@@ -131,12 +131,13 @@ interpreted/native adapter used for the power, sign, decoder and inverse compari
 EthField §4 is out of tree (not committed); the division producer is committed. Public
 powMod, field hierarchy and guest conformance remain open.
 
-- **Mathematical State block-view controls.** EthState §3/§4/§7.2 owns the
-  two declarations and complete private clients/guards imported by EthConformance.
+- **Mathematical State block-view controls.** EthState §3/§4/§7.2 owns the two
+  declarations and complete private clients/guards imported by EthConformance.
   Independent numerical/list models retain full account/storage/code payloads,
-  present-empty inners, every key byte, arbitrary metadata/unused fields and retained
-  parents/siblings. Full interpreted/native comparisons establish finite mathematical
-  composition, without an original Python view operation, EEST, witness or cost claim.
+  present-empty inners, every key byte, arbitrary metadata/unused fields and
+  retained parents/siblings. Full interpreted `#guard` comparisons establish
+  finite mathematical composition, without an original Python view operation,
+  EEST, witness or cost claim.
 
 - **Raw State extraction controls (Q85).** EthState §3/§4/§7 owns the operation, seven laws and bounded complete-value corpus. Private facade clients and all-private guards are imported by EthConformance; numerical/list expectations retain every field, byte, optional tag and malformed metadata occurrence. Interpreted `#guard` comparison (no native runner is committed for this slice) supplies local functional evidence, without executing EEST, an original EELS malformed-index runtime, a tracker or backend.
 

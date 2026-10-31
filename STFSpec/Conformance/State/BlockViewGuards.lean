@@ -171,8 +171,6 @@ private def controls : List (List Nat × List Nat) := recipes.flatMap fun r ↦
   [(observe (b.view s), want), (observe (sibling.view s), wantSibling),
     (observe s, expected r.state)]
 
-set_option maxRecDepth 2048 in
-set_option maxHeartbeats 8000000 in
 #guard controls.all (fun p ↦ p.1 == p.2)
 #guard recipes.length == 94
 #guard controls.length == 1598

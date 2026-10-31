@@ -253,8 +253,9 @@ is forgotten by apply; malformed/missing/present-empty/extra Q85 metadata remain
 admitted input. Mathematical equality supplies no witness failure/observation or
 mutable-alias agreement. S1/S2/W1, full WF/history, F7, actual tracker/lifecycle and
 resource/readiness gates remain open. Static source reading grounds composition;
-interpreted and freshly compiled native controls compare mathematical models,
-without original-source numerical or EEST execution.
+interpreted `#guard` controls compare mathematical models (no native runner or
+external comparison is committed for this slice), without original-source numerical
+or EEST execution.
 
 ### Implemented internal order support
 
@@ -408,19 +409,21 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
-- **Implemented mathematical block-view cases:** private `BlockViewCallerProofs.lean`
-  clients use only the public view equation, seven extraction laws and public
-  application/observer laws. `BlockViewGuards.lean` compares 1,598 complete framed
-  observations from 94 independent numerical/list recipes. Cases cover deletion
-  without clear, clear/rewrite, orphan/zero/empty patches, untouched empty/zero
-  maps, reserved and empty code, every 20/32-byte key position, huge nonce/counter/
-  offset, reconstructed keys and insertion permutations. Independent changes to
-  provider/constants/read sets/offset and all three metadata fields leave the
-  result equal; retained parents and effect-changing siblings keep complete maps.
-  Complete raw map framing retains absent versus present-empty storage and all
-  payload bytes. Interpreted/native and independent external full-output comparisons
-  are mathematical composition controls, without an original Python view oracle,
-  source runtime, replay/failure-order, EEST or cost claim.
+- **Implemented mathematical block-view cases:** private
+  `BlockViewCallerProofs.lean` clients use only the public view equation, seven
+  extraction laws and public application/observer laws. `BlockViewGuards.lean`
+  compares 1,598 complete framed observations from 94 independent numerical/list
+  recipes. Cases cover deletion without clear, clear/rewrite, orphan/zero/empty
+  patches, untouched empty/zero maps, reserved and empty code, every 20/32-byte key
+  position, huge nonce/counter/ offset and insertion permutations. Independent
+  changes to provider/constants/read sets/offset and all three metadata fields
+  leave the result equal; retained parents and effect-changing siblings keep
+  complete maps. Complete raw map framing retains absent versus present-empty
+  storage and all payload bytes. The interpreted `#guard` full-output comparisons
+  are mathematical composition controls (native and independent external
+  comparisons are out of tree: nothing for them is committed, so they cannot be
+  reproduced from this repository), without an original Python view oracle, source
+  runtime, replay/failure-order, EEST or cost claim.
 - **Implemented extraction cases (Q85):** all tests are private. `BlockExtractionCallerProofs.lean` consumes only the seven laws, `BlockDiff.ext`, public Std/order laws and `MathState.apply_congr_effects`: exact class-free/contravariant signature, complete reconstruction, optional lookup, arbitrary discarded-field independence and ordered-observer congruence. `BlockExtractionGuards.lean` compares 1,560 complete framed actual/expected observations from 120 numerical/list recipes: nine raw order entries at each index (seven distinct cases; two entries repeat the first, well-formed case), six absent/present-empty/extra slot-map cases, all 20/32-byte positions, full code bytes, huge nonce/counter, tombstones/zero/empty patches, insertion permutations, retained parents/siblings and independent provider/constants/read-set/offset variations. Every seven-field observation includes full payloads; separate optional tags distinguish none from some []. Seven field-omission sensitivity controls check the observer. The interpreted `#guard` full-output comparison (no native runner is committed for this slice) is bounded functional evidence, with no EELS malformed-index runtime, tracker/backend/EEST, resource or cost claim.
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
@@ -752,7 +755,7 @@ header-format or positive-offset guard.
 | `MathState` | nested `ExtTreeMap`s | finite maps with defaults | `account?`, `storageAt`, `code?` | `WF` | value | O(log n) lookups |
 | `TxRevertible` | nested persistent `ExtTreeMap`/`ExtTreeSet` (D22) | a `BlockDiff` layered over the block view, plus transient map | `asDiff`, `transient` | WriteOrder observers enumerate live first writes for accounts, storage addresses and slots; clears ⊆ addresses; inner maps are post-clear writes only | **snapshot-reachable: worst-case persistent** | read O(log A + log S); write O(log A + log S) path copy; snapshot O(1); revert O(1) plus reclamation of the discarded version; `destroyStorage` O(s) for `s` pending writes of that address |
 | `TxObs` | four raw `Std.HashSet` fields supplied | finite sets | `toList` as sets; whole supplied raw fields retained | no raw invariant; monotonicity is a future operation obligation | **linear-only** (never inside a snapshot, D23) | insert expected O(1), merge expected O(m), conditional on suitable distribution and linear ownership; resize/collision/allocation and aggregate costs remain unmeasured (ARCHITECTURE §5.0/C1–C4) |
-| `BlockState` | supplied raw thirteen-field record: provider/constants, persistent writes/clears/order indexes, three HashSets and optional Nat offset | itself for raw construction; new retains provider/constants and initializes eleven defaults; prospective `BlockDiff` over σ₀ plus observations | exact raw projections; logical account/storage membership; supplied `extractBlockDiff`, future semantic sets | no raw invariant; post-clear/history and coupled order/value invariants belong to future operations | intended linear between transactions, read-only/shared during one; raw presence proves neither | raw fields retained; incorporation target O(w · log n) for `w` writes, with ARCHITECTURE §5.0 union caveat; construction/allocation/retention and C1–C4 remain unmeasured |
+| `BlockState` | supplied raw thirteen-field record: provider/constants, persistent writes/clears/order indexes, three HashSets and optional Nat offset | itself for raw construction; new retains provider/constants and initializes eleven defaults; supplied `BlockState.view` = `σ₀.apply (extractBlockDiff b)` plus observations | exact raw projections; logical account/storage membership; supplied `extractBlockDiff` and `BlockState.view`, future semantic sets | no raw invariant; post-clear/history and coupled order/value invariants belong to future operations | intended linear between transactions, read-only/shared during one; raw presence proves neither | raw fields retained; incorporation target O(w · log n) for `w` writes, with ARCHITECTURE §5.0 union caveat; construction/allocation/retention and C1–C4 remain unmeasured |
 
 Q84 supplies canonical component dictionaries for all three observation-key domains.
 Support collisions preserve actual equality and duplicates; they supply no distribution
