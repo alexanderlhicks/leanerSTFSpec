@@ -166,7 +166,8 @@ separate five-operation arithmetic slice that follows. The class has exactly
 including 2, even composites and odd composites. Metadata is unread by this slice;
 its presence does not assert that an exponent is correct. The structure uses the literal
 private constructor; `val`/`isLt` projections remain internal by convention, not hidden.
-Consumers use the fourteen observer laws in §7.
+Consumers use the observer laws in §7 (fourteen for the carrier, arithmetic, power, sign and
+decoder slices; five more for the inverse).
 
 The dependency references below are py-ecc 8.0.0 at the lock pinned by `reference.toml`.
 These synthetic parameter-class comparisons execute original optimized `FQ` methods;
@@ -535,6 +536,10 @@ ordinary axioms and all-depth declaration audits are separate from the generated
 C/object/archive/link/runtime evidence binding both complete target modes. These
 finite controls supply no universal Python host/resource result, performance bound,
 backend/replacement/C1–C4, actual curve/precompile, guest or EEST conformance result.
+These interpreted/native and original-stream comparisons, and their authentication, are
+out of tree: nothing for them is committed, so they cannot be reproduced from this
+repository. The in-tree checks are the 2,055 literal controls, the finite graph
+derivations and the public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
@@ -757,7 +762,9 @@ bounds are checked privately; no new authored public law or instance is supplied
 Primality, square-root metadata and concrete-field/backend contracts remain open.
 
 **Supplied reference-only laws (discharged).** In namespace `PrimeFieldRef`, with
-`{p : Nat} [FieldModulus p]`, exactly fourteen ordinary public laws are supplied:
+`{p : Nat} [FieldModulus p]`, the carrier, arithmetic, power, sign and decoder slices supply
+exactly fourteen ordinary public laws (the inverse slice adds five more, listed with its
+contract):
 
 - `toNat_lt (a) : a.toNat < p`.
 - `toNat_ofNat (n) : (ofNat (p := p) n).toNat = n % p`.
@@ -937,13 +944,14 @@ open.
   operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
   observer laws and four delegating operator instances, plus natural pow/toNat_pow and
   its delegating HPow instance, plus canonical sgn0/sgn0_eq and checked
-  ofBytesBE?/ofBytesBE?_eq_some_iff; private controls and
-  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
-  concrete-field instances/aliases, convenience aliases, byte encoding and paired
-  roundtrip/size laws, powMod, executable/tower inverse, Euler/sqrt, towers, executable
-  PrimeField/Montgomery and their bridges remain unimplemented. No D6 source choice,
-  primality/Mathlib result, replacement/C1–C4 measurement, whole-module, precompile,
-  signature, guest or EEST readiness claim follows.
+  ofBytesBE?/ofBytesBE?_eq_some_iff, plus the Q86 graph-specified inverse inv0 with its
+  five laws; private controls and clients cover those slices. The eight exact R1 natural
+  moduli are supplied separately; concrete-field instances/aliases, convenience aliases,
+  byte encoding and paired roundtrip/size laws, powMod, executable/tower inverse,
+  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
+  unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
+  measurement, whole-module, precompile, signature, guest or EEST readiness claim
+  follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
