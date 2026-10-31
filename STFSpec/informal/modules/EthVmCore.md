@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
@@ -13,9 +13,9 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.1 Frame and environments
 
-- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:254` builds it from the witness headers only), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
+- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:253–255` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:125–148`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:310–312`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handlers must not be able to modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean").
+- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:72–120`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
@@ -26,6 +26,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 ### 2.3 Stack
 
 - **R-STK-1** The stack holds at most 1024 words. `pop` on an empty stack must fail with `StackUnderflowError` (`stack.py:109–110`); `push` on a full stack with `StackOverflowError` (`:128–129`). Both are exceptional halts.
+- **R-STK-3** `Stack.swap?` has the all-Nat completion and exact two-law seam authorized by Q82 (§5/§7). Guard both bounds before backing-index subtraction; either invalid, including equal invalid, returns none. Otherwise exchange both original cells simultaneously; equal valid returns some actual original Stack. This pure helper does not charge gas or implement an opcode.
 - **R-STK-2** `decode_single x` (`stack.py:25–53`, EIP-8024) must fail with `InvalidParameter` for `91 ≤ x ≤ 127` and otherwise return `(x + 145) mod 256`, which lies in `17…235`. `decode_pair x` (`:56–91`) must fail for `82 ≤ x ≤ 127`; otherwise with `k = x xor 143`, `(q, r) = divmod k 16`, return `(q+1, r+1)` if `q < r` else `(r+1, 29−q)`. The forbidden ranges contain `0x5B` (JUMPDEST) and `0x60–0x7F` (PUSH1–PUSH32), so jumpdest analysis need not skip these immediates [V: `runtime.py` does not].
 
 ### 2.4 Memory
@@ -93,13 +94,13 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
-| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
-| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
+| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` field and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
+| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49–67 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
-| `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
-| `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `Frame`; `FrameCtx` and assembled `Evm` remain open | R-ENV-3 mutable partition only; exact row below |
+| `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125–148 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
+| `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
 | `forks/amsterdam/vm/__init__.py::incorporate_child` | 194 | `incorporateChild` | total; asserts → preconditions |
-| `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253 | `emitTransferLog` | EIP-7708 |
+| `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253–289 | `emitTransferLog` | EIP-7708; supplied, row below |
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
 | `forks/amsterdam/vm/gas.py::*` | 48–1243 | `GasCosts`, `StateGasCosts`, `GasMeter` and one function per EELS function (§5) | all 43 items; blob/capacity/settlement functions take plain numbers instead of `Header`/`Transaction`/`BlockOutput` |
 | `forks/amsterdam/vm/memory.py::*` | 20–83 | `Memory.write`, `Memory.readBytes`, `bufferRead` | |
@@ -108,9 +109,107 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/runtime.py::get_valid_jump_destinations` | 22–69 | `validJumpDestinations`, `JumpdestMap.contains` | supplied packed/reference refinement and three ordinary laws; raw bytes, no Lean `Ops` import |
-| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction, a `Fin` indexed bound and an ordinary 1024 guard through the public facade. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
+| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied pure transfer-log helper
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and controls | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:253–289`, `emit_transfer_log` | `STFSpec.Vm.Core.emitTransferLog` in `STFSpec/Vm/Core/TransferLog.lean`, exported by Core | Every raw Frame, supplied Address/Hash32, sender/recipient and U256 amount. Test zero before padding, amount encoding or Log construction: return the actual complete Frame. Otherwise update only logs with public append and a singleton leaf containing the full supplied address, exactly three ordered topics and all 32 big-endian amount bytes. Equal parties still append. No failure, query, context, gas, transfer or settlement effect. | Exactly `emitTransferLog_zero` and `emitTransferLog_of_ne_zero` (§7), both ordinary whole-Frame equalities. Private exact twelve-zero-plus-twenty-address-byte bridge in `TransferLogCallerProofs.lean` uses public Base laws. Private public-facade clients derive chronology, every unchanged field and repeated-call chronology. `TransferLogGuards.lean` checks 16 complete independent arbitrary-input results plus retained input and both repeated-call results. | **supplied local helper and two discharged laws**; actual producers/context/transport remain open |
+
+Controls independently vary supplied address and first topic, leading/high/low
+sender/recipient bytes, zero/one/high-bit/maximal amounts and equal parties. Empty,
+leaf and concatenated raw ropes retain duplicate prior full logs. Every result
+observes all nine fields, nontrivial checked Stack/Memory, all six independent meter
+fields including refund −17, pc above U256, distinct sets and complete return bytes.
+The zero law preserves actual raw rope shape; chronology uses public rope equations.
+
+The committed `transfer_log_differential.py` generates and executes a complete
+interpreted Lean producer through the public Core facade. It needs a SOURCE catalogue
+and two SOURCE captures as inputs. SOURCE is an out-of-tree harness that ran the pinned
+EELS `emit_transfer_log` under normal and optimized Python; the catalogue, both captures
+and the harness are out of tree: nothing for them is committed, so the comparison cannot
+be reproduced from this repository. With those inputs it binds all 32 authenticated
+finite SOURCE inputs/results and eight synthetic arbitrary-address/topic cases,
+retaining all nine Frame models, every log byte and the input after the call. The SOURCE
+catalogue hash is `fad89d538c7e6b9e188432de31564e4fecd90d8c6ba698af49f1f69b432e4779`;
+its original address/topic instantiation is coherent only at the pinned values. Target
+stacks use checked public pushes in SOURCE bottom-first storage order and observe
+`Stack.toList.reverse`; direct Stack list identity is not claimed. Exactly three
+finite-set arrays compare by membership, with slot-pair coordinates intact;
+logs/topics/bytes remain ordered. Memory is constructed with public aligned
+expansion/write and local proofs; failed construction fails the producer.
+
+Dated out-of-tree evidence (2026-10-29): 32 original observations and 56 controls
+per normal/optimized SOURCE mode passed the qualified semantic projection, with 4015
+inputs unchanged. The SOURCE guidance and the finite-membership adapter were
+finalised only after the catalogue was frozen, so all 32 literal ordered-JSON
+comparisons still fail and only the qualified projection passes. The
+implementation's normal and `-O` local comparator runs
+each check the 40 complete interpreted target cases and strict negative controls,
+rejecting bool/int and float/int aliases. Local SHA-256 input identity is not
+publisher authenticity. Prior source Log data is bytes and emitted data is Bytes32;
+only complete byte content corresponds to Base.Bytes. Source context, control and
+parent fields remain outside Frame. This is finite coherent-source evidence, not a
+generic source theorem, runtime-class, ownership, native-cost or whole-Evm result.
+
+The in-tree guards and clients reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.TransferLogCallerProofs STFSpec.Conformance.Vm.Core.TransferLogGuards --wfail
+```
+
+The out-of-tree comparison ran as follows; it needs the uncommitted captures, and
+each output directory must be fresh:
+
+```sh
+python3 -B STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-target
+python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-optimized-target
+```
+
+### Supplied raw environment data
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:49–67`, `BlockEnvironment` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:125–148`, `TransactionEnvironment` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
+
+R-ENV-1 excludes source `state` (VM world), `block_access_list_builder` and
+`transaction_public_keys` (EthBlock): fourteen source fields project to eleven.
+R-ENV-2 excludes `state` (VM world) and `accounts_with_paid_writes` (explicit
+threading): eighteen source fields project to sixteen. Static field/type partition
+correspondence is the source evidence; no source environment runtime or whole-Evm
+comparison is claimed. HashConsts, systemAddress and mutable bookkeeping retain
+their existing owners.
+
+The raw history array retains every occurrence in supplied order. Oldest-first
+and at-most-256 are intended construction/source-correspondence guarantees, not
+raw carrier invariants. A synthetic 257-entry duplicated/out-of-order array is a
+carrier control only. Transaction quantities, options and authorization payloads
+likewise acquire no affordability, positivity, index, signature, supported-config
+or admission condition beyond existing provider types.
+
+Fifteen private generic public-facade clients check complete constructor types,
+all projections, reconstruction and independent updates retaining every unrelated
+field, especially address roles and the five separate transaction quantities.
+Six complete finite record observations cover zero/empty data, distinct high/max
+nominal markers, all bytes, ordered duplicate hashes and authorizations, every one
+of the six authorization fields (including raw parity 255 and 2), empty/nonempty
+access sets, both creation flags, None/Some-zero/Some-large index/hash and Nat
+quantities above the word range. A separate length control checks the raw 257
+history; a concrete complete-record proof checks a zero-price snapshot. No
+construction skips or falls back to a default. Reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs STFSpec.Conformance.Vm.Core.EnvironmentsGuards --wfail
+```
+
+This supplies raw environment data only. Actual frame/world construction, history
+lookup/admission, actual capacity/intrinsic/settlement consumers, F8 transport,
+F20 lifetime, F11, gas/fuel/resources and VM/guest/EEST/readiness obligations
+remain open.
 
 ### Supplied logical action factorization (Q83)
 
@@ -144,23 +243,70 @@ membership reasoning; no competing comparison, model or set law is introduced.
 Private generic clients check every stored field and retain the complete Stack,
 Memory, six-field GasMeter, raw log shape and independent deletion/warm sets.
 
-The finite controls construct two stack words through checked successful pushes,
-write four mixed bytes into aligned 32-byte memory, retain duplicate full logs,
-use distinct deletion/warm sets and address/slot pairs, and observe all nine fields
-through complete public models. They include all six independent meter fields,
-refund −17, state reservoir above baseline, pc `2^300 + 19`, duplicate insertion,
-set union and both address-first and same-address slot distinctions. A failed
-construction fails its proof obligation; it never selects a fallback or skips.
-Reproduce the controls and clients with:
+The finite controls construct two stack words through checked successful pushes, write
+four mixed bytes into aligned 32-byte memory, retain duplicate full logs, use distinct
+deletion/warm sets and address/slot pairs, and observe all nine fields through complete
+public models. They include all six independent meter fields, refund −17, state
+reservoir above baseline, pc `2^300 + 19`, duplicate insertion, set union and both
+address-first and same-address slot distinctions. A failed construction fails its proof
+obligation; it never selects a fallback or skips. Reproduce the controls and clients
+with:
 
 ```sh
 lake build STFSpec.Conformance.Vm.Core.FrameCallerProofs STFSpec.Conformance.Vm.Core.FrameGuards --wfail
 ```
 
-This supplies R-ENV-3's mutable data partition only. Immutable `FrameCtx`, running/
-output/error control outcomes and parent recursion remain with their existing
-owners. Actual frame creation, code/context consistency, F8 transport/emission,
-handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness remain open.
+This supplies R-ENV-3's mutable data partition only. Raw `FrameCtx` and `Evm` are
+supplied separately below. Running/output/error control outcomes and parent recursion
+remain with their existing owners. Actual frame creation, code/context consistency, F8
+transport and actual producer emission, handler effects, gas/fuel/resource bounds and
+VM/guest/EEST/readiness remain open.
+
+### Supplied raw immutable context and assembled Evm data
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:166,168,173–183`; F8 policy fields; `interpreter.py:84` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance, source coherence and read-only handler signatures remain open |
+| The same source `Evm:153–191`, R-ENV-3 partition | `STFSpec.Vm.Core.Evm` in the same leaf/facade | Exactly `ctx : FrameCtx` and `frame : Frame`. Every pair of supplied values is admitted; no additional coherence/WF proof, state or control field. No effects or failures. | Private complete constructor signature/projections/reconstruction and independent context/frame replacements; all three complete controls retain an arbitrary whole Frame. | **supplied raw data**; no whole source-Evm execution equivalence |
+
+The source Evm has 26 fields: thirteen fixed context fields, nine mutable Frame
+fields and four control fields (`running`, `output`, `error`, `parent_evm`) whose
+abstractions retain their Instructions/Runner owners. `config` and `systemAddress`
+are the existing supplied policy abstraction, not additional source Evm fields.
+This static field/type partition is the source evidence; no source Python runtime
+or complete source-Evm comparison is claimed.
+
+Private generic clients retain complete arbitrary configuration/environment/map
+provider values. Each single-field update retains all unrelated fields. In
+particular config, systemAddress, caller/target/value/data/codeAddress/code/map and
+three flags vary independently. A raw context may contain empty code and a map
+built from different nonempty code. Intended creation must establish code/map,
+source/environment/history/config coherence and inherited policy later; the raw
+record adds none of these restrictions. The future Handler/StepResult signatures
+supply read-only context discipline; raw Evm construction does not prevent context
+replacement by arbitrary Lean callers.
+
+Three complete ordinary boundary controls quantify arbitrary GasCosts, both whole
+environments, systemAddress and Frame. Private raw VmConfig constructors use
+limits 7 and 2048 without defaults or an Amsterdam import; depth 1024 still uses
+only the local literal proof. Controls retain every complete supplied provider
+value, cover depths 0/1/1024, None/Some-zero/Some-nonzero codeAddress, distinct
+zero/high/max addresses, zero/max/intermediate U256 values,
+empty/mixed/all-256-byte code and callData, independent flags and code/maps. The
+map stays abstract in whole-record equalities; finite observations use only its
+public contains equations, including an arbitrary empty-map query and a
+beyond-host-width absent offset. Four ordinary guards check all byte values and
+complete twenty-byte address vectors; a negative elaboration control rejects a
+FrameCtx at depth 1025. Generic clients retain every possible flag combination and
+every provider input. Reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.Vm.Core.ContextGuards --wfail
+```
+
+Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv and Fork→Block→Runner
+address transport, actual producer emission, world/handler/control/parent integration,
+F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
 
@@ -325,7 +471,7 @@ identities without a structural append contract.
 |---|---|---|---|
 | `blocks.py:327–356`; `state.py:33`; `crypto/hash.py:19` | `Log` on all existing provider fields | Exact address, topic order/duplicates and every data byte; no runtime failure | `Log.ext`, `Log.eta`; arbitrary-field public-only clients and complete A/B/C/D observations |
 | `vm/__init__.py:169`; `vm/interpreter.py:230`; `vm/instructions/system.py:169,438` | Public empty/leaf/concat and `LogRope.toList` on every finite raw tree | Complete chronological List, including empty leaves and repeated/shared occurrences | `toList_empty/leaf/concat`; private ordinary all-tree workstack/reference refinement and full-field controls |
-| `vm/__init__.py:247`; `vm/instructions/log.py:47–80,86–90`; `vm/__init__.py:253–289` | `LogRope.append` on arbitrary ropes; singleton emission is a model client | All left log occurrences then all right; no carrier failure | `toList_append`; public-only singleton/duplicate/order clients; LOG/transfer handlers remain unsupplied |
+| `vm/__init__.py:247`; `vm/instructions/log.py:47–80,86–90`; `vm/__init__.py:253–289` | `LogRope.append` on arbitrary ropes; singleton emission is a model client | All left log occurrences then all right; no carrier failure | `toList_append`; public-only singleton/duplicate/order clients; actual LOG/transfer handlers remain unsupplied; pure transfer helper is supplied above |
 | `vm/__init__.py:194–250`; `vm/interpreter.py:276–321` | Conditional merge/discard and output-selection model clients only | Failed children contribute no logs; top-level error selects empty output without erasing stored logs | Six complete S controls and ordinary arbitrary-log algebra; no real incorporation/frame/receipt proof |
 
 The source correspondence here is the ordered tuple model on intended typed
@@ -722,9 +868,9 @@ python3 -B -O "$DRIVER" --check-frames /tmp/memory-frames.ndjson
 ### Supplied bounded Stack
 
 `STFSpec/Vm/Core/Stack.lean`, exported by `STFSpec.Vm.Core`, supplies the existing
-bounded carrier and six operations below. The private constructor, Array storage and
+bounded carrier and seven operations below (Q82). The private constructor, Array storage and
 stored size proof enforce at most 1024 existing EthBase U256 words. Only `toList`
-converts/reverses the Array; pop/push/peek inspect the size and relevant cell directly.
+converts/reverses the Array; pop/push/peek/swap inspect sizes and relevant cells directly.
 The bound is a representation invariant, not a new guest validation rule. Source
 correspondence is restricted to actual typed Python lists of size at most 1024:
 original push tests equality to 1024, so oversized Python lists are outside this model.
@@ -737,8 +883,9 @@ original push tests equality to 1024, so oversized Python lists are outside this
 | `vm/stack.py:94–112` | `Stack.pop : Stack → Except ExceptionalHalt (U256 × Stack)` | Empty check precedes subtraction/read; exact underflow or removed top and complete remainder | `Stack.pop_eq_error_iff`, `Stack.pop_eq_ok_iff`; empty, mixed, duplicates and full cases |
 | `vm/stack.py:115–131` | `Stack.push : Stack → U256 → Except ExceptionalHalt Stack` | Exact full check before append; overflow at 1024, otherwise entire model cons and size+1 | `Stack.push_eq_error_iff`, `Stack.push_eq_ok_iff`; near/full transitions and complete models |
 | indexed reads `vm/instructions/stack.py:106–109,242–243`, model seam | `Stack.peek? : Stack → Nat → Option U256` | All Nat depths; i<size guard before index arithmetic, otherwise none; no mutation | `Stack.peek?_eq_getElem?`; all positions, exact bounds and 2^4096 |
+| mutation in `vm/instructions/stack.py:113–144,248–317`, no standalone two-index source helper | `Stack.swap? : Stack → Nat → Nat → Option Stack` (Q82) | Every bounded Stack and every Nat i,j; guard i<size then j<size before subtraction/narrowing; invalid returns none, otherwise proof-bounded Array.swap exchanges both original cells and preserves capacity | `Stack.swap?_eq_none_iff`, `Stack.swap?_eq_some_iff`; public-only private clients and complete-word controls below |
 
-All eight exact public laws in §7 are **discharged** by ordinary proofs. Private
+All ten exact public laws in §7 are **discharged** by ordinary proofs. Private
 model/observation injectivity establishes actual Stack equality in both directions
 of the success iff laws; no public constructor, extensionality or equality instance
 is supplied. The two error iff laws quantify over every ExceptionalHalt, excluding
@@ -758,8 +905,36 @@ calls on fresh typed bounded lists, retaining exact U256/None return classes or
 exception classes/args and entire before/after models. Nineteen separately labelled
 List-index adapter observations also passed. All forty-one complete Lean frames
 matched; source/runtime identities remained unchanged before/after each phase.
-No swap/decoder/handler, gas ordering, frame reachability, allocation benchmark,
-replacement, G1/G2–G7 or guest/EEST gate is supplied by this slice.
+The original pop/push/peek schedule supplies no swap/handler, gas ordering, frame
+reachability, allocation benchmark, replacement, G1/G2–G7 or guest/EEST gate.
+
+Q82 exchange is implemented with both Nat bounds checked before either backing-index
+subtraction. Pinned Lean `Init/Data/Array/Basic.lean:239–249` saves both old cells
+before writes. Private optional-index/reverse-model reasoning proves both complete
+ordinary laws; private model injectivity discharges the reverse success implication.
+Public-only `StackSwapCallerProofs.lean` derives availability, size preservation,
+every cell (including out of range), equal-valid actual identity, all-input actual
+commutation and actual involution, without unfolding Stack or adding public laws.
+`StackSwapGuards.lean` supplies 29 concise complete-list controls through public push:
+whole high/max/asymmetric words, duplicates, empty/singleton, equal-valid/invalid,
+each/both invalid and independent 2^4096 indices, complete capacity-1024 exchanges,
+held input models and swap-back observations. Two size-1025 controls check that the
+1025th public push fails with exactly `stackOverflow` and that a failed construction
+fails the control rather than being skipped. Operand capacity is separate from the call-depth constant.
+
+There is no original arbitrary-two-index helper. Mathematical all-Nat controls are
+model tests. Source adaptation uses `swap? s 0 k` for SWAP1–16 (1≤k≤16),
+`swap? s 0 n` for SWAPN (17≤n≤235), and `swap? s n m` for EXCHANGE
+(1≤n≤14 and n<m≤30−n). Both none bounds agree with actual opcode underflow;
+A also handles callable `swap_n(0)` on empty input. Correspondence requires bounded
+typed U256 lists, stable source/dependency bindings and successful host resources.
+Negative Python indices and oversized lists are outside this carrier correspondence.
+The original order is gas charge, padded immediate read/decoder where applicable,
+source bounds, both old-cell reads/exchange, then PC advance. OOG/decode failures
+before the primitive remain source ordering controls, not Lean handler behavior.
+InvalidParameter's original diagnostic args are not the nullary Lean public error
+projection. Mathematical/source controls do not prove handler/frame coherence,
+whole G1/G2–G7, ownership/allocation, replacement, C1–C4 or guest/EEST readiness.
 
 Reproduce the committed controls from the repository root (use fresh output paths):
 
@@ -782,6 +957,21 @@ must not exist. Preflight authenticates inputs without invoking a source stack h
 The source command checks unchanged pop/push helpers and the separately labelled
 List-index adapter against all complete frames; it supplies no standalone EELS peek helper.
 
+### Supplied raw frame error vocabulary
+
+`STFSpec/Vm/Core/Exceptions.lean`, exported by `STFSpec.Vm.Core`, supplies exactly
+§5's `FrameError.halt (e : ExceptionalHalt)` and `FrameError.revert`, reusing the
+existing complete `ExceptionalHalt` carrier. The two source classes are distinct;
+this target carrier expresses that distinction without implementing their effects.
+
+| Pinned source | Declaration / domain | Effects and failures | Law / test status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/exceptions.py:17,24` | `FrameError : Type`; arbitrary complete existing ExceptionalHalt payload or nullary revert | **Supplied** nominal construction/elimination only; no runtime failure, producer, gas or settlement behavior | Ten private ordinary facade clients prove arbitrary complete reconstruction/extraction, halt injectivity, branch distinction, exhaustive/dependent elimination and full opcode/reason retention. Complete private guards cover both branches, all nested tags, all 256 opcode bytes and four whole String reasons (§4). No new public law or instance. |
+
+Actual exceptional gas consumption, revert settlement, producer/error priority,
+frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
+separate obligations. This raw vocabulary supplies no G1–G7, resource or readiness gate.
+
 ### Supplied local meter algebra
 
 The following local contracts are **discharged** in `STFSpec/Vm/Core/Exceptions.lean`
@@ -791,7 +981,7 @@ This is a partial G1 discharge, without a frame, gas policy, frame settlement or
 
 | Pinned EELS source | Lean declaration and type | Domain, complete success/effect and ordered failure | Public law / test |
 |---|---|---|---|
-| `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer or Revert implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
+| `vm/exceptions.py:17–139`; `vm/precompiled_contracts/modexp.py:34,38,42` | `ExceptionalHalt : Type` | All twelve subclass tags with `invalidOpcode (code : UInt8)`, plus bare `precompileHalt (reason : String)`; nominal construction/elimination only, no producer, gas or settlement implementation | Private arbitrary-payload callers; guards retain every tag, every UInt8 and complete String payloads |
 | `vm/gas.py:270–336` | `GasMeter : Type` | Public fields `gasLeft stateGasLeft stateGasBaseline : Nat`, `refundCounter : Int := 0`, `stateGasSpilled stateGasCommittedSpill : Nat := 0`; every raw record admitted, including reservoir above baseline, negative refund and both positive spill pools | Complete six-field guards and default-record case |
 | §5 potential (no separate EELS function) | `GasMeter.phi : GasMeter → Nat` | `gasLeft + stateGasSpilled + stateGasCommittedSpill`; excludes reservoir/baseline/refund | `chargeGas_phi`, `chargeStateGas_phi`, `commitStateGas_phi`, `restoreStateGas_phi`, `restoreStateGasToEntry_phi`, `creditStateGasRefund_phi`, `repayStateGasSpill_phi`, `forfeitRemainingGas_phi`, `withholdCreateGas_phi`, `drainStateGasReservoir_phi`, `restoreChildGas_phi`; ordinary public clients |
 | `vm/gas.py:374–388` | `checkGas : GasMeter → Nat → Except ExceptionalHalt Unit` | All raw meters/amounts; check execution shortage first, returning `.error .outOfGas` iff `gasLeft < a`; otherwise `.ok ()`, no meter update | `checkGas_eq_ok_iff`, `checkGas_eq_error_iff`; zero/exact/one-over guards |
@@ -1135,14 +1325,32 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
 
 ## 4. Tests
 
-**F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
-one and maximal U256 amount, independently varied full-byte supplied address/topic,
-equal and unequal sender/recipient, and pre-existing duplicate chronological logs.
-Compare the complete returned Frame, every Log address/topic/data byte and all
-untouched fields against §7. In particular, equal parties do not suppress a direct
-helper call; the producer guard is tested at the Runner/Instructions owners.
-Pinned-source comparison supplies Fork's exact twenty-byte address and the correct
-F20 topic separately; local arbitrary-input laws need neither premise.
+- **Supplied raw FrameError controls:** §3 owns ten private ordinary facade clients
+  and complete deterministic guards in `FrameErrorCallerProofs.lean` and
+  `FrameErrorGuards.lean`, imported by `STFSpec.Conformance`. Guards retain revert,
+  every nested halt tag, all 256 UInt8 payloads, and complete empty, embedded-NUL,
+  Unicode and 1024-character String reasons. These are carrier controls; no producer,
+  gas, settlement, error adapter or source-runtime differential claim follows.
+- **Supplied raw Frame controls:** §3 owns the private construction/projection/
+  reconstruction/update/set clients in `FrameCallerProofs.lean` and the nontrivial
+  full-field guards in `FrameGuards.lean`, imported by `STFSpec.Conformance`. These
+  are carrier controls; no creation, context, control or execution claim follows.
+
+**Supplied raw environment controls.** §3 owns the complete private generic
+constructor/projection/type/reconstruction/update clients and six full-value
+finite observations, plus the raw-history length control and complete price-update
+proof. Synthetic raw history/authorization/gas values assert no protocol validity.
+
+**Supplied raw context/Evm controls.** §3 owns the complete private generic
+constructor/projection/type/reconstruction/update clients, three full boundary
+observations retaining arbitrary complete providers, independent-map equations,
+four full byte/address guards and the rejected out-of-domain depth. Raw code/map,
+config-limit and environment choices assert no source or protocol admissibility.
+
+**Supplied F8 transfer-log controls.** The complete arbitrary-input guards,
+public-only generic clients and qualified finite interpreted SOURCE comparison
+are owned by §3. Actual producer self-suppression, transfer/static/gas ordering,
+context transport and log discard remain with Runner/Instructions.
 
 - **Supplied allocation controls (Q65):** §3 owns the exact 36 complete
   guard/interpreted/native groups, nine public-law client groups, strict normal/`-O`
@@ -1250,6 +1458,7 @@ F20 topic separately; local arbitrary-input laws need neither premise.
 
 - **Supplied scalar decoder controls:** All 256 bytes per decoder have complete literal guards and actual interpreted target/source frames. These include the boundaries 81/82, 90/91, 127/128, equal-nibble branch cases, byte255, both ordered pair coordinates and exact errors. Public-only clients exercise all eight laws, successful progress, arbitrary-error exclusion and actual input equality. Strict normal/`-O` parsing passes 81 positive and 79 rejection controls per mode; complete images, partitions and valid-input injectivity are also checked. These are local semantic controls, not native allocation, handler or guest evidence.
 
+- **Supplied exchange controls (Q82):** The 29 complete-model controls and six private public-law client groups are owned by §3. Reproduce with `lake build STFSpec.Conformance.Vm.Core.StackSwapCallerProofs STFSpec.Conformance.Vm.Core.StackSwapGuards --wfail`. Arbitrary Nat bounds, simultaneous original cells and actual Stack identity/commutation/involution are proved ordinarily; source handler ordering and resource limits remain separate.
 - **Supplied bounded Stack controls:** Forty-one complete ordered observations cover empty pop/peek, zero/max/high-bit/duplicate words, every position of a mixed model, indices exactly at size and 2^4096, sizes 1023/1024, full push overflow and pop/replacement, and all deterministic sequence intermediates. Public-only callers consume all eight laws, establish success availability/exclusion of unrelated errors and both actual-Stack conditional inverses. The strict normal/`-O` parser checks full frames and rejects boolean/float integer aliases, malformed models/words/schema, incorrect ordering and whole-model changes with unchanged size/top. Original-helper comparison is only bounded typed pop/push; peek remains a labelled List-index adapter.
 
 `TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation
@@ -1356,6 +1565,7 @@ Monad factorization proof projection and conditional Id success use the facade.
 The empty generic and arbitrary-address Id singleton examples prove actual lookup
 certificates; four guards retain ordered bytes and distinguish addresses 1/256.
 These are logical/data controls, without an EELS producer or effect interpretation.
+Reproduce with `lake build STFSpec.Conformance.Vm.Core.PrecompileCallerProofs --wfail`.
 
 ## 5. Interface
 
@@ -1363,18 +1573,25 @@ Reference field order, widths and inherited records are catalogued in [REFERENCE
 
 All public unless marked internal. Names follow EELS in lowerCamelCase.
 
-The exact two set aliases and nine-field raw `Frame` below are **supplied** through
+The exact two set aliases, eleven-field `BlockEnvironment`, sixteen-field
+`TransactionEnvironment` and nine-field raw `Frame` below are **supplied** through
 `STFSpec.Vm.Core`; they have no authored defaults, derived instances, public helper
 laws or additional admission/proof fields. Public constructor/projection and
-reconstruction equations reduce directly. `FrameCtx` and assembled `Evm` remain
-unimplemented. The supplied Frame makes no global meter-WF or context claim.
+reconstruction equations reduce directly. Raw history has no ordering/count
+premise; oldest-first/at-most-256 belongs to intended construction. Environment
+quantities and options are independent. The exact fifteen-data-field `FrameCtx`
+with its sole local depth proof, and the two-field `Evm`, are also **supplied**.
+The depth bound is independent of raw configuration limits; code/map and all other
+fields have no additional coherence premise. These carriers make no global meter-WF,
+source/context or execution claim. Actual creation and read-only handler discipline
+remain open.
 
 ```lean
 -- Environments (public)
 abbrev AddrSet := Std.ExtTreeSet Address
 abbrev SlotSet := Std.ExtTreeSet (Address × Bytes32)
 structure BlockEnvironment where
-  chainId : U64; blockGasLimit : Nat; blockHashes : Array Hash32   -- oldest first, size ≤ 256
+  chainId : U64; blockGasLimit : Nat; blockHashes : Array Hash32   -- raw, no history proof
   coinbase : Address; number : Nat; baseFeePerGas : Nat; time : U256
   prevRandao : Bytes32; excessBlobGas : U64; parentBeaconBlockRoot : Hash32; slotNumber : U64
 structure TransactionEnvironment where
@@ -1386,6 +1603,7 @@ structure TransactionEnvironment where
 structure BlockGasCounters where blockGasUsed blockStateGasUsed : Nat; blobGasUsed : U64
 
 -- Frame (public)
+abbrev STACK_DEPTH_LIMIT : Nat := 1024   -- existing imported Limits literal (F8)
 structure FrameCtx where
   config : VmConfig           -- immutable policy; children inherit it unchanged
   blockEnv : BlockEnvironment; txEnv : TransactionEnvironment
@@ -1399,7 +1617,6 @@ structure Frame where
   logs : LogRope; accountsToDelete : AddrSet; returnData : Bytes
   accessedAddresses : AddrSet; accessedStorageKeys : SlotSet
 structure Evm where ctx : FrameCtx; frame : Frame        -- the EELS-shaped view
-abbrev STACK_DEPTH_LIMIT : Nat := 1024   -- a literal: depth proofs and indexed types reduce it (F8)
 structure VmLimits where stackDepthLimit maxCodeSize maxInitCodeSize : Nat   -- fork parameters (§8 of ARCHITECTURE); values in EthFork
 structure VmConfig where
   costs : GasCosts; stateCosts : StateGasCosts; limits : VmLimits
@@ -1439,7 +1656,7 @@ def Stack.size : Stack → Nat
 def Stack.pop  : Stack → Except ExceptionalHalt (U256 × Stack)
 def Stack.push : Stack → U256 → Except ExceptionalHalt Stack
 def Stack.peek? (s : Stack) (i : Nat) : Option U256      -- i = 0 is the top
-def Stack.swap? (s : Stack) (i j : Nat) : Option Stack
+def Stack.swap? (s : Stack) (i j : Nat) : Option Stack -- Q82; both bounds first
 def decodeSingle : UInt8 → Except ExceptionalHalt Nat
 def decodePair   : UInt8 → Except ExceptionalHalt (Nat × Nat)
 
@@ -1629,7 +1846,8 @@ structure PrecompileTable (m : Type → Type) [Monad m] where
   addresses : AddrSet
   lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses
   meter_law : ∀ a p i g, lookup a = some p → SatisfiesM (MeterOk g) (p i g)
-  -- for every `m`; at `m := Id` it is the plain statement `p i g = .ok g' o → g'.gasLeft ≤ g.gasLeft ∧ …`
+  -- a witness in every `m`; only at `m := Id` (`satisfiesM_id_iff`) is it the plain
+  -- statement `p i g = .ok g' o → g'.gasLeft ≤ g.gasLeft ∧ …`
 def GasMeter.phi (m : GasMeter) : Nat := m.gasLeft + m.stateGasSpilled + m.stateGasCommittedSpill
 def checkGas : GasMeter → Nat → Except ExceptionalHalt Unit
 def chargeGas : GasMeter → Nat → Except ExceptionalHalt GasMeter          -- charge_gas(_from_meter)
@@ -1695,6 +1913,7 @@ def ChildSettled (child : Frame) (failed : Bool) : Prop
 -- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
 -- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
 def incorporateChild (parent : Frame) (child : Frame) (childFailed : Bool) (h : ChildSettled child childFailed) : Frame
+-- Supplied pure helper; zero guard precedes every encoding/construction.
 def emitTransferLog (f : Frame) (systemAddress : Address) (topic : Hash32)
     (sender recipient : Address) (amount : U256) : Frame
   -- callers pass ctx.systemAddress and world.tx.block.consts.transferTopic (F8/F20/D5)
@@ -1737,17 +1956,29 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 
 | Type | Representation | Model and abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
-| `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | push/pop/peek/swap O(1) (amortised for push) |
+| `Stack` | `Array U256`, top at the end | `List U256`, top first; `α s = s.data.toList.reverse` | `size ≤ 1024` | linear-only (frame-owned; the suspended parent frame is never copied) | target under linear ownership: push/pop/peek/swap O(1) (amortised for push); retained Arrays may copy; actual compiled allocation/C1–C4 unproved |
 | `Memory` | private `ByteArray` and alignment proof (D11/Q62), supplied | `List UInt8`; `toBytes` is the logical model; size counts bytes | `size % 32 = 0`; each operation takes only its §5 local proof | linear-only frame ownership; immutable read snapshots | target: expand O(n) amortised, read/write O(k); empty operations avoid offset-proportional work; compiled ownership/costs unproved |
 | `bufferRead` input/output | existing immutable Base `Bytes`, no new carrier | Base padded-window model in §7 | every finite input/all U256 operands | immutable input and copied result | inferred output-proportional copying O(k), bounded source copy and Nat availability check before narrowing; compiled costs unmeasured |
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | supplied strict immutable public empty/leaf/concat tree | chronological `List Log` via `toList` | all raw shapes admitted; concat observes left before right; no mutable cache | immutable nodes; production frame ownership remains a caller obligation | append allocates one concat, O(1); workstack flatten O(expanded nodes + emitted logs), including empty/shared occurrences; finite native C3 evidence is scoped in §4 |
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
 | `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
+| `PrecompileResult`, `PrecompileTable` | supplied inductive result; record of a lookup closure, an `AddrSet` domain and two logical proof fields | itself (public carriers) | `lookup_iff` and `meter_law` as fields; no global WF | immutable value | O(1) projection; proof fields are erased; lookup cost belongs to the installed table (EthVmRunner §6) |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
-| `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
+| `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
+| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; handler read-only discipline remains a future signature obligation | field access O(1); no compiled sharing/resource claim |
+| `Evm` | supplied raw pair of FrameCtx and Frame | complete fields themselves | only existing field types; no additional coherence/WF proof | value; execution ownership remains a caller obligation | field access O(1); no new operation/cost claim |
 
 ## 7. Contract and laws
+
+**Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
+and sixteen-field public records. Complete private constructor/projection/type,
+reconstruction and independent update clients use ordinary public record
+reduction. Complete finite observations use only public provider models and
+retain all fields, ordered occurrences and option distinctions. There is no
+manually authored public law package, admission/WF predicate or history guard.
+Intended construction supplies history/source coherence; actual consumers still
+owe admission, lookup, policy, state and execution obligations.
 
 **Logical action-factorization law (Q83; supplied/discharged).**
 
@@ -1803,6 +2034,16 @@ a negative refund. There are no extra manually authored public Frame laws or raw
 admission predicates. Stack bounds and Memory alignment come from their supplied
 types; context/meter invariants and actual execution remain caller obligations.
 
+**Raw FrameCtx/Evm carrier controls are supplied.** §3/§5 own the exact
+fifteen-data-field context, its sole local literal depth proof and two-field Evm.
+Private complete constructor/projection/type/reconstruction and independent-update
+clients use public record reduction, retaining whole provider values and the
+abstract JumpdestMap. Depth replacement supplies only its own new bound; every
+other field remains unrestricted beyond its provider type. Complete controls and
+public contains equations cover both depth boundaries and independent code/maps.
+No manually authored public context/Evm laws, global coherence predicate, defaults
+or extra instances are supplied. Actual creation, inheritance and source coherence
+remain caller obligations; handler signatures must supply read-only context use.
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -2275,8 +2516,8 @@ The constructor/projections are ordinary public data operations. There is no
 raw-record alias, positivity, table-size or denominator invariant. Supported
 consumer assumptions and fork initialization remain separate as recorded in §3.
 
-**Stack** (model `List U256`, top first). The six-operation bounded slice supplies
-exactly these eight **discharged** ordinary laws, for every Stack/word/Nat index
+**Stack** (model `List U256`, top first). The seven-operation bounded slice supplies
+exactly these ten **discharged** ordinary laws, for every Stack/word/Nat index
 and every ExceptionalHalt; the carrier itself stores the bound. No reachability,
 host index-width or word-validity premise is added.
 
@@ -2294,12 +2535,19 @@ Stack.push_eq_ok_iff (s t : Stack) (v : U256) :
   s.push v = .ok t ↔ s.size < 1024 ∧ t.toList = v :: s.toList
 Stack.peek?_eq_getElem? (s : Stack) (i : Nat) :
   s.peek? i = s.toList[i]?
+Stack.swap?_eq_none_iff (s : Stack) (i j : Nat) :
+  s.swap? i j = none ↔ s.size ≤ i ∨ s.size ≤ j
+Stack.swap?_eq_some_iff (s t : Stack) (i j : Nat) :
+  s.swap? i j = some t ↔
+    ∃ a b : U256, s.toList[i]? = some a ∧ s.toList[j]? = some b ∧
+      t.toList = (s.toList.set i b).set j a
 ```
 
 Nonfull-push/nonempty-pop availability and both conditional actual-Stack inverses
 are public-law client results, without private storage unfolding or additional
-provider laws. `swap?` remains unsupplied: its in-bounds model swap does not yet
-specify the all-input none/identity behavior.
+provider laws. Q82 adds the exact none/success iff laws above; private clients derive
+swap availability, size/all-cell effects, equal-valid actual identity, commutation
+and involution through those public laws alone.
 
 **Scalar immediate decoders.** Exactly eight ordinary laws are **discharged**,
 on every actual UInt8. `^^^` below is Nat xor, and error payloads remain nullary.
@@ -2742,7 +2990,30 @@ bounded original comparison in §3/§4 is additional source evidence, not the or
 all-input refinement proof. [C] A future code-hash cache separately needs cache/code
 consistency (Nipkow Ch. 18 invariant).
 
-**Transfer log** [C], for every raw Frame, supplied `addr : Address`, `topic : Hash32`, sender, recipient and amount: `emitTransferLog f addr topic s r 0 = f`. For `a ≠ 0`, let `entry := Log(addr, [topic, pad32 s, pad32 r], be32 a)`; the complete frame equation is `emitTransferLog f addr topic s r a = { f with logs := LogRope.append f.logs (LogRope.leaf [entry]) }`. Hence `α (emitTransferLog f addr topic s r a).logs = α f.logs ++ [entry]`, retaining every occurrence in order. No configuration, source-literal, distinct-party, gas or world premise is needed for these local equations. Pinned-source refinement separately supplies the F8 address and coherent F20 topic. The helper performs no hash query, state effect or validation and introduces no failure.
+**Transfer log** [C], supplied for every raw Frame and arbitrary supplied
+address/topic, without configuration, distinct-party, gas or world premises:
+
+```lean
+emitTransferLog_zero (f : Frame) (systemAddress : Address) (topic : Hash32)
+    (sender recipient : Address) :
+  emitTransferLog f systemAddress topic sender recipient U256.zero = f
+
+emitTransferLog_of_ne_zero (f : Frame) (systemAddress : Address) (topic : Hash32)
+    (sender recipient : Address) (amount : U256) (h : amount ≠ U256.zero) :
+  emitTransferLog f systemAddress topic sender recipient amount =
+    { f with logs := LogRope.append f.logs (LogRope.leaf
+      [Log.mk systemAddress
+        #[topic, Hash32.ofBytes32 sender.toU256.toBeBytes32,
+          Hash32.ofBytes32 recipient.toU256.toBeBytes32]
+        amount.toBeBytes32.toBytes]) }
+```
+
+The private ordinary byte bridge identifies each numeric topic with exactly twelve
+zero bytes followed by all twenty address bytes, using only public provider laws.
+Private public-facade clients derive complete chronological observations and each
+unchanged-field equation from these two laws and public LogRope equations.
+Pinned-source refinement separately supplies F8's address and a coherent F20 topic;
+actual producers, context and effects remain outside this pure helper.
 
 ### Informal correctness argument
 
@@ -2750,7 +3021,7 @@ consistency (Nipkow Ch. 18 invariant).
 
 **Premises.** EthBase and EthState laws; local proof arguments for commit/entry restore and caller premises for the remaining meter operations (none for the supplied charge kernel, refund/repay or ordinary restore); memory expansion aligned to words; exact Amsterdam limits/costs supplied consistently by VmConfig; explicitly checked casts and window bounds.
 
-**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. The supplied ordinary LogRope refinement gives toList(append a b) = toList a ++ toList b; chronological observation is invariant under association and empty identities. Public raw constructors still expose distinct tree shapes. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
+**Argument.** Reverse-array observation proves stack push/pop/peek equations by the final-element cases. For Q82 exchange, bounded reverse indices and the Array all-cell equation establish the simultaneous two-List-set model equation, including equal indices; private model injectivity supplies actual-result equality for the success iff. Memory refinement uses the full M4–M6 model equations for exact zero extension and admitted window effects, with empty reads/writes handled before offset conversion. M7 is actual empty-write identity; M8 derives the result-read witnesses for M9/M10 from the original local window proofs. Immutable read values support read-then-write overlap clients. Calculate expansion and charge its cost before allocation. The supplied ordinary LogRope refinement gives toList(append a b) = toList a ++ toList b; chronological observation is invariant under association and empty identities. Public raw constructors still expose distinct tree shapes. Jump scanning induction advances by one plus the PUSH immediate length, marking only instruction bytes. Gas proofs split each operation's branch and account for all six meter fields. State-gas charges, commit, restores, refunds and repayment merely redistribute counted potential or affect the separate reservoir; execution charges decrease Φ. Child returns are explicit additions, so this local argument does not prove whole-call progress. VmWorld contains one TxState, avoiding independent observation or ancestor-cursor copies.
 
 **Open obligations.** Prove meter premises at every caller, checked refund conversion, exact arithmetic failure cases and the compiled memory/stack cost assumptions. Memory representation replacement uses observer equations; amortised linear-container bounds must not be applied to snapshot-reachable values.
 
@@ -2763,10 +3034,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Seams:** consumes the `EthState` transaction-state API and `WitnessError`; provides the frame types, `VmM m`, `VmFault`, `STACK_DEPTH_LIMIT`, the precompile calling convention, the meter and its Φ laws. Cross-module invariants relied on: every `Frame` a handler receives satisfies `size stack ≤ 1024`, `size memory % 32 = 0`, and the meter well-formedness `Wf`; guaranteed: every operation here preserves them.
 
 ## 9. Open decisions
-
-- **Q83:** DECISIONS owns the bounded predicate disposition; §5/§7 supply exactly
-  action factorization and its Id law. Generic construction assumptions, adapter
-  equations, effect/transformer bridges and nominal-halt equivalence remain open.
 
 - **D1** (U256 representation): stack words and all handler-visible arithmetic go through `U256` observers; nothing here may depend on the stored field.
 - **D11** (memory type): `ByteArray` initially; the laws in §7 are the replacement contract (exercise 1).
@@ -2795,7 +3062,25 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   caller bridges remain open. Allocation policy matching and unsigned refund
   validation are separate caller obligations, not global meter invariants.
 
+- **Q83:** DECISIONS owns the bounded predicate disposition; §5/§7 supply exactly
+  action factorization and its Id law. Generic construction assumptions, adapter
+  equations, effect/transformer bridges and nominal-halt equivalence remain open.
+
 ## 10. Gaps
+
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
+  private complete-payload construction/elimination clients and guards. Actual
+  exceptional gas consumption, revert settlement, producers/error priority, frame/runner
+  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
+  existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
+  clients and full-value controls. No history/admission/default/proof field or extra
+  public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
+  construction, source context coherence, intended oldest-first/at-most-256 history and
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
@@ -2807,21 +3092,42 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
 
+- **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
+  `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
+  `STFSpec.Vm.Core` would see an ambiguous name; such files should qualify it and add a
+  bridge lemma if they need both.
+
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
-  Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
-  StepResult/control and parent execution integration, F8 address transport/emitter,
-  handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
+  Raw FrameCtx/assembled Evm are supplied separately; actual creation, context/code
+  agreement, StepResult/control and parent execution integration, F8 address transport
+  and actual producer emission, handler effects, gas/fuel/resource and
+  VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
+- **Raw immutable context and assembled Evm are supplied:** §3/§5/§7 own the exact
+  fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
+  private complete generic clients and boundary controls. Raw config limits,
+  code/map choices, supplied addresses, environments, frame and flags remain
+  independent. Actual creation/inheritance, source/config/history/code coherence,
+  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
+  default, instance or global coherence/WF predicate is supplied.
 
-- **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
+- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
+  operation and exactly two ordinary complete-Frame laws, private public-facade clients
+  (including the exact padding bridge) and complete controls. The raw immutable
+  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
+  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
+  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
+  open. No Core literal, global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
-  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  actual frame creation and CALL/CREATE depth proofs remain open. Raw
   VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
   gate follows from this literal alone.
 
@@ -2879,7 +3185,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Raw GasCosts data is supplied:** §3/§5/§7 own the exact class-plus-seven-BLS 144-field boundary, source-shaped types and two discharged ordinary ext/eta laws. Universal constructor/public-law and selected-cost charge clients supply the local data seam; no pinned values, defaults, instances, factory or supported-policy predicate is supplied.
 - **B8 pricing and specialization remain partial:** MODEXP floor500/formula classification, module-derived maximum placement/checked-U64 range, separate StateGasCosts representation, BLS executable index/denominator support, EthFork literal/alias/derived-field factory and config/consumer coherence remain open. They block the corresponding claims, not the supplied raw record. No extra field, unsupported-config completion or Memory-pricing policy choice follows.
-- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
+- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, seven operations and ten ordinary laws (Q82). Actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.

@@ -167,6 +167,21 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthField`](modules/EthField.md)
 
+- **Bounded supplied status.** §3/§7 discharge the reference carrier's initial five
+  operations/six laws/three instance families and basic add/sub/neg/mul/isZero, five
+  observer laws and four delegating operator instances, plus natural pow/toNat_pow and
+  its delegating HPow instance, plus canonical sgn0/sgn0_eq and checked
+  ofBytesBE?/ofBytesBE?_eq_some_iff, plus the Q86 graph-specified inverse inv0 with its
+  five PrimeFieldRef laws and two EuclideanCoefficient graph laws, plus reference
+  div/toNat_div/direct Div (exactly three authored declarations, preserving every
+  zero/nonunit result); private controls and clients cover those slices. The eight exact
+  R1 natural moduli are supplied separately; concrete-field instances/aliases,
+  convenience aliases, byte encoding and paired roundtrip/size laws, powMod,
+  executable/tower inverse, Euler/sqrt, towers, executable PrimeField/Montgomery and
+  their bridges remain unimplemented. No D6 source choice, primality/Mathlib result,
+  replacement/C1–C4 measurement, whole-module, precompile, signature, guest or EEST
+  readiness claim follows.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Montgomery backend not yet in the core.** `W12` (12×32, the same carry-preserving template,
@@ -260,12 +275,48 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthCodec`](modules/EthCodec.md)
 
+- **Local count recovery (Q87) supplied; decoder/inverse still open.** Exactly
+  the predicate and complete ordinary iff, structural actual-child recursion,
+  45 raw tag pairs/eight semantic groups and ten symbolic public-law clients are
+  supplied (§3/§4/§7). The future inverse domain is resolved as Serializable plus
+  CountRecoverable; no decoder, inverse theorem, success-domain characterization,
+  completion or diagnostic/failure-order law is supplied. Adopted bounded source
+  evidence retains actual routes, historical source-root metadata and nominal
+  internal-observer limits (§3). Actual source/class/name/coercion/backing/cache/
+  stream/host and visited `uint32(scope)` premises, universal refinement,
+  schemas/adapters/Rootable/request support, O2/O12/O13, EEST/guest/security and
+  resource/C1–C4/readiness remain open.
+
+- **Generic schema forward seam (Q81) supplied; certification remains external.**
+  The five metadata fields, two direct forward wrappers and complete ordinary
+  raw-call equations, with private facade signatures/clients and full small byte/root
+  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
+  certification is supplied. All three per-instance §7 obligations remain required;
+  raw support, source class/name/coercion/reflection refinement, typed decoding,
+  inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
+  The private output consumer is unchanged. No guest/resource/security/cost or
+  readiness gate closes through this generic seam.
+
+- **Forward serialization (Q80) supplied; actual bridges open.** The exact four
+  declarations, self-contained inline-recursion support law, actual-length/full
+  reference and cached-planner equality, structural termination, constructive
+  certificates, proof independence/determination, facade clients and 61 literal/native
+  controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
+  literals; six mathematical cases are separately labelled. Actual class/name/
+  coercion/backing/cache/endian/host premises, universal source refinement and
+  source diagnostic/failure/resource order remain open. Actual certified schema
+  instances and their consumers,
+  inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
+  domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
+  throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
+  obligations are unchanged.
+
 - **Computational raw roots (Q79) supplied; actual bridges open.** The operation,
   complete ordinary equation, actual-value termination, local witness availability
   and whole-law determination, with private rootP0–rootP9/rootC0–rootC9 complete
   controls/clients, are discharged. Actual source class/name/reflection/coercion/
   backing/cache/hash/global/alias/endian/host and executed-path zero-table premises,
-  decoder view→dataclass→fresh-view support, typed SszSchema/root adapters, whole
+  decoder view→dataclass→fresh-view support, actual typed schema/root refinement, whole
   source construction/failure/resource order, O2/O12/O13, request binding/external
   anchors, EEST/guest/security, C1–C4 and readiness remain open. Finite source-vector
   evidence is bounded and distinguishes mathematical-only cases; it supplies no
@@ -289,8 +340,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   The supplied SSZ interfaces are raw vocabulary, structural sizing, nameless WF
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
-  Q78 local root support and the Q79 computational raw root; other SSZ semantic
-  interfaces remain unimplemented.
+  Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
+  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
+  remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -301,8 +353,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   are supplied, together with raw `Ssz.pack`, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
-  public equations;
-  schema, typed codec/root operations and error producers remain unimplemented.
+  public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
+  actual schema instances, typed decoding and error producers remain unimplemented.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -380,9 +432,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   inheritance/reflection/class admission (including `more` at capacity 256) remain
   source-mapping premises. Payload-only WT, its constructor law, 130 signed
   controls and 16 public-law client groups are supplied; WT⇒WF is deliberately
-  false and consumers needing WF supply it separately. Count/uint256 backing, uint32 offsets,
-  scope, cache and codec/root domains remain open. Zero-fixed-element
-  list serialization/inverse premises and total decoder completion remain open.
+  false and consumers needing WF supply it separately. Count/uint256 backing,
+  scope, cache and actual codec/root bridges remain open. Q80 supplies forward
+  offset support and serialization separately; Q87 local count recovery
+  is supplied separately; its inverse theorem and total decoder completion remain open.
   Some fixed-zero schemas remain WF; positivity belongs locally at division/recovery.
   No source execution, class admission, runtime validator, error priority,
   acceptance cap, codec/root or larger readiness/resource/cost gate is supplied
@@ -392,12 +445,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   that every encoding decodes. Zero-width fixed-element lists obstruct a generic
   inverse argument in the pinned dependency: an offset bound `< 2^32` alone is
   insufficient, and byte-slice decrease is not universal around zero-byte children.
-  The appropriate serialization domain and total completion remain open; no fix is
-  supplied here. Future differential round-trip coverage must include every
+  Q80 selects the forward domain; Q87 supplies the local inverse premise. The
+  inverse theorem and total decoder completion remain open. Future differential round-trip coverage must include every
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
-- **SSZ encode partiality at 2^32** (S6) is stated but has no consumer theorem using the hypothesis. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
+- **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3); its concrete output consumer is EthStateless `serializeStatelessOutput` (`STFSpec/Stateless/Output.lean`), and the guest-level output theorem remains open. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
 - **Reference evidence:** the D1r fuzzing ran under 0.1.7 (byte-identical `rlp.py`); a rerun under the locked 0.1.6 would remove the version caveat.
@@ -411,7 +464,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   internal WriteOrder support, raw MathState with its pure observers and structural
   WF, raw BlockDiff values, raw mathematical application, the raw four-operation
   PreState carrier, coarse nominal WitnessItem/WitnessError and StateError values,
-  bounded structural preservation and supplied-record ModelsLookups are supplied
+  bounded structural preservation, supplied-record ModelsLookups and opaque witness
+  ancestor selection are supplied
   (§3/§5/§7). The owning laws and test rows specify their domains.
   MathState mutation, diff WF/history/reachable preservation, actual provider operations/
   contextual tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -440,7 +494,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability claims** (R15 assert; offset `0` in `get_witness_ancestors`) are inferences.
+- **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation:** `HashSet` expected bounds and adversarial hash distributions are unmeasured (ARCHITECTURE §5.0); sorted output for the BAL is `EthBlock`'s, but the hand-off type is not fixed.
 - **`Std` costs:** `ExtTreeMap` has no proved height/cost theorem; incorporate's merge relies on a fold whose cost is analytical only.
@@ -596,6 +650,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
+  private complete-payload construction/elimination clients and guards. Actual
+  exceptional gas consumption, revert settlement, producers/error priority, frame/runner
+  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
+  existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
+  clients and full-value controls. No history/admission/default/proof field or extra
+  public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
+  construction, source context coherence, intended oldest-first/at-most-256 history and
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open.
+
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
@@ -606,21 +674,42 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
 
+- **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
+  `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
+  `STFSpec.Vm.Core` would see an ambiguous name; such files should qualify it and add a
+  bridge lemma if they need both.
+
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
-  Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
-  StepResult/control and parent execution integration, F8 address transport/emitter,
-  handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
+  Raw FrameCtx/assembled Evm are supplied separately; actual creation, context/code
+  agreement, StepResult/control and parent execution integration, F8 address transport
+  and actual producer emission, handler effects, gas/fuel/resource and
+  VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
+- **Raw immutable context and assembled Evm are supplied:** §3/§5/§7 own the exact
+  fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
+  private complete generic clients and boundary controls. Raw config limits,
+  code/map choices, supplied addresses, environments, frame and flags remain
+  independent. Actual creation/inheritance, source/config/history/code coherence,
+  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
+  default, instance or global coherence/WF predicate is supplied.
 
-- **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
+- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
+  operation and exactly two ordinary complete-Frame laws, private public-facade clients
+  (including the exact padding bridge) and complete controls. The raw immutable
+  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
+  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
+  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
+  open. No Core literal, global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
-  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  actual frame creation and CALL/CREATE depth proofs remain open. Raw
   VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
   gate follows from this literal alone.
 
@@ -678,7 +767,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw GasCosts data is supplied:** §3/§5/§7 own the exact class-plus-seven-BLS 144-field boundary, source-shaped types and two discharged ordinary ext/eta laws. Universal constructor/public-law and selected-cost charge clients supply the local data seam; no pinned values, defaults, instances, factory or supported-policy predicate is supplied.
 - **B8 pricing and specialization remain partial:** MODEXP floor500/formula classification, module-derived maximum placement/checked-U64 range, separate StateGasCosts representation, BLS executable index/denominator support, EthFork literal/alias/derived-field factory and config/consumer coherence remain open. They block the corresponding claims, not the supplied raw record. No extra field, unsupported-config completion or Memory-pricing policy choice follows.
-- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, six operations and eight ordinary laws. Swap all-input behavior, actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
+- **Bounded Stack is partially supplied:** §3/§7 own the private bounded carrier, seven operations and ten ordinary laws (Q82). Actual handler/frame ownership and compiled allocation/C1–C4 checks remain open; no whole VM or guest gate follows.
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
@@ -714,15 +803,23 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
-- **Generic construction (Q83):** Core supplies the raw result/function/MeterOk/
-  certified-table carriers, action factorization and the exact Id law (Core §3/§5/§7).
-  `toPrecompile` equations, per-entry source/normal-form proofs and the
-  meaning of equality up to the halt constructor remain open. A map-shaped adapter
-  needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
-  alone does not); bind-pure/map agreement needs its own law. Public constructor
-  assumptions, erasure-first computation, observers and transformer bridges remain
-  unselected. The supplied four-field Monad-only table carrier does not construct
-  this installed table.
+- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
+  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
+  comparisons do not close precompile, host, security, resource or whole-guest gates.
+
+- **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
+  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:69`,
+  and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
+  dependency. A shared lower owner for the tag is not yet chosen.
+
+- **Generic construction (Q83):** Core supplies only the raw result/function/MeterOk/
+  certified-table carriers (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7).
+  `toPrecompile` equations, per-entry source/normal-form proofs and the meaning of
+  equality up to the halt constructor remain open. A map-shaped adapter needs actual
+  local map-pure/composition laws (`LawfulApplicative` suffices, Monad alone does not);
+  bind-pure/map agreement needs its own law. Public constructor assumptions,
+  erasure-first computation, observers and transformer bridges remain unselected. The
+  supplied four-field Monad-only table carrier does not construct this installed table.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -756,41 +853,43 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
-- **Precompile interpretation (Q83):** Core supplies the raw shared carriers,
-  transparent MeterOk, logical action factorization and exact Id reduction
-  (Core §3/§5/§7). The table action stays in base m; actual lifting through
-  VmM/RunM and their transformer/error order requires an explicit local bridge.
-  Dispatch, separate halt settlement and potential proofs remain open. This adds
-  no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
+  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
+  table action stays in base m; actual lifting through VmM/RunM and their
+  transformer/error order requires an explicit local bridge. Dispatch, separate halt
+  settlement and potential proofs remain open. This adds no observer API, base-error
+  reinterpretation, F11 choice or G2–G7 claim.
 
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
-- **F8 immutable address transport:** raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no Lean definition exists. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the three selectable budget declarations and the nominal entry-kind carrier of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:318` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:285` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
 - **`move_ether` preconditions**: the sender-balance assertion in EthState's `move_ether` is unreachable only because of preflight checks (CALL/CREATE) and transaction validation (top level). EthVmRunner owns the CALL/CREATE caller proof; EthBlock owns the top-level admission proof; both consume EthState's checked `moveEther` contract. Record both proofs before treating the assertion as unreachable.
 - **System transactions** (`fork.py:770–822`) run with 30 M execution gas and a 16-SSTORE reservoir; `phiBudget` gives ≈ 3·10⁷ fuel, which is fine as a bound but the error path (`fork.py:757–760` raises on a failed system call) belongs to EthBlock.
 - **Trace schema** (ARCHITECTURE §12) is undecided; the event order of `OpStart`/`OpEnd`/`OpException`/`EvmStop` is specified only as "EELS order".
-- **The `Exec` relation** is not yet defined; its exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
+- **The `Exec` relation** is not yet defined; the supplied `ExecKind` carrier settles only its entry-tag vocabulary; `Exec`'s exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
 - **EIP-8037 cross-frame refunds** (`test_state_gas_cross_frame_refund.py`) exercise the repay path whose Φ-neutrality is only source-checked.
 - **Pre-dispatch vs dispatch rollback** (delegations kept after a dispatched failure, reverted after a preparation failure) is specified from comments and code (`gas.py:471–502`, `interpreter.py:276–282`); no targeted `#guard` exists yet.
 
 ### [`EthBlock`](modules/EthBlock.md)
 
-- **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing
-  and the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and
-  Core's logical predicate/Id law do not construct the installed table or discharge
+- **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
+
+- **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing and
+  the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and the Q83
+  predicate and Id law (EthVmCore §7) do not construct the installed table or discharge
   actual effect/settlement bridges.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** the raw three-field `BlockParams` is supplied (§3), with all five R-F1 source quantities owned by EthFork. Actual size/base-fee consumers, division safety, full `BlockConfig`, configuration coherence and index adequacy remain open.
-- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); concrete R-F2 values, actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
+- **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
 - **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
@@ -813,28 +912,30 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthFork`](modules/EthFork.md)
 
-- **Precompile construction (Q83):** the supplied raw Core carriers and exact
-  predicate/Id law (Core §3/§5/§7) supply no installed table, adapter equation,
-  constructor law packaging or concrete effect bridge. Generic construction
-  remains open at the unchanged Monad/KeccakQuery
-  sketch; stronger public assumptions need a separate approved proposal. Preserve
-  the same table through BlockConfig.runnerEnv; settlement remains Runner-owned.
+- **Precompile construction (Q83):** the supplied raw Core carriers (Core §3/§5/§7) and
+  the Q83 predicate and Id law (EthVmCore §7) supply no installed table, adapter
+  equation, constructor law packaging or concrete effect bridge. Generic construction
+  remains open at the unchanged Monad/KeccakQuery sketch; stronger public assumptions
+  need a separate approved proposal. Preserve the same table through
+  BlockConfig.runnerEnv; settlement remains Runner-owned.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
-- **System address assembly (F8):** the concrete R-F2 value, full systemAddrs/config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
+- **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
 - **Transition fixtures** `for_bpo2toamsterdamattime15k`: pre-fork blocks are bpo2, which is not instantiated (D3). Their `blockchain_tests` form cannot be run in full by `EthConformance`, and the runnable subset is unlisted. The parent-header fallback decodes a bpo2 header as a bpo5 `PrevHeader`; the shapes are assumed identical [I, not checked for bpo2].
 - **R-F4 stored VM values are supplied:** §3 owns the exact bounded implementation, `rfl` depth law and complete literal/native/parser controls. Remaining BlockConfig values, precompile table, state amount-provider observations, module-derived blob maximum placement, actual FrameCtx/consumer coherence, behavioural termination and guest/EEST/resource/cost gates stay open.
-- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule.
+- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule. The acquisition tooling is outside this repository and has no `--check` mode; promoting a catalogue-versus-pinned-EELS check to `scripts/` and CI is outstanding.
 - The **minimum transaction encoding size** needed for law 3 is not established.
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
 
 ### [`EthStateless`](modules/EthStateless.md)
+
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
