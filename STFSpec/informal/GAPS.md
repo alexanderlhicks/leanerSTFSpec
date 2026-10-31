@@ -657,11 +657,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
-  BlockEnvironment and sixteen-field TransactionEnvironment, private complete
-  generic clients and full-value controls. No history/admission/default/proof
-  field or extra public law is added. Actual FrameCtx/Evm/world assembly, source
-  context coherence, intended oldest-first/at-most-256 history and lookup,
-  capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
+  clients and full-value controls. No history/admission/default/proof field or extra
+  public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
+  construction, source context coherence, intended oldest-first/at-most-256 history and
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
@@ -680,24 +680,34 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
-  Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
-  StepResult/control and parent execution integration, F8 address transport and actual producer emission,
-  handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
+  Raw FrameCtx/assembled Evm are supplied separately; actual creation, context/code
+  agreement, StepResult/control and parent execution integration, F8 address transport
+  and actual producer emission, handler effects, gas/fuel/resource and
+  VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
+
+- **Raw immutable context and assembled Evm are supplied:** §3/§5/§7 own the exact
+  fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
+  private complete generic clients and boundary controls. Raw config limits,
+  code/map choices, supplied addresses, environments, frame and flags remain
+  independent. Actual creation/inheritance, source/config/history/code coherence,
+  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
+  default, instance or global coherence/WF predicate is supplied.
 
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
   operation and exactly two ordinary complete-Frame laws, private public-facade clients
-  (including the exact padding bridge) and complete controls. Immutable
-  `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
-  transfer/static/gas ordering, intended Fork→Block→Runner construction and child
-  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling, F11
-  settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core literal,
-  global admission predicate or new runtime policy is introduced.
+  (including the exact padding bridge) and complete controls. The raw immutable
+  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
+  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
+  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
+  open. No Core literal, global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization,
-  actual FrameCtx construction and CALL/CREATE depth proofs remain open. Raw
+  actual frame creation and CALL/CREATE depth proofs remain open. Raw
   VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
   gate follows from this literal alone.
 

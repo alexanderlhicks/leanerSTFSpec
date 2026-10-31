@@ -219,6 +219,8 @@ import STFSpec.Conformance.Vm.Core.FrameCallerProofs
 import STFSpec.Conformance.Vm.Core.FrameGuards
 import STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs
 import STFSpec.Conformance.Vm.Core.EnvironmentsGuards
+import STFSpec.Conformance.Vm.Core.ContextCallerProofs
+import STFSpec.Conformance.Vm.Core.ContextGuards
 import STFSpec.Conformance.Vm.Core.StackSwapCallerProofs
 import STFSpec.Conformance.Vm.Core.StackSwapGuards
 import STFSpec.Conformance.Vm.Core.StackCallerProofs
