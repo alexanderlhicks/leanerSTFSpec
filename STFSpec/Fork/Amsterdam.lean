@@ -9,7 +9,7 @@ import STFSpec.Vm.Core.Config
 import STFSpec.Vm.Core.Limits
 
 /-!
-# Amsterdam block, system and transaction parameters, VM pricing and limits
+# Amsterdam system, block and transaction parameters, VM pricing and limits
 
 Library `EthFork`. Complete fixed values for the Block- and Core-owned raw records, in
 pinned EELS dependency order. Raw policy fields remain independent in their owning modules.
@@ -19,8 +19,8 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 namespace STFSpec.Fork.Amsterdam
 
 /-- Complete Amsterdam system addresses and independent call budgets; EELS
-`src/ethereum/forks/amsterdam/fork.py:117–141` and
-`src/ethereum/forks/amsterdam/requests.py:49` at the pin.
+`src/ethereum/forks/amsterdam/fork.py:117–143` and
+`src/ethereum/forks/amsterdam/requests.py:49–51` at the pin.
 The system caller also matches `src/ethereum/forks/amsterdam/vm/__init__.py:41–43`.
 This is fixed data; configuration assembly and address transport are separate. -/
 def systemAddrs : Block.SystemAddrs where

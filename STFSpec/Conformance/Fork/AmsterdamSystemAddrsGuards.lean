@@ -15,7 +15,7 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§3–4.
 
 open STFSpec STFSpec.Fork.Amsterdam
 
-private def value_type : Block.SystemAddrs := systemAddrs
+private def valueType : Block.SystemAddrs := systemAddrs
 
 private theorem complete_value : systemAddrs = Block.SystemAddrs.mk
     (Base.Address.ofNat 0xfffffffffffffffffffffffffffffffffffffffe)

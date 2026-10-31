@@ -19,7 +19,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 - **R-F1 (block parameters)** (`fork.py:114–146`):
   - `baseFeeMaxChangeDenominator = 8`, `elasticityMultiplier = 2`;
   - Private source operands `MAX_BLOCK_SIZE = 10 485 760` and `SAFETY_MARGIN = 2 097 152` define `blockParams.maxRlpBlockSize = MAX_BLOCK_SIZE − SAFETY_MARGIN = 8 388 608` (EIP-7934). Use the actual operands' subtraction. The three public fields are exactly EthBlock §5; the operands are private Fork definitions, not extra fields or public accessors.
-- **R-F2 (system addresses and system-call budget)** (`fork.py:117–141`; `requests.py:49`; matching VM `SYSTEM_ADDRESS` at `vm/__init__.py:41–43`). The addresses must be byte-exact:
+- **R-F2 (system addresses and system-call budget)** (`fork.py:117–143`; `requests.py:49–51`; matching VM `SYSTEM_ADDRESS` at `vm/__init__.py:41–43`). The addresses must be byte-exact:
   - `systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe`;
   - `beaconRoots = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02` (EIP-4788);
   - `historyStorage = 0x0000F90827F1C53a10cb7A02335B175320002935` (EIP-2935);
@@ -139,7 +139,9 @@ No public helper, law, default, instance or coherence predicate is added.
 The private controls import only the public Fork and Block facades, check the exact
 provider type and complete record equality, and observe each of the 160 address
 bytes as a decimal list, including leading zeros. The two Nat budgets are checked
-independently and together; no reservoir budget is derived. Source comparison binds
+independently and together; no reservoir budget is derived. Those guards are the
+in-tree evidence. The source-side evidence below is out of tree: nothing for it is
+committed, so it cannot be reproduced from this repository. Source comparison binds
 all ten original globals and the matching VM system address under normal and
 optimized Python. The full actual interpreted target table retains provider field
 order, all twenty bytes per address and both budgets. The frozen expectation is
@@ -210,9 +212,9 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - the transition set `for_bpo2toamsterdamattime15k/*` (15 areas), with a pre-fork parent header.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
-  - R-F2 has private public-facade exact type/complete record controls, all 160 actual address bytes and each independent budget (§3); interpreted full-table comparison retains field order. Consumer controls remain separate.
+  - R-F2 has private public-facade exact type/complete record controls, all 160 actual address bytes and each independent budget (§3); the out-of-tree interpreted full-table comparison retains field order. Consumer controls remain separate.
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. The separate state amount observations remain to be implemented and checked.
-  - R-F2 byte contents are supplied above. Hexadecimal decoder case-insensitivity and both config.system/config.runnerEnv projections (F8) remain future checks. Actual context/child/producer controls remain with Runner/Instructions/Core.
+  - R-F2 byte contents are supplied above. Both config.system/config.runnerEnv projections (F8) remain future checks. Actual context/child/producer controls remain with Runner/Instructions/Core.
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.

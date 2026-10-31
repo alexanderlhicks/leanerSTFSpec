@@ -197,8 +197,8 @@ EthBlock/EthFork §5/§7, with ownership in DECISIONS F8. The literal stays in F
 immutable RunnerEnv/FrameCtx transport and the address argument after Frame in
 emitTransferLog leave VmConfig and request/handler/runner parameter lists unchanged.
 The helper's zero identity and complete chronological nonzero Frame/log equations
-quantify arbitrary local address/topic. Actual creation, child inheritance and both
-producer source refinements and full config assembly remain unimplemented.
+quantify arbitrary local address/topic. Actual creation, child inheritance, both producer
+source refinements and full config assembly remain unimplemented.
 EthFork §3 supplies the complete concrete systemAddrs value and private controls.
 Future controls independently vary address/topic through user/system entry,
 nested CALL/CREATE and SELFDESTRUCT, retaining guard/effect order and log discard.
