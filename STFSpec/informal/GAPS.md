@@ -650,11 +650,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
-- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert
-  carrier, private complete-payload construction/elimination clients and guards.
-  Actual exceptional gas consumption, revert settlement, producers/error priority,
-  frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
-  open with their existing owners. No gas, resource or VM/guest readiness result follows.
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
+  private complete-payload construction/elimination clients and guards. Actual
+  exceptional gas consumption, revert settlement, producers/error priority, frame/runner
+  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
+  existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
@@ -666,7 +666,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single
   supplied-address operation and exactly two ordinary complete-Frame laws, private
-  exact padding bridge/public-facade clients and complete controls. Immutable
+  public-facade clients (including the exact padding bridge) and complete controls. Immutable
   `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
   transfer/static/gas ordering, intended Fork→Block→Runner construction and child
   inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling,

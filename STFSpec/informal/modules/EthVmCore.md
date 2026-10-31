@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof.
@@ -94,13 +94,13 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
-| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
+| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and supplied `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
 | `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `Frame`; `FrameCtx` and assembled `Evm` remain open | R-ENV-3 mutable partition only; exact row below |
 | `forks/amsterdam/vm/__init__.py::incorporate_child` | 194 | `incorporateChild` | total; asserts → preconditions |
-| `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253 | `emitTransferLog` | EIP-7708 |
+| `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253–289 | `emitTransferLog` | EIP-7708; supplied, row below |
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
 | `forks/amsterdam/vm/gas.py::*` | 48–1243 | `GasCosts`, `StateGasCosts`, `GasMeter` and one function per EELS function (§5) | all 43 items; blob/capacity/settlement functions take plain numbers instead of `Header`/`Transaction`/`BlockOutput` |
 | `forks/amsterdam/vm/memory.py::*` | 20–83 | `Memory.write`, `Memory.readBytes`, `bufferRead` | |
@@ -126,9 +126,13 @@ observes all nine fields, nontrivial checked Stack/Memory, all six independent m
 fields including refund −17, pc above U256, distinct sets and complete return bytes.
 The zero law preserves actual raw rope shape; chronology uses public rope equations.
 
-The local `transfer_log_differential.py` generates and executes a complete interpreted
-Lean producer through the public Core facade. It binds all 32 authenticated finite
-SOURCE inputs/results and eight synthetic arbitrary-address/topic cases, retaining
+The committed `transfer_log_differential.py` generates and executes a complete
+interpreted Lean producer through the public Core facade. It needs a SOURCE catalogue
+and two SOURCE captures as inputs. SOURCE is an out-of-tree harness that ran the pinned
+EELS `emit_transfer_log` under normal and optimized Python; the catalogue, both
+captures and the harness are out of tree: nothing for them is committed, so the
+comparison cannot be reproduced from this repository. With those inputs it binds all
+32 authenticated finite SOURCE inputs/results and eight synthetic arbitrary-address/topic cases, retaining
 all nine Frame models, every log byte and the input after the call. The SOURCE
 catalogue hash is `fad89d538c7e6b9e188432de31564e4fecd90d8c6ba698af49f1f69b432e4779`;
 its original address/topic instantiation is coherent only at the pinned values.
@@ -138,12 +142,12 @@ three finite-set arrays compare by membership, with slot-pair coordinates intact
 logs/topics/bytes remain ordered. Memory is constructed with public aligned
 expansion/write and local proofs; failed construction fails the producer.
 
-Dated finite evidence (2026-10-29): 32 original observations and 56 controls per
-normal/optimized SOURCE mode passed the qualified semantic projection, with 4015
-inputs unchanged. SOURCE guidance preparation was incomplete before freezing;
-retrospective snapshots do not establish guidance-first chronology. All 32 original
-literal ordered-JSON mismatches remain failed: the finite-membership adapter was
-added after freezing. The implementation's normal and `-O` local comparator runs
+Dated out-of-tree evidence (2026-10-29): 32 original observations and 56 controls
+per normal/optimized SOURCE mode passed the qualified semantic projection, with 4015
+inputs unchanged. The SOURCE guidance and the finite-membership adapter were
+finalised only after the catalogue was frozen, so all 32 literal ordered-JSON
+comparisons still fail and only the qualified projection passes. The
+implementation's normal and `-O` local comparator runs
 each check the 40 complete interpreted target cases and strict negative controls,
 rejecting bool/int and float/int aliases. Local SHA-256 input identity is not
 publisher authenticity. Prior source Log data is bytes and emitted data is Bytes32;
@@ -151,11 +155,16 @@ only complete byte content corresponds to Base.Bytes. Source context, control an
 parent fields remain outside Frame. This is finite coherent-source evidence, not a
 generic source theorem, runtime-class, ownership, native-cost or whole-Evm result.
 
-Reproduce using the exact authenticated external captures (each output directory
-must be fresh):
+The in-tree guards and clients reproduce with:
 
 ```sh
 lake build STFSpec.Conformance.Vm.Core.TransferLogCallerProofs STFSpec.Conformance.Vm.Core.TransferLogGuards --wfail
+```
+
+The out-of-tree comparison ran as follows; it needs the uncommitted captures, and
+each output directory must be fresh:
+
+```sh
 python3 -B STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-target
 python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-optimized-target
 ```
@@ -173,14 +182,14 @@ membership reasoning; no competing comparison, model or set law is introduced.
 Private generic clients check every stored field and retain the complete Stack,
 Memory, six-field GasMeter, raw log shape and independent deletion/warm sets.
 
-The finite controls construct two stack words through checked successful pushes,
-write four mixed bytes into aligned 32-byte memory, retain duplicate full logs,
-use distinct deletion/warm sets and address/slot pairs, and observe all nine fields
-through complete public models. They include all six independent meter fields,
-refund −17, state reservoir above baseline, pc `2^300 + 19`, duplicate insertion,
-set union and both address-first and same-address slot distinctions. A failed
-construction fails its proof obligation; it never selects a fallback or skips.
-Reproduce the controls and clients with:
+The finite controls construct two stack words through checked successful pushes, write
+four mixed bytes into aligned 32-byte memory, retain duplicate full logs, use distinct
+deletion/warm sets and address/slot pairs, and observe all nine fields through complete
+public models. They include all six independent meter fields, refund −17, state
+reservoir above baseline, pc `2^300 + 19`, duplicate insertion, set union and both
+address-first and same-address slot distinctions. A failed construction fails its proof
+obligation; it never selects a fallback or skips. Reproduce the controls and clients
+with:
 
 ```sh
 lake build STFSpec.Conformance.Vm.Core.FrameCallerProofs STFSpec.Conformance.Vm.Core.FrameGuards --wfail
@@ -2833,11 +2842,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert
-  carrier, private complete-payload construction/elimination clients and guards.
-  Actual exceptional gas consumption, revert settlement, producers/error priority,
-  frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
-  open with their existing owners. No gas, resource or VM/guest readiness result follows.
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
+  private complete-payload construction/elimination clients and guards. Actual
+  exceptional gas consumption, revert settlement, producers/error priority, frame/runner
+  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
+  existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
@@ -2849,7 +2858,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single
   supplied-address operation and exactly two ordinary complete-Frame laws, private
-  exact padding bridge/public-facade clients and complete controls. Immutable
+  public-facade clients (including the exact padding bridge) and complete controls. Immutable
   `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
   transfer/static/gas ordering, intended Fork→Block→Runner construction and child
   inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling,

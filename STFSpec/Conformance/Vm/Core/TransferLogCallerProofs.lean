@@ -9,12 +9,50 @@ import STFSpec.Vm.Core
 
 Library `EthConformance`. Private generic clients derive complete frame identity,
 chronological full-log observations and every unchanged field from the two public
-whole-Frame laws. No foreign container representation is unfolded.
+whole-Frame laws, and prove that the numeric topic spelling is the source `pad32`. No foreign container representation is unfolded.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/4/7.
 -/
 
 namespace STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 open STFSpec.Base STFSpec.Vm.Core
+
+-- The numeric topic spelling is exact twelve-zero-byte left-padding, through public Base laws.
+private theorem padded_topic_exists (sender : Address) :
+    ∃ h : Hash32, h.toBytes = Bytes.leftPadZero sender.toBytes 32 := by
+  have hs : (Hash32.ofBytes? (Bytes.leftPadZero sender.toBytes 32)).isSome := by
+    apply Option.isSome_iff_ne_none.mpr
+    intro hn
+    have bad := Hash32.ofBytes?_eq_none_iff.mp hn
+    apply bad
+    rw [Bytes.size_leftPadZero, Address.size_toBytes]
+    decide
+  refine ⟨(Hash32.ofBytes? (Bytes.leftPadZero sender.toBytes 32)).get hs, ?_⟩
+  exact (Hash32.ofBytes?_eq_some_iff.mp (Option.some_get hs).symm).2
+
+private theorem fold_zero_prefix (n : Nat) :
+    (List.replicate n (0 : UInt8)).foldl (fun acc b ↦ 256 * acc + b.toNat) 0 = 0 := by
+  induction n with
+  | zero => rfl
+  | succ n ih => simpa only [List.replicate_succ, List.foldl_cons, UInt8.toNat_zero,
+      Nat.mul_zero, Nat.zero_add] using ih
+
+private theorem numeric_topic_toBytes (sender : Address) :
+    (Hash32.ofBytes32 sender.toU256.toBeBytes32).toBytes =
+      Bytes.leftPadZero sender.toBytes 32 := by
+  obtain ⟨padded, hpadded⟩ := padded_topic_exists sender
+  have hp : padded.toNat = sender.toNat := by
+    rw [Hash32.toNat_eq_fold, hpadded, Bytes.toList_leftPadZero,
+      Address.size_toBytes, List.foldl_append, fold_zero_prefix,
+      ← Address.toNat_eq_fold]
+  have he : Hash32.ofBytes32 sender.toU256.toBeBytes32 = padded := by
+    apply Hash32.toNat_inj.mp
+    rw [Hash32.toNat_ofBytes32, U256.toNat_toBeBytes32, Address.toNat_toU256, hp]
+  rw [he, hpadded]
+
+private theorem numeric_topic_full_model (sender : Address) :
+    (Hash32.ofBytes32 sender.toU256.toBeBytes32).toBytes.toList =
+      List.replicate 12 0 ++ sender.toBytes.toList := by
+  rw [numeric_topic_toBytes, Bytes.toList_leftPadZero, Address.size_toBytes]
 
 private theorem zero_complete_frame (f : Frame) (addr : Address) (topic : Hash32)
     (sender recipient : Address) :

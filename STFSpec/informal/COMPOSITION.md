@@ -94,7 +94,7 @@ laws on arbitrary raw frames and supplied address/topic. Zero returns the actual
 frame; nonzero updates only logs through public append/singleton leaf, preserving
 full ordered bytes and occurrences, including equal parties. Chronology and each
 unchanged-field fact follow through private public-facade clients. The finite
-SOURCE binding retains its explicit bottom-first Stack adapter and three finite-set
+out-of-tree SOURCE binding (not reproducible from this repository) retains its explicit bottom-first Stack adapter and three finite-set
 membership adapters, without literal-JSON or whole source-Evm agreement.
 
 Future Runner/SELFDESTRUCT producers must supply `ctx.systemAddress` and the existing

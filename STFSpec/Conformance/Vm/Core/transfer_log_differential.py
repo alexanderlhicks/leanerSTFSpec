@@ -380,7 +380,9 @@ def parser_controls(rows, cases):
     mutate(["amount"], float(rows[2]["amount"]))
     mutate(["extra"], 0)
     mutants += [rows[:-1], rows[::-1], rows + rows[:1]]
+    original = json.dumps(rows, sort_keys=True)
     for m in mutants:
+        require(json.dumps(m, sort_keys=True) != original, "degenerate negative control")
         try:
             compare_target(m, cases)
         except ValueError:
@@ -397,6 +399,9 @@ def main():
     args = parser.parse_args()
     catalogue = read_json(args.source_catalogue, {CATALOGUE_SHA256})
     cases = catalogue_cases(catalogue)
+    require(len(args.source_output) == 2 and
+            {hashlib.sha256(p.read_bytes()).hexdigest() for p in args.source_output}
+            == SOURCE_SHA256, "exactly the normal and optimized source captures")
     for path in args.source_output:
         source = read_json(path, SOURCE_SHA256)
         require(source["passed"] is True, "source status")
