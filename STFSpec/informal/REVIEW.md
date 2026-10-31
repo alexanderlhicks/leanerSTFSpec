@@ -233,7 +233,7 @@ original normal/optimized streams and unchanged-producer replays, are out of tre
 not reproducible from this repository. EthField §3/§4/§7 owns the exact scope and
 evidence limits. The separate checked-reference decoder supplies exactly ByteArray
 ofBytesBE? and its complete ordinary success iff, with public-law
-rejection/range/zero/leading-zero/ positional/metadata clients. Its finite
+rejection/range/zero/leading-zero/positional/metadata clients. Its finite
 interpreted/native comparisons (out of tree) cover all 762 frozen rows (665 distinct
 inputs) under three metadata choices. Original typed KZG/BLS results retain
 assertion-mode and exact-width correspondence premises; EthField §3/§4/§7 owns these

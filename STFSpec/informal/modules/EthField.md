@@ -746,12 +746,12 @@ the ring structure, never the `val` field.
 
 **Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. Inversion splits zero from nonzero; Fermat/Euclid supplies the nonzero inverse only under primality. Exponentiation maintains accumulator * base^remaining = original^exponent through each bit step. Tower multiplication reduces polynomial products by the declared defining polynomial; coefficient-wise equality then proves correspondence with the extension model. Square-root soundness is checked by squaring the returned value; completeness and the selected sign require the particular algorithm's hypotheses. Zero needs its own case because the reference's residue predicate and sqrt convention differ there. Encoding is positional evaluation with a range check, so reduction must not silently accept a noncanonical encoded field element.
 
-**Open obligations.** The reference carrier, basic residue arithmetic, natural powers
-  canonical sign and checked byte decoding above are discharged; inverse/Euler/sqrt,
-  public powMod, encoding and executable-reference bridges stay open. Prime and
-  irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and
-  public-operation bridges remain required. The Montgomery implementation must prove
-  these same observer equations relative to the `Nat` reference.
+**Open obligations.** The reference carrier, basic residue arithmetic, natural powers,
+canonical sign and checked byte decoding above are discharged; inverse/Euler/sqrt,
+public powMod, encoding and executable-reference bridges stay open. Prime and
+irreducibility certificates, algorithm-specific sqrt completeness/sign laws, and
+public-operation bridges remain required. The Montgomery implementation must prove these
+same observer equations relative to the `Nat` reference.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -759,7 +759,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthBase`
 - **Used by:** `EthCurve` directly; `EthPairing` and `EthPrecompiles` transitively (MODEXP uses
-  `powMod`; KZG decoders use `Bls12381.Fr.ofBytesBE?`). `EthFieldMathlib` (Mathlib bridge package).
+  `powMod`; KZG decoders will use the prospective `Bls12381.Fr.ofBytesBE?` alias of the
+  supplied `ofBytesBE?`). `EthFieldMathlib` (Mathlib bridge package).
 - **Seams.** Consumes the public `Bytes.ofByteArray`/`Uint.ofBeBytes` providers for the
   supplied reference decoder; prospective consumers also use `ByteArray`/`Bytes32`
   and `U256.toNat`/`ofNat` conversions. Provides the `PrimeField` observer contract; guarantees every value is canonical.
