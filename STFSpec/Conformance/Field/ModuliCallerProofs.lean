@@ -1,0 +1,42 @@
+/-
+Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
+-/
+
+import STFSpec.Field
+
+/-!
+# Exact natural-modulus facade clients
+
+Library `EthConformance`. Private clients check the public Nat types and full values.
+These constants have no field-instance or primality contract.
+Spec guidance: `STFSpec/informal/modules/EthField.md` R1 and §§3–7.
+-/
+
+namespace STFSpec.Conformance.Field
+open STFSpec.Field
+
+private theorem bn254_q : (Bn254.q : Nat) =
+    21888242871839275222246405745257275088696311157297823662689037894645226208583 := rfl
+
+private theorem bn254_r : (Bn254.r : Nat) =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617 := rfl
+
+private theorem bls12381_q : (Bls12381.q : Nat) =
+    4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787 := rfl
+
+private theorem bls12381_r : (Bls12381.r : Nat) =
+    52435875175126190479447740508185965837690552500527637822603658699938581184513 := rfl
+
+private theorem secp256k1_p : (Secp256k1.p : Nat) =
+    115792089237316195423570985008687907853269984665640564039457584007908834671663 := rfl
+
+private theorem secp256k1_n : (Secp256k1.n : Nat) =
+    115792089237316195423570985008687907852837564279074904382605163141518161494337 := rfl
+
+private theorem p256_p : (P256.p : Nat) =
+    115792089210356248762697446949407573530086143415290314195533631308867097853951 := rfl
+
+private theorem p256_n : (P256.n : Nat) =
+    115792089210356248762697446949407573529996955224135760342422259061068512044369 := rfl
+
+end STFSpec.Conformance.Field

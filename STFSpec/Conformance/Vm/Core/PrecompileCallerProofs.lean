@@ -111,8 +111,8 @@ private def singleton (a : Address) : PrecompileTable Id where
     simp only [Std.ExtTreeSet.mem_insert, Std.ExtTreeSet.not_mem_empty, or_false,
       Std.LawfulEqOrd.compare_eq_iff_eq]
     by_cases h : b = a
-    · simp [h]
-    · simp [h, Ne.symm h]
+    · simp only [h, ↓reduceIte, Option.isSome_some]
+    · simp only [h, ↓reduceIte, Option.isSome_none, Bool.false_eq_true, Ne.symm h]
   meter_law b p i g h := by
     split at h
     · cases h
