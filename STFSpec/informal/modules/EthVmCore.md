@@ -98,7 +98,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
-| `forks/amsterdam/vm/__init__.py::Evm` | 153 | `structure FrameCtx`, `structure Frame`, `structure Evm` | R-ENV-3 |
+| `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `Frame`; `FrameCtx` and assembled `Evm` remain open | R-ENV-3 mutable partition only; exact row below |
 | `forks/amsterdam/vm/__init__.py::incorporate_child` | 194 | `incorporateChild` | total; asserts → preconditions |
 | `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253 | `emitTransferLog` | EIP-7708 |
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
@@ -112,6 +112,37 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 84 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 85 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 86 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
+
+### Supplied raw mutable Frame data
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:162–164,167,169,187–188,190–191`, mutable fields of `Evm` | `STFSpec.Vm.Core.AddrSet`, `SlotSet` in `STFSpec/Vm/Core/Sets.lean`; `Frame` in `STFSpec/Vm/Core/Frame.lean`, exported by the Core facade | Exactly nine independent supplied fields in §5 order. Nat pc is unrestricted; existing Stack/Memory/GasMeter/LogRope/Bytes and persistent set values are retained completely. No effects, guards, errors, defaults, derived instances or extra proof fields. | Private `FrameCallerProofs.lean` clients check complete constructor projections, reconstruction and each of nine updates with all unrelated fields retained by public raw-record reduction; both aliases use Std empty/insert/member/union laws and Base lexical slot order. `FrameGuards.lean` supplies complete nontrivial controls below. | **supplied raw data**; no whole source-Evm equivalence or execution claim |
+
+`AddrSet := Std.ExtTreeSet Address` and
+`SlotSet := Std.ExtTreeSet (Address × Bytes32)` reuse Base's existing nominal
+Address and lexical address-then-slot lawful ordering. Std's public set laws own
+membership reasoning; no competing comparison, model or set law is introduced.
+Private generic clients check every stored field and retain the complete Stack,
+Memory, six-field GasMeter, raw log shape and independent deletion/warm sets.
+
+The finite controls construct two stack words through checked successful pushes,
+write four mixed bytes into aligned 32-byte memory, retain duplicate full logs,
+use distinct deletion/warm sets and address/slot pairs, and observe all nine fields
+through complete public models. They include all six independent meter fields,
+refund −17, state reservoir above baseline, pc `2^300 + 19`, duplicate insertion,
+set union and both address-first and same-address slot distinctions. A failed
+construction fails its proof obligation; it never selects a fallback or skips.
+Reproduce the controls and clients with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.FrameCallerProofs STFSpec.Conformance.Vm.Core.FrameGuards --wfail
+```
+
+This supplies R-ENV-3's mutable data partition only. Immutable `FrameCtx`, running/
+output/error control outcomes and parent recursion remain with their existing
+owners. Actual frame creation, code/context consistency, F8 transport/emission,
+handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness remain open.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
 
@@ -1136,6 +1167,10 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
   every nested halt tag, all 256 UInt8 payloads, and complete empty, embedded-NUL,
   Unicode and 1024-character String reasons. These are carrier controls; no producer,
   gas, settlement, error adapter or source-runtime differential claim follows.
+- **Supplied raw Frame controls:** §3 owns the private construction/projection/
+  reconstruction/update/set clients in `FrameCallerProofs.lean` and the nontrivial
+  full-field guards in `FrameGuards.lean`, imported by `STFSpec.Conformance`. These
+  are carrier controls; no creation, context, control or execution claim follows.
 
 **F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
 one and maximal U256 amount, independently varied full-byte supplied address/topic,
@@ -1342,6 +1377,12 @@ actual complete records and source/runtime identities beside each fresh run.
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All public unless marked internal. Names follow EELS in lowerCamelCase.
+
+The exact two set aliases and nine-field raw `Frame` below are **supplied** through
+`STFSpec.Vm.Core`; they have no authored defaults, derived instances, public helper
+laws or additional admission/proof fields. Public constructor/projection and
+reconstruction equations reduce directly. `FrameCtx` and assembled `Evm` remain
+unimplemented. The supplied Frame makes no global meter-WF or context claim.
 
 ```lean
 -- Environments (public)
@@ -1713,11 +1754,21 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | supplied strict immutable public empty/leaf/concat tree | chronological `List Log` via `toList` | all raw shapes admitted; concat observes left before right; no mutable cache | immutable nodes; production frame ownership remains a caller obligation | append allocates one concat, O(1); workstack flatten O(expanded nodes + emitted logs), including empty/shared occurrences; finite native C3 evidence is scoped in §4 |
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
-| `AddrSet`, `SlotSet` (warm sets) | `Std.TreeSet` | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
-| `accountsToDelete` | `Std.TreeSet Address` | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
+| `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
+| `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Raw Frame carrier controls are supplied.** §3/§5 own the two persistent-set
+aliases and exact nine-field mutable record. Private generic clients verify all
+constructor projections, complete reconstruction, each field update and combined
+independent effect updates by public raw-record reduction; Std membership and Base
+lexical comparison laws provide the set boundary. The complete finite nontrivial
+controls in §3 observe every field, including all six independent meter values and
+a negative refund. There are no extra manually authored public Frame laws or raw
+admission predicates. Stack bounds and Memory alignment come from their supplied
+types; context/meter invariants and actual execution remain caller obligations.
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -2720,6 +2771,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Actual exceptional gas consumption, revert settlement, producers/error priority,
   frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
   open with their existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
+  aliases and complete nine-field raw Frame, with private generic complete-field
+  construction/reconstruction/update/set clients and nontrivial full-value controls.
+  Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
+  StepResult/control and parent execution integration, F8 address transport/emitter,
+  handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
+  No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
 - **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
 
