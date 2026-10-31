@@ -98,7 +98,8 @@ private theorem decode_observation (b : ByteArray) :
   cases he : ofBytesBE? (p := p) b with
   | none =>
     have hn := (decode_none_iff b).mp he
-    simp only [Option.map_none, ite_eq_right (show ¬ Uint.ofBeBytes (Bytes.ofByteArray b) < p from by omega)]
+    simp only [Option.map_none,
+      ite_eq_right (show ¬ Uint.ofBeBytes (Bytes.ofByteArray b) < p from by omega)]
   | some a =>
     obtain ⟨hr, hv⟩ := (ofBytesBE?_eq_some_iff b a).mp he
     simp only [Option.map_some, hv, ite_eq_left hr]

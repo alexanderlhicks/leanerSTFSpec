@@ -203,43 +203,43 @@ values and elementary widths/ranges/residues against authenticated pinned source
 No new public law, field instance, alias, primality/square-root metadata, backend,
 replacement, resource/C1–C4 or whole-module/readiness gate is discharged.
 
-The bounded initial natural-reference carrier is supplied by
-[EthField §3/§5/§7](modules/EthField.md#supplied-initial-natural-reference-carrier).
-It admits every modulus greater than one and arbitrary unread square-root metadata.
-Exactly five operations, six ordinary observer laws and actual DecidableEq/zero-default/
+The bounded initial natural-reference carrier is supplied by [EthField
+§3/§5/§7](modules/EthField.md#supplied-initial-natural-reference-carrier). It admits
+every modulus greater than one and arbitrary unread square-root metadata. Exactly five
+operations, six ordinary observer laws and actual DecidableEq/zero-default/
 canonical-Nat Repr families are supplied. Private facade-only clients derive checked
 rejection, ordinary/checked roundtrips, success preservation and equality recognition.
 The complete 42-row controls run under all three metadata choices with actual pairwise
 equality; original optimized FQ synthetic parameter-class comparisons are distinct from
 original EELS concrete-field globals, and checked admission is mathematical support with
-zero original checked-helper executions. Basic reference add/sub/neg/mul/isZero, five ordinary
-observer laws and four delegating operator instances are additionally supplied there, with
-generic signed-model/cancellation clients and complete small-pair/reducing/literal controls
-under arbitrary metadata. Its complete interpreted/native observations agree with both
-authenticated original normal/optimized streams on the independently frozen catalogue
-(EthField §4), retaining full raw constructor inputs and every named/notation result.
-The separate reference-power leaf also supplies exactly pow/toNat_pow/direct HPow,
-with an ordinary all-Nat-exponent proof, generic public-law clients, 4,863 complete
-finite controls and full 48,696-row interpreted/native comparisons per mode against
-both original streams and fresh original replays (EthField §4; those comparisons are
-out of tree and not reproducible from this repository). This admits every
-p>1 and arbitrary unread metadata, without a public powMod-zero choice.
-The separate canonical-sign leaf supplies exactly sgn0/sgn0_eq, admitting every p>1
-and arbitrary unread metadata. Public-law clients derive Boolean recognition, zero/one,
-construction parity and metadata irrelevance without equating differently parameterized
-carriers. Its 945 finite controls are checked in tree; its complete 2,298-row
-interpreted/native observations per mode, which agree with both original
-normal/optimized streams and unchanged-producer replays, are out of tree and not
-reproducible from this repository. EthField §3/§4/§7 owns the exact scope and evidence
-limits. The separate checked-reference decoder supplies exactly ByteArray ofBytesBE? and
-its complete ordinary success iff, with public-law rejection/range/zero/leading-zero/
-positional/metadata clients. Its finite interpreted/native comparisons cover all 762
-frozen inputs under three metadata choices. Original typed KZG/BLS results retain
+zero original checked-helper executions. Basic reference add/sub/neg/mul/isZero, five
+ordinary observer laws and four delegating operator instances are additionally supplied
+there, with generic signed-model/cancellation clients and complete
+small-pair/reducing/literal controls under arbitrary metadata. Its complete
+interpreted/native observations agree with both authenticated original normal/optimized
+streams on the independently frozen catalogue (EthField §4), retaining full raw
+constructor inputs and every named/notation result. The separate reference-power leaf
+also supplies exactly pow/toNat_pow/direct HPow, with an ordinary all-Nat-exponent
+proof, generic public-law clients, 4,863 complete finite controls and full 48,696-row
+interpreted/native comparisons per mode against both original streams and fresh original
+replays (EthField §4; those comparisons are out of tree and not reproducible from this
+repository). This admits every p>1 and arbitrary unread metadata, without a public
+powMod-zero choice. The separate canonical-sign leaf supplies exactly sgn0/sgn0_eq,
+admitting every p>1 and arbitrary unread metadata. Public-law clients derive Boolean
+recognition, zero/one, construction parity and metadata irrelevance without equating
+differently parameterized carriers. Its 945 finite controls are checked in tree; its
+complete 2,298-row interpreted/native observations per mode, which agree with both
+original normal/optimized streams and unchanged-producer replays, are out of tree and
+not reproducible from this repository. EthField §3/§4/§7 owns the exact scope and
+evidence limits. The separate checked-reference decoder supplies exactly ByteArray
+ofBytesBE? and its complete ordinary success iff, with public-law
+rejection/range/zero/leading-zero/ positional/metadata clients. Its finite
+interpreted/native comparisons (out of tree) cover all 762 frozen rows (665 distinct
+inputs) under three metadata choices. Original typed KZG/BLS results retain
 assertion-mode and exact-width correspondence premises; EthField §3/§4/§7 owns these
 claims and limits. Remaining field operations, executable Montgomery/D6, concrete
 aliases, byte encoding/paired laws, field/tower/Mathlib and C1–C4/replacement/guest
-gates remain open.
-This does not change the dated §6 readiness assessment.
+gates remain open. This does not change the dated §6 readiness assessment.
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
 

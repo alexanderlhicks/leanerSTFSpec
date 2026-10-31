@@ -434,7 +434,8 @@ reproduced from this repository. The in-tree checks are the 945 controls and the
 public-law clients.
 
 The checked-decoder slice adds private `ReferenceDecodeGuards.lean` literal controls
-and full facade-importing observations of the 762 independently frozen byte inputs,
+and full facade-importing observations of the 762 independently frozen labelled rows
+(665 distinct `(p, bytes)` inputs),
 each under none, some 0 and some (2^4096+17) metadata (2,286 complete rows per mode).
 Interpreted and fresh native observations compare complete IDs/groups/p/bytes/labels,
 metadata and optional natural values against independent Horner and positional-sum
@@ -444,7 +445,8 @@ long zero versus overflow, actual BLS q/r boundaries and p=2/3/4/9/17.
 
 All 97 genuine original typed wrapper inputs (10 exact-32 KZG and 87 BLS byte inputs)
 are retained from all four authenticated source streams and four fresh unchanged-producer
-replays. The other 665 inputs are mathematical-only and claim no original helper calls.
+replays. The 665 generic-labelled rows make no original-call claim (97 of those same
+inputs also have wrapper-labelled rows).
 Normal KZG gives six successes and four empty-args AssertionErrors; optimized KZG gives
 ten unreduced successes, four noncanonical. Target admission agrees with normal KZG;
 optimized agreement is asserted only for n<p, and all four outside-domain differences
@@ -460,7 +462,10 @@ Strict external full-row parsing rejects malformed framing/schema/order/count, d
 keys, floats/nonfinite numbers and Bool-as-Nat/byte/metadata/Option values in normal and
 optimized readers. These finite observations retain host bignum, loader/compiler/core
 primitive and source-domain premises; they prove no universal source-host completion,
-resource/cost/C1–C4, actual curve/precompile composition, guest or EEST claim.
+resource/cost/C1–C4, actual curve/precompile composition, guest or EEST claim. These
+interpreted/native comparisons, the source streams and replays, and their authentication
+are out of tree: nothing for them is committed, so they cannot be reproduced from this
+repository. The in-tree checks are the literal guards and the public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
