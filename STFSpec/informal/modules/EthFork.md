@@ -71,14 +71,14 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/fork.py::BASE_FEE_MAX_CHANGE_DENOMINATOR` | 114 | `STFSpec.Fork.Amsterdam.blockParams.baseFeeMaxChangeDenominator` | 8; supplied public projection |
 | `forks/amsterdam/fork.py::ELASTICITY_MULTIPLIER` | 115 | `STFSpec.Fork.Amsterdam.blockParams.elasticityMultiplier` | 2; supplied public projection |
 | `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `systemAddrs.systemAddress`, reused by `config.system.systemAddress` | `0xff…fe`; same literal as vm/__init__.py:41–43, whose source-map claim stays with EthVmCore; F8 supplies its context route |
-| `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `amsterdam.system.beaconRoots` | EIP-4788 |
-| `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `amsterdam.system.txGas` | 30 000 000 execution gas |
-| `forks/amsterdam/fork.py::SYSTEM_MAX_SSTORES_PER_CALL` | 122 | `amsterdam.system.maxSstoresPerCall` | 16; reservoir = 16 · STORAGE_SET |
-| `forks/amsterdam/fork.py::WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS` | 129 | `amsterdam.system.withdrawalRequests` | EIP-7002 |
-| `forks/amsterdam/fork.py::CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS` | 132 | `amsterdam.system.consolidationRequests` | EIP-7251 |
-| `forks/amsterdam/fork.py::BUILDER_DEPOSIT_CONTRACT_ADDRESS` | 135 | `amsterdam.system.builderDeposits` | EIP-8282 |
-| `forks/amsterdam/fork.py::BUILDER_EXIT_CONTRACT_ADDRESS` | 138 | `amsterdam.system.builderExits` | EIP-8282 |
-| `forks/amsterdam/fork.py::HISTORY_STORAGE_ADDRESS` | 141 | `amsterdam.system.historyStorage` | EIP-2935 |
+| `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `systemAddrs.beaconRoots` | EIP-4788 |
+| `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `systemAddrs.txGas` | 30 000 000 execution gas |
+| `forks/amsterdam/fork.py::SYSTEM_MAX_SSTORES_PER_CALL` | 122 | `systemAddrs.maxSstoresPerCall` | 16; reservoir = 16 · STORAGE_SET |
+| `forks/amsterdam/fork.py::WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS` | 129 | `systemAddrs.withdrawalRequests` | EIP-7002 |
+| `forks/amsterdam/fork.py::CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS` | 132 | `systemAddrs.consolidationRequests` | EIP-7251 |
+| `forks/amsterdam/fork.py::BUILDER_DEPOSIT_CONTRACT_ADDRESS` | 135 | `systemAddrs.builderDeposits` | EIP-8282 |
+| `forks/amsterdam/fork.py::BUILDER_EXIT_CONTRACT_ADDRESS` | 138 | `systemAddrs.builderExits` | EIP-8282 |
+| `forks/amsterdam/fork.py::HISTORY_STORAGE_ADDRESS` | 141 | `systemAddrs.historyStorage` | EIP-2935 |
 | `forks/amsterdam/fork.py::MAX_BLOCK_SIZE` | 144 | private source-level `MAX_BLOCK_SIZE` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 10 485 760; actual subtraction operand, no public API |
 | `forks/amsterdam/fork.py::SAFETY_MARGIN` | 145 | private source-level `SAFETY_MARGIN` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 2 097 152; actual subtraction operand, no public API |
 | `forks/amsterdam/fork.py::MAX_RLP_BLOCK_SIZE` | 146 | `STFSpec.Fork.Amsterdam.blockParams.maxRlpBlockSize` | 8 388 608; actual private operand subtraction |
@@ -86,7 +86,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `STFSpec.Fork.Amsterdam.txParams.blobCountLimit` | 6 |
 | `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `STFSpec.Fork.Amsterdam.txParams.accessListAddressFloorTokens` | 80 (EIP-7981) |
 | `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `STFSpec.Fork.Amsterdam.txParams.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
-| `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `amsterdam.system.depositContract` | mainnet `0x00000000219a…05fa` |
+| `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `systemAddrs.depositContract` | mainnet `0x00000000219a…05fa` |
 | `forks/amsterdam/__init__.py::FORK_CRITERIA` | 43 | `forkCriteria` | `Unscheduled(order_index=3)`; unused by the guest (O-exclusion) |
 
 ### Supplied Amsterdam block parameters
