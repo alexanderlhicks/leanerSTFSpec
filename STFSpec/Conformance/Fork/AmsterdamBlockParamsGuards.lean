@@ -15,7 +15,7 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§3–4.
 
 open STFSpec STFSpec.Fork.Amsterdam
 
-private def value_type : Block.BlockParams := blockParams
+private def valueType : Block.BlockParams := blockParams
 
 private theorem complete_value : blockParams = Block.BlockParams.mk 8 2 8388608 := rfl
 
