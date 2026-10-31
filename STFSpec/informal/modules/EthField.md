@@ -594,7 +594,7 @@ inductive EuclideanCoefficient : Nat → Nat → Int → Int → Int → Prop wh
       EuclideanCoefficient low high lm hm z
 
 namespace PrimeFieldRef
--- Supplied reference carrier and basic residue arithmetic (other operations remain open).
+-- Supplied reference slices (carrier, arithmetic, pow, sgn0, decoder, inverse); others open.
 def toNat : PrimeFieldRef p → Nat
 def ofNat (n : Nat) : PrimeFieldRef p
 def ofNat? (n : Nat) : Option (PrimeFieldRef p)
@@ -857,8 +857,8 @@ representation:
   inverse/helper exception in R9: source guard `1 < low`, recurrence on `high % low`,
   explicit well-founded natural measure `low`; no runtime fuel, rejection, resource policy
   or claimed time/cycle bound. This exception grants no backend permission (no `partial`,
-  cf. cryptography-specs'
-  `partial def powNat` in `Bls/Fp2.lean:64`, `Bls/Fp12.lean:65`, which must not be copied).
+  cf. cryptography-specs' `partial def powNat` in `Bls/Fp2.lean:64`, `Bls/Fp12.lean:65`,
+  which must not be copied).
 - [F] each executable (Montgomery) operation commutes with `α` onto the `Nat` reference, so every
   law above holds for the executable representation. At limb level (proved for `Wide8.mul` in the
   prototype): `R · mul a b ≡ a · b (mod p)`, with the result bounded and `< p`; `mul` needs `a < p` and
@@ -945,13 +945,13 @@ open.
   observer laws and four delegating operator instances, plus natural pow/toNat_pow and
   its delegating HPow instance, plus canonical sgn0/sgn0_eq and checked
   ofBytesBE?/ofBytesBE?_eq_some_iff, plus the Q86 graph-specified inverse inv0 with its
-  five laws; private controls and clients cover those slices. The eight exact R1 natural
-  moduli are supplied separately; concrete-field instances/aliases, convenience aliases,
-  byte encoding and paired roundtrip/size laws, powMod, executable/tower inverse,
-  Euler/sqrt, towers, executable PrimeField/Montgomery and their bridges remain
-  unimplemented. No D6 source choice, primality/Mathlib result, replacement/C1–C4
-  measurement, whole-module, precompile, signature, guest or EEST readiness claim
-  follows.
+  five PrimeFieldRef laws and two EuclideanCoefficient graph laws; private controls and
+  clients cover those slices. The eight exact R1 natural moduli are supplied separately;
+  concrete-field instances/aliases, convenience aliases, byte encoding and paired
+  roundtrip/size laws, powMod, executable/tower inverse, Euler/sqrt, towers, executable
+  PrimeField/Montgomery and their bridges remain unimplemented. No D6 source choice,
+  primality/Mathlib result, replacement/C1–C4 measurement, whole-module, precompile,
+  signature, guest or EEST readiness claim follows.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
