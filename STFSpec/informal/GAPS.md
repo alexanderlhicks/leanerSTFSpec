@@ -476,9 +476,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ModelsLookups, opaque witness ancestor selection and the raw four-field TxObs and
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
-  membership iff laws, plus raw extraction and its seven Q85 laws, are supplied
-  (§3/§5/§7). The owning laws and test rows specify their domains. MathState mutation,
-  diff WF/history/reachable preservation, actual provider operations/contextual
+  membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
+  BlockState.view with its exact application equation are supplied (§3/§5/§7). The
+  owning laws and test rows specify their domains. MathState mutation, diff
+  WF/history/reachable preservation, actual provider operations/contextual
   tracker/full-model proofs, StateError operation/adapter semantics and freezing,
   witness diagnostic refinement, tracker effects/errors, ordered-write integration,
   reachability, snapshot, acquisition/coherence, future context preservation and
