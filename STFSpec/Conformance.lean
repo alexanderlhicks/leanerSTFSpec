@@ -2,6 +2,11 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
+import STFSpec.Conformance.Vm.Core.FrameErrorCallerProofs
+import STFSpec.Conformance.Vm.Core.FrameErrorGuards
+import STFSpec.Conformance.Vm.Runner.BudgetCallerProofs
+import STFSpec.Conformance.Vm.Runner.BudgetGuards
+import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
 import STFSpec.Conformance.Field.ReferenceCallerProofs
@@ -14,6 +19,10 @@ import STFSpec.Conformance.Field.ReferenceDecodeGuards
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
+import STFSpec.Conformance.Stateless.OutputCallerProofs
+import STFSpec.Conformance.Stateless.OutputGuards
+import STFSpec.Conformance.Block.BlockParamsCallerProofs
+import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
 import STFSpec.Conformance.Vm.Core.PreparationFailureGasCallerProofs
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationGuards
@@ -89,6 +98,12 @@ import STFSpec.Conformance.Codec.AddressGuards
 import STFSpec.Conformance.Codec.AddressCallerProofs
 import STFSpec.Conformance.Codec.SszModelCallerProofs
 import STFSpec.Conformance.Codec.SszModelGuards
+import STFSpec.Conformance.Codec.SszEncodeControls
+import STFSpec.Conformance.Codec.SszEncodeCallerProofs
+import STFSpec.Conformance.Codec.SszSchemaCallerProofs
+import STFSpec.Conformance.Codec.SszSchemaControls
+import STFSpec.Conformance.Codec.SszCountRecoverableControls
+import STFSpec.Conformance.Codec.SszCountRecoverableCallerProofs
 import STFSpec.Conformance.Codec.SszWellTypedControls
 import STFSpec.Conformance.Codec.SszWellTypedCallerProofs
 import STFSpec.Conformance.Codec.SszWellFormedControls
@@ -144,6 +159,8 @@ import STFSpec.Conformance.Commit.PreparationGuards
 import STFSpec.Conformance.Commit.TypedRootGuards
 import STFSpec.Conformance.Commit.TypedRootCallerProofs
 import STFSpec.Conformance.Commit.PreparationCallerProofs
+import STFSpec.Conformance.State.WitnessAncestorsCallerProofs
+import STFSpec.Conformance.State.WitnessAncestorsGuards
 import STFSpec.Conformance.State.AccountCallerProofs
 import STFSpec.Conformance.State.AccountGuards
 
@@ -193,7 +210,10 @@ import STFSpec.Conformance.Vm.Core.JumpdestCallerProofs
 import STFSpec.Conformance.Vm.Core.JumpdestGuards
 import STFSpec.Conformance.Vm.Core.LogsCallerProofs
 import STFSpec.Conformance.Vm.Core.LogsGuards
+import STFSpec.Conformance.Vm.Core.StackSwapCallerProofs
+import STFSpec.Conformance.Vm.Core.StackSwapGuards
 import STFSpec.Conformance.Vm.Core.StackCallerProofs
+import STFSpec.Conformance.Vm.Core.StackDepthLimitCallerProofs
 import STFSpec.Conformance.Vm.Core.StackGuards
 import STFSpec.Conformance.Vm.Core.StackDecoderCallerProofs
 import STFSpec.Conformance.Vm.Core.StackDecoderGuards
@@ -254,6 +274,24 @@ import STFSpec.Conformance.Codec.SszMixInActiveFieldsControls
 import STFSpec.Conformance.Codec.SszMixInActiveFieldsCallerProofs
 import STFSpec.Conformance.Codec.SszMixInLengthControls
 import STFSpec.Conformance.Codec.SszMixInLengthCallerProofs
+
+import STFSpec.Conformance.Block.LogsBloomCallerProofs
+import STFSpec.Conformance.Block.LogsBloomGuards
+import STFSpec.Conformance.Block.RequestsHashCallerProofs
+import STFSpec.Conformance.Block.RequestsHashGuards
+import STFSpec.Conformance.Block.DepositDataCallerProofs
+import STFSpec.Conformance.Block.DepositDataGuards
+import STFSpec.Conformance.Block.CalldataTokensCallerProofs
+import STFSpec.Conformance.Block.CalldataTokensGuards
+
+import STFSpec.Conformance.Fork.AmsterdamVmGuards
+import STFSpec.Conformance.Fork.AmsterdamVmCallerProofs
+import STFSpec.Conformance.Block.TxParamsCallerProofs
+import STFSpec.Conformance.Block.SystemAddrsCallerProofs
+import STFSpec.Conformance.Fork.AmsterdamTxParamsGuards
+
+import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
+import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
 
 /-!
 # STFSpec.Conformance
