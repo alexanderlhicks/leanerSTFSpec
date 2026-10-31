@@ -989,8 +989,9 @@ this target carrier expresses that distinction without implementing their effect
 | `src/ethereum/forks/amsterdam/vm/exceptions.py:17,24` | `FrameError : Type`; arbitrary complete existing ExceptionalHalt payload or nullary revert | **Supplied** nominal construction/elimination only; no runtime failure, producer, gas or settlement behavior | Ten private ordinary facade clients prove arbitrary complete reconstruction/extraction, halt injectivity, branch distinction, exhaustive/dependent elimination and full opcode/reason retention. Complete private guards cover both branches, all nested tags, all 256 opcode bytes and four whole String reasons (§4). No new public law or instance. |
 
 Actual exceptional gas consumption, revert settlement, producer/error priority,
-frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
-separate obligations. This raw vocabulary supplies no G1–G7, resource or readiness gate.
+frame/runner result handling, fault/outcome adapters and ChildSettled proof
+production/F11 remain separate obligations. This raw vocabulary supplies no G1–G7,
+resource or readiness gate.
 
 ### Supplied local meter algebra
 
@@ -1383,6 +1384,7 @@ revert control. Public restore/forfeit equations prove conditional complete-fram
 clients and preserve the complete C=7 counterexample. Constructive decisions have
 private true/false controls. No source runtime or parser framework is needed for
 this logical assertion boundary; these controls prove no execution reachability.
+Reproduce with `lake build STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs --wfail`.
 
 - **Supplied allocation controls (Q65):** §3 owns the exact 36 complete
   guard/interpreted/native groups, nine public-law client groups, strict normal/`-O`
@@ -3122,8 +3124,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
-  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
-  existing owners. No gas, resource or VM/guest readiness result follows.
+  result handling, fault/outcome adapters and ChildSettled proof production/F11 remain
+  open with their existing owners. No gas, resource or VM/guest readiness result
+  follows.
 
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
   BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic

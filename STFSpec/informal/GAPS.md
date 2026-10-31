@@ -653,8 +653,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
-  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
-  existing owners. No gas, resource or VM/guest readiness result follows.
+  result handling, fault/outcome adapters and ChildSettled proof production/F11 remain
+  open with their existing owners. No gas, resource or VM/guest readiness result
+  follows.
 
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
   BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
@@ -878,7 +879,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   snapshots, returned proof production, incorporation and child/resume remain open.
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
-
 
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 

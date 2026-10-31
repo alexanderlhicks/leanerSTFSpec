@@ -398,7 +398,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
 - **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
