@@ -404,9 +404,10 @@ declarations, with legible complete 20/32-digit models, structural streaming and
 ordinary all-input executable/reference/canonical-hash equations. All helpers and
 public-facade clients stay private. Validate exact names/types/instance identity,
 existing actual equality and lawful classes, alias reach and other/variable-width
-negative guards. Independent integer arithmetic compares whole UInt64 executable,
-reference and actual-hash results for zero/max/every-bit/byte/high-word/leading-zero/
-indexed/random inputs in interpreted and compiled modes. Public Std clients cover
+negative guards. In tree, 19 literal vectors per type compare whole UInt64
+executable, reference and actual-hash results as interpreted guards; the
+every-bit/byte, random and compiled-mode comparisons are out of tree: nothing for them
+is committed, so they cannot be reproduced from this repository. Public Std clients cover
 member/insert/union/duplicate/unequal preservation and map lookup/overwrite for all
 three observation domains, without a distinct-hash premise. Preserve Q51's Hash32
 model and existing expectations. This is functional support only: State carriers,

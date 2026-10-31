@@ -586,12 +586,12 @@ All existing values are admitted, with no state/query effect, failure or extra p
 | Support authority | Public declaration and type | Model / law / status | Regression evidence |
 |---|---|---|---|
 | Q84; no EELS operation | `Address.tableHashReference : Address → UInt64` | Complete 20-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
-| Q84; D25 | `Address.tableHash : Address → UInt64` | Structural 20-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D25 | `Address.tableHash : Address → UInt64` | Structural 20-step streaming; no intermediate byte list/buffer; **discharged** | Same guards: 19 literal whole-UInt64 vectors (interpreted `#guard`) |
 | Q84; D21 | `Address.tableHash_eq_reference (x : Address) : Address.tableHash x = Address.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
 | Q84; canonical Std dictionary | `Address.instHashable : Hashable Address` with `hash := Address.tableHash` | Existing actual equality retained; **discharged** | Canonical identity, lawful classes and actual Std clients |
 | Q84 | `Address.hash_eq_reference (x : Address) : hash x = Address.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
 | Q84; no EELS operation | `Bytes32.tableHashReference : Bytes32 → UInt64` | Complete 32-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
-| Q84; D25 | `Bytes32.tableHash : Bytes32 → UInt64` | Structural 32-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D25 | `Bytes32.tableHash : Bytes32 → UInt64` | Structural 32-step streaming; no intermediate byte list/buffer; **discharged** | Same guards: 19 literal whole-UInt64 vectors (interpreted `#guard`) |
 | Q84; D21 | `Bytes32.tableHash_eq_reference (x : Bytes32) : Bytes32.tableHash x = Bytes32.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
 | Q84; canonical Std dictionary | `Bytes32.instHashable : Hashable Bytes32` with `hash := Bytes32.tableHash` | Covers FixedBytes 32 and definitionally equal aliases; **discharged** | Alias identity, lawful classes and actual Std clients |
 | Q84 | `Bytes32.hash_eq_reference (x : Bytes32) : hash x = Bytes32.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
@@ -609,9 +609,12 @@ canonical-hash law, complete numeric/byte injectivity and reconstruction. Public
 Std clients cover member/insert/union/duplicate and unequal-key preservation plus
 complete lookup/overwrite equations for Address, Address × Bytes32 and
 Address × Hash32; evaluated guards vary each pair component independently.
-Independent integer-arithmetic vectors compare entire executable/reference/actual
-UInt64 results for zero, max, every bit/byte position, high words, leading zeros,
-indexed/reversed and deterministic random inputs, in interpreted and compiled modes.
+In tree, 19 literal vectors per type compare entire executable/reference/actual
+UInt64 results for zero, max, selected bit positions, high words, leading zeros and
+indexed/reversed inputs as interpreted `#guard`s; their values were computed with
+independent integer arithmetic. The wider every-bit/byte, seeded-random and
+compiled-mode comparisons are out of tree: nothing for them is committed, so they
+cannot be reproduced from this repository.
 No EELS runtime oracle is needed for this support model.
 
 State §5 uses these canonical dictionaries for its unchanged prospective raw Std
@@ -778,8 +781,10 @@ obligations are listed in §10.
 - **Observation-key support (Q84).** Complete 20/32-digit UInt64 literal guards,
   public-facade ordinary model clients, canonical/alias/lawful synthesis and negative
   other/variable-width guards; actual Std member/insert/overwrite/union/duplicate
-  observations for all three State read-key domains. Whole-value interpreted/native
-  vectors cover every bit/byte, high words, leading zeros, indexed and seeded inputs.
+  observations for all three State read-key domains. In tree, 19 literal whole-value
+  vectors per type cover zero, max, selected bits, high words, leading zeros and indexed
+  inputs; the every-bit/byte, seeded and native comparisons are out of tree: nothing for
+  them is committed, so they cannot be reproduced from this repository.
   Q51 Hash32 models and existing regression expectations remain unchanged.
 - **Property / differential tests.**
   - Public universal model laws (§7), plus the external differential drivers for random and boundary inputs (0, 1, 2^255±1, 2^256−1).

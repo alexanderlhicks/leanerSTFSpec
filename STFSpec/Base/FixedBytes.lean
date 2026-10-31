@@ -10,6 +10,7 @@ import STFSpec.Base.Bytes
 Library `EthBase`: exact-length byte construction, big-endian numeric observers,
 and lawful lexicographic ordering at every width, including zero.
 A packed shift encoder and Horner decoder equal legible positional models.
+Hash32, Address and Bytes32 share one nonprotocol table-support loop (Q51, Q84).
 
 Spec guidance: `STFSpec/informal/modules/EthBase.md`.
 Reference: locked `ethereum-types` 0.4.1, `ethereum_types/bytes.py:29`.
@@ -439,7 +440,8 @@ private def observationHashByte (width value i : Nat) : UInt8 :=
 private def observationHashStep (acc : UInt64) (byte : UInt8) : UInt64 :=
   (acc ^^^ byte.toUInt64) * 1099511628211
 
-private def observationHashFold (step : Nat → UInt64 → UInt64) : Nat → Nat → UInt64 → UInt64
+private def observationHashFold (step : Nat → UInt64 → UInt64) :
+    Nat → Nat → UInt64 → UInt64
   | 0, _, acc => acc
   | remaining + 1, i, acc => observationHashFold step remaining (i + 1) (step i acc)
 
@@ -760,41 +762,24 @@ theorem toNat_ofBytes32 (x : Bytes32) : (ofBytes32 x).toNat = x.toNat := rfl
 
 /-! ### Nonprotocol hash-table support (DECISIONS Q51) -/
 
-private def tableHashStep (acc : UInt64) (byte : UInt8) : UInt64 :=
-  (acc ^^^ byte.toUInt64) * 1099511628211
-
-private def tableHashByte (value i : Nat) : UInt8 :=
-  UInt8.ofNat (value >>> (8 * (31 - i)))
-
 /-- Nonprotocol support hash: fold all 32 big-endian digits of the complete numeric
 observer, including leading zeros. UInt64 xor/multiply arithmetic wraps modulo `2^64`.
 This model promises neither injectivity nor cryptographic security or distribution. -/
 def tableHashReference (x : Hash32) : UInt64 :=
-  ((List.range 32).map (tableHashByte x.toNat)).foldl tableHashStep 14695981039346656037
-
-private def tableHashFold (step : Nat → UInt64 → UInt64) : Nat → Nat → UInt64 → UInt64
-  | 0, _, acc => acc
-  | remaining + 1, i, acc => tableHashFold step remaining (i + 1) (step i acc)
-
-private theorem tableHashFold_eq (step : Nat → UInt64 → UInt64)
-    (remaining i : Nat) (acc : UInt64) :
-    tableHashFold step remaining i acc =
-      (List.range' i remaining).foldl (fun acc j ↦ step j acc) acc := by
-  induction remaining generalizing i acc with
-  | zero => simp [tableHashFold]
-  | succ remaining ih =>
-    simp only [tableHashFold, ih, List.range'_succ, List.foldl_cons]
+  ((List.range 32).map (observationHashByte 32 x.toNat)).foldl observationHashStep
+    14695981039346656037
 
 /-- Structural streaming table support, without an intermediate byte list or buffer.
 The callback and Nat shifts can allocate; this is not an allocation-free claim. -/
 def tableHash (x : Hash32) : UInt64 :=
-  tableHashFold (fun i acc ↦ tableHashStep acc (tableHashByte x.toNat i))
+  observationHashFold (fun i acc ↦ observationHashStep acc (observationHashByte 32 x.toNat i))
     32 0 14695981039346656037
 
 /-- The executable table support equals its complete 32-digit reference on every value. -/
 theorem tableHash_eq_reference (x : Hash32) : tableHash x = tableHashReference x := by
   simpa only [tableHash, tableHashReference, List.foldl_map, List.range_eq_range'] using
-    tableHashFold_eq (fun i acc ↦ tableHashStep acc (tableHashByte x.toNat i))
+    observationHashFold_eq
+      (fun i acc ↦ observationHashStep acc (observationHashByte 32 x.toNat i))
       32 0 14695981039346656037
 
 /-- Hash-table support only. Actual equality supplies the generic lawful hash instances;
