@@ -65,6 +65,14 @@ private theorem replace_history (e : BlockEnvironment) (hashes : Array Hash32) :
         e.slotNumber := by
   rfl
 
+private theorem replace_block_identity (e : BlockEnvironment) (chainId : U64)
+    (blockGasLimit : Nat) :
+    { e with chainId := chainId, blockGasLimit := blockGasLimit } =
+      BlockEnvironment.mk chainId blockGasLimit e.blockHashes e.coinbase e.number
+        e.baseFeePerGas e.time e.prevRandao e.excessBlobGas e.parentBeaconBlockRoot
+        e.slotNumber := by
+  rfl
+
 private theorem replace_block_metadata (e : BlockEnvironment) (coinbase : Address)
     (number baseFee : Nat) (time : U256) (random : Bytes32) (excess slot : U64) (root : Hash32) :
     { e with
