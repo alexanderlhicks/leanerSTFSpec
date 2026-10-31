@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.State.Account
 import STFSpec.State.WriteOrder
+import STFSpec.State.TxRevertible
 import STFSpec.State.MathState
 import STFSpec.State.BlockDiff
 import STFSpec.State.Apply
@@ -13,6 +14,7 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.ModelsLookups
+import STFSpec.State.WitnessAncestors
 
 /-!
 # STFSpec.State
@@ -24,10 +26,11 @@ overlays, lifetimes, `BlockDiff`, and their laws. Independent of commitments.
 Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
-application, the raw PreState carrier with coarse witness-error values and the nominal
-StateError, raw TxObs and raw BlockState carriers are supplied, together with bounded structural preservation and
-supplied-record success-only `ModelsLookups`.
-Lookup providers, model mutation, combined transaction state, tracker effects and lifecycle laws
-remain scaffolding.
+application, the raw PreState carrier with coarse witness-error values, the nominal
+StateError carrier, the raw eight-field TxRevertible carrier and the raw TxObs and
+BlockState carriers are supplied, together with bounded structural preservation,
+supplied-record success-only `ModelsLookups` and opaque witness ancestor selection.
+Lookup providers, model mutation, combined transaction state, tracker effects and
+lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
