@@ -671,6 +671,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
+
 - **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
   `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
   `STFSpec.Vm.Core` would see an ambiguous name; such files should qualify it and add a

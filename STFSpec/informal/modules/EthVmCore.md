@@ -1760,7 +1760,8 @@ structure PrecompileTable (m : Type → Type) [Monad m] where
   addresses : AddrSet
   lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses
   meter_law : ∀ a p i g, lookup a = some p → SatisfiesM (MeterOk g) (p i g)
-  -- a witness in every `m`; only at `m := Id` (`satisfiesM_id_iff`) is it the plain statement `p i g = .ok g' o → g'.gasLeft ≤ g.gasLeft ∧ …`
+  -- a witness in every `m`; only at `m := Id` (`satisfiesM_id_iff`) is it the plain
+  -- statement `p i g = .ok g' o → g'.gasLeft ≤ g.gasLeft ∧ …`
 def GasMeter.phi (m : GasMeter) : Nat := m.gasLeft + m.stateGasSpilled + m.stateGasCommittedSpill
 def checkGas : GasMeter → Nat → Except ExceptionalHalt Unit
 def chargeGas : GasMeter → Nat → Except ExceptionalHalt GasMeter          -- charge_gas(_from_meter)
@@ -2940,6 +2941,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   §3/§4 own their local proofs, private public-law clients and controls; both actual
   caller bridges remain open. Allocation policy matching and unsigned refund
   validation are separate caller obligations, not global meter invariants.
+
 - **Q83:** DECISIONS owns the bounded predicate disposition; §5/§7 supply exactly
   action factorization and its Id law. Generic construction assumptions, adapter
   equations, effect/transformer bridges and nominal-halt equivalence remain open.
@@ -2967,6 +2969,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
   No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
+
 - **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
   `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
   `STFSpec.Vm.Core` would see an ambiguous name; such files should qualify it and add a
