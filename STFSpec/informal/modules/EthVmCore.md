@@ -15,13 +15,13 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:254` builds it from the witness headers only), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:125–148`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:310–312`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handlers must not be able to modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean").
+- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the specified immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handlers must not be able to modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean").
 - **R-ENV-4** `BlockOutput` (`__init__.py:72–120`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
 
 - **R-INC-1** `incorporateChild parent child` (`__init__.py:194–250`) must add the child's `gas_left`, `state_gas_left`, `state_gas_spilled` and `refund_counter` to the parent's **unconditionally**, then, only if the child succeeded, call `repay_state_gas_spill` on the parent meter, append the child's logs, and union `accounts_to_delete`, `accessed_addresses` and `accessed_storage_keys`. It must be total: the three EELS `assert`s (`:227`, `:232–234`) become preconditions discharged by the runner's settlement lemmas (§7, `L-SETTLE`), never runtime checks. Because a child starts with a copy of the parent's access sets (`instructions/system.py:171–172, 440–441`) and only adds to them, the union equals the child's sets [I]; the implementation may use that (`L-WARM-MONO`).
-- **R-LOG-1** `emitTransferLog` (`__init__.py:253–289`, EIP-7708) must be a no-op for amount 0, and otherwise append `Log(SYSTEM_ADDRESS, [TRANSFER_TOPIC, pad32 sender, pad32 recipient], be32 amount)` to the frame's logs. `SYSTEM_ADDRESS = 0xff…fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:40`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), acquired at the caller-owned F20 boundary through `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller projects that existing context field, with local notation `TRANSFER_TOPIC`, and passes the topic to the pure `emitTransferLog` helper. World-consuming operations read the record from that context. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
+- **R-LOG-1** `emitTransferLog` (`__init__.py:253–289`, EIP-7708) takes a supplied `systemAddress : Address` immediately after Frame. For every supplied address and topic, amount 0 is an exact frame no-op; otherwise append exactly `Log(systemAddress, [topic, pad32 sender, pad32 recipient], be32 amount)` chronologically and preserve every other frame field. The helper does not suppress sender = recipient; its two producers own that guard. F8 assigns the pinned `SYSTEM_ADDRESS` literal (`__init__.py:41–43`) to Fork's `systemAddrs.systemAddress`, carried through `RunnerEnv` and immutable `FrameCtx`; Core declares no closed address constant. Pinned-source agreement instantiates the supplied address with the twenty bytes `ff` repeated nineteen times followed by `fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:40`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), acquired at the caller-owned F20 boundary through `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller projects that existing context field, with local notation `TRANSFER_TOPIC`, and passes the topic to the pure `emitTransferLog` helper. World-consuming operations read the record from that context. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
 
 ### 2.3 Stack
 
@@ -94,7 +94,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
-| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | `SYSTEM_ADDRESS : Address` | EIP-7708 log emitter; also used by `EthBlock` system calls |
+| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
@@ -1137,6 +1137,15 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
   Unicode and 1024-character String reasons. These are carrier controls; no producer,
   gas, settlement, error adapter or source-runtime differential claim follows.
 
+**F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
+one and maximal U256 amount, independently varied full-byte supplied address/topic,
+equal and unequal sender/recipient, and pre-existing duplicate chronological logs.
+Compare the complete returned Frame, every Log address/topic/data byte and all
+untouched fields against §7. In particular, equal parties do not suppress a direct
+helper call; the producer guard is tested at the Runner/Instructions owners.
+Pinned-source comparison supplies Fork's exact twenty-byte address and the correct
+F20 topic separately; local arbitrary-input laws need neither premise.
+
 - **Supplied allocation controls (Q65):** §3 owns the exact 36 complete
   guard/interpreted/native groups, nine public-law client groups, strict normal/`-O`
   parser controls, 14 whole successful original comparisons and three source-only
@@ -1358,6 +1367,7 @@ structure FrameCtx where
   codeAddress : Option Address; code : Bytes; jumpdests : JumpdestMap
   depth : Nat; depth_le : depth ≤ STACK_DEPTH_LIMIT
   shouldTransferValue isStatic disablePrecompiles : Bool
+  systemAddress : Address     -- specified F8 policy; children inherit it unchanged
 structure Frame where
   pc : Nat; stack : Stack; memory : Memory; gasMeter : GasMeter
   logs : LogRope; accountsToDelete : AddrSet; returnData : Bytes
@@ -1655,9 +1665,9 @@ def ChildSettled (child : Frame) (failed : Bool) : Prop
 -- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
 -- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
 def incorporateChild (parent : Frame) (child : Frame) (childFailed : Bool) (h : ChildSettled child childFailed) : Frame
-def emitTransferLog (f : Frame) (topic : Hash32) (sender recipient : Address) (amount : U256) : Frame
-  -- the caller passes `world.tx.block.consts.transferTopic` (HashConsts, D5)
-def SYSTEM_ADDRESS : Address
+def emitTransferLog (f : Frame) (systemAddress : Address) (topic : Hash32)
+    (sender recipient : Address) (amount : U256) : Frame
+  -- callers pass ctx.systemAddress and world.tx.block.consts.transferTopic (F8/F20/D5)
 
 -- Jumpdests (public)
 structure JumpdestMap                                     -- abstract; constructor/fields private
@@ -2654,7 +2664,7 @@ bounded original comparison in §3/§4 is additional source evidence, not the or
 all-input refinement proof. [C] A future code-hash cache separately needs cache/code
 consistency (Nipkow Ch. 18 invariant).
 
-**Transfer log** [C]: `emitTransferLog f topic s r 0 = f`; otherwise, for `f' := emitTransferLog f topic s r a`, `α f'.logs = α f.logs ++ [Log(SYSTEM_ADDRESS, [topic, pad32 s, pad32 r], be32 a)]`.
+**Transfer log** [C], for every raw Frame, supplied `addr : Address`, `topic : Hash32`, sender, recipient and amount: `emitTransferLog f addr topic s r 0 = f`. For `a ≠ 0`, let `entry := Log(addr, [topic, pad32 s, pad32 r], be32 a)`; the complete frame equation is `emitTransferLog f addr topic s r a = { f with logs := LogRope.append f.logs (LogRope.leaf [entry]) }`. Hence `α (emitTransferLog f addr topic s r a).logs = α f.logs ++ [entry]`, retaining every occurrence in order. No configuration, source-literal, distinct-party, gas or world premise is needed for these local equations. Pinned-source refinement separately supplies the F8 address and coherent F20 topic. The helper performs no hash query, state effect or validation and introduces no failure.
 
 ### Informal correctness argument
 
@@ -2671,7 +2681,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 8. Composition
 
 - **Depends on:** `EthState`
-- **Used by:** `EthVmInstructions` (handlers), `EthPrecompiles` (charge execution gas through `chargeGas`; the shared precompile table type is here), transitively `EthVmRunner`, `EthBlock` (settlement, allocation, blob gas, capacity, `SYSTEM_ADDRESS`), `EthFork` (defines the Amsterdam values of `GasCosts`, `StateGasCosts` and `VmLimits`, with `vmLimits_depth := rfl`).
+- **Used by:** `EthVmInstructions` (handlers), `EthPrecompiles` (charge execution gas through `chargeGas`; the shared precompile table type is here), transitively `EthVmRunner`, `EthBlock` (settlement, allocation, blob gas, capacity), `EthFork` (defines the Amsterdam values of `GasCosts`, `StateGasCosts` and `VmLimits`, with `vmLimits_depth := rfl`).
 - **Seams:** consumes the `EthState` transaction-state API and `WitnessError`; provides the frame types, `VmM m`, `VmFault`, `STACK_DEPTH_LIMIT`, the precompile calling convention, the meter and its Φ laws. Cross-module invariants relied on: every `Frame` a handler receives satisfies `size stack ≤ 1024`, `size memory % 32 = 0`, and the meter well-formedness `Wf`; guaranteed: every operation here preserves them.
 
 ## 9. Open decisions
@@ -2710,6 +2720,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Actual exceptional gas consumption, revert settlement, producers/error priority,
   frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
   open with their existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
