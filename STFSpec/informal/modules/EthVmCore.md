@@ -13,7 +13,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.1 Frame and environments
 
-- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:254` builds it from the witness headers only), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
+- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:253–255` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:125–148`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:310–312`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
 - **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the specified immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handlers must not be able to modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean").
 - **R-ENV-4** `BlockOutput` (`__init__.py:72–120`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
@@ -95,9 +95,9 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
 | `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and supplied `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
-| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49 | `structure BlockEnvironment` | minus `state`, BAL builder, key hints (R-ENV-1) |
+| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49–67 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
-| `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125 | `structure TransactionEnvironment` | `state` and `accounts_with_paid_writes` threaded |
+| `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125–148 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
 | `forks/amsterdam/vm/__init__.py::Evm` | 153–191 | supplied raw `Frame`; `FrameCtx` and assembled `Evm` remain open | R-ENV-3 mutable partition only; exact row below |
 | `forks/amsterdam/vm/__init__.py::incorporate_child` | 194 | `incorporateChild` | total; asserts → preconditions |
 | `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 253–289 | `emitTransferLog` | EIP-7708; supplied, row below |
@@ -168,6 +168,47 @@ each output directory must be fresh:
 python3 -B STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-target
 python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-optimized-target
 ```
+
+### Supplied raw environment data
+
+| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:49–67`, `BlockEnvironment` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:125–148`, `TransactionEnvironment` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
+
+R-ENV-1 excludes source `state` (VM world), `block_access_list_builder` and
+`transaction_public_keys` (EthBlock): fourteen source fields project to eleven.
+R-ENV-2 excludes `state` (VM world) and `accounts_with_paid_writes` (explicit
+threading): eighteen source fields project to sixteen. Static field/type partition
+correspondence is the source evidence; no source environment runtime or whole-Evm
+comparison is claimed. HashConsts, systemAddress and mutable bookkeeping retain
+their existing owners.
+
+The raw history array retains every occurrence in supplied order. Oldest-first
+and at-most-256 are intended construction/source-correspondence guarantees, not
+raw carrier invariants. A synthetic 257-entry duplicated/out-of-order array is a
+carrier control only. Transaction quantities, options and authorization payloads
+likewise acquire no affordability, positivity, index, signature, supported-config
+or admission condition beyond existing provider types.
+
+Fifteen private generic public-facade clients check complete constructor types,
+all projections, reconstruction and independent updates retaining every unrelated
+field, especially address roles and the five separate transaction quantities.
+Six complete finite record observations cover zero/empty data, distinct high/max
+nominal markers, all bytes, ordered duplicate hashes and authorizations, every one
+of the six authorization fields (including raw parity 255 and 2), empty/nonempty
+access sets, both creation flags, None/Some-zero/Some-large index/hash and Nat
+quantities above the word range. A separate length control checks the raw 257
+history; a concrete complete-record proof checks a zero-price snapshot. No
+construction skips or falls back to a default. Reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs STFSpec.Conformance.Vm.Core.EnvironmentsGuards --wfail
+```
+
+This supplies raw data only. FrameCtx/Evm/world assembly, history lookup/admission,
+actual capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+gas/fuel/resources and VM/guest/EEST/readiness obligations remain open.
 
 ### Supplied raw mutable Frame data
 
@@ -1228,6 +1269,11 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
   full-field guards in `FrameGuards.lean`, imported by `STFSpec.Conformance`. These
   are carrier controls; no creation, context, control or execution claim follows.
 
+**Supplied raw environment controls.** §3 owns the complete private generic
+constructor/projection/type/reconstruction/update clients and six full-value
+finite observations, plus the raw-history length control and complete price-update
+proof. Synthetic raw history/authorization/gas values assert no protocol validity.
+
 **Supplied F8 transfer-log controls.** The complete arbitrary-input guards,
 public-only generic clients and qualified finite interpreted SOURCE comparison
 are owned by §3. Actual producer self-suppression, transfer/static/gas ordering,
@@ -1430,18 +1476,21 @@ Reference field order, widths and inherited records are catalogued in [REFERENCE
 
 All public unless marked internal. Names follow EELS in lowerCamelCase.
 
-The exact two set aliases and nine-field raw `Frame` below are **supplied** through
+The exact two set aliases, eleven-field `BlockEnvironment`, sixteen-field
+`TransactionEnvironment` and nine-field raw `Frame` below are **supplied** through
 `STFSpec.Vm.Core`; they have no authored defaults, derived instances, public helper
 laws or additional admission/proof fields. Public constructor/projection and
-reconstruction equations reduce directly. `FrameCtx` and assembled `Evm` remain
-unimplemented. The supplied Frame makes no global meter-WF or context claim.
+reconstruction equations reduce directly. Raw history has no ordering/count
+premise; oldest-first/at-most-256 belongs to intended construction. Environment
+quantities and options are independent. `FrameCtx` and assembled `Evm` remain
+unimplemented. These carriers make no global meter-WF or context claim.
 
 ```lean
 -- Environments (public)
 abbrev AddrSet := Std.ExtTreeSet Address
 abbrev SlotSet := Std.ExtTreeSet (Address × Bytes32)
 structure BlockEnvironment where
-  chainId : U64; blockGasLimit : Nat; blockHashes : Array Hash32   -- oldest first, size ≤ 256
+  chainId : U64; blockGasLimit : Nat; blockHashes : Array Hash32   -- raw, no history proof
   coinbase : Address; number : Nat; baseFeePerGas : Nat; time : U256
   prevRandao : Bytes32; excessBlobGas : U64; parentBeaconBlockRoot : Hash32; slotNumber : U64
 structure TransactionEnvironment where
@@ -1809,9 +1858,19 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
 | `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
+| `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
 | `FrameCtx` | record; `code`, `callData` shared `ByteArray` | itself | `depth ≤ 1024` | read-only | — |
 
 ## 7. Contract and laws
+
+**Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
+and sixteen-field public records. Complete private constructor/projection/type,
+reconstruction and independent update clients use ordinary public record
+reduction. Complete finite observations use only public provider models and
+retain all fields, ordered occurrences and option distinctions. There is no
+manually authored public law package, admission/WF predicate or history guard.
+Intended construction supplies history/source coherence; actual consumers still
+owe admission, lookup, policy, state and execution obligations.
 
 **Raw Frame carrier controls are supplied.** §3/§5 own the two persistent-set
 aliases and exact nine-field mutable record. Private generic clients verify all
@@ -2847,6 +2906,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
   result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
   existing owners. No gas, resource or VM/guest readiness result follows.
+
+- **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete
+  generic clients and full-value controls. No history/admission/default/proof
+  field or extra public law is added. Actual FrameCtx/Evm/world assembly, source
+  context coherence, intended oldest-first/at-most-256 history and lookup,
+  capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
