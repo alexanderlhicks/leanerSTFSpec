@@ -108,7 +108,9 @@ The pinned `Uint` values are arbitrary-width nonnegative integers (EthBase §2).
 The three plain `int` values are nonnegative and represented exactly by Nat.
 All paths above are under `STFSpec/`. The RLP size guard uses only the derived
 global (`fork.py:309`); base-fee calculation reads elasticity at `:412` and the
-denominator at `:425,439`. There is no captured consumer default for these globals.
+denominator at `:425,439`. Within the fork module these globals are read directly,
+without a default value. (Outside the guest path, the spec-tools loader reads
+`MAX_RLP_BLOCK_SIZE` with a `None` default, `src/ethereum_spec_tools/loaders/fork_loader.py:259`.)
 This data slice implements none of those consumers or their failure behavior,
 division safety, full BlockConfig coherence, index adequacy or guest readiness.
 Full-field source comparison must bind all five original quantities and their
@@ -145,11 +147,11 @@ record types and `STACK_DEPTH_LIMIT`; these rows record their Amsterdam instanti
 
 All paths in the controls column are under `STFSpec/Conformance/Fork/`.
 `amsterdam_vm_catalogue.json` contains the complete ordered field/type/literal
-catalogue and source references. Its provenance hashes bind this compact projection
-to the independent catalogue frozen before source execution and to its full
-provider catalogue and sealed acquisition packet at the pin. That acquisition
-observed the unchanged original providers in normal and optimized Python; its
-470 source/provider crosschecks supply bounded source input, not a Lean verdict.
+catalogue; 137 rows carry a pinned source file/line and the remaining 14 a source
+description. Its `provenance` block records SHA-256 digests of the out-of-tree
+acquisition material (an independent catalogue and a full provider catalogue taken
+from the unchanged pinned providers) for traceability only: that material is not in
+this repository, and no in-tree check compares the catalogue with pinned EELS.
 The checked-in reader `amsterdam_vm_values.py` imports no EELS and recomputes no
 source oracle. It compares complete native output from
 `scripts/AmsterdamVmNativeTests.lean`, including direct records and the actual
@@ -174,7 +176,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
   - The byte strings in R-F2 (checksummed and lowercase decode alike), including all twenty systemAddress bytes and both config.system/config.runnerEnv projections (F8). Actual context/child/producer controls remain with Runner/Instructions/Core; these are future checks, not supplied code.
   - `precompiles.addresses` equals the 18-element set.
-  - `maxRlpBlockSize = 8 388 608`.
+  - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.
 - **Adversarial.** A call to `0x12` or `0xff` (not a precompile, so it is not warm); a call to `0x100` (warm); a block whose deposit log comes from a non-mainnet deposit address (ignored).
 
@@ -284,6 +286,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **The deposit contract address is mainnet-only.** Test chains use the same constant. This is not a parameter by chain id.
 - **Transition fixtures** `for_bpo2toamsterdamattime15k`: pre-fork blocks are bpo2, which is not instantiated (D3). Their `blockchain_tests` form cannot be run in full by `EthConformance`, and the runnable subset is unlisted. The parent-header fallback decodes a bpo2 header as a bpo5 `PrevHeader`; the shapes are assumed identical [I, not checked for bpo2].
 - **R-F4 stored VM values are supplied:** §3 owns the exact bounded implementation, `rfl` depth law and complete literal/native/parser controls. Remaining BlockConfig values, precompile table, state amount-provider observations, module-derived blob maximum placement, actual FrameCtx/consumer coherence, behavioural termination and guest/EEST/resource/cost gates stay open.
-- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule.
+- **Runtime-patchable gas constants** in EELS (`gas.py:45, 70`): this module fixes the pinned values. A future pin or changed source schedule requires renewed independent acquisition and updated values/controls; the frozen reader does not select a repricing utility or a patched runtime schedule. The acquisition tooling is outside this repository and has no `--check` mode; promoting a catalogue-versus-pinned-EELS check to `scripts/` and CI is outstanding.
 - The **minimum transaction encoding size** needed for law 3 is not established.
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
