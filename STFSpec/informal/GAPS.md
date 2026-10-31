@@ -653,8 +653,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
-  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
-  existing owners. No gas, resource or VM/guest readiness result follows.
+  result handling, fault/outcome adapters and ChildSettled proof production/F11 remain
+  open with their existing owners. No gas, resource or VM/guest readiness result
+  follows.
 
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
   BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
@@ -663,6 +664,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   construction, source context coherence, intended oldest-first/at-most-256 history and
   lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
+
+- **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
+  exactly ChildSettled and its constructive Decidable instance. Private logical,
+  all-frame, each-clause, decision and conditional public rollback/forfeit clients
+  supply no actual non-top C=0 initialization/preservation, incorporation,
+  processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
+  FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
+  G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
@@ -789,6 +798,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw creation carrier supplied; execution open:** §3 owns the exact `CreateRequest` type and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, `StepResult`, `CallRequest`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carrier adds no admission/staticness policy and resolves neither F11 nor fuel, host-resource, guest or EEST obligations.
 
+- **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
+  ChildSettled predicate and constructive Decidable instance only. Actual non-top
+  committed-spill-zero initialization/preservation, call/create settlement and
+  snapshots, returned proof production, incorporation and child/resume remain open.
+  This logical decision procedure chooses neither F11 production option and
+  supplies no runtime check, settled executor or generic Q83 effect bridge.
+
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
@@ -856,6 +872,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   is left to the diagnostic event interface (ARCHITECTURE §7).
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
+
+- **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
+  ChildSettled predicate and constructive Decidable instance only. Actual non-top
+  committed-spill-zero initialization/preservation, call/create settlement and
+  snapshots, returned proof production, incorporation and child/resume remain open.
+  This logical decision procedure chooses neither F11 production option and
+  supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 

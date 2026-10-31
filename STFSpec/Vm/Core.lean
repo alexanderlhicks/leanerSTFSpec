@@ -18,6 +18,7 @@ import STFSpec.Vm.Core.Frame
 import STFSpec.Vm.Core.TransferLog
 import STFSpec.Vm.Core.Environments
 import STFSpec.Vm.Core.Context
+import STFSpec.Vm.Core.ChildSettled
 import STFSpec.Vm.Core.CallGas
 import STFSpec.Vm.Core.Jumpdest
 import STFSpec.Vm.Core.Memory

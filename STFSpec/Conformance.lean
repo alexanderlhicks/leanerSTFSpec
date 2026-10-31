@@ -221,6 +221,7 @@ import STFSpec.Conformance.Vm.Core.JumpdestGuards
 import STFSpec.Conformance.Vm.Core.LogsCallerProofs
 import STFSpec.Conformance.Vm.Core.LogsGuards
 import STFSpec.Conformance.Vm.Core.FrameCallerProofs
+import STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs
 import STFSpec.Conformance.Vm.Core.FrameGuards
 import STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs
 import STFSpec.Conformance.Vm.Core.EnvironmentsGuards
