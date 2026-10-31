@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-10-29). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-10-30). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -439,6 +439,21 @@ Consumers (evm-asm, pancaketh) stay pinned to released commits while semantic ch
 
 The options considered for each decision, and what evidence settles or revisits it. **The chosen option and the status are recorded only in [`STFSpec/informal/DECISIONS.md`](DECISIONS.md).**
 
+**Stack exchange completion (Q82).** The disposition is owned by DECISIONS Q82;
+EthVmCore §5/§7 owns the operation and exact two-law seam. The alternatives are:
+
+| Option | Invalid inputs | Equal valid inputs | Source-domain tradeoff |
+|---|---|---|---|
+| A: bounds first | none if either index is invalid, including equal invalid | some actual original Stack | Uniform bounds law; agrees also with direct `swap_n(0)` on empty input |
+| B: equality first | equal invalid returns some original; other invalid returns none | some actual original Stack | Actual SWAP1–16, SWAPN and EXCHANGE indices are distinct, so none still detects their underflow using the alias/decoder inequality premise; generic equal-invalid/direct empty `swap_n(0)` differ |
+| C: identity on invalid | some original for every invalid input | some actual original Stack | Actual opcode underflow needs separate source bounds validation or equivalent evidence |
+
+The successful equation retains both original cell values and identifies the actual
+returned Stack. Private clients derive availability, size/all-cell effects, equal-valid
+identity, commutation and involution without another public model equality seam.
+The primitive does not implement gas, immediate decoding, errors or PC advancement;
+source handler ordering and actual frame ownership/allocation remain consumer work.
+
 | # | Decision | Options | Settled or revisited by |
 |---|---|---|---|
 | D1 | U256 stored representation | (a) a `structure` wrapping `BitVec 256` *(initial)* · (b) a limb `structure` whose operations are limb implementations, proved to satisfy the same observer laws (a representation replacement under D25; `@[csimp]` is banned by D21) | benchmark through the proof interface in an opcode loop, **and replacement exercise 4**. Callers see only observers and laws, so moving from (a) to (b) is a behaviour-preserving patch |
@@ -470,6 +485,17 @@ The options considered for each decision, and what evidence settles or revisits 
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
 
 **System-address transport options (F8).** A1 carries Fork's `SystemAddrs.systemAddress` through new `RunnerEnv` and immutable `FrameCtx` fields, with the explicit helper argument after Frame. It keeps fork policy separate from mutable state and header data while preserving the implemented three-field `VmConfig`. A2 would add one `VmWorld` field, requiring preservation by the specified VM transitions; arbitrary `StateT` actions cannot promise that preservation. A3 would add one immutable `BlockEnvironment` field, mixing fork policy with the header/chain abstraction and changing every environment constructor. B would retain a closed Core constant and broaden F8's literal exception, tying future address changes to Core. A `VmConfig` field would migrate its already implemented constructor/laws and Amsterdam values. A1 accepts two record-construction updates for immutable policy and modular fork changes; DECISIONS F8 owns the selection and authorization. Construction, child inheritance and both producer source refinements remain implementation obligations. The four-hash F20 record, request/handler/runner parameter lists and failure/effect order are unchanged. Revisit for changed source or consumer/context requirements.
+
+**Natural-reference inverse options (Q86).** (A) a callable positive-Nat helper
+and functional coefficient reference, including modulus one; (B) full existing
+canonical carrier with a public finite signed Euclidean graph, exactly done/step,
+and a private evaluator; (C) a restricted zero-or-unit call requiring a local proof.
+DECISIONS Q86 owns the selected option and exact inverse-only R9/§7[T] exception.
+EthField §5/§7 owns the ten authored declarations/two constructors and complete
+model; graph membership/uniqueness isolates consumers from private evaluation.
+The well-founded low-remainder proof introduces no runtime fuel/resource/time bound
+or D6/backend permission. Revisit for a changed pin, carrier or consumer boundary;
+primality, backend/replacement and C1–C4 gates remain separate.
 
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
 
@@ -743,7 +769,8 @@ schema admission; a uint256 actual-count cap would further couple the relation
 to source backing representation. The chosen raw mathematical meaning keeps
 those consumer premises separate. WT⇒WF is deliberately false. Constructor/
 backing counts (including recursive sites), offsets/scope/cache, positive-width
-inverse recovery and codec/root domains remain local/open. Q67/Q70 stay unchanged.
+inverse recovery uses the separate Q87 premise; its theorem/decoder and actual
+codec/root bridges remain open. Q67/Q70 stay unchanged.
 
 **Raw SSZ packing visibility options (Q72).** DECISIONS Q72 owns the approved
 exported-helper disposition; EthCodec §5/§7 owns the exact operation and one
@@ -878,6 +905,60 @@ no typed packer, classifier, slot-builder API, extra law, validator or schema/pr
 change follows. Replacement re-proves the unchanged complete equation. Actual
 source class/reconstruction/host/failure/resource premises, decoder support,
 O2/O12/O13, security and cost/readiness gates remain separate.
+
+**SSZ forward-serialization options (Q80).** DECISIONS Q80 owns the B0+D
+selection; EthCodec §5/§7 owns the exact four declarations and complete equations.
+B0 recurses through actual children and constrains only actually emitted uint32
+starts, preserving zero-width forward cases and mathematical extras. B1 would
+conjoin global structural WF and recursive source backing-count bounds, rejecting
+unused malformed schemas, empty ordinary containers and invalid progressive masks;
+it would still need actual source class/name/backing/host correspondence. A total
+raw encoder would instead require an explicit result for every mismatch, unsupported
+scalar and offset failure; no such completion is selected. The encoder-coupled
+predicate-law alternative avoids the local length recursor but makes domain proofs
+depend on byte results. D keeps domain premises independent of the encoder by
+including the entire recursive length expression locally in the one public law.
+A separate public size function/law would shorten that statement and create an
+additional stable seam without a named consumer; it is not selected. Failed actual
+elaboration or facade-client use must return to the interface choice rather than
+silently adding helpers. All implementation support/reference/derived laws/controls
+and clients stay private. D25 requires ordinary full reference equality; D18 requires
+appropriate aggregate costs or measured justified debt. Guidance selects no delivered
+code, inverse domain, decoder/guest/root admission rule, source failure/resource
+policy, security or readiness closure.
+
+**Generic SSZ schema forward options (Q81).** DECISIONS Q81 owns the A
+selection; EthCodec §5/§7 owns the five metadata fields, two local-support forward
+wrappers and complete ordinary raw-call equations. Each call retains the actual
+supplied dictionary and converted value. Descriptor WF and both adapter directions
+remain required external certifications per actual instance; metadata publication
+certifies no arbitrary dictionary and supplies no instances. B would add two
+valid-to-support fields and require both operations for every valid value, excluding
+raw-supported values outside valid and broadening every instance owner's duties.
+A certified/law-bearing carrier would require a separate exact proposal. Total or
+Result wrappers would separately need executable support decisions and explicit
+outside-domain result/error policies; no such policy is selected. All private
+support/clients/controls remain private. Existing raw contracts and the private
+output consumer are unchanged. Actual instance/source/decoder/guest bridges and
+resource/security/cost/readiness gates remain separate.
+
+**SSZ inverse-domain options (Q87).** DECISIONS Q87 owns the local actual-value
+selection; EthCodec §5/§7 owns exactly the predicate and complete constructor iff.
+An immediate fixed-zero list child prevents recovery even for an empty list or
+limit 0; direct zero-byte vectors and fixed products remain eligible. Empty outer
+variable-child lists visit no child values, so unused nested zero-child or malformed
+schemas add no obligation. A stronger schema-wide sufficient premise would inspect
+all nested descriptors and reject those otherwise eligible empty outer values. It
+can be a private convenience lemma for a concrete schema, without a new public seam.
+A blanket positive-fixed-width requirement would additionally exclude direct zero-byte
+products that need no list count recovery. WF/WT, a final-size bound or re-encoding
+alone cannot restore counts lost by forward fixed-zero concatenation. An inverse on
+all Serializable values is therefore unavailable; Q80's forward support stays intact.
+The selected premise is sufficient proposed inverse support, with no maximality or
+minimality claim. Its complete logical law is supplied, while the future inverse
+law, raw decoder completion, diagnostics and source/guest/resource/security/cost
+bridges remain separate. Source nonempty-variable-list `uint32(scope)` bounds are
+local invocation premises, distinct from Q80's representable emitted starts.
 
 ## 12. Not yet decided
 

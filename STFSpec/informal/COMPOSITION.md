@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-29.*
+*Status: conditional proof plan. Date: 2026-10-30.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -28,7 +28,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
 | Account, MathState, `PreState m`, BlockDiff | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState carrier and supplied-record ModelsLookups contracts. The carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | Models, CodeAuthentic, CodeChangesAuthentic | EthStateCommit | Structural WF, answer/root agreement and code authenticity are separate premises. Progress/availability is additional. |
-| Stack | EthVmCore | Use the six public bounded-stack APIs and eight ordinary laws owned by EthVmCore §3/§7. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; swap, handler failure order, actual frame ownership and compiled allocation remain separate. |
+| Stack | EthVmCore | Use the seven public bounded-stack APIs and ten ordinary laws owned by EthVmCore §3/§7; the Stack exchange row below covers `swap?`. Models are complete top-first word lists; storage/constructor/injectivity stay private. Arbitrary-error iff laws imply nonfull push/nonempty pop availability; success iff laws support both inverses with actual Stack equality. Indexed reads accept all Nat depths. Only typed Python lists of size≤1024 correspond; handler failure order, actual frame ownership and compiled allocation remain separate. |
 | `decodeSingle`, `decodePair` | EthVmCore | Use the existing UInt8-to-Except APIs and eight discharged ordinary equations/error/bounds/injectivity laws owned by EthVmCore §3/§7. Preserve complete ordered pair payloads and the existing nullary invalidParameter. Valid-domain progress and alternative-error exclusion follow from those equations. Handler ordering, gas/PC effects, Stack operations, compiled costs and guest gates remain separate. |
 | JumpdestMap | EthVmCore | Use the abstract immutable map, existing factory/contains operations and three supplied ordinary equations owned by EthVmCore §3/§5/§7. Empty/out-of-code absence, PUSH exclusion/resumption and true-hit byte identity are public-law consequences. Supply the intended complete code and establish actual frame code/map agreement; cache provenance, JUMP/JUMPI gas/error ordering and compiled costs/ownership remain separate. |
 | `bufferRead` | EthVmCore | Use the existing Base Bytes/U256 types and the three supplied ordinary bridge/List/size laws owned by EthVmCore §3/§7; no Memory/gas/host-cap premise. Source correspondence retains typed-dependency/representable-width/allocation premises. |
@@ -37,17 +37,55 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BlockGasCounters | EthVmCore | Use the raw constructor/projections and two ordinary ext/eta laws owned by EthVmCore §3/§7; retain complete independent execution, state and blob fields. Full BlockOutput belongs to EthBlock; actual block coherence, capacity arithmetic and checked failure precedence remain separate obligations. |
 | StateGasCosts, VmLimits, VmConfig | EthVmCore | Use the exact raw data constructors/projections and six ordinary ext/eta laws owned by EthVmCore §3/§5/§7. StateGasCosts retains four Nat inputs; VmLimits retains three Nat fields; VmConfig retains the complete costs/stateCosts/limits records. Equal selected opcodeAdd prices and the same meter give equal complete chargeGas results even when unused stateCosts/limits differ. EthFork values, state amount observations/coherence, limit specialization and actual frame/target consistency remain separate; Q63 pricing is supplied separately through its ten ordinary laws; actual caller/coherence/resource obligations remain open. |
 | MessageCallGas, `calculateMessageCallGas`, `initCodeCost` | EthVmCore | Q64 and EthVmCore §5/§7 own the supplied VmConfig-first signatures/default and six discharged ordinary laws. Retain the complete cost/subCall result; local transport needs only selected effective-stipend or init-price equality. Private public-law clients derive complete actual charge/error, affordability, rounding and explicitly financed local potential consequences. Bounded typed comparisons and their current/captured-default/host premises are owned by Core §3. Actual cfg/frame/target coherence, general source/default agreement, earlier CALL payments/state spill, child return and settlement remain caller-owned; no global WF or whole G2 result is supplied. |
+| Stack exchange | EthVmCore | Q82 and EthVmCore §3/§5/§7 own the supplied all-Nat Option operation and exact two ordinary laws. Public-only private clients derive actual identity/commutation/involution and complete cell/size effects. SWAP1–16 uses (0,k), SWAPN (0,n), EXCHANGE (n,m); source gas/decode/bounds/mutation/PC order remains with handlers. Capacity and private Array preservation supply no frame ownership, compiled allocation or C1–C4 result. |
 | GasMeter, ExceptionalHalt | EthVmCore | The supplied charge kernel (ten all-raw-meter laws) and commit/two rollback boundaries (eight laws on their local proof domains), plus refund/repay (seven all-raw-meter laws) and four local transfer operations (eight laws, forfeit only on pending-spill-zero) and signed refund addition/scalar maximum (four unconditional laws), plus transaction state-gas usage (one signed equation on its local baseline-to-grant proof), are owned by EthVmCore §3/§7. Consumers retain the complete six fields and use the public equations; no global WF, refund-sign or schedule premise is needed for the charges, refund/repay or ordinary restore; commit/entry restore/forfeit carry only their source assertion proofs. Nominal halt vocabulary supplies no producer/settlement implementation. |
 | EvmGasAllocation, `allocateEvmGas` | EthVmCore | Q65 and EthVmCore §3/§5/§7 own the supplied VmConfig-first API, two local subtraction proofs, raw two-field result and four discharged ordinary laws. Nine private public-law client groups and finite complete controls are supplied; actual caller bridges remain open. Preserve floor/admission ordering; establish relevant admission/allocation cap consistency or the allocation cap proof independently. System transactions supply separate grants and bypass this helper. |
 | TransactionGasSettlement, `settleTransactionGas` | EthVmCore | Q66 and EthVmCore §5/§7 own the supplied U256-refund API, three local gas proofs, raw complete four-field result and five discharged ordinary laws. Private public-law clients and complete finite controls are supplied in Core §3; actual callers remain open. Retain the signed-state clamp and pre-refund block dimensions, all source subtraction domains and the original checked refund-conversion boundary described below. |
+| AddrSet, SlotSet, Frame | EthVmCore | Use the exact two Std.ExtTreeSet aliases and raw nine-field constructor/projections owned by EthVmCore §3/§5/§7. Base owns nominal Address and lexical address/slot ordering; Std owns set membership laws. Preserve all independent fields, complete provider values and supplied raw log shape. Raw construction/reconstruction/updates reduce without added admission or public helper laws. Actual creation, immutable context, source-Evm assembly, control/parent integration, F8 transport/emitter and all execution/resource/readiness claims remain open. |
 | FrameCtx, `emitTransferLog` | EthVmCore | F8 supplies immutable systemAddress from RunnerEnv and an explicit helper address argument after Frame; child contexts inherit it. Local zero/complete nonzero log laws quantify arbitrary address/topic; source refinement instantiates the pinned Fork address and F20 topic. Context/emitter code remains open. |
 | RunnerEnv | EthVmRunner | BlockConfig.runnerEnv forwards cfg.system.systemAddress beside the existing table and three-field VmConfig; createEvm copies it into FrameCtx. Intended construction/refinement establishes coherence, without a global raw-context admission predicate. Transport code remains open. |
 | VmWorld, Log, LogRope | EthVmCore | VmWorld contains one TxState. TxObs and the ancestor cursor have one authoritative location. LogRope flattening defines visible order. |
 | PrecompileResult, `PrecompileFn m`, `PrecompileTable m` | EthVmCore | EthPrecompiles creates implementations; EthFork installs pricing closures; EthVmRunner uses the same types and returned meter. |
+| KZG raw versioned hash | EthPrecompiles | EthPrecompiles §3/§5/§7 supplies the canonical fixed global tag, raw ByteArray → Base.VersionedHash helper and complete ordinary byte-result law. PointEvaluation must reuse that owner; its proof/gas/table/frame implementation remains open. Q46/source-class/host domains remain explicit. |
 | StepResult and requests/resume | EthVmInstructions | Handlers suspend, runner executes a child, resume observes a settled child. No handler imports the runner. |
+| BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
+| ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
-| StatelessInput and StatelessValidationResult | EthStateless | EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+| StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+
+### Supplied local SSZ count-recovery handoff (Q87)
+
+[EthCodec §5/§7](modules/EthCodec.md#7-contract-and-laws) owns the actual-value
+predicate and complete ordinary constructor iff. Consumers compose immediate list
+width and every actual-member obligation, or exact container arity and every ordered
+paired-field obligation. Empty variable-child outer lists inspect no unused nested
+values; direct zero-byte fixed products remain eligible. Leaves, limits and masks
+add no support or typing certification. Q80 forward support remains independent.
+The future raw inverse needs both actual Serializable and CountRecoverable proofs;
+its theorem and decoder are unimplemented. Canonical successes still owe WT and
+existential Serializable/reencoding, without a CountRecoverable conclusion. Actual
+schema adapters, source invocation/large-scope/host premises, Rootable and guest O2
+bridges remain separate; no readiness gate closes.
+
+### Supplied generic SSZ schema forward handoff (Q81)
+
+[EthCodec §5/§7](modules/EthCodec.md#5-interface) owns the five-field metadata
+carrier and two direct forward wrappers with complete ordinary raw-call equations.
+Consumers retain the actual dictionary `s`, actual `s.toValue a` and only the
+requested operation's Serializable or Rootable proof. The forward equations need
+no validity, descriptor WF, inverse or opposite-operation support premise.
+
+Every actual instance owner still separately proves all three external §7
+certifications: descriptor WF and both adapter directions. These are required
+obligations, not generic class laws; no actual instances are supplied. Consumers
+needing certification cite those actual proofs or state their hypotheses. Neither
+metadata nor the three certifications alone establishes raw operation support.
+Actual source schema/name/order/coercion/reflection correspondence and successful
+decode→dataclass→fresh-view support stay with the concrete owner. No decoder guard
+or execution-validity premise follows; O2 freedom and guest/resource/security/cost
+and readiness claims remain separate. The existing private output consumer stays
+unchanged.
 
 ### Supplied local SSZ root support (Q78)
 
@@ -781,7 +819,8 @@ ordinary fields are nonempty, and progressive masks use final activity, length
 and population rather than an all-one assumption. Source names/reflection/class
 construction, including `more` at capacity 256, are supplied locally; the predicate
 alone proves none of them. Q71 supplies payload typing separately below; count/backing/offset/scope,
-cache, codec/root and zero-width-list inverse domains remain separate. Some fixed-zero
+cache and codec/root domains remain separate. Q87 supplies the local count-recovery
+premise; its future inverse and decoder completion remain open. Some fixed-zero
 schemas are WF, so division/recovery must establish positivity locally. Q67 stays
 total on every malformed schema; logical controls assert no executable source,
 codec, root, guest, resource or cost agreement.
@@ -791,8 +830,9 @@ ordinary complete `wellTyped_iff`, owned by EthCodec §5/§7. Consumers use actu
 member recursion and exact equal-length/zip field alignment. Masks do not change
 payload typing, and empty actual lists visit no child values. WT⇒WF is false;
 consumers needing WF state it separately. Source classes/names/coercions,
-recursive uint256 constructor/backing counts and mix-ins, offsets/scope/cache,
-positive-width count recovery and codec/inverse/root domains remain local/open.
+recursive uint256 constructor/backing counts and mix-ins, and offsets/scope/cache
+remain local premises. Q87 count recovery is supplied separately; its inverse/decoder and actual
+codec/root bridges remain open.
 Private public-law clients compose these independent judgments and give fixed-zero
 count-size counterexamples without a codec claim. This Prop slice supplies no
 source execution or guest/resource/security/cost/readiness result.
@@ -943,6 +983,46 @@ Install `m'` directly, with no second charge. The table's address set equals its
 secp256k1 recovery returns Bytes64, the unprefixed x/y bytes. Hash those bytes for an address; a 65-byte public-key hint includes prefix 0x04 and must be checked against recovery/signature semantics. Boolean parity recovery completeness is restricted to the documented `x=r<n` domain. `mapToCurveG1/G2` stop before cofactor clearing; EVM mapping wrappers clear exactly once. These are semantic adapters, not representational conveniences.
 
 For payload conversion, `Array PublicKey` erases each subtype to its ByteArray for EthBlock while retaining the 65-byte/prefix/verification checks. `AnyHeader` is the existing ParentHeader sum, not a second header representation. [REFERENCE-RECORDS](REFERENCE-RECORDS.md) fixes source field order, widths and inheritance for all wire/schema adapters. Dense transaction/receipt/withdrawal arrays in BlockOutput model index-keyed unsecured tries: root construction uses `rlp i` keys and the reference typed/legacy value encoding; receipt traversal for requests follows recorded receipt_keys, appended in transaction order, rather than sorting RLP keys (fork.py:1124; requests.py:291).
+
+### Natural-reference residue arithmetic premise
+
+[EthField §3/§5/§7](modules/EthField.md#supplied-basic-natural-reference-arithmetic)
+supplies canonical `PrimeFieldRef` construction and basic add/sub/neg/mul/isZero with
+ordinary observer equations and four directly delegating operator instances. Generic
+private facade clients compose those laws for range, both zero-recognition directions,
+signed subtraction/negation and cancellation, for every p>1 and arbitrary unread
+metadata. Consumers use observers and public laws. The eight exact natural moduli are
+separately supplied by EthField §3, without instances, aliases, square-root metadata or
+backend parameters. Composite residue arithmetic and literal modulus values supply no
+field structure or primality fact. The separate natural-reference power leaf supplies
+`pow`, `toNat_pow` and direct natural-exponent notation for all canonical bases and Nat
+exponents, including composite/nonunit cases and zero-to-zero. Private facade clients
+derive range, zero/one, square/product/exponent-add/iterated-power laws using public
+observations alone, with arbitrary unread metadata. The positive-modulus private worker
+chooses no public powMod-zero completion. The separate canonical-sign leaf supplies
+sgn0/sgn0_eq; private facade clients derive true/false, zero/one, reducing-constructor
+parity and metadata irrelevance through equal natural observations, for every p>1. The
+separate checked-reference decoder supplies ByteArray `ofBytesBE?` and its complete
+success iff via public Base byte/unbounded-natural providers. Private facade clients
+derive none iff, original-value/range, empty/all-zero, leading-zero/positional equality
+and Option-Nat metadata irrelevance. Generic decoding has no width cap. Actual source
+correspondence requires typed 32-byte assertion-active KZG, or exactly 64-byte BLS
+inputs; optimized KZG agrees only on admitted values. Consumer length checks, original
+exceptions and outcome mapping remain separate. This reference premise supplies no Fp2,
+sqrt or negation-sign law. Runtime Montgomery aliases/D6, sqrt/encoding,
+executable/tower inverse, public powMod, concrete fields/towers/Mathlib bridges and
+actual curve/precompile composition remain open; this reference seam supplies no
+production performance or guest-readiness result.
+
+The separate Q86 inverse leaf supplies the complete public finite signed
+`EuclideanCoefficient` graph and canonical `Inv0Model`/`toNat_inv0_iff` contract. Every
+existing p>1 element, including composite nonunits, has exactly one canonical result;
+metadata is arbitrary and unread. Public-only clients derive range, zero, raw-input
+reduction and metadata observer congruence. The product law alone takes local gcd-one;
+concrete prime/nonzero-to-gcd bridges stay with future consumers. Replacements prove
+output graph membership under canonical input observation, without unfolding the private
+Euclidean worker. No raw-Nat operation, Inv/Div instance, division, field structure or
+actual curve/precompile composition is supplied.
 
 ## 3. Inductive state invariant
 
