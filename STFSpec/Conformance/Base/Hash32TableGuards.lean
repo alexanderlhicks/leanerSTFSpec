@@ -27,8 +27,19 @@ private def key (value : Nat) : Hash32 := Hash32.ofBytes32 (FixedBytes.ofNat val
 #synth LawfulHashable Hash32
 #synth Hashable Root
 #synth Hashable VersionedHash
-#check_failure (inferInstance : Hashable Address)
-#check_failure (inferInstance : Hashable Bytes32)
+#synth Hashable Address
+#synth Hashable Bytes32
+#synth Hashable (FixedBytes 32)
+#check_failure (inferInstance : Hashable (FixedBytes 20))
+#check_failure (inferInstance : Hashable Bytes8)
+#check_failure (inferInstance : Hashable Bytes48)
+#check_failure (inferInstance : Hashable Bytes64)
+#check_failure (inferInstance : Hashable Bytes96)
+#check_failure (inferInstance : Hashable Bloom)
+section
+variable (n : Nat)
+#check_failure (inferInstance : Hashable (FixedBytes n))
+end
 
 #guard hash (key 0) == (901300984310592933 : UInt64)
 #guard hash (key 1) == (901299884798964722 : UInt64)

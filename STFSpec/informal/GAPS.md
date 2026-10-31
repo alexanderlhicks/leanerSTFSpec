@@ -113,6 +113,12 @@ None: every inventory item is claimed by a module or excluded with a reason.
 - **Implicit-exception sites not all closed.** A static pass over the pinned EELS (X1) enumerates the EELS sites where a checked `U256`/`U64`/`Uint` operation or constructor can raise. Reachable, unrowed ones are O13 (CONTRACT §4): witnessed, the legacy-`v` `U64` chain-id overflow (`transactions.py:878`); argued reachable, balance overflow (`state_tracker.py:663,687`), the parent-header `U64` blob-field overflows (`forks/amsterdam/vm/gas.py:931, 945`) and the BLOBBASEFEE `U256` overflow (`vm/instructions/environment.py:607`). For the final addition at `forks/amsterdam/vm/gas.py:944`, see [EthBlock §2.12](modules/EthBlock.md#212-failure-mapping). The EthBase-owned helper sites (`utils/numeric.py:204,208`, `forks/amsterdam/utils/address.py:39,60,63,93`, `utils/byte.py:37,59`) are still unresolved (neither shown reachable nor proved unreachable). Until a consumer's sites are closed, it can accidentally use wrapping or `Nat.sub` and diverge on untested inputs. The `ceil32` divisor/subtraction sites at `utils/numeric.py:61,65` are locally discharged for all `Uint`/`Nat` inputs by the source-reference equality in §3; the remaining sites stay open. This is the largest semantic risk in this module.
 - **`taylor_exponential` feasibility (DISC-002).** Ordinary positive-denominator totality, the two zero-value laws and bounded source/interpreted/native controls are supplied in §3/§7. The private logical lexicographic measure is not a runtime budget. The EELS loop has no bound on iterations beyond arithmetic decay, and DISC-002 measured about 2.7·(excess/11684671) iterations, extrapolating to about 4×10¹² for an adversarial parent with `excess ≈ 2^64`. Practical large-input cost/stack/cycle feasibility and actual consumer exception/reachability obligations remain open; mathematical totality and 28 finite results do not discharge them.
 - **`exp` performance.** The implementation is mapped in §3; opcode-loop allocation, throughput and target-zkVM/native comparisons remain unmeasured (R4). Completing maximum-exponent guards does not establish the performance target.
+- **Observation-key support costs (Q84).** The §3 functional provider and private
+  public-Std/facade clients supply no actual State carrier/tracker/lifecycle code.
+  Real key distributions, construction/duplicates/resizing, allocation, linear
+  ownership/retention, representation replacement and C1–C4 remain open. A lawful
+  constant-hash stress case and ordered baseline belong to later C2 measurements;
+  no cost exception, security guarantee or F7 replay choice is adopted.
 - **Hash32 table-support costs.** The functional seam is discharged in §3; actual NodeDB construction, adversarial-distribution and allocation/throughput measurements remain open under ARCHITECTURE §5.0/C1–C4. Fixed-byte representation replacement evidence remains open. NodeDB authenticity, eager witness decoding, root agreement and oracle/resource policy are separate consumer obligations.
 - **D1/D2 benchmarks missing.** `BitVec`-backed `U256` costs (boxing, GMP) are unmeasured in an opcode loop ([REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) replacement gate R4); the local `U64` checked-bounds allocation exception is recorded in [DEBT-U64-CHECKED](DEBT.md#debt-u64-checked--nat-intermediates-in-checked-bounds). Native storage and that local diagnostic do not discharge aggregate cost checks.
   EthBase maintainers own reassessment of the bounded little-endian construction
@@ -477,8 +483,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
-  TxObs/BlockState's specified HashSet fields still require a separately specified
-  Address/Bytes32 hash-provider seam; no support dictionary or replacement is chosen.
+  TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
+  dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
@@ -503,7 +509,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
-- **Observation-set representation:** `HashSet` expected bounds and adversarial hash distributions are unmeasured (ARCHITECTURE §5.0); sorted output for the BAL is `EthBlock`'s, but the hand-off type is not fixed.
+- **Observation-set representation (Q84):** Base's canonical functional key
+  support is supplied (EthBase §3), without State carrier/tracker/lifecycle code.
+  Actual key distributions, construction/duplicates/resizing/allocation, linear
+  ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
+  output remains EthBlock's; the hand-off type and F7 failure/observation replay
+  obligations are not settled by support or iteration order.
 - **`Std` costs:** `ExtTreeMap` has no proved height/cost theorem; incorporate's merge relies on a fold whose cost is analytical only.
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.

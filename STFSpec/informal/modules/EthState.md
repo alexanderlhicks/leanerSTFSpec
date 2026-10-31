@@ -1,7 +1,7 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
 *Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58.*
+*Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58, Q84.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs.
 
@@ -143,8 +143,9 @@ families are visible at `:763–817`. It implements no source tracker operation.
 Only ordinary generated structure infrastructure is public; no authored public
 law, default, instance, factory, `asDiff` or operation is added. The carrier's
 presence supplies no actual snapshot, persistence-cost, tracker/source-refinement
-or S1/S2/W1 result. Observation hash support, provider/cache lifetime (F6), clear
-replay order (F7), F11 and the remaining §10 obligations stay separate.
+or S1/S2/W1 result. Observation hash support (Q84, EthBase §3), provider/cache
+lifetime (F6), clear replay order (F7), F11 and the remaining §10 obligations stay
+separate.
 
 ### Implemented internal order support
 
@@ -373,6 +374,14 @@ tracker operations remain unimplemented targets. The R8 lookup relation is suppl
 as ModelsLookups (§3/§5). The EELS default-empty BlockDiff convenience constructor
 remains deferred (§10).
 
+**Observation-key provider (Q84).** The prospective raw Std fields below use
+Base's canonical named `Address.instHashable` and `Bytes32.instHashable`, plus
+Q51's unchanged Hash32 dictionary. Existing product support combines these with
+`mixHash`; no State-local or pair-specific instance, new parameter or carrier field
+is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equations.
+Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
+support. This provider alone does not implement TxObs, BlockState, TxState or StateM.
+
 ```lean
 -- public types
 structure Account where
@@ -547,12 +556,30 @@ header-format or positive-offset guard.
 | `WriteOrder K` | two persistent `ExtTreeMap`s and a `Nat` counter | duplicate-free list of keys | `toList` in position order | intrinsic `WF`: exact inverse and position bound; separate `Agrees`: associated write domain | snapshot-reachable | required analytical bounds: O(log n) tree-path work for record/erase, O(n) live-entry extraction, O(1) saved-root selection (excluding comparison and reclamation costs); no range(next) scan; C1/C4 integration measurements open |
 | `MathState` | nested `ExtTreeMap`s | finite maps with defaults | `account?`, `storageAt`, `code?` | `WF` | value | O(log n) lookups |
 | `TxRevertible` | nested persistent `ExtTreeMap`/`ExtTreeSet` (D22) | a `BlockDiff` layered over the block view, plus transient map | `asDiff`, `transient` | WriteOrder observers enumerate live first writes for accounts, storage addresses and slots; clears ⊆ addresses; inner maps are post-clear writes only | **snapshot-reachable: worst-case persistent** | read O(log A + log S); write O(log A + log S) path copy; snapshot O(1); revert O(1) plus reclamation of the discarded version; `destroyStorage` O(s) for `s` pending writes of that address |
-| `TxObs` | `Std.HashSet`s | finite sets | `toList` as sets | monotone within a transaction | **linear-only** (never inside a snapshot, D23) | insert expected O(1) (not worst-case, ARCHITECTURE §5.0); merge O(m) |
+| `TxObs` | `Std.HashSet`s | finite sets | `toList` as sets | monotone within a transaction | **linear-only** (never inside a snapshot, D23) | insert expected O(1), merge expected O(m), conditional on suitable distribution and linear ownership; resize/collision/allocation and aggregate costs remain unmeasured (ARCHITECTURE §5.0/C1–C4) |
 | `BlockState` | as `TxRevertible` plus read sets and `oldestAncestorOffset` | a `BlockDiff` over σ₀ plus observation sets | `extractBlockDiff`, sets | as above; storage writes of a cleared address are post-clear only | linear between transactions; read-only (shared) during one | incorporate O(w · log n) for `w` transaction writes; `Std` `union` caveat (ARCHITECTURE §5.0): implement by folding the smaller transaction map, not `mergeWith` over the block map |
+
+Q84 supplies canonical component dictionaries for all three observation-key domains.
+Support collisions preserve actual equality and duplicates; they supply no distribution
+bound. D22 still covers all revertible writes/clears/order indexes/transient storage,
+and D23 keeps observations/createdAccounts linear outside snapshots. Block read sets
+are shared read-only during transactions; support does not establish merge ownership.
 
 Observation sets could become `TreeSet`s if `EthBlock` needs sorted output directly; the BAL builder sorts separately (ARCHITECTURE §5.6). EELS's `copy_tx_state` deep-copies all writes (O(n) per call frame); the persistent representation makes it O(1), which is the performance motivation for D22.
 
 ## 7. Contract and laws
+
+**Observation-set proof boundary (Q84).** Base's complete numeric/byte injectivity
+and two named model equations per new domain, together with public Std
+member/insert/union/duplicate and lookup/overwrite laws, supply functional key support
+without distinct hashes. Raw Std types retain their dictionary parameters: consumers
+construct sets using the same canonical names. Same-name/model replacement after
+recompilation should preserve public-law proof source, without reusing old binaries;
+concurrent dictionaries need explicit identity/transport or rehashing. No client
+unfolds private fixed-byte fields or buckets. Membership agreement alone does not
+assert raw HashSet equality. Actual State observations use their semantic set model;
+no new State operation/law is supplied here. Lean iteration is not Python set order,
+and F7 still covers replay failures and observations as well as roots.
 
 **Account value seam.** (R1–R3)
 
@@ -826,6 +853,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-STATE-3: resolved: CONTRACT O13 (DECISIONS §3); constructors freeze per B14 (Q31) (R29).
 - F7 (open): clear iteration order in the witness root replay (§7.5).
 - Q57: supplied-record lookup agreement follows R8/§5/§7.1; full Models stays at the concrete Id interpretation in EthStateCommit. Generic D5/X7 coupling remains open.
+- Q84: canonical Base observation-key dictionaries and the unchanged raw Std field handoff are in §5/§7. Actual State carriers, operations, lifetimes, ownership and costs remain separate obligations.
 - Q58: the bounded structural predicate and laws in §7.4; full optional slot-order-map policy, replay history and reachability remain open.
 
 ## 10. Gaps
@@ -847,8 +875,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
-  TxObs/BlockState's specified HashSet fields still require a separately specified
-  Address/Bytes32 hash-provider seam; no support dictionary or replacement is chosen.
+  TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
+  dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
@@ -873,7 +901,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
 - **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
-- **Observation-set representation:** `HashSet` expected bounds and adversarial hash distributions are unmeasured (ARCHITECTURE §5.0); sorted output for the BAL is `EthBlock`'s, but the hand-off type is not fixed.
+- **Observation-set representation (Q84):** Base's canonical functional key
+  support is supplied (EthBase §3), without State carrier/tracker/lifecycle code.
+  Actual key distributions, construction/duplicates/resizing/allocation, linear
+  ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
+  output remains EthBlock's; the hand-off type and F7 failure/observation replay
+  obligations are not settled by support or iteration order.
 - **`Std` costs:** `ExtTreeMap` has no proved height/cost theorem; incorporate's merge relies on a fold whose cost is analytical only.
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.

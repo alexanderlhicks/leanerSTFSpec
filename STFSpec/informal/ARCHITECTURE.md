@@ -53,7 +53,7 @@ All core libraries live in one Mathlib-free **core Lake package** (the repositor
 
 | Library | Contents | May depend on | Must **not** depend on |
 |---|---|---|---|
-| `EthBase` | primitive types and conversions: `U256` API, `U64`, `Bytes`, `Address`, `Hash32`, `Bytes32`, big-endian conversions, key orderings, the `Envelope` record (no fields yet, B6), and small policy-free records needed below both VM and block (`Authorization`, `StateGasPerByte`, the `HashConsts` record of keccak-derived constants) | Lean core | everything else. It contains **no fork policy**. |
+| `EthBase` | primitive types and conversions: `U256` API, `U64`, `Bytes`, `Address`, `Hash32`, `Bytes32`, big-endian conversions, key orderings, canonical nonprotocol table support for Hash32 (Q51) and Address/Bytes32 (Q84), the `Envelope` record (no fields yet, B6), and small policy-free records needed below both VM and block (`Authorization`, `StateGasPerByte`, the `HashConsts` record of keccak-derived constants) | Lean core | everything else. It contains **no fork policy**. |
 | `EthHash` | keccak-f/keccak256, SHA-256, RIPEMD-160, BLAKE2 F; the `KeccakQuery` class, its `Id` instance and transformer lifts, and `HashConsts.query` (D5) | `EthBase` | — |
 | `EthField` | prime fields and towers (carry-preserving Montgomery; source per D6) | `EthBase` | VM, state |
 | `EthCurve` | curve groups, ECDSA recover/verify, MSM | `EthField` | VM, state |
@@ -167,7 +167,12 @@ Our state is used **persistently**: a call-frame snapshot keeps the old version,
 - A HashMap with an undo journal (what geth, revm and evmone do) is a valid *later* representation for revertible state. Only the newest version and its ancestors are ever reused, which is exactly the *semi-persistent* setting of Conchon & Filliâtre (ESOP 2008). Adopting it would be a representation replacement proved against the same model-based contract (§4), with the semi-persistence discipline as an explicit obligation. It is a representation replacement under D25 (D22); `@[csimp]` is banned outright (D21).
 - Selecting a saved root is O(1); reclaiming discarded branches and payloads can take time proportional to the released structure in Lean's reference-counting runtime. Benchmark complete frame lifetimes, including cleanup and retained space. A journal's resizing bound must also cover undo and capacity management; linear ownership alone does not prove that bound.
 - `Std.HashMap` has expected fast operations under a suitable hash distribution, not a worst-case O(1) guarantee. Equality/hash laws establish functional correctness only. Keccak collision resistance does not prevent ordinary bucket collisions. Measure the eventual key instance and adversarial distributions, including DB construction; compare ordered trees or sorted read-only arrays where deterministic bounds matter.
-  Hash32 table support is owned by EthBase (Q51; model/laws in EthBase §3); it supplies functional compatibility with actual equality, not suitable-distribution or authentication evidence. Concrete NodeDB construction and adversarial-distribution cost measurements remain open.
+  Hash32 table support (Q51) and canonical Address/Bytes32 observation-key support (Q84)
+  are owned by EthBase (models/laws in EthBase §3). They supply functional compatibility
+  with actual equality. Suitable distributions, actual NodeDB/observation-set construction,
+  duplicate/resizing/allocation and adversarial-distribution costs remain unmeasured.
+  Product support uses the existing component `mixHash` instance; it is no cryptographic
+  domain separator. These models supply no authentication or security guarantee.
 
 **Known `Std` costs** (verified in source, v4.34.0):
 - `union` inserts the smaller map into the larger (`Operations.lean:555–560`), costing O(m log(n+m)) rather than the join-based O(m log(n/m+1)), with the second argument winning conflicts. `mergeWith` folds **the second map** using `alter`, regardless of relative size (`:939–945`); its cost also includes the supplied merge function.
@@ -186,7 +191,7 @@ These matter for folding transactions into `BlockState` and for the BAL builder.
 | Component | Initial representation | Boundary to preserve | Proofs |
 |---|---|---|---|
 | EVM word `U256` | `structure U256` wrapping a `BitVec 256` field (D1(a) first). The field is internal by convention, and exercise 4 checks it: callers go through the observers. It is a `structure`, not an `abbrev`, so callers cannot silently use `BitVec` instances. It carries explicit EVM arithmetic (`evmDiv x 0 = 0`, `evmMod x 0 = 0`, signed ops, `addmod`/`mulmod`, `exp`, `signextend`, `byte`, shifts). | **stable observers** `toBitVec : U256 → BitVec 256` and `toNat`, which are injective with an extensionality lemma, plus **representation-independent operation laws** stated through them (for example `(a + b).toBitVec = a.toBitVec + b.toBitVec`, `(evmDiv a b).toNat = if b.toNat = 0 then 0 else a.toNat / b.toNat`). Callers use only these; the operation definitions are not unfolded downstream | [R] the operation laws. [F] if the representation changes (D1(b)), only this component's definitions and law proofs change. Replacement exercise 4 tests this |
-| `Address`, `Hash32`, `Bytes32` | distinct fixed-width domain types (D2) | equality, a total order (a hand-written `compare` for map keys), and byte conversions | [C] conversion bijections; `compare` is a lawful order |
+| `Address`, `Hash32`, `Bytes32` | distinct fixed-width domain types (D2) | equality, a total order (a hand-written `compare` for map keys), byte conversions and exactly Q51/Q84 canonical nonprotocol table models; Bytes32 is FixedBytes 32 | [C] conversion bijections, lawful order and ordinary complete-digit executable/reference/hash equations |
 | `Bytes` | `ByteArray` | the byte-sequence API with extract/append laws | [C] local library of laws |
 | `Envelope` | record of implementation limits | explicit hypotheses in consumer theorems | these limits do not narrow the reference guest's accepted input domain. A bounded optimization must refine a total reference, or a deviation must follow the protocol discrepancy policy |
 | RLP | `RlpItem` tree; builder encode; cursor decode | encode/decode and canonical-form rules | [T] decode is total on any bytes (recursion on remaining length); [C] round-trip; [C] **injectivity/prefix-freeness** (feeds [S]) |
@@ -533,6 +538,27 @@ separate obligations.
 
 
 **Hash32 table-support options (Q51).** Truncated Nat hashing; the explicit complete 32-digit support model with ordinary streaming/reference equality; or another support representation behind the same model laws. The owning disposition is in DECISIONS Q51 and the provider contract in EthBase §3. EthBase's boundary excludes protocol/cryptographic hashing and permits the named nonprotocol support instance; every Keccak remains routed through KeccakQuery (D5). Revisit executable support costs against actual construction/allocation/adversarial-distribution evidence; functional lawful-hash proofs do not close §5.0 or C1–C4.
+
+**Observation-key support options (Q84).** A supplies exactly the ten canonical
+Base Address/Bytes32 declarations in EthBase §5. B supplies public named State
+support dictionaries used explicitly or through one shared scope. C adds dictionary
+parameters to TxObs and every containing carrier. D replaces raw fields with trees
+or a separately designed abstract wrapper; the Address/Hash32 tree comparator would
+also need selection. DECISIONS Q84 owns the choice. A preserves raw Std field types
+and arities while widening Base synthesis. Bytes32's abbreviation necessarily gives
+FixedBytes 32 support; Address remains nominal and no FixedBytes 20 or variable-width
+support follows. No pair-specific instance is needed.
+
+A dictionary is part of the raw Std type. A reducible alias of the canonical named
+instance is identical; a separately defined support need not be definitionally equal,
+even with a pointwise equality proof. Concurrent dictionaries require explicit
+identity/transport, or re-insertion when hash outputs differ. Replacing the same
+canonical name behind the same model and recompiling is the intended D25 route:
+consumer proof source uses public Base/Std laws, without an old-binary reuse promise.
+D22 keeps all snapshot-reachable writes, clears, order indexes and transient storage
+persistent. D23 keeps observations/createdAccounts linear outside snapshots; global
+support changes neither discipline. No Lean/Python iteration equality or F7 replay
+order is supplied. Distribution/construction/ownership and C1–C4 remain open.
 
 **Typed-trie default/validity and key options (Q53).** Arbitrary defaults with lawful
 equality and a separate preparation proof preserve the source setter's all-value domain.
