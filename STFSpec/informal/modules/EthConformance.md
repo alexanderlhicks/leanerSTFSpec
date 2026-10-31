@@ -120,8 +120,8 @@ canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign), [t
 checked-decoder slice](EthField.md#supplied-checked-natural-reference-byte-decoder) and
 [the inverse slice](EthField.md#supplied-graph-specified-natural-reference-inverse). The
 inverse controls retain all 685 raw/p inputs under three metadata choices (2,055
-complete cases), public-only graph/nonunit/gcd/range/reduction/metadata clients and
-complete interpreted/native comparisons against original streams. They supply no
+complete cases), public-only graph/nonunit/gcd/range/reduction/metadata clients; their
+interpreted/native comparisons against original streams are out of tree. They supply no
 field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
 interpreted/native adapter used for EthField §4's comparisons is out of tree (not
 committed). Public powMod, field hierarchy and guest conformance remain open.
