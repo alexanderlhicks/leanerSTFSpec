@@ -486,15 +486,16 @@ source handler ordering and actual frame ownership/allocation remain consumer wo
 
 **Generic precompile meter predicate options (Q83).** A parameterizes the table and
 its carriers by a successful-result observation; B factors an action through
-proof-carrying results; C parameterizes them by a specification judgment.
-DECISIONS Q83 owns the bounded selection. Core §5/§7 supplies B and its exact Id
-law, preserving the four-field Monad-only table sketch and existing routing.
-B alone supplies no arbitrary-monad result interpretation or table construction.
-A map-shaped adapter needs actual map-on-pure/composition equations; local
-`LawfulApplicative` suffices, while Monad alone does not, and bind-pure/map agreement
-needs its own law. These remain unselected constructor choices, as do erasure-first
-computation, concrete effect bridges and nominal-halt equivalence. Revisit with a
-concrete constructor/consumer proposal; no F11, D5, fuel or resource claim follows.
+proof-carrying results; C parameterizes them by a specification judgment. DECISIONS
+Q83 owns the bounded selection. Core §5/§7 supplies B and its exact Id law,
+preserving the four-field Monad-only table shape (now supplied as a Core carrier) and
+existing routing. B alone supplies no arbitrary-monad result interpretation or table
+construction. A map-shaped adapter needs actual map-on-pure/composition equations;
+local `LawfulApplicative` suffices, while Monad alone does not, and bind-pure/map
+agreement needs its own law. These remain unselected constructor choices, as do
+erasure-first computation, concrete effect bridges and nominal-halt equivalence.
+Revisit with a concrete constructor/consumer proposal; no F11, D5, fuel or resource
+claim follows.
 
 **System-address transport options (F8).** A1 carries Fork's `SystemAddrs.systemAddress` through new `RunnerEnv` and immutable `FrameCtx` fields, with the explicit helper argument after Frame. It keeps fork policy separate from mutable state and header data while preserving the implemented three-field `VmConfig`. A2 would add one `VmWorld` field, requiring preservation by the specified VM transitions; arbitrary `StateT` actions cannot promise that preservation. A3 would add one immutable `BlockEnvironment` field, mixing fork policy with the header/chain abstraction and changing every environment constructor. B would retain a closed Core constant and broaden F8's literal exception, tying future address changes to Core. A `VmConfig` field would migrate its already implemented constructor/laws and Amsterdam values. A1 accepts two record-construction updates for immutable policy and modular fork changes; DECISIONS F8 owns the selection and authorization. Construction, child inheritance and both producer source refinements remain implementation obligations. The four-hash F20 record, request/handler/runner parameter lists and failure/effect order are unchanged. Revisit for changed source or consumer/context requirements.
 

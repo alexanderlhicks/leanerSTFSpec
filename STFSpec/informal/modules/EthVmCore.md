@@ -1565,6 +1565,7 @@ Monad factorization proof projection and conditional Id success use the facade.
 The empty generic and arbitrary-address Id singleton examples prove actual lookup
 certificates; four guards retain ordered bytes and distinguish addresses 1/256.
 These are logical/data controls, without an EELS producer or effect interpretation.
+Reproduce with `lake build STFSpec.Conformance.Vm.Core.PrecompileCallerProofs --wfail`.
 
 ## 5. Interface
 
@@ -1962,6 +1963,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `LogRope` | supplied strict immutable public empty/leaf/concat tree | chronological `List Log` via `toList` | all raw shapes admitted; concat observes left before right; no mutable cache | immutable nodes; production frame ownership remains a caller obligation | append allocates one concat, O(1); workstack flatten O(expanded nodes + emitted logs), including empty/shared occurrences; finite native C3 evidence is scoped in §4 |
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
 | `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
+| `PrecompileResult`, `PrecompileTable` | supplied inductive result; record of a lookup closure, an `AddrSet` domain and two logical proof fields | itself (public carriers) | `lookup_iff` and `meter_law` as fields; no global WF | immutable value | O(1) projection; proof fields are erased; lookup cost belongs to the installed table (EthVmRunner §6) |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
 | `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; handler read-only discipline remains a future signature obligation | field access O(1); no compiled sharing/resource claim |

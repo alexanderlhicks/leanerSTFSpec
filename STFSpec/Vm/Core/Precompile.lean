@@ -20,7 +20,9 @@ open STFSpec.Base
 
 /-- A successful complete meter/output pair or a nominal exceptional halt. -/
 inductive PrecompileResult where
+  /-- Successful completion with the returned meter and output bytes. -/
   | ok (meter : GasMeter) (output : Bytes)
+  /-- A nominal exceptional halt, settled by the caller. -/
   | halt (e : ExceptionalHalt)
 
 /-- Raw monadic precompile calling convention; no hash-query instance is required. -/
@@ -35,9 +37,13 @@ def MeterOk (g : GasMeter) : PrecompileResult → Prop
 /-- A supplied lookup domain and an actual action-factorization witness per entry.
 Only the exact `Id` law interprets this proof field as a result predicate here. -/
 structure PrecompileTable (m : Type → Type) [Monad m] where
+  /-- The installed entry, if any, at each address. -/
   lookup : Address → Option (PrecompileFn m)
+  /-- The supplied lookup domain. -/
   addresses : AddrSet
+  /-- Lookup succeeds exactly on the supplied domain. -/
   lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses
+  /-- Every installed entry has an action-factorization witness for `MeterOk`. -/
   meter_law : ∀ a p i g, lookup a = some p → SatisfiesM (MeterOk g) (p i g)
 
 end STFSpec.Vm.Core
