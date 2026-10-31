@@ -19,7 +19,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 - **R-F1 (block parameters)** (`fork.py:114–146`):
   - `baseFeeMaxChangeDenominator = 8`, `elasticityMultiplier = 2`;
   - Private source operands `MAX_BLOCK_SIZE = 10 485 760` and `SAFETY_MARGIN = 2 097 152` define `blockParams.maxRlpBlockSize = MAX_BLOCK_SIZE − SAFETY_MARGIN = 8 388 608` (EIP-7934). Use the actual operands' subtraction. The three public fields are exactly EthBlock §5; the operands are private Fork definitions, not extra fields or public accessors.
-- **R-F2 (system addresses and system-call budget)** (`fork.py:117–141`; `requests.py:49`; matching VM `SYSTEM_ADDRESS` at `vm/__init__.py:41–43`). The addresses must be byte-exact:
+- **R-F2 (system addresses and system-call budget)** (`fork.py:117–143`; `requests.py:49–51`; matching VM `SYSTEM_ADDRESS` at `vm/__init__.py:41–43`). The addresses must be byte-exact:
   - `systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe`;
   - `beaconRoots = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02` (EIP-4788);
   - `historyStorage = 0x0000F90827F1C53a10cb7A02335B175320002935` (EIP-2935);
@@ -70,15 +70,15 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 |---|---|---|---|
 | `forks/amsterdam/fork.py::BASE_FEE_MAX_CHANGE_DENOMINATOR` | 114 | `STFSpec.Fork.Amsterdam.blockParams.baseFeeMaxChangeDenominator` | 8; supplied public projection |
 | `forks/amsterdam/fork.py::ELASTICITY_MULTIPLIER` | 115 | `STFSpec.Fork.Amsterdam.blockParams.elasticityMultiplier` | 2; supplied public projection |
-| `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `systemAddrs.systemAddress`, reused by `config.system.systemAddress` | `0xff…fe`; same literal as vm/__init__.py:41–43, whose source-map claim stays with EthVmCore; F8 supplies its context route |
-| `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `systemAddrs.beaconRoots` | EIP-4788 |
-| `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `systemAddrs.txGas` | 30 000 000 execution gas |
-| `forks/amsterdam/fork.py::SYSTEM_MAX_SSTORES_PER_CALL` | 122 | `systemAddrs.maxSstoresPerCall` | 16; reservoir = 16 · STORAGE_SET |
-| `forks/amsterdam/fork.py::WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS` | 129 | `systemAddrs.withdrawalRequests` | EIP-7002 |
-| `forks/amsterdam/fork.py::CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS` | 132 | `systemAddrs.consolidationRequests` | EIP-7251 |
-| `forks/amsterdam/fork.py::BUILDER_DEPOSIT_CONTRACT_ADDRESS` | 135 | `systemAddrs.builderDeposits` | EIP-8282 |
-| `forks/amsterdam/fork.py::BUILDER_EXIT_CONTRACT_ADDRESS` | 138 | `systemAddrs.builderExits` | EIP-8282 |
-| `forks/amsterdam/fork.py::HISTORY_STORAGE_ADDRESS` | 141 | `systemAddrs.historyStorage` | EIP-2935 |
+| `forks/amsterdam/fork.py::SYSTEM_ADDRESS` | 117 | `STFSpec.Fork.Amsterdam.systemAddrs.systemAddress`, later reused by `config.system.systemAddress` | `0xff…fe`; same literal as vm/__init__.py:41–43, whose source-map claim stays with EthVmCore; F8 supplies its context route |
+| `forks/amsterdam/fork.py::BEACON_ROOTS_ADDRESS` | 118 | `STFSpec.Fork.Amsterdam.systemAddrs.beaconRoots` | EIP-4788 |
+| `forks/amsterdam/fork.py::SYSTEM_TRANSACTION_GAS` | 121 | `STFSpec.Fork.Amsterdam.systemAddrs.txGas` | 30 000 000 execution gas |
+| `forks/amsterdam/fork.py::SYSTEM_MAX_SSTORES_PER_CALL` | 122 | `STFSpec.Fork.Amsterdam.systemAddrs.maxSstoresPerCall` | 16; reservoir = 16 · STORAGE_SET |
+| `forks/amsterdam/fork.py::WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS` | 129 | `STFSpec.Fork.Amsterdam.systemAddrs.withdrawalRequests` | EIP-7002 |
+| `forks/amsterdam/fork.py::CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS` | 132 | `STFSpec.Fork.Amsterdam.systemAddrs.consolidationRequests` | EIP-7251 |
+| `forks/amsterdam/fork.py::BUILDER_DEPOSIT_CONTRACT_ADDRESS` | 135 | `STFSpec.Fork.Amsterdam.systemAddrs.builderDeposits` | EIP-8282 |
+| `forks/amsterdam/fork.py::BUILDER_EXIT_CONTRACT_ADDRESS` | 138 | `STFSpec.Fork.Amsterdam.systemAddrs.builderExits` | EIP-8282 |
+| `forks/amsterdam/fork.py::HISTORY_STORAGE_ADDRESS` | 141 | `STFSpec.Fork.Amsterdam.systemAddrs.historyStorage` | EIP-2935 |
 | `forks/amsterdam/fork.py::MAX_BLOCK_SIZE` | 144 | private source-level `MAX_BLOCK_SIZE` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 10 485 760; actual subtraction operand, no public API |
 | `forks/amsterdam/fork.py::SAFETY_MARGIN` | 145 | private source-level `SAFETY_MARGIN` in `STFSpec/Fork/Amsterdam/BlockParams.lean` | 2 097 152; actual subtraction operand, no public API |
 | `forks/amsterdam/fork.py::MAX_RLP_BLOCK_SIZE` | 146 | `STFSpec.Fork.Amsterdam.blockParams.maxRlpBlockSize` | 8 388 608; actual private operand subtraction |
@@ -86,7 +86,7 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/transactions.py::BLOB_COUNT_LIMIT` | 64 | `STFSpec.Fork.Amsterdam.txParams.blobCountLimit` | 6 |
 | `forks/amsterdam/transactions.py::ACCESS_LIST_ADDRESS_FLOOR_TOKENS` | 74 | `STFSpec.Fork.Amsterdam.txParams.accessListAddressFloorTokens` | 80 (EIP-7981) |
 | `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 82 | `STFSpec.Fork.Amsterdam.txParams.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
-| `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `systemAddrs.depositContract` | mainnet `0x00000000219a…05fa` |
+| `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `STFSpec.Fork.Amsterdam.systemAddrs.depositContract` | mainnet `0x00000000219a…05fa` |
 | `forks/amsterdam/__init__.py::FORK_CRITERIA` | 43 | `forkCriteria` | `Unscheduled(order_index=3)`; unused by the guest (O-exclusion) |
 
 ### Supplied Amsterdam block parameters
@@ -115,6 +115,45 @@ This data slice implements none of those consumers or their failure behavior,
 division safety, full BlockConfig coherence, index adequacy or guest readiness.
 Full-field source comparison must bind all five original quantities and their
 exact `Uint`/`int` interpretations under normal and optimized Python.
+
+### Supplied Amsterdam system addresses and budgets
+
+`STFSpec.Fork.Amsterdam.systemAddrs : STFSpec.Block.SystemAddrs` is exported
+through the public `STFSpec.Fork` facade. It supplies all ten R-F2 fields in the
+raw provider's order; the eight `Address.ofNat` literals retain all twenty bytes.
+No public helper, law, default, instance or coherence predicate is added.
+
+| Pinned EELS quantity / source type | Actual Lean projection | Effects / failures / laws / status | Validation |
+|---|---|---|---|
+| `fork.py:117`, `SYSTEM_ADDRESS : Address/Bytes20` | `systemAddrs.systemAddress`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:118`, `BEACON_ROOTS_ADDRESS : Address/Bytes20` | `systemAddrs.beaconRoots`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:141`, `HISTORY_STORAGE_ADDRESS : Address/Bytes20` | `systemAddrs.historyStorage`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:129`, `WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS : Address/Bytes20` | `systemAddrs.withdrawalRequests`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:132`, `CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS : Address/Bytes20` | `systemAddrs.consolidationRequests`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:135`, `BUILDER_DEPOSIT_CONTRACT_ADDRESS : Address/Bytes20` | `systemAddrs.builderDeposits`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:138`, `BUILDER_EXIT_CONTRACT_ADDRESS : Address/Bytes20` | `systemAddrs.builderExits`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `requests.py:49`, `DEPOSIT_CONTRACT_ADDRESS : Address/Bytes20` | `systemAddrs.depositContract`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:121`, `SYSTEM_TRANSACTION_GAS : Uint (ExecutionGas annotation)` | `systemAddrs.txGas`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+| `fork.py:122`, `SYSTEM_MAX_SSTORES_PER_CALL : Uint` | `systemAddrs.maxSstoresPerCall`, exact R-F2 value | **supplied:** fixed data; no inputs, effects, errors or proof premises; ordinary record reduction | Private complete record/type and actual full-field controls in `Conformance/Fork/AmsterdamSystemAddrsGuards.lean` |
+
+The private controls import only the public Fork and Block facades, check the exact
+provider type and complete record equality, and observe each of the 160 address
+bytes as a decimal list, including leading zeros. The two Nat budgets are checked
+independently and together; no reservoir budget is derived. Those guards are the
+in-tree evidence. The source-side evidence below is out of tree: nothing for it is
+committed, so it cannot be reproduced from this repository. Source comparison binds
+all ten original globals and the matching VM system address under normal and
+optimized Python. The full actual interpreted target table retains provider field
+order, all twenty bytes per address and both budgets. The frozen expectation is
+public-guidance-derived, not an independent protocol KAT. The source acquisition
+establishes local bytes, types, modes and origins; it does not authenticate a
+publisher or prove first-ever access chronology. It supplies source input, not a
+Lean correctness verdict.
+
+This is the raw configuration abstraction, not an EELS record. Runtime acquisition,
+full `config.system` assembly, runner/context/child transport, actual system-call
+and request consumers and both producer refinements remain open. No F20 hash
+acquisition, fuel/resource, whole-config or guest/EEST claim follows.
 
 ### Supplied Amsterdam transaction parameters
 
@@ -173,8 +212,9 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - the transition set `for_bpo2toamsterdamattime15k/*` (15 areas), with a pre-fork parent header.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
-  - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. R-F2 values and the separate state amount observations remain to be implemented and checked.
-  - The byte strings in R-F2 (checksummed and lowercase decode alike), including all twenty systemAddress bytes and both config.system/config.runnerEnv projections (F8). Actual context/child/producer controls remain with Runner/Instructions/Core; these are future checks, not supplied code.
+  - R-F2 has private public-facade exact type/complete record controls, all 160 actual address bytes and each independent budget (§3); the out-of-tree interpreted full-table comparison retains field order. Consumer controls remain separate.
+  - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. The separate state amount observations remain to be implemented and checked.
+  - R-F2 byte contents are supplied above. Both config.system/config.runnerEnv projections (F8) remain future checks. Actual context/child/producer controls remain with Runner/Instructions/Core.
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.
@@ -189,7 +229,7 @@ private def SAFETY_MARGIN : Nat := 2097152
 def blockParams : Block.BlockParams :=
   { baseFeeMaxChangeDenominator := 8, elasticityMultiplier := 2,
     maxRlpBlockSize := MAX_BLOCK_SIZE - SAFETY_MARGIN }  -- R-F1 supplied
-def systemAddrs  : Block.SystemAddrs              -- R-F2
+def systemAddrs : Block.SystemAddrs              -- complete R-F2 supplied; values in §2
 def txParams : Block.TxParams :=
   { blobCountLimit := 6, accessListAddressFloorTokens := 80,
     accessListStorageKeyFloorTokens := 128 }       -- R-F3 supplied
@@ -221,6 +261,7 @@ theorem termination_ready : Vm.Runner.TerminationReady config             -- pub
 |---|---|---|---|---|---|
 | Raw BlockParams | three unrestricted Nat fields; two private Nat operands in the Fork owner | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
 | Raw TxParams | three unrestricted Nat fields | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
+| Raw SystemAddrs | eight Address fields and two independent Nat budgets | themselves | none; full configuration hypotheses remain separate | read-only constant, shared | O(1) access |
 | Remaining parameter records | plain structures of `Nat`/`Address`/`U64` | themselves | `WellFormed` (§7) | read-only constants, shared | O(1) access |
 | Precompile table | `EthVmCore`'s `PrecompileTable`: `lookup : Address → Option (PrecompileFn m)` (a total function by `match` on the address), `addresses : AddrSet`, with the fields `lookup_iff` and `meter_law` | finite partial map `A ⇀ PrecompileFn m` | `lookup_iff : ∀ a, (lookup a).isSome ↔ a ∈ addresses`; `meter_law` as stated in `EthVmCore` | read-only | dispatch O(1) (a match on a small integer; [I] compiles to a decision tree); warming O(18 log n) per transaction |
 
@@ -231,6 +272,10 @@ No mutable or snapshot-reachable state lives here.
 The supplied R-F1 value has ordinary complete record reduction, with two private
 operand checks (§3). The raw provider admits every Nat triple; this slice adds no
 generic positivity, WF, coherence or subtraction law.
+
+The complete R-F2 value and private full-field controls are supplied (§3); ordinary
+record reduction is the complete data contract. No public law or new raw-record
+premise is introduced.
 
 **System-address assembly** [C] (F8; unimplemented): `config.system.systemAddress = systemAddrs.systemAddress`, and `config.runnerEnv.systemAddress = systemAddrs.systemAddress`, whose twenty bytes are nineteen `ff` bytes followed by `fe` (R-F2). Combined with the Runner creation and Instructions child equations, intended Amsterdam contexts supply the exact address to both producers. Their source refinement separately uses the correct F20 topic. The raw records and local helper laws remain arbitrary; this construction/source agreement adds no global raw admission predicate, runtime check, gas/fuel premise or extra HashConsts field.
 
@@ -255,7 +300,7 @@ generic positivity, WF, coherence or subtraction law.
 
 **Argument.** Compare each literal to the pinned constant inventory. Arithmetic evaluation establishes positive denominators, range bounds and cost inequalities. Construct one VmConfig and use it both for FrameCtx/RunnerEnv and for pricing closures in PrecompileTable; the lookup/address law supplies warm-address and dispatch agreement. Construct BlockConfig from those same values and the single Fork-owned systemAddrs; compose its runnerEnv address projection, successful createEvm copy and child inheritance to relate both transfer-log producers to the pinned address. This coherence is required by intended assembly/source refinement, independently of local arbitrary-address helper and gas laws. Generic block theorems then specialise by substituting this config and supplying their proofs. The termination premise concerns complete execution paths, including child forwarding and returns: evaluating JUMPDEST or stipend constants only supplies some inputs to that proof. Activation remains external because the pinned guest does not check it. A future fork whose opcode behaviour changes requires a behaviour refinement as well as new values.
 
-**Open obligations.** The complete R-F1 block value, R-F3 transaction value, R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
+**Open obligations.** The complete R-F1 block value, R-F2 system value, R-F3 transaction value, R-F4 stored VM records and definitional depth equality are supplied (§3); pin the remaining parameter records, prove full BlockConfig/table/consumer coherence, and obtain TerminationReady from the runner proof instead of treating it as a computable property of GasCosts. The minimum-transaction-size/index argument and transition-header compatibility also remain to be checked.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -279,7 +324,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
-- **System address assembly (F8):** the concrete R-F2 value, full systemAddrs/config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
+- **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
 - **Fork activation is excluded** (CONTRACT §5). `forkCriteria` is unscheduled at the pin, and the guest never checks the payload timestamp against any activation. This is a deliberate exclusion that follows the reference, and the L1 consumer must supply activation/chain anchoring outside this guest.
 - **EIP-7997 (deterministic factory)** is listed in `__init__.py:15` but has no code in the Amsterdam package [V, by grep]. There is no `apply_fork` irregularity and no predeploy insertion. The fixture area `eip7997_deterministic_factory_contract` (21) presumably relies on pre-state allocation [I, not checked].
