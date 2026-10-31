@@ -85,7 +85,7 @@ sequenceDiagram
     loop system calls, then each transaction
         B->>S: check_transaction, sender recovery (public-key hint, O5)
         B->>R: process the message call with a TxState over the BlockState
-        loop frame loop (candidate fuel = Φ + 1; proof open)
+        loop frame loop (candidate fuel = Φ + 1, proof open)
             R->>I: step → next frame / halt / child request
             I->>S: reads/writes through overlay laws (reads recorded)
             R->>P: precompile address → table entry
