@@ -28,6 +28,7 @@ import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
 import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
+import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
