@@ -465,7 +465,8 @@ primitive and source-domain premises; they prove no universal source-host comple
 resource/cost/C1–C4, actual curve/precompile composition, guest or EEST claim. These
 interpreted/native comparisons, the source streams and replays, and their authentication
 are out of tree: nothing for them is committed, so they cannot be reproduced from this
-repository. The in-tree checks are the literal guards and the public-law clients.
+repository. The in-tree checks are the 762 literal guard rows, each under three metadata
+choices, and the public-law clients.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,
