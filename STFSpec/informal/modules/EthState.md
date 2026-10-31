@@ -410,17 +410,19 @@ resource or C1–C4 result.
   derive complete constant-byte retention through new_consts. Owner-private
   ordinary reduction retains the whole arbitrary provider, beyond any finite
   callback observations. The private BlockInitializationGuards corpus has 138
-  provider/constants inputs and 1,104 actual/expected entries (eight per input;
-  three of them repeat an earlier pure observation, so 690 comparisons are
-  distinct): all eleven empty/default outputs, both maps and zero counters in B1
-  indexes, all four constants independently through every 32-byte position,
-  arbitrary/incoherent records, complete callback inputs/results/error payloads,
-  None versus Some 0, and retained providers/constants/parents/siblings.
-  Independent literal empty frames and numeric byte recipes supply expectations.
-  Interpreted `#guard` execution inspects complete public outputs (no native
-  runner is committed for this slice); no external proof client unfolds new, no
-  raw HashSet equality follows from membership, and no original Python allocation
-  identity or lifetime/cost theorem is claimed.
+  provider/constants inputs and 1,104 actual/expected entries (eight per input,
+  three of which repeat an earlier observation of the same input; across inputs
+  474 entries are distinct, because sibling/provider observations depend only
+  on the 33 seeds and constants only on the 132 records): all eleven
+  empty/default outputs, both maps and zero counters in B1 indexes, all four
+  constants independently through every 32-byte position, arbitrary/incoherent
+  records, complete callback inputs/results/error payloads, None versus Some 0,
+  and retained providers/constants/parents/siblings. Independent literal empty
+  frames and numeric byte recipes supply expectations. Interpreted `#guard`
+  execution inspects complete public outputs (no native runner is committed for
+  this slice); no external proof client unfolds new, no raw HashSet equality
+  follows from membership, and no original Python allocation identity or
+  lifetime/cost theorem is claimed.
 - **Implemented TxObs controls:** private generic clients use whole raw field equality,
   without inferring raw HashSet equality from membership. Complete guards observe
   every 20/32-byte key, every byte position, high bits, both pair components
