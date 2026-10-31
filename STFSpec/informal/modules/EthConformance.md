@@ -100,7 +100,36 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
 
 **External semantics.** In `stateless_host.py`: `ethereum_rlp.rlp` (`rlp.encode(header)` for the block hash, `rlp.encode(tx)` for legacy transactions, `rlp.encode(block_access_list)`), `ethereum_types` `Bytes`/`U64`; behaviour specified by `EthCodec`/`EthBase`. In `requests.py` decoders: `ethereum_types` `Bytes32/48/96`, `U64.from_le_bytes` (little-endian), `slotted_freezable` (no semantics). JSON parsing (`Lean.Json`, allowed as part of `Lean`) and hex decoding are local and must reject odd-length and non-hex strings as *fixture malformed*.
 
+The selectable budget vocabulary's private clients, bounded guards, input-only
+interpreted/native producer and independent mathematical parser controls are owned
+by EthVmRunner §3/§4/§5/§7. They are imported through the Conformance facade; they make
+no original-source budget execution or guest/EEST claim.
+
+The nominal execution entry-kind carrier's private public-facade constructor,
+exhaustive/dependent elimination, branch and ordered disjointness clients are owned
+by EthVmRunner §3/§4/§5/§7 and imported through the Conformance facade. They establish
+only the specified carrier shape, with no `Exec` relation or guest/EEST claim.
+
 ## 4. Tests
+
+Private Field reference-power, canonical-sign, checked-byte-decoder and
+graph-specified-inverse clients and complete finite controls are imported by
+`STFSpec.Conformance`; their supplied semantics, source map and evidence boundaries are
+owned by [EthField §3/§4/§7](EthField.md#supplied-natural-reference-powers), [the
+canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign), [the
+checked-decoder slice](EthField.md#supplied-checked-natural-reference-byte-decoder) and
+[the inverse slice](EthField.md#supplied-graph-specified-natural-reference-inverse). The
+inverse controls retain all 685 raw/p inputs under three metadata choices (2,055
+complete cases) and public-only graph/nonunit/gcd/range/reduction/metadata clients;
+their interpreted/native comparisons against original streams are out of tree. The
+separate reference-division clients, 54 literal guards, input-only runtime producer,
+complete 2,787-row interpreted/native checks and strict normal/optimized malformed CLI
+controls are owned by [the division
+slice](EthField.md#supplied-natural-reference-division). These Field controls supply no
+field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
+interpreted/native adapter used for the power, sign, decoder and inverse comparisons in
+EthField §4 is out of tree (not committed); the division producer is committed. Public
+powMod, field hierarchy and guest conformance remain open.
 
 - **Mathematical State block-view controls.** EthState §3/§4/§7.2 owns the
   two declarations and complete private clients/guards imported by EthConformance.
@@ -108,7 +137,8 @@ The internal `fixture-records` protocol is one JSON request array per stdin line
   present-empty inners, every key byte, arbitrary metadata/unused fields and retained
   parents/siblings. Full interpreted/native comparisons establish finite mathematical
   composition, without an original Python view operation, EEST, witness or cost claim.
-- **Raw State extraction controls (Q85).** EthState §3/§4/§7 owns the operation, seven laws and bounded complete-value corpus. Private facade clients and all-private guards are imported by EthConformance; numerical/list expectations retain every field, byte, optional tag and malformed metadata occurrence. Interpreted/native comparison supplies local functional evidence, without executing EEST, an original EELS malformed-index runtime, a tracker or backend.
+
+- **Raw State extraction controls (Q85).** EthState §3/§4/§7 owns the operation, seven laws and bounded complete-value corpus. Private facade clients and all-private guards are imported by EthConformance; numerical/list expectations retain every field, byte, optional tag and malformed metadata occurrence. Interpreted `#guard` comparison (no native runner is committed for this slice) supplies local functional evidence, without executing EEST, an original EELS malformed-index runtime, a tracker or backend.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).

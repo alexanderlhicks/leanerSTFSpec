@@ -15,10 +15,10 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§3–4.
 
 open STFSpec STFSpec.Fork.Amsterdam STFSpec.Vm.Core
 
-private def complete_costs : GasCosts := gasCosts
-private def complete_state_costs : StateGasCosts := stateGasCosts
-private def complete_limits : VmLimits := vmLimits
-private def complete_configuration : VmConfig := vmConfig
+private def completeCosts : GasCosts := gasCosts
+private def completeStateCosts : StateGasCosts := stateGasCosts
+private def completeLimits : VmLimits := vmLimits
+private def completeConfiguration : VmConfig := vmConfig
 
 private theorem literal_bound : (Fin vmConfig.limits.stackDepthLimit) = Fin 1024 := rfl
 

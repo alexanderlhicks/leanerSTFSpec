@@ -30,7 +30,8 @@ structure BlockState (m : Type → Type) where
   accountWrites : Std.ExtTreeMap STFSpec.Base.Address (Option Account)
   /-- Supplied B1 account-order metadata, without a WF or history premise. -/
   accountOrder : WriteOrder STFSpec.Base.Address
-  /-- Raw storage writes, retaining zero values and empty inner maps; EELS :80–82. -/
+  /-- Raw storage writes, retaining zero values and empty inner maps;
+  EELS `state_tracker.py:80–82`. -/
   storageWrites : Std.ExtTreeMap STFSpec.Base.Address
     (Std.ExtTreeMap STFSpec.Base.Bytes32 STFSpec.Base.U256)
   /-- Supplied B1 storage-address-order metadata. -/

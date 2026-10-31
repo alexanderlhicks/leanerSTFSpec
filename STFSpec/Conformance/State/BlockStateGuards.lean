@@ -189,7 +189,8 @@ private def observe (b : BlockState Id) : List Nat :=
         p.2)),
     sequence (b.codeWrites.toList.map (fun p ↦ hashValues p.1 ++ byteValues p.2)),
     sequence (b.storageClears.toList.map addressValues),
-    sequence ((b.accountReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map addressValues),
+    sequence ((b.accountReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
+      addressValues),
     sequence ((b.storageReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
       (fun p ↦ addressValues p.1 ++ slotValues p.2)),
     sequence ((b.codeReads.toList.mergeSort (fun x y ↦
@@ -240,10 +241,10 @@ private def expected (r : Recipe) : List Nat :=
     sequence ((normalized (r.accounts.map (fun p ↦ (p.1 % 2 ^ 160, p.2)))).map
       (fun p ↦ digits 20 p.1 ++ optional expectedAccount p.2)),
     expectedIndex 20 r.accountIndex,
-    sequence ((normalized (r.storage.map (fun p ↦ (p.1 % 2 ^ 160, p.2)))).map (fun p ↦ digits 20
-        p.1 ++
-      sequence ((normalized (p.2.map (fun q ↦ (q.1 % 2 ^ 256, q.2)))).map
-        (fun q ↦ digits 32 q.1 ++ [q.2 % 2 ^ 256])))),
+    sequence ((normalized (r.storage.map (fun p ↦ (p.1 % 2 ^ 160, p.2)))).map
+      (fun p ↦ digits 20 p.1 ++
+        sequence ((normalized (p.2.map (fun q ↦ (q.1 % 2 ^ 256, q.2)))).map
+          (fun q ↦ digits 32 q.1 ++ [q.2 % 2 ^ 256])))),
     expectedIndex 20 r.addressIndex,
     sequence ((normalized (r.slotIndexes.map (fun p ↦ (p.1 % 2 ^ 160, p.2)))).map
       (fun p ↦ digits 20 p.1 ++ expectedIndex 32 p.2)),
@@ -260,7 +261,8 @@ private def parentRecipe : Recipe :=
     [(8, some (0, 0, 0)), (2 ^ 159 + 1, none), (8, some (2 ^ 1024 + 17, 2 ^ 256 - 1, 2 ^ 255 + 9)),
       (99, none)], rawIndex 7,
     [(8, [(4, 0), (2 ^ 255 + 3, 2 ^ 256 - 1), (4, 17)]), (99, []), (3, [(7, 0)])],
-    rawIndex 19, [(123, rawIndex 27), (8, ⟨0, [(2 ^ 255, 7)], [(9, 2 ^ 255), (100, 2 ^ 255)]⟩)],
+    rawIndex 19,
+    [(123, rawIndex 27), (8, ⟨0, [(2 ^ 255, 7)], [(9, 2 ^ 255), (100, 2 ^ 255)]⟩)],
     [(2 ^ 255, [0, 128, 255, 0]), (0, []), (2 ^ 255, [255, 0, 129, 7])],
     [6, 6, 2 ^ 159 + 8], [1, 1 + 2 ^ 160, 2 ^ 159 + 9],
     [(3, 4), (3 + 2 ^ 160, 4 + 2 ^ 256), (8, 4), (3, 9)],
@@ -276,25 +278,25 @@ private def controls : List (BlockState Id × Recipe) := Id.run do
   let mut cs := [(p, parentRecipe), (q, otherRecipe)]
   cs := cs ++ [({ p with preState := q.preState }, { parentRecipe with seed := otherRecipe.seed }),
     ({ p with consts := q.consts }, { parentRecipe with consts := otherRecipe.consts }),
-    ({ p with accountWrites := q.accountWrites }, { parentRecipe with accounts :=
-        otherRecipe.accounts }),
-    ({ p with accountOrder := q.accountOrder }, { parentRecipe with accountIndex :=
-        otherRecipe.accountIndex }),
-    ({ p with storageWrites := q.storageWrites }, { parentRecipe with storage :=
-        otherRecipe.storage }),
-    ({ p with storageAddressOrder := q.storageAddressOrder }, { parentRecipe with addressIndex :=
-        otherRecipe.addressIndex }),
-    ({ p with storageSlotOrder := q.storageSlotOrder }, { parentRecipe with slotIndexes :=
-        otherRecipe.slotIndexes }),
+    ({ p with accountWrites := q.accountWrites },
+      { parentRecipe with accounts := otherRecipe.accounts }),
+    ({ p with accountOrder := q.accountOrder },
+      { parentRecipe with accountIndex := otherRecipe.accountIndex }),
+    ({ p with storageWrites := q.storageWrites },
+      { parentRecipe with storage := otherRecipe.storage }),
+    ({ p with storageAddressOrder := q.storageAddressOrder },
+      { parentRecipe with addressIndex := otherRecipe.addressIndex }),
+    ({ p with storageSlotOrder := q.storageSlotOrder },
+      { parentRecipe with slotIndexes := otherRecipe.slotIndexes }),
     ({ p with codeWrites := q.codeWrites }, { parentRecipe with code := otherRecipe.code }),
-    ({ p with storageClears := q.storageClears }, { parentRecipe with clears := otherRecipe.clears
-        }),
-    ({ p with accountReads := q.accountReads }, { parentRecipe with accountReads :=
-        otherRecipe.accountReads }),
-    ({ p with storageReads := q.storageReads }, { parentRecipe with storageReads :=
-        otherRecipe.storageReads }),
-    ({ p with codeReads := q.codeReads }, { parentRecipe with codeReads := otherRecipe.codeReads
-        }),
+    ({ p with storageClears := q.storageClears },
+      { parentRecipe with clears := otherRecipe.clears }),
+    ({ p with accountReads := q.accountReads },
+      { parentRecipe with accountReads := otherRecipe.accountReads }),
+    ({ p with storageReads := q.storageReads },
+      { parentRecipe with storageReads := otherRecipe.storageReads }),
+    ({ p with codeReads := q.codeReads },
+      { parentRecipe with codeReads := otherRecipe.codeReads }),
     ({ p with oldestAncestorOffset := some 0 }, { parentRecipe with offset := some 0 }),
     ({ p with oldestAncestorOffset := none }, { parentRecipe with offset := none }),
     (p, parentRecipe), (q, otherRecipe)]
