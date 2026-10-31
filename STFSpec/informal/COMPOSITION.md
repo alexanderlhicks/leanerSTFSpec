@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-30.*
+*Status: conditional proof plan. Date: 2026-10-31.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -52,7 +52,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | StepResult and requests/resume | EthVmInstructions | EthVmInstructions §3/§5/§7 supplies exactly the raw seven-field CreateRequest and private complete facade clients, without extra admission, public helper laws or grant/staticness/settlement policy. Preserve independent Nat grants, complete nominal endowment/addresses/init bytes and charging flag. Producers, CallRequest, StepResult, child context/frame, handlers and resume remain unimplemented. Future handlers suspend, runner executes a child, resume observes a settled child; no handler imports the runner. F11, source/admission, fuel/resources and guest obligations remain open. |
 | BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
-| InternalError, CheckedResult, `CheckedT` | EthVmRunner | Every caller propagates the internal channel without treating it as a validation error. |
+| InternalError, CheckedResult, `CheckedT` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; adapters, execution and guest projection remain open, as do F11 and G2–G7. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
@@ -975,7 +975,7 @@ seams, consumer coherence and generic oracle coupling remain open.
 - `.ok (.error e)`: a validation/backend fault, projected according to its guest phase;
 - `.error i`: spec-internal failure, retained by the checked guest.
 
-Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. For an action run on world `w`:
+Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. Only the checked carriers are supplied (EthVmRunner §3/§5/§7); the adapter `runVmChecked` and the execution equations below remain unimplemented. F11 remains open. For an action run on world `w`:
 
 ```text
 action w = .error vf                    => .ok (.error vf)

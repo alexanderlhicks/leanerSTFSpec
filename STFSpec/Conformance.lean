@@ -6,6 +6,7 @@ import STFSpec.Conformance.Vm.Core.FrameErrorCallerProofs
 import STFSpec.Conformance.Vm.Core.FrameErrorGuards
 import STFSpec.Conformance.Vm.Runner.BudgetCallerProofs
 import STFSpec.Conformance.Vm.Runner.BudgetGuards
+import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
