@@ -1000,11 +1000,18 @@ derive range, zero/one, square/product/exponent-add/iterated-power laws using pu
 observations alone, with arbitrary unread metadata. The positive-modulus private worker
 chooses no public powMod-zero completion. The separate canonical-sign leaf supplies
 sgn0/sgn0_eq; private facade clients derive true/false, zero/one, reducing-constructor
-parity and metadata irrelevance through equal natural observations, for every p>1. This
-reference premise supplies no Fp2, sqrt or negation-sign law. Runtime Montgomery
-aliases/D6, inverse/sqrt/encoding, public powMod, concrete fields/towers/Mathlib bridges
-and actual curve/precompile composition remain open; this reference seam supplies no
-production performance or guest-readiness result.
+parity and metadata irrelevance through equal natural observations, for every p>1. The
+separate checked-reference decoder supplies ByteArray `ofBytesBE?` and its complete
+success iff via public Base byte/unbounded-natural providers. Private facade clients
+derive none iff, original-value/range, empty/all-zero, leading-zero/positional equality
+and Option-Nat metadata irrelevance. Generic decoding has no width cap. Actual source
+correspondence requires typed 32-byte assertion-active KZG, or exactly 64-byte BLS
+inputs; optimized KZG agrees only on admitted values. Consumer length checks, original
+exceptions and outcome mapping remain separate. This reference premise supplies no Fp2,
+sqrt or negation-sign law. Runtime Montgomery aliases/D6, inverse/sqrt/encoding, public
+powMod, concrete fields/towers/Mathlib bridges and actual curve/precompile composition
+remain open; this reference seam supplies no production performance or guest-readiness
+result.
 
 ## 3. Inductive state invariant
 
