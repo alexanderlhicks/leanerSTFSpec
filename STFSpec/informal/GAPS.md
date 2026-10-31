@@ -475,15 +475,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
   ModelsLookups, opaque witness ancestor selection and the raw four-field TxObs and
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
-  new_consts law, are supplied (§3/§5/§7). The owning laws and test rows specify their
-  domains. MathState mutation, diff WF/history/reachable preservation, actual provider
-  operations/contextual tracker/full-model proofs, StateError operation/adapter
-  semantics and freezing, witness diagnostic refinement, tracker effects/errors,
-  ordered-write integration, reachability, snapshot, acquisition/coherence, future
-  context preservation and operational source-refinement obligations remain open.
-  Additional public initialization consumer laws await a named consumer and separately
-  reviewed contract. The EELS default-empty BlockDiff convenience constructor remains
-  deferred. These component contracts do not change whole-State readiness.
+  new_consts law, plus logical account/storage read views and their two exact
+  membership iff laws, are supplied (§3/§5/§7). The owning laws and test rows specify
+  their domains. MathState mutation, diff WF/history/reachable preservation, actual
+  provider operations/contextual tracker/full-model proofs, StateError
+  operation/adapter semantics and freezing, witness diagnostic refinement, tracker
+  effects/errors, ordered-write integration, reachability, snapshot,
+  acquisition/coherence, future context preservation and operational source-refinement
+  obligations remain open. Additional public initialization consumer laws await a
+  named consumer and separately reviewed contract. The EELS default-empty BlockDiff
+  convenience constructor remains deferred. These component contracts do not change
+  whole-State readiness.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,

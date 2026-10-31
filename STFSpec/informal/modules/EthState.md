@@ -203,6 +203,22 @@ remain open until a named consumer needs a separately reviewed contract. This sl
 establishes no acquisition/coherence, provider progress, reachable WF/history,
 transaction sharing/ownership, lifecycle, resource or whole-State result.
 
+### Implemented logical block read sets
+
+`State/ReadSets.lean`, exported by State, supplies exactly two logical predicate
+views and their two ordinary membership iff laws. Informal `Set` here means a
+mathematical predicate; no new set provider, class, instance or dependency is used.
+
+| Source/support at the pin | Lean declaration and domain | Value/effects and ordered failures | Law and deterministic validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:75,851`; BAL consumption `block_access_lists.py:847–849` | `BlockState.accountReadSet {m : Type → Type} (b : BlockState m) : Address → Prop`, class-free | Exactly membership in b.accountReads on every raw block; no effects or failure | **Supplied:** `BlockState.accountReadSet_iff`; private facade clients use both directions, with whole-field independence; `ReadSetsGuards.lean` compares complete independent membership vectors (§4). |
+| `src/ethereum/forks/amsterdam/state_tracker.py:79,850`; BAL consumption `block_access_lists.py:843–845` | `BlockState.storageReadSet {m : Type → Type} (b : BlockState m) : (Address × Bytes32) → Prop`, class-free | Exactly whole-pair membership in b.storageReads, including both complete keys; no effects or failure | **Supplied:** `BlockState.storageReadSet_iff`; private arbitrary-key and non-Monad clients plus complete interpreted `#guard` controls (§4). |
+
+These are static field projections, not incorporation or BAL construction. Original
+source correspondence assumes complete typed key interpretation. Static source reading
+executes no original tracker function. Enumeration, sorted output, codeReadSet, raw
+HashSet extensionality, ownership/monotonicity and lifecycle remain outside this seam.
+
 ### Implemented internal order support
 
 `STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
@@ -423,6 +439,21 @@ resource or C1–C4 result.
   this slice); no external proof client unfolds new, no raw HashSet equality
   follows from membership, and no original Python allocation identity or
   lifetime/cost theorem is claimed.
+- **Implemented logical-read-set controls:** private facade clients check all four
+  exact class-free types, both directions of each public iff and a contravariant
+  type constructor without Monad. Public record updates and only the iff laws prove
+  each view independent of every other field. `ReadSetsGuards.lean` compares 176
+  complete actual/independent expected vectors with query IDs and every queried
+  20/32-byte key: empty/nonempty, duplicates/reconstruction, insertion permutations,
+  same address/different slot and same slot/different address, low/high/mixed
+  changes at every byte, leading zeros, each irrelevant field, None/Some 0/huge
+  offsets and retained parents/siblings. Canonical dictionaries exercise distinct
+  keys sharing low hash bits, without a new Hashable instance or a distribution
+  claim. Runtime controls transport existing Std membership decidability through the
+  public iff laws, adding no decidability API. The interpreted `#guard` output (no
+  native runner is committed for this slice) is finite membership evidence; it
+  implies no raw-set equality, Python iteration/allocation identity, tracker
+  operation, BAL sorting or cost result.
 - **Implemented TxObs controls:** private generic clients use whole raw field equality,
   without inferring raw HashSet equality from membership. Complete guards observe
   every 20/32-byte key, every byte position, high bits, both pair components
@@ -460,7 +491,8 @@ MathState record and structural `WF` are also supplied. The raw PreState carrier
 coarse nominal WitnessItem/WitnessError values are supplied without a Monad premise.
 The nominal StateError carrier in §5/R29, raw four-field TxObs carrier and raw
 thirteen-field BlockState carrier are also supplied. BlockState.new and its explicit
-F20 new_consts law are supplied separately below; no tracker or adapter is supplied.
+F20 new_consts law are supplied separately below. Logical account/storage predicate
+views and their two iff laws are also supplied; no tracker or adapter is supplied.
 The raw eight-field TxRevertible carrier is supplied without operations, defaults,
 instances or authored public laws (§3/§7).
 The bounded structural predicate and preservation laws are supplied (§3/§7.4).
@@ -639,8 +671,14 @@ def preTxAccount (t : TxState m) (a : Address) : m (Except StateError (Option Ac
 def preTxStorage (t : TxState m) (a : Address) (k : Bytes32) : m (Except StateError U256)
 def TxState.accountWritesInOrder : TxState m → List (Address × Option Account)
 def TxState.storageWritesInOrder : TxState m → List (Address × List (Bytes32 × U256))
-def BlockState.accountReadSet : BlockState m → Set Address
-def BlockState.storageReadSet : BlockState m → Set (Address × Bytes32)
+-- Supplied logical membership views, without class premises or a Set provider.
+def BlockState.accountReadSet {m : Type → Type} (b : BlockState m) : Address → Prop
+def BlockState.storageReadSet {m : Type → Type} (b : BlockState m) :
+  (Address × Bytes32) → Prop
+theorem BlockState.accountReadSet_iff {m : Type → Type} (b : BlockState m) (a : Address) :
+  BlockState.accountReadSet b a ↔ a ∈ b.accountReads
+theorem BlockState.storageReadSet_iff {m : Type → Type} (b : BlockState m)
+    (pair : Address × Bytes32) : BlockState.storageReadSet b pair ↔ pair ∈ b.storageReads
 ```
 
 The supplied `getWitnessAncestors` helper accepts every list and optional Nat.
@@ -658,7 +696,7 @@ header-format or positive-offset guard.
 | `MathState` | nested `ExtTreeMap`s | finite maps with defaults | `account?`, `storageAt`, `code?` | `WF` | value | O(log n) lookups |
 | `TxRevertible` | nested persistent `ExtTreeMap`/`ExtTreeSet` (D22) | a `BlockDiff` layered over the block view, plus transient map | `asDiff`, `transient` | WriteOrder observers enumerate live first writes for accounts, storage addresses and slots; clears ⊆ addresses; inner maps are post-clear writes only | **snapshot-reachable: worst-case persistent** | read O(log A + log S); write O(log A + log S) path copy; snapshot O(1); revert O(1) plus reclamation of the discarded version; `destroyStorage` O(s) for `s` pending writes of that address |
 | `TxObs` | four raw `Std.HashSet` fields supplied | finite sets | `toList` as sets; whole supplied raw fields retained | no raw invariant; monotonicity is a future operation obligation | **linear-only** (never inside a snapshot, D23) | insert expected O(1), merge expected O(m), conditional on suitable distribution and linear ownership; resize/collision/allocation and aggregate costs remain unmeasured (ARCHITECTURE §5.0/C1–C4) |
-| `BlockState` | supplied raw thirteen-field record: provider/constants, persistent writes/clears/order indexes, three HashSets and optional Nat offset | itself for raw construction; new retains provider/constants and initializes eleven defaults; prospective `BlockDiff` over σ₀ plus observations | exact raw projections; future `extractBlockDiff`, sets | no raw invariant; post-clear/history and coupled order/value invariants belong to future operations | intended linear between transactions, read-only/shared during one; raw presence proves neither | raw fields retained; incorporation target O(w · log n) for `w` writes, with ARCHITECTURE §5.0 union caveat; construction/allocation/retention and C1–C4 remain unmeasured |
+| `BlockState` | supplied raw thirteen-field record: provider/constants, persistent writes/clears/order indexes, three HashSets and optional Nat offset | itself for raw construction; new retains provider/constants and initializes eleven defaults; prospective `BlockDiff` over σ₀ plus observations | exact raw projections; logical account/storage membership; future `extractBlockDiff` | no raw invariant; post-clear/history and coupled order/value invariants belong to future operations | intended linear between transactions, read-only/shared during one; raw presence proves neither | raw fields retained; incorporation target O(w · log n) for `w` writes, with ARCHITECTURE §5.0 union caveat; construction/allocation/retention and C1–C4 remain unmeasured |
 
 Q84 supplies canonical component dictionaries for all three observation-key domains.
 Support collisions preserve actual equality and duplicates; they supply no distribution
@@ -681,10 +719,10 @@ construct sets using the same canonical names. Same-name/model replacement after
 recompilation should preserve public-law proof source, without reusing old binaries;
 concurrent dictionaries need explicit identity/transport or rehashing. No client unfolds
 private fixed-byte fields or buckets. Membership agreement alone does not assert raw
-HashSet equality. Actual State observations use their semantic set model; the supplied
-TxObs and BlockState carriers add no State operation or authored public law. Lean
-iteration is not Python set order, and F7 still covers replay failures and observations
-as well as roots.
+HashSet equality. Actual State observations use their semantic set model; the raw TxObs
+and BlockState carriers add no tracker operation. The separate logical read views and
+their two iff laws below expose only membership. Lean iteration is not Python set order,
+and F7 still covers replay failures and observations as well as roots.
 
 **Raw TxObs contract.** The exact §5 constructor/projections preserve every supplied
 whole set, including arbitrary raw representations. Private ordinary clients prove
@@ -709,6 +747,17 @@ indexes and none offset while retaining ps and consts. Its sole public law is
 new_consts, with no premises beyond the supplied data. Private owner reduction proves
 the entire constructor result and provider retention. Further public consumer-law
 basis, context-sharing/coherence, snapshot, incorporation and tracker laws remain open.
+
+**Logical block read-set contract.** For every arbitrary `m : Type → Type`, raw
+block b and complete key, accountReadSet b a iff a belongs to b.accountReads;
+storageReadSet b pair iff the entire pair belongs to b.storageReads. These are exactly
+accountReadSet_iff and storageReadSet_iff. No Monad, WF, provider, constants-coherence,
+account/storage consistency or reachability premise occurs. Every other field is
+unrestricted. Public-law clients use the iff laws; private runtime controls transport
+existing raw-membership decidability through the public iff laws.
+There is no public decidability/iteration API, codeReadSet or equality law for raw
+HashSets. These projections neither add observations nor implement tracker reads,
+merge, monotonicity, ordering or lifecycle.
 
 **Account value seam.** (R1–R3)
 
@@ -960,7 +1009,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Internal support supplied:** `WriteOrder` and its component laws (§7.5); actual Address/Bytes32 clients use EthBase's lawful comparison and byte inverse seams. Future consumers preserve WF and Agrees together and use ordered State observers; no external overlay seam is supplied by this component.
 - **Depends on:** `EthBase`
 - **Used by:** `EthVmCore` (and through it the instructions, precompiles and runner), `EthStateCommit`, and transitively `EthBlock`, the backends and the guest.
-- **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2); `StateM` operations with model laws for opcode proofs; `extractBlockDiff` and the read sets for `EthBlock` (state root, BAL, witness generation).
+- **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE §2);
+  `StateM` operations with model laws for opcode proofs; prospective `extractBlockDiff`
+  for `EthBlock` (state root, BAL, witness generation). The two supplied class-free
+  logical block read views and membership iff laws provide exact raw account/storage
+  membership; BAL construction/sorting and tracker observation accumulation remain
+  separate.
 - **Constants context (F20).** `BlockState.new` preserves the supplied record:
   `(BlockState.new ps consts).consts = consts`. State operations read it through their
   existing `TxState`/`BlockState` context; they receive no parallel constants argument.
@@ -989,6 +1043,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-STATE-3: resolved: CONTRACT O13 (DECISIONS §3); constructors freeze per B14 (Q31) (R29).
 - F7 (open): clear iteration order in the witness root replay (§7.5).
 - Q57: supplied-record lookup agreement follows R8/§5/§7.1; full Models stays at the concrete Id interpretation in EthStateCommit. Generic D5/X7 coupling remains open.
+- The logical block read views in §3/§5/§7 select no new set/order policy;
+  decidability, enumeration and additional consumers are outside their two-law API.
 - Q84: canonical Base observation-key dictionaries and the unchanged raw Std field handoff are in §5/§7. The raw TxObs and BlockState carriers are supplied separately (§3); TxState/StateM,
   tracker operations, lifetimes, ownership and costs remain separate obligations.
 - F20: initialization supplies only the explicit new_consts law; a broader stable
@@ -1005,15 +1061,17 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
   ModelsLookups, opaque witness ancestor selection and the raw four-field TxObs and
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
-  new_consts law, are supplied (§3/§5/§7). The owning laws and test rows specify their
-  domains. MathState mutation, diff WF/history/reachable preservation, actual provider
-  operations/contextual tracker/full-model proofs, StateError operation/adapter
-  semantics and freezing, witness diagnostic refinement, tracker effects/errors,
-  ordered-write integration, reachability, snapshot, acquisition/coherence, future
-  context preservation and operational source-refinement obligations remain open.
-  Additional public initialization consumer laws await a named consumer and separately
-  reviewed contract. The EELS default-empty BlockDiff convenience constructor remains
-  deferred. These component contracts do not change whole-State readiness.
+  new_consts law, plus logical account/storage read views and their two exact
+  membership iff laws, are supplied (§3/§5/§7). The owning laws and test rows specify
+  their domains. MathState mutation, diff WF/history/reachable preservation, actual
+  provider operations/contextual tracker/full-model proofs, StateError
+  operation/adapter semantics and freezing, witness diagnostic refinement, tracker
+  effects/errors, ordered-write integration, reachability, snapshot,
+  acquisition/coherence, future context preservation and operational source-refinement
+  obligations remain open. Additional public initialization consumer laws await a
+  named consumer and separately reviewed contract. The EELS default-empty BlockDiff
+  convenience constructor remains deferred. These component contracts do not change
+  whole-State readiness.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
