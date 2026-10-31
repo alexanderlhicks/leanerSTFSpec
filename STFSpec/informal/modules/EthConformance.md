@@ -131,6 +131,8 @@ interpreted/native adapter used for the power, sign, decoder and inverse compari
 EthField §4 is out of tree (not committed); the division producer is committed. Public
 powMod, field hierarchy and guest conformance remain open.
 
+- **Raw State extraction controls (Q85).** EthState §3/§4/§7 owns the operation, seven laws and bounded complete-value corpus. Private facade clients and all-private guards are imported by EthConformance; numerical/list expectations retain every field, byte, optional tag and malformed metadata occurrence. Interpreted `#guard` comparison (no native runner is committed for this slice) supplies local functional evidence, without executing EEST, an original EELS malformed-index runtime, a tracker or backend.
+
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).
 - **Implementer guidance (F16).** Implement every dependency before running a guard or executable check. Core definitions may not contain `sorry`; evaluate only complete definitions. Prototype observations about proof-hole evaluation do not authorize executable stubs in the specification.

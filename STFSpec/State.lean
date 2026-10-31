@@ -15,6 +15,7 @@ import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
+import STFSpec.State.BlockExtraction
 import STFSpec.State.ModelsLookups
 import STFSpec.State.WitnessAncestors
 
@@ -31,9 +32,9 @@ support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values, the nominal
 StateError carrier, the raw eight-field TxRevertible carrier, the raw TxObs and
 BlockState carriers, block initialization with its F20 law, logical account/storage read
-views and membership laws, bounded structural preservation, supplied-record success-only
-`ModelsLookups` and opaque witness ancestor selection are supplied. Lookup providers,
-model mutation, combined transaction state, tracker effects and lifecycle laws remain
-scaffolding.
+views and membership laws, raw block-diff extraction with seven complete field
+equations, bounded structural preservation, supplied-record success-only `ModelsLookups`
+and opaque witness ancestor selection are supplied. Lookup providers, model mutation,
+combined transaction state, tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/

@@ -184,6 +184,8 @@ import STFSpec.Conformance.State.BlockInitializationCallerProofs
 import STFSpec.Conformance.State.BlockInitializationGuards
 import STFSpec.Conformance.State.ReadSetsCallerProofs
 import STFSpec.Conformance.State.ReadSetsGuards
+import STFSpec.Conformance.State.BlockExtractionCallerProofs
+import STFSpec.Conformance.State.BlockExtractionGuards
 import STFSpec.Conformance.State.BlockStateGuards
 
 import STFSpec.Conformance.State.WriteOrderCallerProofs
