@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary and raw RunnerEnv carrier supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -156,16 +156,17 @@ transformer bridges, copying into FrameCtx and all execution remain unimplemente
   These controls model only the mathematical definitions; they execute no original budget
   function and establish no runner progress or sufficiency.
 
-**Supplied carrier controls.** The private facade clients in §3 check the exact
-Monad-only type/constructor/projection signatures, arbitrary whole-field
-preservation, complete reconstruction and all three whole-field updates retaining
-the other two fields. Supplied generic domain and actual action witnesses remain
-accessible through the stored table. A local Id singleton varies address, cost,
-input/output and arbitrary raw meter; the complete literal result retains signed
-refund and both spill pools. Full arbitrary GasCosts and raw independent state
-costs/limits include zero and beyond-word values. Distinct nonliteral addresses
-retain all twenty bytes and byte order. These are carrier controls; the actual
-construction/producer and runtime controls below remain unimplemented.
+- **Supplied runner-environment clients:** `EnvironmentCallerProofs` imports the public
+  Runner facade and privately checks the exact Monad-only type/constructor/projection
+  signatures, arbitrary whole-field preservation, complete reconstruction and all three
+  whole-field updates retaining the other two fields. Supplied generic domain and actual
+  action witnesses remain accessible through the stored table. A local Id singleton
+  varies address, cost, input/output and arbitrary raw meter; the complete literal
+  result retains signed refund and both spill pools. Full arbitrary GasCosts and raw
+  independent state costs/limits include zero and beyond-word values. Distinct
+  nonliteral addresses retain all twenty bytes and byte order. These are carrier
+  controls; the actual construction/producer and runtime controls below remain
+  unimplemented.
 
 **F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
 RunnerEnv address and an independently varied F20 topic. Check successful createEvm
@@ -262,17 +263,6 @@ disjointness checked by private ordinary facade clients. There are no parameters
 and no authored instance, default or observer. No `Exec` relation or execution law is supplied;
 D13/B11, F11 and G2–G7 remain open.
 
-**Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
-`phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
-The alias accepts ordinary `GasMeter → Nat` callbacks without Monad, Keccak, WF or
-local proof premises. Every field is unrestricted, including signed refunds and
-independent reservoir/baseline/spills. These are pure total observations, with no
-failure channel or state effect. Private clients derive positivity, constant-input
-independence and potential-equality transport; `addRefund_phi` and
-`drainStateGasReservoir_phi` give the corresponding unused-field cases without
-unfolding Core semantics. No public equation theorem, monotonicity, execution,
-termination or fuel-adequacy result is added. The remaining laws below are planned.
-
 **Raw RunnerEnv storage (supplied).** §3/§5 own the exact three-field record,
 with ordinary generated structure support and no authored public law package.
 Private facade proofs retain arbitrary complete fields, reconstruct the record
@@ -283,6 +273,17 @@ public contract. This storage introduces no effects, hash query, failure,
 coherence/global invariant, KeccakQuery or lawful-monad premise. It establishes
 no successful createEvm copy, child inheritance, emission, installed-table/config
 assembly, transformer/dispatch/settlement bridge, F11 or G2–G7 result.
+
+**Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
+`phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
+The alias accepts ordinary `GasMeter → Nat` callbacks without Monad, Keccak, WF or
+local proof premises. Every field is unrestricted, including signed refunds and
+independent reservoir/baseline/spills. These are pure total observations, with no
+failure channel or state effect. Private clients derive positivity, constant-input
+independence and potential-equality transport; `addRefund_phi` and
+`drainStateGasReservoir_phi` give the corresponding unused-field cases without
+unfolding Core semantics. No public equation theorem, monotonicity, execution,
+termination or fuel-adequacy result is added. The remaining laws below are planned.
 
 **Context construction** [C] (F8): whenever `createEvm env be te paidWrites g` successfully returns `(ctx, f, paidWrites')`, `ctx.config = env.vm` and `ctx.systemAddress = env.systemAddress`. Both child constructors preserve `systemAddress` exactly (EthVmInstructions §7). Actual `processCall` emission reads `ctx.systemAddress`, including when `processCreate` delegates to it. Intended block assembly supplies `env = cfg.runnerEnv`; pinned-source refinement then instantiates the inherited address with Fork's pinned value and the separately coherent F20 topic. These are construction/refinement obligations, not an added admission predicate on arbitrary raw RunnerEnv/FrameCtx, Step/Exec, independent gas laws or all StateT actions. Whole-context equalities must retain the new field.
 
