@@ -123,8 +123,11 @@ private theorem empty_map_control (costs : GasCosts) (be : BlockEnvironment)
     (fullCode costs be te systemAddress).jumpdests.contains i = false := by
   exact validJumpDestinations_contains_empty i
 
--- The literal is inherited, and the sole proof field rejects the first out-of-domain depth.
-#check_failure (by decide : 1025 ≤ STACK_DEPTH_LIMIT)
+-- The sole proof field rejects a context at the first out-of-domain depth.
+#check_failure fun (costs : GasCosts) (be : BlockEnvironment) (te : TransactionEnvironment)
+    (systemAddress : Address) =>
+  FrameCtx.mk (smallConfig costs) be te zeroAddress high U256.zero Bytes.empty
+    none Bytes.empty destinations 1025 (by decide) false false false systemAddress
 #guard allBytes.map UInt8.toNat == List.range 256
 #guard high.toBytes.toList == [128] ++ List.replicate 17 0 ++ [1, 1]
 #guard maximal.toBytes.toList == List.replicate 20 255

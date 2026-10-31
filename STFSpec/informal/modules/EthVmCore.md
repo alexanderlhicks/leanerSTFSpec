@@ -15,7 +15,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:253–255` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:125–148`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:310–312`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the specified immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
+- **R-ENV-3** `Evm` (`__init__.py:153–191`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:72–120`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
@@ -94,7 +94,7 @@ empty memory (`interpreter.py:227`, `instructions/system.py:166,435`).
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 40 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
-| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's specified `FrameCtx.systemAddress` and supplied `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
+| `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 41 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` field and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
 | `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49–67 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 72 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 125–148 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
@@ -282,7 +282,7 @@ callData, independent flags and code/maps. The map stays abstract in whole-recor
 equalities; finite observations use only its public contains equations, including
 an arbitrary empty-map query and a beyond-host-width absent offset. Four ordinary
 guards check all byte values and complete twenty-byte address vectors; a negative
-elaboration control rejects depth 1025. Generic clients retain every possible flag
+elaboration control rejects a FrameCtx at depth 1025. Generic clients retain every possible flag
 combination and every provider input. Reproduce with:
 
 ```sh
@@ -290,7 +290,7 @@ lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.V
 ```
 
 Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv and Fork→Block→Runner
-address transport, producers/emitter, world/handler/control/parent integration,
+address transport, actual producer emission, world/handler/control/parent integration,
 F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
@@ -1581,7 +1581,7 @@ structure FrameCtx where
   codeAddress : Option Address; code : Bytes; jumpdests : JumpdestMap
   depth : Nat; depth_le : depth ≤ STACK_DEPTH_LIMIT
   shouldTransferValue isStatic disablePrecompiles : Bool
-  systemAddress : Address     -- specified F8 policy; children inherit it unchanged
+  systemAddress : Address     -- supplied F8 policy; children inherit it unchanged
 structure Frame where
   pc : Nat; stack : Stack; memory : Memory; gasMeter : GasMeter
   logs : LogRope; accountsToDelete : AddrSet; returnData : Bytes
@@ -3023,11 +3023,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Raw environment data is supplied:** §3/§5/§7 own the exact eleven-field
-  BlockEnvironment and sixteen-field TransactionEnvironment, private complete
-  generic clients and full-value controls. No history/admission/default/proof
-  field or extra public law is added. Raw FrameCtx/Evm are supplied separately;
-  actual frame/world construction, source context coherence, intended
-  oldest-first/at-most-256 history and lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
+  BlockEnvironment and sixteen-field TransactionEnvironment, private complete generic
+  clients and full-value controls. No history/admission/default/proof field or extra
+  public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
+  construction, source context coherence, intended oldest-first/at-most-256 history and
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
