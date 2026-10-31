@@ -1,6 +1,6 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54, Q84.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
@@ -586,43 +586,49 @@ All existing values are admitted, with no state/query effect, failure or extra p
 | Support authority | Public declaration and type | Model / law / status | Regression evidence |
 |---|---|---|---|
 | Q84; no EELS operation | `Address.tableHashReference : Address → UInt64` | Complete 20-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
-| Q84; D25 | `Address.tableHash : Address → UInt64` | Structural 20-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D25 | `Address.tableHash : Address → UInt64` | Structural 20-step streaming; no intermediate byte list/buffer; **discharged** | Same guards: 19 literal whole-UInt64 vectors (interpreted `#guard`) |
 | Q84; D21 | `Address.tableHash_eq_reference (x : Address) : Address.tableHash x = Address.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
 | Q84; canonical Std dictionary | `Address.instHashable : Hashable Address` with `hash := Address.tableHash` | Existing actual equality retained; **discharged** | Canonical identity, lawful classes and actual Std clients |
 | Q84 | `Address.hash_eq_reference (x : Address) : hash x = Address.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
 | Q84; no EELS operation | `Bytes32.tableHashReference : Bytes32 → UInt64` | Complete 32-digit model above; **discharged** | `ObservationHashGuards.lean`: complete independent literals |
-| Q84; D25 | `Bytes32.tableHash : Bytes32 → UInt64` | Structural 32-step streaming; no intermediate byte list/buffer; **discharged** | Same guards; every-bit/byte/indexed/random whole-UInt64 comparisons |
+| Q84; D25 | `Bytes32.tableHash : Bytes32 → UInt64` | Structural 32-step streaming; no intermediate byte list/buffer; **discharged** | Same guards: 19 literal whole-UInt64 vectors (interpreted `#guard`) |
 | Q84; D21 | `Bytes32.tableHash_eq_reference (x : Bytes32) : Bytes32.tableHash x = Bytes32.tableHashReference x` | Ordinary all-input equality; **discharged** | `ObservationHashCallerProofs.lean`: private public-facade client |
 | Q84; canonical Std dictionary | `Bytes32.instHashable : Hashable Bytes32` with `hash := Bytes32.tableHash` | Covers FixedBytes 32 and definitionally equal aliases; **discharged** | Alias identity, lawful classes and actual Std clients |
 | Q84 | `Bytes32.hash_eq_reference (x : Bytes32) : hash x = Bytes32.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
 
 Private digit/step/fold helpers and their ordinary structural proof add no public
-width, seed or general-Nat API. The existing Hash32 source/model is preserved.
-No new equality, order, pair-hash, coercion, default, dependency or protocol-hash
-interface is added. Nominal Address supplies no FixedBytes 20 instance; all other
-widths and variable-width support remain absent. Both guard suites preserve that
-boundary. Existing DecidableEq and generic LawfulBEq/EquivBEq/LawfulHashable supply
-compatibility with actual equality, without a distinct-hash assumption.
+width, seed or general-Nat API. Hash32's public API and model are preserved; its
+private loop is now shared with Address/Bytes32. No new equality, order, pair-hash,
+coercion, default, dependency or protocol-hash interface is added. Nominal Address
+supplies no FixedBytes 20 instance; all other widths and variable-width support
+remain absent. Both guard suites preserve that boundary. Existing DecidableEq and
+generic LawfulBEq/EquivBEq/LawfulHashable supply compatibility with actual equality,
+without a distinct-hash assumption.
 
 The private public-Base-facade clients consume each ordinary execution/model and
 canonical-hash law, complete numeric/byte injectivity and reconstruction. Public
 Std clients cover member/insert/union/duplicate and unequal-key preservation plus
 complete lookup/overwrite equations for Address, Address × Bytes32 and
 Address × Hash32; evaluated guards vary each pair component independently.
-Independent integer-arithmetic vectors compare entire executable/reference/actual
-UInt64 results for zero, max, every bit/byte position, high words, leading zeros,
-indexed/reversed and deterministic random inputs, in interpreted and compiled modes.
+In tree, 19 literal vectors per type compare entire executable/reference/actual
+UInt64 results for zero, max, selected bit positions, high words, leading zeros and
+indexed/reversed inputs as interpreted `#guard`s; their values were computed with
+independent integer arithmetic. The wider every-bit/byte, seeded-random and
+compiled-mode comparisons are out of tree: nothing for them is committed, so they
+cannot be reproduced from this repository.
 No EELS runtime oracle is needed for this support model.
 
 State §5 uses these canonical dictionaries for its supplied raw TxObs and
-supplied BlockState raw Std fields; State §3 owns the bounded carrier status. The dictionary is part of the Std type. Same-name/model replacement after
+supplied BlockState raw Std fields; State §3 owns the bounded carrier status. The
+dictionary is part of the Std type. Same-name/model replacement after
 recompilation is intended to preserve public-law consumer proof source; old binary
-reuse is not promised. Concurrently different dictionaries require explicit identity,
-transport or rehashing; scope alone does not identify them. Clients never unfold
-private fixed-byte storage or Std buckets. Streaming permits Nat shifts, captured
-callbacks and UInt64 boxing to allocate. Actual distributions, construction,
-duplicates/resizing, ownership/retention, replacement and C1–C4 costs remain open;
-these functional results supply no benchmark, security or lifecycle theorem.
+reuse is not promised. Concurrently different dictionaries require explicit
+identity, transport or rehashing; scope alone does not identify them. Clients never
+unfold private fixed-byte storage or Std buckets. Streaming permits Nat shifts,
+captured callbacks and UInt64 boxing to allocate. Actual distributions,
+construction, duplicates/resizing, ownership/retention, replacement and C1–C4 costs
+remain open; these functional results supply no benchmark, security or lifecycle
+theorem.
 
 ### Integer byte conversions
 
@@ -778,8 +784,10 @@ obligations are listed in §10.
 - **Observation-key support (Q84).** Complete 20/32-digit UInt64 literal guards,
   public-facade ordinary model clients, canonical/alias/lawful synthesis and negative
   other/variable-width guards; actual Std member/insert/overwrite/union/duplicate
-  observations for all three State read-key domains. Whole-value interpreted/native
-  vectors cover every bit/byte, high words, leading zeros, indexed and seeded inputs.
+  observations for all three State read-key domains. In tree, 19 literal whole-value
+  vectors per type cover zero, max, selected bits, high words, leading zeros and indexed
+  inputs; the every-bit/byte, seeded and native comparisons are out of tree: nothing for
+  them is committed, so they cannot be reproduced from this repository.
   Q51 Hash32 models and existing regression expectations remain unchanged.
 - **Property / differential tests.**
   - Public universal model laws (§7), plus the external differential drivers for random and boundary inputs (0, 1, 2^255±1, 2^256−1).

@@ -53,6 +53,17 @@ def peek? (s : Stack) (i : Nat) : Option U256 :=
     some (s.data[s.data.size - 1 - i]'(by omega))
   else none
 
+/-- Exchange two top-relative cells, rejecting either invalid Nat index before arithmetic.
+Model adapter for pinned EELS `src/ethereum/forks/amsterdam/vm/instructions/stack.py:113–144,
+248–317`; both original values are exchanged, including when the indices coincide. -/
+def swap? (s : Stack) (i j : Nat) : Option Stack :=
+  if hi : i < s.data.size then
+    if hj : j < s.data.size then
+      some ⟨s.data.swap (s.data.size - 1 - i) (s.data.size - 1 - j)
+        (by omega) (by omega), by simpa using s.bounded⟩
+    else none
+  else none
+
 private theorem model_inj {s t : Stack} (h : s.toList = t.toList) : s = t := by
   rcases s with ⟨a, ha⟩
   rcases t with ⟨b, hb⟩
@@ -153,6 +164,71 @@ theorem peek?_eq_getElem? (s : Stack) (i : Nat) : s.peek? i = s.toList[i]? := by
     simp [show s.data.size - 1 - i < s.data.size by omega]
   · have hn : s.toList.length ≤ i := by simp [toList]; omega
     simp [peek?, h, List.getElem?_eq_none hn]
+
+private theorem model_get (s : Stack) (i : Nat) (hi : i < s.data.size) :
+    s.toList[i]? = some (s.data[s.data.size - 1 - i]'(by omega)) := by
+  rw [toList, List.getElem?_reverse (by simpa using hi)]
+  simp
+
+private theorem model_swap (s : Stack) (i j : Nat)
+    (hi : i < s.data.size) (hj : j < s.data.size) :
+    (s.data.swap (s.data.size - 1 - i) (s.data.size - 1 - j)
+      (by omega) (by omega)).toList.reverse =
+      (s.toList.set i s.data[s.data.size - 1 - j]).set j
+        s.data[s.data.size - 1 - i] := by
+  apply List.ext_getElem?
+  intro k
+  by_cases hk : k < s.data.size
+  · have ei : s.data.size - 1 - i = s.data.size - 1 - k ↔ i = k := by omega
+    have ej : s.data.size - 1 - j = s.data.size - 1 - k ↔ j = k := by omega
+    rw [List.getElem?_reverse (by simpa using hk)]
+    simp only [Array.length_toList, Array.size_swap, Array.getElem?_toList,
+      Array.getElem?_swap, ei, ej, List.getElem?_set, List.length_set]
+    simp only [toList, List.length_reverse, Array.length_toList, hi, hj, ite_true]
+    rw [List.getElem?_reverse (by simpa only [Array.length_toList] using hk)]
+    simp
+  · have hleft : (s.data.swap (s.data.size - 1 - i) (s.data.size - 1 - j)
+        (by omega) (by omega)).toList.reverse.length ≤ k := by
+      simpa using Nat.le_of_not_gt hk
+    have hright : ((s.toList.set i s.data[s.data.size - 1 - j]).set j
+        s.data[s.data.size - 1 - i]).length ≤ k := by
+      simpa [toList] using Nat.le_of_not_gt hk
+    rw [List.getElem?_eq_none hleft, List.getElem?_eq_none hright]
+
+/-- Exchange fails exactly when either top-relative index is outside the stack. -/
+theorem swap?_eq_none_iff (s : Stack) (i j : Nat) :
+    s.swap? i j = none ↔ s.size ≤ i ∨ s.size ≤ j := by
+  unfold swap?
+  split <;> (try split) <;> simp_all [size] <;> omega
+
+/-- Exchange succeeds exactly with both original cells and the complete exchanged model. -/
+theorem swap?_eq_some_iff (s t : Stack) (i j : Nat) :
+    s.swap? i j = some t ↔
+      ∃ a b : U256, s.toList[i]? = some a ∧ s.toList[j]? = some b ∧
+        t.toList = (s.toList.set i b).set j a := by
+  constructor
+  · intro h
+    unfold swap? at h
+    split at h <;> (try split at h) <;>
+      simp only [Option.some.injEq, reduceCtorEq] at h
+    subst t
+    exact ⟨_, _, model_get _ _ ‹_›, model_get _ _ ‹_›, model_swap _ _ _ ‹_› ‹_›⟩
+  · rintro ⟨a, b, ha, hb, ht⟩
+    have hi : i < s.data.size := by
+      have := (List.getElem?_eq_some_iff.mp ha).1
+      simpa [toList] using this
+    have hj : j < s.data.size := by
+      have := (List.getElem?_eq_some_iff.mp hb).1
+      simpa [toList] using this
+    have ea := (model_get s i hi).symm.trans ha
+    have eb := (model_get s j hj).symm.trans hb
+    have hm := model_swap s i j hi hj
+    rw [Option.some.inj ea, Option.some.inj eb] at hm
+    have hst : (⟨s.data.swap (s.data.size - 1 - i) (s.data.size - 1 - j)
+        (by omega) (by omega), by simpa using s.bounded⟩ : Stack) = t :=
+      model_inj (hm.trans ht.symm)
+    simp only [swap?, dite_eq_left hi, dite_eq_left hj]
+    exact congrArg some hst
 
 end Stack
 end STFSpec.Vm.Core

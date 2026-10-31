@@ -103,7 +103,7 @@ private theorem lookup_unequal [DecidableEq α] {β : Type} (db : Std.HashMap α
 
 end StdClients
 
-private theorem account_sets (s t : Std.HashSet (Address)) (key query : Address)
+private theorem account_sets (s t : Std.HashSet Address) (key query : Address)
     (h : key ≠ query) :
     (query ∈ s.insert key ↔ key = query ∨ query ∈ s) ∧
     (query ∈ s ∪ t ↔ query ∈ s ∨ query ∈ t) ∧
@@ -112,7 +112,7 @@ private theorem account_sets (s t : Std.HashSet (Address)) (key query : Address)
   ⟨member_insert s key query, member_union s t query,
     duplicate_membership s key query, unequal_member s key query h⟩
 
-private theorem account_maps {β : Type} (db : Std.HashMap (Address) β)
+private theorem account_maps {β : Type} (db : Std.HashMap Address β)
     (key query : Address) (value latest : β) (h : key ≠ query) :
     ((db.insert key value)[query]? = if key = query then some value else db[query]?) ∧
     (((db.insert key value).insert key latest)[key]? = some latest) ∧
@@ -120,7 +120,8 @@ private theorem account_maps {β : Type} (db : Std.HashMap (Address) β)
   ⟨lookup_insert db key query value, lookup_overwrite db key value latest,
     lookup_unequal db key query value h⟩
 
-private theorem storage_sets (s t : Std.HashSet (Address × Bytes32)) (key query : Address × Bytes32)
+private theorem storage_sets (s t : Std.HashSet (Address × Bytes32))
+    (key query : Address × Bytes32)
     (h : key ≠ query) :
     (query ∈ s.insert key ↔ key = query ∨ query ∈ s) ∧
     (query ∈ s ∪ t ↔ query ∈ s ∨ query ∈ t) ∧

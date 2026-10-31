@@ -137,7 +137,8 @@ private theorem members_createdAccounts (t : TxObs) (s : Std.HashSet Address)
     (key query : Address) :
     (query ∈ t.createdAccounts.insert key ↔ key = query ∨ query ∈ t.createdAccounts) ∧
     (query ∈ t.createdAccounts ∪ s ↔ query ∈ t.createdAccounts ∨ query ∈ s) ∧
-    (query ∈ (t.createdAccounts.insert key).insert key ↔ query ∈ t.createdAccounts.insert key) :=
+    (query ∈ (t.createdAccounts.insert key).insert key ↔
+      query ∈ t.createdAccounts.insert key) :=
   set_members t.createdAccounts s key query
 
 private theorem unequal_preserved {α : Type} [BEq α] [Hashable α] [LawfulBEq α]
