@@ -257,16 +257,18 @@ preparation/literal-order limitations recorded by that owner. Actual producers,
 context/transport/value assembly, F20, F11, D5 coupling, fuel and cost gates remain
 open; the dated §6 assessment is unchanged.
 
-EthVmInstructions §3/§5/§7 supplies the exact 153-member `Ops` vocabulary,
-total `Ops.toByte`/`Ops.ofByte?` and exactly two ordinary round-trip laws (the
-second conditioned only on a successful decode). Private facade clients use the laws for generic consequences; exhaustive
-constructor coverage, 153 literal encoder pairs and all 256 literal decoder
-equations bind the 153 positives and 103 holes to a transcription of the pinned
-static source table; the comparison against the source itself is out of tree.
-The actual compiled leaf/facade/clients are warning-fatal and declaration-audited.
-There is no instance/default/alias or new policy. Dispatch, `step`, invalid-opcode
-halting, handlers and all source-runtime/execution/fuel/resource/guest obligations
-remain open; the dated readiness assessment is unchanged.
+EthVmInstructions §3/§5/§7 supplies the exact 153-member `Ops` vocabulary, total
+`Ops.toByte`/`Ops.ofByte?` and exactly two ordinary round-trip laws (the second
+conditioned only on a successful decode). Private facade clients use the laws for
+generic consequences; exhaustive constructor coverage, 153 literal encoder pairs
+and all 256 literal decoder equations bind the 153 positives and 103 holes to a
+transcription of the pinned static source table; the comparison against the source
+itself is out of tree: nothing for it is committed, so it cannot be reproduced
+from this repository. The actual compiled leaf/facade/clients are warning-fatal
+and declaration-audited. There is no instance/default/alias or new policy.
+Dispatch, `step`, invalid-opcode halting, handlers and all
+source-runtime/execution/fuel/resource/guest obligations remain open; the dated
+readiness assessment is unchanged.
 
 EthVmInstructions §3/§5/§7 supplies the raw seven-field `CreateRequest` at the
 creation suspension split of EELS

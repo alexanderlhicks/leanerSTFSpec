@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-10-01):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
+**Status (2026-10-31):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 
@@ -441,6 +441,7 @@ success/failure/observer, canonical inverse and normalization laws, keep public 
 proofs unchanged, and pass authenticated source and native full-result checks. Measure
 complete construction/conversion/allocation and lifetime cost before closing the entry.
 No input restriction or host-error policy is authorized.
+
 ## DEBT-OPS-DECODE — linear opcode decoder
 
 **Status:** open, 2026-10-31. **Owner:** EthVmInstructions maintainers. **Authority:** D18.

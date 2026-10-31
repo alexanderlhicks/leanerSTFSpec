@@ -232,12 +232,13 @@ Instructions facade. Exact encoder/decoder signatures and both generic laws are
 used without frame/context/hash/monad premises. Private clients derive injectivity
 and missing-byte exclusion using only those laws. An exhaustive constructor match
 checks all 153 literal encoder pairs; 256 ordinary kernel equations bind every
-decoded byte to its literal expected constructor or `none` (153 positives and
-103 holes). Expectations transcribe the pinned source assignments independently
-of the implementation (the source comparison itself is out of tree); no enum equality instance or native decision procedure is
-introduced. Warning-fatal compilation and the compiled declaration audit cover
-the actual leaf, facade and private clients. These are enum controls only; the
-handler, EEST and source-runtime differential tests below remain unimplemented.
+decoded byte to its literal expected constructor or `none` (153 positives and 103
+holes). Expectations transcribe the pinned source assignments independently of the
+implementation (the source comparison itself is out of tree, see §3); no enum
+equality instance or native decision procedure is introduced. Warning-fatal
+compilation and the compiled declaration audit cover the actual leaf, facade and
+private clients. These are enum controls only; the handler, EEST and
+source-runtime differential tests below remain unimplemented.
 
 **Supplied raw carrier controls.**
 `STFSpec/Conformance/Vm/Instructions/CreateRequestCallerProofs.lean` imports only
@@ -379,7 +380,8 @@ The suspended parent frame (in `.call/.create`) is linear: the runner holds the 
 
 ## 7. Contract and laws
 
-**Supplied opcode laws.** The ordinary byte round trips, the first unconditional and the second conditioned only on a successful decode, are:
+**Supplied opcode laws.** The ordinary byte round trips, the first unconditional and
+the second conditioned only on a successful decode, are:
 
 ```lean
 theorem Ops.ofByte_toByte (o : Ops) : Ops.ofByte? (Ops.toByte o) = some o
