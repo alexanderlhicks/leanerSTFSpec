@@ -438,8 +438,8 @@ every-bit/byte, random and compiled-mode comparisons are out of tree: nothing fo
 is committed, so they cannot be reproduced from this repository. Public Std clients
 cover member/insert/union/duplicate/unequal preservation and map lookup/overwrite for
 all three observation domains, without a distinct-hash premise. Preserve Q51's Hash32
-model and existing expectations. This is functional support only: the raw TxObs carrier
-is supplied separately; combined transaction state/StateM and D22/D23
+model and existing expectations. This is functional support only: the raw TxObs and
+BlockState carriers are supplied separately; combined transaction state/StateM and D22/D23
 lifecycle/ownership, F7 replay failures/observations, actual distributions,
 construction/resizing/allocation, replacement and C1–C4 remain separate obligations. The
 dated §6 readiness assessment is unchanged.

@@ -383,8 +383,9 @@ resource or C1–C4 result.
   equal keys/duplicates and independent pair components are covered. Every field
   replacement retains every other complete field; retained parents/siblings and
   seven synthetic callback-error families retain complete values and errors.
-  Complete interpreted/native observations are bounded functional controls, with no
-  EELS operation, generic effect interpretation or resource claim.
+  These interpreted `#guard` observations are bounded functional controls (no native
+  runner is committed for this slice), with no EELS operation, generic effect
+  interpretation or resource claim.
 - **Implemented TxObs controls:** private generic clients use whole raw field equality,
   without inferring raw HashSet equality from membership. Complete guards observe
   every 20/32-byte key, every byte position, high bits, both pair components
