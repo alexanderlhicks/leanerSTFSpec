@@ -1,6 +1,6 @@
 # `EthBase`: primitive words, integers, bytes and the envelope
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F2, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D2, D5, D14, D18, D21 · questions: B6/Q17, B14/Q15, Q16, Q18, F2, F19, Q51, Q54, Q84.*
 
 Paths without a prefix are relative to `src/ethereum/` at the pin. `ethereum_types/…` paths refer to the installed `ethereum-types` 0.4.1 (the version locked in `uv.lock`; `reference.toml`), installed under `site-packages/ethereum_types/`.
@@ -597,12 +597,13 @@ All existing values are admitted, with no state/query effect, failure or extra p
 | Q84 | `Bytes32.hash_eq_reference (x : Bytes32) : hash x = Bytes32.tableHashReference x` | Ordinary canonical-hash model equation; **discharged** | Private model/numeric/byte reconstruction clients |
 
 Private digit/step/fold helpers and their ordinary structural proof add no public
-width, seed or general-Nat API. The existing Hash32 source/model is preserved.
-No new equality, order, pair-hash, coercion, default, dependency or protocol-hash
-interface is added. Nominal Address supplies no FixedBytes 20 instance; all other
-widths and variable-width support remain absent. Both guard suites preserve that
-boundary. Existing DecidableEq and generic LawfulBEq/EquivBEq/LawfulHashable supply
-compatibility with actual equality, without a distinct-hash assumption.
+width, seed or general-Nat API. Hash32's public API and model are preserved; its
+private loop is now shared with Address/Bytes32. No new equality, order, pair-hash,
+coercion, default, dependency or protocol-hash interface is added. Nominal Address
+supplies no FixedBytes 20 instance; all other widths and variable-width support
+remain absent. Both guard suites preserve that boundary. Existing DecidableEq and
+generic LawfulBEq/EquivBEq/LawfulHashable supply compatibility with actual equality,
+without a distinct-hash assumption.
 
 The private public-Base-facade clients consume each ordinary execution/model and
 canonical-hash law, complete numeric/byte injectivity and reconstruction. Public

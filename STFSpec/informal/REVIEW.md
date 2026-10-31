@@ -208,15 +208,15 @@ correspondence. Actual frame/world construction, history lookup/admission,
 capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
 gas/fuel/resources and VM/guest/EEST/readiness remain separate obligations.
 
-EthState §3/§4/§5/§7 owns the supplied raw eight-field TxRevertible carrier, following
-D22/D23/B1 without extra fields, authored public laws, instances or operations.
-Private facade clients check its exact constructor type, complete projections/
-reconstruction and eight independent updates for arbitrary inputs. Ordinary kernel
-controls retain all complete fields, raw malformed/sparse order indexes, tombstones,
-zero/empty inners, arbitrary complete bytecode, independent clears/transient keys
-and retained parent/siblings. These are carrier controls, with no source runtime,
-snapshot/restore or tracker evidence. Its §10 retains the observation hash-provider
-seam, order/value coupling, lifetime/Reachable/AccountWritesLookedUp and error/provider
+EthState §3/§4/§5/§7 owns the supplied raw eight-field TxRevertible carrier,
+following D22/D23/B1 without extra fields, authored public laws, instances or
+operations. Private facade clients check its exact constructor type, complete
+projections/reconstruction and eight independent updates for arbitrary inputs.
+Ordinary kernel controls retain all complete fields, raw malformed/sparse order
+indexes, tombstones, zero/empty inners, arbitrary complete bytecode, independent
+clears/transient keys and retained parent/siblings. These are carrier controls,
+with no source runtime, snapshot/restore or tracker evidence. Its §10 retains
+order/value coupling, lifetime/Reachable/AccountWritesLookedUp and error/provider
 obligations, S1/S2/W1, F6/F7/F11 and C1–C4. No whole-State or dated §6 readiness
 claim changes.
 

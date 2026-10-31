@@ -143,8 +143,9 @@ families are visible at `:763–817`. It implements no source tracker operation.
 Only ordinary generated structure infrastructure is public; no authored public
 law, default, instance, factory, `asDiff` or operation is added. The carrier's
 presence supplies no actual snapshot, persistence-cost, tracker/source-refinement
-or S1/S2/W1 result. Observation hash support, provider/cache lifetime (F6), clear
-replay order (F7), F11 and the remaining §10 obligations stay separate.
+or S1/S2/W1 result. Observation hash support (Q84, EthBase §3), provider/cache
+lifetime (F6), clear replay order (F7), F11 and the remaining §10 obligations stay
+separate.
 
 ### Implemented internal order support
 
@@ -874,8 +875,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
-  TxObs/BlockState's specified HashSet fields still require a separately specified
-  Address/Bytes32 hash-provider seam; no support dictionary or replacement is chosen.
+  TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
+  dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);

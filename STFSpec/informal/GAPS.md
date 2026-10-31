@@ -483,8 +483,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
-  TxObs/BlockState's specified HashSet fields still require a separately specified
-  Address/Bytes32 hash-provider seam; no support dictionary or replacement is chosen.
+  TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
+  dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
