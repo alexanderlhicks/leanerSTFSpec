@@ -662,7 +662,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
-
 - **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible

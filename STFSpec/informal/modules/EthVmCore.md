@@ -1167,6 +1167,10 @@ python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
   every nested halt tag, all 256 UInt8 payloads, and complete empty, embedded-NUL,
   Unicode and 1024-character String reasons. These are carrier controls; no producer,
   gas, settlement, error adapter or source-runtime differential claim follows.
+- **Supplied raw Frame controls:** §3 owns the private construction/projection/
+  reconstruction/update/set clients in `FrameCallerProofs.lean` and the nontrivial
+  full-field guards in `FrameGuards.lean`, imported by `STFSpec.Conformance`. These
+  are carrier controls; no creation, context, control or execution claim follows.
 
 **F8 transfer-log controls (unimplemented).** Exercise the pure helper with zero,
 one and maximal U256 amount, independently varied full-byte supplied address/topic,
@@ -1765,7 +1769,6 @@ controls in §3 observe every field, including all six independent meter values 
 a negative refund. There are no extra manually authored public Frame laws or raw
 admission predicates. Stack bounds and Memory alignment come from their supplied
 types; context/meter invariants and actual execution remain caller obligations.
-
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -2776,7 +2779,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   StepResult/control and parent execution integration, F8 address transport/emitter,
   handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
-
 
 - **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
 
