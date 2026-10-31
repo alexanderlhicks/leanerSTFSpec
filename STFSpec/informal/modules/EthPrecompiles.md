@@ -589,13 +589,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
   dependency. A shared lower owner for the tag is not yet chosen.
 
-- **Generic construction (Q83):** Core supplies only the Q83 predicate and Id law
-  (EthVmCore §7). `toPrecompile` equations, per-entry source/normal-form proofs and the
-  meaning of equality up to the halt constructor remain open. A map-shaped adapter
-  needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
-  alone does not); bind-pure/map agreement needs its own law. Public constructor
-  assumptions, erasure-first computation, observers and transformer bridges remain
-  unselected. The four-field Monad-only table sketch is unchanged.
+- **Generic construction (Q83):** Core supplies only the raw result/function/MeterOk/
+  certified-table carriers (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7).
+  `toPrecompile` equations, per-entry source/normal-form proofs and the meaning of
+  equality up to the halt constructor remain open. A map-shaped adapter needs actual
+  local map-pure/composition laws (`LawfulApplicative` suffices, Monad alone does not);
+  bind-pure/map agreement needs its own law. Public constructor assumptions,
+  erasure-first computation, observers and transformer bridges remain unselected. The
+  supplied four-field Monad-only table carrier does not construct this installed table.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

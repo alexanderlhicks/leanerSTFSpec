@@ -300,11 +300,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Precompile interpretation (Q83):** Core supplies only the Q83 predicate and Id law
-  (EthVmCore §7). The table action stays in base m; actual lifting through
-  VmM/RunM and their transformer/error order requires an explicit local bridge.
-  Dispatch, separate halt settlement and potential proofs remain open. This adds
-  no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
+  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
+  table action stays in base m; actual lifting through VmM/RunM and their
+  transformer/error order requires an explicit local bridge. Dispatch, separate halt
+  settlement and potential proofs remain open. This adds no observer API, base-error
+  reinterpretation, F11 choice or G2–G7 claim.
 
 - **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
