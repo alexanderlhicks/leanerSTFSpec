@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -79,7 +79,55 @@ The interpreter's limits (`STACK_DEPTH_LIMIT`, `MAX_CODE_SIZE`, `MAX_INIT_CODE_S
 
 **External semantics.** `ethereum_rlp.rlp.encode` of `(U256 chain_id, Address, U64 nonce)` in `recover_authority` (EthCodec: canonical integer encoding without leading zeros); `U256(...)`/`U64` range checks (`OverflowError`); Python `set` semantics for warm sets (EthVmCore `AddrSet`). `ethereum.trace.evm_trace` events (`OpStart`, `OpEnd`, `OpException`, `PrecompileStart/End`, `EvmStop`, `TransactionEnd`) are diagnostics (ARCHITECTURE §7): they must be emitted through the event interface with the same order, but have no semantic effect.
 
+### Supplied mathematical budget vocabulary
+
+| Source/model | Lean declaration | Domain, effects and failures | Validation |
+|---|---|---|---|
+| Project mathematical policy (§5); no EELS budget function | `BudgetPolicy := GasMeter → Nat` | Every finite raw six-field Core meter; pure callback type with no class or proof premise | Private exact-signature and ordinary callback clients |
+| Project candidate (§5), consuming Core `GasMeter.phi` | `phiBudget : BudgetPolicy` | Exactly `m.phi + 1`; no meter update, query, cast, cap or failure | Private defining/positive/transport clients; signed-refund and reservoir-drain independence through public Core laws; complete finite observations |
+| Project constant policy (§5); no EELS budget function | `constBudget (n : Nat) : BudgetPolicy` | Exactly `n` for every meter and every Nat, including zero; no update or failure | Private defining/callback/input-independence clients and complete finite observations |
+
+These are the only three authored public declarations in `STFSpec.Vm.Runner.Budget`,
+exported by `STFSpec.Vm.Runner`. No new public theorem is supplied. This is selectable
+vocabulary only: no runner, installed default, fuel-indexed family choice or G2–G7 result.
+B11/Q28 remains open as recorded in DECISIONS. The source grounding is the existing
+complete Core meter and its project mathematical potential, not an original Python
+budget call or differential claim.
+
+### Supplied execution entry-kind vocabulary
+
+| Source/model | Lean declaration | Domain, effects and failures | Validation |
+|---|---|---|---|
+| Project vocabulary already specified in §5; no original EELS enum or source call | `ExecKind : Type` with `frameLoop`, `call`, `create` | Exactly three nullary constructors; no parameters, effects or failures; no authored instance, default or observer | Private public-facade constructor clients, exhaustive symbolic and dependent elimination, all three match branches and all six ordered constructor inequalities |
+
+The carrier is supplied in the Runner-owned `ExecKind` leaf and exported by the
+Runner facade. Its authored public inventory is the type and three constructors;
+ordinary generated inductive support is subject to the declaration policy.
+No manually authored public helper or theorem is added. This supplies entry-kind
+vocabulary only; it does not define `Exec` or choose its unresolved relation form.
+
 ## 4. Tests
+
+- **Supplied entry-kind clients:** `ExecKindCallerProofs` imports the public Runner
+  facade and privately checks all three nullary constructor types, exhaustive
+  symbolic case coverage, dependent elimination into an arbitrary `Sort`, each of
+  the three branch equations and all six ordered unequal-constructor pairs.
+  Ordinary proofs require no equality instance. These clients are imported through
+  the Conformance facade; they assert no frame/call/create execution semantics.
+- **Supplied budget controls:** `BudgetGuards` checks zero, independent unit potential
+  inputs, combined spills, unrelated reservoir/baseline, signed refunds and constant zero.
+  `BudgetCallerProofs` supplies private all-meter defining/callback/positive/transport
+  proofs without unfolding foreign semantics. `BudgetPolicyNativeTests` consumes input-only
+  TSV controls and emits all six meter fields, the chosen constant and all three natural
+  observations (`phi`, `phiBudget`, `constBudget`). The independent Python integer model
+  `budget_policy_model.py` checks 64 complete cases: all three potential fields separately
+  and combined, zero/one/beyond-word/4096-bit amounts, mutually independent reservoir and
+  baseline, negative and huge positive refunds, and four constants including zero and a
+  4096-bit value across multiple meters. Interpreted/native stdout is compared completely;
+  the strict recursive parser rejects Bool/float/nonfinite numbers, duplicate/missing/extra
+  keys, bad IDs/count/order/framing and changed payloads through actual normal/`-O` CLIs.
+  These controls model only the mathematical definitions; they execute no original budget
+  function and establish no runner progress or sufficiency.
 
 **F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
 RunnerEnv address and an independently varied F20 topic. Check successful createEvm
@@ -112,6 +160,7 @@ abbrev CheckedT (ε : Type) (m : Type → Type) := ExceptT ε (ExceptT InternalE
 abbrev RunM (m : Type → Type) := ExceptT InternalError (VmM m)
 def runVmChecked (action : VmM m (Except InternalError α)) (world : VmWorld m)
     : m (CheckedResult VmFault (α × VmWorld m))  -- explicit adapter, in `m` (F14); equations in COMPOSITION.md
+-- Supplied selectable vocabulary; no default installation or adequate-policy claim.
 abbrev BudgetPolicy := GasMeter → Nat
 def phiBudget : BudgetPolicy := fun m => m.phi + 1
 def constBudget (n : Nat) : BudgetPolicy := fun _ => n
@@ -149,7 +198,7 @@ def setDelegation (env : RunnerEnv m) (be : BlockEnvironment) (te : TransactionE
     VmM m (Except ExceptionalHalt (AddrSet × AddrSet × {g' : GasMeter // g'.stateGasLeft ≤ g'.stateGasBaseline}))   -- F12
 
 -- Semantic relation and fuel guarantees (public, Prop-valued; stated at m := Id)
-inductive ExecKind | frameLoop | call | create
+inductive ExecKind | frameLoop | call | create   -- supplied nominal carrier only
 inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → VmWorld Id → FrameResult → VmWorld Id → Prop   -- big-step, built from Step and the resume ops
 ```
 
@@ -166,6 +215,23 @@ inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → V
 | fuel | `Nat` per frame | — | decreases by 1 per iteration | — | — |
 
 ## 7. Contract and laws
+
+**Supplied entry-kind carrier.** `ExecKind` has exactly the three nullary
+constructors specified in §5, with exhaustive dependent elimination and pairwise
+disjointness checked by private ordinary facade clients. There are no parameters
+and no authored instance, default or observer. No `Exec` relation or execution law is supplied;
+D13/B11, F11 and G2–G7 remain open.
+
+**Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
+`phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
+The alias accepts ordinary `GasMeter → Nat` callbacks without Monad, Keccak, WF or
+local proof premises. Every field is unrestricted, including signed refunds and
+independent reservoir/baseline/spills. These are pure total observations, with no
+failure channel or state effect. Private clients derive positivity, constant-input
+independence and potential-equality transport; `addRefund_phi` and
+`drainStateGasReservoir_phi` give the corresponding unused-field cases without
+unfolding Core semantics. No public equation theorem, monotonicity, execution,
+termination or fuel-adequacy result is added. The remaining laws below are planned.
 
 **Context construction** [C] (F8): whenever `createEvm env be te paidWrites g` successfully returns `(ctx, f, paidWrites')`, `ctx.config = env.vm` and `ctx.systemAddress = env.systemAddress`. Both child constructors preserve `systemAddress` exactly (EthVmInstructions §7). Actual `processCall` emission reads `ctx.systemAddress`, including when `processCreate` delegates to it. Intended block assembly supplies `env = cfg.runnerEnv`; pinned-source refinement then instantiates the inherited address with Fork's pinned value and the separately coherent F20 topic. These are construction/refinement obligations, not an added admission predicate on arbitrary raw RunnerEnv/FrameCtx, Step/Exec, independent gas laws or all StateT actions. Whole-context equalities must retain the new field.
 
@@ -208,6 +274,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 8. Composition
 
+- **Supplied entry-kind seam:** the Runner facade exports the owned `ExecKind`;
+  Conformance imports its private constructor/elimination/disjointness clients.
+  Consumers reuse this carrier when the prospective `Exec` interface is defined;
+  its exact relation form and every execution/termination obligation remain open.
+- **Supplied budget seam:** reuse the existing `EthVmCore.GasMeter` and its `phi`
+  directly; the public Runner facade exports the three policies and EthConformance
+  imports their private clients/guards. Callbacks accept every raw meter. No runner
+  consumes a policy yet and no default is installed; B11/F11 and O11 remain open.
 - **Depends on:** `EthVmInstructions`, `EthCurve` (secp256k1 recovery for EIP-7702 authorities, D26; the runner calls `secp256k1Recover` directly, as EELS does).
 - **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles`, one `VmConfig` and `systemAddress` through BlockConfig.runnerEnv; recovery is a direct `EthCurve` call).
 - **Seams:** consumes `step`, the request/resume operations and delegation resolution (EthVmInstructions), the meter and settlement laws (EthVmCore), EthState snapshot/restore and account operations; provides the transaction-level execution function and the four fuel guarantees. Cross-module invariants relied on: `EthBlock` validates the transaction before calling (intrinsic gas affordable, sender balance and nonce, `is_create → authorizations = ()`); `EthFork`'s table satisfies `lookup_iff`/`meter_law`. Guaranteed: settlement post-conditions above; `InternalError` is the only non-`VmFault` failure.
@@ -226,24 +300,24 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Precompile interpretation (Q83):** Core supplies the raw shared carriers,
-  transparent MeterOk, logical action factorization and exact Id reduction
-  (Core §3/§5/§7). The table action stays in base m; actual lifting through
-  VmM/RunM and their transformer/error order requires an explicit local bridge.
-  Dispatch, separate halt settlement and potential proofs remain open. This adds
-  no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
+  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
+  table action stays in base m; actual lifting through VmM/RunM and their
+  transformer/error order requires an explicit local bridge. Dispatch, separate halt
+  settlement and potential proofs remain open. This adds no observer API, base-error
+  reinterpretation, F11 choice or G2–G7 claim.
 
-- **F8 immutable address transport:** `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no Lean definition exists. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the three selectable budget declarations and the nominal entry-kind carrier of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:318` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:285` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
 - **`move_ether` preconditions**: the sender-balance assertion in EthState's `move_ether` is unreachable only because of preflight checks (CALL/CREATE) and transaction validation (top level). EthVmRunner owns the CALL/CREATE caller proof; EthBlock owns the top-level admission proof; both consume EthState's checked `moveEther` contract. Record both proofs before treating the assertion as unreachable.
 - **System transactions** (`fork.py:770–822`) run with 30 M execution gas and a 16-SSTORE reservoir; `phiBudget` gives ≈ 3·10⁷ fuel, which is fine as a bound but the error path (`fork.py:757–760` raises on a failed system call) belongs to EthBlock.
 - **Trace schema** (ARCHITECTURE §12) is undecided; the event order of `OpStart`/`OpEnd`/`OpException`/`EvmStop` is specified only as "EELS order".
-- **The `Exec` relation** is not yet defined; its exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
+- **The `Exec` relation** is not yet defined; the supplied `ExecKind` carrier settles only its entry-tag vocabulary; `Exec`'s exact form (big-step over frames with nested `Exec` premises for children) must be fixed before G4/G5 can be stated precisely.
 - **EIP-8037 cross-frame refunds** (`test_state_gas_cross_frame_refund.py`) exercise the repay path whose Φ-neutrality is only source-checked.
 - **Pre-dispatch vs dispatch rollback** (delegations kept after a dispatched failure, reverted after a preparation failure) is specified from comments and code (`gas.py:471–502`, `interpreter.py:276–282`); no targeted `#guard` exists yet.
