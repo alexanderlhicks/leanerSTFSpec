@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-30.*
+*Status: conditional proof plan. Date: 2026-10-31.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -975,7 +975,7 @@ seams, consumer coherence and generic oracle coupling remain open.
 - `.ok (.error e)`: a validation/backend fault, projected according to its guest phase;
 - `.error i`: spec-internal failure, retained by the checked guest.
 
-Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. Only the checked carriers are supplied (EthVmRunner §3/§5/§7); the following adapter and its execution equations remain unimplemented. F11 remains open. For an action run on world `w`:
+Every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]`, and execution specialises to `m := Id` (D5). The monadic form is `CheckedT ε m := ExceptT ε (ExceptT InternalError m)`, whose `.run.run` gives `m (CheckedResult ε α)`. The adapter `runVmChecked : VmM m (Except InternalError α) → VmWorld m → m (CheckedResult VmFault (α × VmWorld m))` converts without swapping meanings. Only the checked carriers are supplied (EthVmRunner §3/§5/§7); the adapter `runVmChecked` and the execution equations below remain unimplemented. F11 remains open. For an action run on world `w`:
 
 ```text
 action w = .error vf                    => .ok (.error vf)

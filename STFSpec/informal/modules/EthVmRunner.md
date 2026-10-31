@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary and raw RunnerEnv carrier supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary, raw RunnerEnv carrier and checked control carriers supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -184,14 +184,15 @@ execution adapter, budget, exhaustion-unreachability or guest projection.
   controls; the actual construction/producer and runtime controls below remain
   unimplemented.
 
-**Supplied checked-carrier controls.** Private clients check both aliases' exact
-Type domains without class premises, complete arbitrary error/success payloads,
-arbitrary depth and the underlying base action through actual `.run.run` nesting.
-Complete tagged observations distinguish internal failure (including depth zero
-and `2^300 + 71`), structured inner rejection and structured success. Actual local
-Id binds show that each first failure suppresses a later failure in the other
-channel, and successful binds can retain each of the three alternatives. These
-are control-carrier examples, without an EELS operation or runtime-runner claim.
+- **Supplied checked-carrier clients:** `CheckedCallerProofs` imports the public Runner
+  facade and privately checks both aliases' exact Type domains without class premises,
+  complete arbitrary error/success payloads, arbitrary depth and the underlying base
+  action through actual `.run.run` nesting. Complete tagged observations distinguish
+  internal failure (including depth zero and `2^300 + 71`), structured inner rejection
+  and structured success. Actual local Id binds show that each first failure suppresses
+  a later failure in the other channel, and successful binds can retain each of the
+  three alternatives. These are control-carrier examples, without an EELS operation or
+  runtime-runner claim.
 
 **F8 construction/producer controls (unimplemented).** Use a nonliteral supplied
 RunnerEnv address and an independently varied F20 topic. Check successful createEvm
@@ -223,6 +224,7 @@ inductive InternalError | fuelExhausted (depth : Nat)
   -- `| invariant (what : String)` only if F11 chooses the checked option (§9); G7 must then prove it dead
 abbrev CheckedResult (ε α : Type) := Except InternalError (Except ε α)
 abbrev CheckedT (ε : Type) (m : Type → Type) := ExceptT ε (ExceptT InternalError m)   -- F14; `.run.run : m (CheckedResult ε α)`
+-- Runner monad and checked adapter (unimplemented; F14)
 abbrev RunM (m : Type → Type) := ExceptT InternalError (VmM m)
 def runVmChecked (action : VmM m (Except InternalError α)) (world : VmWorld m)
     : m (CheckedResult VmFault (α × VmWorld m))  -- explicit adapter, in `m` (F14); equations in COMPOSITION.md
@@ -368,6 +370,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   directly; the public Runner facade exports the three policies and EthConformance
   imports their private clients/guards. Callbacks accept every raw meter. No runner
   consumes a policy yet and no default is installed; B11/F11 and O11 remain open.
+- **Supplied checked-carrier seam:** the Runner facade exports `InternalError`,
+  `CheckedResult` and `CheckedT`; EthConformance imports their private clients. No
+  caller lifts or propagates them yet; F11, F14 adapters and O11 projection remain open.
 - **Depends on:** `EthVmInstructions`, `EthCurve` (secp256k1 recovery for EIP-7702 authorities, D26; the runner calls `secp256k1Recover` directly, as EELS does).
 - **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles`, one `VmConfig` and `systemAddress` through BlockConfig.runnerEnv; recovery is a direct `EthCurve` call).
 - **Seams:** consumes `step`, the request/resume operations and delegation resolution (EthVmInstructions), the meter and settlement laws (EthVmCore), EthState snapshot/restore and account operations; provides the transaction-level execution function and the four fuel guarantees. Cross-module invariants relied on: `EthBlock` validates the transaction before calling (intrinsic gas affordable, sender balance and nonce, `is_create → authorizations = ()`); `EthFork`'s table satisfies `lookup_iff`/`meter_law`. Guaranteed: settlement post-conditions above; `InternalError` is the only non-`VmFault` failure.
@@ -382,7 +387,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D24**: child logs merge as a rope append.
 - NEW-VM-5: resolved by D26 (DECISIONS Q27).
 - **NEW-VM-6** (DECISIONS B11, Q28): Φ + 1 remains an unproved candidate, settled by the fuel-adequacy investigation; also open is whether the fuel-indexed family for guarantees 2–3 is `constBudget n` or "all policies pointwise ≥ some policy".
-- **Checked carriers:** the minimal source-free control storage in §3/§5/§7 is supplied; it does not select F11 or prove any internal-error branch unreachable.
 - **F11** (open, choose one): how the runner produces `ChildSettled` for `toChildOutcome`. Either a decidable check whose failure raises a new `InternalError.invariant` (then proved dead with the fuel guarantees, G7; the choice of a compiled prototype of the interfaces), or a settled subtype returned by `processCall`/`processCreate`, which needs `L-SETTLE` proved inline.
 
 ## 10. Gaps
@@ -402,7 +406,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the three selectable budget declarations and the nominal entry-kind carrier of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv carrier and the checked control carriers of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:318` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:285` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).

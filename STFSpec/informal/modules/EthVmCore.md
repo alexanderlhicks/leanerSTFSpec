@@ -3082,8 +3082,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free checked carriers, keeping InternalError distinct from frame exits and VmFault; actual lifting/propagation, settlement, F11 and G2–G7 remain open.
-
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
