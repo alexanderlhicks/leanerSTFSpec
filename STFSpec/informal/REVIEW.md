@@ -708,7 +708,7 @@ remain open. The dated §6 readiness assessment is unchanged.
 The mathematical block view and exactly its ordinary application equation are
 supplied by EthState §3/§7.2. Private facade clients derive the full result, all
 raw-field and observer consequences and independence from arbitrary
-metadata/provider/constants/ read sets/offset. Complete numerical/list interpreted
+metadata/provider/constants/read sets/offset. Complete numerical/list interpreted
 `#guard` controls cover raw non-WF states; no original Python view function is
 claimed. Only the mathematical diff equation is discharged; full diff WF/history,
 actual tracker/lifetimes, S1/S2/W1/F7 and cost/readiness gates remain open.

@@ -415,7 +415,7 @@ resource or C1–C4 result.
   compares 1,598 complete framed observations from 94 independent numerical/list
   recipes. Cases cover deletion without clear, clear/rewrite, orphan/zero/empty
   patches, untouched empty/zero maps, reserved and empty code, every 20/32-byte key
-  position, huge nonce/counter/ offset and insertion permutations. Independent
+  position, huge nonce/counter/offset and insertion permutations. Independent
   changes to provider/constants/read sets/offset and all three metadata fields
   leave the result equal; retained parents and effect-changing siblings keep
   complete maps. Complete raw map framing retains absent versus present-empty
