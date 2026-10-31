@@ -300,8 +300,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Precompile interpretation (Q83):** Core supplies logical action factorization and
-  exact Id reduction only. The table action stays in base m; actual lifting through
+- **Precompile interpretation (Q83):** Core supplies only the Q83 predicate and Id law
+  (EthVmCore §7). The table action stays in base m; actual lifting through
   VmM/RunM and their transformer/error order requires an explicit local bridge.
   Dispatch, separate halt settlement and potential proofs remain open. This adds
   no observer API, base-error reinterpretation, F11 choice or G2–G7 claim.

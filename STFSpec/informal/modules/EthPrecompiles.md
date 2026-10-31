@@ -1,6 +1,6 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
@@ -589,8 +589,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
   dependency. A shared lower owner for the tag is not yet chosen.
 
-- **Generic construction (Q83):** Core supplies action factorization and the exact Id
-  law only. `toPrecompile` equations, per-entry source/normal-form proofs and the
+- **Generic construction (Q83):** Core supplies only the Q83 predicate and Id law
+  (EthVmCore §7). `toPrecompile` equations, per-entry source/normal-form proofs and the
   meaning of equality up to the halt constructor remain open. A map-shaped adapter
   needs actual local map-pure/composition laws (`LawfulApplicative` suffices, Monad
   alone does not); bind-pure/map agreement needs its own law. Public constructor
