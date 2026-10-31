@@ -207,8 +207,9 @@ lake build STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs STFSpec.Conforma
 ```
 
 This supplies raw environment data only. Actual frame/world construction, history
-lookup/admission, actual capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
-gas/fuel/resources and VM/guest/EEST/readiness obligations remain open.
+lookup/admission, actual capacity/intrinsic/settlement consumers, F8 transport,
+F20 lifetime, F11, gas/fuel/resources and VM/guest/EEST/readiness obligations
+remain open.
 
 ### Supplied logical action factorization (Q83)
 
@@ -273,17 +274,18 @@ supply read-only context discipline; raw Evm construction does not prevent conte
 replacement by arbitrary Lean callers.
 
 Three complete ordinary boundary controls quantify arbitrary GasCosts, both whole
-environments, systemAddress and Frame. Private raw VmConfig constructors use limits
-7 and 2048 without defaults or an Amsterdam import; depth 1024 still uses only the
-local literal proof. Controls retain every complete supplied provider value, cover
-depths 0/1/1024, None/Some-zero/Some-nonzero codeAddress, distinct zero/high/max
-addresses, zero/max/intermediate U256 values, empty/mixed/all-256-byte code and
-callData, independent flags and code/maps. The map stays abstract in whole-record
-equalities; finite observations use only its public contains equations, including
-an arbitrary empty-map query and a beyond-host-width absent offset. Four ordinary
-guards check all byte values and complete twenty-byte address vectors; a negative
-elaboration control rejects a FrameCtx at depth 1025. Generic clients retain every possible flag
-combination and every provider input. Reproduce with:
+environments, systemAddress and Frame. Private raw VmConfig constructors use
+limits 7 and 2048 without defaults or an Amsterdam import; depth 1024 still uses
+only the local literal proof. Controls retain every complete supplied provider
+value, cover depths 0/1/1024, None/Some-zero/Some-nonzero codeAddress, distinct
+zero/high/max addresses, zero/max/intermediate U256 values,
+empty/mixed/all-256-byte code and callData, independent flags and code/maps. The
+map stays abstract in whole-record equalities; finite observations use only its
+public contains equations, including an arbitrary empty-map query and a
+beyond-host-width absent offset. Four ordinary guards check all byte values and
+complete twenty-byte address vectors; a negative elaboration control rejects a
+FrameCtx at depth 1025. Generic clients retain every possible flag combination and
+every provider input. Reproduce with:
 
 ```sh
 lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.Vm.Core.ContextGuards --wfail

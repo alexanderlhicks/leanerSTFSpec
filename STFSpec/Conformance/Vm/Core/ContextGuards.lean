@@ -125,7 +125,7 @@ private theorem empty_map_control (costs : GasCosts) (be : BlockEnvironment)
 
 -- The sole proof field rejects a context at the first out-of-domain depth.
 #check_failure fun (costs : GasCosts) (be : BlockEnvironment) (te : TransactionEnvironment)
-    (systemAddress : Address) =>
+    (systemAddress : Address) ↦
   FrameCtx.mk (smallConfig costs) be te zeroAddress high U256.zero Bytes.empty
     none Bytes.empty destinations 1025 (by decide) false false false systemAddress
 #guard allBytes.map UInt8.toNat == List.range 256
