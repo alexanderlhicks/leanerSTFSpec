@@ -127,9 +127,9 @@ complete 2,787-row interpreted/native checks and strict normal/optimized malform
 controls are owned by [the division
 slice](EthField.md#supplied-natural-reference-division). These Field controls supply no
 field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
-interpreted/native adapter used for the decoder and inverse comparisons in EthField §4
-is out of tree (not committed); the division producer is committed. Public powMod, field
-hierarchy and guest conformance remain open.
+interpreted/native adapter used for the power, sign, decoder and inverse comparisons in
+EthField §4 is out of tree (not committed); the division producer is committed. Public
+powMod, field hierarchy and guest conformance remain open.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).

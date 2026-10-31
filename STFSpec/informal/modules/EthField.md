@@ -367,7 +367,7 @@ composite nonunits, with arbitrary unread `sqrtExp?`. No ordinary-caller proof,
 |---|---|---|---|
 | py-ecc 8.0.0 `py_ecc/fields/optimized_field_elements.py:141–142`, `FQ.__truediv__` → `__div__` :127–139, imported `py_ecc/utils.py:21–39`, constructor :57–68 and observer :190–191 | `PrimeFieldRef.div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)` | Multiply the canonical numerator by the complete Q86 inverse of the canonical denominator, reducing modulo p. Zero denominator gives zero; every nonunit retains the existing graph result. Pure, no mutation, query, rejection or failure. | `toNat_div`; asymmetric/wrap/zero/nonunit/Fermat/signed controls and all 929 frozen pairs; **discharged** |
 | Existing public `toNat_mul` composed with Q86 inverse | `PrimeFieldRef.toNat_div (a b) : (div a b).toNat = (a.toNat * (inv0 b).toNat) % p` | Ordinary complete observer equation; no extra premise, attribute or model | Generic public-only graph composition, range and zero/unit consequences; **discharged** |
-| Operator delegation, mirroring §5’s executable `div` | `Div (PrimeFieldRef p)` | `/` delegates directly to `PrimeFieldRef.div` | Named/notation full-result equality; **discharged** |
+| §5 reference operator delegation (cf. executable `Div (via div)`) | `Div (PrimeFieldRef p)` | `/` delegates directly to `PrimeFieldRef.div` | Named/notation full-result equality; **discharged** |
 
 The source correspondence is bounded to freshly constructed natural-input FQ operands of
 the same class and modulus. It executes original optimized `/`, its distinct wrapper,
