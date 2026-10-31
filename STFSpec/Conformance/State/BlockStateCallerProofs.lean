@@ -700,6 +700,7 @@ private theorem commute_codeReads_oldestAncestorOffset
 
 -- This contravariant constructor has no installed Monad instance.
 private def Consumer (α : Type) : Type := α → Nat
+#check_failure (inferInstance : Monad Consumer)
 
 private def no_monad (ps : PreState Consumer)
     (b : BlockState Consumer) : BlockState Consumer := { b with preState := ps }
@@ -712,12 +713,16 @@ private theorem full_provider (b : BlockState m) (ps : PreState m) :
     ({ b with preState := ps } : BlockState m).preState = ps := rfl
 
 private theorem canonical_address : (inferInstance : Hashable Address) = Address.instHashable :=
-    rfl
+  rfl
+
 private theorem canonical_slot : (inferInstance : Hashable Bytes32) = Bytes32.instHashable := rfl
+
 private theorem canonical_hash (h : Hash32) : hash h = Hash32.tableHashReference h :=
   Hash32.hash_eq_reference h
+
 private theorem storage_product (x : Address × Bytes32) :
     hash x = mixHash (hash x.1) (hash x.2) := rfl
+
 private theorem code_product (x : Address × Hash32) :
     hash x = mixHash (hash x.1) (hash x.2) := rfl
 
@@ -736,12 +741,14 @@ private theorem account_members (b : BlockState m) (s : Std.HashSet Address) (k 
     (a ∈ b.accountReads ∪ s ↔ a ∈ b.accountReads ∨ a ∈ s) ∧
     (a ∈ (b.accountReads.insert k).insert k ↔ a ∈ b.accountReads.insert k) :=
   members b.accountReads s k a
+
 private theorem storage_members (b : BlockState m) (s : Std.HashSet (Address × Bytes32))
     (k a : Address × Bytes32) :
     (a ∈ b.storageReads.insert k ↔ k = a ∨ a ∈ b.storageReads) ∧
     (a ∈ b.storageReads ∪ s ↔ a ∈ b.storageReads ∨ a ∈ s) ∧
     (a ∈ (b.storageReads.insert k).insert k ↔ a ∈ b.storageReads.insert k) :=
   members b.storageReads s k a
+
 private theorem code_members (b : BlockState m) (s : Std.HashSet (Address × Hash32))
     (k a : Address × Hash32) :
     (a ∈ b.codeReads.insert k ↔ k = a ∨ a ∈ b.codeReads) ∧
@@ -753,10 +760,12 @@ private theorem reconstructed_account (b : BlockState m) (a : Address) :
     Address.ofNat a.toNat ∈ b.accountReads.insert a := by
   rw [Address.ofNat_toNat]
   exact Std.HashSet.mem_insert_self
+
 private theorem reconstructed_storage (b : BlockState m) (a : Address) (k : Bytes32) :
     (Address.ofNat a.toNat, FixedBytes.ofNat k.toNat) ∈ b.storageReads.insert (a, k) := by
   rw [Address.ofNat_toNat, FixedBytes.ofNat_toNat]
   exact Std.HashSet.mem_insert_self
+
 private theorem reconstructed_code (b : BlockState m) (a : Address) (h : Hash32) :
     (Address.ofNat a.toNat, Hash32.ofBytes32 h.toBytes32) ∈ b.codeReads.insert (a, h) := by
   rw [Address.ofNat_toNat, Hash32.ofBytes32_toBytes32]
