@@ -7,7 +7,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 Library `EthVmCore`. A monadic action factors through results carrying a proof.
 This logical predicate supplies no arbitrary-monad result observation or progress guarantee.
-Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§5/7 (Q83).
+Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7 (Q83).
 -/
 
 namespace STFSpec.Vm.Core

@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw CreateRequest carrier and opcode byte conversions supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference.
@@ -49,11 +49,11 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 1D | SAR | `:219` | s v → v≫ₐs | 3 | s ≥ 256 → 0 or 2^256−1 by sign |
 | 1E | CLZ | `:251` | x → 256 − bitlen(x) | 5 (LOW) | EIP-7939; CLZ 0 = 256 |
 
-**KECCAK256, environment, block**
+**KECCAK (KECCAK256), environment, block**
 
 | Hex | Name | EELS | Pops → pushes | Gas | Semantics / halts |
 |---|---|---|---|---|---|
-| 20 | KECCAK256 | `I/keccak.py:30` | off sz → h | 30 + 6·w(sz) + mem(off,sz) | keccak256 of the window, as a `KeccakQuery` call (D5) |
+| 20 | KECCAK | `I/keccak.py:30` | off sz → h | 30 + 6·w(sz) + mem(off,sz) | keccak256 of the window, as a `KeccakQuery` call (D5) |
 | 30 | ADDRESS | `I/environment.py:35` | → target | 2 | |
 | 31 | BALANCE | `:58` | a → bal | warm/cold | address masked to 160 bits (`to_address_masked`); warm-set add **before** the charge (`:72–76`); read after the charge; missing account → 0 |
 | 32 | ORIGIN | `:89` | → origin | 2 | |
@@ -168,7 +168,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/vm/instructions/__init__.py::Ops` | 32 | `inductive Ops`, `Ops.ofByte?`, `Ops.toByte`, `opImplementation`, `step` | the `op_implementation` dict (`:223`) is a module constant not listed in the inventory; specified here as the dispatch `match` |
+| `forks/amsterdam/vm/instructions/__init__.py::Ops` | 32 | `Ops`, `Ops.ofByte?`, `Ops.toByte` (supplied); `opImplementation`, `step` (unimplemented) | The enum/byte slice is detailed below; the `op_implementation` dict (`:223`) remains the future dispatch `match` |
 | `forks/amsterdam/vm/instructions/arithmetic.py::*` | 28–374 | `add` … `signextend`, `U255_CEIL_VALUE` | |
 | `forks/amsterdam/vm/instructions/bitwise.py::*` | 24–277 | `bitwiseAnd` … `countLeadingZeros` | |
 | `forks/amsterdam/vm/instructions/comparison.py::*` | 24–180 | `lessThan` … `isZero` | |
@@ -190,9 +190,67 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 159 | `calculateDelegationCost` | |
 
+### Supplied opcode enumeration and byte conversions
+
+| EELS source | Lean declaration / exact type | Domain | Effects / ordered failures | Laws and clients | Status |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/__init__.py:32–220` (`Ops`) | `STFSpec.Vm.Instructions.Ops` in `STFSpec/Vm/Instructions/Ops.lean`, exported by `STFSpec.Vm.Instructions` | Exactly 153 nullary constructors, one per source member | Pure finite vocabulary; no defaults or instances | Generated inductive infrastructure; private exhaustive constructor coverage in `OpsCallerProofs` | Supplied; source member/byte identities checked statically at the pin (out of tree: nothing for that comparison is committed, so it cannot be reproduced from this repository; the committed literals are its transcription) |
+| Same source member assignments | `Ops.toByte : Ops → UInt8` | Every opcode, without a frame, gas, hash, monad or admission premise | Pure total literal match; no failure | `Ops.ofByte_toByte`; all 153 source-bound literal encoder pairs in private facade controls | Supplied; ordinary round trip discharged |
+| Same source member assignments, and their complement in 0–255 | `Ops.ofByte? : UInt8 → Option Ops` | Every byte | Pure total literal match; `some` for the 153 assigned bytes, `none` for exactly 103 holes, including `0xFE`; no error conversion or charge | `Ops.toByte_ofByte`; all 256 literal decode equations, including every positive and every hole | Supplied; ordinary successful-decode round trip discharged |
+
+Constructors follow lowercase EELS member spelling (`iszero`, `calldataload`,
+`slotnum`, `dupn`, and so on); reserved `RETURN` becomes `return_`, following the
+existing handler convention. Source `KECCAK` is the single member at `0x20`.
+The two laws in §7 are the only authored public laws. Private facade clients also
+derive encoder injectivity and exclusion of an absent byte through those laws,
+without unfolding provider internals. Literal controls separately check source
+identity: round trips alone would allow a consistent permutation of byte values.
+The source comparison is a static finite enum assignment comparison, qualified
+to typed-byte enum use; it executes no EELS runtime. It is out of tree: nothing for
+it is committed, so it cannot be reproduced from this repository, and the committed
+literal controls are its transcription. Dispatch, `step`, handlers
+and all execution/error/resource obligations remain open.
+
+### Supplied raw creation suspension carrier
+
+| EELS split origin | Lean declaration | Domain | Effects / ordered failures | Laws and clients | Status |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:66–192` (`generic_create`, dispatch at `:140–178`, outcome at `:184–192`) | `STFSpec.Vm.Instructions.CreateRequest` in `STFSpec/Vm/Instructions/CreateRequest.lean`, exported by `STFSpec.Vm.Instructions` | Exactly seven independent fields in §5 order: two unrestricted `Nat` grants, nominal `U256` endowment, two nominal `Address` values, complete `Bytes` init code and `Bool` account-charge flag; no Monad/hash binder or admission premise | Pure raw construction/projection; no state access, hashing, grant computation, preflight, collision, child execution or failure | Generated record infrastructure only; private `CreateRequestCallerProofs` facade clients prove all-field constructor preservation, reconstruction, complete-field equality and every independent update. Public Base observers/laws retain every word/address and ordered byte; complete finite controls cover zero/huge independent grants, full-width values, equal/unequal addresses, empty/duplicate bytes and both booleans | Supplied raw carrier and private client proofs/controls; whole `generic_create` correspondence, producers and consumers unimplemented |
+
+This is the Lean-side suspension interface specified in §5, not an implementation
+of an EELS function. The source read identifies where the seven values arise and
+where they are consumed. It supplies no source/admission bridge, gas-correctness
+proof, child context, handler or resume implementation.
+
 **External semantics.** `ethereum_types` `U256` operations used by handlers: `wrapping_add/sub/mul`, `//`, `%`, `to_signed`, `from_signed` (raises for out-of-range; unreachable from these handlers because all results are in range) [V], `from_be_bytes`, `to_be_bytes32`, `bit_length`, `~`, `&`, `|`, `^`, `>>`; `Uint(...)` conversions (exact, unbounded); `U8` for immediates; Python's `pow(b, e, 2^256)`; Python negative list indexing in BLOCKHASH (IndexError beyond length) and in DUPN/SWAPN/EXCHANGE (always in range after the checks). Each must be given by an `EthBase` `U256`/`Nat` law, not by Lean `BitVec` instances (D1).
 
 ## 4. Tests
+
+**Supplied opcode controls.**
+`STFSpec/Conformance/Vm/Instructions/OpsCallerProofs.lean` imports only the public
+Instructions facade. Exact encoder/decoder signatures and both generic laws are
+used without frame/context/hash/monad premises. Private clients derive injectivity
+and missing-byte exclusion using only those laws. An exhaustive constructor match
+checks all 153 literal encoder pairs; 256 ordinary kernel equations bind every
+decoded byte to its literal expected constructor or `none` (153 positives and 103
+holes). Expectations transcribe the pinned source assignments independently of the
+implementation (the source comparison itself is out of tree, see §3); no enum
+equality instance or native decision procedure is introduced. Warning-fatal
+compilation and the compiled declaration audit cover the actual leaf, facade and
+private clients. These are enum controls only; the handler, EEST and
+source-runtime differential tests below remain unimplemented.
+
+**Supplied raw carrier controls.**
+`STFSpec/Conformance/Vm/Instructions/CreateRequestCallerProofs.lean` imports only
+`STFSpec.Vm.Instructions`. Private generic clients cover the complete seven-field
+constructor/projection tuple, reconstruction, equality from all fields and all
+seven independent record updates with preservation of every other field. Public
+Base word/address/byte observations and byte-construction laws avoid provider
+storage unfolding. Four complete deterministic observations include independently
+zero and greater-than-256-bit grants, maximum/full-width nominal values, distinct
+and equal caller/destination, empty and ordered duplicate init bytes, and both
+charging flags. These checks test raw data retention; the opcode/source tests
+below remain unimplemented.
 
 **F8 inheritance/producer controls (unimplemented).** Check both child-context
 systemAddress equations with a nonliteral parent address, independently varying
@@ -215,19 +273,34 @@ precedence and runner-owned revert/halt discard.
   - delegation: `prague/eip7702_set_code_tx` (86), `amsterdam/eip8037_*` (`test_state_gas_delegation_pointer.py`);
   - broad: `ported_static/stRandom`, `stRandom2`, `stSystemOperationsTest`, `stSpecialTest`, `stBugs`, `stAttackTest`.
 - **EELS unit tests:** none for `instructions/` at e1a316a0 [V].
-- **`core` `#guard` cases** (per handler, via `step` on a synthetic frame; a `#guard` evaluates only once every leaf it reaches is implemented, F16): every arithmetic op at `0`, `1`, `2^255`, `2^256−1` (SDIV `−2^255 ÷ −1`, SMOD sign, SAR of negatives by 255/256, SIGNEXTEND k = 30, 31, 32, BYTE 31/32, EXP gas for exponents of 0/1/256/2^255, CLZ 0); `Ops.ofByte?` for all 256 bytes (153 some, 103 none); DUPN/SWAPN/EXCHANGE on every immediate including 91 and 127, the immediate past the end of code, and underflow by one; PUSH32 truncated at end of code; JUMPI with cond 0 to an invalid target; RETURNDATACOPY `(0, 1, 0)` with empty return data (halts); CALLDATALOAD at `2^256−1`; MCOPY overlapping both directions; LOG in a static frame (charges first); SSTORE all 27 `(original, current, new) ∈ {0, x, y}³` combinations with expected execution cost, refund delta and state gas, plus the gas-left = 2300 sentry; CALL with value to a dead account then failing child (state gas refilled); CREATE collision (grant consumed, nonce incremented); BLOCKHASH offsets 0, 1, 256, 257 and one beyond `|block_hashes|`.
+- **`core` `#guard` cases** (per handler, via `step` on a synthetic frame; a `#guard` evaluates only once every leaf it reaches is implemented, F16): every arithmetic op at `0`, `1`, `2^255`, `2^256−1` (SDIV `−2^255 ÷ −1`, SMOD sign, SAR of negatives by 255/256, SIGNEXTEND k = 30, 31, 32, BYTE 31/32, EXP gas for exponents of 0/1/256/2^255, CLZ 0); `Ops.ofByte?` for all 256 bytes (153 some, 103 none; supplied by kernel `rfl` equations in `OpsCallerProofs`, §4); DUPN/SWAPN/EXCHANGE on every immediate including 91 and 127, the immediate past the end of code, and underflow by one; PUSH32 truncated at end of code; JUMPI with cond 0 to an invalid target; RETURNDATACOPY `(0, 1, 0)` with empty return data (halts); CALLDATALOAD at `2^256−1`; MCOPY overlapping both directions; LOG in a static frame (charges first); SSTORE all 27 `(original, current, new) ∈ {0, x, y}³` combinations with expected execution cost, refund delta and state gas, plus the gas-left = 2300 sentry; CALL with value to a dead account then failing child (state gas refilled); CREATE collision (grant consumed, nonce incremented); BLOCKHASH offsets 0, 1, 256, 257 and one beyond `|block_hashes|`.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
 
 ## 5. Interface
 
+The opcode API below is **supplied** through `STFSpec.Vm.Instructions`, with
+exactly 153 constructors, the two total conversions and exactly the two ordinary
+laws in §7. No deriving, instance, alias or public convenience declaration is
+added. The remaining dispatch and handler signatures are targets.
+
+The exact seven-field `CreateRequest` below is **supplied** through the public
+`STFSpec.Vm.Instructions` facade. It has generated record infrastructure only:
+no authored defaults, deriving/instances, public helper laws, semantic constructor
+or invariant/proof field. Its two Nat grants, addresses, complete init bytes and
+charging flag remain independent. The remaining interfaces below, including
+`CallRequest`, `StepResult`, child construction and resume, remain unimplemented;
+this carrier selects no CallRequest/staticness or F11 policy.
+
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
+
 ```lean
 -- Opcodes and dispatch (public)
-inductive Ops | stop | add | … | selfdestruct              -- 153 constructors, EELS names
+inductive Ops | stop | add | … | selfdestruct              -- supplied, 153 source members
 def Ops.toByte : Ops → UInt8
 def Ops.ofByte? : UInt8 → Option Ops
 -- Generic in the oracle monad (D5): `{m} [Monad m]` throughout, plus `[KeccakQuery m]` on the
--- handlers that hash (KECCAK256, CREATE, CREATE2) and hence on `opImplementation` and `step`.
+-- handlers that hash (KECCAK, CREATE, CREATE2) and hence on `opImplementation` and `step`.
 abbrev OpM (m : Type → Type) := ExceptT FrameExit (StateT Frame (VmM m))   -- internal: a throw keeps the frame and world
 inductive FrameExit | stop (output : Bytes) | revert (output : Bytes) | halt (e : ExceptionalHalt)
                     | call (req : CallRequest) | create (req : CreateRequest)
@@ -298,15 +371,39 @@ theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ �
 
 | Type | Representation | Model / abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
-| `Ops` | inductive, 153 constructors | byte value via `toByte` | `ofByte? (toByte o) = some o`; `ofByte? b = some o → toByte o = b` | value | `ofByte?` O(1) (a 256-entry table or `match`) |
+| `Ops` (supplied) | inductive, 153 constructors; direct literal matches | byte value via `toByte` | both round trips in §7 discharged; 103 unassigned bytes decode to `none` | value | target `ofByte?` O(1) (a 256-entry table or a nibble match beside the literal reference, D25); the current literal 153-arm match compiles to a comparison chain (DEBT-OPS-DECODE); no table allocation or performance measurement claimed |
 | `StepResult ctx` | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
-| `CallRequest`, `CreateRequest` | records; `callData`, `code`, `initCode` share `ByteArray`s | — | `gas` computed by the 63/64 rule from the parent's `gas_left` at the grant | value | O(1) plus the input copy O(\|in\|) already paid by gas |
+| `CreateRequest` (supplied) | raw seven-field record; init code uses Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.5 grants/effects | value | fixed-field record construction/projection; init bytes retained through the Base provider |
+| `CallRequest` (unimplemented) | record; `callData`, `code` use Base `Bytes` | — | future producers compute `gas` by the 63/64 rule from the parent's `gas_left` at the grant | value | O(1) plus the input copy O(\|in\|) already paid by gas |
 | `ChildOutcome` | record | — | `ChildSettled` | value | — |
 | handlers | functions in `VmM m` (pure at `m := Id`) | — | preserve `Frame` invariants (stack ≤ 1024, memory size % 32 = 0) | — | O(1) for word ops; O(k) for copies/hashes of k bytes, k bounded by gas |
 
 The suspended parent frame (in `.call/.create`) is linear: the runner holds the only reference while the child runs, so memory writes in `resumeAfterCall` are in place (ARCHITECTURE §7: diagnostics must not retain frames).
 
 ## 7. Contract and laws
+
+**Supplied opcode laws.** The ordinary byte round trips, the first unconditional and
+the second conditioned only on a successful decode, are:
+
+```lean
+theorem Ops.ofByte_toByte (o : Ops) : Ops.ofByte? (Ops.toByte o) = some o
+theorem Ops.toByte_ofByte (b : UInt8) (o : Ops) (h : Ops.ofByte? b = some o) :
+  Ops.toByte o = b
+```
+
+Constructor cases prove the first; decoder cases and UInt8 numeric injectivity
+prove the second. The latter has only its displayed successful-decode equality,
+with no additional well-formedness, execution or oracle hypothesis. Both are
+discharged for the supplied enum. This does not implement `opImplementation`,
+`step`, invalid-opcode halting or any opcode effect.
+
+**Supplied raw creation request.** Its public contract is exactly the seven fields
+in §5, with ordinary generated constructor/projection/reconstruction reduction.
+Private complete facade clients establish all-field preservation and independent
+updates on arbitrary records without adding public ext/eta/equation laws or
+admission. The 63/64 requirement belongs to future producers (§2.5), not a raw
+record proof field. No preflight, state/gas correctness, source refinement,
+child-context/staticness, settlement or resume law follows from construction.
 
 **Per-opcode semantic lemmas** [R] (for evm-asm and pancaketh), one per handler, stated only with EthVmCore's stack/memory/meter laws and EthState's lookup laws, never by unfolding representations. Template (ADD):
 
@@ -321,7 +418,7 @@ theorem step_add_oog (h₁ : …) (h₂ : f.stack.toList = a :: b :: s) (h₃ : 
 
 Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v))` with `e = expandBy`, and gas `3 + cost`; storage ops state the read/write through `getStorage`/`setStorage` laws and the exact SSTORE cost/refund/state-gas table of §2.4 as a function `sstoreCharges original current new cold`. CALL/CREATE lemmas state the request fields and the parent frame at suspension (the exact meter after withholding), and separately the resume equations. The lemma set must also give **exception precedence** (R-GEN-2) as in powdr's `StepDeterminism.lean`.
 
-**Child context policy** [C] (F8): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
+**Child context policy** [C] (F8; local pure helper supplied by EthVmCore §3/§7): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
@@ -349,12 +446,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthVmCore`, `EthHash`, `EthCodec`
 - **Used by:** `EthVmRunner` (calls `step`, `childCtxOf*`, `childFrame`, the resume operations and `resolveDelegatedCodeAddress`); `EthBlock` (uses `isValidDelegation`).
-- **Seams:** provides `Handler`, `step`, `StepResult`, requests and resume operations; consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK256; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. Guarantees: `.call/.create` only when `depth < STACK_DEPTH_LIMIT` and the parent stack has room for the result (`hs`), balance and nonce preflight passed, and the parent's meter already withholds the grant.
+- **Seams:** provides `Handler`, `step`, `StepResult`, requests and resume operations; consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. Guarantees: `.call/.create` only when `depth < STACK_DEPTH_LIMIT` and the parent stack has room for the result (`hs`), balance and nonce preflight passed, and the parent's meter already withholds the grant.
 
 ## 9. Open decisions
 
 - **D1**: handlers use only `U256` observer laws; exercise 4.
-- **D5** (broad scope, monad-parametric; B10): **every** keccak goes through `KeccakQuery`, including the KECCAK256 opcode and CREATE/CREATE2 address derivation, so handlers live in `VmM m`. Execution instantiates `m := Id`, where the instance is concrete `keccak256`. A narrower scope needs the agreement prototype's justification.
+- **D5** (broad scope, monad-parametric; B10): **every** keccak goes through `KeccakQuery`, including the KECCAK opcode and CREATE/CREATE2 address derivation, so handlers live in `VmM m`. Execution instantiates `m := Id`, where the instance is concrete `keccak256`. A narrower scope needs the agreement prototype's justification.
 - **D14** (accepted): halts are frame exits (O8); BLOCKHASH's missing ancestor and the BLOBBASEFEE overflow are `VmFault`s in CONTRACT O13 (R-GEN-7).
 - **D26** (accepted): secp256k1 recovery stays in the runner; handlers do not import it.
 - **D27** (accepted): `Log` is `EthVmCore`'s; LOG0–LOG4 and the EIP-7708 transfer log reuse it.
@@ -367,13 +464,24 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+
+- **Raw creation carrier supplied; execution open:** §3 owns the exact `CreateRequest` type and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, `StepResult`, `CallRequest`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carrier adds no admission/staticness policy and resolves neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
+  ChildSettled predicate and constructive Decidable instance only. Actual non-top
+  committed-spill-zero initialization/preservation, call/create settlement and
+  snapshots, returned proof production, incorporation and child/resume remain open.
+  This logical decision procedure chooses neither F11 production option and
+  supplies no runtime check, settled executor or generic Q83 effect bridge.
+
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **No lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only.
+- **No per-opcode lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only; §3 separately owns private raw-carrier client proofs.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
-- **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:303`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. No gap remains beyond freezing the constructor list (DECISIONS B14).
+- **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:303`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (202 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].

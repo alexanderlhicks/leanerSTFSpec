@@ -14,21 +14,21 @@ Spec guidance: `STFSpec/informal/modules/EthBlock.md` §§3–7.
 
 open STFSpec.Base STFSpec.Block
 
-private def constructor_type :
+private def constructorType :
     Address → Address → Address → Address → Address → Address → Address → Address →
       Nat → Nat → SystemAddrs := SystemAddrs.mk
 
-private def systemAddress_type : SystemAddrs → Address := SystemAddrs.systemAddress
-private def beaconRoots_type : SystemAddrs → Address := SystemAddrs.beaconRoots
-private def historyStorage_type : SystemAddrs → Address := SystemAddrs.historyStorage
-private def withdrawalRequests_type : SystemAddrs → Address := SystemAddrs.withdrawalRequests
-private def consolidationRequests_type : SystemAddrs → Address :=
+private def systemAddressType : SystemAddrs → Address := SystemAddrs.systemAddress
+private def beaconRootsType : SystemAddrs → Address := SystemAddrs.beaconRoots
+private def historyStorageType : SystemAddrs → Address := SystemAddrs.historyStorage
+private def withdrawalRequestsType : SystemAddrs → Address := SystemAddrs.withdrawalRequests
+private def consolidationRequestsType : SystemAddrs → Address :=
   SystemAddrs.consolidationRequests
-private def builderDeposits_type : SystemAddrs → Address := SystemAddrs.builderDeposits
-private def builderExits_type : SystemAddrs → Address := SystemAddrs.builderExits
-private def depositContract_type : SystemAddrs → Address := SystemAddrs.depositContract
-private def txGas_type : SystemAddrs → Nat := SystemAddrs.txGas
-private def maxSstoresPerCall_type : SystemAddrs → Nat := SystemAddrs.maxSstoresPerCall
+private def builderDepositsType : SystemAddrs → Address := SystemAddrs.builderDeposits
+private def builderExitsType : SystemAddrs → Address := SystemAddrs.builderExits
+private def depositContractType : SystemAddrs → Address := SystemAddrs.depositContract
+private def txGasType : SystemAddrs → Nat := SystemAddrs.txGas
+private def maxSstoresPerCallType : SystemAddrs → Nat := SystemAddrs.maxSstoresPerCall
 
 private theorem systemAddress_projection (a b c d e f g h : Address) (gas stores : Nat) :
     (SystemAddrs.mk a b c d e f g h gas stores).systemAddress = a := rfl
