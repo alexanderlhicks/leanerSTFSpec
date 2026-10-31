@@ -14,10 +14,10 @@ Spec guidance: `STFSpec/informal/modules/EthBlock.md` §§3–7.
 
 open STFSpec.Block
 
-private def constructor_type : Nat → Nat → Nat → BlockParams := BlockParams.mk
-private def denominator_type : BlockParams → Nat := BlockParams.baseFeeMaxChangeDenominator
-private def elasticity_type : BlockParams → Nat := BlockParams.elasticityMultiplier
-private def size_type : BlockParams → Nat := BlockParams.maxRlpBlockSize
+private def constructorType : Nat → Nat → Nat → BlockParams := BlockParams.mk
+private def denominatorType : BlockParams → Nat := BlockParams.baseFeeMaxChangeDenominator
+private def elasticityType : BlockParams → Nat := BlockParams.elasticityMultiplier
+private def sizeType : BlockParams → Nat := BlockParams.maxRlpBlockSize
 
 private theorem denominator_projection (d e s : Nat) :
     (BlockParams.mk d e s).baseFeeMaxChangeDenominator = d := rfl
@@ -29,7 +29,8 @@ private theorem size_projection (d e s : Nat) :
     (BlockParams.mk d e s).maxRlpBlockSize = s := rfl
 
 private theorem reconstruct (p : BlockParams) :
-    BlockParams.mk p.baseFeeMaxChangeDenominator p.elasticityMultiplier p.maxRlpBlockSize = p := rfl
+    BlockParams.mk p.baseFeeMaxChangeDenominator p.elasticityMultiplier p.maxRlpBlockSize =
+      p := rfl
 
 private theorem update_denominator (p : BlockParams) (d : Nat) :
     let q := { p with baseFeeMaxChangeDenominator := d }

@@ -226,4 +226,3 @@ private theorem blob_product_checked :
 private theorem public_records :
     vmConfig.costs = gasCosts ∧ vmConfig.stateCosts = stateGasCosts ∧
       vmConfig.limits = vmLimits := ⟨rfl, rfl, rfl⟩
-
