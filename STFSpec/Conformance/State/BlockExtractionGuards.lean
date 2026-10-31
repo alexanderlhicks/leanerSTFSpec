@@ -115,8 +115,10 @@ private def emptyOrder : OrderRecipe := ⟨0, [], []⟩
 private def good (a b : Nat) : OrderRecipe :=
   ⟨2 ^ 100 + 17, [(a, 4), (b, 100)], [(100, b), (4, a)]⟩
 
--- Nine independent global/slot order cases, including huge gaps, bounds, duplicate
--- reverse values, forward-only, reverse-only, mismatched maps, tombstones and zeros.
+-- Nine global/slot order entries (seven distinct cases; entries 7 and 8 repeat the
+-- well-formed first case): huge gaps, bounds, duplicate reverse values, forward-only,
+-- reverse-only and mismatched maps. Tombstones and zero writes come from the separate
+-- write recipes below.
 private def orderCases (a b x : Nat) : List OrderRecipe :=
   [good a b, { good a b with next := 0 },
     ⟨0, [(a, 4)], [(100, a), (4, a)]⟩,
@@ -172,9 +174,11 @@ private def discardedVariants (b : BlockState Id) : List (BlockState Id) :=
     { b with consts := constants (2 ^ 255 + 1) },
     { b with accountReads := (∅ : Std.HashSet Address).insert (address 11) },
     { b with
-      storageReads := (∅ : Std.HashSet (Address × Bytes32)).insert (address 11, slot (2 ^ 255 + 7)) },
+      storageReads :=
+        (∅ : Std.HashSet (Address × Bytes32)).insert (address 11, slot (2 ^ 255 + 7)) },
     { b with
-      codeReads := (∅ : Std.HashSet (Address × Hash32)).insert (address 11, digest (2 ^ 255 + 8)) },
+      codeReads :=
+        (∅ : Std.HashSet (Address × Hash32)).insert (address 11, digest (2 ^ 255 + 8)) },
     { b with oldestAncestorOffset := some 0 },
     { b with oldestAncestorOffset := some (2 ^ 1024 + 17) }]
 

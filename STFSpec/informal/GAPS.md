@@ -495,10 +495,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all coupled
-  order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and
-  composed C1/C4 remain open. Tree shape and finite retained-version correctness do
-  not discharge persistence throughput, host-memory or zkVM resource gates.
+  whole clear/restore/incorporation and reachable extraction must still preserve all
+  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+  and composed C1/C4 remain open. Tree shape and finite retained-version correctness
+  do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:753–797` and `witness_state.py:303–309`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.

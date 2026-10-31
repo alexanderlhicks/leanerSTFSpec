@@ -241,12 +241,13 @@ separate. No application equality supplies witness failure/observation agreement
 ### Implemented internal order support
 
 `STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
-overlay operations in the source map above remain **unimplemented**; a dictionary ordering
-helper does not implement `setAccount`, `setStorage`, clear, snapshot, incorporation
-or ordered-write integration. Raw extraction is supplied separately above. The following support rows are **discharged for the
-stated component laws**, with no error or hashing channel. Python dictionary
-correspondence additionally requires the pinned host/dependency interpretation;
-finite dictionary traces do not establish whole-tracker refinement.
+overlay operations in the source map above remain **unimplemented**; a dictionary
+ordering helper does not implement `setAccount`, `setStorage`, clear, snapshot,
+incorporation or ordered-write integration. Raw extraction is supplied separately
+above. The following support rows are **discharged for the stated component laws**,
+with no error or hashing channel. Python dictionary correspondence additionally
+requires the pinned host/dependency interpretation; finite dictionary traces do not
+establish whole-tracker refinement.
 
 | Source constraint at the pin | Lean declaration / type | Domain and effects | Public laws | Regression evidence |
 |---|---|---|---|---|
@@ -389,7 +390,7 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
-- **Implemented extraction cases (Q85):** all tests are private. `BlockExtractionCallerProofs.lean` consumes only the seven laws, `BlockDiff.ext`, public Std/order laws and `MathState.apply_congr_effects`: exact class-free/contravariant signature, complete reconstruction, optional lookup, arbitrary discarded-field independence and ordered-observer congruence. `BlockExtractionGuards.lean` compares 1,560 complete framed actual/expected observations from 120 numerical/list recipes: the nine raw order examples independently at each index, six absent/present-empty/extra slot-map cases, all 20/32-byte positions, full code bytes, huge nonce/counter, tombstones/zero/empty patches, insertion permutations, retained parents/siblings and independent provider/constants/read-set/offset variations. Every seven-field observation includes full payloads; separate optional tags distinguish none from some []. Seven field-omission sensitivity controls check the observer. Interpreted/generated-C native full-output comparison is bounded functional evidence, with no EELS malformed-index runtime, tracker/backend/EEST, resource or cost claim.
+- **Implemented extraction cases (Q85):** all tests are private. `BlockExtractionCallerProofs.lean` consumes only the seven laws, `BlockDiff.ext`, public Std/order laws and `MathState.apply_congr_effects`: exact class-free/contravariant signature, complete reconstruction, optional lookup, arbitrary discarded-field independence and ordered-observer congruence. `BlockExtractionGuards.lean` compares 1,560 complete framed actual/expected observations from 120 numerical/list recipes: nine raw order entries at each index (seven distinct cases; two entries repeat the first, well-formed case), six absent/present-empty/extra slot-map cases, all 20/32-byte positions, full code bytes, huge nonce/counter, tombstones/zero/empty patches, insertion permutations, retained parents/siblings and independent provider/constants/read-set/offset variations. Every seven-field observation includes full payloads; separate optional tags distinguish none from some []. Seven field-omission sensitivity controls check the observer. The interpreted `#guard` full-output comparison (no native runner is committed for this slice) is bounded functional evidence, with no EELS malformed-index runtime, tracker/backend/EEST, resource or cost claim.
 - **Implemented Account value cases:** `Conformance/State/AccountGuards.lean` observes the complete nonce, numeric balance and all code-hash bytes. Cases include zero, maximum balance, nonce `2^1024+17`, unequal first/last hash bytes, arbitrary supplied empty-code hashes, reconstruction/equality and `none` versus `some (emptyAccount consts)`. `Conformance/State/AccountCallerProofs.lean` consumes the public constructor/eta/ext and empty-field laws. Pinned Account/EMPTY_ACCOUNT fidelity is checked by reading the pinned source at `state.py:42–56`, conditional on coherent F20 constants; these guards do not execute state_tracker or EEST guest fixtures.
 - **Implemented mathematical-state cases:** `Conformance/State/MathStateGuards.lean` proves independent zero/empty-inner/orphan omissions and the WF hidden-code counterexample. Its full-field/key guards and clients of the §7 laws compile through `EthConformance`. `scripts/MathStateNativeTests.lean` compares complete raw maps, optional account/code answers and storage words with a finite association-list oracle; cases include arbitrary constants, reserved raw entries, huge nonce/max balance, all indexed key bytes, reconstructed equal keys, insertion order and retained siblings. No runtime universe enumeration or tracker/EEST execution is claimed.
 - **Implemented raw BlockDiff cases:** `Conformance/State/BlockDiffCallerProofs.lean` names arbitrary public callers of the §7 laws. `Conformance/State/BlockDiffGuards.lean` and `scripts/BlockDiffNativeTests.lean` compare all seven fields against an independent finite association-list oracle: complete fixed-width keys, unbounded nonce, maximum balance, absent/deleted/empty/replacement accounts, zero writes and empty/orphan storage maps, empty/duplicate/foreign/permuted metadata, reserved and other hashes with arbitrary complete code, insertion-order variation and retained parent/sibling values. Complete interpreted/native observations include every byte, value, presence tag and list occurrence. These comparisons exercise the raw value contract from `state.py:61–89` and B1 guidance; they execute no tracker/backend operation or EEST guest fixture.
@@ -1133,10 +1134,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all coupled
-  order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2 and
-  composed C1/C4 remain open. Tree shape and finite retained-version correctness do
-  not discharge persistence throughput, host-memory or zkVM resource gates.
+  whole clear/restore/incorporation and reachable extraction must still preserve all
+  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+  and composed C1/C4 remain open. Tree shape and finite retained-version correctness
+  do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:753–797` and `witness_state.py:303–309`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
