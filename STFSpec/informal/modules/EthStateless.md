@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft. Date: 2026-09-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` at e1a316a0 unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference.
@@ -72,12 +72,15 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_SIZE` | 136 | `schemaIdSize := 2` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_BYTES` | 137 | `schemaIdBytes : ByteArray := ⟨#[0x15, 0x01]⟩` | big-endian |
 | `forks/amsterdam/stateless.py::StatelessInput` | 146 | `structure StatelessInput` | incl. `publicKeys` |
-| `forks/amsterdam/stateless.py::StatelessValidationResult` | 181 | `structure StatelessValidationResult` | fixed size 43 |
+| `forks/amsterdam/stateless.py::StatelessValidationResult` | 181–216 | `StatelessValidationResult` (`STFSpec/Stateless/Output.lean`) | supplied: complete four-field carrier; §7 output laws and §4 controls |
 | `forks/amsterdam/stateless.py::compute_new_payload_request_root` | 220 | `computeNewPayloadRequestRoot` | total (R3) |
 | `forks/amsterdam/stateless.py::_decode_header` | 229 | `decodeHeader` (internal) | fallback only on RLP error |
 | `forks/amsterdam/stateless.py::validate_headers` | 240 | `validateHeaders` | R4 |
 | `forks/amsterdam/stateless.py::verify_stateless_new_payload` | 263 | `verifyStatelessNewPayload{,Checked}` | R5 |
-| `forks/amsterdam/stateless_guest.py::*` | 19–64 | `serializeStatelessOutput`, `deserializeStatelessInput`, `zeroSentinel` (= `_default_failed_stateless_output`), `runStatelessGuest{,Checked}` | whole file |
+| `forks/amsterdam/stateless_guest.py::serialize_stateless_output` | 19–23 | `serializeStatelessOutput` (`STFSpec/Stateless/Output.lean`) | supplied on every raw carrier value; §7 complete layout/size/injectivity laws; §4 whole-byte controls |
+| `forks/amsterdam/stateless_guest.py::_default_failed_stateless_output` | 41–50 | `zeroSentinel` (`STFSpec/Stateless/Output.lean`) | supplied; §7 complete field and byte equations; §4 controls |
+| `forks/amsterdam/stateless_guest.py::deserialize_stateless_input` | 26–38 | `deserializeStatelessInput` | open |
+| `forks/amsterdam/stateless_guest.py::run_stateless_guest` | 53–64 | `runStatelessGuest{,Checked}` | open |
 | `forks/amsterdam/execution_engine/new_payload.py::is_valid_block_hash` | 28 | `isValidBlockHash` | |
 | `forks/amsterdam/execution_engine/new_payload.py::is_valid_versioned_hashes` | 50 | `isValidVersionedHashes` | |
 | `forks/amsterdam/execution_engine/new_payload.py::execute_new_payload_request` | 75 | `executeNewPayloadRequest` | backend-generic |
@@ -112,6 +115,21 @@ The decoders and size constants of `execution_engine/requests.py` (engine wire f
 Corpus facts relevant here [V]: 27,822 records succeed, 1,199 fail with schema `0x1501`, 9 are the zero sentinel; the largest input is 8,396,936 bytes; one record has an empty header list; 28,975 of 29,030 records carry exactly one witness header.
 
 **EELS unit tests** at e1a316a0: `tests/json_loader/test_stateless_guest.py` (schema-id identity, round trips, known encoding and request root, empty witness, 65-byte key enforcement, oversize witness items, >256 headers rejected, empty/1-byte/wrong-revision/wrong-fork/legacy raw-SSZ inputs rejected, non-canonical shifted offsets → sentinel, decodable input reports schema on failure, public-key count too few/too many); `tests/json_loader/test_execution_requests.py` (wire round trip). Port each as a `core` case where it does not depend on monkeypatching.
+
+**Supplied output slice.** `STFSpec/Conformance/Stateless/OutputCallerProofs.lean`
+uses only the `STFSpec.Stateless` facade and public laws for complete field preservation,
+layout, size, injectivity and the zero sentinel. `OutputGuards.lean` and
+`scripts/StatelessOutputNativeTests.lean` compare every byte against an independently
+frozen 18-case matrix
+plus the sentinel. Cases cover both booleans; all 256 root-byte values across eight
+patterns; one-field root/bool/chain/schema changes; asymmetric and maximal uint64/uint16
+values; arbitrary schema IDs, including zero with nonzero other fields; and the pinned
+known encoding (`tests/json_loader/test_stateless_guest.py:546–552`). The strict
+`output_differential.py` consumer and normal/`-O` parser regression controls check complete
+native output against `output_literals.json` (18 frozen cases and one sentinel).
+These bounded serializer checks do not run a guest or establish EEST
+outcomes. No in-tree check replays the pinned EELS serializer; the frozen literals,
+including the known encoding above, are the source evidence.
 
 **`core` `#guard` cases.**
 - Typical: a minimal valid input (one parent header, empty block, empty witness DB except the root node) → `(root, true, 1, 0x1501)`; the expected root computed independently.
@@ -264,6 +282,18 @@ Widths: `blockNumber`, `gasLimit`, `gasUsed` are `Uint` in EELS but SSZ `uint64`
 
 ## 7. Contract and laws
 
+**Supplied output laws.** `STFSpec/Stateless/Output.lean` supplies the ordinary
+`serializeStatelessOutput_eq` complete byte-list equation, `serializeStatelessOutput_size`
+for every carrier value, and `serializeStatelessOutput_inj` (equal bytes iff equal records).
+The latter discharges only the serialization direction of L-output-codec.
+`zeroSentinel_fields` specifies all four fields and `serializeStatelessOutput_zeroSentinel`
+specifies all 43 zero bytes. The private concrete Q80 schema/value/support and child
+certificates consume `Ssz.serializable_iff`, `Ssz.encode_eq`, structural classifier laws
+and public Base laws; no generic schema instance or raw decoder is supplied. All
+UInt16 schema IDs serialize without guest-policy restrictions. The boolean and integer
+byte equations establish output layout, without asserting that a supplied root commits
+to any request.
+
 **Outcome mapping (D14).**
 
 | Row | Spec path | Output |
@@ -333,6 +363,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Fork-activation check: resolved, DECISIONS Q5 (follow the reference; explicit exclusion, CONTRACT §5).
 
 ## 10. Gaps
+
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
