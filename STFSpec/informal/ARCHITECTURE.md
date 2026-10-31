@@ -486,6 +486,17 @@ source handler ordering and actual frame ownership/allocation remain consumer wo
 
 **System-address transport options (F8).** A1 carries Fork's `SystemAddrs.systemAddress` through new `RunnerEnv` and immutable `FrameCtx` fields, with the explicit helper argument after Frame. It keeps fork policy separate from mutable state and header data while preserving the implemented three-field `VmConfig`. A2 would add one `VmWorld` field, requiring preservation by the specified VM transitions; arbitrary `StateT` actions cannot promise that preservation. A3 would add one immutable `BlockEnvironment` field, mixing fork policy with the header/chain abstraction and changing every environment constructor. B would retain a closed Core constant and broaden F8's literal exception, tying future address changes to Core. A `VmConfig` field would migrate its already implemented constructor/laws and Amsterdam values. A1 accepts two record-construction updates for immutable policy and modular fork changes; DECISIONS F8 owns the selection and authorization. Construction, child inheritance and both producer source refinements remain implementation obligations. The four-hash F20 record, request/handler/runner parameter lists and failure/effect order are unchanged. Revisit for changed source or consumer/context requirements.
 
+**Natural-reference inverse options (Q86).** (A) a callable positive-Nat helper
+and functional coefficient reference, including modulus one; (B) full existing
+canonical carrier with a public finite signed Euclidean graph, exactly done/step,
+and a private evaluator; (C) a restricted zero-or-unit call requiring a local proof.
+DECISIONS Q86 owns the selected option and exact inverse-only R9/§7[T] exception.
+EthField §5/§7 owns the ten authored declarations/two constructors and complete
+model; graph membership/uniqueness isolates consumers from private evaluation.
+The well-founded low-remainder proof introduces no runtime fuel/resource/time bound
+or D6/backend permission. Revisit for a changed pin, carrier or consumer boundary;
+primality, backend/replacement and C1–C4 gates remain separate.
+
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
 
 **Two-item field diagnostic options (Q52).** Name the path-list and leaf-value-list failures separately; reuse unrelated existing diagnostics; or introduce a generic shape catch-all. The source checks the first field at `incremental_mpt.py:946` before compact decoding and the second at `:951` only on a successfully decoded leaf flag. DECISIONS Q52 owns the disposition. The distinct names retain that order, Q48 and existing O4 projection; whole decoding and witness/guest adapters remain open.

@@ -112,12 +112,17 @@ only the specified carrier shape, with no `Exec` relation or guest/EEST claim.
 
 ## 4. Tests
 
-Private Field reference-power, canonical-sign and checked-byte-decoder clients and
-complete finite controls are imported by `STFSpec.Conformance`; their supplied
-semantics, source map and evidence boundaries are owned by [EthField
-§3/§4/§7](EthField.md#supplied-natural-reference-powers), [the canonical-sign
-slice](EthField.md#supplied-canonical-natural-reference-sign) and [the checked-decoder
-slice](EthField.md#supplied-checked-natural-reference-byte-decoder). The evidence-only
+Private Field reference-power, canonical-sign, checked-byte-decoder and
+graph-specified-inverse clients and complete finite controls are imported by
+`STFSpec.Conformance`; their supplied semantics, source map and evidence boundaries are
+owned by [EthField §3/§4/§7](EthField.md#supplied-natural-reference-powers), [the
+canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign), [the
+checked-decoder slice](EthField.md#supplied-checked-natural-reference-byte-decoder) and
+[the inverse slice](EthField.md#supplied-graph-specified-natural-reference-inverse). The
+inverse controls retain all 685 raw/p inputs under three metadata choices (2,055
+complete cases) and public-only graph/nonunit/gcd/range/reduction/metadata clients; their
+interpreted/native comparisons against original streams are out of tree. They supply no
+field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
 interpreted/native adapter used for EthField §4's comparisons is out of tree (not
 committed). Public powMod, field hierarchy and guest conformance remain open.
 

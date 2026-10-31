@@ -63,7 +63,7 @@ Every row is required before claiming that module's corresponding refinement, in
 |---|---|
 | EthBase | Q54’s functional Bytes order/export provider, public-only clients and source/compiled ordering cases are supplied by EthBase §3; actual consumer/replacement/C1–C4 costs remain open. Q51 table-support functional seam is supplied by EthBase §3; concrete NodeDB/adversarial-distribution cost evidence and fixed-byte representation gates remain open. Taylor's positive-denominator totality/two zero-value laws and bounded controls are supplied by EthBase §3/§7; DISC-002 practical feasibility remains open. Enumerate checked integer operations and failure sites; specify Envelope's role. |
 | EthHash | Prove padding/round/byte correspondence; fix RIPEMD capability policy (DISC-005); monad-parametric interfaces with `Id` specialisation and lift instances (D5; DECISIONS F1, F15). |
-| EthField | The reference-only carrier, basic residue arithmetic, natural powers, canonical sign and checked byte decoding, their observer laws/delegating instances, eight exact Nat modulus constants and private facade clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
+| EthField | The reference-only carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding and Q86 graph-specified inverse, their observer laws/delegating instances, eight exact Nat modulus constants and private facade clients/complete controls are supplied by EthField §3/§7; no executable aliases or whole-module result is supplied. Certify primality/tower irreducibility; qualify sqrt choices and encoding widths; finish public equations; complete the Montgomery backend's `sub`/`neg` and `W12` laws, observers and inversion (D6). |
 | EthCurve | Fix general-a versus a=0 formulas; prove exact SSWU/sign/once-clearing adapters; specify recovery-compatible domain and dependency rejection behaviour. |
 | EthPairing | Pin literal default Miller algorithms; establish concrete bilinearity/nondegeneracy before convention replacement; separate KZG completeness from binding. |
 | EthCodec | Q87 local count recovery and its complete ordinary constructor law are supplied (EthCodec §3/§7). Instantiate every schema; prove both inverse directions and strict acceptance; complete the raw decoder; establish actual rootable/encodable domains, progressive lengths and host-depth policy. |
@@ -237,7 +237,16 @@ rejection/range/zero/leading-zero/positional/metadata clients. Its 762 literal r
 distinct inputs), each checked under three metadata choices, are in tree; its finite
 interpreted/native comparisons of the same rows are out of tree. Original typed KZG/BLS
 results retain assertion-mode and exact-width correspondence premises; EthField §3/§4/§7
-owns these claims and limits. Remaining field operations, executable Montgomery/D6,
+owns these claims and limits. The separate Q86 inverse leaf supplies the ten authored
+public declarations and two finite graph constructors owned by EthField §5/§7, with
+ordinary totality, uniqueness, complete executable/model, range, zero and local gcd-unit
+proofs. Private facade-only clients and all 2,055 in-tree complete controls retain every
+composite nonunit result and arbitrary metadata; the per-mode interpreted/native
+observations of the same rows are out of tree. Full comparison against all four sealed
+and four fresh original 685-row streams uses the explicit reducing-input bridge
+(EthField §4; out of tree, not reproducible from this repository). The approved
+inverse-only low-remainder totality exception grants no runtime fuel, resource/time
+bound or backend permission. Remaining field operations, executable Montgomery/D6,
 concrete aliases, byte encoding/paired laws, field/tower/Mathlib and
 C1–C4/replacement/guest gates remain open. This does not change the dated §6 readiness
 assessment.
