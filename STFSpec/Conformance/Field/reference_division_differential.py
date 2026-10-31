@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Check complete reference division observations against the frozen source baseline.
 
-The baseline covers original py-ecc 8.0.0 optimized FQ / on 929 natural pairs,
-with both actual BN254/BLS12-381 base classes and 15 synthetic parameter classes.
+The baseline was frozen from original py-ecc 8.0.0 optimized FQ / on 929 natural
+pairs, with both actual BN254/BLS12-381 base classes and 15 synthetic parameter
+classes; those source runs and the generator are out of tree (not committed).
 The target expands each input over three metadata choices; source has no metadata.
 Spec guidance: STFSpec/informal/modules/EthField.md §§3–7.
 """
@@ -12,6 +13,8 @@ import hashlib
 import json
 
 DIRECTORY = Path(__file__).resolve().parent
+# Opaque fixed catalogue label shared with the producer; it is not a digest of any
+# committed file. INPUT_SHA and EXPECTED_SHA pin the committed inputs and baseline.
 CATALOG = "19119c6a0f1960ee3fae319250af7ba1e399ceec40afe14bb0b48df29a5be9d2"
 EXPECTED_SHA = "3b1a4b54c3a1c52be36488003d849e5496775cd203e95fcb3ff2c6e8b7ec023f"
 INPUT_SHA = "5f40afa6ec04d266d83c956768477d7183c88d21e3b5c8ca7ad7b0898cd8bfd8"
@@ -97,7 +100,8 @@ def main():
     parser.add_argument("--check-target", required=True, type=Path)
     args = parser.parse_args()
     count = check(args.check_target.read_bytes())
-    print(f"PASS complete reference division: {count} rows, all values/types/metadata/order/provenance")
+    print(f"PASS complete reference division: {count} rows, "
+          "all values/types/metadata/order/provenance")
 
 
 if __name__ == "__main__":

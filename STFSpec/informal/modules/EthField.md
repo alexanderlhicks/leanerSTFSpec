@@ -367,18 +367,21 @@ composite nonunits, with arbitrary unread `sqrtExp?`. No ordinary-caller proof,
 |---|---|---|---|
 | py-ecc 8.0.0 `py_ecc/fields/optimized_field_elements.py:141–142`, `FQ.__truediv__` → `__div__` :127–139, imported `py_ecc/utils.py:21–39`, constructor :57–68 and observer :190–191 | `PrimeFieldRef.div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)` | Multiply the canonical numerator by the complete Q86 inverse of the canonical denominator, reducing modulo p. Zero denominator gives zero; every nonunit retains the existing graph result. Pure, no mutation, query, rejection or failure. | `toNat_div`; asymmetric/wrap/zero/nonunit/Fermat/signed controls and all 929 frozen pairs; **discharged** |
 | Existing public `toNat_mul` composed with Q86 inverse | `PrimeFieldRef.toNat_div (a b) : (div a b).toNat = (a.toNat * (inv0 b).toNat) % p` | Ordinary complete observer equation; no extra premise, attribute or model | Generic public-only graph composition, range and zero/unit consequences; **discharged** |
-| §5 guided operator delegation | `Div (PrimeFieldRef p)` | `/` delegates directly to `PrimeFieldRef.div` | Named/notation full-result equality; **discharged** |
+| Operator delegation, mirroring §5’s executable `div` | `Div (PrimeFieldRef p)` | `/` delegates directly to `PrimeFieldRef.div` | Named/notation full-result equality; **discharged** |
 
-The source correspondence is bounded to freshly constructed natural-input FQ
-operands of the same class and modulus. It executes original optimized `/`, its
-distinct wrapper, actual imported inverse, result constructor and integer observer.
-The four sealed normal/optimized/replay streams cover two actual BN254/BLS12-381
-base classes and fifteen synthetic inherited parameter classes. Synthetic classes
-are not native scalar/secp256k1/P-256 FQ classes. Cross-class/mixed/signed/reflected
-operations, mutated objects, Fp2/curve/precompile execution and general Python host
-completion are outside the claim. Exact bignum, typed construction, source/runtime
-identity, compiler/core-runtime and successful host-resource premises remain explicit.
-Target metadata has no source analogue; source never executes those three metadata choices.
+The source correspondence is bounded to freshly constructed natural-input FQ operands of
+the same class and modulus. It executes original optimized `/`, its distinct wrapper,
+actual imported inverse, result constructor and integer observer. The four sealed
+normal/optimized/replay streams cover two actual BN254/BLS12-381 base classes and
+fifteen synthetic inherited parameter classes; those streams and the baseline's
+generator are out of tree (nothing for them is committed, so they cannot be reproduced
+from this repository), and the committed `reference_division_expected.jsonl` baseline is
+the in-tree record of their results. Synthetic classes are not native
+scalar/secp256k1/P-256 FQ classes. Cross-class/mixed/signed/reflected operations,
+mutated objects, Fp2/curve/precompile execution and general Python host completion are
+outside the claim. Exact bignum, typed construction, source/runtime identity,
+compiler/core-runtime and successful host-resource premises remain explicit. Target
+metadata has no source analogue; source never executes those three metadata choices.
 
 ## 4. Tests
 
@@ -577,23 +580,26 @@ Clients use public provider laws, not carrier projections or private inverse wor
 choices (54 controls), including p4 zero divisors, p9 nonunits/Fermat traps, p5
 signed coefficients and asymmetric p17 cases.
 
-`reference_division_inputs.tsv` retains exactly the 929 frozen input-only natural
-pairs. `ReferenceDivisionNativeTests` loads those inputs at runtime and emits all
-2,787 expanded rows per interpreted/native mode: ID/context/p/raw numerator and
-denominator, metadata, both canonical operands, full inverse, named and `/` results
-and range. The separate `reference_division_expected.jsonl` baseline retains all
-929 actual original results; the strict differential reader expands metadata only
-on the target side and checks every complete value, exact recursive type, row order,
-count, catalogue identity and framing. Normal and optimized CLI controls reject
-Bool-as-Nat, floats/nonfinite values, duplicate keys, wrong/missing/extra fields,
-rows, metadata, values and provenance. No expected result is loaded by the Lean producer.
-An independent complete-to-zero Bezout model with gcd-dependent coefficient selection
-checks every source inverse, including all nonunits, separately from production code.
-All four sealed 929-row original streams agree through explicit raw-to-canonical
-construction. Fresh trust-zero/warnings-fatal provider/facade/client compilation,
-ordinary axioms/declaration checks and generated C/object/archive/link/native
-observations provide separate evidence. These are finite semantic controls, with
-no host-policy, timing/C1–C4, backend, field/curve/precompile or guest/EEST result.
+`reference_division_inputs.tsv` retains exactly the 929 frozen input-only natural pairs.
+`ReferenceDivisionNativeTests` loads those inputs at runtime and emits all 2,787
+expanded rows per interpreted/native mode: ID/context/p/raw numerator and denominator,
+metadata, both canonical operands, full inverse, named and `/` results and range. The
+separate `reference_division_expected.jsonl` baseline retains all 929 actual original
+results; the strict differential reader expands metadata only on the target side and
+checks every complete value, exact recursive type, row order, count, the fixed catalogue
+label and framing. Normal and optimized CLI controls reject Bool-as-Nat,
+floats/nonfinite values, duplicate keys, wrong/missing/extra fields, rows, metadata,
+values and provenance. No expected result is loaded by the Lean producer. The following
+evidence is out of tree: nothing for it is committed, so it cannot be reproduced from
+this repository. An independent complete-to-zero Bezout model with gcd-dependent
+coefficient selection checks every source inverse, including all nonunits, separately
+from production code. All four sealed 929-row original streams agree through explicit
+raw-to-canonical construction. Fresh trust-zero/warnings-fatal provider/facade/client
+compilation and generated C/object/archive/link/native observations provide separate
+evidence. In tree, the evidence is the frozen baseline, the native and interpreted
+differentials, the parser controls, the declaration check, the 54 guards and the
+public-law clients. These are finite semantic controls, with no host-policy,
+timing/C1–C4, backend, field/curve/precompile or guest/EEST result.
 
 - **EEST fixture areas** (indirect: fields are exercised only through precompiles and signatures):
   `byzantium/eip196_ec_add_mul`, `byzantium/eip197_ec_pairing`, `prague/eip2537_bls_12_381_precompiles`,

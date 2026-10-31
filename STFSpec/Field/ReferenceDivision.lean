@@ -23,8 +23,8 @@ def div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)
 
 /-- Division observes the complete inverse result multiplied by the numerator and reduced. -/
 theorem toNat_div (a b : PrimeFieldRef p) :
-    (div a b).toNat = (a.toNat * (inv0 b).toNat) % p := by
-  exact toNat_mul a (inv0 b)
+    (div a b).toNat = (a.toNat * (inv0 b).toNat) % p :=
+  toNat_mul a (inv0 b)
 
 /-- Division notation delegates directly to the named reference operation. -/
 instance : Div (PrimeFieldRef p) where

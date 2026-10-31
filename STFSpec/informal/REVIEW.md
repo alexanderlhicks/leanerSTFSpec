@@ -262,13 +262,14 @@ bound or backend permission. The separate reference-division leaf supplies exact
 div/toNat_div/direct Div, composing the existing multiplication and Q86 inverse on every
 canonical same-p pair at every p>1. Private facade clients, 54 literal controls and
 complete 2,787-row interpreted/native observations preserve all zero/nonunit results and
-arbitrary unread metadata; all four sealed 929-pair original streams and independent
-complete Bezout controls supply bounded correspondence (EthField §3/§4/§7). The runtime
-producer reads input-only rows; the strict full-value comparator and malformed CLI
-controls are separate. No inverse/model/policy or ordinary-caller premise changes.
-Remaining field operations, executable Montgomery/D6, concrete aliases, byte
-encoding/paired laws, field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
-This does not change the dated §6 readiness assessment.
+arbitrary unread metadata; the committed 929-pair baseline supplies bounded
+correspondence, while the four sealed original streams and independent complete Bezout
+controls behind it are out of tree (EthField §3/§4/§7). The runtime producer reads
+input-only rows; the strict full-value comparator and malformed CLI controls are
+separate. No inverse/model/policy or ordinary-caller premise changes. Remaining field
+operations, executable Montgomery/D6, concrete aliases, byte encoding/paired laws,
+field/tower/Mathlib and C1–C4/replacement/guest gates remain open. This does not change
+the dated §6 readiness assessment.
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
 

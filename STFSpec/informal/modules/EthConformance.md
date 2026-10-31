@@ -120,14 +120,16 @@ canonical-sign slice](EthField.md#supplied-canonical-natural-reference-sign), [t
 checked-decoder slice](EthField.md#supplied-checked-natural-reference-byte-decoder) and
 [the inverse slice](EthField.md#supplied-graph-specified-natural-reference-inverse). The
 inverse controls retain all 685 raw/p inputs under three metadata choices (2,055
-complete cases) and public-only graph/nonunit/gcd/range/reduction/metadata clients; their
-interpreted/native comparisons against original streams are out of tree. The separate
-reference-division clients, 54 literal guards, input-only runtime producer, complete
-2,787-row interpreted/native checks and strict normal/optimized malformed CLI controls
-are owned by [the division slice](EthField.md#supplied-natural-reference-division). They
-supply no field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
-interpreted/native adapter used for EthField §4's comparisons is out of tree (not
-committed). Public powMod, field hierarchy and guest conformance remain open.
+complete cases) and public-only graph/nonunit/gcd/range/reduction/metadata clients;
+their interpreted/native comparisons against original streams are out of tree. The
+separate reference-division clients, 54 literal guards, input-only runtime producer,
+complete 2,787-row interpreted/native checks and strict normal/optimized malformed CLI
+controls are owned by [the division
+slice](EthField.md#supplied-natural-reference-division). These Field controls supply no
+field/backend/cost/curve/precompile/guest or EEST result. The evidence-only
+interpreted/native adapter used for the decoder and inverse comparisons in EthField §4
+is out of tree (not committed); the division producer is committed. Public powMod, field
+hierarchy and guest conformance remain open.
 
 - **Fixture areas.** All of `STFSpec/informal/eest-fixture-index.txt`: `blockchain_tests/**` (R1, R3) and `blockchain_tests_engine/**` (R4), both for `for_amsterdam` and `for_bpo2toamsterdamattime15k`.
 - **EELS unit tests** to port as `core` cases: `tests/json_loader/test_stateless_guest.py` (host serializer round trip, `build_stateless_input` omitting keys of rejected transactions: ids `invalid-signature`, `wrong-chain-id`; legacy transaction RLP preserved through the payload); `tests/json_loader/test_execution_requests.py` (wire-form round trip).

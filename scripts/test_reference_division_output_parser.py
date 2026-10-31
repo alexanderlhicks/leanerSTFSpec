@@ -33,7 +33,8 @@ def main():
         cases[label] = (encode(rows), False)
     for field in ("p", "raw_a", "raw_b", "metadata", "canonical_a", "canonical_b",
                   "inverse", "named", "operator"):
-        mutation("bool-" + field, lambda rows, field=field: rows[1].__setitem__(field, False if rows[1][field] == 0 else True))
+        mutation("bool-" + field, lambda rows, field=field:
+                 rows[1].__setitem__(field, False if rows[1][field] == 0 else True))
     mutation("metadata-bool-zero", lambda r: r[2].__setitem__("metadata", False))
     mutation("float", lambda r: r[1].__setitem__("named", 0.0))
     mutation("negative-natural", lambda r: r[1].__setitem__("raw_a", -1))
@@ -82,7 +83,8 @@ def main():
             prefix.with_suffix(".stderr").write_bytes(stderr)
             reader.require((proc.returncode == 0) is success, label + ": wrong CLI outcome")
             reader.require((not stderr and stdout.startswith(b"PASS")) if success else
-                           ((b"ValueError" in stderr or b"JSONDecodeError" in stderr) and not stdout), label + ": wrong rejection")
+                           ((b"ValueError" in stderr or b"JSONDecodeError" in stderr)
+                            and not stdout), label + ": wrong rejection")
             results.append(dict(label=label, optimized=optimized, pid=proc.pid, argv=cmd,
                                 exit=proc.returncode, expected_success=success))
     (out / "results.json").write_text(json.dumps(dict(status="PASS", cases=len(cases),

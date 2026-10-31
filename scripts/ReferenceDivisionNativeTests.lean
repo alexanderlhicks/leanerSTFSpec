@@ -50,6 +50,8 @@ def main (args : List String) : IO UInt32 := do
     if path.isEmpty then throw (IO.userError "expected at most one input path")
     let lines := (← IO.FS.readFile path).splitOn "\n"
     let rows := lines.filter (fun line ↦ !line.isEmpty)
+    -- Opaque fixed catalogue label shared with the differential; not a digest of any
+    -- committed file. The differential pins the committed inputs and baseline by SHA-256.
     emit <| Json.mkObj [("schema", toJson "reference-division-v1"),
       ("catalog", toJson "19119c6a0f1960ee3fae319250af7ba1e399ceec40afe14bb0b48df29a5be9d2"),
       ("count", toJson (rows.length * 3))]
