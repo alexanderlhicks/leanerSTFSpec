@@ -1,6 +1,6 @@
 # `EthFork`: the Amsterdam composition
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8.*
 
 Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or evaluated) at the pin; **[I]** means an inference.
@@ -214,7 +214,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
 - **`core` `#guard` cases.**
   - R-F2 has private public-facade exact type/complete record controls, all 160 actual address bytes and each independent budget (§3); the out-of-tree interpreted full-table comparison retains field order. Consumer controls remain separate.
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. The separate state amount observations remain to be implemented and checked.
-  - R-F2 byte contents are supplied above. Both config.system/config.runnerEnv projections (F8) remain future checks. Actual context/child/producer controls remain with Runner/Instructions/Core.
+  - R-F2 byte contents are supplied above. Both config.system/config.runnerEnv projections (F8) remain future checks. Actual context/child/producer controls remain future work at Runner/Instructions; the local pure helper controls are supplied by EthVmCore §3.
   - `precompiles.addresses` equals the 18-element set.
   - `maxRlpBlockSize = 8 388 608` (supplied: `AmsterdamBlockParamsGuards.lean`).
   - Each discharge lemma of §7 as a `decide`-free `#guard` on the concrete numbers.

@@ -300,6 +300,9 @@ import STFSpec.Conformance.Fork.AmsterdamSystemAddrsGuards
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
 import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
 
+import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
+import STFSpec.Conformance.Vm.Core.TransferLogGuards
+
 /-!
 # STFSpec.Conformance
 

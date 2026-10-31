@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary supplied. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution.
@@ -299,7 +299,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **F8 immutable address transport:** `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

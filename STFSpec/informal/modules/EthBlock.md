@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
@@ -397,13 +397,13 @@ ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
 | §5; EELS `fork.py:117–143` and `requests.py:49–51` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
 
 EthFork §3 supplies the concrete R-F2 value and its full-field controls. Actual
-system-call/request consumers, configuration coherence and the remaining
-`BlockConfig` are unimplemented. The raw record alone
-does not implement routing. F8 specifies Fork's `systemAddrs.systemAddress` through
-`BlockConfig.runnerEnv` to `RunnerEnv.systemAddress`, copied into immutable
-`FrameCtx.systemAddress` and inherited by children; both producers pass it explicitly
-to `emitTransferLog` after Frame. Actual transport and source
-coherence remain implementation obligations under that selected guidance.
+system-call/request consumers, configuration coherence and the remaining `BlockConfig`
+are unimplemented. The raw record alone does not implement routing. F8 specifies Fork's
+`systemAddrs.systemAddress` through `BlockConfig.runnerEnv` to
+`RunnerEnv.systemAddress`, copied into immutable `FrameCtx.systemAddress` and inherited
+by children; both producers pass it explicitly to `emitTransferLog` after Frame (local
+helper supplied: EthVmCore §3/§7). Actual transport and source coherence remain
+implementation obligations under that selected guidance.
 
 ### Implemented fixed deposit extraction
 

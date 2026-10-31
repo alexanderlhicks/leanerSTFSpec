@@ -650,21 +650,28 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
-- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert
-  carrier, private complete-payload construction/elimination clients and guards.
-  Actual exceptional gas consumption, revert settlement, producers/error priority,
-  frame/runner result handling, fault/outcome adapters and ChildSettled/F11 remain
-  open with their existing owners. No gas, resource or VM/guest readiness result follows.
+- **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
+  private complete-payload construction/elimination clients and guards. Actual
+  exceptional gas consumption, revert settlement, producers/error priority, frame/runner
+  result handling, fault/outcome adapters and ChildSettled/F11 remain open with their
+  existing owners. No gas, resource or VM/guest readiness result follows.
 
 - **Raw mutable Frame data is supplied:** §3/§5/§7 own exactly the two ExtTreeSet
   aliases and complete nine-field raw Frame, with private generic complete-field
   construction/reconstruction/update/set clients and nontrivial full-value controls.
   Actual creation and immutable FrameCtx/assembled Evm, context/code agreement,
-  StepResult/control and parent execution integration, F8 address transport/emitter,
+  StepResult/control and parent execution integration, F8 address transport and actual producer emission,
   handler effects, gas/fuel/resource and VM/guest/EEST/readiness gates remain open.
   No additional WF, default, public law or whole source-Evm equivalence is supplied.
 
-- **F8 system-address context and emitter:** the supplied-address helper, immutable `FrameCtx.systemAddress`, actual frame constructors and both producer refinements remain unimplemented. Prove the zero identity and complete chronological nonzero equation in §7 for arbitrary address/topic; intended Fork→Block→Runner construction and child inheritance are owned by their guides. No Core literal is supplied by this guidance.
+- **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
+  operation and exactly two ordinary complete-Frame laws, private public-facade clients
+  (including the exact padding bridge) and complete controls. Immutable
+  `FrameCtx.systemAddress`, actual frame constructors, both producer refinements,
+  transfer/static/gas ordering, intended Fork→Block→Runner construction and child
+  inheritance remain unimplemented. F20 acquisition/lifetime, generic D5 coupling, F11
+  settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain open. No Core literal,
+  global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
@@ -804,7 +811,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
-- **F8 immutable address transport:** `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; `RunnerEnv.systemAddress`, createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
