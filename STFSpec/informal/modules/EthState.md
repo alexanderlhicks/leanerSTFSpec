@@ -212,7 +212,7 @@ mathematical predicate; no new set provider, class, instance or dependency is us
 | Source/support at the pin | Lean declaration and domain | Value/effects and ordered failures | Law and deterministic validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:75,851`; BAL consumption `block_access_lists.py:847–849` | `BlockState.accountReadSet {m : Type → Type} (b : BlockState m) : Address → Prop`, class-free | Exactly membership in b.accountReads on every raw block; no effects or failure | **Supplied:** `BlockState.accountReadSet_iff`; private facade clients use both directions, with whole-field independence; `ReadSetsGuards.lean` compares complete independent membership vectors (§4). |
-| `src/ethereum/forks/amsterdam/state_tracker.py:79,850`; BAL consumption `block_access_lists.py:843–845` | `BlockState.storageReadSet {m : Type → Type} (b : BlockState m) : (Address × Bytes32) → Prop`, class-free | Exactly whole-pair membership in b.storageReads, including both complete keys; no effects or failure | **Supplied:** `BlockState.storageReadSet_iff`; private arbitrary-key and non-Monad clients plus complete interpreted/native controls (§4). |
+| `src/ethereum/forks/amsterdam/state_tracker.py:79,850`; BAL consumption `block_access_lists.py:843–845` | `BlockState.storageReadSet {m : Type → Type} (b : BlockState m) : (Address × Bytes32) → Prop`, class-free | Exactly whole-pair membership in b.storageReads, including both complete keys; no effects or failure | **Supplied:** `BlockState.storageReadSet_iff`; private arbitrary-key and non-Monad clients plus complete interpreted `#guard` controls (§4). |
 
 These are static field projections, not incorporation or BAL construction. Original
 source correspondence assumes complete typed key interpretation. Static source reading
@@ -443,16 +443,17 @@ resource or C1–C4 result.
   exact class-free types, both directions of each public iff and a contravariant
   type constructor without Monad. Public record updates and only the iff laws prove
   each view independent of every other field. `ReadSetsGuards.lean` compares 176
-  complete actual/independent expected vectors with case/query IDs and every queried
+  complete actual/independent expected vectors with query IDs and every queried
   20/32-byte key: empty/nonempty, duplicates/reconstruction, insertion permutations,
-  same address/different slot and same slot/different address, low/high/mixed changes
-  at every byte, leading zeros, each irrelevant field, None/Some 0/huge offsets and
-  retained parents/siblings. Canonical dictionaries exercise distinct keys sharing
-  low hash bits, without a new Hashable instance or a distribution claim. Runtime
-  controls transport existing Std membership decidability through the public iff
-  laws, adding no decidability API. Complete interpreted/native output is finite
-  membership evidence; it implies no raw-set equality, Python iteration/allocation
-  identity, tracker operation, BAL sorting or cost result.
+  same address/different slot and same slot/different address, low/high/mixed
+  changes at every byte, leading zeros, each irrelevant field, None/Some 0/huge
+  offsets and retained parents/siblings. Canonical dictionaries exercise distinct
+  keys sharing low hash bits, without a new Hashable instance or a distribution
+  claim. Runtime controls transport existing Std membership decidability through the
+  public iff laws, adding no decidability API. The interpreted `#guard` output (no
+  native runner is committed for this slice) is finite membership evidence; it
+  implies no raw-set equality, Python iteration/allocation identity, tracker
+  operation, BAL sorting or cost result.
 - **Implemented TxObs controls:** private generic clients use whole raw field equality,
   without inferring raw HashSet equality from membership. Complete guards observe
   every 20/32-byte key, every byte position, high bits, both pair components

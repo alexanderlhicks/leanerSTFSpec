@@ -75,12 +75,14 @@ private theorem storageIndependent_consts (b : BlockState m) (x : HashConsts)
     ({ b with consts := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
-private theorem accountIndependent_accountWrites (b : BlockState m) (x : Std.ExtTreeMap Address (Option Account))
+private theorem accountIndependent_accountWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Address (Option Account))
     (key : Address) :
     ({ b with accountWrites := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem storageIndependent_accountWrites (b : BlockState m) (x : Std.ExtTreeMap Address (Option Account))
+private theorem storageIndependent_accountWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Address (Option Account))
     (key : Address × Bytes32) :
     ({ b with accountWrites := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
@@ -95,42 +97,50 @@ private theorem storageIndependent_accountOrder (b : BlockState m) (x : WriteOrd
     ({ b with accountOrder := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
-private theorem accountIndependent_storageWrites (b : BlockState m) (x : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256))
+private theorem accountIndependent_storageWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256))
     (key : Address) :
     ({ b with storageWrites := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem storageIndependent_storageWrites (b : BlockState m) (x : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256))
+private theorem storageIndependent_storageWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256))
     (key : Address × Bytes32) :
     ({ b with storageWrites := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
 private theorem accountIndependent_storageAddressOrder (b : BlockState m) (x : WriteOrder Address)
     (key : Address) :
-    ({ b with storageAddressOrder := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
+    ({ b with storageAddressOrder := x } : BlockState m).accountReadSet key ↔
+      b.accountReadSet key :=
   accountField _ b rfl key
 
 private theorem storageIndependent_storageAddressOrder (b : BlockState m) (x : WriteOrder Address)
     (key : Address × Bytes32) :
-    ({ b with storageAddressOrder := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
+    ({ b with storageAddressOrder := x } : BlockState m).storageReadSet key ↔
+      b.storageReadSet key :=
   storageField _ b rfl key
 
-private theorem accountIndependent_storageSlotOrder (b : BlockState m) (x : Std.ExtTreeMap Address (WriteOrder Bytes32))
+private theorem accountIndependent_storageSlotOrder (b : BlockState m)
+    (x : Std.ExtTreeMap Address (WriteOrder Bytes32))
     (key : Address) :
     ({ b with storageSlotOrder := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem storageIndependent_storageSlotOrder (b : BlockState m) (x : Std.ExtTreeMap Address (WriteOrder Bytes32))
+private theorem storageIndependent_storageSlotOrder (b : BlockState m)
+    (x : Std.ExtTreeMap Address (WriteOrder Bytes32))
     (key : Address × Bytes32) :
     ({ b with storageSlotOrder := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
-private theorem accountIndependent_codeWrites (b : BlockState m) (x : Std.ExtTreeMap Hash32 ByteArray)
+private theorem accountIndependent_codeWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Hash32 ByteArray)
     (key : Address) :
     ({ b with codeWrites := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem storageIndependent_codeWrites (b : BlockState m) (x : Std.ExtTreeMap Hash32 ByteArray)
+private theorem storageIndependent_codeWrites (b : BlockState m)
+    (x : Std.ExtTreeMap Hash32 ByteArray)
     (key : Address × Bytes32) :
     ({ b with codeWrites := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
@@ -150,29 +160,34 @@ private theorem storageIndependent_accountReads (b : BlockState m) (x : Std.Hash
     ({ b with accountReads := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
-private theorem accountIndependent_storageReads (b : BlockState m) (x : Std.HashSet (Address × Bytes32))
+private theorem accountIndependent_storageReads (b : BlockState m)
+    (x : Std.HashSet (Address × Bytes32))
     (key : Address) :
     ({ b with storageReads := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem accountIndependent_codeReads (b : BlockState m) (x : Std.HashSet (Address × Hash32))
+private theorem accountIndependent_codeReads (b : BlockState m)
+    (x : Std.HashSet (Address × Hash32))
     (key : Address) :
     ({ b with codeReads := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
-private theorem storageIndependent_codeReads (b : BlockState m) (x : Std.HashSet (Address × Hash32))
+private theorem storageIndependent_codeReads (b : BlockState m)
+    (x : Std.HashSet (Address × Hash32))
     (key : Address × Bytes32) :
     ({ b with codeReads := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key
 
 private theorem accountIndependent_oldestAncestorOffset (b : BlockState m) (x : Option Nat)
     (key : Address) :
-    ({ b with oldestAncestorOffset := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
+    ({ b with oldestAncestorOffset := x } : BlockState m).accountReadSet key ↔
+      b.accountReadSet key :=
   accountField _ b rfl key
 
 private theorem storageIndependent_oldestAncestorOffset (b : BlockState m) (x : Option Nat)
     (key : Address × Bytes32) :
-    ({ b with oldestAncestorOffset := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
+    ({ b with oldestAncestorOffset := x } : BlockState m).storageReadSet key ↔
+      b.storageReadSet key :=
   storageField _ b rfl key
 
 end STFSpec.Conformance.State.ReadSetsCallerProofs

@@ -81,31 +81,33 @@ private def ar : List Nat := [0, 3, 16, 2 ^ 159]
 private def sr : List (Nat × Nat) := [(3, 5), (3, 7), (7, 5), (0, 2 ^ 255)]
 private def parent : BlockState Id := supplied ar sr
 
--- Each irrelevant field changes separately. Malformed order indexes, tombstones,
--- zero writes, empty inner maps and incoherent constants impose no view premise.
+-- Each irrelevant field changes separately, using probed keys (address 7, pair (7, 7))
+-- outside the parent read sets, so a view that leaked the field would differ. Malformed
+-- order indexes, tombstones, zero writes, empty inner maps and incoherent constants
+-- impose no view premise.
 private def rawSlots : WriteOrder Bytes32 :=
-  ⟨17, ∅, ((∅ : Std.ExtTreeMap Nat Bytes32).insert 3 (slot 5)).insert 9 (slot 5)⟩
+  ⟨17, ∅, ((∅ : Std.ExtTreeMap Nat Bytes32).insert 3 (slot 7)).insert 9 (slot 7)⟩
 
 private def variants : List (String × BlockState Id) :=
   [("provider", { parent with preState := provider (2 ^ 255 + 99) }),
     ("constants", { parent with consts := ⟨digest 9, digest 8, digest 7, digest 6⟩ }),
     ("accountWrites", { parent with accountWrites :=
-      (∅ : Std.ExtTreeMap Address (Option Account)).insert (address 0) none }),
+      (∅ : Std.ExtTreeMap Address (Option Account)).insert (address 7) none }),
     ("accountOrder", { parent with accountOrder :=
-      ⟨2 ^ 1024, ∅, (∅ : Std.ExtTreeMap Nat Address).insert 7 (address 99)⟩ }),
+      ⟨2 ^ 1024, ∅, (∅ : Std.ExtTreeMap Nat Address).insert 7 (address 7)⟩ }),
     ("storageWrites", { parent with storageWrites :=
-      ((∅ : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)).insert (address 3)
-        ((∅ : Std.ExtTreeMap Bytes32 U256).insert (slot 5) U256.zero)).insert (address 7) ∅ }),
+      ((∅ : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)).insert (address 7)
+        ((∅ : Std.ExtTreeMap Bytes32 U256).insert (slot 7) U256.zero)).insert (address 1) ∅ }),
     ("storageAddressOrder", { parent with storageAddressOrder :=
-      ⟨0, ∅, (∅ : Std.ExtTreeMap Nat Address).insert (2 ^ 300) (address 3)⟩ }),
+      ⟨0, ∅, (∅ : Std.ExtTreeMap Nat Address).insert (2 ^ 300) (address 7)⟩ }),
     ("storageSlotOrder", { parent with storageSlotOrder :=
       (∅ : Std.ExtTreeMap Address (WriteOrder Bytes32)).insert (address 7) rawSlots }),
     ("codeWrites", { parent with codeWrites :=
       (∅ : Std.ExtTreeMap Hash32 ByteArray).insert (digest 99) (ByteArray.mk #[0, 255, 0]) }),
     ("storageClears", { parent with storageClears :=
-      (∅ : Std.ExtTreeSet Address).insert (address 3) }),
+      (∅ : Std.ExtTreeSet Address).insert (address 7) }),
     ("codeReads", { parent with codeReads :=
-      (∅ : Std.HashSet (Address × Hash32)).insert (address 3, digest 5) }),
+      (∅ : Std.HashSet (Address × Hash32)).insert (address 7, digest 7) }),
     ("offset-zero", { parent with oldestAncestorOffset := some 0 }),
     ("offset-huge", { parent with oldestAncestorOffset := some (2 ^ 1024 + 17) })]
 
