@@ -11,6 +11,7 @@ import STFSpec.State.PreState
 import STFSpec.State.StateError
 import STFSpec.State.Structural
 import STFSpec.State.ModelsLookups
+import STFSpec.State.WitnessAncestors
 
 /-!
 # STFSpec.State
@@ -24,7 +25,7 @@ Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.t
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values and the nominal
 StateError carrier are supplied, together with bounded structural preservation and
-supplied-record success-only `ModelsLookups`.
+supplied-record success-only `ModelsLookups` and opaque witness ancestor selection.
 Lookup providers, model mutation, state overlays, tracker effects and lifecycle laws
 remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.

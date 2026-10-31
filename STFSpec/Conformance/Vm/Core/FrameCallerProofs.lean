@@ -8,8 +8,10 @@ import STFSpec.Vm.Core
 # Raw mutable frame and persistent-set clients
 
 Library `EthConformance`. Private generic clients use public record reduction,
-Base ordering laws and Std set laws. Every field replacement retains all eight
-unrelated fields; no global frame invariant or new public law is required.
+Base ordering laws and Std set laws. The four set/order clients are boundary
+witnesses: they restate those provider laws at the `AddrSet`/`SlotSet` aliases
+without involving `Frame`. Every field replacement retains all eight unrelated
+fields; no global frame invariant or new public law is required.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/
 

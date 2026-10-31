@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft. Date: 2026-10-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference.
@@ -321,7 +321,7 @@ theorem step_add_oog (h₁ : …) (h₂ : f.stack.toList = a :: b :: s) (h₃ : 
 
 Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v))` with `e = expandBy`, and gas `3 + cost`; storage ops state the read/write through `getStorage`/`setStorage` laws and the exact SSTORE cost/refund/state-gas table of §2.4 as a function `sstoreCharges original current new cold`. CALL/CREATE lemmas state the request fields and the parent frame at suspension (the exact meter after withholding), and separately the resume equations. The lemma set must also give **exception precedence** (R-GEN-2) as in powdr's `StepDeterminism.lean`.
 
-**Child context policy** [C] (F8): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
+**Child context policy** [C] (F8; local pure helper supplied by EthVmCore §3/§7): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
