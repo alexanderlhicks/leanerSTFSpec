@@ -1,7 +1,7 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, Q81, Q87, F13, F17, O2.*
+*Status: informal specification, draft. Date: 2026-11-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, Q81, Q87, Q88, F13, F17, O2.*
 
 Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
@@ -3067,7 +3067,24 @@ payload typing and raw pack controls alone discharge none of those obligations.
   Serializable, WT, WF and a final-size bound alone do not recover fixed-zero
   list counts. The local additional premise is supplied, but no inverse theorem
   or decoder implementation/completion is supplied (§10).
-- [C] **Prospective canonicality:** `decode t b = .ok v` must imply `WellTyped t v` and provide `h : Ssz.Serializable t v` with `Ssz.encode t v h = b`. This is the future typed form of EELS's re-encode check (`ssz.py:144`); no CountRecoverable conclusion is added. The selected Q87 inverse would establish decoding only for CountRecoverable supported values; neither it nor re-encoding supplies a whole encoder-image iff or successful-domain coverage theorem (S3; §10).
+- [C] **Prospective canonicality:** `decode t b = .ok v` must imply `WellTyped t v` and provide `h : Ssz.Serializable t v` with `Ssz.encode t v h = b`. This is the future typed form of EELS's re-encode check (`ssz.py:144`). Q87 added no CountRecoverable conclusion; Q88 (next item) does, and this canonicality requirement follows from its law because Serializable implies WT. The selected Q87 inverse alone would establish decoding only for CountRecoverable supported values (S3; §10).
+- [C] **Prospective success domain and diagnostics (Q88):** the exact future law is guidance only:
+
+  ```lean
+  theorem Ssz.decode_eq_ok_iff (t : SszType) (b : ByteArray) (v : SszValue) :
+      Ssz.decode t b = .ok v ↔
+        ∃ h : Ssz.Serializable t v, Ssz.CountRecoverable t v ∧ Ssz.encode t v h = b
+  ```
+
+  Every other input returns `.error e` for some `e : SszError`. Which tag a rejected
+  input returns, and the order of the guards, are not part of the contract: every
+  decode failure on the guest path is O1 (CONTRACT §4), so no diagnostic is
+  observable in the guest output. On a schema with no fixed-zero-width list element
+  (the guest's `StatelessInput` among them), CountRecoverable is expected to hold for
+  every Serializable value, so the success set is the whole canonical encoder image.
+  This is unproved; the guest-schema decoder's proof must discharge it. Elsewhere
+  this law rejects the count-ambiguous fixed-zero-width list encodings, as the
+  pinned dependency does.
 - [T] Q79 supplies the raw root operation, ordinary constructor law and actual-value termination on C. Actual-source refinement and O2 freedom still require every successfully decoded guest request to preserve its schema/values and inhabit that domain, with local class/host premises; S5 alone does not establish this.
 - [C] Progressive contents-tree refinement is supplied by Q75 above. Q76 supplies the local length mix-in. Q77 supplies the local activity mix-in; Q79 supplies the raw enclosing root law; actual schema/source refinement remains separate. Q74 owns the ordinary physical helper.
 **Generic schema forward laws (Q81), discharged.** The two complete ordinary
@@ -3113,7 +3130,7 @@ source domain, and the guest-schema roots use the specified Merkle layout.
 and first-consuming-handler premises, and a resolved policy for reference
 host-resource exceptions.
 
-**Argument.** RLP prefix cases determine one extent; recurse only inside that extent and require full consumption. The shortest-length and integer checks give canonicality and prefix-freeness. Typed decoders then check constructor shape, arity and integer ranges. SSZ induction over types establishes fixed-size layouts and variable-offset boundaries; the strict decoder's accepted bytes must re-encode identically, while the prospective inverse additionally uses actual CountRecoverable and Serializable premises (Q87), without a whole encoder-image equivalence. The schema adapter transfers both results to the caller's type. Merkleization induction replaces padded subtrees with the zero-hash recurrence; progressive zero hashes are defined for every required depth, not just the cached prefix. Binding descends through equal child preimages; unequal preimages with equal digests expose a collision. Exact field interpretation and mixed-in lengths distinguish zero padding.
+**Argument.** RLP prefix cases determine one extent; recurse only inside that extent and require full consumption. The shortest-length and integer checks give canonicality and prefix-freeness. Typed decoders then check constructor shape, arity and integer ranges. SSZ induction over types establishes fixed-size layouts and variable-offset boundaries; the strict decoder's accepted bytes must re-encode identically, while the prospective inverse additionally uses actual CountRecoverable and Serializable premises (Q87), and Q88 fixes the success domain as exactly the encodings of Serializable, CountRecoverable values, with unordered rejection tags. The schema adapter transfers both results to the caller's type. Merkleization induction replaces padded subtrees with the zero-hash recurrence; progressive zero hashes are defined for every required depth, not just the cached prefix. Binding descends through equal child preimages; unequal preimages with equal digests expose a collision. Exact field interpretation and mixed-in lengths distinguish zero padding.
 
 **Open obligations.** Rootability of every accepted guest input, unbounded progressive-length domains, RLP encodability of schema-produced items and all schema instances need proof. These domains must not become new acceptance limits without an explicit protocol decision. Generic inactive-field binding is not implied by the guest-schema result.
 
@@ -3161,6 +3178,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q81** owns the generic forward metadata/support disposition; §5/§7 owns its
   supplied class, two wrappers and two ordinary equations. Actual instances,
   certification and source/decoder/guest bridges remain open in §10.
+
+- **Q88** owns the decoder's success domain and diagnostics: exactly the canonical
+  encodings of CountRecoverable values succeed, and rejection returns some `SszError`
+  with no tag assignment or order in the contract. The first implementation decodes the
+  guest schema (EthStateless `decodeInput`); the generic decoder completion follows the
+  same contract. B (empty representatives) and C (zero-limit extension) are not selected.
 
 - **Q80** owns the forward serialization disposition; §5/§7 owns exactly its
   four-declaration contract. §3/§4 records its supplied code/proofs/controls;
@@ -3219,13 +3242,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the predicate and complete ordinary iff, structural actual-child recursion,
   45 raw tag pairs/eight semantic groups and ten symbolic public-law clients are
   supplied (§3/§4/§7). The future inverse domain is resolved as Serializable plus
-  CountRecoverable; no decoder, inverse theorem, success-domain characterization,
-  completion or diagnostic/failure-order law is supplied. Adopted bounded source
-  evidence retains actual routes, historical source-root metadata and nominal
-  internal-observer limits (§3). Actual source/class/name/coercion/backing/cache/
-  stream/host and visited `uint32(scope)` premises, universal refinement,
-  schemas/adapters/Rootable/request support, O2/O12/O13, EEST/guest/security and
-  resource/C1–C4/readiness remain open.
+  CountRecoverable, and Q88 selects the success domain and unordered diagnostics
+  (§7); no decoder, inverse theorem or success-domain proof is supplied. Adopted
+  bounded source evidence retains actual routes, historical source-root metadata
+  and nominal internal-observer limits (§3). Actual
+  source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
+  premises, universal refinement, schemas/adapters/Rootable/request support,
+  O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary

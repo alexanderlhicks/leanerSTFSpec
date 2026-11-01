@@ -1,7 +1,7 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse, reference division and eight natural moduli supplied. Date: 2026-10-30. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45, Q86.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse, reference division and eight natural moduli supplied. Date: 2026-11-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45, Q86, Q89.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
 (venv `esvenv`, versions as in `reference.toml`); **[I]** inference, not yet checked.
@@ -83,7 +83,9 @@ by 1024 bytes each (EIP-7823, `modexp.py:32–42`) [V], so `b`, `m < 2^8192` and
 `powMod` must be total, structurally recursive on the exponent's bits, and must not materialise
 `b^e`.
 
-**R8. Byte conversions.** Fixed-width big-endian `toBytesBE (w : Nat) : F → ByteArray` and
+**R8. Byte conversions.** Exact-width big-endian
+`toBytesBE (w : Nat) (a : F) (h : a.toNat < 256 ^ w) : ByteArray` (Q89: the caller proves
+that the canonical value fits; the result is exactly `w` bytes) and
 checked `ofBytesBE? : ByteArray → Option F` (`int.from_bytes(…, "big")` then `< p`). Widths used:
 32 (BN254, secp256k1, P-256, KZG scalars), 48 (BLS compressed), 64 (EIP-2537 padded Fp). For
 64-byte EIP-2537 elements the top 16 bytes must be zero; this is implied by `c < q < 2^381`
@@ -316,8 +318,9 @@ Private facade-only `ReferenceDecodeCallerProofs.lean` derives complete rejectio
 successful original-value/range, equality for identical positional Nats, empty/all-zero
 canonical zero, leading-zero preservation and metadata irrelevance of `Option.map toNat`.
 Clients use public laws without unfolding foreign semantic definitions or inspecting
-carrier projections. Differently parameterized carriers are never equated. Encoding,
-paired roundtrip/size and undersized-width behavior remain open.
+carrier projections. Differently parameterized carriers are never equated. Q89 fixes
+the encoder's domain (a local value-fit proof); the encoder and its paired
+roundtrip/size laws remain unimplemented.
 
 ### Supplied graph-specified natural-reference inverse
 
@@ -668,6 +671,7 @@ def isZero : PrimeFieldRef p → Bool
 def pow : PrimeFieldRef p → Nat → PrimeFieldRef p
 def sgn0 : PrimeFieldRef p → Bool  -- canonical toNat parity; ordinary sgn0_eq in §7
 def ofBytesBE? : ByteArray → Option (PrimeFieldRef p)  -- checked, any finite length
+def toBytesBE (w : Nat) (a : PrimeFieldRef p) (h : a.toNat < 256 ^ w) : ByteArray  -- prospective, Q89
 def inv0 (a : PrimeFieldRef p) : PrimeFieldRef p  -- complete Inv0Model in §7
 def div (a b : PrimeFieldRef p) : PrimeFieldRef p := mul a (inv0 b)
 -- ordinary complete toNat_div observer in §7; all binders {p : Nat} [FieldModulus p]
@@ -711,7 +715,7 @@ def legendre : PrimeField p → Int                      -- -1, 0, 1 (Euler crit
 def isSquare (a : PrimeField p) : Bool := legendre a = 1
 def sqrt? : PrimeField p → Option (PrimeField p)       -- requires sqrtExp? = some _
 def sgn0 : PrimeField p → Bool                         -- RFC 9380 §4.1
-def toBytesBE (w : Nat) : PrimeField p → ByteArray     -- left-padded to w bytes
+def toBytesBE (w : Nat) (a : PrimeField p) (h : a.toNat < 256 ^ w) : ByteArray  -- exactly w bytes (Q89)
 def ofBytesBE? : ByteArray → Option (PrimeField p)     -- big-endian, checked
 instance : Add, Sub, Neg, Mul, Div (via div), HPow _ Nat _, DecidableEq, Inhabited, Repr
 end PrimeField
@@ -922,7 +926,7 @@ representation:
 - [C] `inv0 0 = 0`; for prime `p` and `a ≠ 0`, `a * inv0 a = 1` (needs primality: Mathlib side).
 - [C] `sqrt? a = some s → s * s = a`; for prime `p ≡ 3 mod 4`, `sqrt? a = none ↔ ¬ isSquare a ∧ a ≠ 0`.
 - [C] `legendre` equals Python's `pow(a, (p−1)/2, p)` read as `{0, 1, p−1} ↦ {0, 1, −1}`.
-- [C] `ofBytesBE? (toBytesBE w a) = some a` and `(toBytesBE w a).size = w` when `p ≤ 256^w`. Both laws require a sufficient width; left padding alone does not truncate an oversized value.
+- [C] Q89: for every admitted call `h : a.toNat < 256 ^ w`, `toBytesBE w a h = ((Uint.toBeBytes a.toNat).leftPadZero w).toByteArray` (`toBytesBE_eq`; the bytes do not depend on the proof), `(toBytesBE w a h).size = w` (`size_toBytesBE`) and `ofBytesBE? (toBytesBE w a h) = some a` (`ofBytesBE?_toBytesBE`). A uniform modulus bound `p ≤ 256 ^ w` discharges `h` for every canonical value (`a.toNat < p`); value `0` at width `0` is admitted and gives the empty array.
 - [C] Extension fields: componentwise laws for `add`/`sub`/`neg`; `mul` law against the
   polynomial model; `Fp12.toFlat` is a ring isomorphism onto `py_ecc`'s flat representation (R4).
 - [T] every definition total by structural recursion, with exactly the Q86 natural-reference
@@ -947,7 +951,7 @@ the ring structure, never the `val` field.
 
 **Claim.** Public field and tower operations commute with their residue-field models; encoding and square-root operations satisfy their stated, domain-qualified contracts.
 
-**Premises.** Prime modulus for field laws, irreducibility/nonresidue facts for every tower layer, EthBase byte laws, and p ≤ 256^w for a w-byte encoding. The current modulus class's 1 < p alone does not establish a field.
+**Premises.** Prime modulus for field laws, irreducibility/nonresidue facts for every tower layer, EthBase byte laws, and a value-fit proof `a.toNat < 256 ^ w` for each w-byte encoding (Q89), usually from `p ≤ 256 ^ w`. The current modulus class's 1 < p alone does not establish a field.
 
 **Argument.** Canonical reduction gives a unique representative in [0,p). Addition and multiplication preserve congruence, yielding their model equations. The supplied reference inverse splits zero from nonzero and specifies every result by
 the Euclidean graph. Its unit law needs only local coprimality. A prime/nonzero-to-gcd
@@ -993,6 +997,9 @@ open.
 
 - **Q86** owns the approved full-carrier graph boundary and inverse-only R9/[T]
   clarification. No raw-Nat inverse or restricted zero-or-unit caller domain is selected.
+- **Q89** owns the byte-encoder domain: a local value-fit proof and an exactly w-byte
+  result. Implementation waits for the first R8 consumer (a precompile or, for
+  example, EthCurve `Secp256k1.recover`).
 - **D6** (provisional; field arithmetic source): the width is settled, a carry-preserving CIOS
   backend (`Wide8`/`W12`, `p < R`). Open: whether it is vendored from CompPoly's zero-import
   `Native64x8Defs` with the carry fix, or the same fix is upstreamed to a Mathlib-free CompPoly
@@ -1024,7 +1031,7 @@ open.
   div/toNat_div/direct Div (exactly three authored declarations, preserving every
   zero/nonunit result); private controls and clients cover those slices. The eight exact
   R1 natural moduli are supplied separately; concrete-field instances/aliases,
-  convenience aliases, byte encoding and paired roundtrip/size laws, powMod,
+  convenience aliases, the Q89 byte encoder with its three laws, powMod,
   executable/tower inverse, Euler/sqrt, towers, executable PrimeField/Montgomery and
   their bridges remain unimplemented. No D6 source choice, primality/Mathlib result,
   replacement/C1–C4 measurement, whole-module, precompile, signature, guest or EEST

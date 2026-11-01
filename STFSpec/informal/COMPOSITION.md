@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-10-31.*
+*Status: conditional proof plan. Date: 2026-11-01.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -71,10 +71,12 @@ paired-field obligation. Empty variable-child outer lists inspect no unused nest
 values; direct zero-byte fixed products remain eligible. Leaves, limits and masks
 add no support or typing certification. Q80 forward support remains independent.
 The future raw inverse needs both actual Serializable and CountRecoverable proofs;
-its theorem and decoder are unimplemented. Canonical successes still owe WT and
-existential Serializable/reencoding, without a CountRecoverable conclusion. Actual
-schema adapters, source invocation/large-scope/host premises, Rootable and guest O2
-bridges remain separate; no readiness gate closes.
+its theorem and decoder are unimplemented. Canonical successes owe WT and
+existential Serializable/reencoding and, under Q88, CountRecoverable: the decoder
+succeeds exactly on encodings of Serializable, CountRecoverable values, and its
+rejection tags are unordered. Actual schema adapters, source
+invocation/large-scope/host premises, Rootable and guest O2 bridges remain
+separate; no readiness gate closes.
 
 ### Supplied generic SSZ schema forward handoff (Q81)
 
