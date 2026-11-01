@@ -128,7 +128,7 @@ Titles follow the Lean community convention:
 - **Scope:** the library (`EthVmCore`), package (`mathlib`, `security`) or area (`informal`, `decisions`, `scripts`).
 - **Subject:** imperative, present tense ("add", not "added"); lower-case first letter; no final full stop.
 
-The description gives the motivation, the change in behaviour or contract, the EELS sources it follows, the decisions or questions it touches (by ID), and references to issues (`Closes #123`). A change that implements EELS operations includes their source-to-Lean rows (REVIEW §4).
+The description gives the motivation, the change in behaviour or contract, the EELS sources it follows, the decisions or questions it touches (by ID), and references to issues (`Closes #123`). A change that implements EELS operations includes their source-to-Lean rows (REVIEW §4). The [pull request template](.github/pull_request_template.md) gives these contents and those of §6.5 as sections.
 
 ### 6.3 Checks
 
@@ -408,6 +408,10 @@ Until the first tagged release, rename freely but update every caller and the sp
 - **The reference:** cite EELS by path and line at the commit in `reference.toml`, and EIPs by number (`EIP-7702`).
 - **Papers and books:** cite them in a `## References` section of the module docstring, as `* Author(s), *Title*, venue year`, and refer to them in text by author and year. Link a public version where one exists; never add copies of copyrighted papers or books to the repository.
 - **Other implementations and specifications** (evm-sail, clients, cryptography-specs) may be linked directly, with a commit where the claim depends on one.
+
+### 8.3 Prose
+
+Prose follows [`WRITING.md`](WRITING.md): its rules for words, sentences and claims, and the vocabulary of the repository. It applies to documents, docstrings, comments, commit messages, pull request descriptions and review reports. Its rules are review matters (§5.3), and reviewers cite them by identifier.
 
 ## 9. Code of conduct
 

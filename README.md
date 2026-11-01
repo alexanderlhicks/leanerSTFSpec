@@ -170,6 +170,7 @@ Navigation by task is in [`AGENTS.md`](AGENTS.md). The main documents:
 - [`STFSpec/informal/CONTRACT.md`](STFSpec/informal/CONTRACT.md): input/output encoding, the outcome table O1–O13, the authority and discrepancy policy, the security scope. The pin itself is [`reference.toml`](reference.toml).
 - [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md): every design decision and question disposition, with its status and the evidence needed to revisit it.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): the principles (golden rule, legibility, performance, hygiene, review), the pull-request workflow, and the Lean style and documentation conventions.
+- [`WRITING.md`](WRITING.md): the rules for prose (words, sentences and claims) and the vocabulary of the repository.
 - [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md): libraries, allowed dependencies, component contracts, data structures, state lifetimes, fork structure, change management, decision options.
 - [`STFSpec/informal/REVIEW.md` §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks): proof gates, composition cases, replacement gates and cost checks an implementation must meet.
 
