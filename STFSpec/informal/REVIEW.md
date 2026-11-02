@@ -1,10 +1,10 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-10-31.*
+*Status: live implementation gates; dated findings retained. Date: 2026-11-02.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
-Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
+Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). The pin has since moved to `tests-zkevm@v21.0.6` (`59c1473ddfba341babaeca1c97a50e996f639a0b`, DECISIONS P1); the live sections apply at the current pin, and the re-pin follow-up is GAPS-CROSSCUTTING X16. All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
 
 ## 1. Findings and changes
 
@@ -964,7 +964,7 @@ G4–G6 are separate results: existence of sufficient fuel does not give a compu
 - CALL-family operations with and without value; EIP-150 rounding boundaries; stipend; zero requested gas; insufficient balance; maximum depth; child success, revert and exceptional halt. Cover CREATE/CREATE2 collision, init-code execution and code-deposit failure, including source-specific nonce effects and empty parent return data on successful creation.
 - Storage clear after writes; write after clear; revert after clear; block-level clear with transaction override; original-value lookup for newly created accounts; persistent reads after child failure; transient storage reset between transactions.
 - Memory expansion and overlapping copy, zero padding, and word endianness. Trace on/off must preserve outputs and buffer reuse.
-- Guest phase precedence: malformed SSZ with header-limit excess (O1), empty headers (O3a), invalid hint (O5), witness failure (O4), and multiple simultaneous failures. A checked internal error fails the test as a spec bug.
+- Guest phase precedence: malformed SSZ with header-limit excess (O1), empty headers (O3a), witness failure (O4), and multiple simultaneous failures. A checked internal error fails the test as a spec bug.
 
 Use exact serialized regression inputs, not only random seeds. External oracles must support the tested fork and gas rules; clients with older semantics can compare only compatible behaviour.
 

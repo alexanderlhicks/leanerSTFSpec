@@ -12,7 +12,9 @@ Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 
 namespace STFSpec.Conformance
 
-/-- Archive-relative file, test identifier, zero-based block position and fixture hash. -/
+/-- Archive-relative file, test identifier, zero-based entry position and fixture hash.
+The file's format directory selects the container: `blockIndex` indexes `blocks[]` in a
+`blockchain_tests/` file and `engineNewPayloads[]` in a `blockchain_tests_engine/` file. -/
 structure FixtureId where
   file : String
   testId : String
@@ -20,7 +22,8 @@ structure FixtureId where
   infoHash : String
   deriving BEq, Repr, DecidableEq
 
-/-- Guest input and expected output read directly from a block's paired byte fields. -/
+/-- Guest input and expected output read directly from a block's or engine payload's
+paired byte fields. -/
 structure GuestRecord where
   id : FixtureId
   input : ByteArray

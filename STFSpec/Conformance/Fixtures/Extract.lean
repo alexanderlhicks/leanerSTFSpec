@@ -26,9 +26,27 @@ private def string (location : String) (value : Lean.Json) :=
 private def array (location : String) (value : Lean.Json) :=
   value.getArr?.mapError fun _ ↦ FixtureError.expectedArray location
 
-private def blockRecord (id : FixtureId) (value : Lean.Json) :
+/-- The fixture format selected by an archive-relative file label: its expected
+`_info.fixture-format`, the container whose entries may carry guest records, and the
+other format's container, whose presence is a conflicting shape. -/
+private structure FixtureShape where
+  name : String
+  container : String
+  other : String
+
+private def fixtureShape (file : String) : Except FixtureError FixtureShape :=
+  if file.startsWith "blockchain_tests/" then
+    pure { name := "blockchain_test", container := "blocks", other := "engineNewPayloads" }
+  else if file.startsWith "blockchain_tests_engine/" then
+    pure { name := "blockchain_test_engine", container := "engineNewPayloads"
+           other := "blocks" }
+  else throw (.unsupportedFile file)
+
+/-- Project one container entry: a `blocks[i]` block or an `engineNewPayloads[i]` payload.
+An entry without either guest field is recordless; a lone field is an error. -/
+private def entryRecord (container : String) (id : FixtureId) (value : Lean.Json) :
     Except FixtureError (Option GuestRecord) := do
-  let location := s!"{id.file}:{id.testId}:blocks[{id.blockIndex}]"
+  let location := s!"{id.file}:{id.testId}:{container}[{id.blockIndex}]"
   let fields ← object location value
   match fields.get? "statelessInputBytes", fields.get? "statelessOutputBytes" with
   | none, none => return none
@@ -42,14 +60,15 @@ private def blockRecord (id : FixtureId) (value : Lean.Json) :
     return some { id, input, expected }
   | _, _ => throw (.unpairedGuestFields location)
 
-/-- Project paired guest fields in test-id/block-index order. Engine fixtures produce
-no guest records. This is not the future `parseBlockchainFile`/`parseEngineFile` API;
-only the format, metadata and relevant container shapes are validated here. -/
+/-- Project paired guest fields in test-id/entry-index order, from `blocks[]` in
+`blockchain_tests/` files and from `engineNewPayloads[]` in `blockchain_tests_engine/`
+files. The file label determines the format, so `FixtureId.blockIndex` is the entry's
+zero-based position in that format's container. This is not the future
+`parseBlockchainFile`/`parseEngineFile` API; only the format, metadata and relevant
+container shapes are validated here. -/
 def extractGuestRecords (file : String) (value : Lean.Json) :
     Except FixtureError (Array GuestRecord) := do
-  let engine ← if file.startsWith "blockchain_tests/" then pure false
-    else if file.startsWith "blockchain_tests_engine/" then pure true
-    else throw (.unsupportedFile file)
+  let shape ← fixtureShape file
   let tests ← object file value
   let mut records := #[]
   for (testId, test) in tests.toArray do
@@ -62,21 +81,17 @@ def extractGuestRecords (file : String) (value : Lean.Json) :
     let hashBytes ← decodeHex (location ++ "._info.hash") infoHash
     if hashBytes.size != 32 then
       throw (.infoHashLength (location ++ "._info.hash") hashBytes.size)
-    let format ← string (location ++ "._info.fixture-format")
+    let actualFormat ← string (location ++ "._info.fixture-format")
       (← field (location ++ "._info") info "fixture-format")
-    let expectedFormat := if engine then "blockchain_test_engine" else "blockchain_test"
-    if format != expectedFormat then throw (.fixtureFormat location expectedFormat format)
-    if engine then
-      if (fields.get? "blocks").isSome then throw (.conflictingShape location)
-      let _ ← array (location ++ ".engineNewPayloads")
-        (← field location test "engineNewPayloads")
-    else
-      if (fields.get? "engineNewPayloads").isSome then throw (.conflictingShape location)
-      let blocks ← array (location ++ ".blocks") (← field location test "blocks")
-      for h : index in [:blocks.size] do
-        let id : FixtureId := { file, testId, blockIndex := index, infoHash }
-        if let some record ← blockRecord id blocks[index] then
-          records := records.push record
+    if actualFormat != shape.name then
+      throw (.fixtureFormat location shape.name actualFormat)
+    if (fields.get? shape.other).isSome then throw (.conflictingShape location)
+    let entries ← array (location ++ "." ++ shape.container)
+      (← field location test shape.container)
+    for h : index in [:entries.size] do
+      let id : FixtureId := { file, testId, blockIndex := index, infoHash }
+      if let some record ← entryRecord shape.container id entries[index] then
+        records := records.push record
   return records
 
 /-- Parse a JSON document with Lean's standard parser, then project its guest fields.

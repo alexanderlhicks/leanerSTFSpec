@@ -6,9 +6,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+COMMIT = tomllib.loads((ROOT / "reference.toml").read_text())["release"]["commit"]
 
 
 class SpecChecks(unittest.TestCase):
@@ -92,11 +94,11 @@ class SpecChecks(unittest.TestCase):
         self.run_check("section 4 is empty")
 
     def test_module_pin(self):
-        self.edit("STFSpec/informal/modules/EthBase.md", "@e1a316a0", "@aaaaaaaa")
+        self.edit("STFSpec/informal/modules/EthBase.md", f"@{COMMIT[:8]}", "@aaaaaaaa")
         self.run_check("document pin does not match")
 
     def test_inventory_pin(self):
-        self.edit("STFSpec/informal/eels-inventory.json", "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36", "bad")
+        self.edit("STFSpec/informal/eels-inventory.json", COMMIT, "bad")
         self.run_check("inventory pin does not match")
 
     def test_duplicate_common_declaration(self):

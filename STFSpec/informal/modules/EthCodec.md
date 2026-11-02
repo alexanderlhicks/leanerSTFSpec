@@ -1,9 +1,9 @@
 # `EthCodec`: RLP, SSZ, `hash_tree_root` and derived addresses
 
-*Status: informal specification, draft. Date: 2026-11-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, Q81, Q87, Q88, F13, F17, O2.*
 
-Unprefixed paths are relative to `src/ethereum/` at the pin. Two external libraries are part of the semantics:
+Unprefixed paths are relative to `src/ethereum/` at the pin. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16). Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
 - **`remerkleable`**: `eth-remerkleable` 0.1.31.
 
@@ -88,7 +88,7 @@ allocation proportional to that declaration.
   - `FixedUnsigned` subclasses become `uint(bitlen(MAX))`;
   - `bool` becomes `boolean`;
   - `SszContainer` subclasses become containers, and `ProgressiveSszContainer` subclasses become progressive containers with **all active fields = 1** (`:250–251`);
-  - `Annotated` markers select `uint(bits)` for `bits ∈ {8,16,32,64,128,256}` (`:91–95`), `byte_vector(n)`, `byte_list(N)`, `ssz_list(N)`, `progressive_list()` or `progressive_byte_list()`.
+  - `Annotated` markers select `uint(bits)` for `bits ∈ {8,16,32,64,128,256}` (`:91–95`), `byte_list(N)`, `ssz_list(N)`, `progressive_list()` or `progressive_byte_list()`.
 
   An unannotated `Uint` is a schema `TypeError`, not a runtime case. Annotated fields may be *wider* in Python than on the wire, e.g. `timestamp: Annotated[U256, uint(64)]` and `block_number: Annotated[Uint, uint(64)]` (`execution_engine/types.py:57–62`). Decoding converts with `base(int(v))` (`ssz.py:309–310`), which cannot fail for decoded values.
 - **S2. Serialization** is standard SSZ:
@@ -1076,7 +1076,6 @@ diagnostic correspondence or O1/O2/O12/O13 classification.
 | `utils/ssz.py::_ListLimit` | 83 | `SszType.list` (limit argument) | annotation marker only |
 | `utils/ssz.py::_ProgressiveListMarker` | 87 | `SszType.progressiveList` | annotation marker only |
 | `utils/ssz.py::uint` | 91 | `SszType.uint` + width check | rejects unsupported widths at schema time |
-| `utils/ssz.py::byte_vector` | 98 | `SszType.byteVector` | |
 | `utils/ssz.py::byte_list` | 103 | `SszType.byteList` | |
 | `utils/ssz.py::ssz_list` | 108 | `SszType.list` | |
 | `utils/ssz.py::progressive_list` | 113 | `SszType.progressiveList` | |
@@ -1549,8 +1548,8 @@ There is no new native producer or Python differential runner for direct forward
 the existing raw-provider campaigns retain their separate scope below.
 
 - **EEST fixture areas.**
-  - All 29030 guest records decode SSZ and compute the output root.
-  - **O1 SSZ/schema rejection:** `amsterdam/eip8025_optional_proofs/stateless_input_bytes`. I checked all 9 records in the `blockchain_tests` copy, and each expects the zero sentinel: empty input, incomplete schema id, invalid first SSZ offset, missing SSZ body, shifted SSZ offsets, trailing garbage, truncated SSZ body, unsupported schema fork, unsupported schema revision. These are the only 9 zero-sentinel outputs in the corpus (a streamed count found 9 zero, 1199 false and 27822 true).
+  - Every guest record except the 20 zero sentinels (67,665 of the 67,685 at this pin, in both formats; `reference.toml`) decodes SSZ and computes the output root; the sentinels fail decoding (O1).
+  - **O1 SSZ/schema rejection:** `amsterdam/eip8025_optional_proofs/stateless_input_bytes`. At this pin each format has 10 zero-sentinel records, all in this area (checked on 2026-11-02 by a streamed count over the pinned archive): empty input, incomplete schema id, invalid first SSZ offset, missing SSZ body, shifted SSZ offsets, truncated SSZ body, unsupported schema fork, unsupported schema revision, and witness headers over the SSZ list count limit or the per-header byte limit (`test_witness_header_ssz_limits`). These are the only zero-sentinel outputs in the corpus (per format: 10 zero; `blockchain_tests` 5,753 false and 28,068 true; `blockchain_tests_engine` 5,776 false and 28,068 true). At `tests-zkevm@v21.0.0` the `blockchain_tests` copy had 9, including trailing garbage and no header-limit records.
   - RLP headers: `eip8025_optional_proofs/witness_validation_headers` (malformed RLP header, non-contiguous chain, missing parent).
   - Transactions: `ported_static/stTransactionTest`, `prague/eip7702_set_code_tx`, `berlin/eip2930_access_list`, `cancun/eip4844_blobs`, `osaka/eip7934_block_rlp_limit`.
   - Receipts and withdrawals: `shanghai/eip4895_withdrawals`. Requests: `prague/eip6110_deposits`, `eip7002_el_triggerable_withdrawals`, `eip7251_consolidations`, `amsterdam/eip8282_builder_execution_requests`.
@@ -3412,7 +3411,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   inverse theorem and total decoder completion remain open. Future differential round-trip coverage must include every
   Amsterdam schema as well as the selected domain boundaries.
 - **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
-- **Thin O1 coverage.** The 9 fixtures do not test: `boolean` bytes other than 0 or 1, per-element `ByteList` limits (a 1025-byte witness node, a 65537-byte code), 257 headers, a wrong `public_keys` element length (65 bytes), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
+- **Thin O1 coverage.** At this pin the zero-sentinel fixtures (10 per format, §4) add witness headers over the list count limit and over the per-header byte limit. They still do not test: `boolean` bytes other than 0 or 1, the per-element `ByteList` limits for witness nodes and codes (a 1025-byte witness node, a 65537-byte code), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3); its concrete output consumer is EthStateless `serializeStatelessOutput` (`STFSpec/Stateless/Output.lean`), and the guest-level output theorem remains open. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).
 - **Schema fidelity.** Field order is checkable through `SszSchema.fieldNames` (F13): a prototype script outside this repository compared each adapter's names with REFERENCE-RECORDS. The core has no such check yet, and names alone do not check widths, limits or progressive versus plain types against `_infer`. The proposal for those is a `#guard` comparing `hashTreeRoot` of a sample value with a stored root generated from EELS; the generator script and stored roots do not exist yet.
