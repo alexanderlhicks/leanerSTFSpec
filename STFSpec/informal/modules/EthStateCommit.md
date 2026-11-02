@@ -1,7 +1,9 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55, Q57.*
+
+EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -411,3 +413,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
 - **Blockchain-test pre-states** (`EthStateFull`) must satisfy `MathState.WF` (no orphan storage); this is argued from `state_mpt.set_storage`'s assertion (`state_mpt.py:198`) and genesis loading, not checked on the corpus.
+- **Re-pin to `tests-zkevm@v21.0.6`: strict storage leaves (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d`).** `WitnessState.get_storage` now returns `rlp.decode_to(U256, leaf)` (`witness_state.py:127`, execution-specs PR #3659). With ethereum-rlp 0.1.6 a storage leaf that decodes to a list, to a byte string with a leading zero byte, or to more than 32 bytes now fails (CONTRACT O4(e)); at `tests-zkevm@v21.0.0` the list read as zero and the others were accepted when the value fit. `decodeStorageLeaf` (`STFSpec/StateCommit/StorageDecode.lean`) still implements the old SC6 leniency, as do its laws `decodeStorageLeaf_of_rlp_list` and `decodeStorageLeaf_of_rlp_bytes`, the `StorageDecode{Guards,CallerProofs}.lean` conformance files, the frozen `storage_encoding_differential.py` catalogue and the `scripts/spec_review.py` check `storage_leaf_rlp_list_defaults_to_zero`. SC6 and the "Silent list-to-zero" item above describe the old reference for storage. Account leaves are unchanged (`_decode_account_from_leaf`), so SC5 stands.

@@ -1,9 +1,9 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
-Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3.
+Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 

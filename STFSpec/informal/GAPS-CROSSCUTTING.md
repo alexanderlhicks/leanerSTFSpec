@@ -1,6 +1,6 @@
 ## Cross-cutting gaps and coordinated owners
 
-*Status: live cross-cutting gap register. Date: 2026-09-30.*
+*Status: live cross-cutting gap register. Date: 2026-11-02.*
 
 Maintained by hand. Each item says what is missing, the evidence, and who should own it.
 
@@ -31,11 +31,12 @@ D14/O12 has not selected a host-resource/capability policy. Record Python/OpenSS
 ### X4. Reference evidence must use the locked environment
 The 2026-09-28 review reran its five counterexamples in a clean checkout at the exact pin using unchanged `uv.lock`, including ethereum-rlp 0.1.6 (see REVIEW §2). Earlier evidence using 0.1.7 remains historical and must be rerun when load-bearing. A repeatable CI reference harness is still missing. **Owner:** EthConformance.
 
-### X5. Fixture corpus observations (verified 2026-09-28)
-- **Where the records are.** All 29,030 guest records are in `blockchain_tests` (`blockchain_tests_engine` has none), and 24,283 inputs are distinct.
+### X5. Fixture corpus observations (verified 2026-09-28 at `tests-zkevm@v21.0.0`; record location and zero sentinels rechecked 2026-11-02 at `tests-zkevm@v21.0.6`)
+- **Where the records are.** At `tests-zkevm@v21.0.6` both formats carry guest records: 33,831 `blocks[]` entries in `blockchain_tests` and 33,854 `engineNewPayloads[]` entries in `blockchain_tests_engine`, 67,685 in all, with 29,180 distinct inputs (EthConformance R2). At `tests-zkevm@v21.0.0` all 29,030 were in `blockchain_tests` (`blockchain_tests_engine` had none), with 24,283 distinct inputs.
+- The remaining items were observed at `tests-zkevm@v21.0.0` and have not been recomputed at the current pin (EthConformance §10), except the zero-sentinel count.
 - **138 guest records sit on blocks marked `expectException` but report success.** On the 60 checked, the input's payload is not the fixture block, and EELS reproduces the recorded output. So a runner must not equate the guest result with block validity.
 - **237 valid Amsterdam blocks have no guest record,** reason unknown.
-- **Only 9 zero-sentinel (malformed-input) records** exist, all in `eip8025/stateless_input_bytes`. Malformed-input coverage is thin.
+- **Only 10 zero-sentinel (malformed-input) records per format** exist at `tests-zkevm@v21.0.6` (9 at `tests-zkevm@v21.0.0`), all in `eip8025/stateless_input_bytes`. Malformed-input coverage is thin.
 - **Transition fixtures** (`for_bpo2toamsterdamattime15k`) need bpo2 execution, which D3 excludes.
 - **No mapping yet** from EEST exception labels to our explicit error constructors.
 
@@ -68,7 +69,7 @@ Several literature items were read at abstract level only; the full text of Alla
 - **Earlier lookups.** For changed accounts, the storage root comes from a cache filled by earlier lookups, and is the empty root if the address was never looked up. This is safe only because every account write is preceded by a lookup: an invariant to prove (COMPOSITION §3, item 2).
 
 ### X11. Reference acceptance is not canonical
-The reference accepts non-canonical witness encodings (DISC-003) and lenient leaf decodings (a list-valued storage leaf reads as 0, and empty lists in an account leaf read as defaults). CONTRACT O4(e) lists the leaf failures; exact adapters and precedence remain to be proved under EthStateCommit SC5/SC6. The spec must reproduce the accepted set exactly.
+The reference accepts non-canonical witness encodings (DISC-003) and lenient account-leaf decodings (leading-zero integers, and empty lists in an account leaf read as defaults). Storage leaves decode strictly at `tests-zkevm@v21.0.6` (`rlp.decode_to(U256, …)`); the list-to-zero and leading-zero storage leniencies of `tests-zkevm@v21.0.0` are gone, and the Lean storage decoder still implements them (EthStateCommit §10). CONTRACT O4(e) lists the leaf failures; exact adapters and precedence remain to be proved under EthStateCommit SC5/SC6. The spec must reproduce the accepted set exactly.
 
 ### X12. Upstream crypto pieces are missing
 - The 381-bit Montgomery field (`W12`) exists only as a prototype outside the core; it is not yet in the core or upstream.
@@ -91,3 +92,11 @@ Four items from the interface-composition prototype are open (`STFSpec/informal/
 - **O2:** the proof that request-root computation cannot fail on decoded values (EthStateless).
 
 **Owners:** as listed.
+
+### X16. Follow-up work from the move to `tests-zkevm@v21.0.6`
+The pin moved from `tests-zkevm@v21.0.0` (`e1a316a0`) to `tests-zkevm@v21.0.6` (`59c1473d`) in one metadata change (DECISIONS P1). That change regenerated the inventory, the reference records and the fixture index, and updated CONTRACT; it changed no Lean semantics. What remains:
+- **Citations.** CONTRACT and the generated files cite `59c1473d`. Elsewhere, EELS `file:line` citations, §3 line columns and verified observations are at `e1a316a0` unless marked as at `59c1473d`; the citations this change added carry that mark (the §10 re-pin items and the new §3 rows), and each module that cites EELS states the rule in its conventions line. Read an unmarked citation into one of the 35 changed in-scope files at `e1a316a0` until a mechanical remap (with a `--check` mode) and a manual review of the citations that fall inside changed hunks have been done.
+- **Differential evidence.** Ten drivers compare the checkout's `HEAD` with a hard-coded `e1a316a0` and so refuse a `59c1473d` checkout (`STFSpec/Conformance/Vm/Core/gas_{accounting,meter,refund,rollback,transfer}_differential.py`, `Vm/Core/{stack,tx_state_gas_usage}_differential.py`, `Block/count_tokens_differential.py`, `StateCommit/{account,storage}_encoding_differential.py`). Five more assert `e1a316a0` in code: `Block/{requests_hash,deposit_data}_differential.py` require it as the `head` of a source run, and `Vm/Core/{jumpdest,buffer_read}_differential.py` and `Precompiles/kzg_versioned_hash_differential.py` require it as the pin of their frozen catalogue or controls. Further drivers and catalogues embed the old commit in their metadata (for example `Commit/{set,update,delete}_differential.py`, `Vm/Core/{memory_gas,call_init,transaction_gas_allocation,transaction_gas_settlement}_differential.py` and `Fork/amsterdam_vm_catalogue.json`). The frozen catalogues remain evidence at `e1a316a0`; re-stamping them, and regenerating those whose EELS target changed, is open. The drivers whose targets changed are listed with the owning module's re-pin gap.
+- **Semantic deltas.** Each is a re-pin item in its owning module's §10: EthState, EthCommit, EthStateCommit, EthStateWitness, EthStateless, EthBlock, EthVmCore and EthConformance.
+
+**Owners:** EthConformance (drivers and corpus evidence); each module for its citations and re-pin item.

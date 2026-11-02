@@ -1,9 +1,9 @@
 # `EthStateWitness`: the witness-state backend
 
-*Status: informal specification, draft. Date: 2026-10-06. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7, Q55, Q57; DISC-001, DISC-004.*
 
-`ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only.
+`ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -34,20 +34,19 @@
 |---|---|---|---|
 | `forks/amsterdam/witness_state.py::build_code_db` | 45 | `CodeDB.build` | |
 | `forks/amsterdam/witness_state.py::WitnessState` | 132 | `WitnessBackend` | caches replaced (W10, W11) |
-| `forks/amsterdam/witness_state.py::WitnessState._get_decoded_secure_root` | 148 | `WitnessBackend.accountTrie`; per-query storage decoding | trigger W2; storage memo open (F6) |
+| `forks/amsterdam/witness_state.py::WitnessState._get_decoded_secure_trie` | 83 at `59c1473d` | `WitnessBackend.accountTrie`; per-query storage decoding | trigger W2; storage memo open (F6) |
 | `forks/amsterdam/witness_state.py::WitnessState.get_account_optional` | 162 | `….getAccount?` | |
 | `forks/amsterdam/witness_state.py::WitnessState.get_storage` | 179 | `….getStorage` | |
 | `forks/amsterdam/witness_state.py::WitnessState.get_code` | 205 | `….getCode` | |
 | `forks/amsterdam/witness_state.py::WitnessState.compute_state_root` | 215 | `….stateRoot` | |
-| `forks/amsterdam/witness_state.py::WitnessState.compute_state_root_and_trie_changes` | 229 | `computeStateRootAndTrieChanges` | node list always empty |
 
-`build_node_db` and `_trie_lookup` are claimed by `EthCommit`; `_decode_account_from_leaf` by `EthStateCommit`.
+`build_node_db` and the guest lookup `incremental_mpt.py` `mpt_get` (through its wildcard; `witness_state.py` `_trie_lookup` at `e1a316a0`) are claimed by `EthCommit`; `_decode_account_from_leaf` by `EthStateCommit`.
 
 **External semantics.** `ethereum_rlp.rlp` (leaf decoding, `EthStateCommit`); Python `set`/`dict` iteration order (W8: dict order is insertion order and is observable in step 4; set order is hash-seeded and must be shown unobservable).
 
 ## 4. Tests
 
-- **EEST fixture area:** `amsterdam/eip8025_optional_proofs` (100 files): `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender, absent-account and failed-call-target account nodes, extra unused node, unsorted but complete), `test_witness_validation_codes.py` (missing codes incl. 7702 markers and system contracts; extra and unsorted codes), `test_witness_state_{reads,writes,deletes,replay_order}.py`, `test_witness_headers.py`. Every other `blockchain_tests` area runs through this backend when executed as zkevm stateless fixtures.
+- **EEST fixture area:** `amsterdam/eip8025_optional_proofs` (96 files): `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender, absent-account and failed-call-target account nodes, extra unused node, unsorted but complete), `test_witness_validation_codes.py` (missing codes incl. 7702 markers and system contracts; extra and unsorted codes), `test_witness_state_{reads,writes,deletes,replay_order}.py`, `test_witness_headers.py`. Every other `blockchain_tests` area runs through this backend when executed as zkevm stateless fixtures.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` (`TestBuildNodeDb`, `TestBuildCodeDb`, `TestGetAccountOptional`, `TestGetStorage`, `TestGetCode`, `TestComputeStateRoot`, `TestCanonicalSecureTrieValidation`).
 - **`core` `#guard` cases:** a malformed storage trie never accessed (accepted); a malformed account-trie node off every path (rejected, even for a block that reads no account before root computation); a storage read of an account without storage (no decode); account-trie delete whose collapse needs a stub sibling, with the insertion ordered before and after it (W8 step 4); a pure storage clear of an untouched-account address (step 3); `getAccount?` failure surfacing first in `getStorage`; missing code; history condition: a root computation whose `accountChanges` address was never looked up (EELS uses `EMPTY_TRIE_ROOT`; documents why W7's precondition matters).
 - **Differential:** against `EthStateFull` on complete witnesses (identical roots); against EELS `WitnessState` on random pruned witnesses (bug-finding).
@@ -185,5 +184,5 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Storage-trie memo** (F6, open): ownership, lifetime and decode triggers are unspecified; until then storage tries are decoded per query (a DEBT candidate). Any precomputation must be shown not to reject anything EELS accepts, in particular storage tries reachable only from account leaves that EELS never reads (B4).
 - **Leaf-failure fidelity:** CONTRACT O4(e) records the SC5/SC6 failures. Exact error adapters and precedence at each eager decode/lookup trigger remain implementation obligations; the failure ledger (X1) must close the individual sites.
 - **Exponential decode on DAG witnesses and deep acyclic chains** (`EthCommit` C17) make EELS's behaviour host-dependent (DISC-001, O12 unresolved): the guest-process recursion limit is 100,000 (py_ecc raises it), and the witness-chain depth at which the reference fails has not been re-measured under it. Q55's total mathematical baseline and any unselected B15 memo remain unreconciled with that host behavior.
-- **`compute_state_root_and_trie_changes`' node list** is always empty at the pin; its intended content (trie changes for witness generation) is unspecified.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** The backend was restructured without an output change [V by reading] (execution-specs PR #3659): `_get_decoded_secure_root` became `_get_decoded_secure_trie` (`witness_state.py:83–94`), which caches the whole decoded trie, with the empty-root shortcut moved into `decode_witness_to_mpt`; lookups go through `incremental_mpt.mpt_get`; `compute_state_root_and_trie_changes` was folded into `compute_state_root` (`witness_state.py:139–202`), whose storage writes go through `mpt_set_storage_slots` and whose account writes pass the storage root to `mpt_set` directly. W6's step-by-step text and the `ws:` citations still describe the `e1a316a0` layout, and the `computeStateRootAndTrieChanges` row (with its always-empty node list) is gone from §3. Every secured decode now also validates path lengths (EthCommit §10), which bounds the decoded depth and bears on the deep-chain item above, and storage reads decode leaves strictly (EthStateCommit §10).
 - **No fixtures** for malformed nodes, cycles, non-canonical encodings, malformed account or storage leaves, or balance overflow from witness data.

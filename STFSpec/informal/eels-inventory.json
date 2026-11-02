@@ -1,5 +1,5 @@
 {
- "release": "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36",
+ "release": "59c1473ddfba341babaeca1c97a50e996f639a0b",
  "scope": [
   "src/ethereum/forks/amsterdam",
   "src/ethereum/state.py",
@@ -219,19 +219,19 @@
    "file": "forks/amsterdam/block_access_lists.py",
    "name": "build_block_access_list",
    "kind": "function",
-   "line": 831
+   "line": 827
   },
   {
    "file": "forks/amsterdam/block_access_lists.py",
    "name": "hash_block_access_list",
    "kind": "function",
-   "line": 854
+   "line": 850
   },
   {
    "file": "forks/amsterdam/block_access_lists.py",
    "name": "validate_block_access_list_gas_limit",
    "kind": "function",
-   "line": 863
+   "line": 859
   },
   {
    "file": "forks/amsterdam/blocks.py",
@@ -471,13 +471,13 @@
    "file": "forks/amsterdam/execution_engine/forkchoice_update.py",
    "name": "notify_forkchoice_updated",
    "kind": "function",
-   "line": 16
+   "line": 12
   },
   {
    "file": "forks/amsterdam/execution_engine/get_payload.py",
    "name": "get_payload",
    "kind": "function",
-   "line": 11
+   "line": 8
   },
   {
    "file": "forks/amsterdam/execution_engine/new_payload.py",
@@ -487,33 +487,27 @@
   },
   {
    "file": "forks/amsterdam/execution_engine/new_payload.py",
-   "name": "ethereum_types.bytes.Bytes",
-   "kind": "external",
-   "line": 8
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/new_payload.py",
    "name": "is_valid_block_hash",
    "kind": "function",
-   "line": 28
+   "line": 23
   },
   {
    "file": "forks/amsterdam/execution_engine/new_payload.py",
    "name": "is_valid_versioned_hashes",
    "kind": "function",
-   "line": 50
+   "line": 45
   },
   {
    "file": "forks/amsterdam/execution_engine/new_payload.py",
    "name": "execute_new_payload_request",
    "kind": "function",
-   "line": 75
+   "line": 70
   },
   {
    "file": "forks/amsterdam/execution_engine/new_payload.py",
    "name": "verify_and_notify_new_payload",
    "kind": "function",
-   "line": 139
+   "line": 130
   },
   {
    "file": "forks/amsterdam/execution_engine/requests.py",
@@ -619,75 +613,21 @@
   },
   {
    "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_encode_deposit",
-   "kind": "function",
+   "name": "REQUEST_ITEM_TYPES",
+   "kind": "constant",
    "line": 119
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_encode_withdrawal",
-   "kind": "function",
-   "line": 129
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_encode_consolidation",
-   "kind": "function",
-   "line": 137
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_encode_builder_deposit",
-   "kind": "function",
-   "line": 145
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_encode_builder_exit",
-   "kind": "function",
-   "line": 154
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_decode_deposit",
-   "kind": "function",
-   "line": 158
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_decode_withdrawal",
-   "kind": "function",
-   "line": 168
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_decode_consolidation",
-   "kind": "function",
-   "line": 176
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_decode_builder_deposit",
-   "kind": "function",
-   "line": 184
-  },
-  {
-   "file": "forks/amsterdam/execution_engine/requests.py",
-   "name": "_decode_builder_exit",
-   "kind": "function",
-   "line": 193
   },
   {
    "file": "forks/amsterdam/execution_engine/requests.py",
    "name": "encode_execution_requests",
    "kind": "function",
-   "line": 200
+   "line": 148
   },
   {
    "file": "forks/amsterdam/execution_engine/requests.py",
    "name": "decode_execution_requests",
    "kind": "function",
-   "line": 236
+   "line": 173
   },
   {
    "file": "forks/amsterdam/execution_engine/types.py",
@@ -867,211 +807,211 @@
    "file": "forks/amsterdam/fork.py",
    "name": "BASE_FEE_MAX_CHANGE_DENOMINATOR",
    "kind": "constant",
-   "line": 114
+   "line": 100
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "ELASTICITY_MULTIPLIER",
    "kind": "constant",
-   "line": 115
+   "line": 101
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "EMPTY_OMMER_HASH",
    "kind": "constant",
-   "line": 116
+   "line": 102
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "SYSTEM_ADDRESS",
    "kind": "constant",
-   "line": 117
+   "line": 103
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "BEACON_ROOTS_ADDRESS",
    "kind": "constant",
-   "line": 118
+   "line": 104
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "SYSTEM_TRANSACTION_GAS",
    "kind": "constant",
-   "line": 121
+   "line": 107
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "SYSTEM_MAX_SSTORES_PER_CALL",
    "kind": "constant",
-   "line": 122
+   "line": 108
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "GWEI_TO_WEI",
    "kind": "constant",
-   "line": 127
+   "line": 113
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS",
    "kind": "constant",
-   "line": 129
+   "line": 115
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS",
    "kind": "constant",
-   "line": 132
+   "line": 118
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "BUILDER_DEPOSIT_CONTRACT_ADDRESS",
    "kind": "constant",
-   "line": 135
+   "line": 121
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "BUILDER_EXIT_CONTRACT_ADDRESS",
    "kind": "constant",
-   "line": 138
+   "line": 124
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "HISTORY_STORAGE_ADDRESS",
    "kind": "constant",
-   "line": 141
+   "line": 127
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "MAX_BLOCK_SIZE",
    "kind": "constant",
-   "line": 144
+   "line": 130
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "SAFETY_MARGIN",
    "kind": "constant",
-   "line": 145
+   "line": 131
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "MAX_RLP_BLOCK_SIZE",
    "kind": "constant",
-   "line": 146
+   "line": 132
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "ChainContext",
    "kind": "class",
-   "line": 152
+   "line": 138
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "BlockChain",
    "kind": "class",
-   "line": 169
+   "line": 155
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "apply_fork",
    "kind": "function",
-   "line": 179
+   "line": 165
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "get_last_256_block_hashes",
    "kind": "function",
-   "line": 202
+   "line": 188
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "state_transition",
    "kind": "function",
-   "line": 242
+   "line": 228
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "execute_block",
    "kind": "function",
-   "line": 281
+   "line": 267
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "calculate_base_fee_per_gas",
    "kind": "function",
-   "line": 386
+   "line": 361
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "validate_header",
    "kind": "function",
-   "line": 449
+   "line": 424
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "check_transaction",
    "kind": "function",
-   "line": 506
+   "line": 481
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "make_receipt",
    "kind": "function",
-   "line": 669
+   "line": 628
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "process_checked_system_transaction",
    "kind": "function",
-   "line": 706
+   "line": 665
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "process_unchecked_system_transaction",
    "kind": "function",
-   "line": 766
+   "line": 724
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "apply_body",
    "kind": "function",
-   "line": 825
+   "line": 783
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "process_general_purpose_requests",
    "kind": "function",
-   "line": 901
+   "line": 855
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "update_sender_state",
    "kind": "function",
-   "line": 970
+   "line": 924
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "disburse_gas_fees",
    "kind": "function",
-   "line": 1011
+   "line": 965
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "process_transaction",
    "kind": "function",
-   "line": 1050
+   "line": 1004
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "process_withdrawals",
    "kind": "function",
-   "line": 1142
+   "line": 1096
   },
   {
    "file": "forks/amsterdam/fork.py",
    "name": "check_gas_limit",
    "kind": "function",
-   "line": 1164
+   "line": 1118
   },
   {
    "file": "forks/amsterdam/fork_types.py",
@@ -1177,6 +1117,18 @@
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_types.bytes.Bytes32",
+   "kind": "external",
+   "line": 31
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "ethereum_types.numeric.U256",
+   "kind": "external",
+   "line": 32
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
    "name": "ethereum_types.numeric.Uint",
    "kind": "external",
    "line": 32
@@ -1189,189 +1141,201 @@
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "SECURED_TRIE_KEY_NIBBLES",
+   "kind": "constant",
+   "line": 47
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
    "name": "MutableLeafNode",
    "kind": "class",
-   "line": 50
+   "line": 55
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "MutableExtensionNode",
    "kind": "class",
-   "line": 62
+   "line": 67
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "MutableBranchNode",
    "kind": "class",
-   "line": 74
+   "line": 79
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "HashedNode",
    "kind": "class",
-   "line": 86
+   "line": 91
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "Witness",
    "kind": "class",
-   "line": 103
+   "line": 108
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "IncrementalMPT",
    "kind": "class",
-   "line": 111
+   "line": 116
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_build_mutable_tree",
    "kind": "function",
-   "line": 126
+   "line": 130
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "build_mpt",
    "kind": "function",
-   "line": 191
+   "line": 195
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_invalidate_hash",
    "kind": "function",
-   "line": 231
+   "line": 234
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_record_witness",
    "kind": "function",
-   "line": 240
+   "line": 243
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_encode_mutable_node",
    "kind": "function",
-   "line": 257
+   "line": 260
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_encode_mutable_node_to_extended",
    "kind": "function",
-   "line": 287
+   "line": 290
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_compute_node_hash_and_rlp",
    "kind": "function",
-   "line": 316
+   "line": 319
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "mpt_get",
    "kind": "function",
-   "line": 349
-  },
-  {
-   "file": "forks/amsterdam/incremental_mpt.py",
-   "name": "_mpt_traverse_for_witness",
-   "kind": "function",
-   "line": 381
+   "line": 352
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "mpt_set",
    "kind": "function",
-   "line": 417
+   "line": 405
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "mpt_set_storage_slots",
+   "kind": "function",
+   "line": 445
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_mpt_insert_node",
    "kind": "function",
-   "line": 473
+   "line": 466
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_insert_into_leaf",
    "kind": "function",
-   "line": 502
+   "line": 495
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_create_branch_from_two_leaves",
    "kind": "function",
-   "line": 538
+   "line": 531
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_insert_into_extension",
    "kind": "function",
-   "line": 575
+   "line": 568
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_split_extension",
    "kind": "function",
-   "line": 609
+   "line": 602
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_insert_into_branch",
    "kind": "function",
-   "line": 653
+   "line": 646
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_mpt_delete_node",
    "kind": "function",
-   "line": 680
+   "line": 673
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_delete_from_extension",
    "kind": "function",
-   "line": 708
+   "line": 701
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_delete_from_branch",
    "kind": "function",
-   "line": 753
+   "line": 746
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_collapse_branch",
    "kind": "function",
-   "line": 787
+   "line": 780
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "mpt_root",
    "kind": "function",
-   "line": 831
+   "line": 824
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "compact_to_nibbles",
    "kind": "function",
-   "line": 859
+   "line": 852
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_resolve_child_ref",
    "kind": "function",
-   "line": 892
+   "line": 885
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "_decode_witness_node",
    "kind": "function",
-   "line": 917
+   "line": 910
+  },
+  {
+   "file": "forks/amsterdam/incremental_mpt.py",
+   "name": "_validate_secured_trie_paths",
+   "kind": "function",
+   "line": 987
   },
   {
    "file": "forks/amsterdam/incremental_mpt.py",
    "name": "decode_witness_to_mpt",
    "kind": "function",
-   "line": 994
+   "line": 1016
   },
   {
    "file": "forks/amsterdam/requests.py",
@@ -1527,229 +1491,223 @@
    "file": "forks/amsterdam/state_tracker.py",
    "name": "ethereum_types.bytes.Bytes",
    "kind": "external",
-   "line": 33
+   "line": 24
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "ethereum_types.bytes.Bytes32",
    "kind": "external",
-   "line": 33
+   "line": 24
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "ethereum_types.frozen.modify",
    "kind": "external",
-   "line": 34
+   "line": 25
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "ethereum_types.numeric.U256",
    "kind": "external",
-   "line": 35
+   "line": 26
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "ethereum_types.numeric.Uint",
    "kind": "external",
-   "line": 35
+   "line": 26
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "BlockState",
    "kind": "class",
-   "line": 57
+   "line": 44
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "TransactionState",
    "kind": "class",
-   "line": 91
+   "line": 78
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_pre_state_account_optional",
    "kind": "function",
-   "line": 120
+   "line": 107
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_pre_state_account",
    "kind": "function",
-   "line": 153
+   "line": 140
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_account_optional",
    "kind": "function",
-   "line": 187
+   "line": 174
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_account",
    "kind": "function",
-   "line": 213
+   "line": 200
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_code",
    "kind": "function",
-   "line": 241
+   "line": 228
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_storage",
    "kind": "function",
-   "line": 281
+   "line": 262
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_storage_original",
    "kind": "function",
-   "line": 317
+   "line": 298
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "get_transient_storage",
    "kind": "function",
-   "line": 346
+   "line": 327
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "account_exists",
    "kind": "function",
-   "line": 371
+   "line": 352
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "account_deployable",
    "kind": "function",
-   "line": 391
+   "line": 372
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "account_exists_and_is_empty",
    "kind": "function",
-   "line": 402
+   "line": 383
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "is_account_alive",
    "kind": "function",
-   "line": 432
+   "line": 413
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "set_account",
    "kind": "function",
-   "line": 453
+   "line": 434
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "set_storage",
    "kind": "function",
-   "line": 476
+   "line": 457
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "destroy_account",
    "kind": "function",
-   "line": 503
+   "line": 484
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "clear_account_preserving_balance",
    "kind": "function",
-   "line": 523
+   "line": 504
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "destroy_storage",
    "kind": "function",
-   "line": 547
+   "line": 528
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "mark_account_created",
    "kind": "function",
-   "line": 571
+   "line": 552
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "set_transient_storage",
    "kind": "function",
-   "line": 593
+   "line": 574
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "modify_state",
    "kind": "function",
-   "line": 620
+   "line": 601
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "move_ether",
    "kind": "function",
-   "line": 635
+   "line": 616
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "create_ether",
    "kind": "function",
-   "line": 669
+   "line": 650
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "set_account_balance",
    "kind": "function",
-   "line": 692
+   "line": 673
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "increment_nonce",
    "kind": "function",
-   "line": 715
+   "line": 696
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "set_code",
    "kind": "function",
-   "line": 734
+   "line": 715
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "copy_tx_state",
    "kind": "function",
-   "line": 763
+   "line": 744
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "restore_tx_state",
    "kind": "function",
-   "line": 799
+   "line": 780
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "incorporate_tx_into_block",
    "kind": "function",
-   "line": 823
+   "line": 804
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "extract_block_diff",
    "kind": "function",
-   "line": 880
-  },
-  {
-   "file": "forks/amsterdam/state_tracker.py",
-   "name": "get_witness_ancestors",
-   "kind": "function",
-   "line": 903
+   "line": 861
   },
   {
    "file": "forks/amsterdam/state_tracker.py",
    "name": "track_ancestor_access",
    "kind": "function",
-   "line": 925
+   "line": 884
   },
   {
    "file": "forks/amsterdam/stateless.py",
@@ -1785,121 +1743,115 @@
    "file": "forks/amsterdam/stateless.py",
    "name": "MAX_WITNESS_HEADERS",
    "kind": "constant",
-   "line": 33
+   "line": 32
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "MAX_BYTES_PER_CODE",
    "kind": "constant",
-   "line": 34
+   "line": 33
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "MAX_BYTES_PER_HEADER",
    "kind": "constant",
-   "line": 35
+   "line": 34
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "MAX_BYTES_PER_WITNESS_NODE",
    "kind": "constant",
-   "line": 36
-  },
-  {
-   "file": "forks/amsterdam/stateless.py",
-   "name": "PUBLIC_KEY_BYTES",
-   "kind": "constant",
-   "line": 37
+   "line": 35
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "ExecutionWitness",
    "kind": "class",
-   "line": 43
+   "line": 41
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "ExecutionPayloadHeader",
    "kind": "class",
-   "line": 78
+   "line": 76
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "NewPayloadRequestHeader",
    "kind": "class",
-   "line": 89
+   "line": 87
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "ProtocolFork",
    "kind": "class",
-   "line": 103
+   "line": 101
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "STATELESS_INPUT_SCHEMA_FORK_INDEX",
    "kind": "constant",
-   "line": 131
+   "line": 129
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "STATELESS_INPUT_SCHEMA_REVISION",
    "kind": "constant",
-   "line": 132
+   "line": 130
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "STATELESS_INPUT_SCHEMA_ID",
    "kind": "constant",
-   "line": 133
+   "line": 131
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "STATELESS_INPUT_SCHEMA_ID_SIZE",
    "kind": "constant",
-   "line": 136
+   "line": 134
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "STATELESS_INPUT_SCHEMA_ID_BYTES",
    "kind": "constant",
-   "line": 137
+   "line": 135
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "StatelessInput",
    "kind": "class",
-   "line": 146
+   "line": 144
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "StatelessValidationResult",
    "kind": "class",
-   "line": 181
+   "line": 171
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "compute_new_payload_request_root",
    "kind": "function",
-   "line": 220
+   "line": 210
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "_decode_header",
    "kind": "function",
-   "line": 229
+   "line": 219
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "validate_headers",
    "kind": "function",
-   "line": 240
+   "line": 230
   },
   {
    "file": "forks/amsterdam/stateless.py",
    "name": "verify_stateless_new_payload",
    "kind": "function",
-   "line": 263
+   "line": 255
   },
   {
    "file": "forks/amsterdam/stateless_guest.py",
@@ -1965,19 +1917,19 @@
    "file": "forks/amsterdam/stateless_host.py",
    "name": "serialize_stateless_input",
    "kind": "function",
-   "line": 34
+   "line": 32
   },
   {
    "file": "forks/amsterdam/stateless_host.py",
    "name": "deserialize_stateless_output",
    "kind": "function",
-   "line": 43
+   "line": 41
   },
   {
    "file": "forks/amsterdam/stateless_host.py",
    "name": "build_stateless_input",
    "kind": "function",
-   "line": 48
+   "line": 46
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
@@ -2007,73 +1959,73 @@
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_build_pre_state_storage_mpts",
    "kind": "function",
-   "line": 25
+   "line": 26
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_build_pre_state_account_mpt",
    "kind": "function",
-   "line": 37
+   "line": 38
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_collect_storage_accesses",
    "kind": "function",
-   "line": 56
+   "line": 57
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_capture_pre_state_storage_nodes",
    "kind": "function",
-   "line": 73
+   "line": 74
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_apply_storage_writes",
    "kind": "function",
-   "line": 85
+   "line": 86
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_get_all_dirty_accounts",
    "kind": "function",
-   "line": 106
+   "line": 101
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_capture_pre_state_account_nodes",
    "kind": "function",
-   "line": 113
+   "line": 108
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_apply_account_writes",
    "kind": "function",
-   "line": 123
+   "line": 118
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "_collect_accessed_nodes",
    "kind": "function",
-   "line": 154
+   "line": 139
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "build_execution_witness",
    "kind": "function",
-   "line": 165
+   "line": 150
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "get_witness_codes",
    "kind": "function",
-   "line": 236
+   "line": 221
   },
   {
    "file": "forks/amsterdam/stateless_host_exec_witness.py",
    "name": "get_witness_ancestors",
    "kind": "function",
-   "line": 271
+   "line": 242
   },
   {
    "file": "forks/amsterdam/transactions.py",
@@ -2133,205 +2085,175 @@
    "file": "forks/amsterdam/transactions.py",
    "name": "IntrinsicGasCost",
    "kind": "class",
-   "line": 46
-  },
-  {
-   "file": "forks/amsterdam/transactions.py",
-   "name": "SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX",
-   "kind": "constant",
-   "line": 62
+   "line": 43
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "BLOB_COUNT_LIMIT",
    "kind": "constant",
-   "line": 64
+   "line": 59
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "VERSIONED_HASH_VERSION_KZG",
    "kind": "constant",
-   "line": 69
+   "line": 64
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "ACCESS_LIST_ADDRESS_FLOOR_TOKENS",
    "kind": "constant",
-   "line": 74
+   "line": 69
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS",
    "kind": "constant",
-   "line": 82
+   "line": 77
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "LegacyTransaction",
    "kind": "class",
-   "line": 94
+   "line": 89
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "Access",
    "kind": "class",
-   "line": 157
+   "line": 152
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "AccessListTransaction",
    "kind": "class",
-   "line": 177
+   "line": 172
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "FeeMarketTransaction",
    "kind": "class",
-   "line": 250
+   "line": 245
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "BlobTransaction",
    "kind": "class",
-   "line": 328
+   "line": 323
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "SetCodeTransaction",
    "kind": "class",
-   "line": 417
+   "line": 412
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "encode_transaction",
    "kind": "function",
-   "line": 540
+   "line": 535
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "decode_transaction",
    "kind": "function",
-   "line": 562
+   "line": 557
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "validate_transaction",
    "kind": "function",
-   "line": 592
+   "line": 587
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "calculate_intrinsic_cost",
    "kind": "function",
-   "line": 692
+   "line": 687
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "count_tokens_in_data",
    "kind": "function",
-   "line": 804
+   "line": 799
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "calculate_effective_gas_price",
    "kind": "function",
-   "line": 816
+   "line": 811
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "calculate_max_gas_fee",
    "kind": "function",
-   "line": 845
+   "line": 840
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "check_nonce",
    "kind": "function",
-   "line": 855
+   "line": 850
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "chain_id",
    "kind": "function",
-   "line": 865
+   "line": 860
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "recover_sender",
    "kind": "function",
-   "line": 883
-  },
-  {
-   "file": "forks/amsterdam/transactions.py",
-   "name": "recover_transaction_public_key",
-   "kind": "function",
-   "line": 903
-  },
-  {
-   "file": "forks/amsterdam/transactions.py",
-   "name": "recover_sender_from_public_key",
-   "kind": "function",
-   "line": 916
-  },
-  {
-   "file": "forks/amsterdam/transactions.py",
-   "name": "_sender_address_from_public_key",
-   "kind": "function",
-   "line": 937
-  },
-  {
-   "file": "forks/amsterdam/transactions.py",
-   "name": "_signature_recovery_parameters",
-   "kind": "function",
-   "line": 944
+   "line": 878
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_pre155",
    "kind": "function",
-   "line": 1015
+   "line": 942
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_155",
    "kind": "function",
-   "line": 1039
+   "line": 966
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_2930",
    "kind": "function",
-   "line": 1065
+   "line": 992
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_1559",
    "kind": "function",
-   "line": 1091
+   "line": 1018
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_4844",
    "kind": "function",
-   "line": 1118
+   "line": 1045
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "signing_hash_7702",
    "kind": "function",
-   "line": 1147
+   "line": 1074
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "get_transaction_hash",
    "kind": "function",
-   "line": 1175
+   "line": 1102
   },
   {
    "file": "forks/amsterdam/transactions.py",
    "name": "has_access_list",
    "kind": "function",
-   "line": 1191
+   "line": 1118
   },
   {
    "file": "forks/amsterdam/utils/address.py",
@@ -2433,55 +2355,55 @@
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "TRANSFER_TOPIC",
    "kind": "constant",
-   "line": 40
+   "line": 35
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "SYSTEM_ADDRESS",
    "kind": "constant",
-   "line": 41
+   "line": 36
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "CALL_SUCCESS",
    "kind": "constant",
-   "line": 44
+   "line": 39
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "BlockEnvironment",
    "kind": "class",
-   "line": 49
+   "line": 44
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "BlockOutput",
    "kind": "class",
-   "line": 72
+   "line": 66
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "TransactionEnvironment",
    "kind": "class",
-   "line": 125
+   "line": 119
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "Evm",
    "kind": "class",
-   "line": 153
+   "line": 147
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "incorporate_child",
    "kind": "function",
-   "line": 194
+   "line": 188
   },
   {
    "file": "forks/amsterdam/vm/__init__.py",
    "name": "emit_transfer_log",
    "kind": "function",
-   "line": 253
+   "line": 247
   },
   {
    "file": "forks/amsterdam/vm/eoa_delegation.py",
@@ -2553,25 +2475,25 @@
    "file": "forks/amsterdam/vm/eoa_delegation.py",
    "name": "recover_authority",
    "kind": "function",
-   "line": 116
+   "line": 112
   },
   {
    "file": "forks/amsterdam/vm/eoa_delegation.py",
    "name": "calculate_delegation_cost",
    "kind": "function",
-   "line": 159
+   "line": 155
   },
   {
    "file": "forks/amsterdam/vm/eoa_delegation.py",
    "name": "validate_authorization",
    "kind": "function",
-   "line": 199
+   "line": 191
   },
   {
    "file": "forks/amsterdam/vm/eoa_delegation.py",
    "name": "set_delegation",
    "kind": "function",
-   "line": 243
+   "line": 231
   },
   {
    "file": "forks/amsterdam/vm/exceptions.py",
@@ -2691,235 +2613,217 @@
    "file": "forks/amsterdam/vm/gas.py",
    "name": "StateGasCosts",
    "kind": "class",
-   "line": 48
+   "line": 39
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "GasCosts",
    "kind": "class",
-   "line": 72
-  },
-  {
-   "file": "forks/amsterdam/vm/gas.py",
-   "name": "BLOB_SCHEDULE_TARGET",
-   "kind": "constant",
-   "line": 262
-  },
-  {
-   "file": "forks/amsterdam/vm/gas.py",
-   "name": "BLOB_SCHEDULE_MAX",
-   "kind": "constant",
-   "line": 263
-  },
-  {
-   "file": "forks/amsterdam/vm/gas.py",
-   "name": "BLOB_BASE_FEE_UPDATE_FRACTION",
-   "kind": "constant",
-   "line": 264
+   "line": 63
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "MAX_BLOB_GAS_PER_BLOCK",
    "kind": "constant",
-   "line": 265
+   "line": 253
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "GasMeter",
    "kind": "class",
-   "line": 272
+   "line": 260
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "ExtendMemory",
    "kind": "class",
-   "line": 341
+   "line": 329
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "MessageCallGas",
    "kind": "class",
-   "line": 357
+   "line": 345
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "check_gas",
    "kind": "function",
-   "line": 374
+   "line": 362
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "charge_gas_from_meter",
    "kind": "function",
-   "line": 391
+   "line": 379
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "charge_gas",
    "kind": "function",
-   "line": 408
+   "line": 396
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "charge_state_gas_from_meter",
    "kind": "function",
-   "line": 425
+   "line": 413
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "charge_state_gas",
    "kind": "function",
-   "line": 451
+   "line": 439
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "commit_state_gas",
    "kind": "function",
-   "line": 471
+   "line": 459
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "restore_state_gas",
    "kind": "function",
-   "line": 505
+   "line": 493
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "restore_state_gas_to_entry",
    "kind": "function",
-   "line": 532
+   "line": 520
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "tx_state_gas_used",
    "kind": "function",
-   "line": 570
+   "line": 558
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "credit_state_gas_refund",
    "kind": "function",
-   "line": 606
+   "line": 594
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "repay_state_gas_spill",
    "kind": "function",
-   "line": 631
+   "line": 619
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "forfeit_remaining_gas",
    "kind": "function",
-   "line": 662
+   "line": 650
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "withhold_create_gas",
    "kind": "function",
-   "line": 678
+   "line": 666
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "drain_state_gas_reservoir",
    "kind": "function",
-   "line": 701
+   "line": 689
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "restore_child_gas",
    "kind": "function",
-   "line": 725
+   "line": 713
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_memory_gas_cost",
    "kind": "function",
-   "line": 749
+   "line": 737
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_gas_extend_memory",
    "kind": "function",
-   "line": 776
+   "line": 761
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_message_call_gas",
    "kind": "function",
-   "line": 816
+   "line": 801
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "max_message_call_gas",
    "kind": "function",
-   "line": 861
+   "line": 846
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "init_code_cost",
    "kind": "function",
-   "line": 879
+   "line": 864
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_excess_blob_gas",
    "kind": "function",
-   "line": 901
+   "line": 886
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_total_blob_gas",
    "kind": "function",
-   "line": 951
+   "line": 936
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_blob_gas_price",
    "kind": "function",
-   "line": 972
+   "line": 957
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "calculate_data_fee",
    "kind": "function",
-   "line": 994
+   "line": 979
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "check_max_fee_per_blob_gas",
    "kind": "function",
-   "line": 1016
+   "line": 1001
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "check_block_gas_capacity",
    "kind": "function",
-   "line": 1053
+   "line": 1038
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "EvmGasAllocation",
    "kind": "class",
-   "line": 1108
+   "line": 1093
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "allocate_evm_gas",
    "kind": "function",
-   "line": 1120
+   "line": 1105
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "TransactionGasSettlement",
    "kind": "class",
-   "line": 1157
+   "line": 1142
   },
   {
    "file": "forks/amsterdam/vm/gas.py",
    "name": "settle_transaction_gas",
    "kind": "function",
-   "line": 1178
+   "line": 1163
   },
   {
    "file": "forks/amsterdam/vm/instructions/__init__.py",
@@ -2949,73 +2853,73 @@
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "add",
    "kind": "function",
-   "line": 28
+   "line": 25
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "sub",
    "kind": "function",
-   "line": 55
+   "line": 52
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "mul",
    "kind": "function",
-   "line": 82
+   "line": 79
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "div",
    "kind": "function",
-   "line": 109
+   "line": 106
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "U255_CEIL_VALUE",
    "kind": "constant",
-   "line": 139
+   "line": 136
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "sdiv",
    "kind": "function",
-   "line": 142
+   "line": 139
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "mod",
    "kind": "function",
-   "line": 175
+   "line": 172
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "smod",
    "kind": "function",
-   "line": 205
+   "line": 202
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "addmod",
    "kind": "function",
-   "line": 235
+   "line": 232
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "mulmod",
    "kind": "function",
-   "line": 266
+   "line": 263
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "exp",
    "kind": "function",
-   "line": 297
+   "line": 294
   },
   {
    "file": "forks/amsterdam/vm/instructions/arithmetic.py",
    "name": "signextend",
    "kind": "function",
-   "line": 334
+   "line": 331
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
@@ -3033,55 +2937,55 @@
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_and",
    "kind": "function",
-   "line": 24
+   "line": 21
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_or",
    "kind": "function",
-   "line": 49
+   "line": 46
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_xor",
    "kind": "function",
-   "line": 74
+   "line": 71
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_not",
    "kind": "function",
-   "line": 99
+   "line": 96
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "get_byte",
    "kind": "function",
-   "line": 123
+   "line": 120
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_shl",
    "kind": "function",
-   "line": 159
+   "line": 156
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_shr",
    "kind": "function",
-   "line": 189
+   "line": 186
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "bitwise_sar",
    "kind": "function",
-   "line": 219
+   "line": 216
   },
   {
    "file": "forks/amsterdam/vm/instructions/bitwise.py",
    "name": "count_leading_zeros",
    "kind": "function",
-   "line": 251
+   "line": 248
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
@@ -3105,43 +3009,43 @@
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "coinbase",
    "kind": "function",
-   "line": 72
+   "line": 71
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "timestamp",
    "kind": "function",
-   "line": 106
+   "line": 105
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "number",
    "kind": "function",
-   "line": 140
+   "line": 139
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "prev_randao",
    "kind": "function",
-   "line": 173
+   "line": 172
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "gas_limit",
    "kind": "function",
-   "line": 206
+   "line": 205
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "chain_id",
    "kind": "function",
-   "line": 239
+   "line": 238
   },
   {
    "file": "forks/amsterdam/vm/instructions/block.py",
    "name": "slot_number",
    "kind": "function",
-   "line": 269
+   "line": 268
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
@@ -3159,37 +3063,37 @@
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "less_than",
    "kind": "function",
-   "line": 24
+   "line": 21
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "signed_less_than",
    "kind": "function",
-   "line": 51
+   "line": 48
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "greater_than",
    "kind": "function",
-   "line": 77
+   "line": 74
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "signed_greater_than",
    "kind": "function",
-   "line": 104
+   "line": 101
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "equal",
    "kind": "function",
-   "line": 130
+   "line": 127
   },
   {
    "file": "forks/amsterdam/vm/instructions/comparison.py",
    "name": "is_zero",
    "kind": "function",
-   "line": 157
+   "line": 154
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
@@ -3207,37 +3111,37 @@
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "stop",
    "kind": "function",
-   "line": 25
+   "line": 22
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "jump",
    "kind": "function",
-   "line": 48
+   "line": 45
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "jumpi",
    "kind": "function",
-   "line": 73
+   "line": 70
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "pc",
    "kind": "function",
-   "line": 104
+   "line": 101
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "gas_left",
    "kind": "function",
-   "line": 128
+   "line": 125
   },
   {
    "file": "forks/amsterdam/vm/instructions/control_flow.py",
    "name": "jumpdest",
    "kind": "function",
-   "line": 152
+   "line": 149
   },
   {
    "file": "forks/amsterdam/vm/instructions/environment.py",
@@ -3399,7 +3303,7 @@
    "file": "forks/amsterdam/vm/instructions/keccak.py",
    "name": "keccak",
    "kind": "function",
-   "line": 30
+   "line": 26
   },
   {
    "file": "forks/amsterdam/vm/instructions/log.py",
@@ -3411,7 +3315,7 @@
    "file": "forks/amsterdam/vm/instructions/log.py",
    "name": "log_n",
    "kind": "function",
-   "line": 32
+   "line": 28
   },
   {
    "file": "forks/amsterdam/vm/instructions/memory.py",
@@ -3435,31 +3339,31 @@
    "file": "forks/amsterdam/vm/instructions/memory.py",
    "name": "mstore",
    "kind": "function",
-   "line": 30
+   "line": 26
   },
   {
    "file": "forks/amsterdam/vm/instructions/memory.py",
    "name": "mstore8",
    "kind": "function",
-   "line": 61
+   "line": 57
   },
   {
    "file": "forks/amsterdam/vm/instructions/memory.py",
    "name": "mload",
    "kind": "function",
-   "line": 93
+   "line": 89
   },
   {
    "file": "forks/amsterdam/vm/instructions/memory.py",
    "name": "msize",
    "kind": "function",
-   "line": 123
+   "line": 119
   },
   {
    "file": "forks/amsterdam/vm/instructions/memory.py",
    "name": "mcopy",
    "kind": "function",
-   "line": 146
+   "line": 142
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
@@ -3483,43 +3387,43 @@
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "pop",
    "kind": "function",
-   "line": 29
+   "line": 26
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "push_n",
    "kind": "function",
-   "line": 52
+   "line": 49
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "dup_n",
    "kind": "function",
-   "line": 85
+   "line": 82
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "swap_n",
    "kind": "function",
-   "line": 113
+   "line": 110
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "dupn",
    "kind": "function",
-   "line": 216
+   "line": 213
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "swapn",
    "kind": "function",
-   "line": 248
+   "line": 245
   },
   {
    "file": "forks/amsterdam/vm/instructions/stack.py",
    "name": "exchange",
    "kind": "function",
-   "line": 284
+   "line": 281
   },
   {
    "file": "forks/amsterdam/vm/instructions/storage.py",
@@ -3573,73 +3477,73 @@
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "generic_create",
    "kind": "function",
-   "line": 66
+   "line": 59
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "create",
    "kind": "function",
-   "line": 195
+   "line": 188
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "create2",
    "kind": "function",
-   "line": 249
+   "line": 242
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "return_",
    "kind": "function",
-   "line": 314
+   "line": 307
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "GenericCall",
    "kind": "class",
-   "line": 349
+   "line": 342
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "generic_call",
    "kind": "function",
-   "line": 376
+   "line": 369
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "call",
    "kind": "function",
-   "line": 472
+   "line": 465
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "callcode",
    "kind": "function",
-   "line": 599
+   "line": 592
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "selfdestruct",
    "kind": "function",
-   "line": 713
+   "line": 706
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "delegatecall",
    "kind": "function",
-   "line": 788
+   "line": 781
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "staticcall",
    "kind": "function",
-   "line": 891
+   "line": 884
   },
   {
    "file": "forks/amsterdam/vm/instructions/system.py",
    "name": "revert",
    "kind": "function",
-   "line": 994
+   "line": 987
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
@@ -3669,55 +3573,55 @@
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "STACK_DEPTH_LIMIT",
    "kind": "constant",
-   "line": 84
+   "line": 79
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "MAX_CODE_SIZE",
    "kind": "constant",
-   "line": 85
+   "line": 80
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "MAX_INIT_CODE_SIZE",
    "kind": "constant",
-   "line": 86
+   "line": 81
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "TransactionOutput",
    "kind": "class",
-   "line": 91
+   "line": 86
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "charge_value_transfer_to_non_alive_account",
    "kind": "function",
-   "line": 124
+   "line": 119
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "create_evm",
    "kind": "function",
-   "line": 138
+   "line": 133
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "process_top_level",
    "kind": "function",
-   "line": 241
+   "line": 235
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "process_create",
    "kind": "function",
-   "line": 330
+   "line": 324
   },
   {
    "file": "forks/amsterdam/vm/interpreter.py",
    "name": "process_call",
    "kind": "function",
-   "line": 401
+   "line": 395
   },
   {
    "file": "forks/amsterdam/vm/memory.py",
@@ -4227,25 +4131,25 @@
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
    "name": "LENGTH_PER_PAIR",
    "kind": "constant",
-   "line": 39
+   "line": 36
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
    "name": "bls12_g1_add",
    "kind": "function",
-   "line": 42
+   "line": 39
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
    "name": "bls12_g1_msm",
    "kind": "function",
-   "line": 73
+   "line": 70
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py",
    "name": "bls12_map_fp_to_g1",
    "kind": "function",
-   "line": 124
+   "line": 121
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
@@ -4293,25 +4197,25 @@
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
    "name": "LENGTH_PER_PAIR",
    "kind": "constant",
-   "line": 40
+   "line": 37
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
    "name": "bls12_g2_add",
    "kind": "function",
-   "line": 43
+   "line": 40
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
    "name": "bls12_g2_msm",
    "kind": "function",
-   "line": 74
+   "line": 71
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py",
    "name": "bls12_map_fp2_to_g2",
    "kind": "function",
-   "line": 125
+   "line": 122
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py",
@@ -4383,7 +4287,7 @@
    "file": "forks/amsterdam/vm/precompiled_contracts/identity.py",
    "name": "identity",
    "kind": "function",
-   "line": 26
+   "line": 23
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/mapping.py",
@@ -4515,7 +4419,7 @@
    "file": "forks/amsterdam/vm/precompiled_contracts/ripemd160.py",
    "name": "ripemd160",
    "kind": "function",
-   "line": 29
+   "line": 26
   },
   {
    "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
@@ -4539,7 +4443,7 @@
    "file": "forks/amsterdam/vm/precompiled_contracts/sha256.py",
    "name": "sha256",
    "kind": "function",
-   "line": 28
+   "line": 25
   },
   {
    "file": "forks/amsterdam/vm/runtime.py",
@@ -4635,157 +4539,145 @@
    "file": "forks/amsterdam/witness_state.py",
    "name": "build_node_db",
    "kind": "function",
-   "line": 37
+   "line": 28
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "build_code_db",
    "kind": "function",
-   "line": 45
-  },
-  {
-   "file": "forks/amsterdam/witness_state.py",
-   "name": "_trie_lookup",
-   "kind": "function",
-   "line": 53
+   "line": 33
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "_decode_account_from_leaf",
    "kind": "function",
-   "line": 103
+   "line": 38
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "WitnessState",
    "kind": "class",
-   "line": 132
+   "line": 67
   },
   {
    "file": "forks/amsterdam/witness_state.py",
-   "name": "WitnessState._get_decoded_secure_root",
+   "name": "WitnessState._get_decoded_secure_trie",
    "kind": "method",
-   "line": 148
+   "line": 83
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "WitnessState.get_account_optional",
    "kind": "method",
-   "line": 162
+   "line": 96
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "WitnessState.get_storage",
    "kind": "method",
-   "line": 179
+   "line": 112
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "WitnessState.get_code",
    "kind": "method",
-   "line": 205
+   "line": 129
   },
   {
    "file": "forks/amsterdam/witness_state.py",
    "name": "WitnessState.compute_state_root",
    "kind": "method",
-   "line": 215
-  },
-  {
-   "file": "forks/amsterdam/witness_state.py",
-   "name": "WitnessState.compute_state_root_and_trie_changes",
-   "kind": "method",
-   "line": 229
+   "line": 139
   },
   {
    "file": "state.py",
    "name": "ethereum_types.bytes.Bytes",
    "kind": "external",
-   "line": 27
+   "line": 21
   },
   {
    "file": "state.py",
    "name": "ethereum_types.bytes.Bytes20",
    "kind": "external",
-   "line": 27
+   "line": 21
   },
   {
    "file": "state.py",
    "name": "ethereum_types.bytes.Bytes32",
    "kind": "external",
-   "line": 27
+   "line": 21
   },
   {
    "file": "state.py",
    "name": "ethereum_types.frozen.slotted_freezable",
    "kind": "external",
-   "line": 28
+   "line": 22
   },
   {
    "file": "state.py",
    "name": "ethereum_types.numeric.U256",
    "kind": "external",
-   "line": 29
+   "line": 23
   },
   {
    "file": "state.py",
    "name": "ethereum_types.numeric.Uint",
    "kind": "external",
-   "line": 29
+   "line": 23
   },
   {
    "file": "state.py",
    "name": "EMPTY_CODE_HASH",
    "kind": "constant",
-   "line": 36
+   "line": 30
   },
   {
    "file": "state.py",
    "name": "Account",
    "kind": "class",
-   "line": 42
+   "line": 36
   },
   {
    "file": "state.py",
    "name": "EMPTY_ACCOUNT",
    "kind": "constant",
-   "line": 52
+   "line": 46
   },
   {
    "file": "state.py",
    "name": "BlockDiff",
    "kind": "class",
-   "line": 61
+   "line": 55
   },
   {
    "file": "state.py",
    "name": "PreState",
    "kind": "class",
-   "line": 92
+   "line": 86
   },
   {
    "file": "state.py",
    "name": "PreState.get_account_optional",
    "kind": "method",
-   "line": 100
+   "line": 94
   },
   {
    "file": "state.py",
    "name": "PreState.get_storage",
    "kind": "method",
-   "line": 108
+   "line": 102
   },
   {
    "file": "state.py",
    "name": "PreState.get_code",
    "kind": "method",
-   "line": 116
+   "line": 110
   },
   {
    "file": "state.py",
    "name": "PreState.compute_state_root",
    "kind": "method",
-   "line": 124
+   "line": 118
   },
   {
    "file": "state_mpt.py",
@@ -5911,141 +5803,135 @@
   },
   {
    "file": "utils/ssz.py",
-   "name": "byte_vector",
+   "name": "byte_list",
    "kind": "function",
    "line": 98
   },
   {
    "file": "utils/ssz.py",
-   "name": "byte_list",
+   "name": "ssz_list",
    "kind": "function",
    "line": 103
   },
   {
    "file": "utils/ssz.py",
-   "name": "ssz_list",
+   "name": "progressive_list",
    "kind": "function",
    "line": 108
   },
   {
    "file": "utils/ssz.py",
-   "name": "progressive_list",
+   "name": "progressive_byte_list",
    "kind": "function",
    "line": 113
   },
   {
    "file": "utils/ssz.py",
-   "name": "progressive_byte_list",
-   "kind": "function",
-   "line": 118
-  },
-  {
-   "file": "utils/ssz.py",
    "name": "_C",
    "kind": "constant",
-   "line": 123
+   "line": 118
   },
   {
    "file": "utils/ssz.py",
    "name": "SszContainer",
    "kind": "class",
-   "line": 126
+   "line": 121
   },
   {
    "file": "utils/ssz.py",
    "name": "SszContainer.encode_bytes",
    "kind": "method",
-   "line": 129
+   "line": 124
   },
   {
    "file": "utils/ssz.py",
    "name": "SszContainer.hash_tree_root",
    "kind": "method",
-   "line": 133
+   "line": 128
   },
   {
    "file": "utils/ssz.py",
    "name": "SszContainer.decode_bytes",
    "kind": "method",
-   "line": 138
+   "line": 133
   },
   {
    "file": "utils/ssz.py",
    "name": "ProgressiveSszContainer",
    "kind": "class",
-   "line": 149
+   "line": 144
   },
   {
    "file": "utils/ssz.py",
    "name": "_annotated",
    "kind": "function",
-   "line": 153
+   "line": 148
   },
   {
    "file": "utils/ssz.py",
    "name": "_collection_element",
    "kind": "function",
-   "line": 169
+   "line": 164
   },
   {
    "file": "utils/ssz.py",
    "name": "_infer",
    "kind": "function",
-   "line": 179
+   "line": 174
   },
   {
    "file": "utils/ssz.py",
    "name": "_rmk_type",
    "kind": "function",
-   "line": 208
+   "line": 203
   },
   {
    "file": "utils/ssz.py",
    "name": "_FIELD_TYPES",
    "kind": "constant",
-   "line": 228
+   "line": 223
   },
   {
    "file": "utils/ssz.py",
    "name": "_field_types",
    "kind": "function",
-   "line": 231
+   "line": 226
   },
   {
    "file": "utils/ssz.py",
    "name": "_CONTAINER_TYPES",
    "kind": "constant",
-   "line": 240
+   "line": 235
   },
   {
    "file": "utils/ssz.py",
    "name": "_container_type",
    "kind": "function",
-   "line": 243
+   "line": 238
   },
   {
    "file": "utils/ssz.py",
    "name": "_to_ssz_value",
    "kind": "function",
-   "line": 263
+   "line": 258
   },
   {
    "file": "utils/ssz.py",
    "name": "_to_view",
    "kind": "function",
-   "line": 288
+   "line": 283
   },
   {
    "file": "utils/ssz.py",
    "name": "_from_ssz_value",
    "kind": "function",
-   "line": 299
+   "line": 294
   },
   {
    "file": "utils/ssz.py",
    "name": "_from_view",
    "kind": "function",
-   "line": 318
+   "line": 313
   },
   {
    "file": "forks/bpo5/blocks.py",
