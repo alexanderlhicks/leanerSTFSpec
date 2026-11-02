@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-10-29.*
+*Status: current contributor guidance. Date: 2026-11-02.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -130,6 +130,13 @@ The description gives the motivation, the change in behaviour or contract, the E
 
 ### 6.3 Checks
 
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for the repository Python tooling.
+CI uses uv 0.13.6.
+The two specification-document checks use `uv run --no-project --python 3.12 python`; uv downloads Python 3.12 if needed.
+They use only the standard library, without a project environment or extra dependencies.
+Run commands from the repository root.
+For EELS reference runs, follow the Python and environment requirements in `scripts/differential.py` or the individual conformance harness.
+
 Run before opening a pull request (CI runs the same):
 
 ```sh
@@ -258,7 +265,8 @@ python3 -B scripts/test_node_db_output_parser.py
 python3 -B -O scripts/test_node_db_output_parser.py
 python3 scripts/check_reference.py && python3 scripts/test_reference_checks.py
 python3 scripts/gen_arch_diagram.py --check
-python3 scripts/check_spec.py && python3 scripts/test_spec_checks.py
+uv run --no-project --python 3.12 python scripts/check_spec.py
+uv run --no-project --python 3.12 python scripts/test_spec_checks.py
 python3 scripts/gen_gaps.py --check
 lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py

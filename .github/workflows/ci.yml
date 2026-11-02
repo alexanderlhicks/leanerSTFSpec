@@ -228,10 +228,15 @@ jobs:
           python3 scripts/test_reference_checks.py
       - name: README architecture diagram matches the registries and pin
         run: python3 scripts/gen_arch_diagram.py --check
+      - name: Set up uv for specification checks
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.6"
+          enable-cache: false
       - name: Informal specification coverage and consistency
-        run: python3 scripts/check_spec.py
+        run: uv run --no-project --python 3.12 python scripts/check_spec.py
       - name: Informal specification checker regressions
-        run: python3 scripts/test_spec_checks.py
+        run: uv run --no-project --python 3.12 python scripts/test_spec_checks.py
       - name: Gap register is up to date
         run: python3 scripts/gen_gaps.py --check
       - name: Deterministic conformance checks (core profile)
