@@ -1039,6 +1039,16 @@ values of a larger modulus. All four agree on the R8 callers (32-byte BN254,
 secp256k1, P-256 and KZG values; 64-byte EIP-2537 coordinates), whose canonical
 values fit by the modulus bound.
 
+**Secured-trie path-length diagnostic options (Q90).** DECISIONS Q90 owns the
+selection; EthCommit §5 owns the constructor and C13 the decoder behaviour. EELS
+checks three conditions with plain `assert`s after a secured decode: a leaf's
+remaining path, an extension segment and a branch against the remaining nibbles of
+the 64-nibble key. (A) one constructor for all three, so no order among them is part
+of the contract; (B) one constructor per condition, which makes the traversal order
+that finds the first failure part of the contract; (C) a constructor carrying the
+path or remaining count, which adds data no consumer reads. Every option is an O4
+rejection on the guest path.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
