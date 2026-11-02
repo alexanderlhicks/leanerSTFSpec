@@ -208,6 +208,8 @@ jobs:
         run: python3 scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)
         run: scripts/check_decls.sh core
+      - name: Kernel replay of every core module
+        run: scripts/replay_kernel.sh core
       - name: Checker regression tests
         run: |
           lake build CheckDeclsTest
@@ -270,11 +272,15 @@ jobs:
         run: lake build --wfail
       - name: Declaration check, bridge package (sorry reported; everything else strict)
         run: scripts/check_decls.sh mathlib
+      - name: Kernel replay, bridge package
+        run: scripts/replay_kernel.sh mathlib
       - name: Build the security package
         working-directory: STFSpecSecurity
         run: lake build --wfail
       - name: Declaration check, security package (sorry reported; everything else strict)
         run: scripts/check_decls.sh security
+      - name: Kernel replay, security package
+        run: scripts/replay_kernel.sh security
 
   fixtures:
     name: Pinned EEST zkevm corpus

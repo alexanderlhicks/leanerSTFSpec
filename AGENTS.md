@@ -1,6 +1,6 @@
 # Working in STFspec
 
-*Status: current repository entry point. Date: 2026-09-30.*
+*Status: current repository entry point. Date: 2026-11-02.*
 
 This is the entry point for anyone, human or agent, working in this repository. It says where things are and which document wins. It restates no facts: follow the links.
 
@@ -29,6 +29,7 @@ These are enforced by `check-decls` and `scripts/check_boundaries.py` where poss
 - **Banned constructs:** `sorry` outside the Mathlib and security packages, `axiom`, `native_decide`, `bv_decide`, `decide +native`, `@[csimp]`, `implemented_by`, `extern`, `unsafe`, `partial`, `opaque`. There is no exemption mechanism. `deriving` on nested inductives can generate `partial` constants (CONTRIBUTING §4).
 - **Fast code:** a fast definition sits *beside* a legible reference with an ordinary equality theorem, or replaces a representation behind a model-based contract (D25).
 - **Mathlib:** none in the core package. Mathlib appears only in `STFSpecMathlib/` and `STFSpecSecurity/`; VCV-io only in `STFSpecSecurity/`.
+- **Kernel replay:** every library module must pass `scripts/replay_kernel.sh`; from `Lean`, core modules import only `Lean.Data.Json` and its submodules (CONTRIBUTING §4).
 - **Dependencies:** a third-party dependency must be pure Lean and must pass the declaration check on everything imported (D26).
 - **Hashing:** every keccak goes through `KeccakQuery`, with monad-parametric interfaces specialised to `Id` (D5).
 - **Data structures:** performance-appropriate, or recorded in [`STFSpec/informal/DEBT.md`](STFSpec/informal/DEBT.md) (D18).
@@ -48,7 +49,7 @@ recommendation as a merge blocker.
 
 | Task | Read | Update | Check |
 |---|---|---|---|
-| **Implement or change library `EthX`** | `STFSpec/informal/modules/EthX.md` (its navigation line lists the relevant decisions and questions); the providers' §5 and §7; `STFSpec/informal/COMPOSITION.md` §2; the `EthX` gate and handoff contract in `STFSpec/informal/REVIEW.md` §§3–4 | the spec guidance document (its §10 gaps, then `scripts/gen_gaps.py`); a source-to-Lean/test row per implemented operation (REVIEW §4); DEBT.md for a performance exception | `lake build --wfail`, `scripts/check_boundaries.py`, `scripts/check_decls.sh core`, `scripts/check_spec.py`, `scripts/gen_gaps.py --check` |
+| **Implement or change library `EthX`** | `STFSpec/informal/modules/EthX.md` (its navigation line lists the relevant decisions and questions); the providers' §5 and §7; `STFSpec/informal/COMPOSITION.md` §2; the `EthX` gate and handoff contract in `STFSpec/informal/REVIEW.md` §§3–4 | the spec guidance document (its §10 gaps, then `scripts/gen_gaps.py`); a source-to-Lean/test row per implemented operation (REVIEW §4); DEBT.md for a performance exception | `lake build --wfail`, `scripts/check_boundaries.py`, `scripts/check_decls.sh core`, `scripts/replay_kernel.sh core`, `scripts/check_spec.py`, `scripts/gen_gaps.py --check` |
 | Add or change a decision | `STFSpec/informal/DECISIONS.md` (§5: how to add one) | its row (the only status owner), the ARCHITECTURE §11 options, and the affected spec guidance documents in the same change | `scripts/check_spec.py` (decision IDs) |
 | Error, failure or outcome question | `STFSpec/informal/CONTRACT.md` §4; D14; `STFSpec/informal/modules/EthStateless.md` §7 | CONTRACT (the outcome owner); the module's error constructors | — |
 | Protocol discrepancy | CONTRACT §6 | `STFSpec/informal/DISCREPANCIES.md` (records only; a deviation needs a decision) | — |
@@ -56,7 +57,7 @@ recommendation as a merge blocker.
 | Record the outcome of an investigation | `STFSpec/informal/DECISIONS.md` | the dispositions (or a decision) in DECISIONS and the affected specs, in the same change | `scripts/check_spec.py` |
 | Performance work | CONTRIBUTING §3; `STFSpec/informal/REVIEW.md` §7 (cost checks C1–C4) | DEBT.md; the decision record | a benchmark with a correctness gate, no checksum in the timed loop |
 | Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | add a regression fixture first | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`; `python3 scripts/test_spec_checks.py` |
-| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`; `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | — | `(cd STFSpecMathlib && lake build) && scripts/check_decls.sh mathlib`; likewise `STFSpecSecurity` with `security` |
+| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`; `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | — | `(cd STFSpecMathlib && lake build) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`; likewise `STFSpecSecurity` with `security` |
 
 ## Open items
 

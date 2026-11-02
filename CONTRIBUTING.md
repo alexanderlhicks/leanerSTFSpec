@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-10-29.*
+*Status: current contributor guidance. Date: 2026-11-02.*
 
 Contributions are welcome: implementing a library, proving a law, fixing a discrepancy with the reference, improving a spec guidance document, or improving the checkers.
 
@@ -48,6 +48,8 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern.
   - **What is checked:** the *resulting proof dependencies*, whatever tactic produced them. No axiom beyond `propext`, `Quot.sound` and `Classical.choice` may appear, directly or transitively. So `native_decide`, `bv_decide` and `decide +native` are rejected (each adds a `…._native…` axiom), and renaming or wrapping a tactic cannot bypass the check.
   - **Design rules:** `@[csimp]`, `implemented_by`, `extern`, `unsafe`, `partial` and `opaque` are banned too. `@[csimp]` and `opaque` are not *logically* unsound; the prohibition is about executable correspondence (compiled code must run the definition we reason about) and transparency (every definition must unfold).
   - **Enforcement:** `check-decls` (`scripts/check_decls.sh`), with regression fixtures. There is no exemption mechanism.
+  - **Kernel replay:** `check-decls` and `#print axioms` trust the compiled environment, so a declaration the kernel never checked passes both: for example one added by an elaboration-time metaprogram through `addDecl` under `debug.skipKernelTC`, or through `addDeclWithoutChecking`. Logical soundness rests on kernel replay: CI re-checks every constant of every module of each package's libraries (`STFSpec`; `STFSpecMathlib`; `STFSpecSecurity` and `ToVCVio`) with `scripts/replay_kernel.sh`, which runs `lake env leanchecker` and fails unless the number of modules replayed equals the number of source modules. The core package's `scripts/` executables (native tests, benchmarks, checkers) are not replayed: no library imports them and no result depends on them; `check-decls` audits them. Replay checks constants only: environment extensions, compiled IR and build-time IO are outside it. The regression fixture is `scripts/CheckDeclsTest/KernelBypass.lean`.
+  - **Source-level controls in the core** (`scripts/check_boundaries.py`): from `Lean`, a core module may import only `Lean.Data.Json` and its submodules, which do not bring `addDecl`, the elaborator monads or the kernel environment into scope. Imports are read not by a pattern but by Lake's fast import parser (`Lean.parseImports'`, run as `lean --deps-json` with the pinned toolchain), which Lake also uses for build dependencies and which can over-report relative to the frontend but never under-reports without an error; if it cannot run or cannot read a header, the check fails. Check 4b is a tripwire against accidental or obvious metaprograms (`#eval`, `run_cmd`, `run_elab`, `run_meta`, `elab`, `initialize` and the others it lists), and the literal token `skipKernelTC` is rejected. These token checks are evadable, for example by a `macro` whose expansion builds a `#eval` command, or by an option name assembled from strings; they are not a soundness argument.
   - **Bit-vectors:** use Std's operation lemmas, bit extensionality, `simp`, `omega` and arithmetic reasoning, plus plain `decide` for small concrete checks; `check-decls` checks the resulting proofs.
 - **Derived instances can introduce banned constructs.** `deriving BEq`/`Repr`/`DecidableEq` on a *nested* inductive (an RLP item or SSZ value containing a `List` of itself) generates `partial` constants. Write structural instances by hand for such types (F17, [DECISIONS §3](STFSpec/informal/DECISIONS.md)).
 - **Fast definitions without compiler substitution.** Where the performance-appropriate executable definition is not the most legible form (an unrolled keccak permutation, limb arithmetic), the component keeps a **legible reference definition beside it**, with the equality proved as an ordinary theorem. Callers use the executable definition; readers and proofs can go through the reference. Both live in the owning module, and the model-based contract (D25) states which one the laws are proved against.
@@ -66,7 +68,7 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern.
 3. **Automate only what is strictly deterministic.** CI and other automated checks enforce properties with an exact, mechanical definition:
    - builds and warnings;
    - import boundaries, and their agreement with the architecture's dependency table;
-   - compiled-declaration checks (axioms, `sorry`, `partial`/`opaque`, extern, `@[csimp]`);
+   - compiled-declaration checks (axioms, `sorry`, `partial`/`opaque`, extern, `@[csimp]`) and kernel replay of every module of each package's libraries;
    - EELS coverage and ownership;
    - pins and checksums;
    - fixture conformance (once the conformance runner exists);
@@ -250,6 +252,7 @@ python3 scripts/gen_packed_keccak.py --check
 python3 scripts/test_packed_keccak_generator.py
 python3 scripts/check_boundaries.py
 scripts/check_decls.sh core
+scripts/replay_kernel.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
 python3 scripts/test_differential.py
 python3 -B scripts/test_hash32_output_parser.py
@@ -270,7 +273,7 @@ measurements remain manual.
 The Taylor producer is built, audited and executed before its complete captured stdout
 is checked against the handwritten literals; source coupling is separate.
 
-Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there and `scripts/check_decls.sh mathlib` or `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.
+Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there, then `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same with `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, and the README diagram.
 
 ### 6.4 Review and commit gate
 

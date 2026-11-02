@@ -2,7 +2,8 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 import STFSpec.Vm.Core
-import Lean
+import Lean.Data.Json.Parser
+import Lean.Data.Json.FromToJson
 /-!
 # Complete Memory observations
 Library `EthConformance`. Public construction and complete actual memories, immutable

@@ -19,7 +19,7 @@ class SpecChecks(unittest.TestCase):
         for path in ("STFSpec",):
             shutil.copytree(ROOT / path, self.root / path)
         for path in ("scripts/check_spec.py", "scripts/check_boundaries.py", "scripts/gen_gaps.py",
-                     "scripts/boundaries.toml", "STFSpecMathlib/lakefile.toml", "STFSpecSecurity/lakefile.toml", "reference.toml"):
+                     "scripts/boundaries.toml", "STFSpecMathlib/lakefile.toml", "STFSpecSecurity/lakefile.toml", "reference.toml", "lean-toolchain"):
             target = self.root / path
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / path, target)
@@ -106,6 +106,10 @@ class SpecChecks(unittest.TestCase):
     def test_unreachable_provider(self):
         self.edit("STFSpec/informal/modules/EthBase.md", "```lean", "```lean\ndef invalidDependency : Log → Nat")
         self.run_check("cannot reach its owner EthVmCore")
+
+    def test_header_parser_fails_closed(self):
+        (self.root / "lean-toolchain").unlink()
+        self.run_check("lean-toolchain is missing")
 
     def test_proof_import_drift(self):
         self.edit("STFSpec/informal/modules/EthFieldMathlib.md", "**Depends on:** `EthField`", "**Depends on:** `EthCurve`")
