@@ -184,7 +184,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   div/toNat_div/direct Div (exactly three authored declarations, preserving every
   zero/nonunit result); private controls and clients cover those slices. The eight exact
   R1 natural moduli are supplied separately; concrete-field instances/aliases,
-  convenience aliases, byte encoding and paired roundtrip/size laws, powMod,
+  convenience aliases, the Q89 byte encoder with its three laws, powMod,
   executable/tower inverse, Euler/sqrt, towers, executable PrimeField/Montgomery and
   their bridges remain unimplemented. No D6 source choice, primality/Mathlib result,
   replacement/C1–C4 measurement, whole-module, precompile, signature, guest or EEST
@@ -287,13 +287,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   the predicate and complete ordinary iff, structural actual-child recursion,
   45 raw tag pairs/eight semantic groups and ten symbolic public-law clients are
   supplied (§3/§4/§7). The future inverse domain is resolved as Serializable plus
-  CountRecoverable; no decoder, inverse theorem, success-domain characterization,
-  completion or diagnostic/failure-order law is supplied. Adopted bounded source
-  evidence retains actual routes, historical source-root metadata and nominal
-  internal-observer limits (§3). Actual source/class/name/coercion/backing/cache/
-  stream/host and visited `uint32(scope)` premises, universal refinement,
-  schemas/adapters/Rootable/request support, O2/O12/O13, EEST/guest/security and
-  resource/C1–C4/readiness remain open.
+  CountRecoverable, and Q88 selects the success domain and unordered diagnostics
+  (§7); no decoder, inverse theorem or success-domain proof is supplied. Adopted
+  bounded source evidence retains actual routes, historical source-root metadata
+  and nominal internal-observer limits (§3). Actual
+  source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
+  premises, universal refinement, schemas/adapters/Rootable/request support,
+  O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary

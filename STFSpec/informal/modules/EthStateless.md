@@ -1,7 +1,7 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, O2, O13.*
+*Status: informal specification, draft. Date: 2026-11-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` at e1a316a0 unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference.
 
@@ -322,7 +322,7 @@ to any request.
 - [R] **L-decode-phase**: `deserializeStatelessInput input = .error e → runStatelessGuest input = serialize zeroSentinel`.
 - [R] **L-fields**: `deserializeStatelessInput input = .ok x →` the output decodes to a result with `root = computeNewPayloadRequestRoot x`, `chainId = x.chainId`, `schemaId = 0x1501`. So the non-validity fields depend only on the decoded input (the property verifiers rely on).
 - [R] **L-valid**: `successfulValidation = true ↔` `validateHeaders` succeeds with non-empty headers and `executeNewPayloadRequest` over the witness backend succeeds. Stated as an equation on `classify`, this is the top-level seam equation.
-- [C] **L-decode-canonical**: `deserializeStatelessInput b = .ok x ↔ b = schemaIdBytes ++ encode x ∧ x.WF` (from `EthCodec` SSZ laws).
+- [C] **L-decode-canonical**: `deserializeStatelessInput b = .ok x ↔ b = schemaIdBytes ++ encode x ∧ x.WF` (from `EthCodec` SSZ laws; Q88 fixes the success domain, and every rejection is O1 whatever its `SszError` tag).
 - [C] **L-output-codec**: `serializeStatelessOutput` is injective, and the host-side decoder (`EthConformance`) is its left inverse.
 - [C] **L-headers**: `validateHeaders hs = .ok (ds, bh) → ds.size = hs.size ∧ bh = hs.map keccak256 ∧ ∀ i, 0 < i → ds[i].parentHash = bh[i-1]`, and conversely on success of every decode; error precedence as in R4.
 - [C] **L-requests**: `encodeExecutionRequests` emits one blob per non-empty list, strictly ascending type bytes `0x00…0x04` (`forks/amsterdam/requests.py:71–100`, owned by `EthBlock` [V]), each body a concatenation of fixed-size items; `decodeExecutionRequests ∘ encodeExecutionRequests = .ok` (`EthConformance`).
@@ -357,6 +357,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **D14** (accepted): this module is where the O-table becomes constructors, including the enumerated O13 faults. Local choices: O2 is represented by a totality theorem, not a constructor (open: prove it, DECISIONS §3 O2); every payload-transaction decode failure is attributed to `invalidVersionedHashes` because that is where EELS first consumes it.
 - **D5** (provisional, broad): every keccak here goes through `KeccakQuery`: the header-chain hashes (R4), the block-hash check (`isValidBlockHash`), the transactions/withdrawals trie roots in `payloadHeader`, the BAL hash and the witness DB builds (F18). See `EthSecurity`.
+- **Q88** (accepted): the SSZ decoder accepts exactly the canonical encodings of
+  Serializable, CountRecoverable values, with unordered rejection tags. `decodeInput`
+  is its first implementation; every rejection is O1.
 - **D13** (runner shape): fuel is internal to the runner; fuel exhaustion reaches this module only as `InternalError` in `CheckedT` (O11).
 - **D8**, **D19** (witness errors, eager decoding): consumed through `BlockError.witness`.
 - **D3** (Amsterdam only): the previous-fork header is the one place a second fork's type appears; it is decoded only, never executed.
