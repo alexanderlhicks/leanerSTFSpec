@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-01). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-02). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -488,7 +488,7 @@ source handler ordering and actual frame ownership/allocation remain consumer wo
 | D25 | Contract style | laws listed per component · model-based (invariant + commuting equations; laws derived on the model; an abstraction relation for partial structures) | replacement exercises R1, R2, R4 |
 | D26 | secp256k1 recovery for senders and EIP-7702 authorities | `RunnerEnv` parameter · direct `EthCurve` dependency of `EthVmRunner` | — (pure-Lean dependencies only) |
 | D27 | `Log`/`BlockOutput` placement | `Log` in `EthVmCore`, `BlockOutput` in `EthBlock` | — (one owner per public type, `STFSpec/informal/contracts.toml`) |
-| D28 | Lean module system | stay classic · blanket `@[expose] public section` (ArkLib, evm-asm) · unexposed by default with selective `@[expose]` (CompPoly, VCV-io) · split by role (reference exposed; carriers and fast implementations unexposed behind D25 laws) | the module-client library that the migration adds; consumer imports |
+| D28 | Lean module system | stay classic · blanket `@[expose] public section` (ArkLib, most CompPoly files) · unexposed by default with selective `@[expose]` (VCV-io) · split by role (reference exposed; carriers and fast implementations unexposed behind D25 laws). evm-asm divides its module files about evenly between `@[expose] public section` and plain `public section` | the module-client library that the migration adds; consumer imports |
 
 **Generic precompile meter predicate options (Q83).** A parameterizes the table and
 its carriers by a successful-result observation; B factors an action through
