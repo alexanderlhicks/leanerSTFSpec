@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Finite BLAKE2b G/compression comparison with actual authenticated pinned EELS.
 
-Run uv run --no-project --python EELS/.venv/bin/python python -I -B THIS_FILE --eels EELS --output OUTSIDE/compression.lean.
+Run EELS/.venv/bin/python -I -B THIS_FILE --eels EELS --output OUTSIDE/compression.lean.
 The shared driver authenticates the unreplaced pin, current source bytes and frozen
 ethereum-types 0.4.1 before/after observation. Exact Uint word domains and list
 widths are enforced before calls. G observations include arbitrary index aliases.

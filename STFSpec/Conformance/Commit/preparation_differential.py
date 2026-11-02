@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare pure preparation with genuine authenticated pinned _prepare_trie calls.
 
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/preparation_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/preparation_differential.py \
   --eels EELS --output EXTERNAL.lean
 Complete maps and ordered failures are retained, together with traced/untraced
 replays. No source callable, class, encoder, hash or recursion policy is replaced.

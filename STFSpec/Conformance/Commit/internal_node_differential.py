@@ -3,7 +3,7 @@
 """Compare complete internal-node outputs with current authenticated pinned EELS.
 
 From the repository root, run:
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/internal_node_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/internal_node_differential.py \
     --eels EELS --output SCRATCH.lean
 Use an output outside both checkouts. The driver does not manually change resource
 limits; reference imports may change them (`src/ethereum/__init__.py:30` at the pin).

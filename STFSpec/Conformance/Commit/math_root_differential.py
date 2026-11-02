@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare finite complete C8 roots with genuine authenticated pinned Trie/root calls.
 
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/math_root_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/math_root_differential.py \
   --eels EELS --output EXTERNAL.lean
 The destination must be outside both checkouts. Original Trie, trie_set, preparation,
 packing, value encoding, patricialize, C6, RLP and hashing execute without replacement.

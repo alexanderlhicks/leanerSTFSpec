@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Fresh original-source completed leaves, compared with complete Id mkLeaf fields.
 
-Run frozen uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels, --output EXTERNAL.lean,
+Run frozen EELS/.venv/bin/python -I -B with --eels, --output EXTERNAL.lean,
 --rlp-wheel and --types-wheel. Both original caches must initially be None.
 Actual source calls/classes/hashes are observed, never replaced. Source success
 requires concrete classes, complete assembled Encodable and finite host/crypto

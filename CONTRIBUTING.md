@@ -130,7 +130,7 @@ The description gives the motivation, the change in behaviour or contract, the E
 
 ### 6.3 Checks
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for repository Python tooling. It supplies the same Python 3.12 environment locally and in CI, including scripts that require `tomllib`. CI pins uv 0.13.6. Run repository checks from the root with `uv run --no-project --python 3.12 python`; these standard-library checks need no project environment. Reference acquisition uses the frozen EELS environment and interpreter required by `scripts/differential.py` or its conformance harness.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for repository Python tooling. It supplies the same Python 3.12 environment locally and in CI, including scripts that require `tomllib`. CI pins uv 0.13.6. Run repository checks from the root with `uv run --no-project --python 3.12 python`; these standard-library checks need no project environment. Create the frozen EELS environment with `uv sync --frozen --no-dev` in its reference checkout. Reference acquisition calls that environment's interpreter directly, as `EELS/.venv/bin/python -I -B`, with the flags required by `scripts/differential.py` or its conformance harness.
 
 Run before opening a pull request (CI runs the same):
 

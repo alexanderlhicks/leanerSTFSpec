@@ -8,7 +8,7 @@ https://homes.esat.kuleuven.be/~bosselae/ripemd160.html
 Algorithm: https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt
 MD4 padding: RFC 1320 §§3.1–3.2. No production digest/parser is exercised.
 
-Run with frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS and --output outside
+Run with frozen EELS/.venv/bin/python -I -B, --eels EELS and --output outside
 both checkouts. The shared Driver authenticates pinned source/current bytes and
 ethereum-types RECORD. Actual pinned ripemd160 precompile execution observes
 hashlib.new("ripemd160") on this supported host. Gas setup below is a test adapter,

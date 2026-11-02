@@ -3,7 +3,7 @@
 """Actual pinned CREATE/CREATE2 observations, including complete query traces.
 
 Run from the repository root:
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/address_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/address_differential.py \
   --eels EELS --output EXTERNAL.lean.
 Reuse the shared EELS/ethereum-types source authentication and the typed RLP
 current-source/RECORD loader. Instrument only the ephemeral loaded address

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Bounded raw RLP decoding against authenticated locked ethereum-rlp 0.1.6.
 
-Use uv run --no-project --python EELS/.venv/bin/python python -I -B --eels EELS --output SCRATCH/observations.lean.
+Use EELS/.venv/bin/python -I -B --eels EELS --output SCRATCH/observations.lean.
 The shared loader verifies current source/origins/RECORD and bypasses .pyc.
 Success is recursively exact bytes/list, checked before any observation. Failures
 must be exact DecodingError. The first authenticated source raise line determines

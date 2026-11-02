@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Finite SHA-256 compression differential and test-only block composition.
 
-Run with uv run --no-project --python EELS/.venv/bin/python python -I, --eels EELS --output /tmp/sha256-compression.lean.
+Run with EELS/.venv/bin/python -I, --eels EELS --output /tmp/sha256-compression.lean.
 Keep generated output outside both checkouts. Fixed-word
 compression is compared with an independent readable FIPS 180-4 integer model,
 NOT an EELS compression oracle (EELS exposes hashlib digests). Test-only Python

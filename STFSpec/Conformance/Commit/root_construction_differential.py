@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Observe complete recursive construction from genuine authenticated pinned patricialize calls.
 
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/root_construction_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_construction_differential.py \
   --eels EELS --output EXTERNAL.lean
 The output must be outside both checkouts. A restored Python trace hook reads the
 actual top frame after selection; no source function, recursion, encoding, hash or

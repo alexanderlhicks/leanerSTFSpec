@@ -3,7 +3,7 @@
 """Pure path observations against actual authenticated pinned EELS expressions.
 
 From the repository root, run:
-  uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
+  EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
     --eels EELS --output EXTERNAL.lean
 
 Choose EXTERNAL.lean outside both repositories. The shared Driver

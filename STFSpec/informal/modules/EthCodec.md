@@ -382,7 +382,7 @@ decodes; the 16 B-series cases supply success wires; C00–C31 supply eight list
 The portable invocation is:
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/rlp_u256_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_u256_differential.py \
   --eels EELS --output EXTERNAL.lean --wheel-dir WHEELS
 ```
 
@@ -472,7 +472,7 @@ The per-carrier encode/decode/success/typed/raw counts are 16/72/27/21/24,
 12/64/18/22/24 and 8/57/10/23/24. It emits 229 whole compiled guards.
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/rlp_narrow_unsigned_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_narrow_unsigned_differential.py \
   --eels EELS --output EXTERNAL.lean --seed 29501 --wheel-dir WHEELS
 ```
 
@@ -565,7 +565,7 @@ FixedBytes constructor invocations. Source aliases and constructors are checked,
 without arbitrary-width class factories or standalone constructor-error probes.
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/rlp_fixed_bytes_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_fixed_bytes_differential.py \
   --eels EELS --wheel-dir WHEELS --output EXTERNAL.lean
 ```
 
@@ -656,7 +656,7 @@ raw-valid list depth 2/arity 1. All duplicates remain; finite header fixtures ar
 a parser/oracle. Actual native encode wires pass unchanged to paired decode.
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/rlp_hash32_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_hash32_differential.py \
   --eels EELS --wheel-dir WHEELS --output EXTERNAL.lean
 ```
 
@@ -742,7 +742,7 @@ raw-valid list depth 2/arity 1. All duplicates remain; finite header fixtures ar
 a parser/oracle. Actual native encode wires pass unchanged to paired decode.
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/rlp_address_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/rlp_address_differential.py \
   --eels EELS --wheel-dir WHEELS --output EXTERNAL.lean
 ```
 
@@ -1023,7 +1023,7 @@ also observed against the actual pinned address functions. The committed driver
 ethereum-types and typed RLP source/RECORD files. Run it from the repository root:
 
 ```sh
-uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Codec/address_differential.py \
+EELS/.venv/bin/python -I -B STFSpec/Conformance/Codec/address_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1931,8 +1931,8 @@ lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
 uv run --no-project --python 3.12 python -B scripts/test_ssz_encode_output_parser.py
 uv run --no-project --python 3.12 python -B -O scripts/test_ssz_encode_output_parser.py
-uv run --no-project --python <EELS>/.venv/bin/python python -I -B STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
-uv run --no-project --python <EELS>/.venv/bin/python python -I -B -O STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
+<EELS>/.venv/bin/python -I -B STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
+<EELS>/.venv/bin/python -I -B -O STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
 ```
 
 These finite original-source/literal/compiled comparisons prove no general source

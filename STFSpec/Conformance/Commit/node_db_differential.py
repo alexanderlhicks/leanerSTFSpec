@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Observe actual pinned build_node_db using isolated, freshly compiled authenticated source.
 
-Run uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/node_db_differential.py
+Run EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/node_db_differential.py
 --eels EELS --output OUTSIDE/NodeDBSource.lean.
 Full concrete table observations and instrumented order/collision/failure controls
 are retained alongside emitted guards. Loader/startup/installation/RECORD and the

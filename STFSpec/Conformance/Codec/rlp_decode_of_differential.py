@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Exact Uint wire observations against authenticated ethereum-rlp 0.1.6.
 
-Run frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS --output EXTERNAL/file.lean.
+Run frozen EELS/.venv/bin/python -I -B, --eels EELS --output EXTERNAL/file.lean.
 The interpreter, startup, frozen installation, RECORD, Lean compiler/kernel and
 core runtime remain trusted. This finite profile proves no generic Python,
 schema/host-depth, EEST/guest or resource correspondence. --helpers-only checks

@@ -46,7 +46,7 @@ UV_CACHE_DIR=/tmp/stfspec-review-cache uv sync --frozen --no-dev --python /usr/b
 Run that setup command in the EELS checkout, then from this repository:
 
 ```sh
-uv run --no-project --python /path/to/eels/.venv/bin/python python scripts/spec_review.py /path/to/eels
+/path/to/eels/.venv/bin/python scripts/spec_review.py /path/to/eels
 uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py /path/to/eels --check
 uv run --no-project --python 3.12 python scripts/gen_reference_records.py /path/to/eels --check
 ```

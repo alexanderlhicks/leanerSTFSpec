@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Supplied incremental-root commitments with complete fields, queries and source stages.
 
-Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels, --output EXTERNAL.lean,
+Use frozen EELS/.venv/bin/python -I -B, --eels, --output EXTERNAL.lean,
 --rlp-wheel and --types-wheel. Actual source classes/helpers/hash are authenticated
 and observed, never replaced. Conditional source-value cases are separate from
 dirty/cache and query boundary controls; no pure action/cache refinement is claimed.

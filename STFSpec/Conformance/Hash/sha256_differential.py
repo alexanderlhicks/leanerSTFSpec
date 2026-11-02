@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Finite production SHA-256 digest differential against the pinned host surface.
 
-Run uv run --no-project --python EELS/.venv/bin/python python -I -B this_file --eels EELS --output SCRATCH.lean.
+Run EELS/.venv/bin/python -I -B this_file --eels EELS --output SCRATCH.lean.
 The shared driver authenticates source bytes and frozen ethereum-types imports;
 the oracle is source.hashlib.sha256 from the pinned SHA-256 precompile module.
 Compare the actual Lean sha256 API (including production padding/parsing/output),

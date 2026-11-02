@@ -3,7 +3,7 @@
 """Compare exact byte construction and lexical ordering with the pinned dependency.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/fixed_bytes_differential.py \
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/fixed_bytes_differential.py \
     --eels /tmp/eels --output /tmp/fixed-bytes-differential.lean
 
 The unchanged locked ethereum-types 0.4.1 FixedBytes constructor at bytes.py:29

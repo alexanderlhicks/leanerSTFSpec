@@ -3,7 +3,7 @@
 """Compare raw BLAKE2F parameters with authenticated pinned EELS source.
 
 Run with isolated startup and bytecode writes disabled:
-  uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Hash/blake2_parameters_differential.py \
+  EELS/.venv/bin/python -I -B STFSpec/Conformance/Hash/blake2_parameters_differential.py \
     --eels EELS --output <outside-worktree>/blake2-parameters.lean
 
 Sources: crypto/blake2.py:10–32,133–150,253–266 and locked ethereum-types.

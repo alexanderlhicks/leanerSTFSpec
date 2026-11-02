@@ -978,9 +978,9 @@ uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/stack_di
 lake env lean /tmp/stack.lean > /tmp/stack-frames.jsonl
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
 uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --preflight \
+"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$PREFLIGHT"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --source \
+"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$SOURCE_OUTPUT" --frames /tmp/stack-frames.jsonl
 ```
 
@@ -1066,9 +1066,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasMet
 lake env lean "$OUT/GasMeterFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1107,9 +1107,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasRol
 lake env lean "$OUT/GasRollbackFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1154,9 +1154,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasRef
 lake env lean "$OUT/GasRefundFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1208,9 +1208,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasTra
 lake env lean "$OUT/GasTransferFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1259,9 +1259,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasAcc
 lake env lean "$OUT/GasAccountingFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1544,9 +1544,9 @@ uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/TxUsag
 lake env lean "$OUT/TxUsageFrames.lean" > "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
 uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
+"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 

@@ -3,7 +3,7 @@
 """Compare nested and combined shifts with actual pinned EELS handlers.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/u256_shift_differential.py \
+  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_shift_differential.py \
     --eels /tmp/eels --output /tmp/u256-shift-differential.lean
 
 Only operation values are compared; no Lean opcode effects or guest conformance

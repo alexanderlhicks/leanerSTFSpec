@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Actual original one-splice deletion/collapse stages and fresh completion.
 
-Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels, --output EXTERNAL.lean,
+Use frozen EELS/.venv/bin/python -I -B with --eels, --output EXTERNAL.lean,
 --rlp-wheel and --types-wheel. Authenticate actual unstubbed source before/after;
 record whole returned new_child, witness/embedding/own query stages and mutable
 after-state separately from the immutable retained-child image. No generic action

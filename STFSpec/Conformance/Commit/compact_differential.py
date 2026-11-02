@@ -3,7 +3,7 @@
 """Compact decoder observations against actual authenticated pinned EELS.
 
 From the repository root, run:
-  uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/compact_differential.py \
+  EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/compact_differential.py \
     --eels EELS --output EXTERNAL.lean
 
 Choose EXTERNAL.lean outside both repositories. Shared Driver/Fresh loaders

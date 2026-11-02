@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Exact original Bytes20 RLP observations for nominal Lean Address.
 
-Run frozen uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --wheel-dir WHEELS
+Run frozen EELS/.venv/bin/python -I -B with --eels EELS --wheel-dir WHEELS
 --output EXTERNAL.lean. Supply original locked ethereum_rlp-0.1.6-py3-none-any.whl
 and ethereum_types-0.4.1-py3-none-any.whl explicitly; no fallback/download.
 --helpers-only executes 50 negative and nine positive admission fixture groups,

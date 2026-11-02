@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Exact original U256 wire observations against authenticated ethereum-rlp 0.1.6.
 
-Run frozen uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output EXTERNAL/file.lean
+Run frozen EELS/.venv/bin/python -I -B with --eels EELS --output EXTERNAL/file.lean
 and --wheel-dir WHEELS. Supply these exact original locked files in WHEELS:
 ethereum_rlp-0.1.6-py3-none-any.whl and ethereum_types-0.4.1-py3-none-any.whl.
 The explicit directory has no private fallback or network download.
