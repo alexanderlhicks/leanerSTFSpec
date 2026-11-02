@@ -2,7 +2,7 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import Lean
+import Lean.Data.Json.FromToJson
 import STFSpec.Vm.Core
 
 /-!

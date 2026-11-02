@@ -124,11 +124,11 @@ name = "check-decls"
 srcDir = "scripts"
 root = "CheckDeclsMain"
 supportInterpreter = true
-# Regression fixtures for check-decls itself (not a default target; see scripts/test_checks.sh).
+# Regression fixtures for check-decls and kernel replay (not a default target; see scripts/test_checks.sh).
 [[lean_lib]]
 name = "CheckDeclsTest"
 srcDir = "scripts"
-roots = ["CheckDeclsTest.Bad", "CheckDeclsTest.Good", "CheckDeclsTest.ProvedCsimp", "CheckDeclsTest.Superseded"]
+roots = ["CheckDeclsTest.Bad", "CheckDeclsTest.Good", "CheckDeclsTest.KernelBypass", "CheckDeclsTest.ProvedCsimp", "CheckDeclsTest.Superseded"]
 
 # Internal authenticated-host extraction driver; no guest invocation.
 [[lean_exe]]
