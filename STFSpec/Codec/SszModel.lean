@@ -7,8 +7,8 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 Library `EthCodec`. These inductives are their own raw models: construction imposes
 no schema, width, length, typing or mask invariant. Descriptor families correspond
-to `src/ethereum/utils/ssz.py:32–87,179–225,231–258`; value payloads abstract the
-shapes in `src/ethereum/utils/ssz.py:263–325` at the pin. No Python class admission,
+to `src/ethereum/utils/ssz.py:32–87,174–220,226–253`; value payloads abstract the
+shapes in `src/ethereum/utils/ssz.py:258–320` at the pin. No Python class admission,
 schema adapter, codec, root operation or diagnostic producer is supplied here.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §3/§5/§7.
 -/

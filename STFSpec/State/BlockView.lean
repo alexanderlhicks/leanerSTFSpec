@@ -18,7 +18,7 @@ namespace STFSpec.State.BlockState
 variable {m : Type → Type}
 
 /-- The complete mathematical block view, for arbitrary raw inputs without class premises.
-Composition of extraction (`src/ethereum/forks/amsterdam/state_tracker.py:880–900`)
+Composition of extraction (`src/ethereum/forks/amsterdam/state_tracker.py:861–881`)
 and mathematical application (`src/ethereum/state_mpt.py:133–161`) at the pin.
 Provider actions, constants, observations and replay metadata add no effects. -/
 def view (σ₀ : MathState) (b : BlockState m) : MathState :=

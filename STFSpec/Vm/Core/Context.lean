@@ -12,9 +12,9 @@ import STFSpec.Vm.Core.Frame
 # Immutable call context and assembled frame view
 
 Library `EthVmCore`. The context and Frame partition pinned EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:153–191` (R-ENV-3).
+`src/ethereum/forks/amsterdam/vm/__init__.py:147–185` (R-ENV-3).
 Configuration and systemAddress carry supplied policy, rather than extra source fields.
-Depth uses the existing literal bound from `interpreter.py:84` (F8).
+Depth uses the existing literal bound from `interpreter.py:79` (F8).
 Future handler signatures enforce read-only context use; raw record construction
 alone adds no code/map, environment, configuration or frame coherence invariant.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.

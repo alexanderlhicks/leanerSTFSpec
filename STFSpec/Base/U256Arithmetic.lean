@@ -21,37 +21,37 @@ Signed division/remainder are defined in `STFSpec.Base.U256Signed`.
 
 namespace STFSpec.Base.U256
 
-/-- Wrapping addition; EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:28`,
+/-- Wrapping addition; EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25`,
 `ethereum_types/numeric.py:614` (`wrapping_add`). -/
 def add (a b : U256) : U256 := ofBitVec (a.toBitVec + b.toBitVec)
 
 /-- Wrapping subtraction, first operand minus second;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:55`,
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:52`,
 `ethereum_types/numeric.py:625` (`wrapping_sub`). -/
 def sub (a b : U256) : U256 := ofBitVec (a.toBitVec - b.toBitVec)
 
 /-- Wrapping multiplication;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:82`,
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:79`,
 `ethereum_types/numeric.py:636` (`wrapping_mul`). -/
 def mul (a b : U256) : U256 := ofBitVec (a.toBitVec * b.toBitVec)
 
 /-- Unsigned EVM division returns zero for a zero divisor;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:109`. -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:106`. -/
 def div (a b : U256) : U256 :=
   if b.toNat = 0 then zero else ofNat (a.toNat / b.toNat)
 
 /-- Unsigned EVM remainder returns zero for a zero divisor;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:175`. -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:172`. -/
 def mod (a b : U256) : U256 :=
   if b.toNat = 0 then zero else ofNat (a.toNat % b.toNat)
 
 /-- Modular addition uses an unbounded sum before reduction, returning zero for modulus zero;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:235`. -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:232`. -/
 def addmod (a b n : U256) : U256 :=
   if n.toNat = 0 then zero else ofNat ((a.toNat + b.toNat) % n.toNat)
 
 /-- Modular multiplication uses an unbounded product before reduction, returning zero
-for modulus zero; EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:266`. -/
+for modulus zero; EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:263`. -/
 def mulmod (a b n : U256) : U256 :=
   if n.toNat = 0 then zero else ofNat ((a.toNat * b.toNat) % n.toNat)
 

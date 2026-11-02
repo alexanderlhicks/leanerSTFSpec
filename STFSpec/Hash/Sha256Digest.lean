@@ -8,7 +8,7 @@ import STFSpec.Hash.Sha256Compression
 # SHA-256 message digest
 
 Library `EthHash`. Pinned EELS
-`src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:51` delegates to
+`src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:48` delegates to
 `hashlib.sha256`; this module supplies that digest algorithm, without the precompile's gas effects.
 Q46 defines the total extension:
 the length trailer wraps modulo 2^64; standard correspondence requires
@@ -278,7 +278,7 @@ end Sha256
 
 /-- Pure total SHA-256. Q46 wraps the eight-byte bit-length trailer for all sizes;
 FIPS 180-4 correspondence has the explicit `8 * msg.size < 2^64` domain.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:51`. -/
+Pinned EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/sha256.py:48`. -/
 def sha256 (msg : ByteArray) : Bytes32 :=
   let bytes := Sha256.pad msg
   Sha256.digestValue (Sha256.blocks bytes (bytes.size / 64) 0 Sha256.initialState)

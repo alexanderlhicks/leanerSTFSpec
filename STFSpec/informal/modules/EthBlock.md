@@ -3,7 +3,7 @@
 *Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54, Q83.*
 
-Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
+Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -15,13 +15,13 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 
 ### 2.1 Types and codecs
 
-- **R-HDR.** `Header` must have the 23 Amsterdam fields, in RLP order (`blocks.py:72–270`): `parentHash`, `ommersHash`, `coinbase`, `stateRoot`, `transactionsRoot`, `receiptRoot`, `bloom : Bloom`, `difficulty : Nat`, `number : Nat`, `gasLimit : Nat`, `gasUsed : Nat`, `timestamp : U256`, `extraData : Bytes`, `prevRandao : Bytes32`, `nonce : Bytes8`, `baseFeePerGas : Nat`, `withdrawalsRoot`, `blobGasUsed : U64`, `excessBlobGas : U64`, `parentBeaconBlockRoot`, `requestsHash : Hash32`, `blockAccessListHash : Hash32` (EIP-7928), `slotNumber : U64` (EIP-7843). `PrevHeader` (bpo5, `forks/bpo5/blocks.py:71`) is the first 21 of these fields [V, by `diff`]. `ParentHeader := amsterdam Header | bpo5 PrevHeader` carries the parent everywhere EELS types `Header | PreviousForkHeader` (`fork.py:163, 450`). Its `rlp` must re-encode the variant it came from, because `validateHeader` hashes it (`fork.py:501`).
+- **R-HDR.** `Header` must have the 23 Amsterdam fields, in RLP order (`blocks.py:72–270`): `parentHash`, `ommersHash`, `coinbase`, `stateRoot`, `transactionsRoot`, `receiptRoot`, `bloom : Bloom`, `difficulty : Nat`, `number : Nat`, `gasLimit : Nat`, `gasUsed : Nat`, `timestamp : U256`, `extraData : Bytes`, `prevRandao : Bytes32`, `nonce : Bytes8`, `baseFeePerGas : Nat`, `withdrawalsRoot`, `blobGasUsed : U64`, `excessBlobGas : U64`, `parentBeaconBlockRoot`, `requestsHash : Hash32`, `blockAccessListHash : Hash32` (EIP-7928), `slotNumber : U64` (EIP-7843). `PrevHeader` (bpo5, `forks/bpo5/blocks.py:71`) is the first 21 of these fields [V, by `diff`]. `ParentHeader := amsterdam Header | bpo5 PrevHeader` carries the parent everywhere EELS types `Header | PreviousForkHeader` (`fork.py:163, 450`). Its `rlp` must re-encode the variant it came from, because `validateHeader` hashes it (`fork.py:476`).
 - **R-BLK.** `Block = {header, transactions : Array BlockTx, ommers : Array Header, withdrawals : Array Withdrawal}` (`blocks.py:276`). `BlockTx := legacy LegacyTransaction | typed Bytes` mirrors `Tuple[Bytes | LegacyTransaction, …]`. `Withdrawal = {index : U64, validatorIndex : U64, address, amount : U64}` (Gwei) (`blocks.py:38`).
-- **R-TX.** The five transaction structures must have exactly the EELS fields in RLP order (`transactions.py:94–495`). Type-specific points: `LegacyTransaction.v : U256`, and the typed variants have `yParity : U256`. `BlobTransaction.to` and `SetCodeTransaction.to` are `Address`, not optional, while the other variants have `to : Option Address` for `Bytes0 | Address`. `SetCodeTransaction.nonce : U64` whereas the other four are `U256`. `SetCodeTransaction.authorizations : Array Authorization`, with `Authorization = {chainId : U256, address, nonce : U64, yParity : U8, r s : U256}` taken from `EthBase` (`fork_types.py:87`, owned by G1).
-- **R-TX-ENC.** `encodeTransaction` (`transactions.py:540`): legacy is returned as the structure (RLP-encoded where bytes are needed); type *k* ∈ {1,2,3,4} is `[k] ++ rlp tx`.
-- **R-TX-DEC.** `decodeTransaction` (`:562`) on `typed b`: `b[0] ∈ {1,2,3,4}` decodes `b[1:]` as that type; `0xC0 ≤ b[0] ≤ 0xFE` decodes the whole of `b` as legacy; any other first byte in `0x00…0xBF` raises `TransactionTypeError b[0]`. Two branches are not EthereumExceptions: `b[0] = 0xFF` fails an `assert` (`:584`), and `b = []` fails with `IndexError` (`tx[0]`). The spec gives both explicit constructors (`BlockError.txDecode`) [V]. An RLP failure inside a typed payload (`rlp.DecodingError`, not an EthereumException) is also `txDecode`. **Scope of these errors.** On the complete guest path, an empty transaction is rejected first at `execution_engine/new_payload.py:112` (O6), and every other deterministic payload-transaction decode failure is consumed by `is_valid_versioned_hashes` (`new_payload.py:60–68`), which returns `False` and so gives O6 before `execute_block` runs; legacy payload bytes are also pre-decoded when the block is built (`validation_helpers.py:88–97`, G6). A **standalone** `executeBlock` (for example `blockchain_tests` through `stateTransition`) still raises its own decode errors (`TransactionTypeError` was reproduced), so the `txDecode` constructors are live and must not be removed. A host-resource failure (`RecursionError`, `MemoryError`) during `execute_block`'s repeated decode (`fork.py:873`) is not excluded by the first decode's success; it belongs to O12/DISC-001, not here.
+- **R-TX.** The five transaction structures must have exactly the EELS fields in RLP order (`transactions.py:89–490`). Type-specific points: `LegacyTransaction.v : U256`, and the typed variants have `yParity : U256`. `BlobTransaction.to` and `SetCodeTransaction.to` are `Address`, not optional, while the other variants have `to : Option Address` for `Bytes0 | Address`. `SetCodeTransaction.nonce : U64` whereas the other four are `U256`. `SetCodeTransaction.authorizations : Array Authorization`, with `Authorization = {chainId : U256, address, nonce : U64, yParity : U8, r s : U256}` taken from `EthBase` (`fork_types.py:87`, owned by G1).
+- **R-TX-ENC.** `encodeTransaction` (`transactions.py:535`): legacy is returned as the structure (RLP-encoded where bytes are needed); type *k* ∈ {1,2,3,4} is `[k] ++ rlp tx`.
+- **R-TX-DEC.** `decodeTransaction` (`:557`) on `typed b`: `b[0] ∈ {1,2,3,4}` decodes `b[1:]` as that type; `0xC0 ≤ b[0] ≤ 0xFE` decodes the whole of `b` as legacy; any other first byte in `0x00…0xBF` raises `TransactionTypeError b[0]`. Two branches are not EthereumExceptions: `b[0] = 0xFF` fails an `assert` (`:579`), and `b = []` fails with `IndexError` (`tx[0]`). The spec gives both explicit constructors (`BlockError.txDecode`) [V]. An RLP failure inside a typed payload (`rlp.DecodingError`, not an EthereumException) is also `txDecode`. **Scope of these errors.** On the complete guest path, an empty transaction is rejected first at `execution_engine/new_payload.py:104` (O6), and every other deterministic payload-transaction decode failure is consumed by `is_valid_versioned_hashes` (`new_payload.py:55–63`), which returns `False` and so gives O6 before `execute_block` runs; legacy payload bytes are also pre-decoded when the block is built (`validation_helpers.py:88–97`, G6). A **standalone** `executeBlock` (for example `blockchain_tests` through `stateTransition`) still raises its own decode errors (`TransactionTypeError` was reproduced), so the `txDecode` constructors are live and must not be removed. A host-resource failure (`RecursionError`, `MemoryError`) during `execute_block`'s repeated decode (`fork.py:827`) is not excluded by the first decode's success; it belongs to O12/DISC-001, not here.
 - **R-RCPT.** `Receipt = {succeeded : Bool, cumulativeGasUsed : Nat, bloom, logs : Array Log}` and `Log = {address, topics : Array Hash32, data}` (`blocks.py:330, 363`). `encodeReceipt tx r` (`:394`) is `[k] ++ rlp r` for a typed transaction of type *k*, and the bare structure for legacy. `decodeReceipt` (`:417`) is needed only by `parseDepositRequests`, on receipts this module produced.
-- **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1175`). The six signing hashes (`:1015–1172`) must hash exactly these tuples:
+- **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1102`). The six signing hashes (`:1015–1172`) must hash exactly these tuples:
   - pre-155: `(nonce, gasPrice, gas, to, value, data)`;
   - EIP-155: that tuple plus `(chainId, 0, 0)`;
   - EIP-2930: `0x01 ++ rlp (chainId, nonce, gasPrice, gas, to, value, data, accessList)`;
@@ -34,16 +34,16 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 - **R-SIG.** `signatureRecoveryParameters chainId tx` (`:944`). It raises `invalidSignature` unless `0 < r < SECP256K1N` and `0 < s ≤ SECP256K1N / 2`. For legacy, `v ∈ {27, 28}` gives recovery id `v − 27` over `signingHashPre155`; otherwise `v` must equal `35 + 2c` or `36 + 2c`, where *c* is the **`chainId` argument**, giving id `v − 35 − 2c` over `signingHash155 tx c`. For typed transactions, `yParity ∈ {0, 1}` is required, over the type's signing hash. `recoverTransactionPublicKey` returns `0x04 ++ secp256k1Recover r s id h` (65 bytes). A failed recovery raises `invalidSignature` (`crypto/elliptic_curve.py:54, 74`; G2).
 - **R-SENDER.** `recoverSender tx` (`:883`) uses `chainId tx` (0 when that is `none`), then `senderAddress pk = keccak(pk[1:])[12:32]` (`:937`).
 - **R-HINT (O5).** When `publicKeys = some ks`, `checkTransaction` uses `recoverSenderFromPublicKey blockEnv.chainId tx ks[i]` (`fork.py:563–574`). It raises `invalidSignature` unless `ks[i]` **equals** the recovered key (`transactions.py:932`); any cheaper check must be equivalent on every input (CONTRACT §2). The count check comes earlier, in `executeBlock` (R-EB step 2).
-- **R-CHAINID.** `chainId tx` (`:865`). For legacy: `v ∈ {27, 28}` gives `none`; `v < 35` raises `invalidSignature "bad v"`; otherwise it is `U64((v − 35) >> 1)`, which **raises `OverflowError` when the value is ≥ 2⁶⁴** [V, from the `U64` constructor]. The spec names this `BlockError.arith .chainIdOverflow`. Typed transactions return `tx.chainId`.
+- **R-CHAINID.** `chainId tx` (`:860`). For legacy: `v ∈ {27, 28}` gives `none`; `v < 35` raises `invalidSignature "bad v"`; otherwise it is `U64((v − 35) >> 1)`, which **raises `OverflowError` when the value is ≥ 2⁶⁴** [V, from the `U64` constructor]. The spec names this `BlockError.arith .chainIdOverflow`. Typed transactions return `tx.chainId`.
 
-### 2.3 Intrinsic gas (R-IG, `calculate_intrinsic_cost`, `transactions.py:692–801`)
+### 2.3 Intrinsic gas (R-IG, `calculate_intrinsic_cost`, `transactions.py:687–796`)
 
 With `tokens(d) = zeros(d) + 4·nonzeros(d)` (`:804`) and the gas constants from `cfg.gas` (G4's `GasCosts`; Amsterdam values in brackets):
 
 - `recipient` is `CREATE_ACCESS` [12000] for a creation (`to = none`); `COLD_ACCOUNT_ACCESS` [3000] plus `TX_VALUE_COST` [6000] if `value > 0` for a call with `to ≠ sender`; and **0 for a self-transfer** (`to = some sender`) (EIP-2780).
 - `initCode = init_code_cost(len data)` for a creation, else 0.
 - `dataCost = tokens(data) · TX_DATA_TOKEN_STANDARD` [4].
-- `alCost = Σ_access (TX_ACCESS_LIST_ADDRESS [2900] + |slots| · TX_ACCESS_LIST_STORAGE_KEY [2000])`, and `alTokens = Σ (80 + 128·|slots|)` (EIP-7981, `cfg.tx`). Then `alData = alTokens · TX_DATA_TOKEN_FLOOR` [16]. Only transaction types 1–4 have access lists (`has_access_list`, `:1191`).
+- `alCost = Σ_access (TX_ACCESS_LIST_ADDRESS [2900] + |slots| · TX_ACCESS_LIST_STORAGE_KEY [2000])`, and `alTokens = Σ (80 + 128·|slots|)` (EIP-7981, `cfg.tx`). Then `alData = alTokens · TX_DATA_TOKEN_FLOOR` [16]. Only transaction types 1–4 have access lists (`has_access_list`, `:1118`).
 - `authCost = EXECUTION_PER_AUTH_BASE_COST [7816] · |authorizations|` (type 4 only).
 - `base = TX_BASE [12000] + recipient`.
 - **`execution = base + initCode + dataCost + alCost + alData + authCost`**.
@@ -69,21 +69,21 @@ It returns `IntrinsicGasCost`.
 1. The sender, from R-HINT or R-SENDER.
 2. `validateTransaction tx sender`.
 3. A fresh `TxState` over the block state (`EthState`).
-4. `check_block_gas_capacity` (`vm/gas.py:1053`, G4, consumed). With `L = header.gasLimit`: `min(TX_MAX_GAS_LIMIT, gas) > L − blockGasUsed` raises `gasUsedExceedsLimit .execution`; `gas > L − blockStateGasUsed` raises `gasUsedExceedsLimit .state`; `blobGas > MAX_BLOB_GAS_PER_BLOCK [2 752 512] − blobGasUsed` raises `blobGasLimitExceeded`.
+4. `check_block_gas_capacity` (`vm/gas.py:1038`, G4, consumed). With `L = header.gasLimit`: `min(TX_MAX_GAS_LIMIT, gas) > L − blockGasUsed` raises `gasUsedExceedsLimit .execution`; `gas > L − blockStateGasUsed` raises `gasUsedExceedsLimit .state`; `blobGas > MAX_BLOB_GAS_PER_BLOCK [2 752 512] − blobGasUsed` raises `blobGasLimitExceeded`.
 5. `getAccount sender`. This is an observed read, and it can fail with `WitnessError` (O4).
-6. `calculateEffectiveGasPrice` (`transactions.py:816`). For types 2–4, `maxFeePerGas < baseFee` raises `insufficientMaxFeePerGas maxFee baseFee`, and otherwise the price is `baseFee + min(maxPriority, maxFee − baseFee)`. For types 0 and 1, `gasPrice < baseFee` raises **plain `InvalidBlock`** (`:841`); this is `BlockError.gasPriceBelowBaseFee`, not a `TxError`, although EEST may label it as a transaction exception (Gaps).
-7. `maxGasFee = gas · (maxFeePerGas | gasPrice)`. For type 3, `check_max_fee_per_blob_gas` (`gas.py:1016`) raises `insufficientMaxFeePerBlobGas` if `maxFeePerBlobGas < blobGasPrice(header.excessBlobGas)`; then `maxGasFee += blobGas · maxFeePerBlobGas`.
-8. `checkNonce` (`:855`): an account nonce greater than the transaction's raises `nonceMismatch .tooLow`, and a smaller one raises `.tooHigh`.
+6. `calculateEffectiveGasPrice` (`transactions.py:811`). For types 2–4, `maxFeePerGas < baseFee` raises `insufficientMaxFeePerGas maxFee baseFee`, and otherwise the price is `baseFee + min(maxPriority, maxFee − baseFee)`. For types 0 and 1, `gasPrice < baseFee` raises **plain `InvalidBlock`** (`:836`); this is `BlockError.gasPriceBelowBaseFee`, not a `TxError`, although EEST may label it as a transaction exception (Gaps).
+7. `maxGasFee = gas · (maxFeePerGas | gasPrice)`. For type 3, `check_max_fee_per_blob_gas` (`gas.py:1001`) raises `insufficientMaxFeePerBlobGas` if `maxFeePerBlobGas < blobGasPrice(header.excessBlobGas)`; then `maxGasFee += blobGas · maxFeePerBlobGas`.
+8. `checkNonce` (`:850`): an account nonce greater than the transaction's raises `nonceMismatch .tooLow`, and a smaller one raises `.tooHigh`.
 9. `balance < maxGasFee + value` raises `insufficientBalance`.
 10. `getCode` of the sender (observed code read; may fail with O4). If `codeHash ≠ EMPTY_CODE_HASH` and the code is not a valid EIP-7702 delegation (`vm/eoa_delegation.py:42`), it raises `invalidSender` (EIP-3607).
-11. `allocate_evm_gas` (`gas.py:1120`); the access-list address and slot sets; `authorizations`. For a creation, `recipient = compute_contract_address sender account.nonce`. `accountsWithPaidWrites = {sender} ∪ ({recipient} if creation or value > 0)`. `txHash = keccak(encode tx)`. The result is `TransactionEnvironment` (G4 type).
+11. `allocate_evm_gas` (`gas.py:1105`); the access-list address and slot sets; `authorizations`. For a creation, `recipient = compute_contract_address sender account.nonce`. `accountsWithPaidWrites = {sender} ∪ ({recipient} if creation or value > 0)`. `txHash = keccak(encode tx)`. The result is `TransactionEnvironment` (G4 type).
 
 ### 2.6 Header validation (R-VH, `validate_header`, `fork.py:449–503`), in order
 
 1. `number < 1` raises `header .numberZero`.
-2. `excessBlobGas ≠ calculate_excess_blob_gas parent` (`gas.py:901`) raises `header .excessBlobGas`. The helper reads `excessBlobGas`, `blobGasUsed` and `baseFeePerGas` from **either** parent variant. Its U64 arithmetic (`excess + used`, `used · (MAX − TARGET)`) can raise `OverflowError` on an adversarial parent, which is `BlockError.arith .excessBlobGasOverflow`. Its `calculate_blob_gas_price` is a Taylor series whose cost grows with `excess` (see Gaps).
+2. `excessBlobGas ≠ calculate_excess_blob_gas parent` (`gas.py:886`) raises `header .excessBlobGas`. The helper reads `excessBlobGas`, `blobGasUsed` and `baseFeePerGas` from **either** parent variant. Its U64 arithmetic (`excess + used`, `used · (MAX − TARGET)`) can raise `OverflowError` on an adversarial parent, which is `BlockError.arith .excessBlobGasOverflow`. Its `calculate_blob_gas_price` is a Taylor series whose cost grows with `excess` (see Gaps).
 3. `gasUsed > gasLimit` raises `header .gasUsedExceedsGasLimit`.
-4. `calculateBaseFeePerGas gasLimit parent.gasLimit parent.gasUsed parent.baseFee` (`:386`). It **first** calls `checkGasLimit` (`:1164`), which raises `header .gasLimit` unless `parent − parent/1024 < gasLimit < parent + parent/1024` and `gasLimit ≥ 5000`. Then, with `target = parent.gasLimit / 2`: equal usage leaves the fee unchanged; above target, the fee rises by `max(1, baseFee·Δ/target/8)`; below target, it falls by `baseFee·Δ/target/8`. A mismatch raises `header .baseFee`.
+4. `calculateBaseFeePerGas gasLimit parent.gasLimit parent.gasUsed parent.baseFee` (`:361`). It **first** calls `checkGasLimit` (`:1118`), which raises `header .gasLimit` unless `parent − parent/1024 < gasLimit < parent + parent/1024` and `gasLimit ≥ 5000`. Then, with `target = parent.gasLimit / 2`: equal usage leaves the fee unchanged; above target, the fee rises by `max(1, baseFee·Δ/target/8)`; below target, it falls by `baseFee·Δ/target/8`. A mismatch raises `header .baseFee`.
 5. `timestamp ≤ parent.timestamp` raises `header .timestamp`.
 6. `number ≠ parent.number + 1` raises `header .number`.
 7. `len extraData > 32` raises `header .extraData`.
@@ -113,7 +113,7 @@ It returns `IntrinsicGasCost`.
 
 1. `processUncheckedSystemTransaction beaconRoots parentBeaconBlockRoot` (EIP-4788), at BAL index 0.
 2. `processUncheckedSystemTransaction historyStorage blockHashes.last` (EIP-2935). An empty `blockHashes` is `IndexError` in EELS; the spec names it `missingParentHash`. It is unreachable on the guest path, where O3a precedes it.
-3. `trackAncestorAccess state 1` (`state_tracker.py:925`).
+3. `trackAncestorAccess state 1` (`state_tracker.py:884`).
 4. For each `i`, **decode transaction `i` lazily and then process it**. EELS uses `map`, so a decode failure of transaction `i` occurs after transactions `< i` have executed.
 5. Set the BAL index to `n + 1`.
 6. `processWithdrawals`.
@@ -131,7 +131,7 @@ It returns `IntrinsicGasCost`.
 4. `checkTransaction`.
 5. `updateSenderState` (`:970`): the nonce is incremented and `balance := balance − gas·effectivePrice − blobFee`, where `blobFee = blobGas · blobGasPrice(excess)`. The **actual** blob price is charged, not the cap.
 6. `processTopLevelChecked cfg.runnerEnv` (G4 runner, with the precompile table, three-field VmConfig and `cfg.system.systemAddress`, F8).
-7. `settle_transaction_gas` (`gas.py:1178`, G4): `before = gas − gasLeft − stateGasLeft`; `refund = min(before / 5, refundCounter)`; `gasUsed = max(before − refund, floor)`; `stateUsed = max(0, stateGasUsed)`; `execUsed = max(before − stateUsed, floor)`; `gasLeft' = gas − gasUsed`.
+7. `settle_transaction_gas` (`gas.py:1163`, G4): `before = gas − gasLeft − stateGasLeft`; `refund = min(before / 5, refundCounter)`; `gasUsed = max(before − refund, floor)`; `stateUsed = max(0, stateGasUsed)`; `execUsed = max(before − stateUsed, floor)`; `gasLeft' = gas − gasUsed`.
 8. `disburseGasFees` (`:1011`): `createEther origin (gasLeft' · price)` and then `createEther coinbase (gasUsed · (price − baseFee))`. Both are applied even when the amount is 0. [I] This is a touch whose BAL/state effect is `EthState`'s `create_ether` contract.
 9. `blockGasUsed += execUsed` (pre-refund, EIP-7778); `blockStateGasUsed += stateUsed`; `blobGasUsed += blobGas`; `cumulativeGasUsed += gasUsed` (post-refund).
 10. `receipt := encodeReceipt tx {succeeded := error = none, cumulativeGasUsed, logsBloom logs, logs}`; `trieSet receiptTrie (rlp i) receipt`; append the receipt key.
@@ -148,7 +148,7 @@ It returns `IntrinsicGasCost`.
 
   `extractDepositData` (`requests.py:170`) raises `deposit .length` unless `len = 576`. Then it checks the five head offsets against `160, 256, 320, 384, 512` and the five length words against `48, 32, 8, 96, 8`, in that order, each with its own `deposit` constructor. It returns `pubkey ++ wc ++ amount ++ sig ++ index` (192 bytes). `computeRequestsHash rs = sha256 (concat (map sha256 rs))` (`:307–328`), using every complete 32-byte inner digest in supplied list order. The standalone hash does not filter, sort, deduplicate or validate request prefixes; those production rules belong to the caller. Empty requests are retained. The existing pure `EthHash.sha256` provider applies; D5 adds no SHA query effect. All finite inputs use Q46's total extension; source/FIPS agreement separately requires every inner `8 * request.size < 2^64` and outer `8 * (32 * rs.length) < 2^64`, plus host/API premises, with no new runtime guard.
 - **R-BLOOM** (`bloom.py:29–87`). For each log, add its address and then each topic. For each entry `h = keccak e` and each `j ∈ {0, 2, 4}`: `b = be16(h[j..j+2]) & 0x7FF`, then set bit `7 − (i mod 8)` of byte `i / 8`, where `i = 0x7FF − b`.
-- **R-TRIE.** Transaction, receipt and withdrawal roots are the **unsecured** MPT roots (`EthCommit`) of `rlp i ↦ value`. All three source tries have default `None` (`vm/__init__.py:107–117`), distinct from empty Bytes. EthBlock owns the Q53 value interpretations: `encodeTransaction` leaves legacy records for one RLP encoding and returns typed envelopes as Bytes (`transactions.py:540–559`); receipts likewise use legacy records or typed Bytes (`blocks.py:394–414`, `fork.py:669–703,1119–1130`); withdrawals actually enter the trie as already-RLP Bytes (`fork.py:1152–1157`). C10 returns every actual Bytes value unchanged, including typed envelopes and withdrawal encodings, so no extra RLP layer is added. Dense arrays (§5–§6) store these final encodings once. Their root composition uses EthCommit's existing `root`/`mathRoot` with the stored context's F20 empty root; typed calls supply lawful byte keys, `secured = false` and stored-value `PrepareSafe` (Q53), not just default inequality.
+- **R-TRIE.** Transaction, receipt and withdrawal roots are the **unsecured** MPT roots (`EthCommit`) of `rlp i ↦ value`. All three source tries have default `None` (`vm/__init__.py:101–111`), distinct from empty Bytes. EthBlock owns the Q53 value interpretations: `encodeTransaction` leaves legacy records for one RLP encoding and returns typed envelopes as Bytes (`transactions.py:535–554`); receipts likewise use legacy records or typed Bytes (`blocks.py:394–414`, `fork.py:628–662,1073–1084`); withdrawals actually enter the trie as already-RLP Bytes (`fork.py:1106–1111`). C10 returns every actual Bytes value unchanged, including typed envelopes and withdrawal encodings, so no extra RLP layer is added. Dense arrays (§5–§6) store these final encodings once. Their root composition uses EthCommit's existing `root`/`mathRoot` with the stored context's F20 empty root; typed calls supply lawful byte keys, `secured = false` and stored-value `PrepareSafe` (Q53), not just default inequality.
 
 ### 2.11 Block access list (R-BAL, EIP-7928, `block_access_lists.py`)
 
@@ -170,10 +170,10 @@ Classification follows the first reference handler that consumes the failure (D1
 - **Transaction decoding** (`BlockError.txDecode`, R-TX-DEC): on the guest path every deterministic decode failure is consumed earlier and is O6; on a standalone `executeBlock` the constructors are live (scope in R-TX-DEC).
 - **Frames.** Reverts and halts are data (O8/O9), never errors.
 - **Witness.** `WitnessError` from `PreState` lookups or the root is `BlockError.witness` (O4, D8).
-- **Deterministic Python runtime faults** raised during block execution and consumed by the inner catch-all (`OverflowError`, `IndexError`, `AssertionError`) are **CONTRACT O13** members: the output is the existing `(root, false, chain_id, 0x1501)`, and each reachable site has its own named constructor: `arith .chainIdOverflow` (`transactions.py:878`, probe-witnessed), `arith .excessBlobGasOverflow` (`vm/gas.py:931, 945`, argued reachable), `state .balanceOverflow` (`state_tracker.py:663, 687`, argued reachable), and, through `vmFault`, `ancestorHashUnavailable` (`vm/instructions/block.py:58`, fixture-witnessed) and `u256Overflow .blobBaseFee` (`vm/instructions/environment.py:607`, argued reachable). `missingParentHash` is unreachable on the guest path (O3a precedes it) but live for a standalone `executeBlock`. There is no catch-all constructor; an unlisted site is a gap (B14).
+- **Deterministic Python runtime faults** raised during block execution and consumed by the inner catch-all (`OverflowError`, `IndexError`, `AssertionError`) are **CONTRACT O13** members: the output is the existing `(root, false, chain_id, 0x1501)`, and each reachable site has its own named constructor: `arith .chainIdOverflow` (`transactions.py:873`, probe-witnessed), `arith .excessBlobGasOverflow` (`vm/gas.py:916, 930`, argued reachable), `state .balanceOverflow` (`state_tracker.py:644, 668`, argued reachable), and, through `vmFault`, `ancestorHashUnavailable` (`vm/instructions/block.py:58`, fixture-witnessed) and `u256Overflow .blobBaseFee` (`vm/instructions/environment.py:607`, argued reachable). `missingParentHash` is unreachable on the guest path (O3a precedes it) but live for a standalone `executeBlock`. There is no catch-all constructor; an unlisted site is a gap (B14).
 - **Host resources** (`RecursionError`, `MemoryError`) are O12, not O13, and remain unresolved (DISC-001).
 
-**Pinned blob final-addition bound.** In EELS `vm/gas.py:931–945`, let `x` and `y` be the U64 parent excess and used gas. A successful initial sum gives `x + y < 2^64`. At the pinned schedule, `21 − 14 = 7`; after the checked product succeeds, `floor(7*y/21) ≤ y`, so `x + floor(7*y/21) ≤ x + y < 2^64`. The final addition at `:944` therefore cannot itself overflow after that successful prefix. The initial sum at `:931` and the intermediate product at `:945` can still overflow, and the product is checked before division.
+**Pinned blob final-addition bound.** In EELS `vm/gas.py:916–930`, let `x` and `y` be the U64 parent excess and used gas. A successful initial sum gives `x + y < 2^64`. At the pinned schedule, `21 − 14 = 7`; after the checked product succeeds, `floor(7*y/21) ≤ y`, so `x + floor(7*y/21) ≤ x + y < 2^64`. The final addition at `:929` therefore cannot itself overflow after that successful prefix. The initial sum at `:916` and the intermediate product at `:930` can still overflow, and the product is checked before division.
 
 ## 3. EELS source map
 
@@ -181,26 +181,26 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/fork.py::EMPTY_OMMER_HASH` | 116 | `HashConsts.emptyOmmerHash` (`EthBase`) | `keccak256 (rlp [])`, supplied by the caller under F20 (D5, F2); the literal `1dcc4de8…9347` (computed at pin) is its `Id` value, checked by `#guard` |
-| `forks/amsterdam/fork.py::GWEI_TO_WEI` | 127 | `gweiToWei` | 10^9; withdrawal amounts |
-| `forks/amsterdam/fork.py::ChainContext` | 152 | `ChainContext` | `parentHeader : ParentHeader` |
-| `forks/amsterdam/fork.py::BlockChain` | 169 | `BlockChain σ` | generic over the state carrier (§6) |
-| `forks/amsterdam/fork.py::get_last_256_block_hashes` | 202 | `getLast256BlockHashes` | ≤256 hashes, oldest first; `[]` for an empty chain |
-| `forks/amsterdam/fork.py::state_transition` | 242 | `stateTransition` | full-state path only (blockchain_tests) |
-| `forks/amsterdam/fork.py::execute_block` | 281 | `executeBlock` | the seam; check order R-EB |
-| `forks/amsterdam/fork.py::calculate_base_fee_per_gas` | 386 | `calculateBaseFeePerGas` | raises `gasLimit` via `check_gas_limit` first |
-| `forks/amsterdam/fork.py::validate_header` | 449 | `validateHeader` | 12 checks, order R-VH |
-| `forks/amsterdam/fork.py::check_transaction` | 506 | `checkTransaction` | order R-CT |
-| `forks/amsterdam/fork.py::make_receipt` | 669 | `makeReceipt` |  |
-| `forks/amsterdam/fork.py::process_checked_system_transaction` | 706 | `processCheckedSystemTransaction` | no-code / failure ⇒ `BlockError` |
-| `forks/amsterdam/fork.py::process_unchecked_system_transaction` | 766 | `processUncheckedSystemTransaction` | errors ignored |
-| `forks/amsterdam/fork.py::apply_body` | 825 | `applyBody` | order R-AB |
-| `forks/amsterdam/fork.py::process_general_purpose_requests` | 901 | `processGeneralPurposeRequests` | EIP-7685 + EIP-8282 |
-| `forks/amsterdam/fork.py::update_sender_state` | 970 | `updateSenderState` |  |
-| `forks/amsterdam/fork.py::disburse_gas_fees` | 1011 | `disburseGasFees` |  |
-| `forks/amsterdam/fork.py::process_transaction` | 1050 | `processTransaction` | order R-PT |
-| `forks/amsterdam/fork.py::process_withdrawals` | 1142 | `processWithdrawals` |  |
-| `forks/amsterdam/fork.py::check_gas_limit` | 1164 | `checkGasLimit` | Bool |
+| `forks/amsterdam/fork.py::EMPTY_OMMER_HASH` | 102 | `HashConsts.emptyOmmerHash` (`EthBase`) | `keccak256 (rlp [])`, supplied by the caller under F20 (D5, F2); the literal `1dcc4de8…9347` (computed at pin) is its `Id` value, checked by `#guard` |
+| `forks/amsterdam/fork.py::GWEI_TO_WEI` | 113 | `gweiToWei` | 10^9; withdrawal amounts |
+| `forks/amsterdam/fork.py::ChainContext` | 138 | `ChainContext` | `parentHeader : ParentHeader` |
+| `forks/amsterdam/fork.py::BlockChain` | 155 | `BlockChain σ` | generic over the state carrier (§6) |
+| `forks/amsterdam/fork.py::get_last_256_block_hashes` | 188 | `getLast256BlockHashes` | ≤256 hashes, oldest first; `[]` for an empty chain |
+| `forks/amsterdam/fork.py::state_transition` | 228 | `stateTransition` | full-state path only (blockchain_tests) |
+| `forks/amsterdam/fork.py::execute_block` | 267 | `executeBlock` | the seam; check order R-EB |
+| `forks/amsterdam/fork.py::calculate_base_fee_per_gas` | 361 | `calculateBaseFeePerGas` | raises `gasLimit` via `check_gas_limit` first |
+| `forks/amsterdam/fork.py::validate_header` | 424 | `validateHeader` | 12 checks, order R-VH |
+| `forks/amsterdam/fork.py::check_transaction` | 481 | `checkTransaction` | order R-CT |
+| `forks/amsterdam/fork.py::make_receipt` | 628 | `makeReceipt` |  |
+| `forks/amsterdam/fork.py::process_checked_system_transaction` | 665 | `processCheckedSystemTransaction` | no-code / failure ⇒ `BlockError` |
+| `forks/amsterdam/fork.py::process_unchecked_system_transaction` | 724 | `processUncheckedSystemTransaction` | errors ignored |
+| `forks/amsterdam/fork.py::apply_body` | 783 | `applyBody` | order R-AB |
+| `forks/amsterdam/fork.py::process_general_purpose_requests` | 855 | `processGeneralPurposeRequests` | EIP-7685 + EIP-8282 |
+| `forks/amsterdam/fork.py::update_sender_state` | 924 | `updateSenderState` |  |
+| `forks/amsterdam/fork.py::disburse_gas_fees` | 965 | `disburseGasFees` |  |
+| `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | order R-PT |
+| `forks/amsterdam/fork.py::process_withdrawals` | 1096 | `processWithdrawals` |  |
+| `forks/amsterdam/fork.py::check_gas_limit` | 1118 | `checkGasLimit` | Bool |
 | `forks/amsterdam/blocks.py::Withdrawal` | 38 | `Withdrawal` | SSZ container in Amsterdam, plain in bpo5; field order is the RLP order |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` / `PrevHeader` | 23 fields (Amsterdam) / 21 (bpo5) |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
@@ -215,32 +215,32 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/bpo5/blocks.py::Receipt` | 340 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
 | `forks/bpo5/blocks.py::encode_receipt` | 370 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
 | `forks/bpo5/blocks.py::decode_receipt` | 393 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
-| `forks/amsterdam/transactions.py::IntrinsicGasCost` | 46 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
-| `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 69 | `versionedHashVersionKzg` | `0x01` |
-| `forks/amsterdam/transactions.py::LegacyTransaction` | 94 | `LegacyTransaction` | type 0 |
-| `forks/amsterdam/transactions.py::Access` | 157 | `Access` |  |
-| `forks/amsterdam/transactions.py::AccessListTransaction` | 177 | `AccessListTransaction` | type 1 |
-| `forks/amsterdam/transactions.py::FeeMarketTransaction` | 250 | `FeeMarketTransaction` | type 2 |
-| `forks/amsterdam/transactions.py::BlobTransaction` | 328 | `BlobTransaction` | type 3; `to : Address` |
-| `forks/amsterdam/transactions.py::SetCodeTransaction` | 417 | `SetCodeTransaction` | type 4; `nonce : U64` |
-| `forks/amsterdam/transactions.py::encode_transaction` | 540 | `encodeTransaction` |  |
-| `forks/amsterdam/transactions.py::decode_transaction` | 562 | `decodeTransaction` | R-TX-DEC |
-| `forks/amsterdam/transactions.py::validate_transaction` | 592 | `validateTransaction` | order R-VT |
-| `forks/amsterdam/transactions.py::calculate_intrinsic_cost` | 692 | `calculateIntrinsicCost` | R-IG |
-| `forks/amsterdam/transactions.py::count_tokens_in_data` | 804–814 | `countTokensInData : ByteArray → Nat` | Supplied on every finite input; whole result law and validation below |
-| `forks/amsterdam/transactions.py::calculate_effective_gas_price` | 816 | `calculateEffectiveGasPrice` | legacy/2930 below base fee ⇒ `BlockError`, not `TxError` |
-| `forks/amsterdam/transactions.py::calculate_max_gas_fee` | 845 | `calculateMaxGasFee` |  |
-| `forks/amsterdam/transactions.py::check_nonce` | 855 | `checkNonce` |  |
-| `forks/amsterdam/transactions.py::chain_id` | 865 | `chainId` | may overflow U64 (Gaps) |
-| `forks/amsterdam/transactions.py::recover_sender` | 883 | `recoverSender` |  |
-| `forks/amsterdam/transactions.py::signing_hash_pre155` | 1015 | `signingHashPre155` |  |
-| `forks/amsterdam/transactions.py::signing_hash_155` | 1039 | `signingHash155` |  |
-| `forks/amsterdam/transactions.py::signing_hash_2930` | 1065 | `signingHash2930` |  |
-| `forks/amsterdam/transactions.py::signing_hash_1559` | 1091 | `signingHash1559` |  |
-| `forks/amsterdam/transactions.py::signing_hash_4844` | 1118 | `signingHash4844` |  |
-| `forks/amsterdam/transactions.py::signing_hash_7702` | 1147 | `signingHash7702` |  |
-| `forks/amsterdam/transactions.py::get_transaction_hash` | 1175 | `getTransactionHash` |  |
-| `forks/amsterdam/transactions.py::has_access_list` | 1191 | `hasAccessList` |  |
+| `forks/amsterdam/transactions.py::IntrinsicGasCost` | 43 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
+| `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 64 | `versionedHashVersionKzg` | `0x01` |
+| `forks/amsterdam/transactions.py::LegacyTransaction` | 89 | `LegacyTransaction` | type 0 |
+| `forks/amsterdam/transactions.py::Access` | 152 | `Access` |  |
+| `forks/amsterdam/transactions.py::AccessListTransaction` | 172 | `AccessListTransaction` | type 1 |
+| `forks/amsterdam/transactions.py::FeeMarketTransaction` | 245 | `FeeMarketTransaction` | type 2 |
+| `forks/amsterdam/transactions.py::BlobTransaction` | 323 | `BlobTransaction` | type 3; `to : Address` |
+| `forks/amsterdam/transactions.py::SetCodeTransaction` | 412 | `SetCodeTransaction` | type 4; `nonce : U64` |
+| `forks/amsterdam/transactions.py::encode_transaction` | 535 | `encodeTransaction` |  |
+| `forks/amsterdam/transactions.py::decode_transaction` | 557 | `decodeTransaction` | R-TX-DEC |
+| `forks/amsterdam/transactions.py::validate_transaction` | 587 | `validateTransaction` | order R-VT |
+| `forks/amsterdam/transactions.py::calculate_intrinsic_cost` | 687 | `calculateIntrinsicCost` | R-IG |
+| `forks/amsterdam/transactions.py::count_tokens_in_data` | 799–809 | `countTokensInData : ByteArray → Nat` | Supplied on every finite input; whole result law and validation below |
+| `forks/amsterdam/transactions.py::calculate_effective_gas_price` | 811 | `calculateEffectiveGasPrice` | legacy/2930 below base fee ⇒ `BlockError`, not `TxError` |
+| `forks/amsterdam/transactions.py::calculate_max_gas_fee` | 840 | `calculateMaxGasFee` |  |
+| `forks/amsterdam/transactions.py::check_nonce` | 850 | `checkNonce` |  |
+| `forks/amsterdam/transactions.py::chain_id` | 860 | `chainId` | may overflow U64 (Gaps) |
+| `forks/amsterdam/transactions.py::recover_sender` | 878 | `recoverSender` |  |
+| `forks/amsterdam/transactions.py::signing_hash_pre155` | 942 | `signingHashPre155` |  |
+| `forks/amsterdam/transactions.py::signing_hash_155` | 966 | `signingHash155` |  |
+| `forks/amsterdam/transactions.py::signing_hash_2930` | 992 | `signingHash2930` |  |
+| `forks/amsterdam/transactions.py::signing_hash_1559` | 1018 | `signingHash1559` |  |
+| `forks/amsterdam/transactions.py::signing_hash_4844` | 1045 | `signingHash4844` |  |
+| `forks/amsterdam/transactions.py::signing_hash_7702` | 1074 | `signingHash7702` |  |
+| `forks/amsterdam/transactions.py::get_transaction_hash` | 1102 | `getTransactionHash` |  |
+| `forks/amsterdam/transactions.py::has_access_list` | 1118 | `hasAccessList` |  |
 | `forks/amsterdam/bloom.py::add_to_bloom` | 29 | private `addToBloom` in `LogsBloom.lean` | packed 256-byte builder; full ordinary refinement below |
 | `forks/amsterdam/bloom.py::logs_bloom` | 62 | `logsBloom` | complete generic action, empty and sequential-append laws supplied below |
 | `forks/amsterdam/requests.py::DEPOSIT_EVENT_SIGNATURE_HASH` | 60 | `depositEventSignatureHash` |  |
@@ -288,9 +288,9 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/block_access_lists.py::_index_start_account` | 727 | `BalBuilder.indexStartAccount` | memo per (index, address) |
 | `forks/amsterdam/block_access_lists.py::_index_start_storage` | 747 | `BalBuilder.indexStartStorage` | memo per (index, address, slot) |
 | `forks/amsterdam/block_access_lists.py::update_builder_from_tx` | 765 | `updateBuilderFromTx` | called from `incorporate_tx_into_block` (seam, §8) |
-| `forks/amsterdam/block_access_lists.py::build_block_access_list` | 831 | `buildBlockAccessList` |  |
-| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 854 | `hashBlockAccessList` | keccak(rlp) |
-| `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 863 | `validateBlockAccessListGasLimit` | items ≤ gasLimit / 2000 |
+| `forks/amsterdam/block_access_lists.py::build_block_access_list` | 827 | `buildBlockAccessList` |  |
+| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | keccak(rlp) |
+| `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 859 | `validateBlockAccessListGasLimit` | items ≤ gasLimit / 2000 |
 | `forks/amsterdam/exceptions.py::WrongChainIdError` | 15 | `TxError.wrongChainId` |  |
 | `forks/amsterdam/exceptions.py::WrongChainIdError.__init__` | 23 | (constructor fields) | fields carried as constructor arguments |
 | `forks/amsterdam/exceptions.py::TransactionTypeError` | 29 | `TxDecodeError.unsupported` (via `BlockError.txDecode`) | an `InvalidTransaction` subclass, but raised only by `decode_transaction`; one constructor for the one site |
@@ -334,30 +334,30 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 
 | Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:107–117`; `transactions.py:540–559`; `blocks.py:394–414`; `fork.py:1084–1088,1119–1130,1152–1157,351–354` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
 
 ### Implemented calldata token count
 
 | EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/transactions.py:804–814`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
+| `src/ethereum/forks/amsterdam/transactions.py:799–809`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
 
 ### Supplied raw block parameters
 
 `STFSpec.Block.BlockParams` is exported through `STFSpec.Block`, with exactly the
 three independent Nat fields in §5 order. This guided runtime abstraction is not
 an EELS record. EthFork retains all five R-F1 source-quantity obligations:
-`fork.py:114–115` supply the denominator and elasticity; `:144–145` are private
-Fork-owned `MAX_BLOCK_SIZE` and `SAFETY_MARGIN` operands; `:146` supplies their
+`fork.py:100–101` supply the denominator and elasticity; `:130–131` are private
+Fork-owned `MAX_BLOCK_SIZE` and `SAFETY_MARGIN` operands; `:132` supplies their
 subtraction as the third public field ([EthFork §3](EthFork.md#3-eels-source-map)).
 There are no `maxBlockSize` or `safetyMargin` fields or public operand accessors.
 
 | Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
 |---|---|---|---|
-| §5; EELS `fork.py:114–115,144–146` parameter context, all values owned by EthFork | `STFSpec.Block.BlockParams : Type`; `BlockParams.mk : Nat → Nat → Nat → BlockParams`; projections `baseFeeMaxChangeDenominator`, `elasticityMultiplier`, `maxRlpBlockSize : BlockParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/BlockParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and every single-field update preserving both other fields; complete zero/distinct/large guards. No extra public law, default, instance or WF/coherence predicate. |
+| §5; EELS `fork.py:100–101,130–132` parameter context, all values owned by EthFork | `STFSpec.Block.BlockParams : Type`; `BlockParams.mk : Nat → Nat → Nat → BlockParams`; projections `baseFeeMaxChangeDenominator`, `elasticityMultiplier`, `maxRlpBlockSize : BlockParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/BlockParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and every single-field update preserving both other fields; complete zero/distinct/large guards. No extra public law, default, instance or WF/coherence predicate. |
 
-Within the fork module, the source reads only the derived RLP limit in `fork.py:309`,
-elasticity in `:412` and the denominator in `:425,439`. The raw record supplies none of the size or
+Within the fork module, the source reads only the derived RLP limit in `fork.py:292`,
+elasticity in `:387` and the denominator in `:400,414`. The raw record supplies none of the size or
 base-fee operations, their errors, division safety or complete configuration.
 EthFork §3 maps and checks the two actual private operands as well as all three
 actual public projections, retaining the subtraction rather than a literal.
@@ -371,11 +371,11 @@ three Amsterdam constants and supplies their value ([EthFork §3](EthFork.md#3-e
 
 | Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
 |---|---|---|---|
-| §5; EELS `transactions.py:64,74,82` parameter context, values owned by EthFork | `STFSpec.Block.TxParams : Type`; `TxParams.mk : Nat → Nat → Nat → TxParams`; projections `blobCountLimit`, `accessListAddressFloorTokens`, `accessListStorageKeyFloorTokens : TxParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no state effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/TxParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and each single-field update preserving both other fields; zero/distinct/large guards. No extra public law or WF predicate. |
+| §5; EELS `transactions.py:59,69,77` parameter context, values owned by EthFork | `STFSpec.Block.TxParams : Type`; `TxParams.mk : Nat → Nat → Nat → TxParams`; projections `blobCountLimit`, `accessListAddressFloorTokens`, `accessListStorageKeyFloorTokens : TxParams → Nat` | Every raw Nat triple, including zero, unrelated and arbitrarily large values; exact stored inputs, no state effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/TxParamsCallerProofs.lean` clients check exact public types, all arbitrary projections, complete reconstruction and each single-field update preserving both other fields; zero/distinct/large guards. No extra public law or WF predicate. |
 
 The floor inputs count tokens per access-list occurrence, before multiplication
-by the separate VM floor-token gas price (`transactions.py:752–769`). Blob admission
-reads the current module global (`:653–659`). Future consumer/source correspondence
+by the separate VM floor-token gas price (`transactions.py:747–764`). Blob admission
+reads the current module global (`:648–654`). Future consumer/source correspondence
 must bind those original globals and dependency interpretation; constructing this
 record implements neither admission nor intrinsic costing.
 
@@ -389,7 +389,7 @@ ownership ([EthFork §2–§3](EthFork.md#2-requirements)).
 
 | Guided provider / source context | Lean declaration and domain | Effects / failures | Law / validation / status |
 |---|---|---|---|
-| §5; EELS `fork.py:117–143` and `requests.py:49–51` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
+| §5; EELS `fork.py:103–129` and `requests.py:49–51` parameter context, values owned by EthFork | `STFSpec.Block.SystemAddrs : Type`; `SystemAddrs.mk` takes eight `Address` arguments and two `Nat` arguments; exact §5 projections | Every well-typed ten-field record, including equal/zero/unrelated addresses and zero or arbitrarily large independent budgets; exact stored inputs, no effects, errors or proof premises | **supplied:** ordinary structure construction/projections. Private `Conformance/Block/SystemAddrsCallerProofs.lean` clients check the complete constructor/projection types, every arbitrary projection, complete reconstruction and all ten single-field updates preserving all nine unrelated fields. Complete nominal-address and twenty-byte-list observations cover zero, distinct field markers and large independent budgets. No extra public law, default, instance or WF predicate. |
 
 EthFork §3 supplies the concrete R-F2 value and its full-field controls. Actual
 system-call/request consumers, configuration coherence and the remaining `BlockConfig`
@@ -906,12 +906,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `BlockOutput`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions.
   - `secp256k1Recover` through `EthVmRunner`'s transitive closure (`EthCurve`).
   - EthCommit's existing `root`/`mathRoot` over the safe typed/prepared dense maps (§5, Q53), with caller context empty root and lawful byte keys; EthBlock supplies its concrete validity/encoding bridges. RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
-- **Dependency inversion (required).** EELS's `incorporate_tx_into_block` (`state_tracker.py:842–847`, G3) calls `update_builder_from_tx`, but `EthState` must not see the BAL. The spec therefore splits it:
+- **Dependency inversion (required).** EELS's `incorporate_tx_into_block` (`state_tracker.py:823–828`, G3) calls `update_builder_from_tx`, but `EthState` must not see the BAL. The spec therefore splits it:
   1. `EthBlock` calls `updateBuilderFromTx` **first**, reading the un-merged block state;
   2. it then calls `EthState.incorporateTxIntoBlock`.
   
   A law must show that the pair equals the EELS function. `EthState` must export read-only observers for `preTxAccount`/`preTxStorage`: the block-level account write, storage write, clear set and pre-state for one key, plus the block-level read sets consumed by `buildBlockAccessList`. **This is a requirement on G3.**
-- **Precompile table.** The runner needs the table (`vm/interpreter.py:172, 438` also uses its key set to warm addresses), and `EthBlock` may not import `EthPrecompiles`. It is therefore a field of `BlockConfig`, filled by `EthFork`.
+- **Precompile table.** The runner needs the table (`vm/interpreter.py:167, 432` also uses its key set to warm addresses), and `EthBlock` may not import `EthPrecompiles`. It is therefore a field of `BlockConfig`, filled by `EthFork`.
 - **Guaranteed to callers.** On `.ok (.ok diff)`, the header's commitments equal the recomputed ones; `diff` is the block diff whose root is `header.stateRoot`, via `ModelsRoot`.
 
 ## 9. Open decisions
@@ -951,8 +951,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Ordinary totality of the Taylor helper for a positive denominator is supplied by [EthBase §3/§7](EthBase.md#implemented-taylor-exponential). Completion of the price wrapper, its callers’ domain and exception obligations, and practical feasibility remain open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.
-- **O13 overflow sites** (evidence from the pinned EELS; sites shared with `EthState` and `EthVmCore`). The legacy-`v` `U64` overflow in `chainId` (`transactions.py:878`) is witnessed by a probe input. The parent-header `U64` overflows in `calculate_excess_blob_gas` (`vm/gas.py:931, 945`) and the `U256` balance overflow in `createEther`/`moveEther` (`state_tracker.py:663, 687`: a balance near 2²⁵⁶ plus a fee refund, coinbase fee or withdrawal) are argued reachable, not corpus-witnessed. All map to `(root, false, …)` through named constructors (§2.12).
-- **Negative refund counter.** `U256(gas_meter.refund_counter)` (`vm/interpreter.py`, G4) raises if the counter is negative: the cast at `:285` is proved unreachable; the one at `:318` is unresolved. `negativeRefund` is reserved for it.
+- **O13 overflow sites** (evidence from the pinned EELS; sites shared with `EthState` and `EthVmCore`). The legacy-`v` `U64` overflow in `chainId` (`transactions.py:873`) is witnessed by a probe input. The parent-header `U64` overflows in `calculate_excess_blob_gas` (`vm/gas.py:916, 930`) and the `U256` balance overflow in `createEther`/`moveEther` (`state_tracker.py:644, 668`: a balance near 2²⁵⁶ plus a fee refund, coinbase fee or withdrawal) are argued reachable, not corpus-witnessed. All map to `(root, false, …)` through named constructors (§2.12).
+- **Negative refund counter.** `U256(gas_meter.refund_counter)` (`vm/interpreter.py`, G4) raises if the counter is negative: the cast at `:279` is proved unreachable; the one at `:312` is unresolved. `negativeRefund` is reserved for it.
 - **EEST exception labels.** Mapping `blockchain_tests` `expectException` strings to constructors (for example the legacy `gasPrice < baseFee`, which EELS raises as `InvalidBlock`, and `txDecode`) is warning-only; validity is decisive (DECISIONS Q9).
 - **`TransactionTypeContractCreationError`** is believed unreachable after RLP decoding [I]. It needs an EthCodec lemma (`Address` cannot decode from the empty string).
 - **Lazy decode order** (R-AB 4) matters only for which error is reported. The guest output is the same; `blockchain_tests` may observe it.

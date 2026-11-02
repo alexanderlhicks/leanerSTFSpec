@@ -3,7 +3,7 @@
 *Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44, Q55.*
 
-`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). Its agreement declarations define no executable guest behaviour. The separate local `ToVCVio` support library has executable RLP reference and raw-pair extraction helpers, owned by [ToVCVio](ToVCVio.md). **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
+`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). Its agreement declarations define no executable guest behaviour. The separate local `ToVCVio` support library has executable RLP reference and raw-pair extraction helpers, owned by [ToVCVio](ToVCVio.md). **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -14,7 +14,7 @@
 **R1. Scope (CONTRACT §7).** Every theorem must say which of the three obligations it covers:
 - *witness/state agreement*: relative to the supplied parent header;
 - *request-commitment binding*: identifying the request from the output root; SHA-256 and SSZ laws only;
-- *accepted-chain validity*: **not** proved here. The verifier supplies the external anchors: that the `NewPayloadRequest` with the output root is the one it intends to validate and that its parent is on the accepted chain; that `chain_id` and schema are the expected ones; and that the fork is active at the payload timestamp (the reference omits this check, `stateless.py:275–277`).
+- *accepted-chain validity*: **not** proved here. The verifier supplies the external anchors: that the `NewPayloadRequest` with the output root is the one it intends to validate and that its parent is on the accepted chain; that `chain_id` and schema are the expected ones; and that the fork is active at the payload timestamp (the reference omits this check, `stateless.py:267–269`).
 
 No theorem may assume collision resistance for **totality**: `runStatelessGuest` must be proved total on all bytes and all finite witness DBs unconditionally (`EthStateless` L-total, L-internal). Collision hypotheses appear only in agreement and binding statements, and only as an explicit disjunct or a probability bound.
 
@@ -22,7 +22,7 @@ No theorem may assume collision resistance for **totality**: `runStatelessGuest`
 
 **R3. The preimage set.** The extractor must include σ’s code preimages as well as witness code preimages, node encodings and secure-key preimages. It may search only a named finite set of byte strings, and the proof report must list it (CONTRACT §7, last paragraph). For a stateless input `x` and a state `σ` it is:
 - the witness node DB entries `x.witness.state` (hashed by `build_node_db`, `witness_state.py:37–42`) and code DB entries `x.witness.codes` (`:45–50`);
-- the raw witness headers `x.witness.headers` (hashed by `validate_headers`, `stateless.py:254–256`) and `rlp(parent_header)` (hashed by `validate_header`, `fork.py:501`);
+- the raw witness headers `x.witness.headers` (hashed by `validate_headers`, `stateless.py:246–248`) and `rlp(parent_header)` (hashed by `validate_header`, `fork.py:476`);
 - the payload header RLP hashed by the block-hash check (`is_valid_block_hash`), the key/value encodings of the transactions and withdrawals tries (payload side) and of the transactions, receipts and withdrawals tries (block side), the raw BAL bytes and the built BAL's RLP;
 - transaction encodings and signing-hash preimages, the recovered public keys hashed into sender and authority addresses, and ECRECOVER's recovered keys;
 - the KECCAK256 opcode inputs, CREATE/CREATE2 address preimages, newly deposited code and installed delegation code (their code hashes), and bloom entries (log addresses and topics);
@@ -52,7 +52,7 @@ romCRAdvantage A ≤ ((t + 2) * (t + 1) : ℕ) / (2 * Fintype.card Y)     -- for
 
 and the bridge `probEvent_eq_one_simulateQ_randomOracle_run_iff` (`VCVio/OracleComp/QueryTracking/RandomOracle/Simulation.lean:475` [V]; `BoundedROMCRAdversary` at `CollisionResistance.lean:184`), which turns a deterministic "for every answer function" statement into a probability-one statement under the lazily sampled oracle.
 
-**R7. Request binding is separate.** `new_payload_request_root` is SSZ `hash_tree_root` over SHA-256 (`stateless.py:220–226`), with progressive containers and lists (`utils/ssz.py:250–251`). Binding is proved from SSZ merkleization laws (`EthCodec`) and a SHA-256 collision extractor, independent of keccak. No keccak ROM statement may be used to justify it.
+**R7. Request binding is separate.** `new_payload_request_root` is SSZ `hash_tree_root` over SHA-256 (`stateless.py:210–216`), with progressive containers and lists (`utils/ssz.py:245–246`). Binding is proved from SSZ merkleization laws (`EthCodec`) and a SHA-256 collision extractor, independent of keccak. No keccak ROM statement may be used to justify it.
 
 **R8. Precompiles.** Cryptographic security of precompiles (ECDSA recovery, P-256, BN254/BLS12-381 pairings, KZG) is D12(iii) and out of this library's first scope. The agreement theorems need none of it, since both sides compute the same precompile functions (ECRECOVER's keccak goes through the shared oracle, R4). The public-key hint needs none either: the reference accepts a hint only if it equals the recovered key (`transactions.py:916–934`), a deterministic equality (`EthBlock` law).
 

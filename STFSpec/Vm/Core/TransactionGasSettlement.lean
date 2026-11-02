@@ -7,7 +7,7 @@ import STFSpec.Base.U256
 /-!
 # Transaction gas settlement
 
-Library `EthVmCore`. Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:1157–1243`.
+Library `EthVmCore`. Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:1142–1228`.
 Exactly three local bounds justify the source subtractions; the raw result is unrestricted.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7 (Q66).
 -/
@@ -17,7 +17,7 @@ namespace STFSpec.Vm.Core
 open STFSpec.Base
 
 /-- Complete raw sender and block gas observations, in source constructor order.
-EELS `src/ethereum/forks/amsterdam/vm/gas.py:1157–1175` at the pin. -/
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1142–1160` at the pin. -/
 structure TransactionGasSettlement where
   /-- Sender gas used after capped refund and calldata floor. -/
   gasUsed : Nat
@@ -45,7 +45,7 @@ theorem TransactionGasSettlement.eta (a : TransactionGasSettlement) :
   rfl
 
 /-- Source-ordered pure settlement.
-EELS `src/ethereum/forks/amsterdam/vm/gas.py:1178–1243` at the pin.
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1163–1228` at the pin.
 The refund is already an unsigned word; its upstream checked conversion is caller-owned. -/
 def settleTransactionGas
     (txGas calldataFloor gasLeft stateGasLeft : Nat)

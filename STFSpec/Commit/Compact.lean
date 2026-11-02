@@ -9,7 +9,7 @@ import STFSpec.Commit.TrieError
 # Lenient compact trie path decoding
 
 Library `EthCommit`. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:859–889`.
+`src/ethereum/forks/amsterdam/incremental_mpt.py:852–882`.
 The first byte supplies leaf/parity through bits 1/0 of its high nibble;
 unused high bits and even padding are ignored. Only raw empty input fails.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/3/5/7.
@@ -18,14 +18,14 @@ Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/3/5/7.
 namespace STFSpec.Commit
 
 /-- Read bit 1 of the high nibble, ignoring flag bits 2–3.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:878–879`. -/
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:871–872`. -/
 def compactIsLeaf (first : UInt8) : Bool := first.toNat / 32 % 2 == 1
 
 /-- Read bit 0 of the high nibble, ignoring flag bits 1–3.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:878–880`. -/
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:871–873`. -/
 def compactIsOdd (first : UInt8) : Bool := first.toNat / 16 % 2 == 1
 
-/-- Legible model of EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:878–889`:
+/-- Legible model of EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:871–882`:
 retain the odd first digit, then high/low suffix digits. -/
 def compactToNibblesModel : List UInt8 → Except TrieError (List (Fin 16) × Bool)
   | [] => .error (.malformed .compactEmpty)
@@ -41,7 +41,7 @@ private def compactDigit (b : ByteArray) (skip i : Nat) : Fin 16 :=
     else lowNibble b[(i + skip) / 2]
   else 0
 
-/-- EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:878–889`,
+/-- EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:871–882`,
 with Q48's exact first-byte diagnostic.
 The indexed digit list is copied through the public `Nibbles.ofList` boundary;
 its temporary lists and packed copy are recorded in the D18 debt register. -/

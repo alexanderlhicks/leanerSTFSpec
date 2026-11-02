@@ -6,8 +6,10 @@
 Tags: **[V]** verified against pinned source or by running the pinned dependency; **[I]**
 inference, not yet checked. Line numbers without a path refer to `src/ethereum/crypto/kzg.py`;
 `py_ecc` paths are relative to `site-packages/py_ecc/` (py-ecc 8.0.0).
-EELS `file:line` citations and verified observations are at `e1a316a0`
-(`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 

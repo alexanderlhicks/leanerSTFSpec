@@ -9,7 +9,7 @@ import STFSpec.Codec.RlpItem
 # Pure completed-cache child references
 
 Library `EthCommit`. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:257–284,287–313`.
+`src/ethereum/forks/amsterdam/incremental_mpt.py:260–287,290–316`.
 Stored hash presence takes priority; otherwise reconstruct current fields and
 every actual ordered child. Raw cache bytes are not parsed or inspected. The
 all-bare equations are a pure representation observer, not a refinement of every
@@ -130,7 +130,7 @@ decreasing_by
 
 /-- Pure child reference of a completed-cache representation. A stored hash wins;
 otherwise current fields are reconstructed, ignoring raw cache bytes. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:257–284,287–313`. -/
+`src/ethereum/forks/amsterdam/incremental_mpt.py:260–287,290–316`. -/
 def childRef (root : Ref) : RlpItem := project root
 
 private theorem childRef_reference (root : Ref) : childRef root = reference root :=

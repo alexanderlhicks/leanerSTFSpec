@@ -11,7 +11,7 @@ import Init.Omega
 # Reference RIPEMD-160 compression
 
 Library `EthHash`. A fixed-word dual-branch reference and separate BitVec model.
-EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:52`
+EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:49`
 at the pin delegates to host `hashlib`; it has no raw compression oracle.
 This implements the published algorithm unconditionally (R4); DISC-005/O12 stay open.
 No digest, padding, byte parser, serialization or precompile effects are defined.

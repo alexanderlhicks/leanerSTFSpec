@@ -17,14 +17,14 @@ namespace STFSpec.State.BlockState
 variable {m : Type → Type}
 
 /-- Logical account-read membership of an arbitrary supplied block.
-EELS `src/ethereum/forks/amsterdam/state_tracker.py:75`; consumed by
-`src/ethereum/forks/amsterdam/block_access_lists.py:847–849`. -/
+EELS `src/ethereum/forks/amsterdam/state_tracker.py:62`; consumed by
+`src/ethereum/forks/amsterdam/block_access_lists.py:843–845`. -/
 def accountReadSet (b : BlockState m) : Base.Address → Prop :=
   fun a ↦ a ∈ b.accountReads
 
 /-- Logical storage-read membership, retaining both complete key components.
-EELS `src/ethereum/forks/amsterdam/state_tracker.py:79`; consumed by
-`src/ethereum/forks/amsterdam/block_access_lists.py:843–845`. -/
+EELS `src/ethereum/forks/amsterdam/state_tracker.py:66`; consumed by
+`src/ethereum/forks/amsterdam/block_access_lists.py:839–841`. -/
 def storageReadSet (b : BlockState m) : (Base.Address × Base.Bytes32) → Prop :=
   fun pair ↦ pair ∈ b.storageReads
 

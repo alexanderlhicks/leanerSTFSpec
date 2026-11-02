@@ -9,7 +9,7 @@ import Init.Data.Array.OfFn
 # Raw SSZ byte packing
 
 Library `EthCodec`. The raw helper is `remerkleable/core.py:344–349` (locked
-eth-remerkleable 0.1.31), reached from EELS `src/ethereum/utils/ssz.py:133–135,263–296`.
+eth-remerkleable 0.1.31), reached from EELS `src/ethereum/utils/ssz.py:128–130,258–291`.
 Only byte chunks are supplied here, independently of typed views and roots.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
@@ -49,7 +49,7 @@ private theorem packChunk_toBytes (b : Base.Bytes) (i : Nat) :
 
 /-- Pack finite bytes in order into exact 32-byte chunks, padding only the final
 nonempty tail. Raw helper: locked `remerkleable/core.py:344–349`; EELS caller
-context `src/ethereum/utils/ssz.py:133–135,263–296`. No hashing or length mix-in. -/
+context `src/ethereum/utils/ssz.py:128–130,258–291`. No hashing or length mix-in. -/
 def Ssz.pack (b : ByteArray) : Array Base.Bytes32 :=
   Array.ofFn (fun i : Fin ((b.size + 31) / 32) ↦ packChunk (Base.Bytes.ofByteArray b) i.val)
 

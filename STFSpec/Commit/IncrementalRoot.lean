@@ -11,7 +11,7 @@ import STFSpec.Hash.KeccakQuery
 # Supplied incremental-root commitment
 
 Library `EthCommit`. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:831–856,257–313`.
+`src/ethereum/forks/amsterdam/incremental_mpt.py:824–849,260–316`.
 Absence returns the caller's supplied empty root; a stored hash bypasses fields.
 A hashless resolved root forwards one query on its complete current-field item.
 This local observer installs no cache and has no top width threshold. Source dirty
@@ -29,7 +29,7 @@ private def storedHash : Node → Option Hash32
 
 /-- Commit a supplied partial root. Stored hashes win; otherwise query the entire
 current-field item once, forwarding the original oracle action without rebinding. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:831–856,257–313`. -/
+`src/ethereum/forks/amsterdam/incremental_mpt.py:824–849,260–316`. -/
 def rootHash {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (root : Ref) : m Hash32 :=
   match root with
@@ -40,7 +40,7 @@ def rootHash {m : Type → Type} [Monad m] [KeccakQuery m]
     | none => KeccakQuery.keccak (Rlp.encode (childRef root))
 
 /-- Root commitment forwards the supplied root; the secured flag is irrelevant. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:831–856`. -/
+`src/ethereum/forks/amsterdam/incremental_mpt.py:824–849`. -/
 def mptRoot {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (trie : IncrementalMPT) : m Hash32 :=
   rootHash emptyRoot trie.root

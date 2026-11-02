@@ -47,14 +47,14 @@ def push (s : Stack) (v : U256) : Except ExceptionalHalt Stack :=
 
 /-- Zero-based top-relative observation, guarded before index arithmetic.
 Model adapter for indexed reads in pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/stack.py:106–109,242–243`. -/
+`src/ethereum/forks/amsterdam/vm/instructions/stack.py:103–106,239–240`. -/
 def peek? (s : Stack) (i : Nat) : Option U256 :=
   if h : i < s.data.size then
     some (s.data[s.data.size - 1 - i]'(by omega))
   else none
 
 /-- Exchange two top-relative cells, rejecting either invalid Nat index before arithmetic.
-Model adapter for pinned EELS `src/ethereum/forks/amsterdam/vm/instructions/stack.py:113–144,
+Model adapter for pinned EELS `src/ethereum/forks/amsterdam/vm/instructions/stack.py:110–141,
 248–317`; both original values are exchanged, including when the indices coincide. -/
 def swap? (s : Stack) (i j : Nat) : Option Stack :=
   if hi : i < s.data.size then

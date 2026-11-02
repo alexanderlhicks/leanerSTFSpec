@@ -7,7 +7,7 @@ import STFSpec.Commit.Branch
 # Total bare partial-trie deletion
 
 Library `EthCommit`. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:680–828`.
+`src/ethereum/forks/amsterdam/incremental_mpt.py:673–821`.
 Visited surviving nodes are strictly recompleted, including no-op nodes. Private
 source-control metadata distinguishes clean same-origin returns from changes;
 nominal structural or allocation equality never decides source changedness.
@@ -407,7 +407,7 @@ decreasing_by
   · exact branch_smaller _ _ _ _ _
 
 /-- Total deletion on all finite bare partial tries. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:680–828`. -/
+`src/ethereum/forks/amsterdam/incremental_mpt.py:673–821`. -/
 def delete {m : Type → Type} [Monad m] [KeccakQuery m]
     (root : Ref) (key : Nibbles) : m (Except TrieError Ref) :=
   cursor root key 0 (fun r => pure (.ok r.ref))

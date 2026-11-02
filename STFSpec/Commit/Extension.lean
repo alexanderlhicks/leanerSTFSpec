@@ -9,7 +9,7 @@ import STFSpec.Commit.ChildRef
 # Completed immediate-extension construction
 
 Library `EthCommit`. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:719–750,795–819`.
+`src/ethereum/forks/amsterdam/incremental_mpt.py:712–743,788–812`.
 Match the immediate child once, splice its leaf/extension path once, and strictly
 complete only the fresh outer node. Retained descendants keep all fields/caches.
 This is not a transitive normalization or every mutation extension stage.
@@ -52,8 +52,8 @@ private def freshExt {m : Type → Type} [Monad m] [KeccakQuery m]
 /-- Splice exactly one immediate child path, then complete the fresh outer node.
 The immediate old cache is discarded only in leaf/ext cases; every retained child
 and descendant is preserved. Empty prefixes still follow the same cases. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:719–750,795–819`, with fresh outer
-completion at `:316–346`. -/
+`src/ethereum/forks/amsterdam/incremental_mpt.py:712–743,788–812`, with fresh outer
+completion at `:319–349`. -/
 def mkExt {m : Type → Type} [Monad m] [KeccakQuery m]
     (path : Nibbles) (child : Node) : m Node :=
   match child with

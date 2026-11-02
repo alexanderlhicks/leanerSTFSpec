@@ -68,8 +68,8 @@ namespace STFSpec.Base.HashConsts
 open STFSpec.Hash KeccakQuery
 
 /-- Acquire exactly four oracle answers, in field order. Preimages follow pinned EELS
-`src/ethereum/state.py:36`, `src/ethereum/merkle_patricia_trie.py:71`,
-`src/ethereum/forks/amsterdam/fork.py:116` and `src/ethereum/forks/amsterdam/vm/__init__.py:40`.
+`src/ethereum/state.py:30`, `src/ethereum/merkle_patricia_trie.py:71`,
+`src/ethereum/forks/amsterdam/fork.py:102` and `src/ethereum/forks/amsterdam/vm/__init__.py:35`.
 F20 assigns acquisition timing to callers, rather than subsequent kernels. -/
 def query {m : Type → Type} [Monad m] [KeccakQuery m] : m HashConsts := do
   let emptyCodeHash ← keccak ⟨#[]⟩

@@ -17,16 +17,16 @@ namespace STFSpec.State
 
 open Base
 
-/-- Four supplied provider operations; EELS `src/ethereum/state.py:92–139`.
+/-- Four supplied provider operations; EELS `src/ethereum/state.py:86–133`.
 Record equality preserves complete actions, without asserting an equivalence of their effects. -/
 structure PreState (m : Type → Type) where
-  /-- Supplied optional account action; EELS `src/ethereum/state.py:100–106`. -/
+  /-- Supplied optional account action; EELS `src/ethereum/state.py:94–100`. -/
   getAccount? : Address → m (Except WitnessError (Option Account))
-  /-- Supplied storage action; EELS `src/ethereum/state.py:108–114`. -/
+  /-- Supplied storage action; EELS `src/ethereum/state.py:102–108`. -/
   getStorage : Address → Bytes32 → m (Except WitnessError U256)
-  /-- Supplied code action, without an optional result; EELS `src/ethereum/state.py:116–122`. -/
+  /-- Supplied code action, without an optional result; EELS `src/ethereum/state.py:110–116`. -/
   getCode : Hash32 → m (Except WitnessError ByteArray)
-  /-- Supplied root action on the complete raw diff; EELS `src/ethereum/state.py:124–139`. -/
+  /-- Supplied root action on the complete raw diff; EELS `src/ethereum/state.py:118–133`. -/
   stateRoot : BlockDiff → m (Except WitnessError Hash32)
 
 namespace PreState

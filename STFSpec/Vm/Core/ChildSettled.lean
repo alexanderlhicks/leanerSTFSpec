@@ -16,7 +16,7 @@ namespace STFSpec.Vm.Core
 
 /-- Incorporation requires zero committed spill on every child and the three
 reset clauses on failure; EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:227,232–234`. -/
+`src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228`. -/
 def ChildSettled (child : Frame) (failed : Bool) : Prop :=
   child.gasMeter.stateGasCommittedSpill = 0 ∧
     (if failed then

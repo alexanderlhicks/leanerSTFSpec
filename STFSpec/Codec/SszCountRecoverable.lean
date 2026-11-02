@@ -10,7 +10,7 @@ import STFSpec.Codec.SszFixedSize
 Library `EthCodec`. The local inverse premise (Q87) excludes zero-width immediate
 list elements only at visited value nodes. It leaves forward support and decoder
 completion separate. Source motivation: eth-remerkleable 0.1.31
-`complex.py:188–220,224–242,930–962`, through `src/ethereum/utils/ssz.py:137–146`.
+`complex.py:188–220,224–242,930–962`, through `src/ethereum/utils/ssz.py:132–141`.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
 

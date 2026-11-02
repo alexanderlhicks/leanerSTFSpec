@@ -3,7 +3,7 @@
 *Status: informal specification; local support implemented, security composition open. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: decisions P4, D5, D26; questions Q14, Q56; security coupling X7; gates REVIEW §§3–4/7.*
 
-`ToVCVio` is a separate library of `STFSpecSecurity/`. It uses existing dependencies only. Its local executable helpers and ordinary laws support future security proofs; they do not install VCV-io or prove whole-trie binding. `EthSecurity` owns agreement and security claims. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
+`ToVCVio` is a separate library of `STFSpecSecurity/`. It uses existing dependencies only. Its local executable helpers and ordinary laws support future security proofs; they do not install VCV-io or prove whole-trie binding. `EthSecurity` owns agreement and security claims. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 

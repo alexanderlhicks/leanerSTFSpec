@@ -37,7 +37,7 @@ structure SystemAddrs where
   /-- System transaction execution gas grant. -/
   txGas : Nat
   /-- Expected upper bound on new storage slots written by one system call (pinned EELS
-  `src/ethereum/forks/amsterdam/fork.py:122–126`); it sizes the state-gas reservoir and
+  `src/ethereum/forks/amsterdam/fork.py:108–112`); it sizes the state-gas reservoir and
   is not enforced as a cap. -/
   maxSstoresPerCall : Nat
 

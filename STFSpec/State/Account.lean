@@ -18,7 +18,7 @@ namespace STFSpec.State
 
 open Base
 
-/-- Account value with exactly the pinned EELS `src/ethereum/state.py:42–49` fields. -/
+/-- Account value with exactly the pinned EELS `src/ethereum/state.py:36–43` fields. -/
 structure Account where
   /-- Unbounded EELS `Uint` nonce; transaction admission owns nonce limits. -/
   nonce : Nat
@@ -73,7 +73,7 @@ section
 variable (consts : HashConsts)
 local notation "EMPTY_CODE_HASH" => consts.emptyCodeHash
 
-/-- Empty account; EELS `src/ethereum/state.py:52–56`, with caller-supplied F20 constants. -/
+/-- Empty account; EELS `src/ethereum/state.py:46–50`, with caller-supplied F20 constants. -/
 def emptyAccount : Account := ⟨0, U256.zero, EMPTY_CODE_HASH⟩
 
 /-- The empty account nonce is zero. -/

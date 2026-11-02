@@ -15,7 +15,7 @@ Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§2–7.
 namespace STFSpec.Codec
 
 /-- Preserve every address byte; locked `ethereum_rlp/rlp.py:70–72,101` (0.1.6).
-EELS `src/ethereum/state.py:33` aliases Address to Bytes20. -/
+EELS `src/ethereum/state.py:27` aliases Address to Bytes20. -/
 instance : RlpEncode Base.Address where
   toRlp x := .bytes x.toBytes.toByteArray
 

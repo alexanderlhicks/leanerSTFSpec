@@ -8,14 +8,14 @@ import STFSpec.Vm.Core.Exceptions
 # Two-dimensional gas charges, rollback, refunds and grant transfers
 
 Library `EthVmCore`. Pure numeric meter helpers, without diagnostic tracing or frame settlement.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336,374–448,471–746,861–876`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:258–324,362–436,459–734,846–861`.
 Charges and refunds admit every raw Nat/Int record; rollback assertions are local proof arguments.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.5/5/7.
 -/
 
 namespace STFSpec.Vm.Core
 
-/-- Complete meter; pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:270–336`. -/
+/-- Complete meter; pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:258–324`. -/
 structure GasMeter where
   /-- Remaining execution grant. -/
   gasLeft : Nat
@@ -34,17 +34,17 @@ structure GasMeter where
 def GasMeter.phi (g : GasMeter) : Nat :=
   g.gasLeft + g.stateGasSpilled + g.stateGasCommittedSpill
 
-/-- Read-only affordability; EELS `src/ethereum/forks/amsterdam/vm/gas.py:374–388`. -/
+/-- Read-only affordability; EELS `src/ethereum/forks/amsterdam/vm/gas.py:362–376`. -/
 def checkGas (g : GasMeter) (a : Nat) : Except ExceptionalHalt Unit :=
   if g.gasLeft < a then .error .outOfGas else .ok ()
 
-/-- Checked execution charge; EELS `src/ethereum/forks/amsterdam/vm/gas.py:391–405`.
+/-- Checked execution charge; EELS `src/ethereum/forks/amsterdam/vm/gas.py:379–393`.
 The frame wrapper's diagnostic trace is outside this numeric operation. -/
 def chargeGas (g : GasMeter) (a : Nat) : Except ExceptionalHalt GasMeter :=
   if g.gasLeft < a then .error .outOfGas
   else .ok { g with gasLeft := g.gasLeft - a }
 
-/-- Reservoir-first state charge; EELS `src/ethereum/forks/amsterdam/vm/gas.py:425–448`.
+/-- Reservoir-first state charge; EELS `src/ethereum/forks/amsterdam/vm/gas.py:413–436`.
 An unaffordable amount returns out-of-gas before any meter update. -/
 def chargeStateGas (g : GasMeter) (a : Nat) : Except ExceptionalHalt GasMeter :=
   if a ≤ g.stateGasLeft then .ok { g with stateGasLeft := g.stateGasLeft - a }
@@ -141,7 +141,7 @@ theorem chargeStateGas_gasLeft_le (g : GasMeter) (a : Nat) (g' : GasMeter)
     · contradiction
 
 /-- Commit pending spill and lower the baseline; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:471–502`. The assertion is a proof argument. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:459–490`. The assertion is a proof argument. -/
 def commitStateGas (m : GasMeter)
     (_h : m.stateGasLeft ≤ m.stateGasBaseline) : GasMeter :=
   { m with
@@ -150,7 +150,7 @@ def commitStateGas (m : GasMeter)
     stateGasSpilled := 0 }
 
 /-- Restore pending spill and the current baseline; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:505–529`. Committed spill is retained. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:493–517`. Committed spill is retained. -/
 def restoreStateGas (m : GasMeter) : GasMeter :=
   { m with
     gasLeft := m.gasLeft + m.stateGasSpilled
@@ -159,7 +159,7 @@ def restoreStateGas (m : GasMeter) : GasMeter :=
     refundCounter := 0 }
 
 /-- Restore both spill pools and the entry grant; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:532–567`. Both assertions precede mutation;
+`src/ethereum/forks/amsterdam/vm/gas.py:520–555`. Both assertions precede mutation;
 refund is preserved, and its proof argument establishes that it is zero. -/
 def restoreStateGasToEntry (m : GasMeter) (R : Nat)
     (_h₁ : m.stateGasBaseline ≤ R) (_h₂ : m.refundCounter = 0) : GasMeter :=
@@ -236,7 +236,7 @@ theorem restoreStateGasToEntry_post (m : GasMeter) (R : Nat)
   exact ⟨rfl, rfl, h₂, rfl, rfl⟩
 
 /-- Credit pending spill first, then the reservoir; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:606–628`. Baseline, signed refund and
+`src/ethereum/forks/amsterdam/vm/gas.py:594–616`. Baseline, signed refund and
 committed spill are retained, without a baseline cap. -/
 def creditStateGasRefund (m : GasMeter) (a : Nat) : GasMeter :=
   let fromGasLeft := min a m.stateGasSpilled
@@ -246,7 +246,7 @@ def creditStateGasRefund (m : GasMeter) (a : Nat) : GasMeter :=
     stateGasLeft := m.stateGasLeft + (a - fromGasLeft) }
 
 /-- Repay pending spill from the reservoir; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:631–659`. The final source assertion
+`src/ethereum/forks/amsterdam/vm/gas.py:619–647`. The final source assertion
 is a universal postcondition, proved below, with no input premise. -/
 def repayStateGasSpill (m : GasMeter) : GasMeter :=
   let repayment := min m.stateGasLeft m.stateGasSpilled
@@ -319,23 +319,23 @@ theorem repayStateGasSpill_idempotent (m : GasMeter) :
   simp only [Nat.add_zero, Nat.sub_zero]
 
 /-- Forfeit execution gas after spill rollback; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:662–675`. Only pending spill must be zero. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:650–663`. Only pending spill must be zero. -/
 def forfeitRemainingGas (m : GasMeter) (_h : m.stateGasSpilled = 0) : GasMeter :=
   { m with gasLeft := 0 }
 
 /-- Save the CREATE execution grant, then subtract it; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:678–698`, inlining `:876`. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:666–686`, inlining `:861`. -/
 def withholdCreateGas (m : GasMeter) : Nat × GasMeter :=
   let childGas := m.gasLeft - m.gasLeft / 64
   (childGas, { m with gasLeft := m.gasLeft - childGas })
 
 /-- Save the whole reservoir, then empty it; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:701–722`. The saved amount is first. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:689–710`. The saved amount is first. -/
 def drainStateGasReservoir (m : GasMeter) : Nat × GasMeter :=
   (m.stateGasLeft, { m with stateGasLeft := 0 })
 
 /-- Restore execution and reservoir amounts; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:725–746`. Both amounts are unbounded. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:713–734`. Both amounts are unbounded. -/
 def restoreChildGas (m : GasMeter) (g T : Nat) : GasMeter :=
   { m with gasLeft := m.gasLeft + g, stateGasLeft := m.stateGasLeft + T }
 
@@ -390,7 +390,7 @@ theorem restoreChildGas_phi (m : GasMeter) (g T : Nat) :
 
 /-- Signed refund addition; EELS inline `refund_counter += k`, at
 `src/ethereum/forks/amsterdam/vm/instructions/storage.py:130,134,139` and
-`src/ethereum/forks/amsterdam/vm/__init__.py:242`. Every raw meter is admitted. -/
+`src/ethereum/forks/amsterdam/vm/__init__.py:236`. Every raw meter is admitted. -/
 def addRefund (m : GasMeter) (k : Int) : GasMeter :=
   { m with refundCounter := m.refundCounter + k }
 
@@ -402,7 +402,7 @@ theorem addRefund_eq (m : GasMeter) (k : Int) :
 theorem addRefund_phi (m : GasMeter) (k : Int) :
     (addRefund m k).phi = m.phi := rfl
 
-/-- EIP-150 maximum grant; EELS `src/ethereum/forks/amsterdam/vm/gas.py:861–876`. -/
+/-- EIP-150 maximum grant; EELS `src/ethereum/forks/amsterdam/vm/gas.py:846–861`. -/
 def maxMessageCallGas (g : Nat) : Nat :=
   g - g / 64
 
@@ -416,7 +416,7 @@ theorem maxMessageCallGas_le (g : Nat) :
   rw [maxMessageCallGas_eq]
   exact Nat.sub_le _ _
 
-/-- Net transaction state usage; EELS `src/ethereum/forks/amsterdam/vm/gas.py:570–603`.
+/-- Net transaction state usage; EELS `src/ethereum/forks/amsterdam/vm/gas.py:558–591`.
 The baseline assertion is a local proof argument. Cast before subtraction so that
 refunds may leave negative usage; the complete meter is unchanged. -/
 def txStateGasUsed (m : GasMeter) (T : Nat) (_h : m.stateGasBaseline ≤ T) : Int :=
