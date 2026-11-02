@@ -1,9 +1,9 @@
 # `EthSecurity`: witness soundness, header-chain and request binding, and the Keccak ROM bound
 
-*Status: informal specification, draft. Date: 2026-10-02. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F4, F15, F18, F20 and §9 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P4, D5, D8, D9, D12, D14, D16, D19, D20 · questions: B9 (Q11), B10 (Q12), Q13, Q14, Q44, Q55.*
 
-`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). Its agreement declarations define no executable guest behaviour. The separate local `ToVCVio` support library has executable RLP reference and raw-pair extraction helpers, owned by [ToVCVio](ToVCVio.md). **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal.
+`EthSecurity` is the library of the **security package** (`STFSpecSecurity/lakefile.toml`, root `STFSpecSecurity`; it requires the core and the Mathlib bridge package; Mathlib v4.34.0; VCV-io to be added). Its agreement declarations define no executable guest behaviour. The separate local `ToVCVio` support library has executable RLP reference and raw-pair extraction helpers, owned by [ToVCVio](ToVCVio.md). **[V]** marks a claim checked against source (pinned EELS, or VCV-io at `f5119c6`, 2026-09-26); **[I]** marks an inference or proposal. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -68,7 +68,7 @@ and the bridge `probEvent_eq_one_simulateQ_randomOracle_run_iff` (`VCVio/OracleC
 
 ## 4. Tests
 
-- **EEST fixture areas:** none decide security. `eip8025_optional_proofs/witness_validation_state`, `witness_validation_codes`, `witness_validation_headers`, `witness_public_keys` and `witness_validation_chain_id` are the negative cases whose rejection the theorems explain; they are used as **sanity instances**: each theorem's hypotheses must be satisfiable on at least one corpus record (non-vacuity), checked by evaluating the executable parts.
+- **EEST fixture areas:** none decide security. `eip8025_optional_proofs/witness_validation_state`, `witness_validation_codes`, `witness_validation_headers` and `witness_validation_chain_id` are the negative cases whose rejection the theorems explain; they are used as **sanity instances**: each theorem's hypotheses must be satisfiable on at least one corpus record (non-vacuity), checked by evaluating the executable parts.
 - **EELS unit tests:** none.
 - **`core` cases:** none (this library is not in the core). In `STFSpecSecurity/` add `example`s that instantiate each theorem on a two-leaf trie and a one-header chain, and a canary `example` instantiating the VCV-io bridge lemma for `keccakSpec`, as VCV-io's own `VCVioTest/Computability.lean` does for its ROM runtime [V].
 - **Property checks:** the collision extractors are executable; test that on every corpus record they return `none` when fed the record's own preimage set (no accidental collision), and that on synthetic inputs built with a deliberately colliding toy hash they return the collision.
@@ -285,3 +285,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Quantitative query budgets.** `queryBudget x σ` must be computed from the executable spec (nodes decoded, roots recomputed, headers hashed); no bound function exists yet, and the stateful side's `mathStateRoot` makes it linear in `|σ|`.
 - **Completeness/liveness** (DECISIONS Q13) is not stated: nothing guarantees that an honest prover's witness is accepted.
 - **Consumers' composition.** How evm-asm's or pancaketh's refinement theorem composes with these statements (their toolchains are v4.33.x; a Mathlib version conflict with evm-asm) is unresolved.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The public-key hint was removed upstream (execution-specs PR #3652; EthStateless §10), together with the `witness_public_keys` fixture area. R8's sentence on the hint and the `some x.publicKeys` argument in §5 still describe `tests-zkevm@v21.0.0`.

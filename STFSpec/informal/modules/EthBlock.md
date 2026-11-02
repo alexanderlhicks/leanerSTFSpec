@@ -1,9 +1,9 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54, Q83.*
 
-Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12).
+Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -216,7 +216,6 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/bpo5/blocks.py::encode_receipt` | 370 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
 | `forks/bpo5/blocks.py::decode_receipt` | 393 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
 | `forks/amsterdam/transactions.py::IntrinsicGasCost` | 46 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
-| `forks/amsterdam/transactions.py::SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` | 62 | `secp256k1UncompressedPrefix` | `0x04` |
 | `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 69 | `versionedHashVersionKzg` | `0x01` |
 | `forks/amsterdam/transactions.py::LegacyTransaction` | 94 | `LegacyTransaction` | type 0 |
 | `forks/amsterdam/transactions.py::Access` | 157 | `Access` |  |
@@ -234,10 +233,6 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::check_nonce` | 855 | `checkNonce` |  |
 | `forks/amsterdam/transactions.py::chain_id` | 865 | `chainId` | may overflow U64 (Gaps) |
 | `forks/amsterdam/transactions.py::recover_sender` | 883 | `recoverSender` |  |
-| `forks/amsterdam/transactions.py::recover_transaction_public_key` | 903 | `recoverTransactionPublicKey` | 65 bytes |
-| `forks/amsterdam/transactions.py::recover_sender_from_public_key` | 916 | `recoverSenderFromPublicKey` | hint check, O5 |
-| `forks/amsterdam/transactions.py::_sender_address_from_public_key` | 937 | `senderAddressFromPublicKey` | internal |
-| `forks/amsterdam/transactions.py::_signature_recovery_parameters` | 944 | `signatureRecoveryParameters` | internal |
 | `forks/amsterdam/transactions.py::signing_hash_pre155` | 1015 | `signingHashPre155` |  |
 | `forks/amsterdam/transactions.py::signing_hash_155` | 1039 | `signingHash155` |  |
 | `forks/amsterdam/transactions.py::signing_hash_2930` | 1065 | `signingHash2930` |  |
@@ -524,7 +519,7 @@ retain exact schema/dispatch, complete `Encodable`, F20 coherence and host premi
 These are future consumer checks; the guidance clarification claims no new conformance.
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`, in both `blockchain_tests` and `blockchain_tests_engine`, under `for_amsterdam` and the transition `for_bpo2toamsterdamattime15k`):
-  - Amsterdam: `eip2780_reduce_intrinsic_tx_gas` (59), `eip7778_block_gas_accounting_without_refunds` (9), `eip7843_slotnum` (10), `eip7928_block_level_access_lists` (202/204), `eip7976_increase_calldata_floor_cost` (21), `eip7981_increase_access_list_cost` (19), `eip8037_state_creation_gas_cost_increase` (268, for block gas and settlement), `eip8246_selfdestruct_no_burn` (7), `eip8282_builder_execution_requests` (22), `eip8025_optional_proofs` (100: public-key hints, chain id, versioned hashes);
+  - Amsterdam: `eip2780_reduce_intrinsic_tx_gas` (61), `eip7778_block_gas_accounting_without_refunds` (9), `eip7843_slotnum` (10), `eip7928_block_level_access_lists` (211/213), `eip7976_increase_calldata_floor_cost` (21), `eip7981_increase_access_list_cost` (19), `eip8037_state_creation_gas_cost_increase` (270, for block gas and settlement), `eip8246_selfdestruct_no_burn` (9), `eip8282_builder_execution_requests` (22), `eip8025_optional_proofs` (96: chain id, versioned hashes; the public-key hint cases are gone at v21.0.6);
   - Prague: `eip6110_deposits`, `eip7002_el_triggerable_withdrawals`, `eip7251_consolidations`, `eip7685_general_purpose_el_requests`, `eip7623_increase_calldata_cost`, `eip7702_set_code_tx` (86), `eip2935_historical_block_hashes_from_state`;
   - Cancun: `eip4788_beacon_root`, `eip4844_blobs` (42), `eip7516_blobgasfee`, `eip6780_selfdestruct`;
   - Osaka: `eip7825_transaction_gas_limit_cap`, `eip7918_blob_reserve_price`, `eip7934_block_rlp_limit`, `eip7594_peerdas`;
@@ -969,3 +964,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Conservation law** (§7): no proof strategy yet; it depends on G4's frame-level value-transfer and SELFDESTRUCT (EIP-8246) contracts.
 - **Complexity**: the BAL build cost with `ExtTreeMap` is expected to be O(N log N), but no `Std` cost theorem exists (ARCHITECTURE §5.0). Trie roots are built from scratch per block (EthCommit's cost) and not measured.
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10); the apply-body sequence here still lists it.

@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-11-01. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-11-02. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -16,9 +16,9 @@ A documented proposal or an implemented guard does not by itself make a decision
 
 | # | Decision | Status | Current position | Evidence required to settle or revisit |
 |---|---|---|---|---|
-| P1 | Protocol pin | **accepted** | `tests-zkevm@v21.0.0` @e1a316a0, fixture sha256 verified (`reference.toml`). The move to `tests-zkevm@v21.0.6` was approved by the maintainer (2026-11-01); it lands in its own change, with `reference.toml`, CONTRACT and the regenerated inventory and records, before any guest-level code | a new canonical release; bump spec and fixtures together |
+| P1 | Protocol pin | **accepted** | `tests-zkevm@v21.0.6` @59c1473d, fixture size and sha256 verified (`reference.toml`). Moved from `tests-zkevm@v21.0.0` @e1a316a0 on 2026-11-02 (approved by the maintainer 2026-11-01) in one change with `reference.toml`, CONTRACT, the regenerated inventory, reference records and fixture index, and the module pins, before any guest-level code. The move changed no Lean semantics: each deferred upstream delta is a re-pin item in its owning module's §10, and the citation and differential-evidence follow-up is GAPS-CROSSCUTTING X16. CONTRACT retires O5 (the public-key hint is gone upstream). **Engine payload records are guest records** (maintainer decision, 2026-11-02): an `engineNewPayloads[i]` entry carrying both stateless fields is a guest record exactly like a `blocks[i]` entry, following upstream; a payload with neither field yields no record, and one field alone is malformed (EthConformance R2). `reference.toml` counts both formats | a new canonical release; bump spec and fixtures together |
 | P2 | Authority order | **accepted** | fixtures, then pinned EELS source, then the discrepancy policy ([CONTRACT](CONTRACT.md) §6) | — |
-| P3 | Toolchain | **accepted** | Lean v4.34.0. The move to v4.35.0 (with the matching Mathlib) was approved by the maintainer (2026-11-01); it lands in its own change after the P1 move and before the D28 migration, editing `reference.toml` `[lean]` and the three `lean-toolchain` files and recorded in P1. The P1 change reconciles the `reference.toml` header, which currently asks for the release, dependencies and Lean version to move in one commit | downstream bump needs |
+| P3 | Toolchain | **accepted** | Lean v4.34.0. The move to v4.35.0 (with the matching Mathlib) was approved by the maintainer (2026-11-01); it lands in its own change after the P1 move and before the D28 migration, editing `reference.toml` `[lean]` and the three `lean-toolchain` files and recorded in P1. The P1 change reconciled the `reference.toml` header: the release and its locked Python dependencies move together, the Lean version moves separately, and each move is one atomic commit recorded in P1 | downstream bump needs |
 | P4 | Package layout and checks | **accepted** (2026-09-28) | the core package (the repository root; `require`s nothing), `STFSpecMathlib/` (Mathlib bridges) and `STFSpecSecurity/` (security; VCV-io is added here only), which shares the bridge package's dependency checkouts. CI (`.github/workflows/ci.yml`): **core job**: `lake build --wfail`, `check_boundaries.py`, `check_decls.sh core`, the checkers' regression tests, the pinned-reference check and its regressions (`check_reference.py`, `test_reference_checks.py`), the diagram check, the spec checks (`check_spec.py`, `test_spec_checks.py`), gap-register freshness and `lake build EthConformance --wfail`; **bridge and security job**: `lake build --wfail` and `check_decls.sh mathlib`/`security` (sorry reported); **weekly job**: download the fixture archive and verify its sha256 and record counts (the full-corpus conformance run is added with the fixture runner). Benchmark packages are added, with correctness gates, when there is something to measure | — |
 | P5 | Licence | **accepted** (2026-09-28) | Apache-2.0 OR MIT (dual); the consumers are MIT, the Lean dependencies Apache-2.0 | — |
 | P6 | Relation to SpecRef | **accepted** (2026-09-28) | written from scratch; SpecRef is replaced, not moved. Equivalence with SpecRef is not a goal. Consumers (evm-asm, stateless-pancaketh) retarget in their own repositories | — |
@@ -193,9 +193,10 @@ driver must provide one coherent record to their backends and kernels. EthStatel
 EthBlock and EthConformance own their respective acquisition boundaries; EthHash provides acquisition, EthBase the value record, and state, commitment,
 VM and conformance consumers use it. D5 governs hashing; D14 governs failure channels.
 
-**Sources.** The release and dependency commits are pinned in `reference.toml`:
-`tests-zkevm@v21.0.0`, execution-specs `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`.
-Relevant EELS sites are `src/ethereum/forks/amsterdam/stateless.py:250,281–294`,
+**Sources.** This item was reviewed at the pin of the time, `tests-zkevm@v21.0.0`,
+execution-specs `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`; the current pin is in
+`reference.toml` (P1). Relevant EELS sites at that commit are
+`src/ethereum/forks/amsterdam/stateless.py:250,281–294`,
 `execution_engine/new_payload.py:112–136,147–157`,
 `execution_engine/validation_helpers.py:61,108`, and `fork.py:265,309–325,498`
 (the latter paths are under the same Amsterdam directory). EELS uses module-level

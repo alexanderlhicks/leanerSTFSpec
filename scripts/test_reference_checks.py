@@ -10,9 +10,12 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+PIN = tomllib.loads((ROOT / "reference.toml").read_text())["release"]
+FIXTURES = PIN["fixtures"]
 
 
 class ReferenceChecks(unittest.TestCase):
@@ -45,10 +48,15 @@ class ReferenceChecks(unittest.TestCase):
             member.size = len(data)
             archive.addfile(member, io.BytesIO(data))
         pin = self.root / "reference.toml"
-        text = pin.read_text().replace("size_bytes = 586431069", f"size_bytes = {path.stat().st_size}")
-        text = text.replace("44cfcb54fe08b870c53c96879f8ebbc960434032eb3696139dbe2a1629eebe1a", hashlib.sha256(path.read_bytes()).hexdigest())
-        text = text.replace("json_files = 6875", "json_files = 1").replace("guest_records = 29030", "guest_records = 1")
-        pin.write_text(text.replace("distinct_guest_inputs = 24283", f"distinct_guest_inputs = {distinct}"))
+        text = pin.read_text()
+        for old, new in ((f"size_bytes = {FIXTURES['size_bytes']}", f"size_bytes = {path.stat().st_size}"),
+                         (FIXTURES["sha256"], hashlib.sha256(path.read_bytes()).hexdigest()),
+                         (f"json_files = {FIXTURES['json_files']}", "json_files = 1"),
+                         (f"guest_records = {FIXTURES['guest_records']}", "guest_records = 1"),
+                         (f"distinct_guest_inputs = {FIXTURES['distinct_guest_inputs']}", f"distinct_guest_inputs = {distinct}")):
+            self.assertEqual(text.count(old), 1, old)
+            text = text.replace(old, new)
+        pin.write_text(text)
 
     def test_baseline(self):
         self.check()
@@ -92,8 +100,9 @@ class ReferenceChecks(unittest.TestCase):
 
     def test_diagram_pin(self):
         path = self.root / "reference.toml"
-        path.write_text(path.read_text().replace("tests-zkevm@v21.0.0", "tests-zkevm@v22.0.0"))
-        self.assertIn("EEST zkevm fixtures · tests-zkevm@v22.0.0", self.diagram())
+        self.assertNotEqual(PIN["tag"], "tests-zkevm@v99.0.0")
+        path.write_text(path.read_text().replace(PIN["tag"], "tests-zkevm@v99.0.0"))
+        self.assertIn("EEST zkevm fixtures · tests-zkevm@v99.0.0", self.diagram())
 
     def test_diagram_proof_edges(self):
         text = self.diagram()

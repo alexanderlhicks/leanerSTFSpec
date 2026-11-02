@@ -1,12 +1,14 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
 **[I]** inference, not yet checked. Paths are relative to
 `src/ethereum/forks/amsterdam/vm/precompiled_contracts/` unless they start with `crypto/`,
 `vm/` or a package name; `vm/` means `src/ethereum/forks/amsterdam/vm/`.
+EELS `file:line` citations and verified observations are at `e1a316a0`
+(`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -303,7 +305,8 @@ integration, security and the rest of this module remain open.
 ## 4. Tests
 
 - **EEST fixture areas** (`blockchain_tests`, from `STFSpec/informal/eest-fixture-index.txt`; the
-  `blockchain_tests_engine` copies carry no guest records, GAPS-CROSSCUTTING X5):
+  `blockchain_tests_engine` copies cover the same areas with their own guest records,
+  GAPS-CROSSCUTTING X5):
   - `0x01`: `frontier/precompiles` (`ecrecover/*`), `ported_static/stPreCompiledContracts2`
     (`call[code]_ecrecover*`, `ecrecover_short_buff`);
   - `0x02`/`0x03`: `frontier/precompiles` (`ripemd/*`), `stPreCompiledContracts2`

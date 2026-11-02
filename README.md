@@ -8,7 +8,7 @@ It will replace the spec currently in evm-asm (`EvmAsm/Stateless/SpecRef`). It i
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
-**Normative target:** `tests-zkevm@v21.0.0` (execution-specs `e1a316a0`, Amsterdam), pinned in [`reference.toml`](reference.toml). Passing its EEST zkevm fixtures is mandatory and decisive.
+**Normative target:** `tests-zkevm@v21.0.6` (execution-specs `59c1473d`, Amsterdam), pinned in [`reference.toml`](reference.toml). Passing its EEST zkevm fixtures is mandatory and decisive.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ flowchart TB
   VCV["VCV-io (planned)"]
   CompPoly["CompPoly<br/>Montgomery Defs (D6 source candidate)"]
   CryptoSpecs["ethereum/cryptography-specs<br/>BLS12-381 · KZG reference"]
-  Oracle[("EEST zkevm fixtures · tests-zkevm@v21.0.0<br/>statelessInputBytes → statelessOutputBytes")]
+  Oracle[("EEST zkevm fixtures · tests-zkevm@v21.0.6<br/>statelessInputBytes → statelessOutputBytes")]
   evmasm -. refines .-> EthStateless
   pancake -. refines .-> EthStateless
   EthHash --> EthBase

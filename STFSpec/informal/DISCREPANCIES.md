@@ -1,12 +1,12 @@
 # Protocol discrepancy register
 
-Status: no accepted deviations. Date: 2026-09-29. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
+Status: no accepted deviations. Date: 2026-11-02. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
 
 ## DISC-001: Python host resource limits
 
 - **Status:** proposed investigation; one reproducer recorded (deep RLP, below); not reported upstream; no accepted deviation.
 - **Scope:** O12. Python recursion/allocation limits may turn finite inputs into failure outputs whose value depends on the host and the catching phase. Cycle detection can reproduce a deterministic invalid-witness output; finite deep or large inputs need separate analysis.
-- **Reference:** execution-specs commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, `stateless_guest.run_stateless_guest` and `stateless.verify_stateless_new_payload`, with dependencies in `reference.toml`.
+- **Reference:** the pinned execution-specs (`reference.toml`; commit `59c1473ddfba341babaeca1c97a50e996f639a0b` since 2026-11-02; the evidence below was recorded at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`), `stateless_guest.run_stateless_guest` and `stateless.verify_stateless_new_payload`, with dependencies in `reference.toml`.
 - **Evidence required:** exact input bytes and digest; Python/dependency versions; recursion limit, memory/container limits and relevant host settings; command; exception and catching phase; encoded output; comparison across environments. Distinguish fixture-covered cases from uncovered inputs.
 - **Tracked cases:** deep RLP nesting in payload transactions (DECISIONS Q20); deep acyclic witness chains (Q6); DAG-shaped witnesses (DISC-004).
 - **Recorded evidence (2026-09-29, from running the pinned EELS with the failure ledger, maintained outside this repository):**

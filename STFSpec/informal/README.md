@@ -1,6 +1,6 @@
 # STFspec informal specification: design overview
 
-*Status: draft informal specification, updated 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0 (`reference.toml`). Architecture: `STFSpec/informal/ARCHITECTURE.md`. No Lean definitions exist yet: this is the specification the implementation will follow.*
+*Status: draft informal specification, updated 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d (`reference.toml`). Architecture: `STFSpec/informal/ARCHITECTURE.md`. No Lean definitions exist yet: this is the specification the implementation will follow.*
 
 This document composes the 23 spec guidance documents in [`modules/`](modules) into one end-to-end design. It records how the modules fit together, which seams are resolved, which are provisional, and what is still missing.
 
@@ -83,7 +83,7 @@ sequenceDiagram
     G->>B: executeBlock with Amsterdam configuration
     B->>B: validate_header against the parent (incl. excess blob gas, EIP-7918)
     loop system calls, then each transaction
-        B->>S: check_transaction, sender recovery (public-key hint, O5)
+        B->>S: check_transaction, sender recovery
         B->>R: process the message call with a TxState over the BlockState
         loop frame loop (candidate fuel = Φ + 1, proof open)
             R->>I: step → next frame / halt / child request
@@ -112,7 +112,7 @@ Each step is owned by exactly one module; the arrows are the seams in §3.
 | S4 | Step / child request / resume | `EthVmInstructions` → `EthVmRunner` | `StepResult` with `CallRequest`/`CreateRequest`; `resumeAfterCall`/`resumeAfterCreate`; handlers never recurse | specified (D17) |
 | S5 | Precompile table | `EthPrecompiles` → `EthFork` → `EthVmRunner` | the runner receives a table, whose key set warms addresses | specified |
 | S6 | Gas policy and fork values | `EthVmCore`/`EthBlock` record types ← `EthFork` values | one VmConfig supplies frames and table pricing; numeric WF and behavioural TerminationReady are separate | config coherence specified; complete records and behavioural proof open |
-| S7 | secp256k1 recovery | `EthCurve` → `EthVmRunner` (EIP-7702) and `EthBlock` (senders, O5) | direct call | **resolved by D26** (accepted 2026-09-28) |
+| S7 | secp256k1 recovery | `EthCurve` → `EthVmRunner` (EIP-7702) and `EthBlock` (senders) | direct call | **resolved by D26** (accepted 2026-09-28) |
 | S8 | `Log` / `BlockOutput` | `EthVmCore` → `EthBlock` | Log/LogRope in Core, BlockOutput in Block | **resolved by D27** (accepted 2026-09-28) |
 | S9 | Hash abstraction | `EthHash.KeccakQuery` → `EthCommit`, `EthStateWitness`, header chain | every hashing interface is parametric in `{m} [Monad m] [KeccakQuery m]` (`PreState m`, `StateM m`, `VmM m`, `BlockM m`, `PrecompileFn m`); public entry points at `Id`, whose instance is concrete keccak; constants via `HashConsts` | **adopted** (D5/B10; DECISIONS §3): every keccak, including ECRECOVER, the transfer topic and the constants; oracle coupling for `Models` at generic `m` still to be shown by the agreement prototype; constant acquisition and threading follow F20 |
 | S10 | Error → outcome | every module's error constructors → `EthStateless.classify` → CONTRACT O-rows | explicit constructors; no catch-all | **incomplete**: X1. The failure ledger (maintained outside this repository) exists; enumerated deterministic faults map to O13 with named constructors; on the guest path, transaction-decode failures are O6. Unresolved failure sites remain |

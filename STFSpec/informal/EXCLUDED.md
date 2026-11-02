@@ -1,6 +1,6 @@
 # EELS items deliberately not specified
 
-*Status: exclusions at tests-zkevm@v21.0.0 @e1a316a0. Date: 2026-09-29.*
+*Status: exclusions reviewed at tests-zkevm@v21.0.0 @e1a316a0; every excluded item still exists at the current pin, tests-zkevm@v21.0.6 @59c1473d. Date: 2026-11-02.*
 
 Each entry: a backquoted `` `file::name` `` or `` `file::*` `` token and the reason. `scripts/check_spec.py`
 counts these as covered. An exclusion is a claim that the item has no effect on
