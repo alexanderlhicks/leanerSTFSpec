@@ -3,7 +3,7 @@
 """Bounded original deletion, separate strict completion, and full nominal frames.
 
 Freeze --write-catalog, --write-premises and --preflight artifacts before original execution. Use
-EELS/.venv/bin/python -I -B, --eels EELS, --output EXTERNAL.lean, --catalog JSON,
+uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS, --output EXTERNAL.lean, --catalog JSON,
 --rlp-wheel WHEEL and --types-wheel WHEEL. --self-test also supports Python -O.
 Concrete full-value comparison has local retained-cache/embedding/finite-host
 premises. Original dirty-cache writes and query histories remain observations.

@@ -141,24 +141,24 @@ flowchart TB
 
 ```sh
 lake build --wfail                    # core package
-python3 scripts/check_boundaries.py   # dependency and hygiene boundaries (source level)
+uv run --no-project --python 3.12 python scripts/check_boundaries.py   # dependency and hygiene boundaries (source level)
 scripts/check_decls.sh core                 # compiled declarations: axioms, sorry, partial/opaque, extern, csimp
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh   # the checkers catch what they should
-python3 scripts/test_reference_checks.py # pin, archive and diagram regressions
-python3 scripts/check_reference.py     # pin consistency (add --fetch DIR to verify the fixture archive)
-python3 scripts/gen_arch_diagram.py --check   # README diagram matches registries and pin
-python3 scripts/check_spec.py         # module-spec structure, EELS coverage, ownership, decision IDs
-python3 scripts/test_spec_checks.py   # the spec checker's own regression tests
-python3 scripts/gen_gaps.py --check   # STFSpec/informal/GAPS.md is regenerated from the spec guidance documents
+uv run --no-project --python 3.12 python scripts/test_reference_checks.py # pin, archive and diagram regressions
+uv run --no-project --python 3.12 python scripts/check_reference.py     # pin consistency (add --fetch DIR to verify the fixture archive)
+uv run --no-project --python 3.12 python scripts/gen_arch_diagram.py --check   # README diagram matches registries and pin
+uv run --no-project --python 3.12 python scripts/check_spec.py         # module-spec structure, EELS coverage, ownership, decision IDs
+uv run --no-project --python 3.12 python scripts/test_spec_checks.py   # the spec checker's own regression tests
+uv run --no-project --python 3.12 python scripts/gen_gaps.py --check   # STFSpec/informal/GAPS.md is regenerated from the spec guidance documents
 lake build EthConformance --wfail
 
 (cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib
 (cd STFSpecSecurity && lake build --wfail) && scripts/check_decls.sh security   # shares the Mathlib checkout
 ```
 
-Regenerate the fixture area index with `python3 scripts/gen_fixture_index.py <ARCHIVE>` from the authenticated archive; add `--check` to verify freshness.
+Regenerate the fixture area index with `uv run --no-project --python 3.12 python scripts/gen_fixture_index.py <ARCHIVE>` from the authenticated archive; add `--check` to verify freshness.
 
-Regenerators that need a pinned EELS checkout (not run in CI): `python3 scripts/gen_eels_inventory.py <EELS> --check` and `python3 scripts/gen_reference_records.py <EELS> --check`.
+Regenerators that need a pinned EELS checkout (not run in CI): `uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py <EELS> --check` and `uv run --no-project --python 3.12 python scripts/gen_reference_records.py <EELS> --check`.
 
 The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks on pushes to `main` and on pull requests. Weekly and manual runs download the pinned fixture archive and verify its checksum and record counts. That verifies corpus integrity only; fixture execution arrives with the conformance runner.
 

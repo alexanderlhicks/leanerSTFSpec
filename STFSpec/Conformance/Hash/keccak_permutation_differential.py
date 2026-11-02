@@ -9,7 +9,7 @@ hash module has no raw permutation surface. Generated observations are finite
 bug-finding evidence, never normative committed known answers.
 
 Run from the repository root:
-  python3 STFSpec/Conformance/Hash/keccak_permutation_differential.py \
+  uv run --no-project --python 3.12 python STFSpec/Conformance/Hash/keccak_permutation_differential.py \
     --output /tmp/keccak-permutation-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthHash.md §§3–4.

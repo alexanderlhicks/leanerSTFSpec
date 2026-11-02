@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Fresh complete-value observations of original pinned witness_state._trie_lookup.
 
-Use frozen EELS/.venv/bin/python -I -B, --eels, --output EXTERNAL.lean and
+Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels, --output EXTERNAL.lean and
 --rlp-wheel/--types-wheel original authenticated wheels. Source values/stubs are
 compared on actual Hash32 keys and represented finite acyclic classes. Missing
 selected slots test Q59's typed adaptation separately, not Python payload/guest

@@ -178,8 +178,8 @@ The out-of-tree comparison ran as follows; it needs the uncommitted captures, an
 each output directory must be fresh:
 
 ```sh
-python3 -B STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-target
-python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-optimized-target
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-target
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-catalogue /path/to/catalogue.json --source-output /path/to/normal.stdout.json --source-output /path/to/optimized.stdout.json --output-dir /path/to/fresh-optimized-target
 ```
 
 ### Supplied raw environment data
@@ -428,9 +428,9 @@ EELS import in target/parser modes. Help exits 0; missing mode exits 2.
 lake build transaction-gas-settlement-native-tests --wfail
 lake exe check-decls TransactionGasSettlementNativeTests
 lake exe transaction-gas-settlement-native-tests > .lake/transaction-gas-settlement.jsonl
-python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
-python3 -B scripts/test_transaction_gas_settlement_output_parser.py
-python3 -B -O scripts/test_transaction_gas_settlement_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_gas_settlement_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_settlement_output_parser.py
 ```
 
 The dated 2026-10-24 original-source schedule passed exactly 44 complete
@@ -536,12 +536,12 @@ that self-contained target path from the repository root with fresh output paths
 
 ```sh
 DRIVER=STFSpec/Conformance/Vm/Core/jumpdest_differential.py
-python3 -I -B "$DRIVER" --self-test-parser
-python3 -I -B -O "$DRIVER" --self-test-parser
-python3 -I -B "$DRIVER" --focused32 --emit-target /tmp/jumpdest-observer.lean
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --self-test-parser
+uv run --no-project --python 3.12 python -I -B -O "$DRIVER" --self-test-parser
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --focused32 --emit-target /tmp/jumpdest-observer.lean
 lake env lean --run /tmp/jumpdest-observer.lean > /tmp/jumpdest-frames.jsonl
-python3 -I -B "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
-python3 -I -B -O "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
+uv run --no-project --python 3.12 python -I -B -O "$DRIVER" --focused32 --compare /tmp/jumpdest-frames.jsonl
 ```
 
 The driver also reads a canonical 940-input catalog and optional source observations
@@ -688,8 +688,8 @@ controls from the repository root:
 lake build STFSpec.Conformance.Vm.Core.CallGasGuards --wfail
 lake build STFSpec.Conformance.Vm.Core.CallGasCallerProofs --wfail
 DRIVER=STFSpec/Conformance/Vm/Core/call_init_differential.py
-python3 -I -B "$DRIVER" --self-test
-python3 -I -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -I -B -O "$DRIVER" --self-test
 ```
 
 The dated [external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/175#issuecomment-6271408160)
@@ -745,13 +745,13 @@ paths (the emitter defines `main`, so execute it with `--run`):
 
 ```sh
 DRIVER=STFSpec/Conformance/Vm/Core/memory_gas_differential.py
-python3 -I -B "$DRIVER" --self-test
-python3 -I -B -O "$DRIVER" --self-test
-python3 -I -B "$DRIVER" --emit-guards > /tmp/memory-pricing-guards.lean
-python3 -I -B "$DRIVER" --emit-lean > /tmp/memory-pricing-observer.lean
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -I -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --emit-guards > /tmp/memory-pricing-guards.lean
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --emit-lean > /tmp/memory-pricing-observer.lean
 lake env lean --run /tmp/memory-pricing-observer.lean > /tmp/memory-pricing-frames.jsonl
-python3 -I -B "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
-python3 -I -B -O "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
+uv run --no-project --python 3.12 python -I -B "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
+uv run --no-project --python 3.12 python -I -B -O "$DRIVER" --frames /tmp/memory-pricing-frames.jsonl
 ```
 
 The strict whole-frame parser accepts consistent LF or CRLF and rejects malformed
@@ -802,12 +802,12 @@ so plain Lean, rather than --run, executes the observations:
 
 ```sh
 DRIVER=STFSpec/Conformance/Vm/Core/stack_decoder_differential.py
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > /tmp/DecoderFrames.lean
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > /tmp/DecoderFrames.lean
 lake env lean /tmp/DecoderFrames.lean > /tmp/decoder-frames.ndjson
-python3 -B "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
-python3 -B -O "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames /tmp/decoder-frames.ndjson
 ```
 
 ### Supplied padded buffer read
@@ -842,12 +842,12 @@ Reproduce the committed controls with fresh output paths; the emitter defines ma
 
 ```sh
 DRIVER=STFSpec/Conformance/Vm/Core/buffer_read_differential.py
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > /tmp/BufferReadFrames.lean
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > /tmp/BufferReadFrames.lean
 lake env lean --run /tmp/BufferReadFrames.lean > /tmp/buffer-read.ndjson
-python3 -B "$DRIVER" --check-frames /tmp/buffer-read.ndjson
-python3 -B -O "$DRIVER" --check-frames /tmp/buffer-read.ndjson
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames /tmp/buffer-read.ndjson
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames /tmp/buffer-read.ndjson
 ```
 
 ### Supplied aligned Memory (Q62)
@@ -890,12 +890,12 @@ Reproduce the committed public controls using fresh output paths:
 
 ```sh
 DRIVER=STFSpec/Conformance/Vm/Core/memory_differential.py
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > /tmp/MemoryFrames.lean
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > /tmp/MemoryFrames.lean
 lake env lean --run /tmp/MemoryFrames.lean > /tmp/memory-frames.ndjson
-python3 -B "$DRIVER" --check-frames /tmp/memory-frames.ndjson
-python3 -B -O "$DRIVER" --check-frames /tmp/memory-frames.ndjson
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames /tmp/memory-frames.ndjson
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames /tmp/memory-frames.ndjson
 ```
 
 ### Supplied bounded Stack
@@ -972,15 +972,15 @@ whole G1/G2–G7, ownership/allocation, replacement, C1–C4 or guest/EEST readi
 Reproduce the committed controls from the repository root (use fresh output paths):
 
 ```sh
-python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
-python3 -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
-python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --emit-lean > /tmp/stack.lean
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --self-test
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/stack_differential.py --emit-lean > /tmp/stack.lean
 lake env lean /tmp/stack.lean > /tmp/stack-frames.jsonl
-python3 -B STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
-python3 -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
-"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --preflight \
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Vm/Core/stack_differential.py --check-frames /tmp/stack-frames.jsonl
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$PREFLIGHT"
-"$EELS/.venv/bin/python" -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B STFSpec/Conformance/Vm/Core/stack_differential.py --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$SOURCE_OUTPUT" --frames /tmp/stack-frames.jsonl
 ```
 
@@ -1060,15 +1060,15 @@ OUT=/absolute/path/to/fresh-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/GasMeterFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasMeterFrames.lean"
 lake env lean "$OUT/GasMeterFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1101,15 +1101,15 @@ OUT=/absolute/path/to/fresh-rollback-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/GasRollbackFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasRollbackFrames.lean"
 lake env lean "$OUT/GasRollbackFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1148,15 +1148,15 @@ OUT=/absolute/path/to/fresh-refund-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/GasRefundFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasRefundFrames.lean"
 lake env lean "$OUT/GasRefundFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1202,15 +1202,15 @@ OUT=/absolute/path/to/fresh-transfer-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/GasTransferFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasTransferFrames.lean"
 lake env lean "$OUT/GasTransferFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1253,15 +1253,15 @@ OUT=/absolute/path/to/fresh-accounting-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/GasAccountingFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/GasAccountingFrames.lean"
 lake env lean "$OUT/GasAccountingFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 
@@ -1352,9 +1352,9 @@ Reproduce local target controls with fresh output paths:
 lake build transaction-gas-allocation-native-tests --wfail
 lake exe check-decls TransactionGasAllocationNativeTests
 lake exe transaction-gas-allocation-native-tests > .lake/transaction-gas-allocation.jsonl
-python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_allocation_differential.py --check-target .lake/transaction-gas-allocation.jsonl
-python3 -B scripts/test_transaction_gas_allocation_output_parser.py
-python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/transaction_gas_allocation_differential.py --check-target .lake/transaction-gas-allocation.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_gas_allocation_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_allocation_output_parser.py
 ```
 
 ## 4. Tests
@@ -1538,15 +1538,15 @@ OUT=/absolute/path/to/fresh-usage-controls
 EELS=/absolute/path/to/pinned-eels
 WHEELS=/absolute/path/to/locked-wheels
 mkdir -p "$OUT"
-python3 -B "$DRIVER" --self-test
-python3 -B -O "$DRIVER" --self-test
-python3 -B "$DRIVER" --emit-lean > "$OUT/TxUsageFrames.lean"
+uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > "$OUT/TxUsageFrames.lean"
 lake env lean "$OUT/TxUsageFrames.lean" > "$OUT/frames.jsonl"
-python3 -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
-python3 -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --preflight \
+uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames "$OUT/frames.jsonl"
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --preflight \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/preflight"
-"$EELS/.venv/bin/python" -I -B "$DRIVER" --source \
+uv run --no-project --python "$EELS/.venv/bin/python" python -I -B "$DRIVER" --source \
   --eels "$EELS" --wheels "$WHEELS" --output "$OUT/source" --frames "$OUT/frames.jsonl"
 ```
 

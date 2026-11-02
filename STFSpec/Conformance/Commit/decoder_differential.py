@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Complete finite acyclic decoder comparisons against the original pinned EELS.
 
-Use frozen EELS/.venv/bin/python -I -B, --eels EELS --output EXTERNAL.lean,
+Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS --output EXTERNAL.lean,
 --rlp-wheel WHEEL and --types-wheel WHEEL. Source and installed package bytes are
 authenticated before import and after execution. The interpreter, host, frozen
 installation/RECORD and crypto backend remain trusted inputs. Original functions

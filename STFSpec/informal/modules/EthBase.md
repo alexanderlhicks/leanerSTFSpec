@@ -393,9 +393,9 @@ lake build taylor-exponential-native-tests --wfail
 lake exe check-decls TaylorExponentialNativeTests
 lake env lean --run scripts/TaylorExponentialNativeTests.lean > /tmp/taylor-id.jsonl
 lake exe taylor-exponential-native-tests > /tmp/taylor-native.jsonl
-python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
   --check-target /tmp/taylor-id.jsonl
-python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Base/taylor_exponential_differential.py \
   --check-target /tmp/taylor-native.jsonl
 cmp /tmp/taylor-id.jsonl /tmp/taylor-native.jsonl
 ```
@@ -552,7 +552,7 @@ obligation: support hashing supplies no Keccak query or authentication proof.
 Run the manual whole-value driver after building the core:
 
 ```sh
-python3 STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/hash32-table-evidence
+uv run --no-project --python 3.12 python STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/hash32-table-evidence
 ```
 
 It retains complete current-source and compiled observations with independent

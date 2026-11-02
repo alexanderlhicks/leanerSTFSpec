@@ -3,7 +3,7 @@
 """Bounded nibble sequence support checks against authenticated pinned Python.
 
 From the repository root, run:
-  EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibble_operations_differential.py \
+  uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/nibble_operations_differential.py \
     --eels EELS --output EXTERNAL.lean
 
 Choose EXTERNAL.lean outside both repositories. Actual locked ethereum-types Bytes

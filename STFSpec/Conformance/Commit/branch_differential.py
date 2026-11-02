@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Full reached-collapse/strict-completion controls on unchanged original EELS.
 
-Use pinned EELS/.venv/bin/python -I -B, --eels, --output EXTERNAL.lean,
+Use pinned uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels, --output EXTERNAL.lean,
 --rlp-wheel and --types-wheel. Concrete original comparisons have explicit clean
 child/local embedding/cacheless parent premises. Dirty/index/cache boundaries
 are observations, not universal source action equality. --self-test supports -O.

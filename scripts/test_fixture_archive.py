@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Regression cases for the independent authenticated fixture extraction tool."""
+import sys
 import copy
 from contextlib import redirect_stdout, redirect_stderr
 import hashlib
@@ -388,14 +389,14 @@ class ArchiveTests(unittest.TestCase):
 
     def parser(self, reply="ok 1"):
         path = pathlib.Path(self.temporary.name) / "parser"
-        path.write_text("#!/usr/bin/env python3\nimport sys\nfor line in sys.stdin:\n"
+        path.write_text("#!" + sys.executable + "\nimport sys\nfor line in sys.stdin:\n"
                         f"    print({reply!r}, flush=True)\n")
         path.chmod(0o700)
         return path
 
     def parser_script(self, body):
         path = pathlib.Path(self.temporary.name) / "custom-parser"
-        path.write_text("#!/usr/bin/env python3\nimport sys\n" + body)
+        path.write_text("#!" + sys.executable + "\nimport sys\n" + body)
         path.chmod(0o700)
         return path
 

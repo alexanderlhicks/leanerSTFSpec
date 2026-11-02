@@ -3,12 +3,12 @@
 
 Reproduce from the repository root with fresh output paths:
   DRIVER=STFSpec/Conformance/Vm/Core/buffer_read_differential.py
-  python3 -B "$DRIVER" --self-test
-  python3 -B -O "$DRIVER" --self-test
-  python3 -B "$DRIVER" --emit-lean > /tmp/Buffer.lean
+  uv run --no-project --python 3.12 python -B "$DRIVER" --self-test
+  uv run --no-project --python 3.12 python -B -O "$DRIVER" --self-test
+  uv run --no-project --python 3.12 python -B "$DRIVER" --emit-lean > /tmp/Buffer.lean
   lake env lean --run /tmp/Buffer.lean > /tmp/buffer.ndjson
-  python3 -B "$DRIVER" --check-frames /tmp/buffer.ndjson
-  python3 -B -O "$DRIVER" --check-frames /tmp/buffer.ndjson
+  uv run --no-project --python 3.12 python -B "$DRIVER" --check-frames /tmp/buffer.ndjson
+  uv run --no-project --python 3.12 python -B -O "$DRIVER" --check-frames /tmp/buffer.ndjson
 
 The emitter defines main; plain Lean without --run produces no observations.
 This comparator has no source mode and imports no external oracle.

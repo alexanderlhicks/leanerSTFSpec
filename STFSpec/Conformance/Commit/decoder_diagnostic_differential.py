@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Finite field-shape/order observations of the actual pinned witness decoder.
 
-Run EELS/.venv/bin/python -I -B with --eels EELS --output EXTERNAL.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output EXTERNAL.lean.
 Emit full actual RLP/compact seam comparisons; whole-node diagnostic dispatch is
 unimplemented. Source/lock/installed RECORD and exact result classes are checked
 before/after; hooks are restored and calls replayed untraced. Frozen interpreter,

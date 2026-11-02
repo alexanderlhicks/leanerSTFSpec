@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare complete C11 storage observations with original authenticated pinned EELS.
 
-Run EELS/.venv/bin/python -I -B with --eels EELS --output EXTERNAL.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output EXTERNAL.lean.
 The driver calls genuine Trie/trie_set/trie_get/copy_trie without replacement or
 tracing. Numeric Uint values/Bytes32 keys and optional Bytes values/bounded Bytes
 keys are separate concrete interpretations. Equality agreement on these supplied

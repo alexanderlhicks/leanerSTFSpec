@@ -3,7 +3,7 @@
 """Compare primitive records and four concrete constants with the pinned EELS.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/value_records_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/value_records_differential.py \
     --eels /tmp/eels --output /tmp/value-records-differential.lean
 Sources: ethereum/state.py:36, merkle_patricia_trie.py:71, amsterdam/fork.py:116,
 amsterdam/vm/__init__.py:40, and amsterdam/fork_types.py:45,58,62,87.

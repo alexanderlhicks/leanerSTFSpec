@@ -130,12 +130,7 @@ The description gives the motivation, the change in behaviour or contract, the E
 
 ### 6.3 Checks
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for the repository Python tooling.
-CI uses uv 0.13.6.
-The two specification-document checks use `uv run --no-project --python 3.12 python`; uv downloads Python 3.12 if needed.
-They use only the standard library, without a project environment or extra dependencies.
-Run commands from the repository root.
-For EELS reference runs, follow the Python and environment requirements in `scripts/differential.py` or the individual conformance harness.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for repository Python tooling. It supplies the same Python 3.12 environment locally and in CI, including scripts that require `tomllib`. CI pins uv 0.13.6. Run repository checks from the root with `uv run --no-project --python 3.12 python`; these standard-library checks need no project environment. Reference acquisition uses the frozen EELS environment and interpreter required by `scripts/differential.py` or its conformance harness.
 
 Run before opening a pull request (CI runs the same):
 
@@ -146,12 +141,12 @@ lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
 lake build kzg-versioned-hash-native-tests --wfail
 lake exe check-decls KzgVersionedHashNativeTests
 lake exe kzg-versioned-hash-native-tests > .lake/kzg-versioned-hash-native.jsonl
-python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-native.jsonl
 lake env lean --run scripts/KzgVersionedHashNativeTests.lean > .lake/kzg-versioned-hash-interpreted.jsonl
-python3 -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-interpreted.jsonl
-python3 -B scripts/test_kzg_versioned_hash_output_parser.py
-python3 -B -O scripts/test_kzg_versioned_hash_output_parser.py
-python3 -B scripts/gen_kzg_versioned_hash_guards.py --check
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Precompiles/kzg_versioned_hash_differential.py --check-target .lake/kzg-versioned-hash-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_kzg_versioned_hash_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_kzg_versioned_hash_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/gen_kzg_versioned_hash_guards.py --check
 lake build write-order-native-tests --wfail
 lake exe check-decls WriteOrderNativeTests && lake exe write-order-native-tests
 lake build math-state-native-tests --wfail
@@ -171,105 +166,105 @@ lake exe state-error-native-tests
 lake build taylor-exponential-native-tests --wfail
 lake exe check-decls TaylorExponentialNativeTests
 lake exe taylor-exponential-native-tests > .lake/taylor.jsonl
-python3 -B STFSpec/Conformance/Base/taylor_exponential_differential.py --check-target .lake/taylor.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Base/taylor_exponential_differential.py --check-target .lake/taylor.jsonl
 lake build transaction-gas-allocation-native-tests --wfail
 lake exe check-decls TransactionGasAllocationNativeTests
 lake exe transaction-gas-allocation-native-tests > .lake/transaction-gas-allocation.jsonl
-python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_allocation_differential.py --check-target .lake/transaction-gas-allocation.jsonl
-python3 -B scripts/test_transaction_gas_allocation_output_parser.py
-python3 -B -O scripts/test_transaction_gas_allocation_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/transaction_gas_allocation_differential.py --check-target .lake/transaction-gas-allocation.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_gas_allocation_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_allocation_output_parser.py
 lake build transaction-gas-settlement-native-tests --wfail
 lake exe check-decls TransactionGasSettlementNativeTests
 lake exe transaction-gas-settlement-native-tests > .lake/transaction-gas-settlement.jsonl
-python3 -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
-python3 -B scripts/test_transaction_gas_settlement_output_parser.py
-python3 -B -O scripts/test_transaction_gas_settlement_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Core/transaction_gas_settlement_differential.py --check-target .lake/transaction-gas-settlement.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_gas_settlement_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_settlement_output_parser.py
 lake build ssz-encode-native-tests --wfail
 lake exe check-decls SszEncodeNativeTests
 lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
-python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
-python3 -B scripts/test_ssz_encode_output_parser.py
-python3 -B -O scripts/test_ssz_encode_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
+uv run --no-project --python 3.12 python -B scripts/test_ssz_encode_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_ssz_encode_output_parser.py
 lake build budget-policy-native-tests --wfail
 lake exe check-decls BudgetPolicyNativeTests
-python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --write-input .lake/budget-policy-input.tsv
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --write-input .lake/budget-policy-input.tsv
 lake exe budget-policy-native-tests .lake/budget-policy-input.tsv > .lake/budget-policy.jsonl
-python3 -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --check-target .lake/budget-policy.jsonl
-python3 -B scripts/test_budget_policy_output_parser.py
-python3 -B -O scripts/test_budget_policy_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Runner/budget_policy_model.py --check-target .lake/budget-policy.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_budget_policy_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_budget_policy_output_parser.py
 lake build calldata-tokens-native-tests --wfail
 lake exe check-decls CalldataTokensNativeTests
 lake exe calldata-tokens-native-tests > .lake/calldata-tokens.jsonl
-python3 -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
-python3 -B scripts/test_count_tokens_output_parser.py
-python3 -B -O scripts/test_count_tokens_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_count_tokens_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_count_tokens_output_parser.py
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
-python3 -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
-python3 -B scripts/test_witness_ancestors_output_parser.py
-python3 -B -O scripts/test_witness_ancestors_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_witness_ancestors_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_witness_ancestors_output_parser.py
 lake build stateless-output-native-tests --wfail
 lake exe check-decls StatelessOutputNativeTests
 lake exe stateless-output-native-tests > .lake/stateless-output.txt
-python3 -B STFSpec/Conformance/Stateless/output_differential.py --check-target .lake/stateless-output.txt
-python3 -B scripts/test_stateless_output_output_parser.py
-python3 -B -O scripts/test_stateless_output_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Stateless/output_differential.py --check-target .lake/stateless-output.txt
+uv run --no-project --python 3.12 python -B scripts/test_stateless_output_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_stateless_output_output_parser.py
 lake build amsterdam-vm-native-tests --wfail
 lake exe check-decls AmsterdamVmNativeTests
 lake exe amsterdam-vm-native-tests > .lake/amsterdam-vm.json
-python3 -B STFSpec/Conformance/Fork/amsterdam_vm_values.py --check-target .lake/amsterdam-vm.json
-python3 -B scripts/test_amsterdam_vm_output_parser.py
-python3 -B -O scripts/test_amsterdam_vm_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Fork/amsterdam_vm_values.py --check-target .lake/amsterdam-vm.json
+uv run --no-project --python 3.12 python -B scripts/test_amsterdam_vm_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_amsterdam_vm_output_parser.py
 lake build deposit-data-native-tests --wfail
 lake exe check-decls DepositDataNativeTests
 lake exe deposit-data-native-tests > .lake/deposit-data.jsonl
-python3 -B STFSpec/Conformance/Block/deposit_data_differential.py --check-target .lake/deposit-data.jsonl
-python3 -B scripts/test_deposit_data_output_parser.py
-python3 -B -O scripts/test_deposit_data_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/deposit_data_differential.py --check-target .lake/deposit-data.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_deposit_data_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_deposit_data_output_parser.py
 lake build requests-hash-native-tests --wfail
 lake exe check-decls RequestsHashNativeTests
 lake exe requests-hash-native-tests > .lake/requests-hash.jsonl
-python3 -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
-python3 -B scripts/test_requests_hash_output_parser.py
-python3 -B -O scripts/test_requests_hash_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/requests_hash_differential.py --check-target .lake/requests-hash.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_requests_hash_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_requests_hash_output_parser.py
 lake build logs-bloom-native-tests --wfail
 lake exe check-decls LogsBloomNativeTests
 lake exe logs-bloom-native-tests > .lake/logs-bloom.jsonl
-python3 -B STFSpec/Conformance/Block/logs_bloom_differential.py --check-target .lake/logs-bloom.jsonl
-python3 -B scripts/test_logs_bloom_output_parser.py
-python3 -B -O scripts/test_logs_bloom_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/logs_bloom_differential.py --check-target .lake/logs-bloom.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_logs_bloom_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_logs_bloom_output_parser.py
 lake build reference-division-native-tests --wfail
 lake exe check-decls ReferenceDivisionNativeTests
 lake exe reference-division-native-tests > .lake/reference-division.jsonl
-python3 -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division.jsonl
 lake env lean --run scripts/ReferenceDivisionNativeTests.lean > .lake/reference-division-interpreted.jsonl
-python3 -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division-interpreted.jsonl
-python3 -B scripts/test_reference_division_output_parser.py
-python3 -B -O scripts/test_reference_division_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_reference_division_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_reference_division_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail
 lake exe check-decls LogRopeBench
 lake build packed-keccak-bench --wfail
 lake exe check-decls PackedKeccakBench
-python3 scripts/gen_packed_keccak.py --check
-python3 scripts/test_packed_keccak_generator.py
-python3 scripts/check_boundaries.py
+uv run --no-project --python 3.12 python scripts/gen_packed_keccak.py --check
+uv run --no-project --python 3.12 python scripts/test_packed_keccak_generator.py
+uv run --no-project --python 3.12 python scripts/check_boundaries.py
 scripts/check_decls.sh core
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh
-python3 scripts/test_differential.py
-python3 -B scripts/test_hash32_output_parser.py
-python3 -B -O scripts/test_hash32_output_parser.py
-python3 -B scripts/test_node_db_output_parser.py
-python3 -B -O scripts/test_node_db_output_parser.py
-python3 scripts/check_reference.py && python3 scripts/test_reference_checks.py
-python3 scripts/gen_arch_diagram.py --check
+uv run --no-project --python 3.12 python scripts/test_differential.py
+uv run --no-project --python 3.12 python -B scripts/test_hash32_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_hash32_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_node_db_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_node_db_output_parser.py
+uv run --no-project --python 3.12 python scripts/check_reference.py && uv run --no-project --python 3.12 python scripts/test_reference_checks.py
+uv run --no-project --python 3.12 python scripts/gen_arch_diagram.py --check
 uv run --no-project --python 3.12 python scripts/check_spec.py
 uv run --no-project --python 3.12 python scripts/test_spec_checks.py
-python3 scripts/gen_gaps.py --check
+uv run --no-project --python 3.12 python scripts/gen_gaps.py --check
 lake build EthConformance fixture-records --wfail
-python3 scripts/test_fixture_archive.py
+uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 ```
 
 The fixed-endian, log-rope and packed-keccak benchmarks are built and audited here, and the

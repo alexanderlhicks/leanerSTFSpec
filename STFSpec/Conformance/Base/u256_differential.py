@@ -3,7 +3,7 @@
 """Generate and run U256 guards against the pinned ethereum-types implementation.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/u256_differential.py \
     --eels /tmp/eels --output /tmp/u256-differential.lean
 
 Generated observations are bug-finding evidence, never committed normative fixtures.

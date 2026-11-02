@@ -3,7 +3,7 @@
 """Compare padding and padded reads with actual pinned EELS functions.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/bytes_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/bytes_differential.py \
     --eels /tmp/eels --output /tmp/bytes-differential.lean
 
 Sources: utils/byte.py:18,40; forks/amsterdam/vm/memory.py:63,82–83

@@ -55,7 +55,7 @@ recommendation as a merge blocker.
 | Change the pin | `reference.toml` (its header comment) | `reference.toml` and CONTRACT together, in one commit, recorded in DECISIONS P1; regenerate the inventory and reference records | `scripts/check_reference.py` |
 | Record the outcome of an investigation | `STFSpec/informal/DECISIONS.md` | the dispositions (or a decision) in DECISIONS and the affected specs, in the same change | `scripts/check_spec.py` |
 | Performance work | CONTRIBUTING §3; `STFSpec/informal/REVIEW.md` §7 (cost checks C1–C4) | DEBT.md; the decision record | a benchmark with a correctness gate, no checksum in the timed loop |
-| Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | add a regression fixture first | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`; `python3 scripts/test_spec_checks.py` |
+| Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | add a regression fixture first | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`; `uv run --no-project --python 3.12 python scripts/test_spec_checks.py` |
 | Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`; `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | — | `(cd STFSpecMathlib && lake build) && scripts/check_decls.sh mathlib`; likewise `STFSpecSecurity` with `security` |
 
 ## Open items

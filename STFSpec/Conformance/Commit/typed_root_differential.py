@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --active --no-project python -I -B
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare finite typed unsecured roots with authenticated genuine original EELS root.
 
-Run using the lexical pinned EELS/.venv/bin/python -I -B and an external output.
+Run using the lexical pinned uv run --no-project --python EELS/.venv/bin/python python -I -B and an external output.
 Original Trie/trie_set/root/preparation/packing/encoding/patricialize/RLP/hash run
 unchanged and each full traced call is replayed without tracing. Lean reconstructs
 original raw-byte/integer writes through actual trieSet and safe pure preparation,

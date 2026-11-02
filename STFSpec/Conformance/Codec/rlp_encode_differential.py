@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Bounded raw RLP encoding observations against locked ethereum-rlp 0.1.6.
 
-Run EELS/.venv/bin/python -I -B with --eels EELS --output SCRATCH/observations.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output SCRATCH/observations.lean.
 Reuse the typed driver's authenticated current-source loader and trusted RECORD
 checks. Inputs are exactly bytes or nested exact lists of those bytes, plus the
 fixed 22-case Nat handoff through exact source Uint. Results must be exact bytes,

@@ -2,7 +2,7 @@
 """Fresh source/native complete NodeDB regressions against pinned-source observations.
 
 Run from the repository root:
-python3 STFSpec/Conformance/Commit/node_db_native.py \
+uv run --no-project --python 3.12 python STFSpec/Conformance/Commit/node_db_native.py \
   --observations OUT/NodeDBSource.observations.json --output OUT/native
 Evidence must be outside the candidate. Finite functional construction and sibling
 observations do not establish table costs or security. Observation parsing is

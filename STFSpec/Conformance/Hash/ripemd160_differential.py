@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Production RIPEMD-160 digest comparison against the actual pinned precompile.
 
-Run EELS/.venv/bin/python -I -B this_file --eels EELS --output SCRATCH.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B this_file --eels EELS --output SCRATCH.lean.
 The shared Driver authenticates source bytes and frozen ethereum-types RECORD;
 this driver calls ripemd160.py:26–54 with funded gas, checks all twelve leading
 zero bytes and compares the remaining twenty bytes with Lean's production API.

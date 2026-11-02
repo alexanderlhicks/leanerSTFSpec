@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare concrete query acquisition with the four actual authenticated EELS globals.
 
-Run with EELS/.venv/bin/python -I -B, --eels EELS --output EXTERNAL.lean.
+Run with uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS --output EXTERNAL.lean.
 Reads state.py:36, merkle_patricia_trie.py:71, amsterdam/fork.py:116 and
 amsterdam/vm/__init__.py:40 at reference.toml's pin; checks crypto/hash.py and
 frozen dependency versions. This finite observation does not establish generic

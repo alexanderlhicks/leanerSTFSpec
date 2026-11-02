@@ -17,7 +17,7 @@ trap cleanup EXIT
 # Each mutation lives under this owned scratch directory.
 fresh() { T=$(mktemp -d "$WORK/tree.XXXXXX"); cp -r "$ROOT/STFSpec" "$ROOT/scripts" "$ROOT/lakefile.toml" "$T/"; echo "$T"; }
 expect() { # expect <0|1> <description> <dir>
-  python3 "$3/scripts/check_boundaries.py" --root "$3" >"$LOG" 2>&1; got=$?
+  uv run --no-project --python 3.12 python "$3/scripts/check_boundaries.py" --root "$3" >"$LOG" 2>&1; got=$?
   if [ "$got" -ne "$1" ]; then echo "FAIL: $2 (exit $got, expected $1)"; cat "$LOG"; FAIL=1; else echo "ok:   $2"; fi
   rm -rf "$3"; }
 
@@ -39,7 +39,7 @@ T=$(fresh); printf '\nset_option debug.skipKernelTC true\n' >> "$T/STFSpec/Hash.
 T=$(fresh); mkdir -p "$T/STFSpec/Stray"; echo '' > "$T/STFSpec/Stray/X.lean"; expect 1 "a module outside every declared library is rejected" "$T"
 T=$(fresh); mkdir -p "$T/STFSpec/Base"; printf 'def x : Nat := 0\n' > "$T/STFSpec/Base/Orphan.lean"; expect 1 "a module not imported by its library root is rejected" "$T"
 T=$(fresh); mkdir -p "$T/STFSpec/Base"; printf 'def x : Nat := 0\n' > "$T/STFSpec/Base/Used.lean"; printf 'import STFSpec.Base.Used\n' | cat - "$T/STFSpec/Base.lean" > "$T/x" && mv "$T/x" "$T/STFSpec/Base.lean"; expect 0 "a submodule imported by its root is accepted" "$T"
-T=$(fresh); sed -i 's/^deps = \["EthBase"\]$/deps = ["EthBase", "EthHash"]/' "$T/scripts/boundaries.toml"; python3 - "$T" <<'PY'
+T=$(fresh); sed -i 's/^deps = \["EthBase"\]$/deps = ["EthBase", "EthHash"]/' "$T/scripts/boundaries.toml"; uv run --no-project --python 3.12 python - "$T" <<'PY'
 import sys,re; p=sys.argv[1]+"/scripts/boundaries.toml"; s=open(p).read()
 s=s.replace('[libs.EthBase]\nroot = "STFSpec.Base"\ndeps = []','[libs.EthBase]\nroot = "STFSpec.Base"\ndeps = ["EthHash"]'); open(p,"w").write(s)
 PY

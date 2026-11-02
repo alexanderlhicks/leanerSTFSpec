@@ -3,7 +3,7 @@
 """Generate and run Uint.sub?/ceil32 guards against the pinned Python source.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/numeric_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/numeric_differential.py \
     --eels /tmp/eels --output /tmp/numeric-differential.lean
 
 Spec guidance: STFSpec/informal/modules/EthBase.md §§3–4. Sources are EELS

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Exact original fixed-byte RLP observations against locked ethereum-rlp 0.1.6.
 
-Use frozen EELS/.venv/bin/python -I -B with --eels EELS --output EXTERNAL.lean
+Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output EXTERNAL.lean
 and --wheel-dir WHEELS. WHEELS must contain the original locked files
 ethereum_rlp-0.1.6-py3-none-any.whl and ethereum_types-0.4.1-py3-none-any.whl.
 No private fallback/download is used. --helpers-only executes 49 negative and

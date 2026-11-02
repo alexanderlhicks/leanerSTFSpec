@@ -3,7 +3,7 @@
 """Compare narrow unsigned values with locked ethereum-types 0.4.1.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/narrow_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/narrow_differential.py \
     --eels /tmp/eels --output /tmp/narrow-differential.lean
 
 Sources: ethereum_types/numeric.py:44,91,103,131,321,325,357,364,611,614,625,636;

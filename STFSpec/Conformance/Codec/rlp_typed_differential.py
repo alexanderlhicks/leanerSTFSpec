@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Typed RLP model observations against locked ethereum-rlp 0.1.6.
 
-Run EELS/.venv/bin/python -I -B with --eels EELS --output SCRATCH/observations.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B with --eels EELS --output SCRATCH/observations.lean.
 The shared driver authenticates EELS and ethereum-types. This driver additionally
 checks installed ethereum-rlp RECORD/current source and compiles those bytes without
 cached code. Interpreter, frozen installation and RECORD are trusted inputs.

@@ -431,15 +431,15 @@ Resumption is unsupported; each invocation requires a fresh evidence destination
 repositories and the pinned raw dependency wheels:
 
 ```sh
-python3 -I -B STFSpec/Conformance/Commit/update_differential.py --write-catalog CATALOG.json
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/update_differential.py \
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/update_differential.py --write-catalog CATALOG.json
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/update_differential.py \
   --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/update_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/update_differential.py \
   --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-python3 -I -B STFSpec/Conformance/Commit/update_differential.py --self-test
-python3 -I -B -O STFSpec/Conformance/Commit/update_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/update_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B -O STFSpec/Conformance/Commit/update_differential.py --self-test
 ```
 
 The bounded source protocol completed all 402 concrete rows: 400 complete nominal
@@ -583,16 +583,16 @@ witness tables, partial mutable heaps and generic histories are not nominal fiel
 Reproduce with fresh destinations, the pinned EELS environment and locked wheels:
 
 ```sh
-python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --write-catalog CATALOG.json
-python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --write-premises PREMISES.json
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/delete_differential.py \
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/delete_differential.py --write-catalog CATALOG.json
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/delete_differential.py --write-premises PREMISES.json
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/delete_differential.py \
   --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/delete_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/delete_differential.py \
   --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-python3 -I -B STFSpec/Conformance/Commit/delete_differential.py --self-test
-python3 -I -B -O STFSpec/Conformance/Commit/delete_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/delete_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B -O STFSpec/Conformance/Commit/delete_differential.py --self-test
 ```
 
 Interpreter/startup/frozen RECORD/finite host remain trust inputs. No new native
@@ -644,15 +644,15 @@ No whole mutation/map/root/backend/security or readiness gate closes.
 The source driver uses fresh destinations and the pinned environment/locked wheels:
 
 ```sh
-python3 -I -B STFSpec/Conformance/Commit/set_differential.py --write-catalog CATALOG.json
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --write-catalog CATALOG.json
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/set_differential.py \
   --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/set_differential.py \
   --catalog CATALOG.json --eels EELS --output EXTERNAL.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-python3 -I -B STFSpec/Conformance/Commit/set_differential.py --self-test
-python3 -I -B -O STFSpec/Conformance/Commit/set_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --self-test
+uv run --no-project --python 3.12 python -I -B -O STFSpec/Conformance/Commit/set_differential.py --self-test
 ```
 
 ### Supplied reached-branch construction
@@ -721,7 +721,7 @@ equations specify their observations (D25).
 Run from the repository root with the pinned EELS environment and an evidence destination outside both repositories:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/nibbles_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -768,7 +768,7 @@ evidence; EEST execution, throughput and host-resource acceptance remain unverif
 From the repository root, reproduce with an output outside both repositories:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/internal_node_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/internal_node_differential.py \
   --eels EELS --output SCRATCH.lean
 ```
 
@@ -818,7 +818,7 @@ C1–C4 completion. Run from the repository root with an evidence destination
 outside both repositories:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/nibble_operations_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/nibble_operations_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -841,7 +841,7 @@ Run the compact driver from the repository root with the pinned EELS environment
 and an evidence destination outside both repositories:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/compact_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/compact_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -894,10 +894,10 @@ directory for each run. Full dependency acquisition via frozen `uv sync --no-dev
 is also supported, with its host/install inputs retaining the shared driver contract.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/decoder_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/decoder_differential.py \
   --eels EELS --output EXTERNAL.lean --rlp-wheel RLP.whl --types-wheel TYPES.whl
-python3 -B STFSpec/Conformance/Commit/decoder_differential.py --self-test
-python3 -B -O STFSpec/Conformance/Commit/decoder_differential.py --self-test
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Commit/decoder_differential.py --self-test
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Commit/decoder_differential.py --self-test
 ```
 
 Finite comparisons supply conformance evidence. They do not prove full witness
@@ -929,7 +929,7 @@ retained before/after. Emitted guards compare actual successful RLP and compact
 values against Lean seams; there is no Lean whole-node diagnostic comparison.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/decoder_diagnostic_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/decoder_diagnostic_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1013,7 +1013,7 @@ a native Root executable; the all-input owner equalities provide the implementat
 bridge for these reference observations:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_prefix_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/root_prefix_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1074,7 +1074,7 @@ stage outputs and traces; §4 describes their reproduction. No native runner is
 committed here. Reproduce the committed source driver with:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_branch_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/root_branch_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1148,7 +1148,7 @@ without a hex parser or modulo conversion. Complete byte values and queries rema
 unchanged.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/root_construction_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/root_construction_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1184,7 +1184,7 @@ and [COMPOSITION §2](../COMPOSITION.md#2-type-ownership-and-adapters).
 | C12/D25 ordered reference and pure model | `buildReference {m} [Monad m] [KeccakQuery m] : List ByteArray → NodeDB → m NodeDB`; `model : (ByteArray → Hash32) → List ByteArray → NodeDB → NodeDB`; all lists/tables | List fold has the same query/insertion order; model extends an arbitrary table with a chosen pure interpretation. Reference is proof support, not a runtime conversion or scan | `buildReference_cons` (LawfulMonad), `build_id_model`, `lookup_model`, `lookup_build_id` expose the full last-matching-entry fold; public-only split/last-write/different-key/reconstruction clients |
 | D5/F15 transformer composition | Same ordered reference over StateT/ExceptT; all lists and initial tables, explicit `LawfulMonad` for ordinary reassociation laws | Added state unchanged; added exceptions wrap success; underlying query effects and failures forward exactly | `run_buildReference_stateT`, `run_buildReference_exceptT`, `run_buildReference_error`; both transformer orders and retained/lost state guards |
 
-Run `EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/node_db_differential.py
+Run `uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/node_db_differential.py
 --eels EELS --output OUTSIDE/NodeDBSource.lean`. The driver calls actual pinned
 `build_node_db`, authenticates all pinned source/lock bytes and installed
 Python-source RECORD entries before imports and afterward, and compiles fresh
@@ -1195,7 +1195,7 @@ failure prefixes. Instrumented answers are controls, not concrete Keccak collisi
 The isolated interpreter, startup, frozen installation/RECORD, loader and host
 hash backend remain trust premises.
 
-Run `python3 STFSpec/Conformance/Commit/node_db_native.py --observations OUTSIDE/NodeDBSource.observations.json
+Run `uv run --no-project --python 3.12 python STFSpec/Conformance/Commit/node_db_native.py --observations OUTSIDE/NodeDBSource.observations.json
 --output OUTSIDE/native`. Current actual-module setup/import artifacts and fresh
 C/olean equality precede owned O3/Werror object compilation. Complete source and
 native observations agree with the pinned concrete tables and independent
@@ -1274,7 +1274,7 @@ outside both repositories. This command reproduces the source observations and
 generated Lean guards:
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/math_root_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/math_root_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1304,7 +1304,7 @@ laws only; existing Nibbles, U256, Address and Hash32 key providers and lawful
 Nat/U256/Bytes equality demonstrate storage use without production value/key
 instances or a `KeyBytes` requirement.
 
-`trie_storage_differential.py` runs through the frozen EELS `.venv/bin/python -I -B`,
+`trie_storage_differential.py` runs through the frozen EELS `uv run --no-project --python .venv/bin/python python -I -B`,
 with source/pin/lock and installed RECORD/classes authenticated before and after.
 It calls original `Trie`, `trie_set`, `trie_get` and `copy_trie`, compares complete
 secured/default/maps/getter results and copied old observations, and emits Lean
@@ -1312,7 +1312,7 @@ cases for 216 authenticated source observations. Uncommitted local finite native
 replayed those cases and local controls through fresh current C/olean and O3 native
 objects, comparing 224 complete observations; no native storage runner is committed.
 The committed source-only reproducer is
-`EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/trie_storage_differential.py
+`uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/trie_storage_differential.py
 --eels EELS --output OUTSIDE/TrieStorageSource.lean`, followed by
 `lake env lean OUTSIDE/TrieStorageSource.lean`. Numeric Uint values/Bytes32 keys
 (observed as existing Lean U256 values) and optional Bytes values/finite Bytes keys
@@ -1384,7 +1384,7 @@ compare every complete generated map plus fixed frontend regressions; those
 uncommitted artifacts and their provenance are separate from the committed driver.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/preparation_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/preparation_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1433,7 +1433,7 @@ Python empty-root acquisition on `80` is recorded separately from the zero-query
 local call using the coherent caller constant.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/typed_root_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/typed_root_differential.py \
   --eels EELS --output EXTERNAL.lean
 ```
 
@@ -1470,10 +1470,10 @@ mutation/root, security/witness agreement, generic coupling/lifetime, resource o
 follows. Interpreter/startup/frozen installation and host remain trusted inputs.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/lookup_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/lookup_differential.py \
   --eels EELS --output EXTERNAL.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
-python3 -B STFSpec/Conformance/Commit/lookup_differential.py --self-test
-python3 -B -O STFSpec/Conformance/Commit/lookup_differential.py --self-test
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Commit/lookup_differential.py --self-test
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Commit/lookup_differential.py --self-test
 ```
 
 The exhaustive decoder diagnostic encoder preserves tags 0–11, including both unrestricted Nat
@@ -1532,13 +1532,13 @@ Interpreter/startup/frozen installation and host remain trust inputs. Whole muta
 coupling/lifetime, mutation, resource and readiness obligations remain open.
 
 ```sh
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
   --eels EELS --output EXTERNAL.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
 # Separate additional HP-field and joined-payload boundaries:
-EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
+uv run --no-project --python EELS/.venv/bin/python python -I -B STFSpec/Conformance/Commit/leaf_differential.py \
   --eels EELS --output EXTRA.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL --extra-boundaries
-python3 -B STFSpec/Conformance/Commit/leaf_differential.py --self-test
-python3 -B -O STFSpec/Conformance/Commit/leaf_differential.py --self-test
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Commit/leaf_differential.py --self-test
+uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Commit/leaf_differential.py --self-test
 ```
 
 ## 4. Tests

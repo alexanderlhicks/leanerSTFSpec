@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Finite legacy Keccak digest comparisons against authenticated pinned EELS.
 
-Run with EELS/.venv/bin/python -I -B, --eels EELS --output EXTERNAL.lean.
+Run with uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS --output EXTERNAL.lean.
 Invokes actual crypto/hash.py keccak256/keccak512, records the selected backend,
 checks the frozen pycryptodome version when used, and runs bounded seeded cases.
 This is digest-value evidence, not EEST guest execution or a security theorem.

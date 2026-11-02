@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Exact builtin Bool wire observations against authenticated ethereum-rlp 0.1.6.
 
-Run frozen EELS/.venv/bin/python -I -B, --eels EELS --output EXTERNAL/file.lean.
+Run frozen uv run --no-project --python EELS/.venv/bin/python python -I -B, --eels EELS --output EXTERNAL/file.lean.
 Interpreter/startup, frozen installation/RECORD, compiler/kernel, native runtime
 and ambient host remain trusted. This single bounded profile establishes no
 Python refinement, host/resource, EEST or guest theorem. --helpers-only executes

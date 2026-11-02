@@ -3,7 +3,7 @@
 """Run public U256 guards generated from actual pinned EELS opcode handlers.
 
 Run with the pinned EELS checkout at /tmp/eels:
-  /tmp/eels/.venv/bin/python -I STFSpec/Conformance/Base/u256_bitwise_differential.py \
+  uv run --no-project --python /tmp/eels/.venv/bin/python python -I STFSpec/Conformance/Base/u256_bitwise_differential.py \
     --eels /tmp/eels --output /tmp/u256-bitwise-differential.lean
 
 A SimpleNamespace supplies a valid stack, pc and funded gas meter. The actual

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Packed Keccak values against authenticated EELS and an independent lane model.
 
-Run EELS/.venv/bin/python -I -B this_file --eels EELS --output OUTSIDE.lean.
+Run uv run --no-project --python EELS/.venv/bin/python python -I -B this_file --eels EELS --output OUTSIDE.lean.
 The actual pinned crypto/hash.py functions return exact Bytes32/Bytes64 values;
 result shape/type checks precede byte observations and reject bool/int coercions.
 The separate coordinate/LFSR model supplies finite step/prefix/permutation checks;

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Authentic ordered typing.List[original Uint] RLP observations.
 
-Use frozen EELS/.venv/bin/python -I -B --eels EELS --wheel-dir WHEELS
+Use frozen uv run --no-project --python EELS/.venv/bin/python python -I -B --eels EELS --wheel-dir WHEELS
 --output EXTERNAL.lean --seed 30001. Original locked wheels required:
 ethereum_rlp-0.1.6-py3-none-any.whl and ethereum_types-0.4.1-py3-none-any.whl.
 --helpers-only runs exactly40 negative/8 positive admission groups and zero RLP
