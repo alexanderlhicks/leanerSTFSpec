@@ -96,12 +96,23 @@ def metadata(value: Any) -> dict[tuple[str, str], dict[str, Any]]:
     return entries
 
 
+def fixture_shape(file: str) -> tuple[str, str, str]:
+    """Return a file label's fixture-format, record container and conflicting container."""
+    if file.startswith("blockchain_tests/"):
+        return "blockchain_test", "blocks", "engineNewPayloads"
+    if file.startswith("blockchain_tests_engine/"):
+        return "blockchain_test_engine", "engineNewPayloads", "blocks"
+    raise FixtureError(f"unsupported fixture file: {file}")
+
+
 def guest_records(file: str, value: Any, pin=DEFAULT_FIELDS):
-    """Project only blocks' paired fields, independently of all validity labels."""
+    """Project paired fields of blocks[] or engineNewPayloads[] entries, ignoring labels.
+
+    The file label selects the format, so blockIndex is the entry's position in that
+    format's container. An entry with neither field is recordless.
+    """
     value = object_value(value, file)
-    engine = file.startswith("blockchain_tests_engine/")
-    if not engine and not file.startswith("blockchain_tests/"):
-        raise FixtureError(f"unsupported fixture file: {file}")
+    expected_format, container, other = fixture_shape(file)
     records, hashes = [], {}
     for test_id, test in sorted(value.items()):
         location = f"{file}:{test_id}"
@@ -110,26 +121,20 @@ def guest_records(file: str, value: Any, pin=DEFAULT_FIELDS):
         info_hash = required(info, "hash", location)
         if len(hex_bytes(info_hash, location + "._info.hash")) != 32:
             raise FixtureError(f"{location}: _info.hash must be 32 bytes")
-        expected_format = "blockchain_test_engine" if engine else "blockchain_test"
         if required(info, "fixture-format", location) != expected_format:
             raise FixtureError(f"{location}: fixture-format mismatch")
         network = required(test, "network", location)
         if not isinstance(network, str):
             raise FixtureError(f"{location}: network string required")
         hashes[file, test_id] = (info_hash, expected_format, network)
-        container, other = (("engineNewPayloads", "blocks") if engine
-                            else ("blocks", "engineNewPayloads"))
         if other in test:
             raise FixtureError(f"{location}: conflicting fixture shapes")
-        blocks = required(test, container, location)
-        if not isinstance(blocks, list):
+        entries = required(test, container, location)
+        if not isinstance(entries, list):
             raise FixtureError(f"{location}: {container} must be an array")
-        if engine:
-            # Engine payloads are a distinct stateful format. They are never a guest source.
-            continue
-        for index, block in enumerate(blocks):
-            block = object_value(block, f"{location}:blocks[{index}]")
-            pair = paired_bytes(block, pin, f"{location}:blocks[{index}]")
+        for index, entry in enumerate(entries):
+            entry = object_value(entry, f"{location}:{container}[{index}]")
+            pair = paired_bytes(entry, pin, f"{location}:{container}[{index}]")
             if pair is None:
                 continue
             input_bytes, _ = pair
@@ -215,10 +220,11 @@ def expected_content(name: str, raw: bytes, pin: dict[str, Any]) -> list[dict[st
     """Reconstruct canonical byte/identity replies from authenticated original JSON."""
     original = strict_json(raw)
     identities, _ = guest_records(name, original, pin)
+    _, container, _ = fixture_shape(name)
     result = []
     for identity, _ in identities:
-        block = original[identity["testId"]]["blocks"][identity["blockIndex"]]
-        input_bytes, output_bytes = paired_bytes(block, pin, name)
+        entry = original[identity["testId"]][container][identity["blockIndex"]]
+        input_bytes, output_bytes = paired_bytes(entry, pin, name)
         result.append({"id": identity, "input": "0x" + input_bytes.hex(),
                        "expected": "0x" + output_bytes.hex()})
     return result

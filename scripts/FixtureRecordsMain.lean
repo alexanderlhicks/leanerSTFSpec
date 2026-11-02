@@ -11,7 +11,9 @@ Internal `fixture-records` driver: read `[archiveRelativeName, localPath]` comma
 stdin, or append `"content"` for exact identity/byte replies. Each reply is one line:
 `ok N`, `{"count": N, "records": [...]}`, or diagnostic `error ...`. Diagnostic text
 is escaped into one physical line and has no stable schema. EOF ends the batch;
-any error makes the exit status nonzero.
+any error makes the exit status nonzero. Records come from `blocks[]` entries of
+`blockchain_tests/` files and `engineNewPayloads[]` entries of `blockchain_tests_engine/`
+files; `blockIndex` is the entry's position in that container.
 Authentication is the host tool's responsibility. No guest is executed.
 Spec guidance: `STFSpec/informal/modules/EthConformance.md`.
 -/

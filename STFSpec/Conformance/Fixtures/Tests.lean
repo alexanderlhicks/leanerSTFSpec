@@ -179,4 +179,58 @@ private def engineFile : String := "blockchain_tests_engine/area/file.json"
 #guard (boundedIndex 1 #[id "z", id "a" 2, id "a"]).toOption ==
   (boundedIndex 1 #[id "a", id "z", id "a" 2]).toOption
 
+-- Engine payloads carry their guest pair in `engineNewPayloads[i]`, next to `params`.
+private def engineFixture (payloads : Array Lean.Json) : Lean.Json :=
+  Lean.Json.mkObj [("test", test payloads true)]
+private def payload (input := "0x1501") (output := outputText) : Lean.Json :=
+  withField (guestBlock input output) "params" (.arr #[])
+private def bare : Lean.Json := Lean.Json.mkObj [("params", .arr #[])]
+private def payloadLocation : String := engineFile ++ ":test:engineNewPayloads[0]"
+
+#guard ((extractGuestRecords engineFile (engineFixture #[payload])).toOption.bind (·[0]?)
+  |>.map (fun r ↦ r.input.data == #[21, 1] && r.expected.size == 43 &&
+    r.id == id "test" 0 engineFile)) == some true
+-- Payloads without the pair (pre-activation, invalid or unrecorded) are recordless;
+-- indices still count every payload.
+#guard ids (extractGuestRecords engineFile (engineFixture #[bare,
+  withField bare "validationError" (.str "INVALID"), payload, payload "0x"])) ==
+  #[id "test" 2 engineFile, id "test" 3 engineFile]
+#guard (extractGuestRecords engineFile (engineFixture #[bare])).toOption.map (·.size) == some 0
+-- A mutated debug witness and validity labels change neither identity nor bytes.
+#guard (extractGuestRecords engineFile (engineFixture #[payload])).toOption ==
+  (extractGuestRecords engineFile (engineFixture #[withField (withField (withField payload
+    "executionWitnessMutated" (.bool true)) "executionWitness" (.str "mutated"))
+    "validationError" (.str "INVALID")])).toOption
+#guard (extractGuestRecords engineFile (engineFixture #[withField payload
+  "executionWitnessMutated" (.bool true)])).toOption.map (·.size) == some 1
+-- Equal bytes in the two formats keep distinct identities.
+#guard (sortedIndex (ids (extractGuestRecords file (fixture #[guestBlock])) ++
+  ids (extractGuestRecords engineFile (engineFixture #[payload])))).toOption ==
+  some #[id "test" 0 file, id "test" 0 engineFile]
+-- Malformed payload pairs fail exactly as block pairs do, at the payload location.
+#guard failure (extractGuestRecords engineFile (engineFixture #[.null])) ==
+  some (.expectedObject payloadLocation)
+#guard failure (extractGuestRecords engineFile (engineFixture #[Lean.Json.mkObj
+  [("statelessInputBytes", .str "0x1501")]])) == some (.unpairedGuestFields payloadLocation)
+#guard failure (extractGuestRecords engineFile (engineFixture #[Lean.Json.mkObj
+  [("statelessOutputBytes", .str outputText)]])) == some (.unpairedGuestFields payloadLocation)
+#guard failure (extractGuestRecords engineFile (engineFixture #[withField payload
+  "statelessInputBytes" .null])) ==
+  some (.expectedString (payloadLocation ++ ".statelessInputBytes"))
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload "0x0" "bad"])) ==
+  some (.oddHexLength (payloadLocation ++ ".statelessInputBytes"))
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload "0xgg"])) ==
+  some (.nonHex (payloadLocation ++ ".statelessInputBytes") 0)
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload "1501"])) ==
+  some (.hexPrefix (payloadLocation ++ ".statelessInputBytes"))
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload "0x" "0xg"])) ==
+  some (.oddHexLength (payloadLocation ++ ".statelessOutputBytes"))
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload "0x" "0x00"])) ==
+  some (.outputLength (payloadLocation ++ ".statelessOutputBytes") 1)
+#guard failure (extractGuestRecords engineFile (engineFixture #[payload, payload "0x"
+  ("0x" ++ String.ofList (List.replicate 88 '0'))])) ==
+  some (.outputLength (engineFile ++ ":test:engineNewPayloads[1].statelessOutputBytes") 44)
+#guard failure (extractGuestRecords engineFile (Lean.Json.mkObj [("test", test #[payload])])) ==
+  some (.fixtureFormat (engineFile ++ ":test") "blockchain_test_engine" "blockchain_test")
+
 end STFSpec.Conformance.Internal.Tests
