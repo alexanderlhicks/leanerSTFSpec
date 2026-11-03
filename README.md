@@ -12,7 +12,7 @@ It will replace the spec in evm-asm (`EvmAsm/Stateless/SpecRef`). The project wr
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
-**Normative target:** `tests-zkevm@v21.0.6` (execution-specs `59c1473d`, Amsterdam), pinned in [`reference.toml`](reference.toml). Passing its EEST zkevm fixtures is mandatory and decisive.
+**Normative target:** `tests-zkevm@v21.0.6` (execution-specs `59c1473d`, Amsterdam), pinned in [`reference.toml`](reference.toml). A pass of its EEST zkevm fixtures is mandatory. They decide the cases that they cover. The pinned EELS source governs other cases (CONTRIBUTING §1).
 
 ## Architecture
 
@@ -174,7 +174,7 @@ The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these
 - [`STFSpec/informal/CONTRACT.md`](STFSpec/informal/CONTRACT.md): input/output encoding, the outcome table O1–O13, the authority and discrepancy policy, the security scope. The pin itself is [`reference.toml`](reference.toml).
 - [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md): every design decision and question disposition, with its status and the evidence needed to revisit it.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): the principles (golden rule, legibility, performance, hygiene, review), the pull-request workflow, and the Lean style and documentation conventions.
-- [`WRITING.md`](WRITING.md): the writing standard for all prose, with its [vocabulary](WRITING-VOCABULARY.md) and the [writing workflow](WRITING-WORKFLOW.md) for authors and agents.
+- [`WRITING.md`](WRITING.md): the prose standard for all prose, with its [vocabulary](WRITING-VOCABULARY.md) and the [prose workflow](WRITING-WORKFLOW.md) for authors and agents.
 - [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md): libraries, allowed dependencies, component contracts, data structures, state lifetimes, fork structure, change management, decision options.
 - [`STFSpec/informal/REVIEW.md` §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks): proof gates, composition cases, replacement gates and cost checks an implementation must meet.
 

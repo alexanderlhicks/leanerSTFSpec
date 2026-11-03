@@ -1,29 +1,30 @@
 #!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Report editing hints for selected rules of the STFspec writing standard.
+"""Report prose hints for selected rules of the STFspec prose standard.
 
-The standard is `WRITING.md`. This script is an advisory editing aid, not a check in the sense of
+The standard is `WRITING.md`. This script is an advisory prose aid, not a check in the sense of
 CONTRIBUTING §5.3. CI does not run it, and its output is neither required nor sufficient. It
 reports patterns that a search can find:
 
-- S1: sentence length (20 words in a numbered list item, 25 words elsewhere)
-- P2: more than six sentences in a paragraph
-- U1: semicolons, and U2: dashes that join clauses
-- W6: phrasal verbs, and W7: Latin abbreviations
-- S5: contractions
-- W8: "-ise" spellings such as "optimise", which neither Oxford nor American spelling uses
-- V1: perfect and progressive verb forms, and V2: a clause that starts with an "-ing" form
-- S7: a sentence that starts with "This" or "These" and a verb, with no noun
-- W1 and C8: the words to avoid in `WRITING-VOCABULARY.md`
+- WRITING S1: sentence length (20 words in a numbered list item, 25 words elsewhere)
+- WRITING P2: more than six sentences in a paragraph
+- WRITING U1: semicolons, and WRITING U2: dashes that join clauses
+- WRITING W6: phrasal verbs, and WRITING W7: Latin abbreviations
+- WRITING S5: contractions
+- WRITING W8: "-ise" spellings such as "optimise", which neither Oxford nor American spelling uses
+- WRITING V1: perfect and progressive verb forms
+- WRITING V2: introductory clauses and gerunds after prepositions
+- WRITING S7: a sentence that starts with "This" or "These" and a verb, with no noun
+- WRITING W1 and WRITING C8: the words to avoid in `WRITING-VOCABULARY.md`
 
-Review applies the standard to each hint and to the rules that need judgment. Extraction, word
+A reviewer applies the standard to each hint and to the rules that need judgment. Extraction, word
 counts and verb patterns are approximations. Numbered lists count as procedural for the length
 rule, but their actual purpose still needs review.
 
 The script excludes licence text, quoted text, code, formulas, headings, HTML comments and
 generated files. It reads only Markdown and Lean files, and it makes no dictionary or
-meaning-preservation check. The words "now" and "new" are not reported alone, because both also
-have ordinary meanings.
+sense-preservation check. The words "now" and "new" are not reported alone, because both also
+have ordinary senses.
 
 Usage:
   writing_hints.py --base REF      the prose that changed since the merge base with REF
@@ -33,7 +34,7 @@ Usage:
 In `--base` mode, the script reads the tracked files in the working tree. It reads each
 paragraph, list item or table cell that contains an added line, and it ignores untracked files.
 
-The exit code is 0, and 2 for a usage error. The regression tests are
+Hints and Input diagnostics return 0. Usage, Git and configuration errors return 2. The regression tests are
 `scripts/test_writing_hints.py`.
 """
 
@@ -51,7 +52,8 @@ ROOT = Path(__file__).resolve().parent.parent
 VOCABULARY = ROOT / "WRITING-VOCABULARY.md"
 EXCLUDED_PREFIXES = (".lake/",)
 # Generated files (AGENTS.md, documentation conventions) are edited at their source.
-EXCLUDED_FILES = {"STFSpec/informal/GAPS.md", "STFSpec/informal/REFERENCE-RECORDS.md"}
+EXCLUDED_FILES = {"STFSpec/informal/GAPS.md", "STFSpec/informal/REFERENCE-RECORDS.md",
+                  "STFSpec/informal/citation-remap-manual.txt"}
 
 PROCEDURAL_LIMIT = 20
 DESCRIPTIVE_LIMIT = 25
@@ -68,8 +70,9 @@ PHRASAL_PAIRS = {
     "check out": "check|checks|checked", "come up with": "come|comes|came",
 }
 PHRASAL = re.compile(
-    "|".join(rf"\b(?:{forms})\s+{re.escape(pair.split(' ', 1)[1])}\b"
-             for pair, forms in PHRASAL_PAIRS.items()), re.IGNORECASE)
+    "|".join(rf"\b(?:{forms})\s+" + r"\s+".join(
+        re.escape(word) for word in pair.split()[1:]) + r"\b"
+        for pair, forms in PHRASAL_PAIRS.items()), re.IGNORECASE)
 LATIN = re.compile(r"(?<![\w.])(?:e\.g\.|i\.e\.|etc\.|cf\.|resp\.|viz\.)", re.IGNORECASE)
 CONTRACTION = re.compile(
     r"\b\w+n['’]t\b|\b\w+['’](?:re|ll|ve|d)\b"
@@ -81,21 +84,24 @@ PERFECT = re.compile(rf"\b(?:has|have|had)\s+(?:not\s+)?(\w+ed|{PARTICIPLES})\b"
 # After a modal verb, "have" and a participle keep a hedge: "the build may have failed".
 MODAL_BEFORE = re.compile(r"\b(?:may|might|could|would|should|must|can|will)(?:\s+not)?\s+$",
                           re.IGNORECASE)
-# Adjectives in "-ed" that follow "has" or "have" as possession: "polynomials have bounded degree".
-POSSESSED_ADJECTIVES = {"bounded", "unbounded", "fixed", "nested", "ordered", "distributed",
-                        "prescribed", "limited", "mixed", "balanced", "weighted", "labeled",
+# Adjectives in "-ed" that follow "has" or "have" as possession: "protocol values have bounded width".
+POSSESSED_ADJECTIVES = {"bounded", "unbounded", "fixed", "nested", "ordered", "distributed", "unsigned", "signed",
+                        "prescribed", "limited", "mixed", "balanced", "weighted", "labeled", "labelled",
                         "sorted", "indexed", "typed", "isolated", "repeated", "related", "named"}
 NOT_PROGRESSIVE = {"nothing", "something", "anything", "everything", "missing", "remaining",
                    "string", "strings", "ring", "rings", "thing", "things", "during", "padding",
-                   "binding", "encoding", "decoding", "folding", "batching", "hashing",
+                   "binding", "encoding", "decoding", "hashing",
                    "metering", "fuzzing", "pending", "outstanding", "existing"}
+POSSESSED_PHRASES = re.compile(
+    r"(?:correlated\s+agreement|centered\s+norm|centred\s+norm|squared\s+norm|expected\s+value|"
+    r"left(?:\s+and\s+right)?\s+children|right\s+children|known\s+degree)\b", re.IGNORECASE)
 PROGRESSIVE = re.compile(r"\b(?:is|are|was|were|be|been)\s+(\w+ing)\b", re.IGNORECASE)
 BARE_THIS = re.compile(
     r"^(?:This|These)\s+(?:is|are|was|were|means|makes|ensures|lets|gives|shows|allows|"
-    r"requires|keeps|fixes|adds|avoids|matches|also|will|can|way)\b")
+    r"requires|keeps|fixes|adds|avoids|matches|also|will|can)\b")
 # "During" is a preposition, not an "-ing" form of a verb.
 ING_START = re.compile(r"^(?!During\b)[A-Z][a-z]+ing\b[^,.;:]{0,80},")
-# Oxford and American spelling both write "-ize" for these stems (rule W8). A fixed list avoids
+# Oxford and American spelling both write "-ize" for these stems (WRITING W8). A fixed list avoids
 # words such as "otherwise", "premise" and "precise".
 ISE_STEMS = ("author", "canonical", "categor", "character", "custom", "emphas", "final", "general",
              "initial", "material", "maxim", "memo", "minim", "normal", "optim", "organ",
@@ -103,12 +109,17 @@ ISE_STEMS = ("author", "canonical", "categor", "character", "custom", "emphas", 
              "standard", "summar", "synchron", "token", "util", "visual", "sanit", "formal")
 ISE_SPELLING = re.compile(
     rf"\b(?:{'|'.join(ISE_STEMS)})is(?:e|es|ed|ing|ation|ations)\b", re.IGNORECASE)
+PREPOSITION_ING = re.compile(
+    r"\b(?:after|before|by|for|from|in|of|on|through|to|upon|with|without|when|while|than|as)"
+    r"\s+(?:not\s+)?(?P<form>[A-Za-z]+ing)\b", re.IGNORECASE)
+NON_VERBAL_WORDS = {"nothing", "something", "anything", "everything", "during", "missing",
+                    "remaining", "string", "strings", "ring", "rings", "thing", "things", "hamming", "turing"}
 EM_DASH = re.compile(r"—|\s–\s|\s--\s")
-FORMATTED_TERM = r"(?:``[^`]+``|`[^`]+`|\$[^$]+\$|\*\*[^*]+\*\*)"
+FORMATTED_TERM = r"(?:\[[^\]]+\]\((?:[^()]|\([^()]*\))*\)|``[^`]+``|`[^`]+`|\$[^$]+\$|\*\*[^*]+\*\*)"
 DEFINITION_SEPARATOR = re.compile(
-    rf"^\s*{FORMATTED_TERM}(?:\s*(?:,|and|or)\s*{FORMATTED_TERM})*"
+    rf"^\s*{FORMATTED_TERM}(?:\s*(?:,|and|or|/)\s*{FORMATTED_TERM})*"
     r"(?:\s*\((?:[^()]|\([^()]*\))*\))*\s*(?P<dash>—|–|--)\s+")
-# Reference text describes the present state (rule C8). DECISIONS, DISCREPANCIES, DEBT and REVIEW
+# Reference text describes the present state (WRITING C8). DECISIONS, DISCREPANCIES, DEBT and REVIEW
 # record history by design, so they are outside this scope.
 HISTORY_SCOPE = re.compile(
     r"\.lean$|^STFSpec/informal/(?:modules/|ARCHITECTURE\.md|COMPOSITION\.md|CONTRACT\.md|"
@@ -139,7 +150,7 @@ class Finding:
 
 
 def avoid_words(vocabulary: Path = VOCABULARY) -> tuple[list[str], list[str]]:
-    """Return the general words to avoid and the history words (rule C8) from the vocabulary.
+    """Return the general words to avoid and the history words (WRITING C8) from the vocabulary.
 
     The words are the quoted terms in the first column of the "Words to avoid" table. A row whose
     second column names WRITING C8 gives history words, which apply only to reference text.
@@ -160,16 +171,33 @@ def avoid_words(vocabulary: Path = VOCABULARY) -> tuple[list[str], list[str]]:
     return general, history
 
 
+def technical_ing_nouns(vocabulary: Path = VOCABULARY) -> set[str]:
+    """Read the technical -ing terms in the vocabulary's dedicated table."""
+    text = vocabulary.read_text(encoding="utf-8")
+    section = re.search(r"^## Technical -ing nouns\s*$", text, re.MULTILINE)
+    if section is None:
+        return set()
+    body = re.split(r"^## ", text[section.end():], maxsplit=1, flags=re.MULTILINE)[0]
+    result: set[str] = set()
+    for row in body.splitlines():
+        if not row.lstrip().startswith("|"):
+            continue
+        first = row.strip().strip("|").split("|", 1)[0]
+        for term in re.findall(r"`([^`]+)`", first):
+            result.update(word.lower() for word in re.findall(r"\b[A-Za-z]+ing\b", term))
+    return result
+
+
 def word_pattern(words: list[str]) -> re.Pattern[str] | None:
     if not words:
         return None
     def alternative(word: str) -> str:
-        # A single word also matches its inflected forms: "utilize" matches "utilizes" and
-        # "utilizing".
-        if not re.fullmatch(r"[a-z]+", word):
-            return re.escape(word)
-        stem = word[:-1] if word.endswith("e") else word
-        return rf"(?:{re.escape(word)}(?:s|es|d|ed|ing)?|{re.escape(stem)}ing)"
+        # A single word also matches its inflected forms: "utilize" matches "utilizes".
+        suffix = r"(?:s|es|d|ed|ing)?" if re.fullmatch(r"[a-z]+", word) else ""
+        pattern = re.escape(word).replace(r"\ ", r"\s+") + suffix
+        if word.endswith("e") and not word.endswith("ee") and suffix:
+            pattern = rf"(?:{pattern}|{re.escape(word[:-1])}ing)"
+        return pattern
 
     alternatives = sorted((alternative(word) for word in words), key=len, reverse=True)
     return re.compile(r"(?<![\w.])(?:" + "|".join(alternatives) + r")(?![\w])", re.IGNORECASE)
@@ -178,7 +206,32 @@ def word_pattern(words: list[str]) -> re.Pattern[str] | None:
 # ---------------------------------------------------------------------------------------------
 # Extraction of prose blocks
 
+CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", re.DOTALL)
+
 LIST_ITEM = re.compile(r"^(\s*)(?:[-*+]|(\d+)[.)])\s+(.*)$")
+
+
+def strip_html_comments(text: str, inside: bool, visible: str) -> tuple[str, bool]:
+    """Remove HTML comments on one line, with code spans and character positions intact."""
+    result = list(text)
+    index = 0
+    while index < len(text):
+        if inside:
+            end = text.find("-->", index)
+            stop = len(text) if end < 0 else end + 3
+            result[index:stop] = blank(text[index:stop])
+            inside = end < 0
+            index = stop
+        elif visible.startswith("<!--", index):
+            before = visible[:index]
+            escaped = (len(before) - len(before.rstrip("\\"))) % 2
+            if escaped:
+                index += 1
+            else:
+                inside = True
+        else:
+            index += 1
+    return "".join(result), inside
 
 
 def markdown_blocks(path: str, text: str, first_line: int = 1) -> list[Block]:
@@ -189,23 +242,28 @@ def markdown_blocks(path: str, text: str, first_line: int = 1) -> list[Block]:
     last = 0
     procedural = False
     paragraph = True
-    fence = False
-    comment = False
+    fence: tuple[str, int] | None = None
     header_row = True
     legal_section: int | None = None
+    comment = False
+    list_context = False
     lines = text.split("\n")
+    visible_lines = CODE_SPAN.sub(lambda m: blank(m.group(), True), text).split("\n")
 
     def flush() -> None:
         nonlocal current
         if current:
-            blocks.append(Block(path, start, " ".join(current), procedural, paragraph, last))
+            blocks.append(Block(path, start, "\n".join(current), procedural, paragraph, last))
         current = []
 
     index = 0
     if lines and lines[0].strip() == "---":
         for index in range(1, len(lines)):
             if lines[index].strip() == "---":
-                index += 1
+                if any(re.match(r"[A-Za-z_][\w-]*:", line) for line in lines[1:index]):
+                    index += 1
+                else:
+                    index = 0  # Two thematic breaks do not imply YAML front matter.
                 break
         else:
             index = 0
@@ -213,20 +271,20 @@ def markdown_blocks(path: str, text: str, first_line: int = 1) -> list[Block]:
         number = first_line + offset
         raw = lines[offset]
         stripped = raw.strip()
-        if comment:
-            if "-->" in stripped:
-                comment = False
+        if fence is not None:
+            character, width = fence
+            if re.fullmatch(re.escape(character) + "{" + str(width) + r",}\s*", stripped):
+                fence = None
             continue
-        if stripped.startswith("<!--"):
+        opening = re.match(r"(`{3,}|~{3,})", stripped) if not comment else None
+        if opening:
             flush()
-            comment = "-->" not in stripped
+            fence = (opening.group()[0], len(opening.group()))
             continue
-        if stripped.startswith(("```", "~~~")):
-            flush()
-            fence = not fence
+        if raw.startswith(("    ", "\t")) and not current and not comment and not list_context:
             continue
-        if fence:
-            continue
+        raw, comment = strip_html_comments(raw, comment, visible_lines[offset])
+        stripped = raw.strip()
         stripped = re.sub(r"^(?:>\s?)+", "", stripped)
         heading = re.fullmatch(r"(#{1,6})\s+(.+?)(?:\s+#+)?", stripped)
         if heading:
@@ -241,7 +299,7 @@ def markdown_blocks(path: str, text: str, first_line: int = 1) -> list[Block]:
             continue
         if legal_section is not None:
             continue
-        if not stripped or stripped.startswith("#") or re.fullmatch(r"[-*_=]{3,}", stripped):
+        if not stripped or re.fullmatch(r"[-*_=]{3,}", stripped):
             flush()
             header_row = True
             continue
@@ -259,12 +317,15 @@ def markdown_blocks(path: str, text: str, first_line: int = 1) -> list[Block]:
         item = LIST_ITEM.match(raw)
         if item:
             flush()
+            list_context = True
             start = number
             procedural = item.group(2) is not None
             paragraph = False
             current.append(item.group(3))
             last = number
             continue
+        if raw and not raw[0].isspace():
+            list_context = False
         if not current:
             start = number
             procedural = False
@@ -304,10 +365,20 @@ def lean_blocks(path: str, text: str) -> list[Block]:
             # A character literal such as '"' does not start a string.
             index = literal.end()
             continue
+        raw_string = re.match(r'r(#+)?"', text[index:]) if char == "r" else None
+        if raw_string and not (index and (text[index - 1].isalnum() or text[index - 1] in "_'.")):
+            terminator = '"' + (raw_string.group(1) or "")
+            end = text.find(terminator, index + raw_string.end())
+            end = length if end == -1 else end + len(terminator)
+            line += text.count("\n", index, end)
+            index = end
+            continue
         if char == '"':
             index += 1
             while index < length and text[index] != '"':
                 if text[index] == "\\":
+                    if index + 1 < length and text[index + 1] == "\n":
+                        line += 1
                     index += 1
                 elif text[index] == "\n":
                     line += 1
@@ -330,7 +401,7 @@ def lean_blocks(path: str, text: str) -> list[Block]:
                     cursor += 2
                 else:
                     cursor += 1
-            body = text[body_start:cursor - 2]
+            body = text[body_start:cursor - 2 if depth == 0 else cursor]
             blocks.extend(markdown_blocks(path, body, line))
             line += text.count("\n", index, cursor)
             index = cursor
@@ -363,49 +434,75 @@ def file_blocks(path: str, text: str) -> list[Block]:
 
 
 # ---------------------------------------------------------------------------------------------
-# Masking and sentences
+# Text masks and sentences
+
+
+def blank(text: str, token: bool = False) -> str:
+    """Hide content with its length and newline positions intact."""
+    result = re.sub(r"[^\r\n]", " ", text)
+    if token:
+        positions = [i for i, char in enumerate(result) if char == " "]
+        if positions:
+            index = positions[min(1, len(positions) - 1)]
+            result = result[:index] + "X" + result[index + 1:]
+    return result
 
 
 def mask(text: str, collapse_parentheses: bool,
-         parentheticals: list[str] | None = None) -> str:
-    """Replace each exempt or one-word element with a placeholder word.
-
-    When `collapse_parentheses` is true, each parenthesis becomes one word, and its text goes to
-    `parentheticals`. An inner parenthesis is one word in the text of the outer one.
-    """
-    text = re.sub(r"<!--.*?-->", " ", text)
-    text = re.sub(r"&[A-Za-z]+;|&#\d+;", " ", text)
-    text = re.sub(r"\$\$.*?\$\$|\$[^$]+\$", " Formula ", text)
-    text = re.sub(r"``.*?``|`[^`]*`", " Code ", text)
-    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", text)
-    text = re.sub(r"\[([^\]]+)\]\[[^\]]*\]", r"\1", text)
-    text = re.sub(r"<https?://[^>]+>|https?://\S+", " Link ", text)
-    text = re.sub(r"</?[A-Za-z][^>]*>", " ", text)
-    text = re.sub(r'"[^"]*"|“[^”]*”', " Quote ", text)
-    # A section reference such as "CONTRIBUTING §5.3" or "REVIEW §§3–4" counts as one word.
-    text = re.sub(r"(?:\b[A-Z][A-Z0-9_-]+(?:\.md)?\s+)?§§?\d+(?:\.\d+)*(?:[–-]§?\d+(?:\.\d+)*)?",
-                  " Section ", text)
-    text = re.sub(r"\*\*|__|(?<!\w)[*_]|[*_](?!\w)", "", text)
+         parentheticals: list[str] | None = None,
+         parenthetical_offsets: list[int] | None = None) -> str:
+    """Mask exempt elements with one word. Keep source offsets and newlines."""
+    text = CODE_SPAN.sub(lambda m: blank(m.group(), True), text)
+    for pattern, token in (
+            (r"\$\$.*?\$\$|\$[^$]+\$", True),
+            (r"&[A-Za-z]+;|&#\d+;", False)):
+        text = re.sub(pattern, lambda m: blank(m.group(), token), text, flags=re.DOTALL)
+    def link(match: re.Match[str]) -> str:
+        start, end = match.span(1)
+        return (blank(match.group()[:start - match.start()]) + match.group(1)
+                + blank(match.group()[end - match.start():]))
+    text = re.sub(r"!?\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)", link, text)
+    text = re.sub(r"\[([^\]]+)\]\[[^\]]*\]", link, text)
+    for pattern, token in (
+            (r"\[[A-Z][A-Za-z+-]*\d{2}[a-z]?(?:,[^\]]*)?\]", True),
+            (r"<https?://[^>]+>|https?://\S+", True),
+            (r"</?[A-Za-z][^>]*>", False),
+            (r"(?:\b[A-Z][A-Z0-9_-]+(?:\.md)?\s+)?§§?\d+(?:\.\d+)*(?:[–-]§?\d+(?:\.\d+)*)?", True),
+            (r'"[^"]*"|“[^”]*”', True),
+            (r"\*\*|__|(?<!\w)[*_]|[*_](?!\w)", False)):
+        text = re.sub(pattern, lambda m: blank(m.group(), token), text)
     if collapse_parentheses:
-        previous = None
-        while previous != text:
-            previous = text
-            for inner in re.findall(r"\(([^()]*)\)", text):
+        while re.search(r"\([^()]*\)", text):
+            def parenthesis(match: re.Match[str]) -> str:
                 if parentheticals is not None:
-                    parentheticals.append(re.sub(r"\s+", " ", inner).strip())
-            text = re.sub(r"\([^()]*\)", " Paren ", text)
-    return re.sub(r"\s+", " ", text).strip()
+                    parentheticals.append(match.group()[1:-1])
+                if parenthetical_offsets is not None:
+                    parenthetical_offsets.append(match.start() + 1)
+                return blank(match.group(), True)
+            text = re.sub(r"\([^()]*\)", parenthesis, text)
+    return text
+
+
+def sentence_spans(text: str) -> list[tuple[int, int]]:
+    """Return sentence spans in the supplied text with source offsets intact."""
+    spans: list[tuple[int, int]] = []
+    start = 0
+    boundaries = list(re.finditer(
+        r"(?<=[.!?])\s+(?=[A-Z0-9(\[]|[a-z][\w-]*\.[\w-]+(?:\s|$))", text))
+    for boundary in boundaries:
+        part = text[start:boundary.start()]
+        if part.split() and part.split()[-1].lower() in ABBREVIATIONS:
+            continue
+        spans.append((start, boundary.start()))
+        start = boundary.end()
+    spans.append((start, len(text)))
+    return [(a + len(text[a:b]) - len(text[a:b].lstrip()),
+             b - len(text[a:b]) + len(text[a:b].rstrip()))
+            for a, b in spans if text[a:b].strip()]
 
 
 def sentences(text: str) -> list[str]:
-    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9(\[]|[a-z][\w-]*\.[\w-]+(?:\s|$))", text)
-    merged: list[str] = []
-    for part in parts:
-        if merged and merged[-1].split()[-1].lower() in ABBREVIATIONS:
-            merged[-1] = merged[-1] + " " + part
-        else:
-            merged.append(part)
-    return [part for part in merged if part.strip()]
+    return [text[a:b] for a, b in sentence_spans(text)]
 
 
 def word_count(sentence: str) -> int:
@@ -417,65 +514,86 @@ def word_count(sentence: str) -> int:
 
 
 def check_block(block: Block, general: re.Pattern[str] | None,
-                history: re.Pattern[str] | None) -> list[Finding]:
+                history: re.Pattern[str] | None,
+                technical_ings: set[str] | None = None) -> list[Finding]:
     found: list[Finding] = []
 
-    def add(rule: str, message: str, excerpt: str) -> None:
-        found.append(Finding(block.path, block.line, rule, message, excerpt.strip()[:80]))
+    def add(rule: str, message: str, offset: int, end: int | None = None,
+            context: int = 0) -> None:
+        excerpt = re.sub(r"\s+", " ", block.text[max(0, offset - context):end]).strip()[:80]
+        line = block.line + block.text.count("\n", 0, offset)
+        found.append(Finding(block.path, line, rule, message, excerpt))
 
     parentheticals: list[str] = []
-    counted = mask(block.text, collapse_parentheses=True, parentheticals=parentheticals)
-    plain = mask(block.text, collapse_parentheses=False)
+    parenthetical_offsets: list[int] = []
+    counted = mask(block.text, True, parentheticals, parenthetical_offsets)
+    plain = mask(block.text, False)
     limit = PROCEDURAL_LIMIT if block.procedural else DESCRIPTIVE_LIMIT
-    counted_sentences = sentences(counted)
-    # The text in parentheses counts as a separate sentence.
-    for sentence in counted_sentences + [part for inner in parentheticals
-                                         for part in sentences(inner)]:
-        words = word_count(sentence)
-        if words > limit:
-            add("S1", f"The sentence has {words} words. The limit is {limit}.", sentence)
-    if block.paragraph and len(counted_sentences) > PARAGRAPH_LIMIT:
-        add("P2", f"The paragraph has {len(counted_sentences)} sentences. The limit is "
-            f"{PARAGRAPH_LIMIT}.", counted_sentences[0])
+    counted_spans = sentence_spans(counted)
+    sentence_parts = [(counted, 0, counted_spans)] + [
+        (inner, offset, sentence_spans(inner))
+        for inner, offset in zip(parentheticals, parenthetical_offsets)]
+    for text, offset, spans in sentence_parts:
+        for start, end in spans:
+            words = word_count(text[start:end])
+            if words > limit:
+                add("S1", f"The sentence has {words} words. The limit is {limit}.",
+                    offset + start, offset + end)
+    if block.paragraph and len(counted_spans) > PARAGRAPH_LIMIT:
+        add("P2", f"The paragraph has {len(counted_spans)} sentences. The limit is "
+            f"{PARAGRAPH_LIMIT}.", counted_spans[PARAGRAPH_LIMIT][0])
     if ";" in plain:
-        add("U1", "Do not use a semicolon. Write two sentences.", plain[max(0, plain.index(";") - 30):])
-    # A formatted term followed by a dash introduces a definition, not a clause join.
-    # Only that separator is exempt. Review the rest of the description as usual.
-    dash_text = block.text
-    definition = DEFINITION_SEPARATOR.match(dash_text)
+        add("U1", "Do not use a semicolon. Use a conjunction or write two sentences.",
+            plain.index(";"), context=30)
+    definition = DEFINITION_SEPARATOR.match(block.text)
+    dash_plain = plain
     if definition:
-        dash_text = dash_text[:definition.start("dash")] + " " + dash_text[definition.end("dash"):]
-    dash_plain = mask(dash_text, collapse_parentheses=False)
-    for match in EM_DASH.finditer(dash_plain):
-        add("U2", "Review this dash. If it joins clauses, write two sentences.",
-            dash_plain[max(0, match.start() - 30):match.end() + 30])
+        start, end = definition.span("dash")
+        dash_plain = plain[:start] + blank(plain[start:end]) + plain[end:]
+    if dash_plain.strip() not in {"—", "–", "--"}:
+        for match in EM_DASH.finditer(dash_plain):
+            offset = match.start() + len(match.group()) - len(match.group().lstrip())
+            add("U2", "Review this dash. If it joins clauses, write two sentences.",
+                offset, match.end() + 30, context=30)
     for pattern, rule, message in (
             (LATIN, "W7", "Write the English words for this Latin abbreviation."),
-            (PHRASAL, "W6", "Consider a direct verb that preserves this meaning."),
+            (PHRASAL, "W6", "Consider a direct verb that preserves this sense."),
             (CONTRACTION, "S5", "Write the full form of this contraction."),
             (ISE_SPELLING, "W8", "Write the \"-ize\" form, which Oxford and American spelling use."),
-            (general, "W1", "Review this wording with WRITING-VOCABULARY.md, and keep its meaning.")):
+            (general, "W1", "Review this text with WRITING-VOCABULARY.md. Keep its sense.")):
         if pattern is None:
             continue
         for match in pattern.finditer(plain):
-            if rule == "W1" and LATIN.fullmatch(match.group(0)):
+            if rule == "W1" and LATIN.fullmatch(match.group()):
                 continue
-            add(rule, message, match.group(0))
+            add(rule, message, match.start(), match.end())
     for match in PERFECT.finditer(plain):
         hedged = MODAL_BEFORE.search(plain[:match.start()])
-        if match.group(1).lower() not in POSSESSED_ADJECTIVES and not hedged:
-            add("V1", "Prefer a simple tense if it preserves time and uncertainty.", match.group(0))
+        possession = POSSESSED_PHRASES.match(plain, match.start(1))
+        if match.group(1).lower() not in POSSESSED_ADJECTIVES and not hedged and not possession:
+            add("V1", "Prefer a simple tense if it preserves time and uncertainty.",
+                match.start(), match.end())
     for match in PROGRESSIVE.finditer(plain):
         if match.group(1).lower() not in NOT_PROGRESSIVE:
-            add("V1", "Review this possible progressive form. Prefer a simple construction.", match.group(0))
+            add("V1", "Review this possible progressive form. Prefer a simple construction.",
+                match.start(), match.end())
     if history is not None and HISTORY_SCOPE.search(block.path):
         for match in history.finditer(plain):
-            add("C8", "Describe the present state, not the history.", match.group(0))
-    for sentence in sentences(plain):
+            add("C8", "Describe the present state, not the history.", match.start(), match.end())
+    allowed_ings = NON_VERBAL_WORDS | (technical_ings or set())
+    for match in PREPOSITION_ING.finditer(plain):
+        form = match.group("form")
+        if form.isupper() or form.lower().endswith("string"):
+            continue  # Acronyms, file labels, and string nouns are not verb inflections.
+        if form.lower() not in allowed_ings:
+            add("V2", "Use a finite clause unless this is a technical noun or part of one.",
+                match.start("form"), match.end("form"))
+    for start, end in sentence_spans(plain):
+        sentence = plain[start:end]
         if BARE_THIS.match(sentence):
-            add("S7", "Name the noun if this reference is ambiguous.", sentence)
-        if ING_START.match(sentence):
-            add("V2", "Review this possible verb clause. A finite clause can be clearer.", sentence)
+            add("S7", "Name the noun if this reference is ambiguous.", start, end)
+        if ING_START.match(sentence) and re.match(r"\w+", sentence).group().lower() not in allowed_ings:
+            add("V2", "Review this possible verb clause. A finite clause can be clearer.", start, end)
     return found
 
 
@@ -483,9 +601,10 @@ def check_blocks(blocks: list[Block], vocabulary: Path = VOCABULARY) -> list[Fin
     general_words, history_words = avoid_words(vocabulary)
     general = word_pattern(general_words)
     history = word_pattern(history_words)
+    technical_ings = technical_ing_nouns(vocabulary)
     found: list[Finding] = []
     for block in blocks:
-        found.extend(check_block(block, general, history))
+        found.extend(check_block(block, general, history, technical_ings=technical_ings))
     return found
 
 
@@ -495,7 +614,7 @@ def check_blocks(blocks: list[Block], vocabulary: Path = VOCABULARY) -> list[Fin
 
 def git(*args: str) -> str:
     return subprocess.run(["git", *args], check=True, capture_output=True, text=True,
-                          cwd=ROOT).stdout
+                          cwd=ROOT, encoding="utf-8", errors="surrogateescape").stdout
 
 
 def checked_path(path: str) -> bool:
@@ -506,31 +625,51 @@ def checked_path(path: str) -> bool:
 def added_lines(base: str) -> dict[str, set[int]]:
     """Map each changed tracked file to the line numbers that it adds since the merge base."""
     merge_base = git("merge-base", base, "HEAD").strip()
-    # Fixed prefixes and unquoted paths do not depend on the diff settings of the user.
-    diff = git("-c", "core.quotePath=false", "diff", "--unified=0", "--no-color", "--no-ext-diff",
-               "--src-prefix=a/", "--dst-prefix=b/", merge_base)
+    # NUL-delimited names do not depend on quoting or patch-header prefixes.
+    # Keep both sides of a rename so unchanged prose is not treated as an addition.
+    options = ("--no-ext-diff", "--no-textconv", "--find-renames")
+    names = iter(git("diff", *options, "--name-status", "-z", "--diff-filter=ACMRT",
+                     merge_base, "--").split("\0"))
     result: dict[str, set[int]] = {}
-    path = None
-    for line in diff.splitlines():
-        if line.startswith("+++ "):
-            # Git ends the header with a tab when the path contains a space.
-            target = line[4:].rstrip("\t")
-            path = target[2:] if target.startswith("b/") else None
-            if path is not None and not checked_path(path):
-                path = None
+    for status in names:
+        if not status:
             continue
-        hunk = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
-        if hunk and path is not None:
+        source = next(names)
+        path = next(names) if status[0] in "RC" else source
+        if not checked_path(path):
+            continue
+        paths = (source, path) if status[0] in "RC" else (path,)
+        diff = git("--literal-pathspecs", "diff", *options, "--text", "--unified=0", "--no-color",
+                   merge_base, "--", *paths)
+        lines = result.setdefault(path, set())
+        for hunk in re.finditer(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", diff, re.MULTILINE):
             first = int(hunk.group(1))
             count = int(hunk.group(2)) if hunk.group(2) is not None else 1
-            result.setdefault(path, set()).update(range(first, first + count))
+            lines.update(range(first, first + count))
     return result
 
 
-def changed_blocks(base: str) -> list[Block]:
+def read_source(path: Path, label: str, diagnostics: list[Finding]) -> str | None:
+    """Report unsupported source input as advisory data. Keep other file checks active."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        line = error.object.count(b"\n", 0, error.start) + 1
+        diagnostics.append(Finding(label, line, "Input", "This file is not UTF-8. The script skipped its prose.", ""))
+    except FileNotFoundError:
+        if not path.is_symlink():
+            raise
+        diagnostics.append(Finding(label, 1, "Input", "This symlink has no target. The script skipped its prose.", ""))
+    return None
+
+
+def changed_blocks(base: str, diagnostics: list[Finding] | None = None) -> list[Block]:
     blocks: list[Block] = []
+    diagnostics = [] if diagnostics is None else diagnostics
     for path, lines in sorted(added_lines(base).items()):
-        text = (ROOT / path).read_text(encoding="utf-8")
+        text = read_source(ROOT / path, path, diagnostics)
+        if text is None:
+            continue
         for block in file_blocks(path, text):
             if any(block.line <= number <= block.last_line for number in lines):
                 blocks.append(block)
@@ -543,8 +682,9 @@ def changed_blocks(base: str) -> list[Block]:
 
 def report(found: list[Finding]) -> None:
     for item in found:
-        print(f"{item.path}:{item.line}: [{item.rule}] {item.message} {item.excerpt!r}")
-    rules = sorted({item.rule for item in found})
+        label = item.rule if item.rule == "Input" else f"WRITING {item.rule}"
+        print(f"{item.path}:{item.line}: [{label}] {item.message} {item.excerpt!r}")
+    rules = sorted({f"WRITING {item.rule}" if item.rule != "Input" else "Input" for item in found})
     summary = (f"{len(found)} writing hint(s) for rules {', '.join(rules)}. Read WRITING.md "
                "before you edit." if found else "No writing hints.")
     print(summary)
@@ -559,32 +699,42 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--vocabulary", type=Path, default=VOCABULARY,
                         help="the vocabulary page (default: WRITING-VOCABULARY.md)")
     args = parser.parse_args(argv[1:])
-    if args.base:
-        try:
-            blocks = changed_blocks(args.base)
-        except subprocess.CalledProcessError as error:
-            parser.error(f"git failed for --base {args.base}: {error.stderr.strip()}")
-    elif args.stdin:
-        blocks = markdown_blocks(args.stdin, sys.stdin.read())
-    elif args.files:
-        blocks = []
-        for name in args.files:
-            path = Path(name).resolve()
-            relative = os.path.relpath(path, ROOT)
-            # Inside the repository, the label is the repository-relative path, so that the scope
-            # of rule C8 does not depend on how the path is written.
-            label = name if relative.startswith("..") else relative
-            if not name.endswith((".md", ".lean")):
-                parser.error(f"{name}: only Markdown and Lean files are read")
-            if not path.is_file():
-                parser.error(f"{name}: no such file")
-            if checked_path(label):
-                blocks.extend(file_blocks(label, path.read_text(encoding="utf-8")))
-            else:
-                print(f"{name}: generated or excluded file, not read")
-    else:
-        parser.error("give --base, --stdin, or at least one file")
-    found = check_blocks(blocks, args.vocabulary)
+    diagnostics: list[Finding] = []
+    try:
+        if args.base:
+            blocks = changed_blocks(args.base, diagnostics)
+        elif args.stdin is not None:
+            try:
+                text = sys.stdin.read()
+            except UnicodeDecodeError:
+                diagnostics.append(Finding(args.stdin, 1, "Input", "Input is not UTF-8. The script skipped its prose.", ""))
+                text = ""
+            if any(0xDC80 <= ord(char) <= 0xDCFF for char in text):
+                diagnostics.append(Finding(args.stdin, 1, "Input", "Input is not UTF-8. The script skipped its prose.", ""))
+                text = ""
+            blocks = markdown_blocks(args.stdin, text)
+        elif args.files:
+            blocks = []
+            for name in args.files:
+                path = Path(name).absolute()
+                label_path = path.resolve() if path.exists() else path
+                relative = os.path.relpath(label_path, ROOT)
+                label = name if relative.startswith("..") else relative
+                if not name.endswith((".md", ".lean")):
+                    parser.error(f"{name}: only Markdown and Lean files are read")
+                if checked_path(label):
+                    text = read_source(path, label, diagnostics)
+                    if text is not None:
+                        blocks.extend(file_blocks(label, text))
+                else:
+                    print(f"{name}: generated or excluded file, not read")
+        else:
+            parser.error("give --base, --stdin, or at least one file")
+        found = diagnostics + check_blocks(blocks, args.vocabulary)
+    except subprocess.CalledProcessError as error:
+        parser.error(f"git failed: {error.stderr.strip()}")
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
     report(found)
     return 0
 

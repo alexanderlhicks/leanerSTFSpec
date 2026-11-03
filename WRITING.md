@@ -1,12 +1,12 @@
-# Writing in STFspec
+# Prose in STFspec
 
 *Status: current contributor guidance. Date: 2026-11-03.*
 
-This document is the writing standard for English prose in STFspec. It extends [`CONTRIBUTING.md`](CONTRIBUTING.md) §8 and has the same place in the authority order of [`AGENTS.md`](AGENTS.md). CONTRIBUTING §2 makes legibility a requirement, and this standard applies that requirement to prose.
+This document is the prose standard for English prose in STFspec. It extends [`CONTRIBUTING.md`](CONTRIBUTING.md) §8 and has the same place in the authority order of [`AGENTS.md`](AGENTS.md). CONTRIBUTING §2 makes legibility a requirement, and this standard applies that requirement to prose.
 
-The standard draws on ASD-STE100 Simplified Technical English (STE), Issue 9, January 2025. STE is the reference to correct prose. A habit of the repository is not a reason to keep unclear writing. §10 gives the relation to STE and marks each adaptation.
+The standard draws on ASD-STE100 Simplified Technical English (STE), Issue 9, January 2025. STE is the reference to correct prose. A habit of the repository is not a reason to keep unclear prose. §10 gives the relation to STE and marks each adaptation.
 
-The [vocabulary](WRITING-VOCABULARY.md) records the technical terms of the protocol, the reference, Lean and the repository. The [writing workflow](WRITING-WORKFLOW.md) tells authors and agents how to apply this standard.
+The [vocabulary](WRITING-VOCABULARY.md) records the technical terms of the protocol, the reference, Lean and the repository. The [prose workflow](WRITING-WORKFLOW.md) tells authors and agents how to apply this standard.
 
 ## 1. Scope
 
@@ -31,19 +31,21 @@ These exclusions do not cover an explanation that an author puts in quotation ma
 
 ## 2. Status of the rules
 
-CONTRIBUTING §5.3 makes legibility a review matter, so no CI check applies this standard. Under CONTRIBUTING §5.5, a finding against a writing rule is a non-blocking recommendation. It can block only when the text materially misstates what was implemented or verified. Any rule can describe such a misstatement, for example a wrong EELS citation under C7. Rules C1 to C4 and C12 describe the most frequent cases.
+CONTRIBUTING §5.3 makes legibility a review matter, so no CI check applies this standard. Under CONTRIBUTING §5.5, a finding against a prose rule is a recommendation that does not block. It can block only when the text materially misstates what was implemented or verified. Any rule can describe such a misstatement, for example a wrong EELS citation under C7. Rules C1 to C4 and C12 describe the most frequent cases.
 
 Outside this document, cite a rule with the prefix "WRITING", for example "WRITING S1". The bare labels collide with repository identifiers, for example the proof gate S2, the cost check C1 and the decision P1.
 
-The advisory script `scripts/writing_hints.py` reports some patterns that a search can find. It is an editing aid, not a check in the sense of CONTRIBUTING §5.3. CI does not run it, and its output is neither required nor sufficient.
+The advisory script `scripts/writing_hints.py` reports some patterns that a search can find. It is a prose aid, not a check in the sense of CONTRIBUTING §5.3. CI does not run it, and its output is neither required nor sufficient.
 
 ## 3. How to use STE
 
-STE combines writing rules with a general dictionary. The dictionary limits both word meanings and parts of speech. Technical nouns and technical verbs of a subject field supplement it under STE rules 1.5 to 1.13. The [vocabulary](WRITING-VOCABULARY.md) gives that subject field for STFspec.
+STE combines prose rules with a general dictionary. The dictionary limits both word senses and parts of speech. Technical nouns and technical verbs of a subject field supplement it under STE rules 1.5 to 1.13. The [vocabulary](WRITING-VOCABULARY.md) gives that subject field for STFspec.
 
-Use the STE dictionary to confirm the approved meaning or part of speech of a general word. Use the vocabulary for technical terms. A term that the vocabulary does not list is not automatically a defect, and a familiar English word is not automatically approved. When a literal replacement changes the meaning, rewrite the sentence, or keep the necessary term and explain its technical use.
+Use the STE dictionary to confirm the approved sense or part of speech of a general word. Use the vocabulary for technical terms. A term that the vocabulary does not list is not automatically a defect, and a familiar English word is not automatically approved. When a literal replacement changes the sense, rewrite the sentence, or keep the necessary term and explain its technical use.
 
-Technical accuracy takes priority over the rules in this standard. A rule can conflict with a term or language pattern that is standard in Ethereum protocol specification, cryptography, computer science or mathematics. In that case, keep the standard form and apply the rules to the rest of the sentence. A wording that is only a habit of this repository is not a standard form.
+Technical accuracy takes priority over the rules in this standard. First try a rule-compliant rewrite that preserves the technical sense. If that rewrite keeps the sense, use it. Keep an established form only if a compliant rewrite would change the technical sense. A term or language pattern must be standard in the subject field. A habit of this repository is not enough.
+
+For mathematical introductions, write "Assume P. Then ..." instead of "Assuming P, ...". Write "Let f = ..." instead of "Writing f = ..." when both state the same definition. A conventional mathematical introduction does not give an exception to V2. Preserve the premise or definition, and change the grammar.
 
 This standard is a repository adaptation of STE. It is not a complete copy of STE, and it does not claim full STE conformance. It does not distribute the official dictionary, and no tool checks text against that dictionary.
 
@@ -53,7 +55,7 @@ Choose a text type from the purpose of a sentence, not from its Markdown marker:
 
 | Type | Purpose | Examples in STFspec | Sentence limit |
 |---|---|---|---|
-| Procedural | Tell the reader how to do a task | The task map in `AGENTS.md`, CONTRIBUTING §6, role briefs, the writing workflow, numbered steps | 20 words |
+| Procedural | Tell the reader how to do a task | The task map in `AGENTS.md`, CONTRIBUTING §6, role briefs, the prose workflow, numbered steps | 20 words |
 | Descriptive | Give information | Docstrings, comments, spec guidance documents, entries in DECISIONS, DISCREPANCIES and DEBT, commit messages, pull request descriptions, review reports | 25 words |
 
 A numbered list can describe results. A paragraph can contain an instruction. Apply the limit for the purpose of each sentence. Do not mix procedural and descriptive items in one list. A title of a commit or a pull request is a label, not a work step, and CONTRIBUTING §6.2 gives its form.
@@ -64,26 +66,32 @@ Each rule names the STE rule that it adapts. The label *STFspec* marks a rule th
 
 ### Words
 
-- **W1.** Prefer an STE-approved general word with the intended meaning and part of speech. Use an established technical term when the subject requires it. Rephrase before you make a replacement that changes the meaning. (STE 1.1 to 1.4, 9.1, 9.2)
-- **W2.** Use technical terms with the meanings and grammatical roles that the vocabulary gives. Qualify a term when the passage could support more than one meaning, for example "world state" and "Lean state". (STE 1.5 to 1.13)
-- **W3.** Use one term for one concept in a passage. Do not change between synonyms for variety. Introduce a different technical meaning before you use it. (STE 1.11, 9.4)
+Apply these rules:
+
+- **W1.** Prefer an STE-approved general word with the intended sense and part of speech. Use an established technical term when the subject requires it. Rephrase before you make a replacement that changes the sense. (STE 1.1 to 1.4, 9.1, 9.2)
+- **W2.** Use technical terms with the senses and grammatical roles that the vocabulary gives. Qualify a term when the passage could support more than one sense, for example "world state" and "Lean state". (STE 1.5 to 1.13)
+- **W3.** Use one term for one concept in a passage. Do not change between synonyms for variety. Introduce a different technical sense before you use it. (STE 1.11, 9.4)
 - **W4.** Write a multi-word noun with no more than three words. Divide a longer group with words such as "of", "for" or "on". Keep established terms under W5. (STE 2.1, 2.2)
 - **W5.** Write a longer technical noun in full the first time. Then use a clear shorter name, a defined abbreviation or a hyphenated form: "Ethereum Execution Layer Specification (EELS)". Do not invent an abbreviation only to shorten the text. (STE 2.2)
-- **W6.** Do not use phrasal verbs. Use a direct verb: write "install uv", not "set up uv". If no direct verb keeps the meaning, rewrite the sentence. (STE 9.1, 9.3)
+- **W6.** Do not use phrasal verbs. Use a direct verb: write "install uv", not "set up uv". If no direct verb keeps the sense, rewrite the sentence. (STE 9.1, 9.3)
 - **W7.** Write English words instead of Latin abbreviations in prose. Write "for example", not "e.g.". Keep official titles and quotations unchanged. (STE GR-6)
 - **W8.** Use Oxford spelling in prose: British spelling with "-ize" endings, such as "behaviour", "optimization" and "analyse". American spelling is also correct. Keep one spelling in a file. Keep official names, identifiers and quotations with a different spelling unchanged. Lean declaration names follow the American spelling of Mathlib. Do not convert the spelling of a file except to make the file consistent. (STE 1.14, 9.4)
 - **W9.** Use gender-neutral language. Write "they" for a person, not "he" or "she". (STE GR-7)
 
 ### Verbs
 
+Apply these rules:
+
 - **V1.** Prefer the simple tenses, the imperative and the infinitive. Avoid a complex verb form when a simpler construction gives the same information. Keep time and uncertainty: "the archive may have changed" does not mean "the archive changed". (STE 3.1 to 3.4, adapted)
-- **V2.** A word that ends in "-ing" can name a technical concept, as "padding", "gas metering" and "differential testing" do. It can also modify a technical noun, as in "hashing interface". Rewrite every other "-ing" form, unless the STE dictionary approves the word, as it approves "during" and "missing". (STE 3.5)
+- **V2.** Use an "-ing" form only as a technical noun or as an STE-approved word with its approved sense and grammatical role. The vocabulary lists technical nouns such as "padding", "gas metering" and "differential testing". Rewrite other forms. This rule also applies after prepositions and in mathematical introductions. (STE 3.5)
 - **V3.** Use the active voice. Name the actor: a definition, a check, the guest, EELS, a fixture, a reviewer or "we". Do not invent an actor. (STE 3.6)
 - **V4.** In descriptive text, write a passive construction only if you do not know who or what does the action. A past participle that gives a state is not a passive construction: "the account is empty". (STE 3.3, 3.6)
 - **V5.** Use a verb, not an abstract noun phrase, to describe an action. Write "the guest rejects the block", not "the guest performs a rejection of the block". (STE 3.7)
 - **V6.** Write "that" after "prove", "show", "assume" or "make sure" when it separates a claim from the verb. Do not add it before an object: "prove the law". (STE GR-1)
 
 ### Sentences
+
+Apply these rules:
 
 - **S1.** Keep to the sentence limit of the text type. Divide a long sentence at a logical boundary, and keep its conditions and qualifications. Count words as §6 specifies. (STE 5.1, 6.3)
 - **S2.** Give a sentence one topic. Give a work step one instruction, unless two actions must occur together. (STE 4.1, 5.2)
@@ -96,9 +104,11 @@ Each rule names the STE rule that it adapts. The label *STFspec* marks a rule th
 
 ### Paragraphs and lists
 
+Apply these rules:
+
 - **P1.** Give each paragraph one topic. Introduce that topic before its details. (STE 6.4, 6.5)
 - **P2.** Write no more than six sentences in a paragraph. Divide a paragraph where its subject or purpose changes. (STE 6.6)
-- **P3.** Give information gradually. Define a term or a notation before you use it in an explanation. (STE 6.1, 6.2)
+- **P3.** Give information gradually. Define a term or a notation before you use it in an explanation. (STE 6.1)
 - **L1.** Use a vertical list when it makes steps, cases or conditions easier to distinguish. A short series does not always need a list. (STE 4.3)
 - **L2.** Introduce a list with a sentence or a clause that ends with a colon. Make sure that each item connects to that introduction. An item can complete the introduction or be a full sentence. (STE 4.3)
 - **L3.** Keep the grammatical form and the end punctuation consistent in a list: end every item with a period, or end no item with one. Start each prose item with an uppercase letter, and keep the case of identifiers. Do not end an item with a comma or a semicolon. (STE 4.3, adapted)
@@ -106,10 +116,12 @@ Each rule names the STE rule that it adapts. The label *STFspec* marks a rule th
 
 ### Punctuation and emphasis
 
+Apply these rules:
+
 - **U1.** Do not use semicolons in prose. Write two sentences or use a conjunction. Do not change punctuation in code. (STE 8.1)
 - **U2.** Do not join two clauses with a dash. State the relation in words or write two sentences. A dash can separate a term from its description. This rule does not apply to ranges such as "O1–O13" or to mathematical notation. (*STFspec*)
 - **U3.** Use a hyphen to join words that modify a noun as one unit: "fixture-specific special cases". Keep the conventional spelling of an established technical term. (STE 8.2)
-- **U4.** Use parentheses for references, identifiers, abbreviations, explanations or alternatives. Keep information that an instruction needs in the instruction itself. (STE 8.3)
+- **U4.** Use parentheses for references, identifiers, abbreviations, explanations or alternatives. Place information that an instruction needs outside parentheses. (STE 8.3, with an STFspec instruction-placement rule)
 - **U5.** Use emphasis for a term in its definition, a label, a warning or a specific requirement. Do not emphasize a whole paragraph. (*STFspec*)
 
 ## 6. Word count
@@ -120,7 +132,7 @@ STE 8.4 to 8.7 specify how to count words. Each of these elements counts as one 
 - An abbreviation, for example "EELS" or "RLP"
 - An alphanumeric identifier, for example `D5`, `Q20`, `O13` or `DISC-001`
 - Quoted text, which in STE includes formulas and can appear in a different font
-- A title, a heading, or the text of a label
+- A title, a section title, or the text of a label
 - A proper noun of a person, a group, an organization or a geopolitical entity
 - A hyphenated word
 
@@ -135,14 +147,14 @@ Ordinary link text keeps its words. Do not add hyphens or quotation marks to hid
 
 ## 7. Claims, evidence and commands
 
-STE controls the form of a text. These rules control what a text claims, and they have no STE source. When a rule restates a requirement that another document owns, it names that owner.
+STE controls the form of a text. These rules control what a text claims, and they have no STE source. When a rule restates a requirement that another document owns, it names that owner:
 
-- **C1.** State only what the code or the recorded evidence establishes. Identify conditional results, open obligations and checks that you did not run. A conditional theorem lists its hypotheses and names the bridge that discharges each one. A pass of the development check does not instantiate a conditional theorem. (CONTRIBUTING §4, release theorems)
+- **C1.** State only what the code or the recorded evidence establishes. Identify conditional results, open obligations and checks that you did not run. A conditional theorem lists its hypotheses and names the bridge that discharges each one. A pass of the development check does not claim that anyone instantiated a conditional theorem. (CONTRIBUTING §4, release theorems)
 - **C2.** Keep the strength of each claim. Keep its hypotheses, quantifiers, negations, failure conditions, failure order and qualifications. Do not change "can" to "does", an inferred result to a verified one, or "recommended" to "required". Keep the `[V]` and `[I]` markers that show verified and inferred claims. (CONTRIBUTING §1, §6.6)
 - **C3.** Name the evidence for a claim of conformance or fidelity. The EEST zkevm fixtures at the pinned release are the only conformance evidence, and they are decisive wherever they speak. Outside their coverage, the pinned EELS source governs, and the claim cites it as `file:line`. Neither this spec, nor evm-sail, nor SpecRef, nor any client is more authoritative than the fixtures. (CONTRIBUTING §1)
 - **C4.** Do not present agreement with another implementation as evidence of correctness. A differential test or a fuzzing run finds a disagreement to investigate. The fixtures or the pinned EELS source settle it. Proofs about the spec add confidence in properties, but they do not replace conformance. (CONTRIBUTING §1)
 - **C5.** Cite each decision, question, interface item, outcome, gap, gate, cost check or discrepancy by its identifier. Examples are `D5`, `Q20`, `F7`, `O13`, `X6`, `G2` and `DISC-001`. Make sure that the identifier exists in its owner document. Do not put an identifier in a Lean declaration name. (`AGENTS.md`, documentation conventions, and CONTRIBUTING §7.2)
-- **C6.** Do not cite session notes, local files, prototypes or experiments by a path outside the repository. Replace a temporary planning code with an explanation or a maintained identifier. Such material is evidence at most, and the repository adopts it only through DECISIONS. (`AGENTS.md`, authority order)
+- **C6.** Do not cite session notes, local files, prototypes or experiments by a path outside the repository. Replace a temporary plan identifier with an explanation or a maintained identifier. Such material is evidence at most, and the repository adopts it only through DECISIONS. (`AGENTS.md`, authority order, and CONTRIBUTING §6.6)
 - **C7.** In the docstring of a definition that implements an EELS operation, cite that operation as `src/ethereum/…/file.py:line` at the pin. Cite EIPs by number, and cite papers and books in the `## References` section of the module docstring. Use repository-relative paths. (CONTRIBUTING §8.1, §8.2)
 - **C8.** In Lean files, spec guidance documents and other reference documents, describe the present state. Do not narrate history with words such as "no longer", "previously" or "formerly". DECISIONS, DISCREPANCIES, DEBT, dated review records, supersession notes, commit messages and pull request descriptions record history by design. (*STFspec*)
 - **C9.** Replace a quality claim that has no evidence with a fact, a measurement or a reason. Words such as "robust" or "comprehensive" do not supply evidence. A performance claim follows the measurement method of CONTRIBUTING §3. (*STFspec*)
@@ -156,7 +168,7 @@ The history of a change belongs in its commit message and its pull request descr
 
 "Let", "fix" and "suppose" can introduce notation. They do not give a work step. "We" can refer to the author and the reader in an argument, and to the project in a policy. A state such as "the trie is secured" is not an instruction or a passive action.
 
-A technical word can have a noun use and a verb use, as in "a hash" and "hash the header", or "a commit" and "commit a change". STE permits both roles when each use meets the rules of its category (STE 1.7, 1.12, 1.13). The vocabulary records the noun and verb uses separately. Qualify a word such as "state", "witness", "proof" or "commit" when its meaning changes between the protocol, Lean and the repository.
+A technical word can have a noun use and a verb use, as in "a hash" and "hash the header", or "a commit" and "commit a change". STE permits both roles when each use meets the rules of its category (STE 1.7, 1.12, 1.13). The vocabulary records the noun and verb uses separately. Qualify a word such as "state", "witness", "proof" or "commit" when its sense changes between the protocol, Lean and the repository.
 
 Write EELS names and Lean names as code spans: `process_message_call` and `processMessageCall`. Keep the parts of an informal argument in a spec guidance document (claim, premises, argument and open obligations) under their labels, because `scripts/check_spec.py` reads them.
 
@@ -174,19 +186,21 @@ These examples show the rules on STFspec text. The text in the first column is a
 | "The archive may have changed." | Keep as written. | V1: the modal keeps the uncertainty. |
 | "Hash the RLP-encoded header." | Keep as written. | "Hash" has a technical noun use and a technical verb use (§8). |
 
-Use the [writing workflow](WRITING-WORKFLOW.md) to compare a rewrite with its source. A shorter sentence is not an improvement if it changes the claim.
+Use the [prose workflow](WRITING-WORKFLOW.md) to compare a rewrite with its source. A shorter sentence is not an improvement if it changes the claim.
 
 ## 10. Relation to ASD-STE100
 
 | STE part | Use in STFspec |
 |---|---|
-| Rules 1.1 to 1.4, the general dictionary | Kept as the reference for general meanings and parts of speech. This standard does not reproduce the dictionary, and no tool implements it. |
+| Rules 1.1 to 1.4, the general dictionary | Kept as the reference for general senses and parts of speech. This standard does not reproduce the dictionary, and no tool implements it. |
 | Rules 1.5 to 1.13, technical nouns and verbs | Kept. The vocabulary gives them for the protocol, the reference, Lean and the repository. |
 | Rules 1.7, 1.12 and 1.13, noun and verb roles | Kept. STE permits one word in both roles when each use meets the rules of its category, for example "hash". |
 | Rule 1.14, spelling | Kept as a local directive, not a departure. STE 1.14 permits another official spelling directive. STFspec uses Oxford spelling and also accepts American spelling. Lean declaration names follow Mathlib (W8). |
-| All STE rules | Adapted: technical accuracy takes priority. A standard term or language pattern of Ethereum protocol specification, cryptography, computer science or mathematics stays when a rule conflicts with it (§3). |
+| Technical accuracy (STFspec) | First try a compliant rewrite with the same technical sense. Use it if it keeps the claim. Retain an established form only if that rewrite would change the technical sense (§3). A conventional mathematical introduction does not give a V2 exception. |
 | Sections 2 to 6, 8 and 9 | Kept as the source principles of the rules in §5, with the adaptations in this table. |
+| Rule 3.5, "-ing" forms | Kept without a local exception. V2 permits technical nouns and approved dictionary uses, not gerunds after prepositions or mathematical introductions. |
 | Rules 3.1 to 3.4, verb forms | Adapted: a modal or complex form stays when a simpler form would lose uncertainty or time (V1). |
+| Rule 8.3, parentheses | Kept for the permitted uses. STFspec also requires necessary instruction information outside parentheses (U4). |
 | Rule 4.3, list punctuation | Adapted: every item or no item ends with a period (L3), because authors add items to Markdown lists and move them. |
 | Rule 5.3, imperative | Adapted: S4 also keeps a requirement distinct from an instruction, and keeps the force of "must", "may" and "can". |
 | Section 7, safety instructions | Adapted: the signal words of rule 7.1 are not used. Rules 7.2 and 7.3 apply to operations that can lose work or publish it. Examples are a force-push and a push to `main`. Put the condition or the command before the explanation of its result. |

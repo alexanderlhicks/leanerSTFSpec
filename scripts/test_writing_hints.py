@@ -1,11 +1,12 @@
 #!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Regression tests for the advisory writing script, `scripts/writing_hints.py`."""
+"""Regression tests for the advisory prose script, `scripts/writing_hints.py`."""
 
 from __future__ import annotations
 
 import importlib.util
 import io
+from contextlib import chdir
 import os
 from pathlib import Path
 import subprocess
@@ -95,7 +96,7 @@ class WritingRuleTests(unittest.TestCase):
     def test_punctuation(self) -> None:
         self.assertEqual(findings("The code is linear; it is also cyclic."), ["U1"])
         self.assertEqual(findings("The code is linear — it is also cyclic."), ["U2"])
-        self.assertEqual(findings("The Reed–Solomon code has rate 1–2 in this range."), [])
+        self.assertEqual(findings("The protocol gas schedule uses costs 1–2 in this range."), [])
         self.assertEqual(findings("Write `a; b` in Lean."), [])
         self.assertEqual(findings("The outcomes O1–O13 and the questions Q1–Q46 are listed."), [])
         self.assertEqual(findings("A; b."), ["U1"])
@@ -126,17 +127,17 @@ class WritingRuleTests(unittest.TestCase):
         self.assertEqual(findings("Use a ring, e.g. the integers."), ["W7"])
         self.assertEqual(findings("We utilize the lemma."), ["W1"])
         self.assertEqual(findings("Set up the build."), ["W6"])
-        self.assertEqual(findings("The word ends in a vowel."), [])
+        self.assertEqual(findings("The value ends in a zero byte."), [])
         self.assertEqual(findings("Don't run the build."), ["S5"])
         self.assertEqual(findings("The prover's message is short."), [])
 
     def test_verbs(self) -> None:
         self.assertEqual(findings("The lemma has changed."), ["V1"])
         self.assertEqual(findings("The verifier is rejecting the proof string."), ["V1"])
-        self.assertEqual(findings("The polynomials have bounded degree."), [])
+        self.assertEqual(findings("The protocol values have bounded width."), [])
         self.assertEqual(findings("The witness is missing."), [])
         self.assertEqual(findings("Using the lemma, we bound the error."), ["V2"])
-        self.assertEqual(findings("Folding halves the length of the word."), [])
+        self.assertEqual(findings("Hashing halves no input by definition."), [])
         self.assertEqual(findings("During a merge, the base is the merge base."), [])
         self.assertEqual(findings("The request may have failed."), [])
         self.assertEqual(findings("The bottleneck is hashing."), [])
@@ -185,7 +186,7 @@ class StfspecConventionTests(unittest.TestCase):
             page.write_text("We utilize the lemma; it is robust.\n", encoding="utf-8")
             with mock.patch("sys.stdout", io.StringIO()) as output:
                 self.assertEqual(WRITING.main(["writing_hints.py", str(page)]), 0)
-        self.assertIn("[U1]", output.getvalue())
+        self.assertIn("[WRITING U1]", output.getvalue())
         self.assertIn("writing hint(s)", output.getvalue())
 
     def test_other_file_types_are_refused(self) -> None:
@@ -229,11 +230,30 @@ class ToolingRegressionTests(unittest.TestCase):
 
         for form in [relative, "./" + relative, str(ROOT / relative)]:
             with self.subTest(form=form):
-                with mock.patch.object(Path, "read_text", read), \
+                with chdir(ROOT), mock.patch.object(Path, "read_text", read), \
                      mock.patch.object(Path, "is_file", return_value=True), \
                      mock.patch("sys.stdout", io.StringIO()) as output:
                     WRITING.main(["writing_hints.py", form])
-                self.assertIn("[C8]", output.getvalue())
+                self.assertIn("[WRITING C8]", output.getvalue())
+
+    def test_empty_stdin_label_is_valid(self) -> None:
+        with mock.patch("sys.stdin", io.StringIO("A complete sentence.")), \
+                mock.patch("sys.stdout", io.StringIO()) as output:
+            self.assertEqual(WRITING.main(["writing_hints.py", "--stdin", ""]), 0)
+        self.assertIn("No writing hints.", output.getvalue())
+
+    def test_valid_symlink_keeps_the_target_history_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "STFSpec/informal/modules/EthBase.md"
+            target.parent.mkdir(parents=True)
+            target.write_text("It is no longer used.\n")
+            alias = root / "alias.md"
+            alias.symlink_to(target)
+            with mock.patch.object(WRITING, "ROOT", root), \
+                    mock.patch("sys.stdout", io.StringIO()) as output:
+                self.assertEqual(WRITING.main(["writing_hints.py", str(alias)]), 0)
+            self.assertIn("[WRITING C8]", output.getvalue())
 
     def test_missing_file_is_a_usage_error(self) -> None:
         with mock.patch("sys.stderr", io.StringIO()):
@@ -257,6 +277,12 @@ class LeanExtractionTests(unittest.TestCase):
         self.assertNotIn(5, lines)
         rules = {(item.line, item.rule) for item in WRITING.check_blocks(blocks)}
         self.assertEqual(rules, {(3, "U1"), (4, "U1"), (6, "W1")})
+
+    def test_unterminated_comment_keeps_its_final_characters(self) -> None:
+        blocks = WRITING.lean_blocks("A.lean", "/-- First line.\nLast line;")
+        found = WRITING.check_blocks(blocks)
+        self.assertEqual([(item.line, item.rule) for item in found], [(2, "U1")])
+        self.assertTrue(found[0].excerpt.endswith("line;"))
 
     def test_character_literals_do_not_start_strings(self) -> None:
         source = ("def quote : Char := '\"'\n"
@@ -315,6 +341,283 @@ class ChangedLineTests(unittest.TestCase):
                     blocks = WRITING.changed_blocks("main")
                 self.assertEqual([block.path for block in blocks], ["page.md", "sp ace.md"], setting)
                 run("config", "--unset", setting)
+
+
+class WritingRegressionTests(unittest.TestCase):
+    def test_findings_point_to_the_source_line(self) -> None:
+        text = ('The [reference](https://example.org/a(b)) and `x` agree.\n'
+                'The quoted "a; b" is code here.\n'
+                'The last line; needs a conjunction.\n')
+        found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
+        item = next(f for f in found if f.rule == 'U1')
+        self.assertEqual(item.line, 3)
+        self.assertIn('last line;', item.excerpt)
+        self.assertNotIn('Code', item.excerpt)
+
+    def test_line_numbers_in_lists_and_lean_comments(self) -> None:
+        cases = [('- First line.\n  Second line; needs a conjunction.\n', 'page.md', 2),
+                 ('/-! First line.\nSecond line; needs a conjunction.\n-/', 'A.lean', 2),
+                 ('-- First line.\n-- Second line; needs a conjunction.\n', 'A.lean', 2)]
+        for text, path, line in cases:
+            with self.subTest(path=path, text=text):
+                found = WRITING.check_blocks(WRITING.file_blocks(path, text))
+                self.assertEqual([f.line for f in found if f.rule == 'U1'], [line])
+
+    def test_word_findings_keep_source_spelling_and_line(self) -> None:
+        text = 'A clean line with `code`.\nWe utilize the lemma.\n'
+        found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
+        self.assertEqual([(f.line, f.excerpt) for f in found if f.rule == 'W1'], [(2, 'utilize')])
+
+    def test_parenthetical_length_finding_points_inside_the_parenthesis(self) -> None:
+        text = 'A short sentence (\n' + ' '.join(['word'] * 30) + ').'
+        found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
+        self.assertEqual([f.line for f in found if f.rule == 'S1'], [2])
+
+    def test_possession_is_not_a_perfect_tense(self) -> None:
+        for text in ['The code has correlated agreement.', 'The vector has centered norm.',
+                     'The vector has squared norm.', 'The variable has expected value zero.',
+                     'The tree has left and right children.', 'The polynomials have known degree.', 'The graph has labelled edges.']:
+            with self.subTest(text=text):
+                self.assertNotIn('V1', findings(text))
+        self.assertIn('V1', findings('The prover has squared the norm.'))
+        self.assertIn('V1', findings('The proof has changed.'))
+
+    def test_technical_states_are_not_progressive_actions(self) -> None:
+        for text in ['The commitment is binding.', 'The witness is missing.',
+                     'The gas metering is pending.']:
+            with self.subTest(text=text):
+                self.assertNotIn('V1', findings(text))
+        self.assertIn('V1', findings('The verifier is rejecting the message.'))
+
+    def test_ing_nouns_and_nonverbs_are_not_introductory_verb_clauses(self) -> None:
+        for text in ['Nothing, at present.', 'Padding bytes, as defined above, have a fixed width.',
+                     'String concatenation, as usual, is associative.',
+                     'Encoding uses bytes, so the bound applies.',
+                     'Hashing reduces the input, so use the bound.']:
+            with self.subTest(text=text):
+                self.assertNotIn('V2', findings(text))
+        self.assertIn('V2', findings('Using the lemma, we bound the error.'))
+
+    def test_this_way_has_an_explicit_noun(self) -> None:
+        self.assertNotIn('S7', findings('This way, the prover sends one message.'))
+        self.assertIn('S7', findings('This is the main result.'))
+
+    def test_definition_separators_allow_links_and_alternatives(self) -> None:
+        for term in ['[`File.lean`](path)', '`A` / `B`', '[the term](https://example.org)', '[the term](https://example.org/a(b))',
+                     '`A` and [`B`](path)']:
+            with self.subTest(term=term):
+                self.assertNotIn('U2', findings(f'- {term} — the description.'))
+                self.assertIn('U2', findings(f'- {term} — first clause — second clause.'))
+        self.assertNotIn('U2', findings('| Term | Meaning |\n|---|---|\n| `A` | — |'))
+
+    def test_latin_abbreviations_have_one_finding(self) -> None:
+        for word in ['e.g.', 'i.e.', 'etc.', 'cf.', 'resp.']:
+            pattern = WRITING.word_pattern([word])
+            blocks = WRITING.file_blocks('page.md', f'Use {word} here.')
+            found = [f for b in blocks for f in WRITING.check_block(b, pattern, None)]
+            self.assertEqual([f.rule for f in found], ['W7'])
+
+    def test_final_e_verbs_keep_ing_inflections(self) -> None:
+        pattern = WRITING.word_pattern(['ensure', 'utilize', 'leverage'])
+        for word in ['ensure', 'ensures', 'ensured', 'ensuring', 'utilizing', 'leveraging']:
+            self.assertIsNotNone(pattern.fullmatch(word), word)
+        self.assertIsNone(pattern.fullmatch('reassuring'))
+
+    def test_fences_use_their_opening_character_and_length(self) -> None:
+        for opening, inner in [('~~~~', '```'), ('````', '```'), ('~~~', '```')]:
+            text = f'{opening}\n{inner}\nNot prose; ignored.\n{opening}\n\nReal prose; checked.\n'
+            found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
+            self.assertEqual([(f.line, f.rule) for f in found], [(6, 'U1')])
+
+    def test_visible_prose_after_comments_and_thematic_breaks(self) -> None:
+        for text in ['<!-- comment --> Visible prose; checked.',
+                     '---\nVisible prose; checked.\n---', '#1431 has prose; checked.']:
+            self.assertIn('U1', findings(text), text)
+        self.assertEqual(findings('    Example code; ignored.\n'), [])
+        self.assertEqual(findings('---\nstatus: current; metadata\n---\nClean prose.'), [])
+
+    def test_literal_comment_markers_do_not_hide_prose(self) -> None:
+        for text in ['The token `<!--` opens a comment.\nReal prose; checked.\n',
+                     '```\n<!--\n```\nReal prose; checked.\n',
+                     'The token `<!--` is code, as is `-->`.\nReal prose; checked.\n',
+                     'The token `some\n<!--\ntext` is literal.\nReal prose; checked.\n',
+                     'The text \\<!-- is literal.\nReal prose; checked.\n',
+                     'The text \\<!-- literal; --> stays visible.']:
+            with self.subTest(text=text):
+                self.assertIn('U1', findings(text))
+        text = 'A clean line.\n    A bad line; this is paragraph continuation.\n'
+        self.assertIn('U1', findings(text))
+
+    def test_indented_list_continuations_remain_prose(self) -> None:
+        for text in ['- Outer item.\n\n    - Inner prose; checked.\n',
+                     '1. Outer item.\n\n    1. Inner prose; checked.\n',
+                     '- Outer item.\n\n    More prose; checked.\n']:
+            with self.subTest(text=text):
+                self.assertIn('U1', findings(text))
+
+    def test_raw_lean_strings_do_not_create_comments(self) -> None:
+        for value in ['r#"a " -- fake; comment"#', 'r"a\\"']:
+            text = f'def s := {value}\n-- Real prose; checked.\n'
+            found = WRITING.check_blocks(WRITING.file_blocks('A.lean', text))
+            self.assertEqual([(f.line, f.rule) for f in found], [(2, 'U1')])
+
+    def test_escaped_newlines_in_lean_strings_keep_comment_locations(self) -> None:
+        text = 'def s := "a\\\nb"\n-- Actual prose; checked.\n'
+        found = WRITING.check_blocks(WRITING.file_blocks('A.lean', text))
+        self.assertEqual([(f.line, f.rule) for f in found], [(3, 'U1')])
+
+    def test_wrapped_technical_phrases_keep_their_meaning(self) -> None:
+        for text in ['The code has correlated\nagreement.',
+                     'The variable has expected\nvalue zero.']:
+            self.assertNotIn('V1', findings(text))
+
+    def test_wrapped_phrasal_and_history_terms_remain_visible(self) -> None:
+        self.assertIn('W6', findings('Carry\nout the test.'))
+        self.assertIn('C8', findings('The lemma is no\nlonger needed.', 'WRITING.md'))
+
+    def test_wrapped_straight_quotes_are_one_exempt_element(self) -> None:
+        text = ('"essentially\nsurjective". Review their meaning. Do not delete them as '
+                'isolated words. "Negligible" retains its technical meaning.')
+        self.assertEqual(findings(text), [])
+        text = 'The text "quoted\nwords; ignored" is literal.\nActual prose; checked.'
+        found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
+        self.assertEqual([f.line for f in found if f.rule == 'U1'], [3])
+
+
+
+class ChangedFileRegressionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+        environment.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
+                           GIT_CONFIG_SYSTEM=os.devnull)
+        patcher = mock.patch.dict(os.environ, environment, clear=True)
+        patcher.start(); self.addCleanup(patcher.stop)
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        patcher = mock.patch.object(WRITING, 'ROOT', self.root)
+        patcher.start(); self.addCleanup(patcher.stop)
+        self.git('init', '-q', '-b', 'main', '--template=')
+        self.git('config', 'user.email', 'test@example.org')
+        self.git('config', 'user.name', 'Test')
+        self.git('config', 'commit.gpgsign', 'false')
+        self.git('config', 'core.hooksPath', os.devnull)
+        self.git('commit', '-q', '--allow-empty', '-m', 'base')
+        self.git('checkout', '-q', '-b', 'topic')
+
+    def git(self, *args: str) -> None:
+        subprocess.run(['git', *args], cwd=self.root, check=True, capture_output=True)
+
+    def test_git_settings_and_quoted_paths_do_not_hide_changes(self) -> None:
+        names = ['page.md', 'space name.md', 'café.md', 'quote"name.md', 'back\\slash.md',
+                 'line\nbreak.md', ':(glob)nothing.md', ':(literal)foo.md', 'a[1].md', 'a*.md']
+        for name in names:
+            (self.root / name).write_text('Good line.\nBad line; checked.\n')
+        self.git('add', '.')
+        for option in ['diff.noprefix', 'diff.mnemonicPrefix', 'core.quotePath']:
+            for value in ['true', 'false']:
+                with self.subTest(option=option, value=value):
+                    self.git('config', option, value)
+                    found = WRITING.check_blocks(WRITING.changed_blocks('main'))
+                    self.assertEqual({f.path for f in found if f.rule == 'U1'}, set(names))
+                    self.assertEqual({f.line for f in found if f.rule == 'U1'}, {2})
+
+    def test_renames_check_only_edited_prose(self) -> None:
+        old, new = 'old café.md', 'new name.md'
+        text = 'Existing prose; unchanged.\n\nA clean line.\n'
+        (self.root/old).write_text(text)
+        self.git('add', '.')
+        self.git('commit', '-q', '-m', 'base prose')
+        self.git('branch', '-f', 'main', 'HEAD')
+        self.git('mv', old, new)
+        (self.root/new).write_text(text + '\nNew prose; checked.\n')
+        self.git('add', '.')
+        found = WRITING.check_blocks(WRITING.changed_blocks('main'))
+        self.assertEqual([(f.path, f.line) for f in found if f.rule == 'U1'], [(new, 5)])
+
+    def test_non_utf8_and_dangling_symlinks_are_advisory(self) -> None:
+        (self.root / 'invalid.md').write_bytes(b'Caf\xe9; text.\n')
+        (self.root / 'dangling.md').symlink_to('missing-target')
+        (self.root / 'good.md').write_text('Actual prose; checked.\n')
+        self.git('add', '.')
+        with mock.patch('sys.stdout', io.StringIO()) as output:
+            self.assertEqual(WRITING.main(['writing_hints.py', '--base', 'main']), 0)
+        self.assertIn('not UTF-8', output.getvalue())
+        self.assertIn('symlink', output.getvalue())
+        self.assertIn('U1', output.getvalue())
+        self.assertNotIn('No writing hints', output.getvalue())
+        with mock.patch('sys.stdout', io.StringIO()) as output:
+            self.assertEqual(WRITING.main(['writing_hints.py', str(self.root/'invalid.md')]), 0)
+        self.assertIn('not UTF-8', output.getvalue())
+
+    def test_invalid_byte_stdin_has_an_input_diagnostic(self) -> None:
+        environment = dict(os.environ, PYTHONIOENCODING='utf-8:surrogateescape')
+        result = subprocess.run([sys.executable, WRITING.__file__, '--stdin', 'body'],
+                                input=b'\xff\n', capture_output=True, env=environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b'not UTF-8', result.stdout)
+        self.assertNotIn(b'No writing hints', result.stdout)
+
+    def test_missing_base_and_broken_configuration_are_errors(self) -> None:
+        with mock.patch('sys.stderr', io.StringIO()) as error:
+            with self.assertRaises(SystemExit) as result:
+                WRITING.main(['writing_hints.py', '--base', 'missing-base'])
+        self.assertEqual(result.exception.code, 2)
+        self.assertIn('git failed', error.getvalue())
+        with mock.patch('sys.stderr', io.StringIO()), mock.patch('sys.stdin', io.StringIO('')):
+            with self.assertRaises(SystemExit) as result:
+                WRITING.main(['writing_hints.py', '--stdin', 'body', '--vocabulary',
+                              str(self.root/'missing-vocabulary')])
+        self.assertEqual(result.exception.code, 2)
+
+
+class StrictV2Tests(unittest.TestCase):
+    vocabulary = """## Technical -ing nouns
+
+| Term | Technical meaning |
+|---|---|
+| `encoding`, `folding`, `sampling` | Protocol constructions |
+| `gas metering` | Resource accounting |
+
+## Other terms
+
+| `making` | Outside the technical noun table |
+
+## Words to avoid
+
+| Avoid | Use |
+|---|---|
+| "utilize" | use |
+| "no longer" | present fact (WRITING C8) |
+"""
+
+    def test_technical_ing_nouns_are_vocabulary_defined(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vocabulary.md'
+            path.write_text(self.vocabulary)
+            self.assertEqual(WRITING.technical_ing_nouns(path),
+                             {'encoding', 'folding', 'sampling', 'metering'})
+
+    def test_preposition_gerunds_and_listed_technical_nouns(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vocabulary.md'
+            path.write_text(self.vocabulary)
+            cases = [('Before making a change, run the tests.', True),
+                     ('Instead of calling the function, use the cached value.', True),
+                     ('The bound follows by assuming P.', True),
+                     ('After encoding, the message has a fixed length.', False),
+                     ('The bound follows from sampling.', False),
+                     ('Nothing changes before folding.', False),
+                     ('The budget accounts for gas metering.', False),
+                     ('Refer to CONTRIBUTING for docstring rules.', False)]
+            for text, expected in cases:
+                with self.subTest(text=text):
+                    found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
+                    self.assertEqual(any(f.rule == 'V2' for f in found), expected)
+            text = 'Run the tests before\nmaking a change.'
+            found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
+            self.assertEqual([f.line for f in found if f.rule == 'V2'], [2])
 
 
 if __name__ == "__main__":
