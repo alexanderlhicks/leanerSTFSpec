@@ -32,7 +32,7 @@ termination_by n
 decreasing_by omega
 
 /-- EVM EXP value, base first and unsigned exponent second;
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:297,326`;
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:294,323`;
 `ethereum_types/numeric.py:223` supplies modular power. In particular, `0^0 = 1`. -/
 def exp (a b : U256) : U256 := expNat a b.toNat
 

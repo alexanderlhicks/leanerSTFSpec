@@ -55,7 +55,7 @@ private theorem cost_coefficient_congr (a b n : Nat) (h : a = b) : cost a n = co
   subst b
   rfl
 
-/-- Pure memory extension parameters; EELS `src/ethereum/forks/amsterdam/vm/gas.py:341–353`. -/
+/-- Pure memory extension parameters; EELS `src/ethereum/forks/amsterdam/vm/gas.py:329–341`. -/
 structure ExtendMemory where
   /-- Complete price, including the supplied seed once. -/
   cost : Nat
@@ -212,7 +212,7 @@ Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:749–773`. -/
 def calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat := cost cfg.costs.memoryPerWord n
 
 /-- Complete pure extension price, without expanding `Memory`.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:776–813`. -/
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:761–798`. -/
 def calculateGasExtendMemory (cfg : VmConfig) (m : Memory)
     (ws : List (U256 × U256)) : ExtendMemory :=
   extend cfg.costs.memoryPerWord cfg.costs.zero m.size ws

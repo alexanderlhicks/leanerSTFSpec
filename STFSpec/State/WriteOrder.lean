@@ -27,11 +27,11 @@ namespace WriteOrder
 variable {K : Type} [Ord K] [Std.TransOrd K]
 
 /-- Empty order metadata for a fresh write sequence. Supports fresh dictionaries in EELS
-`src/ethereum/forks/amsterdam/state_tracker.py:869–871,874` at the pin. -/
+`src/ethereum/forks/amsterdam/state_tracker.py:850–852,855` at the pin. -/
 def empty : WriteOrder K := ⟨0, ∅, ∅⟩
 
 /-- Retain an existing whole record, or append a fresh live key. Supports EELS
-`src/ethereum/forks/amsterdam/state_tracker.py:473,499–500,855–856,864–866` at the pin. -/
+`src/ethereum/forks/amsterdam/state_tracker.py:454,480–481,836–837,845–847` at the pin. -/
 def record (r : WriteOrder K) (k : K) : WriteOrder K :=
   match r.positions[k]? with
   | some _ => r
@@ -40,14 +40,14 @@ def record (r : WriteOrder K) (k : K) : WriteOrder K :=
         r.keysByPosition.insert r.next k⟩
 
 /-- Remove a live key and its selected reverse position without compacting holes.
-Supports EELS `src/ethereum/forks/amsterdam/state_tracker.py:567,860` at the pin. -/
+Supports EELS `src/ethereum/forks/amsterdam/state_tracker.py:548,841` at the pin. -/
 def erase (r : WriteOrder K) (k : K) : WriteOrder K :=
   match r.positions[k]? with
   | none => r
   | some p => ⟨r.next, r.positions.erase k, r.keysByPosition.erase p⟩
 
 /-- Extract live keys in ascending recorded position, independently of key order.
-Supports EELS `src/ethereum/forks/amsterdam/state_tracker.py:895–900` at the pin. -/
+Supports EELS `src/ethereum/forks/amsterdam/state_tracker.py:876–881` at the pin. -/
 def toList (r : WriteOrder K) : List K :=
   r.keysByPosition.toList.map Prod.snd
 

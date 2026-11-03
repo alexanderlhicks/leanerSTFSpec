@@ -10,7 +10,7 @@ import STFSpec.Base.U256
 /-!
 # Pure call and init-code gas pricing
 
-Library `EthVmCore`. EELS `src/ethereum/forks/amsterdam/vm/gas.py:357–371,816–899`.
+Library `EthVmCore`. EELS `src/ethereum/forks/amsterdam/vm/gas.py:345–359,801–884`.
 These helpers compute amounts, without charging a meter or allocating code.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/
@@ -40,7 +40,7 @@ theorem MessageCallGas.eta (r : MessageCallGas) :
   rfl
 
 /-- Select the stipend, test shortage before subtraction, then cap the affordable request.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:816–858`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:801–843`.
 The optional argument uses this call's `cfg`; Python's captured default remains
 an additional source-correspondence premise. -/
 def calculateMessageCallGas (cfg : VmConfig) (value : U256)
@@ -77,7 +77,7 @@ theorem calculateMessageCallGas_congr (cfg₁ cfg₂ : VmConfig)
   rw [h_price]
 
 /-- Multiply the rounded length by its configured price before dividing by 32.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:879–899`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:864–884`.
 No buffer, size limit, meter or failure is involved. -/
 def initCodeCost (cfg : VmConfig) (n : Nat) : Nat :=
   (cfg.costs.codeInitPerWord * ceil32 n) / 32

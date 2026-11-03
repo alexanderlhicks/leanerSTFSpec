@@ -236,6 +236,10 @@ jobs:
         run: python3 scripts/test_spec_checks.py
       - name: Gap register is up to date
         run: python3 scripts/gen_gaps.py --check
+      - name: Recorded EELS citation remap and its regressions
+        run: |
+          python3 scripts/remap_citations.py --check
+          python3 scripts/test_remap_citations.py
       - name: Deterministic conformance checks (core profile)
         run: |
           lake build EthConformance fixture-records --wfail

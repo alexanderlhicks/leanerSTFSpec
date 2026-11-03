@@ -9,7 +9,7 @@ import Std.Data.ExtTreeSet
 /-!
 # Raw block diff values
 
-Library `EthState`: four EELS effect fields (`src/ethereum/state.py:61–89`)
+Library `EthState`: four EELS effect fields (`src/ethereum/state.py:55–83`)
 and three supplied B1 order metadata fields. All finite raw fields remain exact;
 this record establishes no well-formedness, history, application or clear order.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.

@@ -486,7 +486,7 @@ theorem hash_eq_reference (x : Bytes32) : hash x = tableHashReference x :=
 
 end Bytes32
 
-/-- A 20-byte value kept distinct from `FixedBytes 20`; EELS `src/ethereum/state.py:33`.
+/-- A 20-byte value kept distinct from `FixedBytes 20`; EELS `src/ethereum/state.py:27`.
 Byte contents give EELS equality across the distinct Lean types. -/
 structure Address where
   private ofBitVecRaw ::
@@ -517,7 +517,7 @@ theorem toNat_ofNat (v : Nat) : (ofNat v).toNat = v % 2 ^ 160 := rfl
 theorem toNat_ofNat_of_lt (v : Nat) (h : v < 2 ^ 160) :
     (ofNat v).toNat = v := Nat.mod_eq_of_lt h
 
-/-- Exact-length checked constructor; EELS `src/ethereum/state.py:33` and
+/-- Exact-length checked constructor; EELS `src/ethereum/state.py:27` and
 locked `ethereum_types/bytes.py:29`. Wrong length fails before value decoding. -/
 def ofBytes? (b : Bytes) : Option Address := (FixedBytes.ofBytes? b).map ofFixed
 
@@ -793,7 +793,7 @@ theorem hash_eq_reference (x : Hash32) : hash x = tableHashReference x :=
 
 end Hash32
 
-/-- State root hash domain; EELS `src/ethereum/state.py:34`. -/
+/-- State root hash domain; EELS `src/ethereum/state.py:28`. -/
 abbrev Root := Hash32
 /-- Versioned hash domain; EELS `src/ethereum/forks/amsterdam/fork_types.py:32`. -/
 abbrev VersionedHash := Hash32

@@ -21,13 +21,13 @@ namespace STFSpec.Base
 
 /-- Keccak-derived values acquired through EthHash and threaded by callers (D5/F20). -/
 structure HashConsts where
-  /-- Empty code hash value; EELS `src/ethereum/state.py:36`. -/
+  /-- Empty code hash value; EELS `src/ethereum/state.py:30`. -/
   emptyCodeHash : Hash32
   /-- Empty trie root value; EELS `src/ethereum/merkle_patricia_trie.py:71`. -/
   emptyTrieRoot : Hash32
-  /-- Empty ommer hash value; EELS `src/ethereum/forks/amsterdam/fork.py:116`. -/
+  /-- Empty ommer hash value; EELS `src/ethereum/forks/amsterdam/fork.py:102`. -/
   emptyOmmerHash : Hash32
-  /-- Transfer event topic value; EELS `src/ethereum/forks/amsterdam/vm/__init__.py:40`. -/
+  /-- Transfer event topic value; EELS `src/ethereum/forks/amsterdam/vm/__init__.py:35`. -/
   transferTopic : Hash32
 
 namespace HashConsts
@@ -210,8 +210,8 @@ private theorem toBytes_checkedHash (b : Bytes) (h : b.size = 32) :
   (Hash32.ofBytes?_eq_some_iff.mp (Option.eq_some_of_isSome _)).2
 
 /-- Concrete `Id` hash values for the four pinned source constants:
-EELS `src/ethereum/state.py:36`, `merkle_patricia_trie.py:71`,
-`forks/amsterdam/fork.py:116`, `forks/amsterdam/vm/__init__.py:40`.
+EELS `src/ethereum/state.py:30`, `merkle_patricia_trie.py:71`,
+`forks/amsterdam/fork.py:102`, `forks/amsterdam/vm/__init__.py:35`.
 These bytes perform no hashing and impose no invariant on an arbitrary `HashConsts` record.
 EthHash owns the future query-to-literals equality and runtime acquisition (D5/F20). -/
 def literals : HashConsts where

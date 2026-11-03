@@ -9,7 +9,7 @@ import STFSpec.Codec.SszModel
 
 Library `EthCodec`. Raw structural classification with the Q67 total completion.
 Source interpretation is conditional on actual mapped classes and ordered fields:
-`src/ethereum/utils/ssz.py:179–225,231–258` and eth-remerkleable 0.1.31 sizing methods.
+`src/ethereum/utils/ssz.py:174–220,226–253` and eth-remerkleable 0.1.31 sizing methods.
 This classifier supplies no schema admission, codec, root or positive-width premise.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
@@ -18,7 +18,7 @@ namespace STFSpec.Codec
 
 mutual
   /-- Raw structural fixed-class byte width, including zero (Q67).
-  Conditional source sizing: `src/ethereum/utils/ssz.py:179–225,231–258` through
+  Conditional source sizing: `src/ethereum/utils/ssz.py:174–220,226–253` through
   eth-remerkleable 0.1.31. Lists are variable without inspecting their children;
   progressive masks do not select fields. No source-class admission is asserted. -/
   def SszType.fixedSize? : SszType → Option Nat

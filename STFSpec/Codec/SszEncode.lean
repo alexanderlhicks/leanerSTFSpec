@@ -8,7 +8,7 @@ import STFSpec.Codec.SszFixedSize
 # Supported SSZ serialization
 
 Library `EthCodec`. Actual-value byte support and a two-pass packed serializer.
-Source: `src/ethereum/utils/ssz.py:129–131,179–258,263–296` and locked
+Source: `src/ethereum/utils/ssz.py:124–126,174–253,258–291` and locked
 eth-remerkleable 0.1.31 `basic.py`, `complex.py`, `byte_arrays.py`, `progressive.py`.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7 (Q80).
 -/
@@ -555,7 +555,7 @@ mutual
 end
 
 /-- Serialize a byte-supported actual SSZ value using cached sizes and packed
-writers. Source: EELS `src/ethereum/utils/ssz.py:129–131,263–296` and locked
+writers. Source: EELS `src/ethereum/utils/ssz.py:124–126,258–291` and locked
 eth-remerkleable 0.1.31 serialization. Raw masks do not affect emitted bytes. -/
 def Ssz.encode (t : SszType) (v : SszValue) (h : Ssz.Serializable t v) : ByteArray :=
   let _ := h

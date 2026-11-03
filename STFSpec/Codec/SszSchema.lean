@@ -12,13 +12,13 @@ Library `EthCodec`. A five-field metadata carrier supplies the raw descriptor an
 conversion. Each forward call takes only its actual raw operation's support proof.
 Instance owners separately prove descriptor well-formedness and both adapter laws;
 the carrier supplies no such certificates and this module supplies no instances.
-Reference: EELS `src/ethereum/utils/ssz.py:129–146` at the pin.
+Reference: EELS `src/ethereum/utils/ssz.py:124–141` at the pin.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7 (Q81).
 -/
 
 namespace STFSpec.Codec
 
-/-- SSZ schema metadata; EELS `src/ethereum/utils/ssz.py:129–146,179–325`.
+/-- SSZ schema metadata; EELS `src/ethereum/utils/ssz.py:124–141,174–320`.
 Each actual instance separately owes all three certification obligations in §7. -/
 class SszSchema (α : Type) where
   /-- Raw descriptor selected by the schema owner. -/
@@ -33,7 +33,7 @@ class SszSchema (α : Type) where
   ofValue? : SszValue → Option α
 
 /-- Forward bytes through the supplied dictionary and exact value-local support;
-EELS `src/ethereum/utils/ssz.py:129–131`. Source correspondence remains separate. -/
+EELS `src/ethereum/utils/ssz.py:124–126`. Source correspondence remains separate. -/
 def SszSchema.encodeBytes {α : Type} [s : SszSchema α]
     (a : α) (h : Ssz.Serializable s.type (s.toValue a)) : ByteArray :=
   Ssz.encode s.type (s.toValue a) h
@@ -44,7 +44,7 @@ theorem SszSchema.encodeBytes_eq {α : Type} [s : SszSchema α]
     SszSchema.encodeBytes a h = Ssz.encode s.type (s.toValue a) h := rfl
 
 /-- Forward the root through the supplied dictionary and exact value-local support;
-EELS `src/ethereum/utils/ssz.py:133–135`. Source correspondence remains separate. -/
+EELS `src/ethereum/utils/ssz.py:128–130`. Source correspondence remains separate. -/
 def SszSchema.hashTreeRoot {α : Type} [s : SszSchema α]
     (a : α) (h : Ssz.Rootable s.type (s.toValue a)) : Base.Bytes32 :=
   Ssz.hashTreeRoot s.type (s.toValue a) h

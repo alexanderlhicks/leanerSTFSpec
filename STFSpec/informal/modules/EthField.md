@@ -5,8 +5,10 @@
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
 (venv `esvenv`, versions as in `reference.toml`); **[I]** inference, not yet checked.
-EELS `file:line` citations and verified observations are at `e1a316a0`
-(`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 

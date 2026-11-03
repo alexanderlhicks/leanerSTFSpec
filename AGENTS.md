@@ -71,7 +71,7 @@ Do not restate these elsewhere; each has an owner.
 
 - **One owner per fact** (the authority list above). Everything else cites by ID: `D5`, `B8`, `Q20`, `F7`, `O13`, `DISC-001`, `X6`, `G2`.
 - **Status and date.** Every document opens with a status and date line. Snapshots also name the external commit they describe.
-- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, and the README diagram.
+- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, `STFSpec/informal/citation-remap.json`, `STFSpec/informal/citation-remap-manual.txt`, and the README diagram.
 - **Superseded material** is not rewritten in place. It gets a supersession note mapping sections to their current owners, and is removed when fully superseded; git history keeps it.
 - **Paths.** Repo-relative only. Cite the reference as EELS `file:line` at the pin.
 - **Spec guidance documents are informal** (CONTRIBUTING §5.4): precise signatures and argument sketches, no Lean proofs. Keep their ten numbered sections; `scripts/check_spec.py` enforces them.

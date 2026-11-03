@@ -12,7 +12,7 @@ import STFSpec.Vm.Core.Sets
 # Mutable frame data
 
 Library `EthVmCore`. This raw record supplies exactly the mutable partition of
-pinned EELS `src/ethereum/forks/amsterdam/vm/__init__.py:153–191` (R-ENV-3).
+pinned EELS `src/ethereum/forks/amsterdam/vm/__init__.py:147–185` (R-ENV-3).
 Immutable call context, control outcomes and parent execution have separate owners.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/

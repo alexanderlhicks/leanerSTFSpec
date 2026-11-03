@@ -3,7 +3,7 @@
 *Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F13, F17, F18 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D14, D18, D21 · questions: B5/Q21/Q22, B10/Q12, Q20, Q67, Q68, Q69, Q70, Q71, Q72, Q73, Q74, Q75, Q76, Q77, Q78, Q79, Q80, Q81, Q87, Q88, F13, F17, O2.*
 
-Unprefixed paths are relative to `src/ethereum/` at the pin. EELS `file:line` citations and verified observations are at `e1a316a0` (`tests-zkevm@v21.0.0`) unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16). Two external libraries are part of the semantics:
+Unprefixed paths are relative to `src/ethereum/` at the pin. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16). Two external libraries are part of the semantics:
 - **`ethereum_rlp`**: `rlp.py` from `ethereum-rlp` 0.1.6, as locked in `uv.lock`. Historical D1r research used 0.1.7 after comparing the wheels: `rlp.py` and `exceptions.py` were byte-identical (only `__version__` differed). D2r nesting probes and the implemented typed-leaf differential use locked 0.1.6. The latter authenticates installed RECORD/current source and compiles those bytes without admitting cached code.
 - **`remerkleable`**: `eth-remerkleable` 0.1.31.
 
@@ -13,7 +13,7 @@ Unprefixed paths are relative to `src/ethereum/` at the pin. EELS `file:line` ci
 - **RLP**: headers, transactions, receipts, trie nodes, account leaves, CREATE preimages and the BAL encoding.
 - **SSZ**: the guest's input and output (`StatelessInput`, `StatelessValidationResult`), `NewPayloadRequest` and its `hash_tree_root` (the guest's committed output), and withdrawals and requests.
 
-It also owns **contract-address derivation** (CREATE/CREATE2). That derivation needs RLP and Keccak, and it must be visible to both `EthVmInstructions` and `EthBlock` (`fork.py:638`). `EthCodec` is the lowest library both may import. Concrete schemas (which fields, which limits) belong to their owners (`EthBlock`, `EthStateless`). `EthCodec` supplies the generic machinery and its laws.
+It also owns **contract-address derivation** (CREATE/CREATE2). That derivation needs RLP and Keccak, and it must be visible to both `EthVmInstructions` and `EthBlock` (`fork.py:597`). `EthCodec` is the lowest library both may import. Concrete schemas (which fields, which limits) belong to their owners (`EthBlock`, `EthStateless`). `EthCodec` supplies the generic machinery and its laws.
 
 ## 2. Requirements
 
@@ -57,8 +57,8 @@ use Nat: an eight-byte length of 2^64−1 gives extent 2^64+8, with no wrap or
 allocation proportional to that declaration.
 
 - **D2r. Deep nesting is a host-limit case (O12).** Decoding recurses about 3 Python frames per nesting level. `ethereum/__init__.py:30` sets the recursion limit to `max(12288, current)`, but the guest also imports py_ecc, which raises it, so the **guest-process limit is 100,000**. Deterministic probe inputs (payload transactions with deep RLP nesting) showed that 20,000 nested lists in a payload transaction decode, while 40,000 and 120,000 raise **`RecursionError`**, not `DecodingError`. (With only `import ethereum`, the threshold is between 4,000 and 5,000 levels.)
-  - Witness nodes and headers are at most 2^10 bytes (`stateless.py:35–36`), so they cannot reach this.
-  - Transactions are `progressive_byte_list` with no size limit (`execution_engine/types.py:64–67`), so a deep-nesting transaction reaches it inside `decode_transaction` (`transactions.py:573–585`). **On the complete guest path** the first decode is in `is_valid_versioned_hashes` (`execution_engine/new_payload.py:60–68`), whose local catch-all consumes the `RecursionError`, so the output is O6 `(root, false, …)` (DISC-006). A standalone `execute_block` call would raise it from its own decode.
+  - Witness nodes and headers are at most 2^10 bytes (`stateless.py:34–35`), so they cannot reach this.
+  - Transactions are `progressive_byte_list` with no size limit (`execution_engine/types.py:64–67`), so a deep-nesting transaction reaches it inside `decode_transaction` (`transactions.py:568–580`). **On the complete guest path** the first decode is in `is_valid_versioned_hashes` (`execution_engine/new_payload.py:55–63`), whose local catch-all consumes the `RecursionError`, so the output is O6 `(root, false, …)` (DISC-006). A standalone `execute_block` call would raise it from its own decode.
 
   The spec's total decoder returns a nested `RlpItem` there, and the **typed** decode then fails, because no transaction schema nests more than about 4 levels. On the guest path both sides then give O6, so the output agrees. The reference side is witnessed by probe `tx-deep-rlp-40000`, the DISC-001 reproducer; the typed-depth bound on the spec side is argued, not proved (§10). The case stays under CONTRACT O12 / DISC-001 (DECISIONS Q20), which is unresolved by design.
 - **D3r. Typed decode (`decode_to` / `deserialize_to`, `:162–384`).**
@@ -73,7 +73,7 @@ allocation proportional to that declaration.
     It introduces no default element, cap, normalization, sorting or deduplication.
   - A `Union` requires **exactly one** alternative to succeed (`:325–343`; used for `to: Bytes0 | Address`).
   - `decode_to` **wraps every exception raised during typed deserialization into `DecodingError`** (`:167–171`). The header fallback in `stateless.py:234–237` (Amsterdam `Header`, then `PreviousForkHeader`) depends on this. The raw `decode` step is *outside* that wrapper, so a `RecursionError` there is not converted (D2r).
-- **D4r. Naive-reading trap.** A fixed-arity `Tuple[A, B]` target is decoded with `zip` (`:346–367`), which has **no length check**: extra items are dropped, and missing items give a shorter tuple. I found no fixed-arity RLP tuple target in the Amsterdam decode sites (`transactions.py:573–585`, `blocks.py:434`, `stateless.py:235–237`); all use dataclasses. The spec therefore does not model this laxity. Any future use must be flagged.
+- **D4r. Naive-reading trap.** A fixed-arity `Tuple[A, B]` target is decoded with `zip` (`:346–367`), which has **no length check**: extra items are dropped, and missing items give a shorter tuple. I found no fixed-arity RLP tuple target in the Amsterdam decode sites (`transactions.py:568–580`, `blocks.py:434`, `stateless.py:235–237`); all use dataclasses. The spec therefore does not model this laxity. Any future use must be flagged.
 
 ### Contract addresses (`forks/amsterdam/utils/address.py`)
 
@@ -83,21 +83,21 @@ allocation proportional to that declaration.
 
 ### SSZ (`utils/ssz.py` over `remerkleable`)
 
-- **S1. Schema language.** EELS dataclasses map to SSZ types by `_infer` (`ssz.py:179–205`):
+- **S1. Schema language.** EELS dataclasses map to SSZ types by `_infer` (`ssz.py:174–200`):
   - `FixedBytes` subclasses become `ByteVector[LENGTH]`;
   - `FixedUnsigned` subclasses become `uint(bitlen(MAX))`;
   - `bool` becomes `boolean`;
-  - `SszContainer` subclasses become containers, and `ProgressiveSszContainer` subclasses become progressive containers with **all active fields = 1** (`:250–251`);
+  - `SszContainer` subclasses become containers, and `ProgressiveSszContainer` subclasses become progressive containers with **all active fields = 1** (`:245–246`);
   - `Annotated` markers select `uint(bits)` for `bits ∈ {8,16,32,64,128,256}` (`:91–95`), `byte_list(N)`, `ssz_list(N)`, `progressive_list()` or `progressive_byte_list()`.
 
-  An unannotated `Uint` is a schema `TypeError`, not a runtime case. Annotated fields may be *wider* in Python than on the wire, e.g. `timestamp: Annotated[U256, uint(64)]` and `block_number: Annotated[Uint, uint(64)]` (`execution_engine/types.py:57–62`). Decoding converts with `base(int(v))` (`ssz.py:309–310`), which cannot fail for decoded values.
+  An unannotated `Uint` is a schema `TypeError`, not a runtime case. Annotated fields may be *wider* in Python than on the wire, e.g. `timestamp: Annotated[U256, uint(64)]` and `block_number: Annotated[Uint, uint(64)]` (`execution_engine/types.py:57–62`). Decoding converts with `base(int(v))` (`ssz.py:304–305`), which cannot fail for decoded values.
 - **S2. Serialization** is standard SSZ:
   - fixed-size fields are written inline, and each variable-size field is a 4-byte little-endian offset followed later by its payload;
   - lists of fixed-size elements are concatenated, and lists of variable-size elements get an offset table;
   - `uintN` is little-endian and `boolean` is `0x00`/`0x01`.
 
   **Progressive lists serialize exactly like lists, and progressive containers exactly like containers.** `active_fields` is not serialized; I checked this on remerkleable.
-- **S3. Decoding.** It must accept **exactly the canonical encodings.** EELS gets this by decoding with remerkleable and then requiring `view.encode_bytes() == data` (`ssz.py:137–146`). This matters because remerkleable alone is permissive:
+- **S3. Decoding.** It must accept **exactly the canonical encodings.** EELS gets this by decoding with remerkleable and then requiring `view.encode_bytes() == data` (`ssz.py:132–141`). This matters because remerkleable alone is permissive:
   - `Container.deserialize` checks only `first_offset ≥ fixed_size` (`remerkleable/complex.py:948–950`), not equality;
   - it then reads variable fields *sequentially from the stream position*, not from their offsets.
 
@@ -123,7 +123,7 @@ allocation proportional to that declaration.
   - `merkleize(c, L)` pads to the next power of two ≥ `L` using precomputed zero hashes.
 
   *Verified empirically*: I checked every formula above against remerkleable 0.1.31 on 200 random instances each of `ProgressiveByteList`, `ProgressiveList[ByteList[1024]]`, `List[ByteList[1024], 256]` and `ProgressiveList[uint64]`, plus a 3-field progressive container. The spec follows remerkleable, the pinned dependency. Agreement with the EIP texts was **not** checked (§10).
-- **S5. Totality of the committed root.** `compute_new_payload_request_root` (`stateless.py:226`) is outside the inner handler, so a failure there would give the zero sentinel (O2). The spec must prove that `hashTreeRoot` is total on every decoded value, which would make O2 unreachable; a constructor is added only if that proof fails (CONTRACT O2; DECISIONS §3, O2, open). The `_to_view` conversion observation is evidence only: prove the actual decoded domain is Rootable, including progressive counts/mix-ins and schema adapters; resolve host-resource differences separately. No unrestricted O2-freedom theorem is established.
+- **S5. Totality of the committed root.** `compute_new_payload_request_root` (`stateless.py:216`) is outside the inner handler, so a failure there would give the zero sentinel (O2). The spec must prove that `hashTreeRoot` is total on every decoded value, which would make O2 unreachable; a constructor is added only if that proof fails (CONTRACT O2; DECISIONS §3, O2, open). The `_to_view` conversion observation is evidence only: prove the actual decoded domain is Rootable, including progressive counts/mix-ins and schema adapters; resolve host-resource differences separately. No unrestricted O2-freedom theorem is established.
 - **S6. Output encoding.** The only SSZ value the guest *encodes* is the fixed-size 43-byte `StatelessValidationResult` (CONTRACT §3). Encoding arbitrary values can fail in remerkleable when a written offset reaches 2^32 (`encode_offset` via `uint32`, `complex.py:23–24`). Q80 selects the proof-domain `encode` contract in §5/§7: actual recursive support and every emitted start `< 2^32`, without a final-payload bound. The generic forward encoder is supplied (§3), and EthStateless supplies the concrete 43-byte output serializer and its byte-layout theorem on it (`STFSpec/Stateless/Output.lean`); the guest-level output theorem remains open.
 
 ## 3. EELS source map
@@ -703,8 +703,8 @@ instance or public helper is added.
 
 | Locked source | Lean declaration and public type | Domain, success/effects | Ordered failures | Law and deterministic regression |
 |---|---|---|---|---|
-| EELS `state.py:33`; `ethereum_rlp/rlp.py:70–72,101` (0.1.6) | `RlpEncode Base.Address`, `.bytes x.toBytes.toByteArray` | all nominal addresses; every one of 20 bytes, including leading/internal zeros; pure | none | ordinary unconditional `decodeTo_encodeOf_address`; complete model/wire controls |
-| EELS `state.py:33`; `ethereum_rlp/rlp.py:206–207,255–262`; `ethereum_types/bytes.py:29–37` (0.4.1) | `RlpDecode Base.Address`, `Rlp.toBytes item` then checked `Address.ofBytes? (Bytes.ofByteArray b)` via bind/Option.elim | exactly 20-byte leaves; complete nominal reconstruction | raw decode first; list `.shape "bytes"`; byte-length mismatch `.shape "fixed bytes length"` | complete acceptance both ways from public checked-constructor/packed-byte laws; C/D/E/R controls |
+| EELS `state.py:27`; `ethereum_rlp/rlp.py:70–72,101` (0.1.6) | `RlpEncode Base.Address`, `.bytes x.toBytes.toByteArray` | all nominal addresses; every one of 20 bytes, including leading/internal zeros; pure | none | ordinary unconditional `decodeTo_encodeOf_address`; complete model/wire controls |
+| EELS `state.py:27`; `ethereum_rlp/rlp.py:206–207,255–262`; `ethereum_types/bytes.py:29–37` (0.4.1) | `RlpDecode Base.Address`, `Rlp.toBytes item` then checked `Address.ofBytes? (Bytes.ofByteArray b)` via bind/Option.elim | exactly 20-byte leaves; complete nominal reconstruction | raw decode first; list `.shape "bytes"`; byte-length mismatch `.shape "fixed bytes length"` | complete acceptance both ways from public checked-constructor/packed-byte laws; C/D/E/R controls |
 | public raw inverse, typed acceptance and Base conversion/byte laws | `Rlp.decodeTo_encodeOf_address (x : Base.Address)` | every x, complete `.ok x`; finite Q47 premise discharged privately at 20<2^64 | no new error or domain family | eight private public-law caller groups; unconditional nominal inverse and full-wire recovery |
 
 All three are **discharged for this slice**. The private caller groups cover exact
@@ -862,7 +862,7 @@ streams, body/mode receipts, original outcomes, failed attempts and fresh curren
 gates. These finite observations supply no cold-build, whole-host or generic
 Python refinement, callback execution/cost trace, host resource, schema-depth,
 first-consuming-handler, EEST, guest or readiness gate. Header fallback
-stateless.py:234–237 and transaction execution_engine/new_payload.py:60–68 remain
+stateless.py:234–237 and transaction execution_engine/new_payload.py:55–63 remain
 separate premises. Compiler/kernel, native integer/bytes/arithmetic/allocation,
 interpreter/startup, frozen install/RECORD, ambient host and orchestration remain
 explicit trust inputs. No whole-host certification or cold-build claim follows.
@@ -969,7 +969,7 @@ explicit. Nat corresponds to exact source Uint (`:204–205,265–275`), not pla
 Python int or U256; its supplied decoder is exactly `Rlp.toNat`.
 
 First consuming handlers remain the header fallback (`stateless.py:234–237`,
-CONTRACT O3) and transaction check (`execution_engine/new_payload.py:60–68`, O6).
+CONTRACT O3) and transaction check (`execution_engine/new_payload.py:55–63`, O6).
 They must treat all projected rejections alike within their reference phase;
 single-channel rejection is no universal O6 mapping. Raw `RecursionError` lies
 outside the typed catch. A total raw decoder followed by typing proves no
@@ -1050,12 +1050,12 @@ are added. Schema adapters, codecs, root operations and error producers remain
 unimplemented. Structural sizing, nameless well-formedness and payload-only typing
 are supplied separately below.
 
-The descriptor graph in `utils/ssz.py:32–87,179–225,231–258` supplies the static
+The descriptor graph in `utils/ssz.py:32–87,174–220,226–253` supplies the static
 shape correspondence below. `_field_types` preserves reflected field order and
 the wrapper's progressive container activates every field; the raw model also
 admits other masks and independent field lists. Names, Python class admission,
 inheritance and the at-capacity `more` rule are separate future schema premises.
-`utils/ssz.py:263–325` supplies the natural/boolean/bytes/ordered-child abstraction
+`utils/ssz.py:258–320` supplies the natural/boolean/bytes/ordered-child abstraction
 ingredients for values, without implementing Python coercions, runtime-class
 reflection, backing nodes or defaults. Arbitrary raw trees imply no source-object
 admission theorem. The six nominal `SszError` tags are guidance vocabulary, not
@@ -1076,28 +1076,28 @@ diagnostic correspondence or O1/O2/O12/O13 classification.
 | `utils/ssz.py::_ListLimit` | 83 | `SszType.list` (limit argument) | annotation marker only |
 | `utils/ssz.py::_ProgressiveListMarker` | 87 | `SszType.progressiveList` | annotation marker only |
 | `utils/ssz.py::uint` | 91 | `SszType.uint` + width check | rejects unsupported widths at schema time |
-| `utils/ssz.py::byte_list` | 103 | `SszType.byteList` | |
-| `utils/ssz.py::ssz_list` | 108 | `SszType.list` | |
-| `utils/ssz.py::progressive_list` | 113 | `SszType.progressiveList` | |
-| `utils/ssz.py::progressive_byte_list` | 118 | `SszType.progressiveByteList` | |
-| `utils/ssz.py::_C` | 123 | none (type variable) | |
-| `utils/ssz.py::SszContainer` | 126 | `class SszSchema` | |
-| `utils/ssz.py::SszContainer.encode_bytes` | 129 | `SszSchema.encodeBytes` | |
-| `utils/ssz.py::SszContainer.hash_tree_root` | 133 | `SszSchema.hashTreeRoot` | |
-| `utils/ssz.py::SszContainer.decode_bytes` | 138 | `SszSchema.decodeBytes` (strict) | re-encode check becomes a theorem (S3) |
-| `utils/ssz.py::ProgressiveSszContainer` | 149 | `SszType.progressiveContainer` (all fields active) | |
-| `utils/ssz.py::_annotated` | 153 | none (schema construction) | Python reflection; schemas are written explicitly in Lean |
-| `utils/ssz.py::_collection_element` | 169 | none (schema construction) | as above |
-| `utils/ssz.py::_infer` | 179 | schema-authoring rule (S1) | followed by hand in each `SszSchema` instance; checked by `#guard` against EELS type roots |
-| `utils/ssz.py::_rmk_type` | 208 | `SszType` semantics | |
-| `utils/ssz.py::_FIELD_TYPES` | 228 | none (Python cache) | |
-| `utils/ssz.py::_field_types` | 231 | none (reflection) | |
-| `utils/ssz.py::_CONTAINER_TYPES` | 240 | none (Python cache) | |
-| `utils/ssz.py::_container_type` | 243 | `SszSchema.type` | active fields `[1]*n` |
-| `utils/ssz.py::_to_ssz_value` | 263 | `SszSchema.toValue` | byte-vector length check becomes a type invariant |
-| `utils/ssz.py::_to_view` | 288 | `SszSchema.toValue` | |
-| `utils/ssz.py::_from_ssz_value` | 299 | `SszSchema.ofValue?` | `base(int(v))` widening (S1) |
-| `utils/ssz.py::_from_view` | 318 | `SszSchema.ofValue?` | |
+| `utils/ssz.py::byte_list` | 98 | `SszType.byteList` | |
+| `utils/ssz.py::ssz_list` | 103 | `SszType.list` | |
+| `utils/ssz.py::progressive_list` | 108 | `SszType.progressiveList` | |
+| `utils/ssz.py::progressive_byte_list` | 113 | `SszType.progressiveByteList` | |
+| `utils/ssz.py::_C` | 118 | none (type variable) | |
+| `utils/ssz.py::SszContainer` | 121 | `class SszSchema` | |
+| `utils/ssz.py::SszContainer.encode_bytes` | 124 | `SszSchema.encodeBytes` | |
+| `utils/ssz.py::SszContainer.hash_tree_root` | 128 | `SszSchema.hashTreeRoot` | |
+| `utils/ssz.py::SszContainer.decode_bytes` | 133 | `SszSchema.decodeBytes` (strict) | re-encode check becomes a theorem (S3) |
+| `utils/ssz.py::ProgressiveSszContainer` | 144 | `SszType.progressiveContainer` (all fields active) | |
+| `utils/ssz.py::_annotated` | 148 | none (schema construction) | Python reflection; schemas are written explicitly in Lean |
+| `utils/ssz.py::_collection_element` | 164 | none (schema construction) | as above |
+| `utils/ssz.py::_infer` | 174 | schema-authoring rule (S1) | followed by hand in each `SszSchema` instance; checked by `#guard` against EELS type roots |
+| `utils/ssz.py::_rmk_type` | 203 | `SszType` semantics | |
+| `utils/ssz.py::_FIELD_TYPES` | 223 | none (Python cache) | |
+| `utils/ssz.py::_field_types` | 226 | none (reflection) | |
+| `utils/ssz.py::_CONTAINER_TYPES` | 235 | none (Python cache) | |
+| `utils/ssz.py::_container_type` | 238 | `SszSchema.type` | active fields `[1]*n` |
+| `utils/ssz.py::_to_ssz_value` | 258 | `SszSchema.toValue` | byte-vector length check becomes a type invariant |
+| `utils/ssz.py::_to_view` | 283 | `SszSchema.toValue` | |
+| `utils/ssz.py::_from_ssz_value` | 294 | `SszSchema.ofValue?` | `base(int(v))` widening (S1) |
+| `utils/ssz.py::_from_view` | 313 | `SszSchema.ofValue?` | |
 
 `to_address_masked` from the same file is claimed by `EthBase` (a pure conversion). `encode_account` (in `fork_types.py`) is claimed by `EthStateCommit`; its state-dependent encoding remains outside EthCodec.
 
@@ -1118,9 +1118,9 @@ elaborate. These are target proofs/controls, without executed source comparison.
 
 | Source at the pin / locked dependency | Lean operation | Domain, effects and failures | Law and controls |
 |---|---|---|---|
-| `utils/ssz.py:179–225,231–258`; `remerkleable/basic.py:52–53,252–309`, `core.py:200–213`, `byte_arrays.py:78–103` | `SszType.fixedSize?` primitive branches | every raw Nat width; pure, no error channel; source agreement only for actually mapped classes and matching byte widths | `fixedSize?_eq`; bool, zero/standard/unsupported/large uint and byte-vector widths |
-| `utils/ssz.py:181–194,213–220`; `remerkleable/byte_arrays.py:262–271`, `complex.py:516–529`, `progressive.py:121–134,244–266`, `core.py:106–108` | same operation, variable branches | every raw child and limit; no recursive admission judgment; progressive protocol fallback is statically falsey `None`, not literal `False` or an observed execution result | same single law; zero limits, unsupported children, zero-width fixed children and nested progressive lists |
-| `utils/ssz.py:231–258`; `remerkleable/complex.py:811–848`, `progressive.py:440–498,535–536` | same operation, container branches | every ordered raw field list and independent mask; optional sum over fields only; source class admission and reflection remain separate | same single law; empty/zero/mixed/nested fields, variable fields and independent malformed masks |
+| `utils/ssz.py:174–220,226–253`; `remerkleable/basic.py:52–53,252–309`, `core.py:200–213`, `byte_arrays.py:78–103` | `SszType.fixedSize?` primitive branches | every raw Nat width; pure, no error channel; source agreement only for actually mapped classes and matching byte widths | `fixedSize?_eq`; bool, zero/standard/unsupported/large uint and byte-vector widths |
+| `utils/ssz.py:176–189,208–215`; `remerkleable/byte_arrays.py:262–271`, `complex.py:516–529`, `progressive.py:121–134,244–266`, `core.py:106–108` | same operation, variable branches | every raw child and limit; no recursive admission judgment; progressive protocol fallback is statically falsey `None`, not literal `False` or an observed execution result | same single law; zero limits, unsupported children, zero-width fixed children and nested progressive lists |
+| `utils/ssz.py:226–253`; `remerkleable/complex.py:811–848`, `progressive.py:440–498,535–536` | same operation, container branches | every ordered raw field list and independent mask; optional sum over fields only; source class admission and reflection remain separate | same single law; empty/zero/mixed/nested fields, variable fields and independent malformed masks |
 
 These source correspondences are static consequences of the retained source,
 conditional on an actual successful intended mapping to the standard pinned
@@ -1159,8 +1159,8 @@ there is no executable validator, DecidablePred, instance or diagnostic producer
 | Source at the pin / locked dependency | Lean operation and domain | Effects and failures | Law and controls |
 |---|---|---|---|
 | `utils/ssz.py:91–120,179–225`; `remerkleable/basic.py:252–309`, `byte_arrays.py:79–103,174–194` | `SszType.WellFormed` primitive branches; byte widths 1/2/4/8/16/32; unconditional bool/vector/byte-list/progressive-byte schemas, unrestricted raw Nat lengths/limits | pure Prop; no effects or ordered errors | `wellFormed_iff`; W01–W22, C01–C04/C07 |
-| `utils/ssz.py:181–184,215–218`; `remerkleable/complex.py:336–399`, `progressive.py:88–134` | same predicate; recursive element validity even at list limit 0 | pure Prop; limit never hides an invalid child | same law; W23–W30, C05–C06/C10 |
-| `utils/ssz.py:231–260`; `remerkleable/complex.py:800–819`, `progressive.py:440–498,535–536` | same predicate; ordinary nonempty/all-member fields; progressive final true/length ≤ 256/true-population=field count/all-member fields | no source-class or error-order assertion | same law; W31–W64, C08–C09/C11–C12 |
+| `utils/ssz.py:176–179,210–213`; `remerkleable/complex.py:336–399`, `progressive.py:88–134` | same predicate; recursive element validity even at list limit 0 | pure Prop; limit never hides an invalid child | same law; W23–W30, C05–C06/C10 |
+| `utils/ssz.py:226–255`; `remerkleable/complex.py:800–819`, `progressive.py:440–498,535–536` | same predicate; ordinary nonempty/all-member fields; progressive final true/length ≤ 256/true-population=field count/all-member fields | no source-class or error-order assertion | same law; W31–W64, C08–C09/C11–C12 |
 
 These are static structural correspondences conditional on actual mapped primitive
 classes and reflected ordered fields/names. EELS creates all-one progressive
@@ -1188,10 +1188,10 @@ arity, order and independent repeated field occurrences. WF is a separate premis
 
 | Source at pin / locked dependency | Operation and domain | Effects / failures | Law and private controls/clients |
 |---|---|---|---|
-| `utils/ssz.py:91–95,186–188,209–210,271–272,309–310`; `remerkleable/basic.py:90–97,252–309` | `SszValue.WellTyped`, every uint descriptor/value pair, raw width in bytes; `n < 2^(8*width)` | Prop only; no effects/errors; unsupported widths are mathematical completions, not source-class success | ordinary `wellTyped_iff`; wtM01–wtM05, wtR01–wtR24, wtN08–wtN09; wtP01/wtP02/wtP10/wtP13/wtP14 |
-| `utils/ssz.py:196–197,223–224,273–284,311–314`; `remerkleable/basic.py:24–27,52–61`, `byte_arrays.py:79–103,174–194`, `progressive.py:265–266` | same predicate, Bool/byte-vector/byte-list/progressive-byte branches and all raw tags | Bool stays distinct from uint/bytes; exact sizes/limits; no source coercion or uint256 backing premise is built in | same law; wtM06–wtM20/wtM31–wtM35, wtB01–wtB12, wtN07, wtZ01; wtP08/wtP09/wtP14 |
-| `utils/ssz.py:169–184,215–218,266–270,303–308`; `remerkleable/complex.py:336–399,492–493`, `progressive.py:88–134,239–249` | same predicate, ordinary actual count≤limit and actual-member recursion; progressive actual-member recursion without cap | no declared-child WF or source uint256/backing check; empty recursion is vacuous | same law; wtM21–wtM30, wtL01–wtL16, wtN04–wtN06/wtN10, wtZ02–wtZ05; wtP01–wtP04/wtP13/wtP15/wtP16 |
-| `utils/ssz.py:231–260,288–296,318–325`; `remerkleable/complex.py:768–819`, `progressive.py:460–536` | same predicate, both container families: length equality and every ordered zipped pair; independent mask | every actual field occurrence checked; no inactive placeholder or mask validity/name admission; all unmatched tags False | same law; wtM36–wtM45, wtF01–wtF18, wtN01–wtN05; wtP05–wtP07/wtP11/wtP12/wtP16 |
+| `utils/ssz.py:91–95,181–183,204–205,266–267,304–305`; `remerkleable/basic.py:90–97,252–309` | `SszValue.WellTyped`, every uint descriptor/value pair, raw width in bytes; `n < 2^(8*width)` | Prop only; no effects/errors; unsupported widths are mathematical completions, not source-class success | ordinary `wellTyped_iff`; wtM01–wtM05, wtR01–wtR24, wtN08–wtN09; wtP01/wtP02/wtP10/wtP13/wtP14 |
+| `utils/ssz.py:191–192,218–219,268–279,306–309`; `remerkleable/basic.py:24–27,52–61`, `byte_arrays.py:79–103,174–194`, `progressive.py:265–266` | same predicate, Bool/byte-vector/byte-list/progressive-byte branches and all raw tags | Bool stays distinct from uint/bytes; exact sizes/limits; no source coercion or uint256 backing premise is built in | same law; wtM06–wtM20/wtM31–wtM35, wtB01–wtB12, wtN07, wtZ01; wtP08/wtP09/wtP14 |
+| `utils/ssz.py:164–179,210–213,261–265,298–303`; `remerkleable/complex.py:336–399,492–493`, `progressive.py:88–134,239–249` | same predicate, ordinary actual count≤limit and actual-member recursion; progressive actual-member recursion without cap | no declared-child WF or source uint256/backing check; empty recursion is vacuous | same law; wtM21–wtM30, wtL01–wtL16, wtN04–wtN06/wtN10, wtZ02–wtZ05; wtP01–wtP04/wtP13/wtP15/wtP16 |
+| `utils/ssz.py:226–255,283–291,313–320`; `remerkleable/complex.py:768–819`, `progressive.py:460–536` | same predicate, both container families: length equality and every ordered zipped pair; independent mask | every actual field occurrence checked; no inactive placeholder or mask validity/name admission; all unmatched tags False | same law; wtM36–wtM45, wtF01–wtF18, wtN01–wtN05; wtP05–wtP07/wtP11/wtP12/wtP16 |
 | all branches above; ordinary private structural/list induction | `SszValue.wellTyped_iff (t) (v)`, every raw pair | complete logical characterization; no diagnostics, source execution or admission equivalence | exact §7 type proved; 130 complete signed controls and 16 private client groups |
 
 These five source rows are static interpretation inherited from the approved
@@ -1220,7 +1220,7 @@ or host-size parameter.
 
 | Source at pin / locked dependency | Operation and domain | Effects / failures / first handler | Law and controls |
 |---|---|---|---|
-| EELS `utils/ssz.py:133–135,263–296` caller/coercion context; eth-remerkleable 0.1.31 `remerkleable/core.py:344–349` raw helper | `Ssz.pack : ByteArray → Array Base.Bytes32`, all finite mathematical bytes | pure ordered exact 32-byte chunks; no model failure or diagnostic producer, so no local handler/O-row | ordinary complete `Ssz.pack_toBytes`; six private property/client groups and all 15 complete literal controls in §4 |
+| EELS `utils/ssz.py:128–130,258–291` caller/coercion context; eth-remerkleable 0.1.31 `remerkleable/core.py:344–349` raw helper | `Ssz.pack : ByteArray → Array Base.Bytes32`, all finite mathematical bytes | pure ordered exact 32-byte chunks; no model failure or diagnostic producer, so no local handler/O-row | ordinary complete `Ssz.pack_toBytes`; six private property/client groups and all 15 complete literal controls in §4 |
 | same helper; ordinary private List/range/window induction | `Ssz.pack_toBytes (b)`, complete ordered byte observation on every finite input | logical equation only; no source/runtime or host-resource equivalence | exact §7 type; private observation injectivity determines complete output arrays |
 
 Static source correspondence retains original immutable builtin bytes, slicing,
@@ -1247,7 +1247,7 @@ structure supplies no compiled sharing, one-time initialization or C1–C4 resul
 
 | Pinned source | Lean operation / domain | Effects, failures and source premises | Laws / controls |
 |---|---|---|---|
-| EELS `utils/ssz.py:133–146,208–225,243–260,288–296` root caller context; eth-remerkleable 0.1.31 `remerkleable/settings.py:13,16–17,21,24–31`; `remerkleable/tree.py:109–110` | `Ssz.zeroHash : Nat → Base.Bytes32`; all-Nat mathematical zero/pair-SHA recurrence | pure; no model error or local handler. Original initialized globals, SHA implementation, aliases, constructors and successful host execution are source-correspondence premises; original table contains indices 0 through 255 only | ordinary `zeroHash_eq`; private zhP0–zhP3/zhP7/zhP9–zhP11 and C0/C1/C3–C5 |
+| EELS `utils/ssz.py:128–141,203–220,238–255,283–291` root caller context; eth-remerkleable 0.1.31 `remerkleable/settings.py:13,16–17,21,24–31`; `remerkleable/tree.py:109–110` | `Ssz.zeroHash : Nat → Base.Bytes32`; all-Nat mathematical zero/pair-SHA recurrence | pure; no model error or local handler. Original initialized globals, SHA implementation, aliases, constructors and successful host execution are source-correspondence premises; original table contains indices 0 through 255 only | ordinary `zeroHash_eq`; private zhP0–zhP3/zhP7/zhP9–zhP11 and C0/C1/C3–C5 |
 | same ordered initialization; finite optimization prefix | `Ssz.zeroHashes : Array Base.Bytes32`; exact depths 0 through 64 | immutable mathematical value; no public depth cap, source mutation/cache or resource policy | ordinary complete `zeroHashes_toList`; private zhP4–zhP6/zhP8 and C2 |
 
 Each pair preimage is exactly 64 bytes. Public Base width/append/export laws and
@@ -1273,7 +1273,7 @@ claim is made. Mathematical singleton paths are symbolic equations only.
 
 | Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
 |---|---|---|---|
-| locked eth-remerkleable 0.1.31 `remerkleable/tree.py:242–263`; EELS `utils/ssz.py:133–146,208–225,243–260,288–296` caller context | `Ssz.merkleize chunks limit h`; physical count ≤ 2 to the inline least covering depth | pure ordered padded root; no overflow result or error converter. Declared constructor admission is separate; source original classes/backing/root/hash/globals/imported aliases/cache history/per-path zero-table availability and successful host execution remain premises | complete ordinary `merkleize_eq`; private merkleP0–merkleP9 and public-facade C0–C9 below |
+| locked eth-remerkleable 0.1.31 `remerkleable/tree.py:242–263`; EELS `utils/ssz.py:128–141,203–220,238–255,283–291` caller context | `Ssz.merkleize chunks limit h`; physical count ≤ 2 to the inline least covering depth | pure ordered padded root; no overflow result or error converter. Declared constructor admission is separate; source original classes/backing/root/hash/globals/imported aliases/cache history/per-path zero-table availability and successful host execution remain premises | complete ordinary `merkleize_eq`; private merkleP0–merkleP9 and public-facade C0–C9 below |
 
 Limits 0/1 select capacity 1, so a singleton at limit 0 has helper support. Limit 3
 selects capacity 4: counts 3/4 retain depth 2, count 5 has no proof argument. No global
@@ -1296,7 +1296,7 @@ zero extension retain their existing contract.
 
 | Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
 |---|---|---|---|
-| locked eth-remerkleable 0.1.31 `remerkleable/progressive.py:25–32`; ordinary `tree.py:242–263`; EELS `utils/ssz.py:133–146,208–225,243–260,288–296` caller context | `Ssz.merkleizeProgressive chunks (depth := 0)`; every finite Array and every Nat starting depth | pure progressive contents root, no errors; original nodes/backings/classes/root/hash/globals/imported aliases/cache history/per-path zero availability and successful host execution remain premises | complete ordinary `merkleizeProgressive_eq`; private progressiveP0–progressiveP9 and facade-only C0–C9 below |
+| locked eth-remerkleable 0.1.31 `remerkleable/progressive.py:25–32`; ordinary `tree.py:242–263`; EELS `utils/ssz.py:128–141,203–220,238–255,283–291` caller context | `Ssz.merkleizeProgressive chunks (depth := 0)`; every finite Array and every Nat starting depth | pure progressive contents root, no errors; original nodes/backings/classes/root/hash/globals/imported aliases/cache history/per-path zero availability and successful host execution remain premises | complete ordinary `merkleizeProgressive_eq`; private progressiveP0–progressiveP9 and facade-only C0–C9 below |
 
 Empty at every depth returns zero32, including empty suffixes; it does not request
 zeroHash(depth). Nonempty capacity is 2^depth, with suffix depth + 2. Source bulk
@@ -1324,7 +1324,7 @@ added to the API. All support, derived/control/client declarations remain privat
 
 | Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
 |---|---|---|---|
-| eth-remerkleable 0.1.31 `remerkleable/basic.py:90–97,226–227,303–309`, `core.py:303–305`, `settings.py:5,16–17`; ordinary `complex.py:336–368`, ByteList `byte_arrays.py:228–232`, progressive `progressive.py:88–119,265–266`; EELS `utils/ssz.py:130–146,214–230,264–325` and `forks/amsterdam/stateless.py:220–226,269–271` | `Ssz.mixInLength root len h`; arbitrary Bytes32 root and Nat count with `len < 2^256` | pure complete SHA256(root32 ++ countLE32); no model effects/error or handler. No input is available at/outside 2^256; no modulo completion, U256 argument, runtime branch or new guest diagnostic is selected | ordinary complete `mixInLength_eq`; private lengthP0–lengthP9 and independent facade C0–C9 in §4 |
+| eth-remerkleable 0.1.31 `remerkleable/basic.py:90–97,226–227,303–309`, `core.py:303–305`, `settings.py:5,16–17`; ordinary `complex.py:336–368`, ByteList `byte_arrays.py:228–232`, progressive `progressive.py:88–119,265–266`; EELS `utils/ssz.py:125–141,209–225,259–320` and `forks/amsterdam/stateless.py:210–216,261–263` | `Ssz.mixInLength root len h`; arbitrary Bytes32 root and Nat count with `len < 2^256` | pure complete SHA256(root32 ++ countLE32); no model effects/error or handler. No input is available at/outside 2^256; no modulo completion, U256 argument, runtime branch or new guest diagnostic is selected | ordinary complete `mixInLength_eq`; private lengthP0–lengthP9 and independent facade C0–C9 in §4 |
 
 Static correspondence retains actual standard source classes, exact 32-byte roots,
 original basic backing/endian/hash/global/import aliases, PairNode cache history
@@ -1351,7 +1351,7 @@ privately. All authored model/support/derived/control/client declarations stay p
 
 | Pinned source | Lean operation / domain | Effects, failures and source premises | Law / controls |
 |---|---|---|---|
-| eth-remerkleable 0.1.31 `remerkleable/progressive.py:460–529,550–563`, `bitfields.py:381–416`, `core.py:187–188,235–247,326–341`, `tree.py:7–10,175–202,242–251`, `settings.py:2,9,16–17`; EELS `utils/ssz.py:133–135,231–258,287–295`, `forks/amsterdam/execution_engine/types.py:39–80` and `execution_engine/requests.py:96–117` | `Ssz.mixInActiveFields root active h`; arbitrary Bytes32 root and Bool list with `active.length ≤ 256` | pure SHA256(root32 ++ maskLE32); no effects/error/handler or runtime completion. Empty/allfalse/trailingfalse admitted mathematically; width 257 has no argument even if high bits are false | complete ordinary `mixInActiveFields_eq`; private groups 0–9 in the P family and independent facade C0–C9 in §4 |
+| eth-remerkleable 0.1.31 `remerkleable/progressive.py:460–529,550–563`, `bitfields.py:381–416`, `core.py:187–188,235–247,326–341`, `tree.py:7–10,175–202,242–251`, `settings.py:2,9,16–17`; EELS `utils/ssz.py:128–130,226–253,282–290`, `forks/amsterdam/execution_engine/types.py:39–80` and `execution_engine/requests.py:96–117` | `Ssz.mixInActiveFields root active h`; arbitrary Bytes32 root and Bool list with `active.length ≤ 256` | pure SHA256(root32 ++ maskLE32); no effects/error/handler or runtime completion. Empty/allfalse/trailingfalse admitted mathematically; width 257 has no argument even if high bits are false | complete ordinary `mixInActiveFields_eq`; private groups 0–9 in the P family and independent facade C0–C9 in §4 |
 
 Source class checks require nonempty, final true, matching population/fields,
 width ≤ 256 and `more` membership at capacity before View fields and ordered
@@ -1377,10 +1377,10 @@ runtime validator is introduced. Both public declarations retain named `t`/`v`.
 
 | Source at pin / locked eth-remerkleable 0.1.31 | Operation/domain | Effects and failures | Law and controls/clients |
 |---|---|---|---|
-| `utils/ssz.py:91–95,179–225,263–325`; `basic.py:24–61,90–97,252–309` | `Ssz.Rootable`, all raw pairs; supported uint byte widths 1/2/4/8/16/32 with mathematical range; Bool stays distinct | pure Prop, no effects/errors/coercion/truncation | complete `rootable_iff`; rootableP0/rootableC0 all nine matches and 36 unmatched tag pairs; rootableP1/rootableC1 scalar widths/range/Bool |
+| `utils/ssz.py:91–95,174–220,258–320`; `basic.py:24–61,90–97,252–309` | `Ssz.Rootable`, all raw pairs; supported uint byte widths 1/2/4/8/16/32 with mathematical range; Bool stays distinct | pure Prop, no effects/errors/coercion/truncation | complete `rootable_iff`; rootableP0/rootableC0 all nine matches and 36 unmatched tag pairs; rootableP1/rootableC1 scalar widths/range/Bool |
 | `byte_arrays.py:79–103,173–194,225–235`; `progressive.py:88–118,265–266` | same predicate; exact vector size, ordinary byte-list declared bound and actual byte count < 2^256; progressive byte count < 2^256 | no extra vector count bound or progressive ordinary cap | same law; rootableP2/rootableC2 exact/zero vectors and limit 0; rootableP4/rootableC4 symbolic byte ceilings |
 | `complex.py:135–162,336–399`; `progressive.py:88–134`; `core.py:273–332` | same predicate; ordinary declared element bound, actual element count < 2^256, every actual child and basic classifier; progressive omits declared bound | direct basic widths inspected even when empty; Bool one byte/basic, fixed vectors composite | same law; rootableP3/rootableC3 complete support and child projections, rootableP4/rootableC4 both element ceilings; rootableP8/rootableC8 unused-composite/direct-basic contrasts |
-| `utils/ssz.py:231–260`; `complex.py:768–819`; `progressive.py:460–530` | same predicate; nonempty ordinary fields, exact ordered arity/children; progressive final true, width ≤ 256, population and arity/children | sparse false slots denote depth 0 zero chunks in contents; no new container count bound, slot API, source name premise or root output | same law; rootableP5/rootableC5 arity/order failures, rootableP6/rootableC6 sparse/population/arity, rootableP7/rootableC7 masks 255/256/257 and malformed masks |
+| `utils/ssz.py:226–255`; `complex.py:768–819`; `progressive.py:460–530` | same predicate; nonempty ordinary fields, exact ordered arity/children; progressive final true, width ≤ 256, population and arity/children | sparse false slots denote depth 0 zero chunks in contents; no new container count bound, slot API, source name premise or root output | same law; rootableP5/rootableC5 arity/order failures, rootableP6/rootableC6 sparse/population/arity, rootableP7/rootableC7 masks 255/256/257 and malformed masks |
 | ordinary structural recursion and public constructor laws | `Ssz.rootable_iff (t) (v)`, complete local-domain equation; private all-t/v Rootable→WT | logical characterization, not class admission or decoder/root-result equivalence | rootableP0–rootableP9 and rootableC0–rootableC9; rootableP9 value induction and rootableC9 independent descriptor induction; rootableP8/rootableC8 exact non-global-WF witnesses |
 
 This is selected C, not a global WF/WT conjunction or physical-only admission.
@@ -1409,10 +1409,10 @@ validator, runtime bound check, extra public law or schema/provider change is ad
 
 | Source at pin / locked eth-remerkleable 0.1.31 | Operation/domain | Effects and failures | Law and controls/clients |
 |---|---|---|---|
-| `utils/ssz.py:91–95,133–135,200–225,263–296`; `basic.py:18–27,91–99,226–227,252–309`; `core.py:303–305` | `Ssz.hashTreeRoot`, uint/Bool branches under actual local support | full 32 low-first bytes; Bool byte 00/01, no hash/tag/count mix | complete `hashTreeRoot_eq`; rootP0/rootC0 whole arbitrary t/v/h law; rootP1/rootC1 all six widths/endpoints, full bytes and excluded tags/ranges |
-| `utils/ssz.py:211–214,219–220,276–284`; `byte_arrays.py:80–104,134–140,170–197,228–232`; `progressive.py:88–135,239–266` | same operation, fixed/ordinary/progressive bytes | fixed vectors use declared chunk count without a mix; ordinary byte lists use declared limit in chunks; lists mix actual byte count | same law; rootP2/rootC2 vectors 0/1/31/32/33/48/96/256, byte limits 0/1/32/33 and same-pack/different-count; rootP5/rootC5 progressive empty/one |
-| `utils/ssz.py:215–218,266–273`; `complex.py:140–161,333–399,492–493,512–513`; `core.py:292–293,312–323`; `progressive.py:25–32,88–135` | same operation, ordinary/progressive element lists | supported uint uses consecutive w-byte digits; Bool uses one byte each; every other descriptor is composite, including fixed vectors; count is actual elements | same law; rootP3/rootC3 packed uint64 list 5/Bool 33 and general size/unit/capacity proofs; rootP4/rootC4 composite order/duplicates and empty unused malformed schemas; rootP5/rootC5 boundaries 0/1/5/6/21/22 |
-| `utils/ssz.py:221–222,243–260,264–265,288–296`; `complex.py:726–740,768–819,854–856`; `progressive.py:450–530`; `bitfields.py:378–410`; `core.py:326–341` | same operation, ordinary/progressive containers | exact ordered paired child roots; ordinary fields have no count mix; progressive false positions are depth 0 zeros in exactly mask.length slots, separately mixed with the full activity chunk | same law; rootP6/rootC6 fields/order/arity, rootP7/rootC7 sparse leading/internal gaps, 255/256 and excluded 257; ordinary linear-scan/rank-model equality and actual true-rank bounds |
+| `utils/ssz.py:91–95,128–130,195–220,258–291`; `basic.py:18–27,91–99,226–227,252–309`; `core.py:303–305` | `Ssz.hashTreeRoot`, uint/Bool branches under actual local support | full 32 low-first bytes; Bool byte 00/01, no hash/tag/count mix | complete `hashTreeRoot_eq`; rootP0/rootC0 whole arbitrary t/v/h law; rootP1/rootC1 all six widths/endpoints, full bytes and excluded tags/ranges |
+| `utils/ssz.py:206–209,214–215,271–279`; `byte_arrays.py:80–104,134–140,170–197,228–232`; `progressive.py:88–135,239–266` | same operation, fixed/ordinary/progressive bytes | fixed vectors use declared chunk count without a mix; ordinary byte lists use declared limit in chunks; lists mix actual byte count | same law; rootP2/rootC2 vectors 0/1/31/32/33/48/96/256, byte limits 0/1/32/33 and same-pack/different-count; rootP5/rootC5 progressive empty/one |
+| `utils/ssz.py:210–213,261–268`; `complex.py:140–161,333–399,492–493,512–513`; `core.py:292–293,312–323`; `progressive.py:25–32,88–135` | same operation, ordinary/progressive element lists | supported uint uses consecutive w-byte digits; Bool uses one byte each; every other descriptor is composite, including fixed vectors; count is actual elements | same law; rootP3/rootC3 packed uint64 list 5/Bool 33 and general size/unit/capacity proofs; rootP4/rootC4 composite order/duplicates and empty unused malformed schemas; rootP5/rootC5 boundaries 0/1/5/6/21/22 |
+| `utils/ssz.py:216–217,238–255,259–260,283–291`; `complex.py:726–740,768–819,854–856`; `progressive.py:450–530`; `bitfields.py:378–410`; `core.py:326–341` | same operation, ordinary/progressive containers | exact ordered paired child roots; ordinary fields have no count mix; progressive false positions are depth 0 zeros in exactly mask.length slots, separately mixed with the full activity chunk | same law; rootP6/rootC6 fields/order/arity, rootP7/rootC7 sparse leading/internal gaps, 255/256 and excluded 257; ordinary linear-scan/rank-model equality and actual true-rank bounds |
 | actual-value induction, public Rootable/pack/tree/mix/Base laws; actual schemas `forks/amsterdam/execution_engine/types.py:39–96`, `execution_engine/requests.py:41–126`, `blocks.py:38–63` | complete recursive equation and its local witnesses on C | no recursion into unused schemas; no extra count bound on fixed vectors/containers; no source, error or security completion outside C | rootP8/rootC8 real scalar projections, universally proof-independent ordered child certificates, capacities, nested byte/element counts and whole-law determination; rootP9/rootC9 Amsterdam schema/arity/whole-root recipes |
 
 Every conditional witness in the public law is available under C. Proper actual
@@ -1452,10 +1452,10 @@ complete and requires no private global name. Q67–Q79 contracts are unchanged.
 
 | Source at pin / locked eth-remerkleable 0.1.31 | Supplied operation/domain | Effects and failures | Ordinary law and private evidence |
 |---|---|---|---|
-| `utils/ssz.py:91–95,208–210,271–272`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | `serializable_iff`/`encode_eq`; `SszEncodeControls` all widths/endpoints and `SszEncodeCallerProofs` excluded actual widths 0/3/overflow |
-| `utils/ssz.py:211–214,219–224,273–284`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte 00/01 or complete original bytes; exact vector size/ordinary limit only | both complete laws; whole-byte literal/native controls for zeros/order/size 0, public-law wrong-tag/size/limit clients |
-| `utils/ssz.py:215–218,266–270`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | both complete laws; literal/native fixed-zero, empty unused malformed schema and nested cases; public-law symbolic offset clients |
-| `utils/ssz.py:243–258,263–265,288–296`; `complex.py:768–819,866–878,963–981`; `progressive.py:440–532` | same operation, both container families | exact arity and ordered paired children; mask absent from wire | `encode_eq` mixed head/tail law; literal/native empty containers/arbitrary masks/equal offsets, public-law arity and mask clients |
+| `utils/ssz.py:91–95,203–205,266–267`; `basic.py:90–97,226–227,252–309` | `Ssz.encode`, actual uint at the six supported byte widths and fitting Nat | exact low-first digits; no result outside `Serializable` | `serializable_iff`/`encode_eq`; `SszEncodeControls` all widths/endpoints and `SszEncodeCallerProofs` excluded actual widths 0/3/overflow |
+| `utils/ssz.py:206–209,214–219,268–279`; `basic.py:21–27`; `byte_arrays.py:59–60,79–103,174–194,262–278`; `progressive.py:265–266` | same operation, Bool/fixed/ordinary/progressive bytes | byte 00/01 or complete original bytes; exact vector size/ordinary limit only | both complete laws; whole-byte literal/native controls for zeros/order/size 0, public-law wrong-tag/size/limit clients |
+| `utils/ssz.py:210–213,261–265`; `complex.py:224–242,336–411`; `progressive.py:85–144,239–249` | same operation, both element-list families | fixed concatenation or ordered table/tails; ordinary count limit, actual child support and emitted starts | both complete laws; literal/native fixed-zero, empty unused malformed schema and nested cases; public-law symbolic offset clients |
+| `utils/ssz.py:238–253,258–260,283–291`; `complex.py:768–819,866–878,963–981`; `progressive.py:440–532` | same operation, both container families | exact arity and ordered paired children; mask absent from wire | `encode_eq` mixed head/tail law; literal/native empty containers/arbitrary masks/equal offsets, public-law arity and mask clients |
 | `complex.py:23–24,104–108,235–242,967–981`; `core.py:173–176`; `settings.py:5` | support at every actually written uint32 start, recursively | mathematical pure byte result; no failure priority or guest error mapping | private exact length/reference/cached-planner equality, structural termination/certificates/determination; independent facade clients; static packed-writer structure (§6), compiled allocation/throughput and C1–C4 remain open |
 
 Source success remains conditional on actual names/classes/inheritance/reflection,
@@ -1467,7 +1467,7 @@ List/ProgressiveList and byte-list backing counts use uint256
 such bounds. The mathematical length model is not an unconditional theorem about
 Python `value_byte_length`; dynamic serializers use actual returned byte counts.
 EELS `_to_view` converts ordered fields before enclosing view construction
-(`utils/ssz.py:288–296`), so this support contract establishes no constructor,
+(`utils/ssz.py:283–291`), so this support contract establishes no constructor,
 coercion, stream or allocation failure order. Decoder scopes/metadata, source
 admission, inverse/typed adapters, roots and guest outcomes stay separate.
 
@@ -1482,9 +1482,9 @@ The class does not certify arbitrary dictionaries or provide generic schema laws
 
 | EELS source at pin | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and regression |
 |---|---|---|---|---|
-| `utils/ssz.py:129–146,179–325` | `SszSchema (α : Type)`; exactly `type`, `fieldNames`, `valid`, `toValue`, `ofValue?` (§5) | supplied metadata; all three §7 instance certifications remain external | no validator or error producer | private facade dictionaries deliberately use false validity and broken inverses; no certified instance claim |
-| `utils/ssz.py:129–131` | `SszSchema.encodeBytes {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Serializable s.type (s.toValue a)) : ByteArray` | exact raw call; pure, only actual-value Serializable | no runtime guard or out-of-domain result | `SszSchema.encodeBytes_eq`; full polymorphic caller and differing explicit dictionaries/values with complete bytes |
-| `utils/ssz.py:133–135` | `SszSchema.hashTreeRoot {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Rootable s.type (s.toValue a)) : Base.Bytes32` | exact raw call; pure, only actual-value Rootable | no runtime guard or out-of-domain result | `SszSchema.hashTreeRoot_eq`; full polymorphic caller and differing explicit dictionaries/values with all 32 root bytes |
+| `utils/ssz.py:124–141,174–320` | `SszSchema (α : Type)`; exactly `type`, `fieldNames`, `valid`, `toValue`, `ofValue?` (§5) | supplied metadata; all three §7 instance certifications remain external | no validator or error producer | private facade dictionaries deliberately use false validity and broken inverses; no certified instance claim |
+| `utils/ssz.py:124–126` | `SszSchema.encodeBytes {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Serializable s.type (s.toValue a)) : ByteArray` | exact raw call; pure, only actual-value Serializable | no runtime guard or out-of-domain result | `SszSchema.encodeBytes_eq`; full polymorphic caller and differing explicit dictionaries/values with complete bytes |
+| `utils/ssz.py:128–130` | `SszSchema.hashTreeRoot {α : Type} [s : SszSchema α] (a : α) (h : Ssz.Rootable s.type (s.toValue a)) : Base.Bytes32` | exact raw call; pure, only actual-value Rootable | no runtime guard or out-of-domain result | `SszSchema.hashTreeRoot_eq`; full polymorphic caller and differing explicit dictionaries/values with all 32 root bytes |
 
 All clients and controls are private. These forwarding equations assert no
 source-class/conversion refinement, instance certification, decoder/inverse,
@@ -1500,7 +1500,7 @@ This resolves the future inverse premise only, without supplying a decoder or in
 
 | Pinned source motivation | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
-| eth-remerkleable 0.1.31 `complex.py:188–220,224–242,930–962`, through `utils/ssz.py:137–146` | `Ssz.CountRecoverable (t : SszType) (v : SszValue) : Prop` | every raw descriptor/value pair; local logical inverse premise, no runtime effects; exact §7 clauses | none; no decoder/error producer | ordinary `Ssz.countRecoverable_iff`; all 45 raw tag pairs, nine matched clauses, direct zero products, list-width/actual-child and arity/order controls; symbolic public-law clients |
+| eth-remerkleable 0.1.31 `complex.py:188–220,224–242,930–962`, through `utils/ssz.py:132–141` | `Ssz.CountRecoverable (t : SszType) (v : SszValue) : Prop` | every raw descriptor/value pair; local logical inverse premise, no runtime effects; exact §7 clauses | none; no decoder/error producer | ordinary `Ssz.countRecoverable_iff`; all 45 raw tag pairs, nine matched clauses, direct zero products, list-width/actual-child and arity/order controls; symbolic public-law clients |
 
 **Adopted bounded source evidence.** The frozen decoder inputs 001–128 and
 E001–E018 encoder witnesses were observed at the pin with locked dependency 0.1.31,
@@ -2965,7 +2965,7 @@ source-class premise. Actual scalar widths 0/3 are unsupported; unused malformed
 schemas under empty lists are not recursively required by support. Empty ordinary and
 progressive containers encode empty, regardless of mask; all raw masks are
 ignored by bytes. These are intentional mathematical extras relative to source
-class construction (`utils/ssz.py:91–95,208–216`; `basic.py:252–309`;
+class construction (`utils/ssz.py:91–95,203–211`; `basic.py:252–309`;
 `complex.py:800–804`; `progressive.py:460–486`). Nonempty fixed-zero-child lists
 have forward support and encode empty. Even source-admitted `List[ByteVector0]`
 cannot recover count from those bytes (`complex.py:188–195,224–242`); the inverse
@@ -3066,7 +3066,7 @@ payload typing and raw pack controls alone discharge none of those obligations.
   Serializable, WT, WF and a final-size bound alone do not recover fixed-zero
   list counts. The local additional premise is supplied, but no inverse theorem
   or decoder implementation/completion is supplied (§10).
-- [C] **Prospective canonicality:** `decode t b = .ok v` must imply `WellTyped t v` and provide `h : Ssz.Serializable t v` with `Ssz.encode t v h = b`. This is the future typed form of EELS's re-encode check (`ssz.py:144`). Q87 added no CountRecoverable conclusion; Q88 (next item) does, and this canonicality requirement follows from its law because Serializable implies WT. The selected Q87 inverse alone would establish decoding only for CountRecoverable supported values (S3; §10).
+- [C] **Prospective canonicality:** `decode t b = .ok v` must imply `WellTyped t v` and provide `h : Ssz.Serializable t v` with `Ssz.encode t v h = b`. This is the future typed form of EELS's re-encode check (`ssz.py:139`). Q87 added no CountRecoverable conclusion; Q88 (next item) does, and this canonicality requirement follows from its law because Serializable implies WT. The selected Q87 inverse alone would establish decoding only for CountRecoverable supported values (S3; §10).
 - [C] **Prospective success domain and diagnostics (Q88):** the exact future law is guidance only:
 
   ```lean
@@ -3410,7 +3410,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Q80 selects the forward domain; Q87 supplies the local inverse premise. The
   inverse theorem and total decoder completion remain open. Future differential round-trip coverage must include every
   Amsterdam schema as well as the selected domain boundaries.
-- **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:936`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
+- **D2r agreement** (deep nesting) is argued on the spec side. No fixture exercises it; it is tracked under DISC-001 (DECISIONS Q20), with probe `tx-deep-rlp-40000` as the reference-side reproducer. The claim that "no transaction schema nests more than about 4 levels" needs a check against every transaction type, including access lists, authorization lists and blob hashes. It also applies to the untyped `rlp.decode` sites (`incremental_mpt.py:929`, `witness_state.py:112,198`), which are protected only by the 2^10-byte node limit. That argument holds only if every such input comes from a bounded witness field. This is unverified for `witness_state.py:198`.
 - **Thin O1 coverage.** At this pin the zero-sentinel fixtures (10 per format, §4) add witness headers over the list count limit and over the per-header byte limit. They still do not test: `boolean` bytes other than 0 or 1, the per-element `ByteList` limits for witness nodes and codes (a 1025-byte witness node, a 65537-byte code), an empty non-zero-scope list, or offsets ≥ 2^31. `#guard`s are proposed, but these cases lack fixtures.
 - **SSZ emitted-offset support** (S6/Q80) has supplied generic forward support/serialization (§3); its concrete output consumer is EthStateless `serializeStatelessOutput` (`STFSpec/Stateless/Output.lean`), and the guest-level output theorem remains open. No `Envelope` field exists for it; by DECISIONS B6 one is added only when a named consumer theorem needs it (see `EthBase`).
 - **The binding [S] proof** is sketched only. It needs an owner in `EthSecurity`, and the SHA-256 assumption for requests must be reconciled with the Keccak ROM (D5).

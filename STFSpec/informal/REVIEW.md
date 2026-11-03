@@ -182,7 +182,7 @@ slice; `Exec`, its relation form, D13/B11, F11, G2–G7 and the dated §6 readin
 assessment remain unchanged.
 
 EthVmCore §3/§5/§7 owns the supplied raw immutable FrameCtx and assembled Evm
-view of EELS `src/ethereum/forks/amsterdam/vm/__init__.py:153–191`: exactly fifteen
+view of EELS `src/ethereum/forks/amsterdam/vm/__init__.py:147–185`: exactly fifteen
 data fields plus the sole local depth proof, and exactly two Evm fields. The
 existing Limits literal admits depths 0 through 1024 independently of raw config
 limits. Private complete facade constructor/projection/type/reconstruction and
@@ -249,7 +249,7 @@ source/normal-form/adapter law, arbitrary-monad observer, effect/dispatch/settle
 bridge, F11/D5 choice or fuel/resource/VM/guest readiness result.
 
 EthVmCore §3/§5/§7 owns the supplied raw mutable Frame partition of EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:153–191`: exactly two ExtTreeSet
+`src/ethereum/forks/amsterdam/vm/__init__.py:147–185`: exactly two ExtTreeSet
 aliases and nine independent fields, without extra admission/proof fields,
 defaults, instances or manually authored public laws. Private complete constructor,
 reconstruction and nine-update clients use public record reduction; set clients
@@ -284,7 +284,7 @@ readiness assessment is unchanged.
 
 EthVmInstructions §3/§5/§7 supplies the raw seven-field `CreateRequest` at the
 creation suspension split of EELS
-`src/ethereum/forks/amsterdam/vm/instructions/system.py:66–192`.
+`src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185`.
 Private facade clients preserve every constructor/projection, full reconstruction
 and all seven independent updates. Complete deterministic controls retain huge
 independent Nat grants, nominal full-width words/addresses, ordered complete init

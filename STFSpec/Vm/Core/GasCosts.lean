@@ -8,7 +8,7 @@ import STFSpec.Base.U64
 # Raw gas policy data
 
 Library `EthVmCore`. The exact class-plus-BLS data boundary from pinned EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:72–259` and
+`src/ethereum/forks/amsterdam/vm/gas.py:63–250` and
 `src/ethereum/forks/amsterdam/vm/precompiled_contracts/bls12_381/`.
 Fields retain independent raw values; EthFork owns the Amsterdam instantiation.
 Short source anchors on projections are relative to these source locations.
@@ -19,279 +19,279 @@ namespace STFSpec.Vm.Core
 
 /-- Raw gas-policy data; no defaults, values, supported-config predicate or instances. -/
 structure GasCosts where
-  /-- `GasCosts.BASE`; pinned EELS `gas.py:78`. -/
+  /-- `GasCosts.BASE`; pinned EELS `gas.py:69`. -/
   base : Nat
-  /-- `GasCosts.VERY_LOW`; pinned EELS `gas.py:79`. -/
+  /-- `GasCosts.VERY_LOW`; pinned EELS `gas.py:70`. -/
   veryLow : Nat
-  /-- `GasCosts.LOW`; pinned EELS `gas.py:80`. -/
+  /-- `GasCosts.LOW`; pinned EELS `gas.py:71`. -/
   low : Nat
-  /-- `GasCosts.MID`; pinned EELS `gas.py:81`. -/
+  /-- `GasCosts.MID`; pinned EELS `gas.py:72`. -/
   mid : Nat
-  /-- `GasCosts.HIGH`; pinned EELS `gas.py:82`. -/
+  /-- `GasCosts.HIGH`; pinned EELS `gas.py:73`. -/
   high : Nat
-  /-- `GasCosts.WARM_ACCESS`; pinned EELS `gas.py:85`. -/
+  /-- `GasCosts.WARM_ACCESS`; pinned EELS `gas.py:76`. -/
   warmAccess : Nat
-  /-- `GasCosts.COLD_ACCOUNT_ACCESS`; pinned EELS `gas.py:86`. -/
+  /-- `GasCosts.COLD_ACCOUNT_ACCESS`; pinned EELS `gas.py:77`. -/
   coldAccountAccess : Nat
-  /-- `GasCosts.COLD_STORAGE_ACCESS`; pinned EELS `gas.py:87`. -/
+  /-- `GasCosts.COLD_STORAGE_ACCESS`; pinned EELS `gas.py:78`. -/
   coldStorageAccess : Nat
-  /-- `GasCosts.STORAGE_WRITE`; pinned EELS `gas.py:90`. -/
+  /-- `GasCosts.STORAGE_WRITE`; pinned EELS `gas.py:81`. -/
   storageWrite : Nat
-  /-- `GasCosts.CALL_STIPEND`; pinned EELS `gas.py:93`. -/
+  /-- `GasCosts.CALL_STIPEND`; pinned EELS `gas.py:84`. -/
   callStipend : Nat
-  /-- `GasCosts.ACCOUNT_WRITE`; pinned EELS `gas.py:94`. -/
+  /-- `GasCosts.ACCOUNT_WRITE`; pinned EELS `gas.py:85`. -/
   accountWrite : Nat
-  /-- `GasCosts.CALL_VALUE`; pinned EELS `gas.py:95`. -/
+  /-- `GasCosts.CALL_VALUE`; pinned EELS `gas.py:86`. -/
   callValue : Nat
-  /-- `GasCosts.CODE_INIT_PER_WORD`; pinned EELS `gas.py:98`. -/
+  /-- `GasCosts.CODE_INIT_PER_WORD`; pinned EELS `gas.py:89`. -/
   codeInitPerWord : Nat
-  /-- `GasCosts.CREATE_ACCESS`; pinned EELS `gas.py:99`. -/
+  /-- `GasCosts.CREATE_ACCESS`; pinned EELS `gas.py:90`. -/
   createAccess : Nat
-  /-- `GasCosts.ZERO`; pinned EELS `gas.py:102`. -/
+  /-- `GasCosts.ZERO`; pinned EELS `gas.py:93`. -/
   zero : Nat
-  /-- `GasCosts.MEMORY_PER_WORD`; pinned EELS `gas.py:103`. -/
+  /-- `GasCosts.MEMORY_PER_WORD`; pinned EELS `gas.py:94`. -/
   memoryPerWord : Nat
-  /-- `GasCosts.FAST_STEP`; pinned EELS `gas.py:104`. -/
+  /-- `GasCosts.FAST_STEP`; pinned EELS `gas.py:95`. -/
   fastStep : Nat
-  /-- `GasCosts.REFUND_STORAGE_CLEAR`; pinned EELS `gas.py:107–109`. -/
+  /-- `GasCosts.REFUND_STORAGE_CLEAR`; pinned EELS `gas.py:98–100`. -/
   refundStorageClear : Int
-  /-- `GasCosts.PRECOMPILE_ECRECOVER`; pinned EELS `gas.py:112`. -/
+  /-- `GasCosts.PRECOMPILE_ECRECOVER`; pinned EELS `gas.py:103`. -/
   precompileEcrecover : Nat
-  /-- `GasCosts.PRECOMPILE_P256VERIFY`; pinned EELS `gas.py:113`. -/
+  /-- `GasCosts.PRECOMPILE_P256VERIFY`; pinned EELS `gas.py:104`. -/
   precompileP256Verify : Nat
-  /-- `GasCosts.PRECOMPILE_SHA256_BASE`; pinned EELS `gas.py:114`. -/
+  /-- `GasCosts.PRECOMPILE_SHA256_BASE`; pinned EELS `gas.py:105`. -/
   precompileSha256Base : Nat
-  /-- `GasCosts.PRECOMPILE_SHA256_PER_WORD`; pinned EELS `gas.py:115`. -/
+  /-- `GasCosts.PRECOMPILE_SHA256_PER_WORD`; pinned EELS `gas.py:106`. -/
   precompileSha256PerWord : Nat
-  /-- `GasCosts.PRECOMPILE_RIPEMD160_BASE`; pinned EELS `gas.py:116`. -/
+  /-- `GasCosts.PRECOMPILE_RIPEMD160_BASE`; pinned EELS `gas.py:107`. -/
   precompileRipemd160Base : Nat
-  /-- `GasCosts.PRECOMPILE_RIPEMD160_PER_WORD`; pinned EELS `gas.py:117–119`. -/
+  /-- `GasCosts.PRECOMPILE_RIPEMD160_PER_WORD`; pinned EELS `gas.py:108–110`. -/
   precompileRipemd160PerWord : Nat
-  /-- `GasCosts.PRECOMPILE_IDENTITY_BASE`; pinned EELS `gas.py:120`. -/
+  /-- `GasCosts.PRECOMPILE_IDENTITY_BASE`; pinned EELS `gas.py:111`. -/
   precompileIdentityBase : Nat
-  /-- `GasCosts.PRECOMPILE_IDENTITY_PER_WORD`; pinned EELS `gas.py:121`. -/
+  /-- `GasCosts.PRECOMPILE_IDENTITY_PER_WORD`; pinned EELS `gas.py:112`. -/
   precompileIdentityPerWord : Nat
-  /-- `GasCosts.PRECOMPILE_BLAKE2F_PER_ROUND`; pinned EELS `gas.py:122`. -/
+  /-- `GasCosts.PRECOMPILE_BLAKE2F_PER_ROUND`; pinned EELS `gas.py:113`. -/
   precompileBlake2FPerRound : Nat
-  /-- `GasCosts.PRECOMPILE_POINT_EVALUATION`; pinned EELS `gas.py:123–125`. -/
+  /-- `GasCosts.PRECOMPILE_POINT_EVALUATION`; pinned EELS `gas.py:114–116`. -/
   precompilePointEvaluation : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G1ADD`; pinned EELS `gas.py:126`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G1ADD`; pinned EELS `gas.py:117`. -/
   precompileBlsG1Add : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G1MUL`; pinned EELS `gas.py:127`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G1MUL`; pinned EELS `gas.py:118`. -/
   precompileBlsG1Mul : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G1MAP`; pinned EELS `gas.py:128`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G1MAP`; pinned EELS `gas.py:119`. -/
   precompileBlsG1Map : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G2ADD`; pinned EELS `gas.py:129`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G2ADD`; pinned EELS `gas.py:120`. -/
   precompileBlsG2Add : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G2MUL`; pinned EELS `gas.py:130`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G2MUL`; pinned EELS `gas.py:121`. -/
   precompileBlsG2Mul : Nat
-  /-- `GasCosts.PRECOMPILE_BLS_G2MAP`; pinned EELS `gas.py:131`. -/
+  /-- `GasCosts.PRECOMPILE_BLS_G2MAP`; pinned EELS `gas.py:122`. -/
   precompileBlsG2Map : Nat
-  /-- `GasCosts.PRECOMPILE_ECADD`; pinned EELS `gas.py:132`. -/
+  /-- `GasCosts.PRECOMPILE_ECADD`; pinned EELS `gas.py:123`. -/
   precompileEcAdd : Nat
-  /-- `GasCosts.PRECOMPILE_ECMUL`; pinned EELS `gas.py:133`. -/
+  /-- `GasCosts.PRECOMPILE_ECMUL`; pinned EELS `gas.py:124`. -/
   precompileEcMul : Nat
-  /-- `GasCosts.PRECOMPILE_ECPAIRING_BASE`; pinned EELS `gas.py:134`. -/
+  /-- `GasCosts.PRECOMPILE_ECPAIRING_BASE`; pinned EELS `gas.py:125`. -/
   precompileEcPairingBase : Nat
-  /-- `GasCosts.PRECOMPILE_ECPAIRING_PER_POINT`; pinned EELS `gas.py:135–137`. -/
+  /-- `GasCosts.PRECOMPILE_ECPAIRING_PER_POINT`; pinned EELS `gas.py:126–128`. -/
   precompileEcPairingPerPoint : Nat
-  /-- `GasCosts.PER_BLOB`; pinned EELS `gas.py:140`. -/
+  /-- `GasCosts.PER_BLOB`; pinned EELS `gas.py:131`. -/
   perBlob : STFSpec.Base.U64
-  /-- `GasCosts.BLOB_SCHEDULE_TARGET`; pinned EELS `gas.py:141`. -/
+  /-- `GasCosts.BLOB_SCHEDULE_TARGET`; pinned EELS `gas.py:132`. -/
   blobScheduleTarget : STFSpec.Base.U64
-  /-- `GasCosts.BLOB_TARGET_GAS_PER_BLOCK`; pinned EELS `gas.py:142`. -/
+  /-- `GasCosts.BLOB_TARGET_GAS_PER_BLOCK`; pinned EELS `gas.py:133`. -/
   blobTargetGasPerBlock : STFSpec.Base.U64
-  /-- `GasCosts.BLOB_BASE_COST`; pinned EELS `gas.py:143`. -/
+  /-- `GasCosts.BLOB_BASE_COST`; pinned EELS `gas.py:134`. -/
   blobBaseCost : Nat
-  /-- `GasCosts.BLOB_SCHEDULE_MAX`; pinned EELS `gas.py:144`. -/
+  /-- `GasCosts.BLOB_SCHEDULE_MAX`; pinned EELS `gas.py:135`. -/
   blobScheduleMax : STFSpec.Base.U64
-  /-- `GasCosts.BLOB_MIN_GASPRICE`; pinned EELS `gas.py:145`. -/
+  /-- `GasCosts.BLOB_MIN_GASPRICE`; pinned EELS `gas.py:136`. -/
   blobMinGasPrice : Nat
-  /-- `GasCosts.BLOB_BASE_FEE_UPDATE_FRACTION`; pinned EELS `gas.py:146`. -/
+  /-- `GasCosts.BLOB_BASE_FEE_UPDATE_FRACTION`; pinned EELS `gas.py:137`. -/
   blobBaseFeeUpdateFraction : Nat
-  /-- `GasCosts.BLOCK_ACCESS_LIST_ITEM`; pinned EELS `gas.py:149`. -/
+  /-- `GasCosts.BLOCK_ACCESS_LIST_ITEM`; pinned EELS `gas.py:140`. -/
   blockAccessListItem : Nat
-  /-- `GasCosts.TX_BASE`; pinned EELS `gas.py:152`. -/
+  /-- `GasCosts.TX_BASE`; pinned EELS `gas.py:143`. -/
   txBase : Nat
-  /-- `GasCosts.TX_VALUE_COST`; pinned EELS `gas.py:153`. -/
+  /-- `GasCosts.TX_VALUE_COST`; pinned EELS `gas.py:144`. -/
   txValueCost : Nat
-  /-- `GasCosts.TX_DATA_TOKEN_STANDARD`; pinned EELS `gas.py:154`. -/
+  /-- `GasCosts.TX_DATA_TOKEN_STANDARD`; pinned EELS `gas.py:145`. -/
   txDataTokenStandard : Nat
-  /-- `GasCosts.TX_DATA_TOKEN_FLOOR`; pinned EELS `gas.py:155`. -/
+  /-- `GasCosts.TX_DATA_TOKEN_FLOOR`; pinned EELS `gas.py:146`. -/
   txDataTokenFloor : Nat
-  /-- `GasCosts.TX_ACCESS_LIST_ADDRESS`; pinned EELS `gas.py:156–158`. -/
+  /-- `GasCosts.TX_ACCESS_LIST_ADDRESS`; pinned EELS `gas.py:147–149`. -/
   txAccessListAddress : Nat
-  /-- `GasCosts.TX_ACCESS_LIST_STORAGE_KEY`; pinned EELS `gas.py:159–161`. -/
+  /-- `GasCosts.TX_ACCESS_LIST_STORAGE_KEY`; pinned EELS `gas.py:150–152`. -/
   txAccessListStorageKey : Nat
-  /-- `GasCosts.TX_MAX_GAS_LIMIT`; pinned EELS `gas.py:162`. -/
+  /-- `GasCosts.TX_MAX_GAS_LIMIT`; pinned EELS `gas.py:153`. -/
   txMaxGasLimit : Nat
-  /-- `GasCosts.TX_MAX_TOTAL_GAS_LIMIT`; pinned EELS `gas.py:163`. -/
+  /-- `GasCosts.TX_MAX_TOTAL_GAS_LIMIT`; pinned EELS `gas.py:154`. -/
   txMaxTotalGasLimit : Nat
-  /-- `GasCosts.AUTH_TUPLE_BYTES`; pinned EELS `gas.py:166`. -/
+  /-- `GasCosts.AUTH_TUPLE_BYTES`; pinned EELS `gas.py:157`. -/
   authTupleBytes : Nat
-  /-- `GasCosts.EXECUTION_PER_AUTH_BASE_COST`; pinned EELS `gas.py:167–172`. -/
+  /-- `GasCosts.EXECUTION_PER_AUTH_BASE_COST`; pinned EELS `gas.py:158–163`. -/
   executionPerAuthBaseCost : Nat
-  /-- `GasCosts.LIMIT_ADJUSTMENT_FACTOR`; pinned EELS `gas.py:175`. -/
+  /-- `GasCosts.LIMIT_ADJUSTMENT_FACTOR`; pinned EELS `gas.py:166`. -/
   limitAdjustmentFactor : Nat
-  /-- `GasCosts.LIMIT_MINIMUM`; pinned EELS `gas.py:176`. -/
+  /-- `GasCosts.LIMIT_MINIMUM`; pinned EELS `gas.py:167`. -/
   limitMinimum : Nat
-  /-- `GasCosts.OPCODE_ADD`; pinned EELS `gas.py:179`. -/
+  /-- `GasCosts.OPCODE_ADD`; pinned EELS `gas.py:170`. -/
   opcodeAdd : Nat
-  /-- `GasCosts.OPCODE_SUB`; pinned EELS `gas.py:180`. -/
+  /-- `GasCosts.OPCODE_SUB`; pinned EELS `gas.py:171`. -/
   opcodeSub : Nat
-  /-- `GasCosts.OPCODE_MUL`; pinned EELS `gas.py:181`. -/
+  /-- `GasCosts.OPCODE_MUL`; pinned EELS `gas.py:172`. -/
   opcodeMul : Nat
-  /-- `GasCosts.OPCODE_DIV`; pinned EELS `gas.py:182`. -/
+  /-- `GasCosts.OPCODE_DIV`; pinned EELS `gas.py:173`. -/
   opcodeDiv : Nat
-  /-- `GasCosts.OPCODE_SDIV`; pinned EELS `gas.py:183`. -/
+  /-- `GasCosts.OPCODE_SDIV`; pinned EELS `gas.py:174`. -/
   opcodeSdiv : Nat
-  /-- `GasCosts.OPCODE_MOD`; pinned EELS `gas.py:184`. -/
+  /-- `GasCosts.OPCODE_MOD`; pinned EELS `gas.py:175`. -/
   opcodeMod : Nat
-  /-- `GasCosts.OPCODE_SMOD`; pinned EELS `gas.py:185`. -/
+  /-- `GasCosts.OPCODE_SMOD`; pinned EELS `gas.py:176`. -/
   opcodeSmod : Nat
-  /-- `GasCosts.OPCODE_ADDMOD`; pinned EELS `gas.py:186`. -/
+  /-- `GasCosts.OPCODE_ADDMOD`; pinned EELS `gas.py:177`. -/
   opcodeAddmod : Nat
-  /-- `GasCosts.OPCODE_MULMOD`; pinned EELS `gas.py:187`. -/
+  /-- `GasCosts.OPCODE_MULMOD`; pinned EELS `gas.py:178`. -/
   opcodeMulmod : Nat
-  /-- `GasCosts.OPCODE_SIGNEXTEND`; pinned EELS `gas.py:188`. -/
+  /-- `GasCosts.OPCODE_SIGNEXTEND`; pinned EELS `gas.py:179`. -/
   opcodeSignextend : Nat
-  /-- `GasCosts.OPCODE_LT`; pinned EELS `gas.py:189`. -/
+  /-- `GasCosts.OPCODE_LT`; pinned EELS `gas.py:180`. -/
   opcodeLt : Nat
-  /-- `GasCosts.OPCODE_GT`; pinned EELS `gas.py:190`. -/
+  /-- `GasCosts.OPCODE_GT`; pinned EELS `gas.py:181`. -/
   opcodeGt : Nat
-  /-- `GasCosts.OPCODE_SLT`; pinned EELS `gas.py:191`. -/
+  /-- `GasCosts.OPCODE_SLT`; pinned EELS `gas.py:182`. -/
   opcodeSlt : Nat
-  /-- `GasCosts.OPCODE_SGT`; pinned EELS `gas.py:192`. -/
+  /-- `GasCosts.OPCODE_SGT`; pinned EELS `gas.py:183`. -/
   opcodeSgt : Nat
-  /-- `GasCosts.OPCODE_EQ`; pinned EELS `gas.py:193`. -/
+  /-- `GasCosts.OPCODE_EQ`; pinned EELS `gas.py:184`. -/
   opcodeEq : Nat
-  /-- `GasCosts.OPCODE_ISZERO`; pinned EELS `gas.py:194`. -/
+  /-- `GasCosts.OPCODE_ISZERO`; pinned EELS `gas.py:185`. -/
   opcodeIsZero : Nat
-  /-- `GasCosts.OPCODE_AND`; pinned EELS `gas.py:195`. -/
+  /-- `GasCosts.OPCODE_AND`; pinned EELS `gas.py:186`. -/
   opcodeAnd : Nat
-  /-- `GasCosts.OPCODE_OR`; pinned EELS `gas.py:196`. -/
+  /-- `GasCosts.OPCODE_OR`; pinned EELS `gas.py:187`. -/
   opcodeOr : Nat
-  /-- `GasCosts.OPCODE_XOR`; pinned EELS `gas.py:197`. -/
+  /-- `GasCosts.OPCODE_XOR`; pinned EELS `gas.py:188`. -/
   opcodeXor : Nat
-  /-- `GasCosts.OPCODE_NOT`; pinned EELS `gas.py:198`. -/
+  /-- `GasCosts.OPCODE_NOT`; pinned EELS `gas.py:189`. -/
   opcodeNot : Nat
-  /-- `GasCosts.OPCODE_BYTE`; pinned EELS `gas.py:199`. -/
+  /-- `GasCosts.OPCODE_BYTE`; pinned EELS `gas.py:190`. -/
   opcodeByte : Nat
-  /-- `GasCosts.OPCODE_SHL`; pinned EELS `gas.py:200`. -/
+  /-- `GasCosts.OPCODE_SHL`; pinned EELS `gas.py:191`. -/
   opcodeShl : Nat
-  /-- `GasCosts.OPCODE_SHR`; pinned EELS `gas.py:201`. -/
+  /-- `GasCosts.OPCODE_SHR`; pinned EELS `gas.py:192`. -/
   opcodeShr : Nat
-  /-- `GasCosts.OPCODE_SAR`; pinned EELS `gas.py:202`. -/
+  /-- `GasCosts.OPCODE_SAR`; pinned EELS `gas.py:193`. -/
   opcodeSar : Nat
-  /-- `GasCosts.OPCODE_CLZ`; pinned EELS `gas.py:203`. -/
+  /-- `GasCosts.OPCODE_CLZ`; pinned EELS `gas.py:194`. -/
   opcodeClz : Nat
-  /-- `GasCosts.OPCODE_JUMP`; pinned EELS `gas.py:204`. -/
+  /-- `GasCosts.OPCODE_JUMP`; pinned EELS `gas.py:195`. -/
   opcodeJump : Nat
-  /-- `GasCosts.OPCODE_JUMPI`; pinned EELS `gas.py:205`. -/
+  /-- `GasCosts.OPCODE_JUMPI`; pinned EELS `gas.py:196`. -/
   opcodeJumpi : Nat
-  /-- `GasCosts.OPCODE_JUMPDEST`; pinned EELS `gas.py:206`. -/
+  /-- `GasCosts.OPCODE_JUMPDEST`; pinned EELS `gas.py:197`. -/
   opcodeJumpDest : Nat
-  /-- `GasCosts.OPCODE_CALLDATALOAD`; pinned EELS `gas.py:207`. -/
+  /-- `GasCosts.OPCODE_CALLDATALOAD`; pinned EELS `gas.py:198`. -/
   opcodeCallDataLoad : Nat
-  /-- `GasCosts.OPCODE_BLOCKHASH`; pinned EELS `gas.py:208`. -/
+  /-- `GasCosts.OPCODE_BLOCKHASH`; pinned EELS `gas.py:199`. -/
   opcodeBlockHash : Nat
-  /-- `GasCosts.OPCODE_COINBASE`; pinned EELS `gas.py:209`. -/
+  /-- `GasCosts.OPCODE_COINBASE`; pinned EELS `gas.py:200`. -/
   opcodeCoinbase : Nat
-  /-- `GasCosts.OPCODE_POP`; pinned EELS `gas.py:210`. -/
+  /-- `GasCosts.OPCODE_POP`; pinned EELS `gas.py:201`. -/
   opcodePop : Nat
-  /-- `GasCosts.OPCODE_MSIZE`; pinned EELS `gas.py:211`. -/
+  /-- `GasCosts.OPCODE_MSIZE`; pinned EELS `gas.py:202`. -/
   opcodeMsize : Nat
-  /-- `GasCosts.OPCODE_PC`; pinned EELS `gas.py:212`. -/
+  /-- `GasCosts.OPCODE_PC`; pinned EELS `gas.py:203`. -/
   opcodePc : Nat
-  /-- `GasCosts.OPCODE_GAS`; pinned EELS `gas.py:213`. -/
+  /-- `GasCosts.OPCODE_GAS`; pinned EELS `gas.py:204`. -/
   opcodeGas : Nat
-  /-- `GasCosts.OPCODE_ADDRESS`; pinned EELS `gas.py:214`. -/
+  /-- `GasCosts.OPCODE_ADDRESS`; pinned EELS `gas.py:205`. -/
   opcodeAddress : Nat
-  /-- `GasCosts.OPCODE_ORIGIN`; pinned EELS `gas.py:215`. -/
+  /-- `GasCosts.OPCODE_ORIGIN`; pinned EELS `gas.py:206`. -/
   opcodeOrigin : Nat
-  /-- `GasCosts.OPCODE_CALLER`; pinned EELS `gas.py:216`. -/
+  /-- `GasCosts.OPCODE_CALLER`; pinned EELS `gas.py:207`. -/
   opcodeCaller : Nat
-  /-- `GasCosts.OPCODE_CALLVALUE`; pinned EELS `gas.py:217`. -/
+  /-- `GasCosts.OPCODE_CALLVALUE`; pinned EELS `gas.py:208`. -/
   opcodeCallValue : Nat
-  /-- `GasCosts.OPCODE_CALLDATASIZE`; pinned EELS `gas.py:218`. -/
+  /-- `GasCosts.OPCODE_CALLDATASIZE`; pinned EELS `gas.py:209`. -/
   opcodeCallDataSize : Nat
-  /-- `GasCosts.OPCODE_CODESIZE`; pinned EELS `gas.py:219`. -/
+  /-- `GasCosts.OPCODE_CODESIZE`; pinned EELS `gas.py:210`. -/
   opcodeCodeSize : Nat
-  /-- `GasCosts.OPCODE_GASPRICE`; pinned EELS `gas.py:220`. -/
+  /-- `GasCosts.OPCODE_GASPRICE`; pinned EELS `gas.py:211`. -/
   opcodeGasPrice : Nat
-  /-- `GasCosts.OPCODE_TIMESTAMP`; pinned EELS `gas.py:221`. -/
+  /-- `GasCosts.OPCODE_TIMESTAMP`; pinned EELS `gas.py:212`. -/
   opcodeTimestamp : Nat
-  /-- `GasCosts.OPCODE_NUMBER`; pinned EELS `gas.py:222`. -/
+  /-- `GasCosts.OPCODE_NUMBER`; pinned EELS `gas.py:213`. -/
   opcodeNumber : Nat
-  /-- `GasCosts.OPCODE_GASLIMIT`; pinned EELS `gas.py:223`. -/
+  /-- `GasCosts.OPCODE_GASLIMIT`; pinned EELS `gas.py:214`. -/
   opcodeGasLimit : Nat
-  /-- `GasCosts.OPCODE_PREVRANDAO`; pinned EELS `gas.py:224`. -/
+  /-- `GasCosts.OPCODE_PREVRANDAO`; pinned EELS `gas.py:215`. -/
   opcodePrevRandao : Nat
-  /-- `GasCosts.OPCODE_RETURNDATASIZE`; pinned EELS `gas.py:225`. -/
+  /-- `GasCosts.OPCODE_RETURNDATASIZE`; pinned EELS `gas.py:216`. -/
   opcodeReturnDataSize : Nat
-  /-- `GasCosts.OPCODE_CHAINID`; pinned EELS `gas.py:226`. -/
+  /-- `GasCosts.OPCODE_CHAINID`; pinned EELS `gas.py:217`. -/
   opcodeChainId : Nat
-  /-- `GasCosts.OPCODE_SELFBALANCE`; pinned EELS `gas.py:227`. -/
+  /-- `GasCosts.OPCODE_SELFBALANCE`; pinned EELS `gas.py:218`. -/
   opcodeSelfBalance : Nat
-  /-- `GasCosts.OPCODE_BASEFEE`; pinned EELS `gas.py:228`. -/
+  /-- `GasCosts.OPCODE_BASEFEE`; pinned EELS `gas.py:219`. -/
   opcodeBaseFee : Nat
-  /-- `GasCosts.OPCODE_BLOBBASEFEE`; pinned EELS `gas.py:229`. -/
+  /-- `GasCosts.OPCODE_BLOBBASEFEE`; pinned EELS `gas.py:220`. -/
   opcodeBlobBaseFee : Nat
-  /-- `GasCosts.OPCODE_SLOTNUM`; pinned EELS `gas.py:230`. -/
+  /-- `GasCosts.OPCODE_SLOTNUM`; pinned EELS `gas.py:221`. -/
   opcodeSlotNum : Nat
-  /-- `GasCosts.OPCODE_BLOBHASH`; pinned EELS `gas.py:231`. -/
+  /-- `GasCosts.OPCODE_BLOBHASH`; pinned EELS `gas.py:222`. -/
   opcodeBlobHash : Nat
-  /-- `GasCosts.OPCODE_PUSH`; pinned EELS `gas.py:232`. -/
+  /-- `GasCosts.OPCODE_PUSH`; pinned EELS `gas.py:223`. -/
   opcodePush : Nat
-  /-- `GasCosts.OPCODE_PUSH0`; pinned EELS `gas.py:233`. -/
+  /-- `GasCosts.OPCODE_PUSH0`; pinned EELS `gas.py:224`. -/
   opcodePush0 : Nat
-  /-- `GasCosts.OPCODE_DUP`; pinned EELS `gas.py:234`. -/
+  /-- `GasCosts.OPCODE_DUP`; pinned EELS `gas.py:225`. -/
   opcodeDup : Nat
-  /-- `GasCosts.OPCODE_SWAP`; pinned EELS `gas.py:235`. -/
+  /-- `GasCosts.OPCODE_SWAP`; pinned EELS `gas.py:226`. -/
   opcodeSwap : Nat
-  /-- `GasCosts.OPCODE_DUPN`; pinned EELS `gas.py:236`. -/
+  /-- `GasCosts.OPCODE_DUPN`; pinned EELS `gas.py:227`. -/
   opcodeDupn : Nat
-  /-- `GasCosts.OPCODE_SWAPN`; pinned EELS `gas.py:237`. -/
+  /-- `GasCosts.OPCODE_SWAPN`; pinned EELS `gas.py:228`. -/
   opcodeSwapn : Nat
-  /-- `GasCosts.OPCODE_EXCHANGE`; pinned EELS `gas.py:238`. -/
+  /-- `GasCosts.OPCODE_EXCHANGE`; pinned EELS `gas.py:229`. -/
   opcodeExchange : Nat
-  /-- `GasCosts.OPCODE_TLOAD`; pinned EELS `gas.py:239`. -/
+  /-- `GasCosts.OPCODE_TLOAD`; pinned EELS `gas.py:230`. -/
   opcodeTload : Nat
-  /-- `GasCosts.OPCODE_TSTORE`; pinned EELS `gas.py:240`. -/
+  /-- `GasCosts.OPCODE_TSTORE`; pinned EELS `gas.py:231`. -/
   opcodeTstore : Nat
-  /-- `GasCosts.OPCODE_RETURNDATACOPY_BASE`; pinned EELS `gas.py:243`. -/
+  /-- `GasCosts.OPCODE_RETURNDATACOPY_BASE`; pinned EELS `gas.py:234`. -/
   opcodeReturnDataCopyBase : Nat
-  /-- `GasCosts.OPCODE_RETURNDATACOPY_PER_WORD`; pinned EELS `gas.py:244`. -/
+  /-- `GasCosts.OPCODE_RETURNDATACOPY_PER_WORD`; pinned EELS `gas.py:235`. -/
   opcodeReturnDataCopyPerWord : Nat
-  /-- `GasCosts.OPCODE_CALLDATACOPY_BASE`; pinned EELS `gas.py:245`. -/
+  /-- `GasCosts.OPCODE_CALLDATACOPY_BASE`; pinned EELS `gas.py:236`. -/
   opcodeCallDataCopyBase : Nat
-  /-- `GasCosts.OPCODE_CODECOPY_BASE`; pinned EELS `gas.py:246`. -/
+  /-- `GasCosts.OPCODE_CODECOPY_BASE`; pinned EELS `gas.py:237`. -/
   opcodeCodeCopyBase : Nat
-  /-- `GasCosts.OPCODE_MCOPY_BASE`; pinned EELS `gas.py:247`. -/
+  /-- `GasCosts.OPCODE_MCOPY_BASE`; pinned EELS `gas.py:238`. -/
   opcodeMcopyBase : Nat
-  /-- `GasCosts.OPCODE_MLOAD_BASE`; pinned EELS `gas.py:248`. -/
+  /-- `GasCosts.OPCODE_MLOAD_BASE`; pinned EELS `gas.py:239`. -/
   opcodeMloadBase : Nat
-  /-- `GasCosts.OPCODE_MSTORE_BASE`; pinned EELS `gas.py:249`. -/
+  /-- `GasCosts.OPCODE_MSTORE_BASE`; pinned EELS `gas.py:240`. -/
   opcodeMstoreBase : Nat
-  /-- `GasCosts.OPCODE_MSTORE8_BASE`; pinned EELS `gas.py:250`. -/
+  /-- `GasCosts.OPCODE_MSTORE8_BASE`; pinned EELS `gas.py:241`. -/
   opcodeMstore8Base : Nat
-  /-- `GasCosts.OPCODE_COPY_PER_WORD`; pinned EELS `gas.py:251`. -/
+  /-- `GasCosts.OPCODE_COPY_PER_WORD`; pinned EELS `gas.py:242`. -/
   opcodeCopyPerWord : Nat
-  /-- `GasCosts.OPCODE_EXP_BASE`; pinned EELS `gas.py:252`. -/
+  /-- `GasCosts.OPCODE_EXP_BASE`; pinned EELS `gas.py:243`. -/
   opcodeExpBase : Nat
-  /-- `GasCosts.OPCODE_EXP_PER_BYTE`; pinned EELS `gas.py:253`. -/
+  /-- `GasCosts.OPCODE_EXP_PER_BYTE`; pinned EELS `gas.py:244`. -/
   opcodeExpPerByte : Nat
-  /-- `GasCosts.OPCODE_KECCAK256_BASE`; pinned EELS `gas.py:254`. -/
+  /-- `GasCosts.OPCODE_KECCAK256_BASE`; pinned EELS `gas.py:245`. -/
   opcodeKeccak256Base : Nat
-  /-- `GasCosts.OPCODE_KECCAK256_PER_WORD`; pinned EELS `gas.py:255`. -/
+  /-- `GasCosts.OPCODE_KECCAK256_PER_WORD`; pinned EELS `gas.py:246`. -/
   opcodeKeccak256PerWord : Nat
-  /-- `GasCosts.OPCODE_LOG_BASE`; pinned EELS `gas.py:256`. -/
+  /-- `GasCosts.OPCODE_LOG_BASE`; pinned EELS `gas.py:247`. -/
   opcodeLogBase : Nat
-  /-- `GasCosts.OPCODE_LOG_DATA_PER_BYTE`; pinned EELS `gas.py:257`. -/
+  /-- `GasCosts.OPCODE_LOG_DATA_PER_BYTE`; pinned EELS `gas.py:248`. -/
   opcodeLogDataPerByte : Nat
-  /-- `GasCosts.OPCODE_LOG_TOPIC`; pinned EELS `gas.py:258`. -/
+  /-- `GasCosts.OPCODE_LOG_TOPIC`; pinned EELS `gas.py:249`. -/
   opcodeLogTopic : Nat
-  /-- `GasCosts.OPCODE_SELFDESTRUCT_BASE`; pinned EELS `gas.py:259`. -/
+  /-- `GasCosts.OPCODE_SELFDESTRUCT_BASE`; pinned EELS `gas.py:250`. -/
   opcodeSelfDestructBase : Nat
   /-- Pairing base cost (literal `37700`);
   pinned EELS `bls12_381/bls12_381_pairing.py:46`. -/

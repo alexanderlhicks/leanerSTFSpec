@@ -15,21 +15,21 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 
 namespace STFSpec.Vm.Core
 
-/-- Raw state-pricing inputs; EELS `src/ethereum/forks/amsterdam/vm/gas.py:56–59`.
+/-- Raw state-pricing inputs; EELS `src/ethereum/forks/amsterdam/vm/gas.py:47–50`.
 The rate's Nat representation follows the existing public data contract. -/
 structure StateGasCosts where
   /-- `StateGasCosts.COST_PER_STATE_BYTE`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/gas.py:56`.
+  `src/ethereum/forks/amsterdam/vm/gas.py:47`.
   Interpreted by the existing Base rate wrapper. -/
   costPerStateByte : Nat
   /-- `StateGasCosts.STATE_BYTES_PER_NEW_ACCOUNT`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/gas.py:57`. Bytes associated with a new account. -/
+  `src/ethereum/forks/amsterdam/vm/gas.py:48`. Bytes associated with a new account. -/
   bytesPerNewAccount : Nat
   /-- `StateGasCosts.STATE_BYTES_PER_STORAGE_SET`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/gas.py:58`. Bytes associated with setting storage. -/
+  `src/ethereum/forks/amsterdam/vm/gas.py:49`. Bytes associated with setting storage. -/
   bytesPerStorageSet : Nat
   /-- `StateGasCosts.STATE_BYTES_PER_AUTH_BASE`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/gas.py:59`.
+  `src/ethereum/forks/amsterdam/vm/gas.py:50`.
   Bytes associated with a new authorization delegation. -/
   bytesPerAuthBase : Nat
 
@@ -50,18 +50,18 @@ theorem StateGasCosts.eta (c : StateGasCosts) :
   cases c
   rfl
 
-/-- Raw VM-limit data; EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:84–86`.
+/-- Raw VM-limit data; EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:79–81`.
 No raw-record equation changes the existing literal Stack/depth contract. -/
 structure VmLimits where
   /-- `STACK_DEPTH_LIMIT`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/interpreter.py:84`.
+  `src/ethereum/forks/amsterdam/vm/interpreter.py:79`.
   F8 specialization remains EthFork's obligation. -/
   stackDepthLimit : Nat
   /-- `MAX_CODE_SIZE`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/interpreter.py:85`. Maximum code-size data. -/
+  `src/ethereum/forks/amsterdam/vm/interpreter.py:80`. Maximum code-size data. -/
   maxCodeSize : Nat
   /-- `MAX_INIT_CODE_SIZE`; pinned EELS
-  `src/ethereum/forks/amsterdam/vm/interpreter.py:86`.
+  `src/ethereum/forks/amsterdam/vm/interpreter.py:81`.
   Maximum init-code-size data, independent in the raw record. -/
   maxInitCodeSize : Nat
 

@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-10-31):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
+**Status (2026-11-02):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 
@@ -29,7 +29,7 @@ mathematical bounds and their direct proofs while consumer implementations and
 aggregate R4 cost evidence remain pending.
 
 The expected consumer is parent-header blob-gas arithmetic: pinned EELS
-`forks/amsterdam/vm/gas.py:901–949`, called by `fork.py:473`, performs a bounded
+`forks/amsterdam/vm/gas.py:901–949`, called by `fork.py:448`, performs a bounded
 number of additions, multiplication and subtraction per header. Its full `U64`
 input domain includes malformed or adversarial headers; upper-half values are
 not asserted to be common. This is local to checked operations, not native

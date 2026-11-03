@@ -9,7 +9,7 @@ import STFSpec.Codec.SszModel
 
 Library `EthCodec`. Declared sizes and actual recursive payloads supply the local
 root-support domain (Q78), without global well-formedness of unused composite
-schemas. Source interpretation: `src/ethereum/utils/ssz.py:179–325` and
+schemas. Source interpretation: `src/ethereum/utils/ssz.py:174–320` and
 eth-remerkleable 0.1.31 `basic.py`, `complex.py`, `byte_arrays.py`, `progressive.py`.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/

@@ -25,69 +25,69 @@ def ule (a b : U256) : Bool := decide (a.toNat ≤ b.toNat)
 /-- Signed strict comparison helper; `ethereum_types/numeric.py:357,675` (via `to_signed`). -/
 def slt' (a b : U256) : Bool := decide (a.toInt < b.toInt)
 
-/-- EVM LT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:24`. -/
+/-- EVM LT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:21`. -/
 def lt (a b : U256) : U256 := ofBool (ult a b)
 
-/-- EVM GT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:77`. -/
+/-- EVM GT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:74`. -/
 def gt (a b : U256) : U256 := ofBool (ult b a)
 
-/-- EVM SLT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:51`. -/
+/-- EVM SLT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:48`. -/
 def slt (a b : U256) : U256 := ofBool (slt' a b)
 
-/-- EVM SGT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:104`. -/
+/-- EVM SGT result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:101`. -/
 def sgt (a b : U256) : U256 := ofBool (slt' b a)
 
-/-- EVM EQ result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:130`. -/
+/-- EVM EQ result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:127`. -/
 def eq (a b : U256) : U256 := ofBool (decide (a.toNat = b.toNat))
 
-/-- EVM ISZERO result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:157`. -/
+/-- EVM ISZERO result; EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:154`. -/
 def iszero (x : U256) : U256 := ofBool (decide (x.toNat = 0))
 
-/-- EVM AND; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:24`. -/
+/-- EVM AND; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:21`. -/
 def and (a b : U256) : U256 := ofBitVec (a.toBitVec &&& b.toBitVec)
 
-/-- EVM OR; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:49`. -/
+/-- EVM OR; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:46`. -/
 def or (a b : U256) : U256 := ofBitVec (a.toBitVec ||| b.toBitVec)
 
-/-- EVM XOR; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:74`. -/
+/-- EVM XOR; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:71`. -/
 def xor (a b : U256) : U256 := ofBitVec (a.toBitVec ^^^ b.toBitVec)
 
-/-- Masked EVM NOT; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:99`. -/
+/-- Masked EVM NOT; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:96`. -/
 def not (x : U256) : U256 := ofBitVec (~~~x.toBitVec)
 
 /-- EVM BYTE, most-significant byte first, with its range guard before arithmetic.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:123` (`get_byte`). -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:120` (`get_byte`). -/
 def byte (i x : U256) : U256 :=
   if 32 ≤ i.toNat then zero else ofNat (x.toNat / 2 ^ (8 * (31 - i.toNat)) % 256)
 
 /-- EVM SIGNEXTEND, counting bytes from the least-significant end.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:334`. -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:331`. -/
 def signextend (k x : U256) : U256 :=
   if 31 < k.toNat then x else
     ofBitVec ((x.toBitVec.setWidth (8 * (k.toNat + 1))).signExtend 256)
 
 /-- EVM SHL, guarding the full word amount before shifting.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:159` (`bitwise_shl`). -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:156` (`bitwise_shl`). -/
 def shl (shift value : U256) : U256 :=
   if 256 ≤ shift.toNat then zero else ofBitVec (value.toBitVec <<< shift.toNat)
 
 /-- EVM SHR, guarding the full word amount before shifting.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:189` (`bitwise_shr`). -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:186` (`bitwise_shr`). -/
 def shr (shift value : U256) : U256 :=
   if 256 ≤ shift.toNat then zero else ofBitVec (value.toBitVec >>> shift.toNat)
 
 /-- EVM SAR, including the explicit sign-dependent saturation branch.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:219` (`bitwise_sar`). -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:216` (`bitwise_sar`). -/
 def sar (shift value : U256) : U256 :=
   if 256 ≤ shift.toNat then
     if 0 ≤ value.toInt then zero else max
   else ofBitVec (value.toBitVec.sshiftRight shift.toNat)
 
 /-- Python integer bit length, including zero; `ethereum_types/numeric.py:509`.
-Used by EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:271`. -/
+Used by EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:268`. -/
 def bitLength (x : U256) : Nat := if x.toNat = 0 then 0 else x.toNat.log2 + 1
 
-/-- EVM CLZ; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:251`
+/-- EVM CLZ; EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:248`
 (`count_leading_zeros`). -/
 def clz (x : U256) : U256 := ofNat (256 - bitLength x)
 

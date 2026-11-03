@@ -62,7 +62,7 @@ def one : U256 := ofNat 1
 def max : U256 := ofNat (2 ^ 256 - 1)
 
 /-- Encode a Boolean as 0 or 1; `ethereum_types/numeric.py:44` on a Python `bool`.
-EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:43` uses this conversion. -/
+EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:40` uses this conversion. -/
 def ofBool (b : Bool) : U256 := if b then one else zero
 
 /-- Unsigned numeric ordering; `ethereum_types/numeric.py:343–369`. -/

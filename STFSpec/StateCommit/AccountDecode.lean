@@ -209,7 +209,7 @@ private def accountFields (n b r c : RlpItem) : Except WitnessError (Account × 
   let code ← hashField EMPTY_CODE_HASH c
   return (Account.mk nonce balance code, root)
 
-/-- EELS `src/ethereum/forks/amsterdam/witness_state.py:103–127`: complete strict
+/-- EELS `src/ethereum/forks/amsterdam/witness_state.py:38–62`: complete strict
 RLP first, exact four-field list next, then nonce, balance, root and code (SC5). -/
 def decodeAccountLeaf (leaf : ByteArray) : Except WitnessError (Account × Hash32) :=
   match Rlp.decode leaf with
