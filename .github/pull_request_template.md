@@ -1,47 +1,49 @@
 <!--
-Title: <type>(<optional-scope>): <subject>, as CONTRIBUTING §6.2 specifies.
+Title: <type>(<optional-scope>): <subject>, in the format of CONTRIBUTING §6.2.
 CONTRIBUTING §6.2 and §6.5 own the contents of this description. WRITING.md owns its prose.
 Keep each heading. Under a heading that does not apply, write "None".
+A prompt that starts with "If" is optional.
 -->
 
 ## Motivation
 
-<!-- Why the change is necessary. Give the issue: `Closes #123`. -->
+<!-- The reason for the change. Give each related issue, for example `Closes #123`. -->
 
 ## Change in behaviour or contract
 
-<!-- What a consumer or a reader of the spec sees differently. -->
+<!--
+What a consumer of the spec or a reader of the spec guidance sees differently.
+If the change proves a conditional theorem, give its hypotheses and the bridge that discharges each one (CONTRIBUTING §4).
+-->
 
-## Authority
+## EELS sources
 
 <!--
-The EEST fixtures that cover the changed behaviour, at the pinned release.
-For behaviour that no fixture covers, the pinned EELS source as `file:line`.
-Each discrepancy that the change records or touches, as `DISC-n` (CONTRACT §6).
+The pinned EELS source that the change follows, as `file:line`.
+If EEST fixtures cover the changed behaviour, name them (CONTRIBUTING §1).
 -->
 
 ## Source-to-Lean rows
 
-<!-- For each implemented EELS operation, its row (REVIEW §4). -->
+<!-- The row of each EELS operation that the change implements (REVIEW §4). -->
 
 ## Decisions and questions
 
-<!-- The decisions, questions and interface items that the change touches, by identifier. -->
-
-## Laws and open obligations
-
 <!--
-The laws that the change proves. For each conditional theorem, its hypotheses and the bridge
-that discharges each one (CONTRIBUTING §4). The obligations and gaps that stay open.
+Each decision and question that the change touches, by its identifier.
+If the change records or touches a discrepancy, give its `DISC-n` identifier (CONTRACT §6).
 -->
 
 ## Checks and tests
 
-<!-- Each check of CONTRIBUTING §6.3 that you ran, its result and the commit that you ran it on. -->
+<!--
+Each check of CONTRIBUTING §6.3 that you ran, its result and the commit that it ran on.
+Name each required check that you did not run.
+-->
 
 ## Review verdicts
 
-<!-- The verdict of each adversarial review (CONTRIBUTING §6.4), and how each blocker was resolved. -->
+<!-- The verdict of each independent adversarial review (CONTRIBUTING §6.4), and the resolution of each blocker. -->
 
 ## Documentation
 
