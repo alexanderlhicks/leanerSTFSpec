@@ -136,7 +136,7 @@ class WritingRuleTests(unittest.TestCase):
         self.assertEqual(findings("The verifier is rejecting the proof string."), ["V1"])
         self.assertEqual(findings("The protocol values have bounded width."), [])
         self.assertEqual(findings("The witness is missing."), [])
-        self.assertEqual(findings("Using the lemma, we bound the error."), ["V2"])
+        self.assertEqual(findings("Using the lemma, we bound the error."), [])
         self.assertEqual(findings("Hashing halves no input by definition."), [])
         self.assertEqual(findings("During a merge, the base is the merge base."), [])
         self.assertEqual(findings("The request may have failed."), [])
@@ -263,6 +263,17 @@ class ToolingRegressionTests(unittest.TestCase):
 
 
 class LeanExtractionTests(unittest.TestCase):
+    def test_structural_indentation_preserves_prose_and_relative_code(self) -> None:
+        for indentation in ['    ', '\t', '  ']:
+            with self.subTest(indentation=repr(indentation)):
+                source = ('namespace N\n' + indentation + '/--\n'
+                          + indentation + 'We utilize the helper.\n\n'
+                          + indentation + '    Code; not prose.\n\n'
+                          + indentation + 'Real prose; checked.\n'
+                          + indentation + '-/\nend N\n')
+                found = WRITING.check_blocks(WRITING.lean_blocks('A.lean', source))
+                self.assertEqual([(f.line, f.rule) for f in found], [(3, 'W1'), (7, 'U1')])
+
     def test_doc_comments_and_line_numbers(self) -> None:
         source = ('/-! # Title\n\nThe module; with a problem. -/\n'
                   'def f : Nat := 1 -- a trailing comment; also a problem\n'
@@ -391,12 +402,14 @@ class WritingRegressionTests(unittest.TestCase):
 
     def test_ing_nouns_and_nonverbs_are_not_introductory_verb_clauses(self) -> None:
         for text in ['Nothing, at present.', 'Padding bytes, as defined above, have a fixed width.',
+                     'Existing constraints, as stated, apply.',
                      'String concatenation, as usual, is associative.',
                      'Encoding uses bytes, so the bound applies.',
                      'Hashing reduces the input, so use the bound.']:
             with self.subTest(text=text):
                 self.assertNotIn('V2', findings(text))
-        self.assertIn('V2', findings('Using the lemma, we bound the error.'))
+        self.assertNotIn('V2', findings('Using the lemma, we bound the error.'))
+        self.assertIn('V2', findings('Deleting the file, the error disappears.'))
 
     def test_this_way_has_an_explicit_noun(self) -> None:
         self.assertNotIn('S7', findings('This way, the prover sends one message.'))
@@ -536,6 +549,34 @@ class ChangedFileRegressionTests(unittest.TestCase):
         found = WRITING.check_blocks(WRITING.changed_blocks('main'))
         self.assertEqual([(f.path, f.line) for f in found if f.rule == 'U1'], [(new, 5)])
 
+    def test_inter_hunk_context_does_not_mark_unchanged_prose_as_changed(self) -> None:
+        page = self.root / 'page.md'
+        page.write_text('First line.\n\nUnchanged prose; leave it.\n\nLast line.\n')
+        self.git('add', '.')
+        self.git('commit', '-q', '-m', 'base prose')
+        self.git('branch', '-f', 'main', 'HEAD')
+        page.write_text('Revised first.\n\nUnchanged prose; leave it.\n\nRevised last.\n')
+        self.git('config', 'diff.interHunkContext', '10')
+        self.assertEqual(WRITING.added_lines('main'), {'page.md': {1, 5}})
+        self.assertNotIn('U1', [f.rule for f in WRITING.check_blocks(WRITING.changed_blocks('main'))])
+
+    def test_changed_symlink_sources_have_no_target_line_attribution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'outside.md'
+            target.write_text('First paragraph.\n\nExternal prose; do not attribute it.\n')
+            (self.root / 'alias.md').symlink_to(target)
+            (self.root / 'good.md').write_text('Actual prose; checked.\n')
+            self.git('add', '.')
+            diagnostics = []
+            blocks = WRITING.changed_blocks('main', diagnostics)
+            self.assertEqual([(b.path, b.line) for b in blocks], [('good.md', 1)])
+            self.assertEqual([(f.path, f.rule) for f in diagnostics], [('alias.md', 'Input')])
+            self.assertIn('link-text diff', diagnostics[0].message)
+            with mock.patch('sys.stdout', io.StringIO()) as output:
+                self.assertEqual(WRITING.main(['writing_hints.py', '--base', 'main']), 0)
+            self.assertIn('1 Input diagnostic(s)', output.getvalue())
+            self.assertNotIn('rules Input', output.getvalue())
+
     def test_non_utf8_and_dangling_symlinks_are_advisory(self) -> None:
         (self.root / 'invalid.md').write_bytes(b'Caf\xe9; text.\n')
         (self.root / 'dangling.md').symlink_to('missing-target')
@@ -557,7 +598,8 @@ class ChangedFileRegressionTests(unittest.TestCase):
                                 input=b'\xff\n', capture_output=True, env=environment)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(b'not UTF-8', result.stdout)
-        self.assertNotIn(b'No writing hints', result.stdout)
+        self.assertIn(b'1 Input diagnostic(s)', result.stdout)
+        self.assertNotIn(b'rules Input', result.stdout)
 
     def test_missing_base_and_broken_configuration_are_errors(self) -> None:
         with mock.patch('sys.stderr', io.StringIO()) as error:
@@ -572,13 +614,15 @@ class ChangedFileRegressionTests(unittest.TestCase):
         self.assertEqual(result.exception.code, 2)
 
 
-class StrictV2Tests(unittest.TestCase):
+class AdaptedV2Tests(unittest.TestCase):
     vocabulary = """## Technical -ing nouns
 
 | Term | Technical meaning |
 |---|---|
 | `encoding`, `folding`, `sampling` | Protocol constructions |
 | `gas metering` | Resource accounting |
+| `arithmetic reasoning` | A proof method |
+| `cross-cutting gap` | A shared specification gap |
 
 ## Other terms
 
@@ -597,27 +641,61 @@ class StrictV2Tests(unittest.TestCase):
             path = Path(directory) / 'vocabulary.md'
             path.write_text(self.vocabulary)
             self.assertEqual(WRITING.technical_ing_nouns(path),
-                             {'encoding', 'folding', 'sampling', 'metering'})
+                             {'encoding', 'folding', 'sampling', 'gas metering',
+                              'arithmetic reasoning', 'cross-cutting gap'})
 
-    def test_preposition_gerunds_and_listed_technical_nouns(self) -> None:
+    def test_numbered_heading_and_meaning_are_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vocabulary.md'
+            path.write_text(self.vocabulary.replace('## Technical -ing nouns',
+                                                    '## 4.1 Technical -ing nouns ##'))
+            self.assertIn('gas metering', WRITING.technical_ing_nouns(path))
+            for text in [self.vocabulary.replace('## Technical -ing nouns', '## Other nouns'),
+                         self.vocabulary.replace('Protocol constructions', '')]:
+                path.write_text(text)
+                with self.assertRaises(ValueError):
+                    WRITING.technical_ing_nouns(path)
+
+    def test_multiword_terms_do_not_exempt_their_component_words(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'vocabulary.md'
             path.write_text(self.vocabulary)
-            cases = [('Before making a change, run the tests.', True),
-                     ('Instead of calling the function, use the cached value.', True),
-                     ('The bound follows by assuming P.', True),
+            terms = WRITING.technical_ing_nouns(path)
+            self.assertTrue(WRITING.technical_term_start('Gas\nmetering, as defined above, applies.', terms))
+            for text in ['Metering, on its own, is ambiguous.', 'Reasoning about this, the bound holds.',
+                         'Cutting the input, the size decreases.', 'EncodingExtra, as defined, applies.']:
+                with self.subTest(text=text):
+                    self.assertFalse(WRITING.technical_term_start(text, terms))
+            found = WRITING.check_blocks(WRITING.file_blocks('page.md',
+                                        'Reasoning about this, the bound holds.'), path)
+            self.assertEqual([f.rule for f in found], ['V2'])
+            self.assertIn('actor and meaning', found[0].message)
+            self.assertNotIn('finite', found[0].message)
+
+    def test_post_preposition_and_conventional_introductions_are_manual(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vocabulary.md'
+            path.write_text(self.vocabulary)
+            cases = [('Before making a change, run the tests.', False),
+                     ('Instead of calling the function, use the cached value.', False),
+                     ('The bound follows by assuming P.', False),
                      ('After encoding, the message has a fixed length.', False),
                      ('The bound follows from sampling.', False),
                      ('Nothing changes before folding.', False),
                      ('The budget accounts for gas metering.', False),
-                     ('Refer to CONTRIBUTING for docstring rules.', False)]
+                     ('Refer to CONTRIBUTING for docstring rules.', False),
+                     ('After checking the pin, the reviewer runs the tests.', False),
+                     ('Assuming P, the bound follows.', False),
+                     ('Writing f = g, we obtain the identity.', False),
+                     ('Using the lemma, we bound the error.', False),
+                     ('Deleting the file, the error disappears.', True)]
             for text, expected in cases:
                 with self.subTest(text=text):
                     found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
                     self.assertEqual(any(f.rule == 'V2' for f in found), expected)
             text = 'Run the tests before\nmaking a change.'
             found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
-            self.assertEqual([f.line for f in found if f.rule == 'V2'], [2])
+            self.assertEqual([f.line for f in found if f.rule == 'V2'], [])
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Work in STFspec
+# Working in STFspec
 
 *Status: current repository entry point. Date: 2026-11-03.*
 
@@ -38,7 +38,7 @@ Where possible, `check-decls` and `scripts/check_boundaries.py` enforce these ru
 - **Copyrighted references** (books, papers): cite them, and never commit or publish copies.
 - **Other repositories:** never modify local checkouts of other repositories (EELS, VCV-io, CompPoly, evm-asm and others). Use fresh clones in a scratch directory.
 
-## Work as an agent
+## Working as an agent
 
 This file and [`CONTRIBUTING.md`](CONTRIBUTING.md) apply in any harness. Work by agents follows CONTRIBUTING §6.4 to §6.6:
 
@@ -48,9 +48,9 @@ This file and [`CONTRIBUTING.md`](CONTRIBUTING.md) apply in any harness. Work by
 
 Harness-specific configuration stays local and only points to those sections.
 
-[`CONTRIBUTING.md` §5.5](CONTRIBUTING.md#5-tests-review-and-automation) owns the severity of findings and the treatment of issues with tools, and §6.4 defines a clean review verdict. Apply those rules before you treat a review recommendation as a merge blocker.
+[`CONTRIBUTING.md` §5.5](CONTRIBUTING.md#5-tests-review-and-automation) owns the severity of findings and the treatment of tooling issues, and §6.4 defines a clean review verdict. Apply those rules before you treat a review recommendation as a merge blocker.
 
-Before you draft or revise any prose, follow [`WRITING-WORKFLOW.md`](WRITING-WORKFLOW.md). Prose includes documents, docstrings, comments, commit messages, pull request and issue text, and review reports. In a passage that you revise, assess the prose against [`WRITING.md`](WRITING.md) and correct its defects.
+Before you draft or revise any prose, follow [`WRITING-WORKFLOW.md`](WRITING-WORKFLOW.md). Prose includes documents, docstrings, comments, commit messages, pull request and issue text, and review reports. Preserve mandatory accuracy, citation and claim duties, and consider the general style advice in [`WRITING.md`](WRITING.md). CONTRIBUTING §5.5 governs the severity of a finding.
 
 ## Task map
 
@@ -64,7 +64,7 @@ Before you draft or revise any prose, follow [`WRITING-WORKFLOW.md`](WRITING-WOR
 | Record the outcome of an investigation | `STFSpec/informal/DECISIONS.md` | The dispositions (or a decision) in DECISIONS and the affected specs, in the same change | `scripts/check_spec.py` |
 | Performance work | CONTRIBUTING §3 and `STFSpec/informal/REVIEW.md` §7 (cost checks C1–C4) | DEBT.md and the decision record | A benchmark with a correctness gate, with no checksum in the timed loop |
 | Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | Add a regression fixture first. | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`, then `python3 scripts/test_spec_checks.py` |
-| Write or revise prose: documents, docstrings, comments, commit messages, pull request and issue text, review reports | `WRITING.md`, `WRITING-VOCABULARY.md` and the owner of the text (`WRITING-WORKFLOW.md` §1) | The text only, with unrelated rewrites in a separate change | The final pass of `WRITING-WORKFLOW.md` §5, and optionally the advisory `scripts/writing_hints.py`, which is not a check |
+| Write or revise prose: documents, docstrings, comments, commit messages, pull request and issue text, review reports | `WRITING.md`, `WRITING-VOCABULARY.md` and the owner of the text (`WRITING-WORKFLOW.md` §1) | The text only, with unrelated rewrites in a separate change | The reading pass of `WRITING-WORKFLOW.md` §5, and optionally the advisory `scripts/writing_hints.py`, which is not a check |
 | Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`, and `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | None | `(cd STFSpecMathlib && lake build) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`, and the same for `STFSpecSecurity` with `security` |
 
 ## Open items
@@ -72,7 +72,7 @@ Before you draft or revise any prose, follow [`WRITING-WORKFLOW.md`](WRITING-WOR
 Each of these items has an owner, so do not restate it elsewhere:
 
 - The blockers of the informal specification: [`STFSpec/informal/GAPS.md`](STFSpec/informal/GAPS.md) (generated), with the cross-cutting items X1–X16 in `STFSpec/informal/GAPS-CROSSCUTTING.md`.
-- Open investigations: fuel adequacy (`STFSpec/informal/REVIEW.md` §7 G2–G7) and agreement of the witness with the full state (S2). REVIEW §6 covers both.
+- Pending investigations: fuel adequacy (`STFSpec/informal/REVIEW.md` §7 G2–G7) and agreement of the witness with the full state (S2). REVIEW §6 covers both.
 - Open interface items F6, F7, F11 and O2: `STFSpec/informal/DECISIONS.md` §3.
 - O12, host resources: `STFSpec/informal/DISCREPANCIES.md` DISC-001 and DISC-006.
 
@@ -82,7 +82,7 @@ Follow these conventions:
 
 - **One owner per fact** (the authority list above). Everything else cites by ID: `D5`, `B8`, `Q20`, `F7`, `O13`, `DISC-001`, `X6`, `G2`.
 - **Status and date.** Every document opens with a status and date line. A snapshot also names the external commit that it describes.
-- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, `STFSpec/informal/citation-remap.json`, `STFSpec/informal/citation-remap-manual.txt` and the README diagram.
+- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, `STFSpec/informal/citation-remap.json`, `STFSpec/informal/citation-remap-manual.txt`, and the README diagram.
 - **Superseded material.** Do not rewrite it in place. Give it a supersession note that maps its sections to their current owners. Remove it when all of it is superseded, and git history keeps it.
 - **Paths.** Use repository-relative paths only. Cite the reference as EELS `file:line` at the pin.
 - **Prose** follows [`WRITING.md`](WRITING.md).

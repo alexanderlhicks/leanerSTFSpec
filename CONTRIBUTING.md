@@ -1,4 +1,4 @@
-# Contribution guidance for STFspec
+# Contributing to STFspec
 
 *Status: current contributor guidance. Date: 2026-11-03.*
 
@@ -9,7 +9,7 @@ Contributions of these kinds are welcome:
 - A fix for a discrepancy with the reference
 - An improvement to a spec guidance document or to the checkers
 
-**Start with [`AGENTS.md`](AGENTS.md).** It maps each kind of task to the documents to read and update, and to the checks to run. It also gives the authority order for documents that disagree. This file covers the principles that every contribution follows (§1–§5). Then it covers the workflow, review gate and roles for work by agents (§6), the Lean style (§7) and documentation (§8). The repository cites §1–§5 by number, so keep their numbers stable.
+**Start with [`AGENTS.md`](AGENTS.md).** It maps each kind of task to the documents to read and update, and to the checks to run. It also gives the authority order for documents that disagree. This file covers the principles that every contribution follows (§1–§5). Then it covers the workflow, review gate and roles for work by agents (§6), the Lean style (§7) and documentation (§8). The repository cites §1–§5 by number, so keep their numbering stable.
 
 ## 1. The golden rule: EEST zkevm conformance
 
@@ -17,14 +17,14 @@ The spec must pass the EEST zkevm fixtures for the guest (`statelessInputBytes �
 
 A finite corpus cannot determine behaviour on every uncovered input. Outside fixture coverage, the **pinned EELS source** at the same release commit governs. We read it as a specification, together with the pinned behaviour of its dependencies. Disagreements, accidental Python behaviour and unclear cases follow the discrepancy policy in [`STFSpec/informal/CONTRACT.md`](STFSpec/informal/CONTRACT.md) §6.
 
-- Differential testing and fuzzing against other implementations are **bug-finding tools, not sources of truth**. We investigate each disagreement. The fixtures settle it. Where they are silent, the pinned EELS source settles it, and we report the gap upstream. Deference to another implementation never settles it.
+- Differential testing and fuzzing against other implementations are **bug-finding tools, not sources of truth**. We investigate each disagreement. The fixtures settle it. Where they are silent, a reading of EELS settles it, and we report the gap upstream. Deference to another implementation never settles it.
 - Proofs about the spec (for example witness soundness) add confidence in *properties*. They do not replace conformance.
 
 ## 2. Legibility is a first-class requirement
 
 The spec is not a black box for optimization. Like EELS, whose choice of Python reflects this aim, it must support human discussion of the semantics. The aim is **formality, legibility and performance together, balanced deliberately**:
 
-- Design decisions are explicit and open to inspection. Each one has a record in [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md) with its rationale. As a result, a reader can assess the expected qualitative properties from the text, as well as from tests.
+- Design decisions are explicit and open to inspection. Each one has a record in [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md) with its rationale. As a result, a reader can check the qualitative properties that we expect of the spec by reading, not only by testing.
 - Structure and names follow EELS wherever that does not conflict with totality or performance (§7.2). Where they conflict, document the deviation.
 - A reader should be able to find the spec definition that corresponds to any EELS function. The reader should not need to understand an optimization before they read that definition.
 
@@ -67,38 +67,53 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern. 
 
 ## 5. Tests, review and automation
 
-Apply these test, review and automation rules:
-
-1. **Tests are necessary, not the definition.** A pass of the pinned fixtures is mandatory (§1). But the spec is not an artefact whose only purpose is to pass tests. It must state the protocol semantics faithfully and legibly in its own right.
+1. **Tests are necessary, not the definition.** Passing the pinned fixtures is mandatory (§1). But the spec is not a test-passing artefact: it must carry meaning in its own right, as a legible, faithful statement of the protocol's semantics.
    - No fixture-specific special cases.
-   - No definition that follows what the corpus happens to exercise instead of what the reference means.
+   - No definition shaped by what the corpus happens to exercise rather than by what the reference means.
    - A change that keeps the tests green but makes a definition less faithful or less legible is a regression.
-2. **Review is continuous and proportionate.** Reviews produce findings, recorded as gaps, discrepancies or decision questions. They are not a set of preconditions that always grows and that nothing could satisfy. The bar for progress is that known issues are *recorded, owned and not hidden*. The bar is not that every conceivable issue is closed first.
+2. **Review is continuous and proportionate.** Reviews produce findings, recorded as gaps, discrepancies or decision questions. They are not an ever-growing set of preconditions that nothing could satisfy. The bar for proceeding is that known issues are *recorded, owned and not hidden*, not that every conceivable issue is closed first.
 3. **Automate only what is strictly deterministic.** CI and other automated checks enforce properties with an exact, mechanical definition:
-   - Builds and warnings
-   - Import boundaries, and their agreement with the dependency table of the architecture
-   - Compiled-declaration checks (axioms, `sorry`, `partial`/`opaque`, extern, `@[csimp]`) and kernel replay of every module of the libraries of each package
-   - EELS coverage and ownership
-   - Pins and checksums
-   - Fixture conformance (once the conformance runner exists)
-   - Freshness of generated documents
-   - The regression tests of the checkers themselves
+   - builds and warnings;
+   - import boundaries, and their agreement with the architecture's dependency table;
+   - compiled-declaration checks (axioms, `sorry`, `partial`/`opaque`, extern, `@[csimp]`) and kernel replay of every module of each package's libraries;
+   - EELS coverage and ownership;
+   - pins and checksums;
+   - fixture conformance (once the conformance runner exists);
+   - generated-document freshness;
+   - the regression tests of the checkers themselves.
 
-   Qualities without such a definition, such as legibility, argument quality, faithfulness of intent, or "enough" test coverage, are review matters. Heuristic CI checks never approximate them. For example, the spec checker verifies that an informal argument *has* its Claim/Premises/Argument/Open-obligations parts. It never judges whether the argument convinces a reader.
-4. **The spec guidance documents are informal by design.** They are Markdown, written for the implementer, human or agent. They must be precise enough to determine exactly what to build. That precision covers behaviour, order, failures, ownership and the place of the module in the end-to-end spec. They do **not** need to typecheck, and they must not try to carry Lean proofs.
-   - Lean-like signatures convey names, inputs, outputs, error channels and ownership. Implementation work fixes the exact Lean types, resolves placeholders and compiles the interfaces.
-   - The informal correctness arguments are *sketches*: the claim, the premises, why it should hold, and what remains open. They tell the implementer what to prove and suggest how. The proofs themselves are the work of the implementer.
-   - One question judges precision: can an implementer act on it without a guess?
-5. **A finding that blocks requires a material reason.** Review the stated work item and the contracts and evidence that it relies on. A blocker identifies the requirement that governs, the affected behaviour or claim, and the evidence. That evidence is a counterexample, a failed required check, a source discrepancy, or a missing required proof or test case. Lean proofs that pass do not by themselves establish reference fidelity or compiled behaviour. But a request for more testing alone does not establish a defect either.
-   - **Blockers:** these findings block:
-     - Incorrect semantics or failure order
-     - A violated public contract, trust boundary or applicable resource requirement
-     - Missing required validation
-     - Documentation or evidence that materially misstates what was implemented or verified
-
-     A Python or shell defect qualifies when it changes required behaviour or makes evidence that the work item uses unreliable. Examples are the execution of the wrong oracle code, the authentication of different bytes and the loss of CLI reply framing.
-   - **Improvements that do not block:** format, name preferences, unused imports, equivalent helper organization and cosmetic documentation edits. They also include speculative changes to strengthen the harness, absent an identified material consequence. These findings remain recommendations even when a style convention supports them. An author may fix them in this change or in a separate change for polish. A deferral needs no waiver, new issue or proof that the observation is wrong.
-   - **Scope:** unrelated cleanup of tools belongs in a separate work item. Cleanup that predates this work item also belongs there. If a defect in a tool prevents required validation, fix that prerequisite separately or as a focused dependency. Do not expand the Lean contribution into a general rewrite of the harness. A failed required check still needs resolution. Propose additional general checks separately, with regression evidence. Do not make an unrelated new gate a condition of the current contribution. Open repository obligations block only the work or readiness claim that they affect. Cosmetic script lint may be advisory, but it is not a required merge gate.
+   Qualities without such a definition, such as legibility, argument quality, faithfulness of intent, or "enough" test coverage, are review matters. They are never approximated by heuristic CI checks. For example, the spec checker verifies that an informal argument *has* its Claim/Premises/Argument/Open-obligations parts, never whether it is convincing.
+4. **The spec guidance documents are informal by design.** They are Markdown written for the implementer, human or agent, and must be precise enough to determine exactly what to build: behaviour, ordering, failures, ownership, and how the module fits the end-to-end spec. They do **not** need to typecheck, and they must not try to carry Lean proofs.
+   - Lean-like signatures convey names, inputs, outputs, error channels and ownership. Fixing exact Lean types, resolving placeholders and compiling the interfaces is implementation work.
+   - The informal correctness arguments are *sketches*: the claim, the premises, why it should hold, and what remains open. They tell the implementer what to prove and suggest how; the proofs themselves are the implementer's.
+   - Precision is judged by one question: can an implementer act on it without guessing?
+5. **Blocking findings require a material reason.** Review the stated work item and
+   the contracts and evidence it relies on. A blocker identifies the governing
+   requirement, the affected behavior or claim, and supporting evidence: a
+   counterexample, a failed required check, a source discrepancy, or a missing
+   required proof or test case. Passing Lean proofs alone does not establish
+   reference fidelity or compiled behavior, but a request for more testing alone
+   does not establish a defect either.
+   - **Blockers:** incorrect semantics or failure order; a violated public contract,
+     trust boundary or applicable resource requirement; missing required validation;
+     or documentation/evidence that materially misstates what was implemented or
+     verified. A Python or shell defect qualifies when it changes required behavior
+     or makes evidence used by the work item unreliable—for example, executing the
+     wrong oracle code, authenticating different bytes, or losing CLI reply framing.
+   - **Non-blocking improvements:** formatting, naming preferences, unused imports,
+     equivalent helper organization, cosmetic documentation edits and speculative
+     harness hardening, absent an identified material consequence. These remain
+     recommendations even when a style convention supports them. They may be fixed
+     now or in a separate polishing change; no waiver, new issue or proof that the
+     observation is wrong is required to defer them.
+   - **Scope:** unrelated or pre-existing tooling cleanup belongs in a tooling work
+     item. If a tooling defect prevents required validation, fix that prerequisite
+     separately or as a focused dependency; do not expand the Lean contribution into
+     a general harness rewrite. A failed required check still needs resolution.
+     Propose additional general checks separately, with regression evidence; do not
+     make an unrelated new gate a condition of the current contribution. Open
+     repository obligations block only the work or readiness claim they affect.
+     Cosmetic script lint may be advisory; it is not a required merge gate.
 
 ## 6. Workflow and pull requests
 
@@ -262,42 +277,22 @@ lake build EthConformance fixture-records --wfail
 python3 scripts/test_fixture_archive.py
 ```
 
-These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Elapsed-time measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. The source-coupling check is separate.
+These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
 
-For a change to `STFSpecMathlib/` or `STFSpecSecurity/`, also run `lake build --wfail` in that directory. Then run `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same commands with `security`.
-
-Regenerate these files, and never edit them by hand:
-
-- `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md` and `eels-inventory.json`
-- `citation-remap.json` and `citation-remap-manual.txt`, with `scripts/remap_citations.py --apply` (no clone needed)
-- The README diagram
-
-`remap_citations.py --check` fails in either case:
-
-- A recorded pre-remap EELS citation reappears in its recorded context.
-- A listed citation changed or is absent.
-
-Resolve each entry explicitly:
-
-- If the citation is fixed or removed, use `--apply --drop-resolved DOC:LINE`.
-- If the citation still refers to the old commit but moved within its document, use `--apply --relist DOC:LINE DOC:NEWLINE`. Use the same route if its context or format changed.
-- For a move to another document, use `--drop-resolved` and read the new line with `--since`.
-- If the citation is already correct at the pin, use `--apply --confirm DOC:LINE` with `--eels`.
-
-The check cannot recognize old line numbers in new or edited prose. A branch that predates the remap (GAPS-CROSSCUTTING X16) must merge main and resolve conflicted lines to its own pre-remap numbers. After that merge, you must run `python3 -I scripts/remap_citations.py --apply --since <merged main commit> --eels <execution-specs clone>` and commit the result. The script's docstring states its rules.
+Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there, then `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same with `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, `citation-remap.json` and `citation-remap-manual.txt` (`scripts/remap_citations.py --apply`, no clone needed), and the README diagram. `remap_citations.py --check` fails when a recorded pre-remap EELS citation reappears in its recorded context, or a listed one changed or no longer occurs; resolve each such entry explicitly, with `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at the old commit but was moved within its document, edited around or reformatted (for a move to another document, `--drop-resolved` it and read the new line with `--since`), or `--apply --confirm DOC:LINE` (with `--eels`) if it is already correct at the pin. The check cannot recognise old line numbers in new or edited prose. So a branch cut before the remap (GAPS-CROSSCUTTING X16) must, after merging main and resolving conflicted lines to its own pre-remap numbers, run `python3 -I scripts/remap_citations.py --apply --since <merged main commit> --eels <execution-specs clone>` and commit the result. The script's docstring states its rules.
 
 ### 6.4 Review and commit gate
 
 Every change is a **work item**: a self-contained change that one reviewer can hold in full, for example one type with its operations and laws. Commit a work item only when all of these conditions hold for the exact tree that you commit:
 
 - Every check in §6.3 passes, together with the tests of the item. These tests are the deterministic and failure-order cases that its spec guidance lists (§4 of each guidance document). They include a differential comparison against EELS where the guidance requires one.
-- An **independent adversarial review** of that exact diff (§6.6, *adversarial reviewer*) found it **clean**. That verdict means that the required checks ran and that no unresolved finding under §5.5 blocks the change. Other recommendations may remain. Fix a blocker, or rebut it with written evidence in the pull request. A deferred nit needs no rebuttal. Any change after the review needs another review.
+- An **independent adversarial review** of that exact diff (§6.6, *adversarial reviewer*) found it **clean**. That verdict means that the required checks ran and that no blocking finding under §5.5 remains unresolved. Non-blocking recommendations may remain. Fix a blocker, or rebut it with written evidence in the pull request. A deferred nit needs no rebuttal. Any change after the review needs another review.
 - The documentation is current (§6.5).
 - The commit message follows the conventions of §6.2 and summarizes the change, the evidence and the review verdicts.
 
 A commit never contains `sorry` in the core, a banned construct (§4), a failed or skipped check, or unreviewed code.
 
-### 6.5 Pull requests, stacks and documentation
+### 6.5 Pull requests, stacking and documentation
 
 Follow these contribution rules:
 
@@ -329,7 +324,7 @@ Use these roles:
 - **Researcher** (read-only on tracked files). It answers one question about the pinned EELS source, its dependencies, the fixtures, literature or prior art. It marks each claim verified (code read at the pin, command run, measurement taken) or inferred. It cites EELS as `file:line` at the pin. It proposes changes to decisions or guidance, but it never makes them.
 - **Prototyper.** It settles a design question or measurement before the core depends on it. It works in isolated throwaway code outside the core, in a separate package that requires nothing from the core. It separates what runs from what it assumes. It gives exact reproduction commands and a measurement method that complies with §3. It proposes a disposition with evidence.
 - **Implementer.** It implements exactly one work item on its branch: definitions, laws, proofs and tests. It follows the spec guidance and REVIEW §3, §4 and §7, under §4 and §7 of this file. If the guidance is wrong, ambiguous or incomplete, it stops and reports the problem. It does not fill the gap by convention. It updates the documentation (§6.5). It reports the exact check output, the source-to-Lean rows, the laws proved and the open obligations.
-- **Conformance engineer.** It builds the `EthConformance` runners, the `core` profile, replay records and differential harnesses against EELS, as its spec guidance specifies. Fixtures are decisive (§1): a mismatch is a failure of the spec, and it never gets a special case. Use the tools to authenticate the archive before use. CI jobs are deterministic and bounded.
+- **Conformance engineer.** Builds the `EthConformance` runners, the `core` profile, replay records and differential harnesses against EELS, as its spec guidance specifies. Fixtures are decisive (§1): a mismatch is a failure of the spec, never special-cased; the archive is authenticated before use; CI jobs are deterministic and bounded.
 - **Adversarial reviewer** (never edits). It judges only the diff, the brief and the documents that govern the change, without the context of the implementer. It tries to break the change in these areas:
   - Fidelity to the pinned EELS, with every failure condition and its order
   - The stated laws, and the one-owner rule
@@ -338,23 +333,23 @@ Use these roles:
   - The data structures against the guidance or DEBT
   - Documentation drift
 
-  It runs the checks again itself. It returns **clean** or **not clean** as §6.4 defines, with findings classified under §5.5: **"blocking"**, **"should fix"** (a recommendation), or **"nit"** (polish). A blocker names the requirement that governs it, the affected behaviour or claim, file:line and evidence.
+  It runs the checks again itself. It returns **clean** or **not clean** as §6.4 defines, with findings classified under §5.5: **blocking**, **should fix** (non-blocking recommendation), or **nit** (non-blocking polish). A blocker names the requirement that governs it, the affected behaviour or claim, file:line and evidence.
 
-  The report lists what the reviewer could not verify, and it keeps findings about tools distinct from Lean semantic findings. A correctly classified script nit cannot turn a clean Lean work item into a **not clean** verdict. The reviewer never reports clean on unrun required checks. Items that other modules depend on (shared types, seams, laws that other modules use) get two independent reviewers.
-- **Polisher.** It improves accepted work for legibility and style (§2, §7) without changes to behaviour, public signatures or stated laws. Its work covers names, structure, helper ownership, proof clarity, docstrings and stale documentation. It works on one theme per pass, and its result needs another review.
+  The report lists what the reviewer could not verify, and it keeps tooling findings distinct from Lean semantic findings. A correctly classified script nit cannot turn a clean Lean work item into a **not clean** verdict. The reviewer never reports clean on unrun required checks. Items that other modules depend on (shared types, seams, laws that other modules use) get two independent reviewers.
+- **Polisher.** Improves accepted work for legibility and style (§2, §7) without changing behaviour, public signatures or stated laws: naming, structure, moving duplicated helpers to their owner, proof clarity, docstrings, stale documentation. One theme per pass; the result goes back through review.
 
 Harness-specific configuration (for example agent definition files) is local to each contributor. Contributors do not commit it, and it only points to this section.
 
 An author who uses an agent or another tool stays responsible for the result. These tasks remain with the author:
 
-- Read the main theorem or law statements and the full description before you request review.
+- Read the statements of the main theorems or laws that the change proves, and the full description, before you request a review.
 - Keep session notes, plans and handoff notes out of the contribution.
 - Replace a temporary plan identifier that readers cannot access with an explanation or a maintained identifier.
 - Coordinate concurrent tool runs, so that they do not open two pull requests for the same target.
 
-## 7. Lean style and names
+## 7. Lean style and naming
 
-We follow the [Lean community conventions for style and names](https://leanprover-community.github.io/contribute/index.html) (as mathlib does), with the project-specific rules below. Where this file and the community guide differ, this file wins. When in doubt, match the adjacent code.
+We follow the [Lean community's style and naming conventions](https://leanprover-community.github.io/contribute/index.html) (as mathlib does), with the project-specific rules below. Where this file and the community guide differ, this file wins. When in doubt, match the adjacent code.
 
 ### 7.1 Files and modules
 
@@ -372,7 +367,7 @@ Use these file and module conventions:
   then imports, then a module docstring (§8.1). Do not add a separate line that attributes the file to an AI tool. The header credits the STFspec contributors, and it has no other author line.
 - Import only what the file uses, and only within the allowed dependencies of the library.
 
-### 7.2 Names
+### 7.2 Naming
 
 Use these name conventions:
 
@@ -403,11 +398,11 @@ Use these name conventions:
 
   Where the record already lives in a state or backend, read its constants field. A function that runs before that context exists, such as `validateHeader`, takes `consts` explicitly, and the notation names its fields. Bind context notation in its own section, so that it projects the stored record and does not capture an outer `consts`.
 
-### 7.3 Format
+### 7.3 Formatting
 
 Use this source format:
 
-- Keep lines under 100 characters. Use two-space indentation, no tabs and no end-of-line whitespace.
+- Keep lines under 100 characters. Use two-space indentation, no tabs and no trailing whitespace.
 - Put spaces around `:`, `:=` and infix operators. An operator that breaks a line ends the line and does not start the next one.
 - Write `fun x ↦ …`, `where` syntax for instances and structures, and a space after binders (`∀ x,`).
 - Put hypotheses to the left of the colon (`(h : P) : Q`) when the proof introduces them.
@@ -424,7 +419,7 @@ Apply these implementation rules:
 - **Automation on well-scoped goals.** `simp`, `omega`, `decide` (small, concrete) and similar tactics are fine as terminal steps or after an explicit transformation. Profile a slow proof before you rewrite it. Do not squeeze stable terminal `simp` calls without a measured reason.
 - **Monads and errors.** Follow the three failure channels (D14): frame exits as values, protocol rejections as typed errors and internal failures as `InternalError`. Every hashing interface stays generic in `m` (D5), and only public entry points specialize to `Id`.
 
-### 7.5 Names and deprecation
+### 7.5 Renaming and deprecation
 
 Until the first tagged release, rename freely, but update every caller and the spec guidance in the same change. After a release, keep a deprecated alias for renamed public declarations:
 
@@ -450,13 +445,13 @@ Use these citation conventions:
 - **Papers and books:** cite them in a `## References` section of the module docstring, as `* Author(s), *Title*, venue year`, and refer to them in text by author and year. Link a public version where one exists. Never add copies of copyrighted papers or books to the repository.
 - **Other implementations and specifications** (evm-sail, clients, cryptography-specs): you may link them directly, with a commit where the claim depends on one.
 
-### 8.3 Prose
+### 8.3 Writing
 
-[`WRITING.md`](WRITING.md) sets the standard for repository prose: documents, docstrings, comments, commit messages, pull request descriptions, issue text and review reports. It applies to every author, human or agent. It uses ASD-STE100 Simplified Technical English to correct defects in the current prose, and it marks each adaptation for technical text.
+[`WRITING.md`](WRITING.md) gives guidance for repository prose: documents, docstrings, comments, commit messages, pull request descriptions, issue text and review reports. It applies to every author, human or agent. Existing accuracy, citation and claim duties remain mandatory within their owner documents. General style advice is advisory, uses ASD-STE100 Simplified Technical English as a reference and marks local adaptations.
 
-Draft or revise that prose with the [prose workflow](WRITING-WORKFLOW.md), and use the terms of the [vocabulary](WRITING-VOCABULARY.md). A style edit keeps claims, hypotheses, uncertainty and requirement strength unchanged.
+Draft or revise that prose with the [writing workflow](WRITING-WORKFLOW.md), and use the terms of the [vocabulary](WRITING-VOCABULARY.md). A style edit keeps claims, hypotheses, uncertainty and requirement strength unchanged.
 
-Legibility is a review matter (§5.3), so no CI check applies the standard. Under §5.5, a prose finding is a recommendation that does not block, unless the text materially misstates what was implemented or verified. The advisory script `scripts/writing_hints.py` reports some patterns for authors, but its output is neither required nor sufficient.
+Legibility is a review matter (§5.3), so no CI check applies the standard. Under §5.5, a writing finding is a non-blocking recommendation, unless the text materially misstates what was implemented or verified. The advisory script `scripts/writing_hints.py` reports some patterns for authors, but its output is neither required nor sufficient.
 
 ## 9. Code of conduct
 

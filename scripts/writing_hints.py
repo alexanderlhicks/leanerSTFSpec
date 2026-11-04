@@ -13,7 +13,7 @@ reports patterns that a search can find:
 - WRITING S5: contractions
 - WRITING W8: "-ise" spellings such as "optimise", which neither Oxford nor American spelling uses
 - WRITING V1: perfect and progressive verb forms
-- WRITING V2: introductory clauses and gerunds after prepositions
+- WRITING V2: some introductory clauses whose actor and meaning need manual review
 - WRITING S7: a sentence that starts with "This" or "These" and a verb, with no noun
 - WRITING W1 and WRITING C8: the words to avoid in `WRITING-VOCABULARY.md`
 
@@ -99,8 +99,10 @@ PROGRESSIVE = re.compile(r"\b(?:is|are|was|were|be|been)\s+(\w+ing)\b", re.IGNOR
 BARE_THIS = re.compile(
     r"^(?:This|These)\s+(?:is|are|was|were|means|makes|ensures|lets|gives|shows|allows|"
     r"requires|keeps|fixes|adds|avoids|matches|also|will|can)\b")
-# "During" is a preposition, not an "-ing" form of a verb.
+# This pattern does not determine whether an actor is clear or dangling.
 ING_START = re.compile(r"^(?!During\b)[A-Z][a-z]+ing\b[^,.;:]{0,80},")
+CONVENTIONAL_INTRO = re.compile(
+    r"^(?:(?:Assuming|Writing)\b|Using\b[^,.;:]*,\s+(?:we|you|I|they)\b)")
 # Oxford and American spelling both write "-ize" for these stems (WRITING W8). A fixed list avoids
 # words such as "otherwise", "premise" and "precise".
 ISE_STEMS = ("author", "canonical", "categor", "character", "custom", "emphas", "final", "general",
@@ -109,11 +111,8 @@ ISE_STEMS = ("author", "canonical", "categor", "character", "custom", "emphas", 
              "standard", "summar", "synchron", "token", "util", "visual", "sanit", "formal")
 ISE_SPELLING = re.compile(
     rf"\b(?:{'|'.join(ISE_STEMS)})is(?:e|es|ed|ing|ation|ations)\b", re.IGNORECASE)
-PREPOSITION_ING = re.compile(
-    r"\b(?:after|before|by|for|from|in|of|on|through|to|upon|with|without|when|while|than|as)"
-    r"\s+(?:not\s+)?(?P<form>[A-Za-z]+ing)\b", re.IGNORECASE)
 NON_VERBAL_WORDS = {"nothing", "something", "anything", "everything", "during", "missing",
-                    "remaining", "string", "strings", "ring", "rings", "thing", "things", "hamming", "turing"}
+                    "remaining", "existing", "string", "strings", "ring", "rings", "thing", "things", "hamming", "turing"}
 EM_DASH = re.compile(r"—|\s–\s|\s--\s")
 FORMATTED_TERM = r"(?:\[[^\]]+\]\((?:[^()]|\([^()]*\))*\)|``[^`]+``|`[^`]+`|\$[^$]+\$|\*\*[^*]+\*\*)"
 DEFINITION_SEPARATOR = re.compile(
@@ -172,20 +171,36 @@ def avoid_words(vocabulary: Path = VOCABULARY) -> tuple[list[str], list[str]]:
 
 
 def technical_ing_nouns(vocabulary: Path = VOCABULARY) -> set[str]:
-    """Read the technical -ing terms in the vocabulary's dedicated table."""
+    """Read complete technical terms from the dedicated, optionally numbered section."""
     text = vocabulary.read_text(encoding="utf-8")
-    section = re.search(r"^## Technical -ing nouns\s*$", text, re.MULTILINE)
+    section = re.search(
+        r"^(#{2,6})[ \t]+(?:\d+(?:\.\d+)*\.?[ \t]+)?Technical -ing nouns[ \t]*#*[ \t]*$",
+        text, re.MULTILINE | re.IGNORECASE)
     if section is None:
-        return set()
-    body = re.split(r"^## ", text[section.end():], maxsplit=1, flags=re.MULTILINE)[0]
+        raise ValueError(f"no Technical -ing nouns section found in {vocabulary}")
+    body = text[section.end():]
+    for heading in re.finditer(r"^(#{1,6})[ \t]+", body, re.MULTILINE):
+        if len(heading.group(1)) <= len(section.group(1)):
+            body = body[:heading.start()]
+            break
     result: set[str] = set()
     for row in body.splitlines():
         if not row.lstrip().startswith("|"):
             continue
-        first = row.strip().strip("|").split("|", 1)[0]
-        for term in re.findall(r"`([^`]+)`", first):
-            result.update(word.lower() for word in re.findall(r"\b[A-Za-z]+ing\b", term))
+        cells = row.strip().strip("|").split("|")
+        terms = re.findall(r"`([^`]+)`", cells[0])
+        if terms and (len(cells) < 2 or not cells[1].strip()):
+            raise ValueError(f"technical term has no meaning in {vocabulary}: {row}")
+        result.update(" ".join(term.casefold().split()) for term in terms)
+    if not result:
+        raise ValueError(f"no technical terms found in {vocabulary}")
     return result
+
+
+def technical_term_start(text: str, terms: set[str]) -> bool:
+    """Match a complete term at a sentence opening, with word boundaries intact."""
+    return any(re.match(re.escape(term).replace(r"\ ", r"\s+") + r"(?![\w-])",
+                        text, re.IGNORECASE) for term in terms)
 
 
 def word_pattern(words: list[str]) -> re.Pattern[str] | None:
@@ -402,6 +417,14 @@ def lean_blocks(path: str, text: str) -> list[Block]:
                 else:
                     cursor += 1
             body = text[body_start:cursor - 2 if depth == 0 else cursor]
+            before = text[text.rfind("\n", 0, index) + 1:index]
+            indentation = re.match(r"[ \t]*", before).group()
+            # Remove Lean's structural indentation; retain relative Markdown code indentation.
+            body_lines = body.split("\n")
+            if indentation:
+                body_lines[1:] = [part[len(indentation):] if part.startswith(indentation) else part
+                                 for part in body_lines[1:]]
+            body = "\n".join(body_lines)
             blocks.extend(markdown_blocks(path, body, line))
             line += text.count("\n", index, cursor)
             index = cursor
@@ -580,20 +603,15 @@ def check_block(block: Block, general: re.Pattern[str] | None,
     if history is not None and HISTORY_SCOPE.search(block.path):
         for match in history.finditer(plain):
             add("C8", "Describe the present state, not the history.", match.start(), match.end())
-    allowed_ings = NON_VERBAL_WORDS | (technical_ings or set())
-    for match in PREPOSITION_ING.finditer(plain):
-        form = match.group("form")
-        if form.isupper() or form.lower().endswith("string"):
-            continue  # Acronyms, file labels, and string nouns are not verb inflections.
-        if form.lower() not in allowed_ings:
-            add("V2", "Use a finite clause unless this is a technical noun or part of one.",
-                match.start("form"), match.end("form"))
     for start, end in sentence_spans(plain):
         sentence = plain[start:end]
         if BARE_THIS.match(sentence):
             add("S7", "Name the noun if this reference is ambiguous.", start, end)
-        if ING_START.match(sentence) and re.match(r"\w+", sentence).group().lower() not in allowed_ings:
-            add("V2", "Review this possible verb clause. A finite clause can be clearer.", start, end)
+        if (ING_START.match(sentence) and not CONVENTIONAL_INTRO.match(sentence)
+                and re.match(r"\w+", sentence).group().lower() not in NON_VERBAL_WORDS
+                and not technical_term_start(sentence, technical_ings or set())):
+            add("V2", "Review whether this introduction's actor and meaning are clear. "
+                "Keep a clear technical or mathematical expression.", start, end)
     return found
 
 
@@ -639,7 +657,8 @@ def added_lines(base: str) -> dict[str, set[int]]:
         if not checked_path(path):
             continue
         paths = (source, path) if status[0] in "RC" else (path,)
-        diff = git("--literal-pathspecs", "diff", *options, "--text", "--unified=0", "--no-color",
+        diff = git("--literal-pathspecs", "diff", *options, "--text", "--unified=0",
+                   "--inter-hunk-context=0", "--no-color",
                    merge_base, "--", *paths)
         lines = result.setdefault(path, set())
         for hunk in re.finditer(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", diff, re.MULTILINE):
@@ -667,6 +686,11 @@ def changed_blocks(base: str, diagnostics: list[Finding] | None = None) -> list[
     blocks: list[Block] = []
     diagnostics = [] if diagnostics is None else diagnostics
     for path, lines in sorted(added_lines(base).items()):
+        if (ROOT / path).is_symlink():
+            diagnostics.append(Finding(path, 1, "Input", "This changed source is a symlink. "
+                                       "Its link-text diff does not map to target prose lines, "
+                                       "so the script skipped its prose.", ""))
+            continue
         text = read_source(ROOT / path, path, diagnostics)
         if text is None:
             continue
@@ -684,10 +708,13 @@ def report(found: list[Finding]) -> None:
     for item in found:
         label = item.rule if item.rule == "Input" else f"WRITING {item.rule}"
         print(f"{item.path}:{item.line}: [{label}] {item.message} {item.excerpt!r}")
-    rules = sorted({f"WRITING {item.rule}" if item.rule != "Input" else "Input" for item in found})
-    summary = (f"{len(found)} writing hint(s) for rules {', '.join(rules)}. Read WRITING.md "
-               "before you edit." if found else "No writing hints.")
-    print(summary)
+    hints = [item for item in found if item.rule != "Input"]
+    rules = sorted({f"WRITING {item.rule}" for item in hints})
+    print(f"{len(hints)} writing hint(s) for rules {', '.join(rules)}. Read WRITING.md "
+          "before you edit." if hints else "No writing hints.")
+    inputs = len(found) - len(hints)
+    if inputs:
+        print(f"{inputs} Input diagnostic(s); some prose was skipped.")
 
 
 def main(argv: list[str]) -> int:
