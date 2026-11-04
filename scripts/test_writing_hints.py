@@ -89,39 +89,9 @@ class WritingRuleTests(unittest.TestCase):
                      "Complete the pull request template."]:
             self.assertNotIn("W1", findings(text), text)
 
-    def test_paragraph_length(self) -> None:
-        self.assertEqual(findings(" ".join(["One sentence."] * 7)), ["P2"])
-        self.assertEqual(findings(" ".join(["One sentence."] * 6)), [])
-
-    def test_punctuation(self) -> None:
-        self.assertEqual(findings("The code is linear; it is also cyclic."), ["U1"])
-        self.assertEqual(findings("The code is linear — it is also cyclic."), ["U2"])
-        self.assertEqual(findings("The protocol gas schedule uses costs 1–2 in this range."), [])
-        self.assertEqual(findings("Write `a; b` in Lean."), [])
-        self.assertEqual(findings("The outcomes O1–O13 and the questions Q1–Q46 are listed."), [])
-        self.assertEqual(findings("A; b."), ["U1"])
-        # A semicolon near the start of a block gives an excerpt from the start, not from the end.
-        blocks = WRITING.file_blocks("doc.md", "A; b. " + " ".join(["word"] * 10) + " end.")
-        excerpt = [item.excerpt for item in WRITING.check_blocks(blocks) if item.rule == "U1"]
-        self.assertEqual(len(excerpt), 1)
-        self.assertTrue(excerpt[0].startswith("A; b."), excerpt[0])
-
-    def test_definition_separator_is_not_a_clause_join(self) -> None:
-        for dash in ["—", "–", "--"]:
-            for term in ["`Δ₀(u, v)`", "``Δ₀(u, v)``", "$\\delta$", "**Relative distance**"]:
-                with self.subTest(dash=dash, term=term):
-                    self.assertEqual(findings(f"- {term} {dash} `hammingDist u v`."), [])
-        self.assertNotIn("U2", findings("- `Λ(C, δ, f)` and `Λ(C, δ)` — write `Code.Lambda C δ`."))
-        self.assertEqual(findings("- `Gadget/` (§2.1) — the gadget matrix."), [])
-        self.assertEqual(findings("- `EvalSplit.lean` (§4, Eq. (12)) — the matrix split."), [])
 
     def test_definition_description_is_still_checked(self) -> None:
         self.assertEqual(findings("- `δ` — We utilize the lemma."), ["W1"])
-        self.assertEqual(findings("- `δ` — relative distance — it is bounded."), ["U2"])
-        self.assertEqual(findings("- `δ` — relative distance.\n  The code is linear — it is cyclic."), ["U2"])
-        self.assertEqual(findings("- `C` is linear — it is cyclic."), ["U2"])
-        self.assertEqual(findings("- `C` (§2.1) is linear — it is cyclic."), ["U2"])
-        self.assertEqual(findings("| Term | Description |\n|---|---|\n| `C` is linear — it is cyclic. | Bound |"), ["U2"])
 
     def test_words(self) -> None:
         self.assertEqual(findings("Use a ring, e.g. the integers."), ["W7"])
@@ -131,21 +101,6 @@ class WritingRuleTests(unittest.TestCase):
         self.assertEqual(findings("Don't run the build."), ["S5"])
         self.assertEqual(findings("The prover's message is short."), [])
 
-    def test_verbs(self) -> None:
-        self.assertEqual(findings("The lemma has changed."), ["V1"])
-        self.assertEqual(findings("The verifier is rejecting the proof string."), ["V1"])
-        self.assertEqual(findings("The protocol values have bounded width."), [])
-        self.assertEqual(findings("The witness is missing."), [])
-        self.assertEqual(findings("Using the lemma, we bound the error."), [])
-        self.assertEqual(findings("Hashing halves no input by definition."), [])
-        self.assertEqual(findings("During a merge, the base is the merge base."), [])
-        self.assertEqual(findings("The request may have failed."), [])
-        self.assertEqual(findings("The bottleneck is hashing."), [])
-        self.assertEqual(findings("The gas metering is pending."), [])
-
-    def test_bare_this(self) -> None:
-        self.assertEqual(findings("The bound is tight. This is the main result."), ["S7"])
-        self.assertEqual(findings("The bound is tight. This lemma is the main result."), [])
 
     def test_history_words_apply_to_library_text_only(self) -> None:
         module = "STFSpec/informal/modules/EthBase.md"
@@ -162,8 +117,8 @@ class WritingRuleTests(unittest.TestCase):
         self.assertEqual(findings(text), [])
 
     def test_table_cells_and_header(self) -> None:
-        text = "| Rule; header | Use |\n|---|---|\n| One cell; two | Fine. |\n"
-        self.assertEqual(findings(text), ["U1"])
+        text = "| Utilize this header | Use |\n|---|---|\n| We utilize this cell. | Fine. |\n"
+        self.assertEqual(findings(text), ["W1"])
 
 
 class StfspecConventionTests(unittest.TestCase):
@@ -186,26 +141,14 @@ class StfspecConventionTests(unittest.TestCase):
             page.write_text("We utilize the lemma; it is robust.\n", encoding="utf-8")
             with mock.patch("sys.stdout", io.StringIO()) as output:
                 self.assertEqual(WRITING.main(["writing_hints.py", str(page)]), 0)
-        self.assertIn("[WRITING U1]", output.getvalue())
-        self.assertIn("writing hint(s)", output.getvalue())
+        self.assertIn("[WRITING W1]", output.getvalue())
+        self.assertIn("writing suggestion(s)", output.getvalue())
 
     def test_other_file_types_are_refused(self) -> None:
         with mock.patch("sys.stderr", io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
                 WRITING.main(["writing_hints.py", "scripts/differential.py"])
         self.assertEqual(raised.exception.code, 2)
-
-
-class SpellingTests(unittest.TestCase):
-    def test_ise_forms_are_reported(self) -> None:
-        for text in ["We optimise the map.", "The organisation is clear.", "Initialise the state.",
-                     "The interface is specialised to `Id`."]:
-            self.assertEqual(findings(text), ["W8"], text)
-
-    def test_oxford_and_american_spellings_are_accepted(self) -> None:
-        for text in ["We optimize the behaviour.", "We optimize the behavior.", "Analyse the trie.",
-                     "The premises hold otherwise.", "The bound is precise.", "Revise the text."]:
-            self.assertEqual(findings(text), [], text)
 
 
 class ToolingRegressionTests(unittest.TestCase):
@@ -240,7 +183,7 @@ class ToolingRegressionTests(unittest.TestCase):
         with mock.patch("sys.stdin", io.StringIO("A complete sentence.")), \
                 mock.patch("sys.stdout", io.StringIO()) as output:
             self.assertEqual(WRITING.main(["writing_hints.py", "--stdin", ""]), 0)
-        self.assertIn("No writing hints.", output.getvalue())
+        self.assertIn("No writing suggestions.", output.getvalue())
 
     def test_valid_symlink_keeps_the_target_history_scope(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -268,16 +211,16 @@ class LeanExtractionTests(unittest.TestCase):
             with self.subTest(indentation=repr(indentation)):
                 source = ('namespace N\n' + indentation + '/--\n'
                           + indentation + 'We utilize the helper.\n\n'
-                          + indentation + '    Code; not prose.\n\n'
-                          + indentation + 'Real prose; checked.\n'
+                          + indentation + '    We utilize code here.\n\n'
+                          + indentation + 'We utilize actual prose.\n'
                           + indentation + '-/\nend N\n')
                 found = WRITING.check_blocks(WRITING.lean_blocks('A.lean', source))
-                self.assertEqual([(f.line, f.rule) for f in found], [(3, 'W1'), (7, 'U1')])
+                self.assertEqual([(f.line, f.rule) for f in found], [(3, 'W1'), (7, 'W1')])
 
     def test_doc_comments_and_line_numbers(self) -> None:
-        source = ('/-! # Title\n\nThe module; with a problem. -/\n'
-                  'def f : Nat := 1 -- a trailing comment; also a problem\n'
-                  'def s : String := "-- not a comment; ok"\n'
+        source = ('/-! # Title\n\nWe utilize this module. -/\n'
+                  'def f : Nat := 1 -- We utilize this value.\n'
+                  'def s : String := "-- utilize is not a comment"\n'
                   '/-- The definition utilizes `x; y`. -/\n'
                   'theorem t : True := trivial\n')
         blocks = WRITING.lean_blocks("A.lean", source)
@@ -287,13 +230,13 @@ class LeanExtractionTests(unittest.TestCase):
         self.assertIn(6, lines)
         self.assertNotIn(5, lines)
         rules = {(item.line, item.rule) for item in WRITING.check_blocks(blocks)}
-        self.assertEqual(rules, {(3, "U1"), (4, "U1"), (6, "W1")})
+        self.assertEqual(rules, {(3, "W1"), (4, "W1"), (6, "W1")})
 
     def test_unterminated_comment_keeps_its_final_characters(self) -> None:
-        blocks = WRITING.lean_blocks("A.lean", "/-- First line.\nLast line;")
+        blocks = WRITING.lean_blocks('A.lean', '/-- First line.\nWe utilize')
         found = WRITING.check_blocks(blocks)
-        self.assertEqual([(item.line, item.rule) for item in found], [(2, "U1")])
-        self.assertTrue(found[0].excerpt.endswith("line;"))
+        self.assertEqual([(item.line, item.rule) for item in found], [(2, 'W1')])
+        self.assertTrue(found[0].excerpt.endswith('utilize'))
 
     def test_character_literals_do_not_start_strings(self) -> None:
         source = ("def quote : Char := '\"'\n"
@@ -358,21 +301,21 @@ class WritingRegressionTests(unittest.TestCase):
     def test_findings_point_to_the_source_line(self) -> None:
         text = ('The [reference](https://example.org/a(b)) and `x` agree.\n'
                 'The quoted "a; b" is code here.\n'
-                'The last line; needs a conjunction.\n')
+                'We utilize the last line.\n')
         found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
-        item = next(f for f in found if f.rule == 'U1')
+        item = next(f for f in found if f.rule == 'W1')
         self.assertEqual(item.line, 3)
-        self.assertIn('last line;', item.excerpt)
+        self.assertEqual(item.excerpt, 'utilize')
         self.assertNotIn('Code', item.excerpt)
 
     def test_line_numbers_in_lists_and_lean_comments(self) -> None:
-        cases = [('- First line.\n  Second line; needs a conjunction.\n', 'page.md', 2),
-                 ('/-! First line.\nSecond line; needs a conjunction.\n-/', 'A.lean', 2),
-                 ('-- First line.\n-- Second line; needs a conjunction.\n', 'A.lean', 2)]
+        cases = [('- First line.\n  We utilize the second line.\n', 'page.md', 2),
+                 ('/-! First line.\nWe utilize the second line.\n-/', 'A.lean', 2),
+                 ('-- First line.\n-- We utilize the second line.\n', 'A.lean', 2)]
         for text, path, line in cases:
             with self.subTest(path=path, text=text):
                 found = WRITING.check_blocks(WRITING.file_blocks(path, text))
-                self.assertEqual([f.line for f in found if f.rule == 'U1'], [line])
+                self.assertEqual([f.line for f in found if f.rule == 'W1'], [line])
 
     def test_word_findings_keep_source_spelling_and_line(self) -> None:
         text = 'A clean line with `code`.\nWe utilize the lemma.\n'
@@ -384,44 +327,6 @@ class WritingRegressionTests(unittest.TestCase):
         found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
         self.assertEqual([f.line for f in found if f.rule == 'S1'], [2])
 
-    def test_possession_is_not_a_perfect_tense(self) -> None:
-        for text in ['The code has correlated agreement.', 'The vector has centered norm.',
-                     'The vector has squared norm.', 'The variable has expected value zero.',
-                     'The tree has left and right children.', 'The polynomials have known degree.', 'The graph has labelled edges.']:
-            with self.subTest(text=text):
-                self.assertNotIn('V1', findings(text))
-        self.assertIn('V1', findings('The prover has squared the norm.'))
-        self.assertIn('V1', findings('The proof has changed.'))
-
-    def test_technical_states_are_not_progressive_actions(self) -> None:
-        for text in ['The commitment is binding.', 'The witness is missing.',
-                     'The gas metering is pending.']:
-            with self.subTest(text=text):
-                self.assertNotIn('V1', findings(text))
-        self.assertIn('V1', findings('The verifier is rejecting the message.'))
-
-    def test_ing_nouns_and_nonverbs_are_not_introductory_verb_clauses(self) -> None:
-        for text in ['Nothing, at present.', 'Padding bytes, as defined above, have a fixed width.',
-                     'Existing constraints, as stated, apply.',
-                     'String concatenation, as usual, is associative.',
-                     'Encoding uses bytes, so the bound applies.',
-                     'Hashing reduces the input, so use the bound.']:
-            with self.subTest(text=text):
-                self.assertNotIn('V2', findings(text))
-        self.assertNotIn('V2', findings('Using the lemma, we bound the error.'))
-        self.assertIn('V2', findings('Deleting the file, the error disappears.'))
-
-    def test_this_way_has_an_explicit_noun(self) -> None:
-        self.assertNotIn('S7', findings('This way, the prover sends one message.'))
-        self.assertIn('S7', findings('This is the main result.'))
-
-    def test_definition_separators_allow_links_and_alternatives(self) -> None:
-        for term in ['[`File.lean`](path)', '`A` / `B`', '[the term](https://example.org)', '[the term](https://example.org/a(b))',
-                     '`A` and [`B`](path)']:
-            with self.subTest(term=term):
-                self.assertNotIn('U2', findings(f'- {term} — the description.'))
-                self.assertIn('U2', findings(f'- {term} — first clause — second clause.'))
-        self.assertNotIn('U2', findings('| Term | Meaning |\n|---|---|\n| `A` | — |'))
 
     def test_latin_abbreviations_have_one_finding(self) -> None:
         for word in ['e.g.', 'i.e.', 'etc.', 'cf.', 'resp.']:
@@ -438,51 +343,47 @@ class WritingRegressionTests(unittest.TestCase):
 
     def test_fences_use_their_opening_character_and_length(self) -> None:
         for opening, inner in [('~~~~', '```'), ('````', '```'), ('~~~', '```')]:
-            text = f'{opening}\n{inner}\nNot prose; ignored.\n{opening}\n\nReal prose; checked.\n'
+            text = f'{opening}\n{inner}\nUtilize ignored code.\n{opening}\n\nWe utilize prose.\n'
             found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
-            self.assertEqual([(f.line, f.rule) for f in found], [(6, 'U1')])
+            self.assertEqual([(f.line, f.rule) for f in found], [(6, 'W1')])
 
     def test_visible_prose_after_comments_and_thematic_breaks(self) -> None:
-        for text in ['<!-- comment --> Visible prose; checked.',
-                     '---\nVisible prose; checked.\n---', '#1431 has prose; checked.']:
-            self.assertIn('U1', findings(text), text)
-        self.assertEqual(findings('    Example code; ignored.\n'), [])
-        self.assertEqual(findings('---\nstatus: current; metadata\n---\nClean prose.'), [])
+        for text in ['<!-- comment --> We utilize prose.',
+                     '---\nWe utilize prose.\n---', '#1431 utilizes prose.']:
+            self.assertIn('W1', findings(text), text)
+        self.assertEqual(findings('    Utilize example code.\n'), [])
+        self.assertEqual(findings('---\nstatus: utilize metadata\n---\nClean prose.'), [])
 
     def test_literal_comment_markers_do_not_hide_prose(self) -> None:
-        for text in ['The token `<!--` opens a comment.\nReal prose; checked.\n',
-                     '```\n<!--\n```\nReal prose; checked.\n',
-                     'The token `<!--` is code, as is `-->`.\nReal prose; checked.\n',
-                     'The token `some\n<!--\ntext` is literal.\nReal prose; checked.\n',
-                     'The text \\<!-- is literal.\nReal prose; checked.\n',
-                     'The text \\<!-- literal; --> stays visible.']:
+        for text in ['The token `<!--` opens a comment.\nWe utilize prose.\n',
+                     '```\n<!--\n```\nWe utilize prose.\n',
+                     'The token `<!--` is code, as is `-->`.\nWe utilize prose.\n',
+                     'The token `some\n<!--\ntext` is literal.\nWe utilize prose.\n',
+                     'The text \\<!-- is literal.\nWe utilize prose.\n',
+                     'The text \\<!-- utilizes a literal; --> stays visible.']:
             with self.subTest(text=text):
-                self.assertIn('U1', findings(text))
-        text = 'A clean line.\n    A bad line; this is paragraph continuation.\n'
-        self.assertIn('U1', findings(text))
+                self.assertIn('W1', findings(text))
+        text = 'A clean line.\n    We utilize this paragraph continuation.\n'
+        self.assertIn('W1', findings(text))
 
     def test_indented_list_continuations_remain_prose(self) -> None:
-        for text in ['- Outer item.\n\n    - Inner prose; checked.\n',
-                     '1. Outer item.\n\n    1. Inner prose; checked.\n',
-                     '- Outer item.\n\n    More prose; checked.\n']:
+        for text in ['- Outer item.\n\n    - We utilize prose.\n',
+                     '1. Outer item.\n\n    1. We utilize prose.\n',
+                     '- Outer item.\n\n    We utilize prose.\n']:
             with self.subTest(text=text):
-                self.assertIn('U1', findings(text))
+                self.assertIn('W1', findings(text))
 
     def test_raw_lean_strings_do_not_create_comments(self) -> None:
-        for value in ['r#"a " -- fake; comment"#', 'r"a\\"']:
-            text = f'def s := {value}\n-- Real prose; checked.\n'
+        for value in ['r#"a " -- utilize fake comment"#', 'r"a\\"']:
+            text = f'def s := {value}\n-- We utilize prose.\n'
             found = WRITING.check_blocks(WRITING.file_blocks('A.lean', text))
-            self.assertEqual([(f.line, f.rule) for f in found], [(2, 'U1')])
+            self.assertEqual([(f.line, f.rule) for f in found], [(2, 'W1')])
 
     def test_escaped_newlines_in_lean_strings_keep_comment_locations(self) -> None:
-        text = 'def s := "a\\\nb"\n-- Actual prose; checked.\n'
+        text = 'def s := "a\\\nb"\n-- We utilize prose.\n'
         found = WRITING.check_blocks(WRITING.file_blocks('A.lean', text))
-        self.assertEqual([(f.line, f.rule) for f in found], [(3, 'U1')])
+        self.assertEqual([(f.line, f.rule) for f in found], [(3, 'W1')])
 
-    def test_wrapped_technical_phrases_keep_their_meaning(self) -> None:
-        for text in ['The code has correlated\nagreement.',
-                     'The variable has expected\nvalue zero.']:
-            self.assertNotIn('V1', findings(text))
 
     def test_wrapped_phrasal_and_history_terms_remain_visible(self) -> None:
         self.assertIn('W6', findings('Carry\nout the test.'))
@@ -492,10 +393,9 @@ class WritingRegressionTests(unittest.TestCase):
         text = ('"essentially\nsurjective". Review their meaning. Do not delete them as '
                 'isolated words. "Negligible" retains its technical meaning.')
         self.assertEqual(findings(text), [])
-        text = 'The text "quoted\nwords; ignored" is literal.\nActual prose; checked.'
+        text = 'The text "utilize quoted\nwords; ignored" is literal.\nWe utilize prose.'
         found = WRITING.check_blocks(WRITING.file_blocks('page.md', text))
-        self.assertEqual([f.line for f in found if f.rule == 'U1'], [3])
-
+        self.assertEqual([f.line for f in found if f.rule == 'W1'], [3])
 
 
 class ChangedFileRegressionTests(unittest.TestCase):
@@ -526,46 +426,46 @@ class ChangedFileRegressionTests(unittest.TestCase):
         names = ['page.md', 'space name.md', 'café.md', 'quote"name.md', 'back\\slash.md',
                  'line\nbreak.md', ':(glob)nothing.md', ':(literal)foo.md', 'a[1].md', 'a*.md']
         for name in names:
-            (self.root / name).write_text('Good line.\nBad line; checked.\n')
+            (self.root / name).write_text('Good line.\nWe utilize the second line.\n')
         self.git('add', '.')
         for option in ['diff.noprefix', 'diff.mnemonicPrefix', 'core.quotePath']:
             for value in ['true', 'false']:
                 with self.subTest(option=option, value=value):
                     self.git('config', option, value)
                     found = WRITING.check_blocks(WRITING.changed_blocks('main'))
-                    self.assertEqual({f.path for f in found if f.rule == 'U1'}, set(names))
-                    self.assertEqual({f.line for f in found if f.rule == 'U1'}, {2})
+                    self.assertEqual({f.path for f in found if f.rule == 'W1'}, set(names))
+                    self.assertEqual({f.line for f in found if f.rule == 'W1'}, {2})
 
     def test_renames_check_only_edited_prose(self) -> None:
         old, new = 'old café.md', 'new name.md'
-        text = 'Existing prose; unchanged.\n\nA clean line.\n'
+        text = 'We utilize unchanged prose.\n\nA clean line.\n'
         (self.root/old).write_text(text)
         self.git('add', '.')
         self.git('commit', '-q', '-m', 'base prose')
         self.git('branch', '-f', 'main', 'HEAD')
         self.git('mv', old, new)
-        (self.root/new).write_text(text + '\nNew prose; checked.\n')
+        (self.root/new).write_text(text + '\nWe utilize changed prose.\n')
         self.git('add', '.')
         found = WRITING.check_blocks(WRITING.changed_blocks('main'))
-        self.assertEqual([(f.path, f.line) for f in found if f.rule == 'U1'], [(new, 5)])
+        self.assertEqual([(f.path, f.line) for f in found if f.rule == 'W1'], [(new, 5)])
 
     def test_inter_hunk_context_does_not_mark_unchanged_prose_as_changed(self) -> None:
         page = self.root / 'page.md'
-        page.write_text('First line.\n\nUnchanged prose; leave it.\n\nLast line.\n')
+        page.write_text('First line.\n\nWe utilize unchanged prose.\n\nLast line.\n')
         self.git('add', '.')
         self.git('commit', '-q', '-m', 'base prose')
         self.git('branch', '-f', 'main', 'HEAD')
-        page.write_text('Revised first.\n\nUnchanged prose; leave it.\n\nRevised last.\n')
+        page.write_text('Revised first.\n\nWe utilize unchanged prose.\n\nRevised last.\n')
         self.git('config', 'diff.interHunkContext', '10')
         self.assertEqual(WRITING.added_lines('main'), {'page.md': {1, 5}})
-        self.assertNotIn('U1', [f.rule for f in WRITING.check_blocks(WRITING.changed_blocks('main'))])
+        self.assertNotIn('W1', [f.rule for f in WRITING.check_blocks(WRITING.changed_blocks('main'))])
 
     def test_changed_symlink_sources_have_no_target_line_attribution(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / 'outside.md'
-            target.write_text('First paragraph.\n\nExternal prose; do not attribute it.\n')
+            target.write_text('First paragraph.\n\nWe utilize external prose.\n')
             (self.root / 'alias.md').symlink_to(target)
-            (self.root / 'good.md').write_text('Actual prose; checked.\n')
+            (self.root / 'good.md').write_text('We utilize actual prose.\n')
             self.git('add', '.')
             diagnostics = []
             blocks = WRITING.changed_blocks('main', diagnostics)
@@ -580,14 +480,14 @@ class ChangedFileRegressionTests(unittest.TestCase):
     def test_non_utf8_and_dangling_symlinks_are_advisory(self) -> None:
         (self.root / 'invalid.md').write_bytes(b'Caf\xe9; text.\n')
         (self.root / 'dangling.md').symlink_to('missing-target')
-        (self.root / 'good.md').write_text('Actual prose; checked.\n')
+        (self.root / 'good.md').write_text('We utilize prose.\n')
         self.git('add', '.')
         with mock.patch('sys.stdout', io.StringIO()) as output:
             self.assertEqual(WRITING.main(['writing_hints.py', '--base', 'main']), 0)
         self.assertIn('not UTF-8', output.getvalue())
         self.assertIn('symlink', output.getvalue())
-        self.assertIn('U1', output.getvalue())
-        self.assertNotIn('No writing hints', output.getvalue())
+        self.assertIn('W1', output.getvalue())
+        self.assertNotIn('No writing suggestions', output.getvalue())
         with mock.patch('sys.stdout', io.StringIO()) as output:
             self.assertEqual(WRITING.main(['writing_hints.py', str(self.root/'invalid.md')]), 0)
         self.assertIn('not UTF-8', output.getvalue())
@@ -614,88 +514,28 @@ class ChangedFileRegressionTests(unittest.TestCase):
         self.assertEqual(result.exception.code, 2)
 
 
-class AdaptedV2Tests(unittest.TestCase):
-    vocabulary = """## Technical -ing nouns
+class SimpleSuggestionTests(unittest.TestCase):
+    def test_grammar_and_structure_are_left_to_review(self) -> None:
+        for text in ['The verifier is rejecting the message.', 'The lemma has changed.',
+                     'Using the lemma, we bound the error.', 'The bound holds. This is the main result.',
+                     'The code is linear; it is cyclic.', 'The code is linear — it is cyclic.',
+                     'Before making a change, run the tests.', ' '.join(['One sentence.'] * 7)]:
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
 
-| Term | Technical meaning |
-|---|---|
-| `encoding`, `folding`, `sampling` | Protocol constructions |
-| `gas metering` | Resource accounting |
-| `arithmetic reasoning` | A proof method |
-| `cross-cutting gap` | A shared specification gap |
+    def test_suggestions_preserve_success_and_plain_terminology(self) -> None:
+        with mock.patch('sys.stdin', io.StringIO('We utilize this lemma.')), \
+                mock.patch('sys.stdout', io.StringIO()) as output:
+            self.assertEqual(WRITING.main(['writing_hints.py', '--stdin', 'body']), 0)
+        self.assertIn('1 writing suggestion(s)', output.getvalue())
+        self.assertIn('leave clear, correct text alone', output.getvalue())
 
-## Other terms
-
-| `making` | Outside the technical noun table |
-
-## Words to avoid
-
-| Avoid | Use |
-|---|---|
-| "utilize" | use |
-| "no longer" | present fact (WRITING C8) |
-"""
-
-    def test_technical_ing_nouns_are_vocabulary_defined(self) -> None:
+    def test_vocabulary_heading_can_be_numbered(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'vocabulary.md'
-            path.write_text(self.vocabulary)
-            self.assertEqual(WRITING.technical_ing_nouns(path),
-                             {'encoding', 'folding', 'sampling', 'gas metering',
-                              'arithmetic reasoning', 'cross-cutting gap'})
-
-    def test_numbered_heading_and_meaning_are_checked(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'vocabulary.md'
-            path.write_text(self.vocabulary.replace('## Technical -ing nouns',
-                                                    '## 4.1 Technical -ing nouns ##'))
-            self.assertIn('gas metering', WRITING.technical_ing_nouns(path))
-            for text in [self.vocabulary.replace('## Technical -ing nouns', '## Other nouns'),
-                         self.vocabulary.replace('Protocol constructions', '')]:
-                path.write_text(text)
-                with self.assertRaises(ValueError):
-                    WRITING.technical_ing_nouns(path)
-
-    def test_multiword_terms_do_not_exempt_their_component_words(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'vocabulary.md'
-            path.write_text(self.vocabulary)
-            terms = WRITING.technical_ing_nouns(path)
-            self.assertTrue(WRITING.technical_term_start('Gas\nmetering, as defined above, applies.', terms))
-            for text in ['Metering, on its own, is ambiguous.', 'Reasoning about this, the bound holds.',
-                         'Cutting the input, the size decreases.', 'EncodingExtra, as defined, applies.']:
-                with self.subTest(text=text):
-                    self.assertFalse(WRITING.technical_term_start(text, terms))
-            found = WRITING.check_blocks(WRITING.file_blocks('page.md',
-                                        'Reasoning about this, the bound holds.'), path)
-            self.assertEqual([f.rule for f in found], ['V2'])
-            self.assertIn('actor and meaning', found[0].message)
-            self.assertNotIn('finite', found[0].message)
-
-    def test_post_preposition_and_conventional_introductions_are_manual(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'vocabulary.md'
-            path.write_text(self.vocabulary)
-            cases = [('Before making a change, run the tests.', False),
-                     ('Instead of calling the function, use the cached value.', False),
-                     ('The bound follows by assuming P.', False),
-                     ('After encoding, the message has a fixed length.', False),
-                     ('The bound follows from sampling.', False),
-                     ('Nothing changes before folding.', False),
-                     ('The budget accounts for gas metering.', False),
-                     ('Refer to CONTRIBUTING for docstring rules.', False),
-                     ('After checking the pin, the reviewer runs the tests.', False),
-                     ('Assuming P, the bound follows.', False),
-                     ('Writing f = g, we obtain the identity.', False),
-                     ('Using the lemma, we bound the error.', False),
-                     ('Deleting the file, the error disappears.', True)]
-            for text, expected in cases:
-                with self.subTest(text=text):
-                    found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
-                    self.assertEqual(any(f.rule == 'V2' for f in found), expected)
-            text = 'Run the tests before\nmaking a change.'
-            found = WRITING.check_blocks(WRITING.file_blocks('page.md', text), path)
-            self.assertEqual([f.line for f in found if f.rule == 'V2'], [])
+            vocabulary = Path(directory) / 'vocabulary.md'
+            vocabulary.write_text('## 6. Words to avoid\n\n| Avoid | Use |\n|---|---|\n'
+                                  '| "utilize" | use |\n')
+            self.assertEqual(WRITING.avoid_words(vocabulary), (['utilize'], []))
 
 
 if __name__ == "__main__":

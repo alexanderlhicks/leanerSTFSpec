@@ -65,6 +65,7 @@ These terms have more than one technical meaning. Qualify a term when the passag
 | sound, soundness | (a) Logical soundness of the Lean development (kernel replay, axioms). (b) A security property such as witness soundness. | Name the property and its assumptions. |
 | total, totality | A Lean definition that terminates and returns a value on every input (CONTRIBUTING §7.4). | Write "complete" or "whole" for the ordinary meaning. |
 | catalogue | The frozen cases and expected values of a differential driver. | "test case" for a single input |
+| binding (commitments) | No one can feasibly open one commitment to two different values. | Write "variable binding" for the association of a name with a value. |
 
 ## 4. Technical nouns
 
@@ -81,31 +82,6 @@ These nouns are examples for each subject field. A noun that fits a field is per
 | Specification | library, component, component contract, guest contract, law, obligation, spec guidance document, decision, question, gap, debt, fuel |
 | Lean | declaration, definition, theorem, lemma, docstring, axiom, `sorry`, package, Lean module, instance, tactic, elaboration, kernel replay, declaration check |
 | Repository | work item, review, verdict, finding, blocker, check, stack, branch, commit, pull request, CI |
-
-## Technical -ing nouns
-
-These terms name technical concepts and supplement the broader technical vocabulary above. They are examples, not a closed approval list. Each table entry describes a whole technical term and its noun meaning; it does not approve every verb use or create a global exemption for a component word.
-
-| Term | Technical meaning |
-|---|---|
-| `hashing` | The computation of a protocol hash from input bytes |
-| `padding` | The byte sequence or rule that extends an encoding to a required width |
-| `encoding` | A representation of a protocol value as bytes |
-| `decoding` | The inverse operation that reconstructs a protocol value from bytes |
-| `gas metering` | The protocol mechanism that accounts for gas costs and limits |
-| `differential testing` | See the definition of "differential testing" in §2. |
-| `fuzzing` | A test technique that generates varied protocol inputs to find defects |
-| `binding` | A commitment property that constrains distinct openings to one committed value |
-| `source coupling` | A conformance-driver check that links a fixed catalogue to its source |
-| `finding` | A review item classified under CONTRIBUTING §5.5 |
-| `cross-cutting gap` | An open specification item that affects several component contracts (GAPS-CROSSCUTTING) |
-| `arithmetic reasoning` | A proof method that uses arithmetic laws |
-| `spelling` | The conventional sequence of letters in a word, under the language directive of WRITING W8 |
-| `warning` | A diagnostic message that identifies a potential problem |
-| `framing` | The delimiters and schema boundaries of a structured test output |
-| `commitment opening` | The value and evidence that a verifier checks against a commitment |
-
-A technical noun can qualify another noun, as in "hashing interface". Technical modifiers such as "trailing" in "trailing whitespace" also remain permitted. A noun entry does not itself approve a verb use. Clear clauses after prepositions and conventional mathematical introductions follow the local adaptation in WRITING V2; review their actors and meaning manually.
 
 ## 5. Technical verbs
 
@@ -144,4 +120,4 @@ This table gives prompts for an editing pass over ordinary prose. It does not de
 | "matches geth", "agrees with geth" | the evidence that decides the case (WRITING C3, C4) |
 | "now", "no longer", "previously", "formerly", "currently", "new" | in reference text, the fact about the present state (WRITING C8) |
 
-"The following are equivalent" is a permitted mathematical introduction. "Assuming P, ..." and "Writing f = ..." can also stay under WRITING V2. Words such as "simply" and "essentially" occur in technical terms, for example "simply typed". Read their meaning, and do not delete them as isolated words.
+"The following are equivalent" is a permitted mathematical introduction. Words such as "simply" and "essentially" occur in technical terms, for example "simply typed". Read their meaning, and do not delete them as isolated words.

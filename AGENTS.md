@@ -50,7 +50,7 @@ Harness-specific configuration stays local and only points to those sections.
 
 [`CONTRIBUTING.md` §5.5](CONTRIBUTING.md#5-tests-review-and-automation) owns the severity of findings and the treatment of tooling issues, and §6.4 defines a clean review verdict. Apply those rules before you treat a review recommendation as a merge blocker.
 
-Before you draft or revise any prose, follow [`WRITING-WORKFLOW.md`](WRITING-WORKFLOW.md). Prose includes documents, docstrings, comments, commit messages, pull request and issue text, and review reports. Preserve mandatory accuracy, citation and claim duties, and consider the general style advice in [`WRITING.md`](WRITING.md). CONTRIBUTING §5.5 governs the severity of a finding.
+Before you draft or revise any prose, use [`WRITING-WORKFLOW.md`](WRITING-WORKFLOW.md). Prose includes documents, docstrings, comments, commit messages, pull request and issue text, and review reports. The advice in [`WRITING.md`](WRITING.md) can help; leave clear, correct text alone. CONTRIBUTING §5.5 governs the severity of a finding.
 
 ## Task map
 

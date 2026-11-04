@@ -1,6 +1,7 @@
 <!--
 Title: <type>(<optional-scope>): <subject>, in the format of CONTRIBUTING §6.2.
-CONTRIBUTING §6.2 and §6.5 own the contents of this description. WRITING.md owns its prose.
+CONTRIBUTING §6.2 and §6.5 own the contents of this description.
+The description matches the code and the evidence.
 Keep each heading. Under a heading that does not apply, write "None".
 A prompt that starts with "If" is optional.
 -->
