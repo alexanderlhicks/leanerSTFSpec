@@ -4,11 +4,14 @@ A formal, executable Lean 4 specification of the Ethereum execution-layer state 
 
 It will replace the spec in evm-asm (`EvmAsm/Stateless/SpecRef`). The project writes it from scratch and does not move that spec, and equivalence with SpecRef is not a goal (decision P6). The consumers retarget in their own repositories. This repository never edits them.
 
-**Status (2026-10-05):** the implementation of the lower layers is in progress. The semantic guest conformance runner is absent, and the repository implements no EEST guest execution. These pages give the details:
+**Status (2026-11-04):** some libraries implement operations, and others have only records, parameters or a few helpers. No EEST fixture executes in Lean yet, because the guest, full-state and engine runners are absent. Each module's §3 lists what it implements:
 
-- The [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-10-02)
-- The implementation status of [EthBase](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash](STFSpec/informal/modules/EthHash.md#3-eels-source-map), [EthCodec](STFSpec/informal/modules/EthCodec.md#3-eels-source-map), [EthCommit](STFSpec/informal/modules/EthCommit.md#3-eels-source-map) and [EthState](STFSpec/informal/modules/EthState.md#3-eels-source-map)
-- The [fixture extraction status](STFSpec/informal/modules/EthConformance.md#3-eels-source-map)
+- **Operations:** [EthBase](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash](STFSpec/informal/modules/EthHash.md#3-eels-source-map), [EthField](STFSpec/informal/modules/EthField.md#3-eels-source-map), [EthCodec](STFSpec/informal/modules/EthCodec.md#3-eels-source-map), [EthCommit](STFSpec/informal/modules/EthCommit.md#3-eels-source-map), [EthState](STFSpec/informal/modules/EthState.md#3-eels-source-map), [EthStateCommit](STFSpec/informal/modules/EthStateCommit.md#3-eels-source-map), [EthVmCore](STFSpec/informal/modules/EthVmCore.md#3-eels-source-map) and [EthBlock](STFSpec/informal/modules/EthBlock.md#3-eels-source-map).
+- **Records, parameters or a few helpers:** [EthVmInstructions](STFSpec/informal/modules/EthVmInstructions.md#3-eels-source-map), [EthVmRunner](STFSpec/informal/modules/EthVmRunner.md#3-eels-source-map), [EthPrecompiles](STFSpec/informal/modules/EthPrecompiles.md#3-eels-source-map), [EthFork](STFSpec/informal/modules/EthFork.md#3-eels-source-map) and [EthStateless](STFSpec/informal/modules/EthStateless.md#3-eels-source-map).
+- **No code yet:** EthCurve, EthPairing, EthStateFull and EthStateWitness.
+- **Fixtures:** [EthConformance](STFSpec/informal/modules/EthConformance.md#3-eels-source-map) extracts and authenticates fixture records, including the guest records in engine payloads.
+- **Re-pin:** the pin moved to `tests-zkevm@v21.0.6` on 2026-11-02. The Lean code does not yet implement the semantic changes at that pin, and some citations and differential drivers still use `tests-zkevm@v21.0.0`. [GAPS-CROSSCUTTING X16](STFSpec/informal/GAPS-CROSSCUTTING.md#x16-follow-up-work-from-the-move-to-tests-zkevmv2106) lists this work.
+- **Before the runner, block and guest are complete:** the fuel-adequacy (G2–G7) and witness/full-state agreement (S2) investigations in [REVIEW §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). The [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-11-04) in REVIEW §6 lists the other items.
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
@@ -23,7 +26,7 @@ Key boundaries:
 - Opcode handlers (`EthVmInstructions`) never see the recursive runner or the precompile implementations.
 - Nothing in the core package depends on Mathlib.
 
-Details are in [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md). The Mathlib/VCV-io/CompPoly/cryptography-specs nodes are external: CompPoly is the source of vendored field code, not a dependency, and cryptography-specs is a reference only (D6, D15, D26).
+Details are in [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md). The Mathlib/VCV-io/CompPoly/cryptography-specs nodes are external: CompPoly is the planned source of field code to vendor (D6, provisional), not a dependency, and cryptography-specs is a reference only (D6, D15, D26).
 
 <!-- BEGIN GENERATED ARCHITECTURE (scripts/gen_arch_diagram.py) -->
 ```mermaid
@@ -135,7 +138,7 @@ flowchart TB
 | [`AGENTS.md`](AGENTS.md) | entry point: authority order, hard rules, and a task-to-documents map |
 | `lakefile.toml`, `STFSpec/` | the **core package** (Mathlib-free, `require`s nothing): one Lake library per component |
 | `STFSpecMathlib/` | the **Mathlib bridge package**: field isomorphisms, group laws, bilinearity (depends on the core, never the reverse) |
-| `STFSpecSecurity/` | the **security package**: witness binding, stateless ⇒ stateful, random-oracle bounds (depends on the core and the bridge package, and is the only package that uses VCV-io) |
+| `STFSpecSecurity/` | the **security package**: witness binding, stateless ⇒ stateful, random-oracle bounds (depends on the core and the bridge package, and is the only package that may use VCV-io, which it does not require yet) |
 | `scripts/` | compiled declaration checks, regression fixtures, source/document guards and generators |
 | [`reference.toml`](reference.toml) | the pinned reference: execution-specs release and commit, fixture archive, locked Python dependencies, Lean version |
 | [`STFSpec/informal/`](STFSpec/informal/README.md) | the **informal specification**: one document per library, composition, gates, gaps |
@@ -147,6 +150,7 @@ flowchart TB
 lake build --wfail                    # core package
 uv run --no-project --python 3.12 python scripts/check_boundaries.py   # dependency and hygiene boundaries (source level)
 scripts/check_decls.sh core                 # compiled declarations: axioms, sorry, partial/opaque, extern, csimp
+scripts/replay_kernel.sh core               # replay every library module through the Lean kernel
 lake build CheckDeclsTest check-decls && scripts/test_checks.sh   # the checkers catch what they should
 uv run --no-project --python 3.12 python scripts/test_reference_checks.py # pin, archive and diagram regressions
 uv run --no-project --python 3.12 python scripts/check_reference.py     # pin consistency (add --fetch DIR to verify the fixture archive)
@@ -154,17 +158,18 @@ uv run --no-project --python 3.12 python scripts/gen_arch_diagram.py --check   #
 uv run --no-project --python 3.12 python scripts/check_spec.py         # module-spec structure, EELS coverage, ownership, decision IDs
 uv run --no-project --python 3.12 python scripts/test_spec_checks.py   # the spec checker's own regression tests
 uv run --no-project --python 3.12 python scripts/gen_gaps.py --check   # STFSpec/informal/GAPS.md is regenerated from the spec guidance documents
-lake build EthConformance --wfail
+uv run --no-project --python 3.12 python scripts/remap_citations.py --check   # EELS citations match the recorded remap
+lake build EthConformance fixture-records --wfail
 
-(cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib
-(cd STFSpecSecurity && lake build --wfail) && scripts/check_decls.sh security   # shares the Mathlib checkout
+(cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib
+(cd STFSpecSecurity && lake build --wfail) && scripts/check_decls.sh security && scripts/replay_kernel.sh security   # shares the Mathlib checkout
 ```
 
 Regenerate the fixture area index with `uv run --no-project --python 3.12 python scripts/gen_fixture_index.py <ARCHIVE>` from the authenticated archive, and add `--check` to verify freshness.
 
 Regenerators that need a pinned EELS checkout (not run in CI): `uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py <EELS> --check` and `uv run --no-project --python 3.12 python scripts/gen_reference_records.py <EELS> --check`.
 
-The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks on pushes to `main` and on pull requests. Weekly and manual runs download the pinned fixture archive and verify its checksum and record counts. That run verifies only the integrity of the corpus. Fixture execution arrives with the conformance runner.
+The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks, and the others in CONTRIBUTING §6.3, on pushes to `main` and on pull requests. CONTRIBUTING §6.3 owns the complete list. Weekly and manual runs download the pinned fixture archive and verify its checksum and metadata links. They also compare the Lean extraction of every record with the archive. No fixture executes yet; execution arrives with the conformance runner.
 
 ## Documents
 

@@ -1,6 +1,6 @@
 # Working in STFspec
 
-*Status: current repository entry point. Date: 2026-11-03.*
+*Status: current repository entry point. Date: 2026-11-04.*
 
 This file is the entry point for anyone, human or agent, who works in this repository. It tells you where things are and which document wins. It restates no facts, so follow the links.
 
@@ -56,16 +56,16 @@ Before you draft or revise any prose, use [`WRITING-WORKFLOW.md`](WRITING-WORKFL
 
 | Task | Read | Update | Check |
 |---|---|---|---|
-| **Implement or change library `EthX`** | `STFSpec/informal/modules/EthX.md`, whose navigation line lists the relevant decisions and questions. Also §5 and §7 of the providers, `STFSpec/informal/COMPOSITION.md` §2, and the `EthX` gate and handoff contract in `STFSpec/informal/REVIEW.md` §§3–4. | The spec guidance document (its §10 gaps, then `scripts/gen_gaps.py`). A source-to-Lean and test row for each implemented operation (REVIEW §4). DEBT.md for a performance exception. | `lake build --wfail`, `scripts/check_boundaries.py`, `scripts/check_decls.sh core`, `scripts/replay_kernel.sh core`, `scripts/check_spec.py`, `scripts/gen_gaps.py --check` |
+| **Implement or change library `EthX`** | `STFSpec/informal/modules/EthX.md`, whose navigation line lists the relevant decisions and questions. Also §5 and §7 of the providers, `STFSpec/informal/COMPOSITION.md` §2, and the `EthX` gate and handoff contract in `STFSpec/informal/REVIEW.md` §§3–4. | The spec guidance document (its §10 gaps, then `scripts/gen_gaps.py`). A source-to-Lean and test row for each implemented operation (REVIEW §4). DEBT.md for a performance exception. | `lake build --wfail`, `scripts/check_boundaries.py`, `scripts/check_decls.sh core`, `scripts/replay_kernel.sh core`, `scripts/check_spec.py`, `scripts/gen_gaps.py --check`, `scripts/remap_citations.py --check`. Before a commit, every check in CONTRIBUTING §6.3 (§6.4). |
 | Add or change a decision | `STFSpec/informal/DECISIONS.md` (§5 tells you how to add one) | Its row (the only status owner), the ARCHITECTURE §11 options and the affected spec guidance documents, in the same change | `scripts/check_spec.py` (decision IDs) |
 | Error, failure or outcome question | `STFSpec/informal/CONTRACT.md` §4, D14 and `STFSpec/informal/modules/EthStateless.md` §7 | CONTRACT (the outcome owner) and the error constructors of the module | None |
 | Protocol discrepancy | CONTRACT §6 | `STFSpec/informal/DISCREPANCIES.md`, which only records. A deviation needs a decision. | None |
-| Change the pin | `reference.toml` (its header comment) | `reference.toml` and CONTRACT together, in one commit, recorded in DECISIONS P1. Regenerate the inventory and reference records. | `scripts/check_reference.py` |
+| Change the pin | `reference.toml` (its header comment) | `reference.toml` and CONTRACT together, in one commit, recorded in DECISIONS P1. Regenerate the files that the `reference.toml` header lists, and remap the EELS citations (GAPS-CROSSCUTTING X16 records the last move). | `scripts/check_reference.py`, `scripts/gen_fixture_index.py <ARCHIVE> --check`, `scripts/remap_citations.py --check` |
 | Record the outcome of an investigation | `STFSpec/informal/DECISIONS.md` | The dispositions (or a decision) in DECISIONS and the affected specs, in the same change | `scripts/check_spec.py` |
 | Performance work | CONTRIBUTING §3 and `STFSpec/informal/REVIEW.md` §7 (cost checks C1–C4) | DEBT.md and the decision record | A benchmark with a correctness gate, with no checksum in the timed loop |
-| Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | Add a regression fixture first. | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`, then `uv run --no-project --python 3.12 python scripts/test_spec_checks.py` |
-| Write or revise prose: documents, docstrings, comments, commit messages, pull request and issue text, review reports | `WRITING.md`, `WRITING-VOCABULARY.md` and the owner of the text (`WRITING-WORKFLOW.md` §1) | The text only, with unrelated rewrites in a separate change | The reading pass of `WRITING-WORKFLOW.md` §5, and optionally the advisory `scripts/writing_hints.py`, which is not a check |
-| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`, and `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | None | `(cd STFSpecMathlib && lake build) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`, and the same for `STFSpecSecurity` with `security` |
+| Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/replay_kernel.sh`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | Add a regression fixture first. | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`, then `uv run --no-project --python 3.12 python scripts/test_spec_checks.py` and the regression tests of any other changed checker (`scripts/test_*.py`) |
+| Write or revise prose: documents, docstrings, comments, commit messages, pull request and issue text, review reports | `WRITING.md`, `WRITING-VOCABULARY.md` and the owner of the text (`WRITING-WORKFLOW.md` §1) | The text only, with unrelated rewrites in a separate change | The reading pass of `WRITING-WORKFLOW.md` §4, and optionally the advisory `scripts/writing_hints.py`, which is not a check |
+| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`, and `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | None | `(cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`, and the same for `STFSpecSecurity` with `security` |
 
 ## Open items
 
@@ -82,7 +82,7 @@ Follow these conventions:
 
 - **One owner per fact** (the authority list above). Everything else cites by ID: `D5`, `B8`, `Q20`, `F7`, `O13`, `DISC-001`, `X6`, `G2`.
 - **Status and date.** Every document opens with a status and date line. A snapshot also names the external commit that it describes.
-- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, `STFSpec/informal/citation-remap.json`, `STFSpec/informal/citation-remap-manual.txt`, and the README diagram.
+- **Generated files** say what generates them. Edit the source and regenerate: `STFSpec/informal/GAPS.md`, `STFSpec/informal/REFERENCE-RECORDS.md`, `STFSpec/informal/eels-inventory.json`, `STFSpec/informal/citation-remap.json`, `STFSpec/informal/citation-remap-manual.txt`, `STFSpec/informal/eest-fixture-index.txt` (`scripts/gen_fixture_index.py`), `STFSpec/Hash/PackedKeccakPermutation.lean` (`scripts/gen_packed_keccak.py`), `STFSpec/Conformance/Precompiles/KzgVersionedHashGuards.lean` (`scripts/gen_kzg_versioned_hash_guards.py`), and the README diagram.
 - **Superseded material.** Do not rewrite it in place. Give it a supersession note that maps its sections to their current owners. Remove it when all of it is superseded, and git history keeps it.
 - **Paths.** Use repository-relative paths only. Cite the reference as EELS `file:line` at the pin.
 - **Prose** follows [`WRITING.md`](WRITING.md).

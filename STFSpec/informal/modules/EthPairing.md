@@ -1,6 +1,6 @@
 # `EthPairing`: BN254 and BLS12-381 pairings, pairing checks and KZG verification
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; unimplemented. Date: 2026-11-04. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D7, D12, D15, D18, D21 · questions: B13/Q40/Q42, Q39, Q44, Q45.*
 
 Tags: **[V]** verified against pinned source or by running the pinned dependency; **[I]**
