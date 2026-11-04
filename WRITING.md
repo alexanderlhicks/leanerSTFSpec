@@ -76,7 +76,7 @@ Apply these rules:
 
 - **V1.** Prefer the simple tenses, the imperative and the infinitive. Avoid a complex verb form when a simpler construction gives the same information. Keep time and uncertainty: "the archive may have changed" does not mean "the archive changed". (STE 3.1 to 3.4, adapted)
 - **V3.** Use the active voice. Name the actor: a definition, a check, the guest, EELS, a fixture, a reviewer or "we". Make clear who or what does each action. Do not invent an actor. (STE 3.6)
-- **V4.** In descriptive text, write a passive construction only if you do not know who or what does the action. A past participle that gives a state is not a passive construction: "the account is empty". (STE 3.3, 3.6)
+- **V4.** In descriptive text, write a passive construction only if you do not know who or what does the action. A description of state is not necessarily passive: "the account is empty". (STE 3.3, 3.6)
 - **V5.** Use a verb, not an abstract noun phrase, to describe an action. Write "the guest rejects the block", not "the guest performs a rejection of the block". (STE 3.7)
 - **V6.** Write "that" after "prove", "show", "assume" or "make sure" when it separates a claim from the verb. Do not add it before an object: "prove the law". (STE GR-1)
 
