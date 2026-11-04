@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Regressions for scripts/remap_citations.py on a synthetic execution-specs history and a
 synthetic document tree; never touch the working repository. Git runs with no user or

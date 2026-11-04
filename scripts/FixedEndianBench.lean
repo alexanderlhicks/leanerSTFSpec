@@ -21,7 +21,7 @@ lake build EthBase:static --wfail
 lake env lean -c /tmp/stfspec-fixed-endian.c scripts/FixedEndianBench.lean
 lake env leanc -O3 -o /tmp/stfspec-fixed-endian /tmp/stfspec-fixed-endian.c \
   .lake/build/lib/libstfspec_EthBase.a
-python3 - <<'PY'
+uv run --no-project --python 3.12 python - <<'PY'
 import random
 from pathlib import Path
 for bits in (64, 256):

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Compare finite typed unsecured roots with authenticated genuine original EELS root.
 

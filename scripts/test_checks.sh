@@ -18,11 +18,11 @@ trap cleanup EXIT
 # The tree's lean-toolchain makes elan run the pinned Lean for Lake's import parser (lean --deps-json).
 fresh() { T=$(mktemp -d "$WORK/tree.XXXXXX"); cp -r "$ROOT/STFSpec" "$ROOT/scripts" "$ROOT/lakefile.toml" "$ROOT/lean-toolchain" "$T/"; echo "$T"; }
 expect() { # expect <0|1> <description> <dir>
-  python3 "$3/scripts/check_boundaries.py" --root "$3" >"$LOG" 2>&1; got=$?
+  uv run --no-project --python 3.12 python "$3/scripts/check_boundaries.py" --root "$3" >"$LOG" 2>&1; got=$?
   if [ "$got" -ne "$1" ]; then echo "FAIL: $2 (exit $got, expected $1)"; cat "$LOG"; FAIL=1; else echo "ok:   $2"; fi
   rm -rf "$3"; }
 expect_msg() { # expect_msg <description> <dir> <grep pattern>: rejected, with this violation
-  python3 "$2/scripts/check_boundaries.py" --root "$2" >"$LOG" 2>&1; got=$?
+  uv run --no-project --python 3.12 python "$2/scripts/check_boundaries.py" --root "$2" >"$LOG" 2>&1; got=$?
   if [ "$got" -eq 1 ] && grep -q -- "$3" "$LOG"; then echo "ok:   $1"
   else echo "FAIL: $1 (exit $got; expected a violation matching: $3)"; cat "$LOG"; FAIL=1; fi
   rm -rf "$2"; }
@@ -58,7 +58,7 @@ expect_msg "the same, as a leaf module that names Lean.addDecl" "$T" "STFSpec.Ha
 T=$(fresh); prepend "$T/STFSpec/Base.lean" 'import 3\n'
 expect_msg "a header Lean cannot read is rejected" "$T" "STFSpec/Base.lean: Lean cannot read the header"
 T=$(fresh); rm "$T/lean-toolchain"
-python3 "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
+uv run --no-project --python 3.12 python "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
 if [ "$got" -eq 1 ] && grep -q "lean-toolchain is missing" "$LOG" && [ "$(grep -c '^boundary:' "$LOG")" -eq 1 ]; then
   echo "ok:   without lean-toolchain the import parser cannot run: one violation, checks 3 and 3b skipped"
 else echo "FAIL: a missing lean-toolchain must give exactly one violation (exit $got, $(grep -c '^boundary:' "$LOG") violations)"; head -5 "$LOG"; FAIL=1; fi
@@ -92,7 +92,7 @@ T=$(fresh); printf '\nset_option debug.skipKernelTC true\n' >> "$T/STFSpec/Hash.
 T=$(fresh); mkdir -p "$T/STFSpec/Stray"; echo '' > "$T/STFSpec/Stray/X.lean"; expect 1 "a module outside every declared library is rejected" "$T"
 T=$(fresh); mkdir -p "$T/STFSpec/Base"; printf 'def x : Nat := 0\n' > "$T/STFSpec/Base/Orphan.lean"; expect 1 "a module not imported by its library root is rejected" "$T"
 T=$(fresh); mkdir -p "$T/STFSpec/Base"; printf 'def x : Nat := 0\n' > "$T/STFSpec/Base/Used.lean"; printf 'import STFSpec.Base.Used\n' | cat - "$T/STFSpec/Base.lean" > "$T/x" && mv "$T/x" "$T/STFSpec/Base.lean"; expect 0 "a submodule imported by its root is accepted" "$T"
-T=$(fresh); sed -i 's/^deps = \["EthBase"\]$/deps = ["EthBase", "EthHash"]/' "$T/scripts/boundaries.toml"; python3 - "$T" <<'PY'
+T=$(fresh); sed -i 's/^deps = \["EthBase"\]$/deps = ["EthBase", "EthHash"]/' "$T/scripts/boundaries.toml"; uv run --no-project --python 3.12 python - "$T" <<'PY'
 import sys,re; p=sys.argv[1]+"/scripts/boundaries.toml"; s=open(p).read()
 s=s.replace('[libs.EthBase]\nroot = "STFSpec.Base"\ndeps = []','[libs.EthBase]\nroot = "STFSpec.Base"\ndeps = ["EthHash"]'); open(p,"w").write(s)
 PY
@@ -104,7 +104,7 @@ plant() { # plant <tree> <module>: add STFSpec.Hash.<module> to the EthHash root
   printf 'import STFSpec.Hash.%s\n' "$2" | cat - "$1/STFSpec/Hash.lean" > "$1/x" && mv "$1/x" "$1/STFSpec/Hash.lean"; }
 T=$(fresh); mkdir -p "$T/STFSpec/Hash"; cp "$ROOT/scripts/CheckDeclsTest/KernelBypass.lean" "$T/STFSpec/Hash/KernelBypass.lean"
 plant "$T" KernelBypass
-python3 "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
+uv run --no-project --python 3.12 python "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
 for what in "STFSpec/Hash/KernelBypass.lean:[0-9]*: banned in core: #eval" \
             "STFSpec/Hash/KernelBypass.lean:[0-9]*: banned in core: skipKernelTC" \
             "STFSpec.Hash.KernelBypass: imports Lean; from Lean"; do
@@ -183,7 +183,7 @@ macro "zz" : term => `(0)
 syntax "yy" : term
 LEAN
 plant "$T" Metaprograms
-python3 "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
+uv run --no-project --python 3.12 python "$T/scripts/check_boundaries.py" --root "$T" >"$LOG" 2>&1; got=$?
 n=0; bad=0
 while IFS= read -r line; do
   n=$((n + 1)); marked=0; reported=0
@@ -198,7 +198,7 @@ rm -rf "$T"
 # The lexer cases again, each in isolation (in one module, a misread literal can be masked by the
 # next one): a literal or «name» must not hide the code after it, interpolations are code, and
 # an attribute argument is not an attribute name. A trailing quote gives a misread string an end.
-if python3 -B - "$ROOT/scripts" <<'PY'
+if uv run --no-project --python 3.12 python -B - "$ROOT/scripts" <<'PY'
 import re, sys
 sys.path.insert(0, sys.argv[1]); import check_boundaries as cb
 def reported(src):

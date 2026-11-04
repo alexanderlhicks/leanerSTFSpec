@@ -1927,9 +1927,9 @@ Reproduce after the ordinary build; no EELS fetch occurs in CI:
 lake build ssz-encode-native-tests --wfail
 lake exe check-decls SszEncodeNativeTests
 lake exe ssz-encode-native-tests > .lake/ssz-encode.txt
-python3 -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
-python3 -B scripts/test_ssz_encode_output_parser.py
-python3 -B -O scripts/test_ssz_encode_output_parser.py
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Codec/ssz_encode_differential.py --check-target .lake/ssz-encode.txt
+uv run --no-project --python 3.12 python -B scripts/test_ssz_encode_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_ssz_encode_output_parser.py
 <EELS>/.venv/bin/python -I -B STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
 <EELS>/.venv/bin/python -I -B -O STFSpec/Conformance/Codec/ssz_encode_differential.py --eels <EELS> --check-target .lake/ssz-encode.txt
 ```

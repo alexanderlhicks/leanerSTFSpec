@@ -2,7 +2,7 @@
 """Shared safeguards for value differential drivers against the pinned EELS.
 
 Create a fresh reference clone, check out reference.toml's release.commit, and run
-`uv sync --frozen --no-dev` there. Invoke each driver with EELS/.venv/bin/python -I,
+`uv sync --frozen --no-dev` there. Invoke each driver with `EELS/.venv/bin/python -I`,
 --eels EELS and --output pointing outside both repositories. Drivers compile current
 source bytes without cached code. EELS bytes are compared with the unreplaced pin;
 ethereum-types Python bytes are compared with the installed distribution RECORD.

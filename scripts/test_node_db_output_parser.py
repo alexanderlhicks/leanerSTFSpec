@@ -3,7 +3,7 @@
 
 The complete typed fixture is generated from ordered insertion/query events with
 injected oracle answers. It is not pinned-source evidence or a Keccak oracle.
-Run python3 -B scripts/test_node_db_output_parser.py and repeat with -B -O; no Lean
+Run uv run --no-project --python 3.12 python -B scripts/test_node_db_output_parser.py and repeat with -B -O; no Lean
 build, pinned environment or external artifacts are required.
 """
 

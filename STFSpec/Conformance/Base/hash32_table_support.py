@@ -2,7 +2,7 @@
 """Actual Hash32 whole-value/native regressions against independent nonprotocol arithmetic.
 
 Run after building the core:
-python3 STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/evidence
+uv run --no-project --python 3.12 python STFSpec/Conformance/Base/hash32_table_support.py --output /tmp/evidence
 The output directory retains source, commands, failures and current artifact provenance.
 This is a functional test, not EELS hashing or a distribution/throughput benchmark.
 """

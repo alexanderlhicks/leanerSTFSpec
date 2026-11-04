@@ -47,8 +47,8 @@ Run that setup command in the EELS checkout, then from this repository:
 
 ```sh
 /path/to/eels/.venv/bin/python scripts/spec_review.py /path/to/eels
-python3 scripts/gen_eels_inventory.py /path/to/eels --check
-python3 scripts/gen_reference_records.py /path/to/eels --check
+uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py /path/to/eels --check
+uv run --no-project --python 3.12 python scripts/gen_reference_records.py /path/to/eels --check
 ```
 
 The fresh inventory comparison covers 717 nonexternal declarations and 304 external-use entries across 74 files. The field catalogue records source order/annotations and inherited bases. It is not a generated Lean implementation or a complete type-mapping proof. The five examples are regression evidence, not a complete conformance run. The fixture archive was not re-executed during this review; its existing verified counts remain in `reference.toml`.

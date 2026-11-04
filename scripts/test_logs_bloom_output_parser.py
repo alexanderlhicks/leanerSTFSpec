@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Strict literal/output controls; identical checks under normal and optimized Python."""
 import copy
 import importlib.util
