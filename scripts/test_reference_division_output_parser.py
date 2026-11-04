@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Positive and malformed-stream CLI controls for reference division, including -O."""
 from pathlib import Path
 import argparse

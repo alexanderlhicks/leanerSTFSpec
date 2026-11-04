@@ -3,7 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Block
-import Lean
+import Lean.Data.Json.FromToJson
 
 /-!
 # Complete ordered logsBloom observations

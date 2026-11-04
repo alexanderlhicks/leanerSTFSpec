@@ -10,7 +10,7 @@ import Std.Data.ExtTreeSet
 
 Library `EthVmCore`. Reuse Base's nominal address and lexical address/slot ordering
 and Std's public finite-set API for the mutable Evm fields at pinned EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:187,190–191`.
+`src/ethereum/forks/amsterdam/vm/__init__.py:181,184–185`.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/
 

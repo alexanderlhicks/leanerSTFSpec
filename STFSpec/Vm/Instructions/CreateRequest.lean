@@ -16,10 +16,10 @@ Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md` §§3/5/7.
 namespace STFSpec.Vm.Instructions
 
 /-- Raw creation suspension data. The split originates in pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/system.py:66–192`.
+`src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185`.
 Producers establish preflight, gas withholding and destination effects separately. -/
 structure CreateRequest where
-  /-- Child execution grant after withholding, `create_message_gas` (system.py:120). -/
+  /-- Child execution grant after withholding, `create_message_gas` (system.py:113). -/
   gas : Nat
   /-- Parent reservoir drained into the child, `create_message_state_gas_reservoir` (:132). -/
   stateGasReservoir : Nat

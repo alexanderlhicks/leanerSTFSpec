@@ -1,10 +1,14 @@
 # `EthField`: prime fields, extension towers and modular arithmetic
 
-*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse, reference division and eight natural moduli supplied. Date: 2026-11-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; reference carrier, basic residue arithmetic, natural powers, canonical sign, checked byte decoding, graph-specified inverse, reference division and eight natural moduli supplied. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D15, D18, D21, D25, D26 · questions: Q39, Q45, Q86, Q89.*
 
 Tags used below: **[V]** verified by reading the pinned source or running the pinned dependency
 (venv `esvenv`, versions as in `reference.toml`); **[I]** inference, not yet checked.
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -139,7 +143,8 @@ queries or failure channel. The names distinguish coordinate/base moduli from
 subgroup/scalar orders. No public law, instance, concrete field alias, convenience
 alias, primality certificate, square-root metadata or Montgomery parameter is added.
 The exact dependency is py-ecc 8.0.0 locked by EELS at
-`e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (the current pin).
+`59c1473ddfba341babaeca1c97a50e996f639a0b` (the current pin; `uv.lock` is
+unchanged from `e1a316a0`).
 
 | Source / complete owning expression | Lean declaration and exact type | Meaning / deterministic control / status |
 |---|---|---|

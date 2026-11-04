@@ -15,13 +15,13 @@ namespace STFSpec.Vm.Runner
 /-- The three entry kinds specified for the prospective execution relation. -/
 inductive ExecKind
   /-- The opcode loop of one frame (`runFrame`); the `while` loop in pinned EELS
-  `process_call`, `src/ethereum/forks/amsterdam/vm/interpreter.py:444–452`. -/
+  `process_call`, `src/ethereum/forks/amsterdam/vm/interpreter.py:438–446`. -/
   | frameLoop
   /-- A message call (`processCall`); pinned EELS `process_call`,
-  `src/ethereum/forks/amsterdam/vm/interpreter.py:401`. -/
+  `src/ethereum/forks/amsterdam/vm/interpreter.py:395`. -/
   | call
   /-- A contract creation (`processCreate`); pinned EELS `process_create`,
-  `src/ethereum/forks/amsterdam/vm/interpreter.py:330`. -/
+  `src/ethereum/forks/amsterdam/vm/interpreter.py:324`. -/
   | create
 
 end STFSpec.Vm.Runner

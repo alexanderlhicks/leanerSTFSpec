@@ -12,7 +12,7 @@ import STFSpec.Codec.SszMixInActiveFields
 
 Library `EthCodec`. Roots follow actual finite values under local root support;
 unused composite schemas are not visited. Reference: EELS
-    `src/ethereum/utils/ssz.py:133–135,263–296`
+    `src/ethereum/utils/ssz.py:128–130,258–291`
 and locked eth-remerkleable 0.1.31 `basic.py`, `core.py`, `complex.py`,
 `byte_arrays.py`, `progressive.py`.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7 (Q79).
@@ -248,7 +248,7 @@ decreasing_by
 
 /-- Root of a locally supported SSZ value. Support concerns actual values and
 local declared bounds; it supplies no decoder/source-class or guest bridge.
-Pinned EELS `src/ethereum/utils/ssz.py:133–135`; constructor mapping is in the
+Pinned EELS `src/ethereum/utils/ssz.py:128–130`; constructor mapping is in the
 spec guidance source-to-Lean rows. -/
 def Ssz.hashTreeRoot (t : SszType) (v : SszValue)
     (h : Ssz.Rootable t v) : Base.Bytes32 := root t v h

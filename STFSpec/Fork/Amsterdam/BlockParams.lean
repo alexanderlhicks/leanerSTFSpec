@@ -14,7 +14,7 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 
 namespace STFSpec.Fork.Amsterdam
 
--- EELS `src/ethereum/forks/amsterdam/fork.py:144–145` at the pin.
+-- EELS `src/ethereum/forks/amsterdam/fork.py:130–131` at the pin.
 private def MAX_BLOCK_SIZE : Nat := 10485760
 private def SAFETY_MARGIN : Nat := 2097152
 
@@ -22,7 +22,7 @@ private def SAFETY_MARGIN : Nat := 2097152
 #guard SAFETY_MARGIN == 2097152
 
 /-- Amsterdam block parameters; EELS
-`src/ethereum/forks/amsterdam/fork.py:114–115,144–146` at the pin.
+`src/ethereum/forks/amsterdam/fork.py:100–101,130–132` at the pin.
 The RLP limit retains the source subtraction of its two private operands. -/
 def blockParams : Block.BlockParams where
   baseFeeMaxChangeDenominator := 8

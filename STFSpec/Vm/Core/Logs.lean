@@ -44,7 +44,7 @@ theorem Log.eta (l : Log) : Log.mk l.address l.topics l.data = l := by
 
 /-- Strict immutable rope. All finite raw empty/leaf/concat shapes are public.
 Its List model represents EELS's ordered log tuples at
-`src/ethereum/forks/amsterdam/vm/__init__.py:169,247`. -/
+`src/ethereum/forks/amsterdam/vm/__init__.py:163,241`. -/
 inductive LogRope where
   /-- No log occurrences. -/
   | empty
@@ -109,7 +109,7 @@ decreasing_by
 /-- Flatten every finite raw rope in chronological order using an explicit
 left-first work stack and one reversed output accumulator; no prefix copying.
 This is the List model of the ordered tuples in pinned EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:169,247`;
+`src/ethereum/forks/amsterdam/vm/__init__.py:163,241`;
 actual frame/receipt integration and compiled resource obligations are separate. -/
 def toList (tree : LogRope) : List Log := scan [tree] []
 
@@ -118,7 +118,7 @@ private theorem toList_eq_reference (tree : LogRope) : toList tree = reference t
     List.append_nil]
 
 /-- Constant-time chronological concatenation; EELS tuple concatenation's model
-at `src/ethereum/forks/amsterdam/vm/__init__.py:247`. No structural law is exported. -/
+at `src/ethereum/forks/amsterdam/vm/__init__.py:241`. No structural law is exported. -/
 def append (left right : LogRope) : LogRope := .concat left right
 
 /-- Empty rope observes exactly the empty chronological list. -/

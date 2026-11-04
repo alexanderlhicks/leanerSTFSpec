@@ -17,7 +17,7 @@ These are structural checks, not verification of Lean typing or mathematical tru
 With --report, also print per-module counts and the unclaimed items (the coverage gaps).
 """
 import collections, json, pathlib, re, sys, tomllib
-from check_boundaries import strip_comments
+from check_boundaries import lean_imports
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SECTIONS = ["## 1. Purpose", "## 2. Requirements", "## 3. EELS source map", "## 4. Tests",
@@ -85,6 +85,11 @@ def main() -> int:
     def owner_of(module):
         return next((module_owners[r] for r in sorted(module_owners, key=len, reverse=True)
                      if module == r or module.startswith(r + ".")), None)
+    # Imports come from Lake's import parser (lean --deps-json): one batched call over every proof-package source.
+    proof_sources = sorted(p for pkg in ("STFSpecMathlib", "STFSpecSecurity") for p in (ROOT / pkg).rglob("*.lean")
+                           if ".lake" not in p.relative_to(ROOT).parts and p.name != "lakefile.lean")
+    proof_headers, header_errors = lean_imports(ROOT, proof_sources)
+    errs.extend(header_errors)
     for pkg, config in proof_configs:
         imported, seen, pending = set(), set(), list(config.get("roots", []))
         while pending:
@@ -96,7 +101,7 @@ def main() -> int:
             if not source.exists():
                 errs.append(f"{config['name']}: missing proof root {module}")
                 continue
-            for module_import in re.findall(r"^\s*(?:public\s+|private\s+)?(?:meta\s+)?import\s+(?:all\s+)?([\w.«»]+)", strip_comments(source.read_text()), re.M):
+            for module_import in proof_headers.get(source, []):
                 owner = owner_of(module_import)
                 if owner == config["name"]:
                     pending.append(module_import)

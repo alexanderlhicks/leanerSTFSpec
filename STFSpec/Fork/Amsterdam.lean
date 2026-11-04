@@ -19,9 +19,9 @@ Spec guidance: `STFSpec/informal/modules/EthFork.md` §§2–7.
 namespace STFSpec.Fork.Amsterdam
 
 /-- Complete Amsterdam system addresses and independent call budgets; EELS
-`src/ethereum/forks/amsterdam/fork.py:117–143` and
+`src/ethereum/forks/amsterdam/fork.py:103–129` and
 `src/ethereum/forks/amsterdam/requests.py:49–51` at the pin.
-The system caller also matches `src/ethereum/forks/amsterdam/vm/__init__.py:41–43`.
+The system caller also matches `src/ethereum/forks/amsterdam/vm/__init__.py:36–38`.
 This is fixed data; configuration assembly and address transport are separate. -/
 def systemAddrs : Block.SystemAddrs where
   systemAddress := Base.Address.ofNat 0xfffffffffffffffffffffffffffffffffffffffe
@@ -36,7 +36,7 @@ def systemAddrs : Block.SystemAddrs where
   maxSstoresPerCall := 16
 
 /-- Amsterdam transaction parameters; EELS
-`src/ethereum/forks/amsterdam/transactions.py:64,74,82` at the pin.
+`src/ethereum/forks/amsterdam/transactions.py:59,69,77` at the pin.
 The floor fields are token counts, separate from VM gas prices. -/
 def txParams : Block.TxParams where
   blobCountLimit := 6
@@ -44,7 +44,7 @@ def txParams : Block.TxParams where
   accessListStorageKeyFloorTokens := 128
 
 /-- Complete Amsterdam execution and precompile pricing; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:78–259`,
+`src/ethereum/forks/amsterdam/vm/gas.py:69–250`,
 `src/ethereum/forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py:37–301`
 and
 `src/ethereum/forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py:46`,
@@ -361,14 +361,14 @@ def gasCosts : Vm.Core.GasCosts :=
   }
 
 /-- Four stored Amsterdam state-pricing inputs; EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:56–59`. Derived amounts are separate. -/
+`src/ethereum/forks/amsterdam/vm/gas.py:47–50`. Derived amounts are separate. -/
 def stateGasCosts : Vm.Core.StateGasCosts where
   costPerStateByte := 1530
   bytesPerNewAccount := 120
   bytesPerStorageSet := 64
   bytesPerAuthBase := 23
 
-/-- Amsterdam VM limits; EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:84–86`.
+/-- Amsterdam VM limits; EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:79–81`.
 The init-code maximum retains its source dependency on the code maximum. -/
 def vmLimits : Vm.Core.VmLimits :=
   let maxCodeSize := 0x10000

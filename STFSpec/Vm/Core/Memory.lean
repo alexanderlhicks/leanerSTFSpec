@@ -74,7 +74,7 @@ def size (m : Memory) : Nat := m.raw.size
 
 /-- Append exactly n zero bytes, requiring only local structural alignment.
 The source caller statement is
-`src/ethereum/forks/amsterdam/vm/instructions/memory.py:54,85,113,174`;
+`src/ethereum/forks/amsterdam/vm/instructions/memory.py:50,81,109,170`;
 this is not a named EELS primitive or the caller pricing operation. -/
 def expand (m : Memory) (n : Nat) (h : n % 32 = 0) : Memory :=
   ⟨fillZero n m.raw, by

@@ -9,7 +9,7 @@ import STFSpec.Base.IntegerBytes
 # RIPEMD-160 message digest
 
 Library `EthHash`. Pure total byte-level digest through the accepted fixed-word
-compression. EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:52`
+compression. EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:49`
 at the pin invokes host hashlib; its gas charge and 12-byte output prefix belong
 to the precompile consumer. MD4 padding uses the low 64 length bits for every
 finite byte message. The low-64-bit rule is part of MD4, rather than a bounded-domain extension.

@@ -1,12 +1,12 @@
 # Protocol discrepancy register
 
-Status: no accepted deviations. Date: 2026-09-29. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
+Status: no accepted deviations. Date: 2026-11-02. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
 
 ## DISC-001: Python host resource limits
 
 - **Status:** proposed investigation; one reproducer recorded (deep RLP, below); not reported upstream; no accepted deviation.
 - **Scope:** O12. Python recursion/allocation limits may turn finite inputs into failure outputs whose value depends on the host and the catching phase. Cycle detection can reproduce a deterministic invalid-witness output; finite deep or large inputs need separate analysis.
-- **Reference:** execution-specs commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, `stateless_guest.run_stateless_guest` and `stateless.verify_stateless_new_payload`, with dependencies in `reference.toml`.
+- **Reference:** the pinned execution-specs (`reference.toml`; commit `59c1473ddfba341babaeca1c97a50e996f639a0b` since 2026-11-02; the evidence below was recorded at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`), `stateless_guest.run_stateless_guest` and `stateless.verify_stateless_new_payload`, with dependencies in `reference.toml`.
 - **Evidence required:** exact input bytes and digest; Python/dependency versions; recursion limit, memory/container limits and relevant host settings; command; exception and catching phase; encoded output; comparison across environments. Distinguish fixture-covered cases from uncovered inputs.
 - **Tracked cases:** deep RLP nesting in payload transactions (DECISIONS Q20); deep acyclic witness chains (Q6); DAG-shaped witnesses (DISC-004).
 - **Recorded evidence (2026-09-29, from running the pinned EELS with the failure ledger, maintained outside this repository):**
@@ -20,7 +20,7 @@ Status: no accepted deviations. Date: 2026-09-29. This register implements the r
 
 - **Status:** measured locally; reproducer (a crafted guest input) pending; not reported upstream; no accepted deviation.
 - **Scope:** liveness only. The reference *is* total, but at impractical cost; the output is not wrong.
-- **Reference:** `utils/numeric.py:177` `taylor_exponential`, called from `vm/gas.py:936` (`calculate_excess_blob_gas`, EIP-7918), which is called from `fork.py:473` (`validate_header`) for **every** block whose parent's `excess_blob_gas + blob_gas_used ≥ BLOB_TARGET_GAS_PER_BLOCK`; also `vm/gas.py:1011, 1046` and `vm/instructions/environment.py:606`. `BLOB_BASE_FEE_UPDATE_FRACTION = 11684671` (`vm/gas.py:146`).
+- **Reference:** `utils/numeric.py:177` `taylor_exponential`, called from `vm/gas.py:921` (`calculate_excess_blob_gas`, EIP-7918), which is called from `fork.py:448` (`validate_header`) for **every** block whose parent's `excess_blob_gas + blob_gas_used ≥ BLOB_TARGET_GAS_PER_BLOCK`; also `vm/gas.py:996, 1031` and `vm/instructions/environment.py:606`. `BLOB_BASE_FEE_UPDATE_FRACTION = 11684671` (`vm/gas.py:137`).
 - **Evidence:** measured 2026-09-28 by running the loop's recurrence in Python. The iteration count is about 2.7·x, with x = excess / 11684671: 35, 245 and 2,338 iterations at excesses of 10⁸, 10⁹ and 10¹⁰. Extrapolated, an excess near 2^64 needs about 4×10¹² iterations on growing integers. The parent header is authenticated only externally (CONTRACT §7), so the guest can receive it.
 - **Proposed Lean behaviour:** the same function, with a termination proof (the accumulator reaches 0 once `i` exceeds the numerator/denominator ratio by enough). A faithful implementation is equally slow; any faster algorithm must be proved equal (D21).
 - **Open question for upstream:** should the spec bound `excess_blob_gas` (for example by validating the parent against its own parent), or accept that guests can be made to hang on unanchored inputs?
@@ -46,14 +46,14 @@ Status: no accepted deviations. Date: 2026-09-29. This register implements the r
 ## DISC-005: RIPEMD-160 depends on the host OpenSSL
 
 - **Status:** from reading the pinned source and the Python/OpenSSL documentation; not reproduced here.
-- **Scope:** acceptance, host-dependent. `precompiled_contracts/ripemd160.py:52` uses `hashlib.new("ripemd160")`, which can raise `ValueError` when the host build/provider configuration lacks RIPEMD-160. Absence of the legacy provider alone is insufficient: [OpenSSL documents](https://docs.openssl.org/3.0/man7/EVP_MD-RIPEMD160/) RIPEMD-160 in the default provider since 3.0.7. The error invalidates the block instead of executing the precompile.
+- **Scope:** acceptance, host-dependent. `precompiled_contracts/ripemd160.py:49` uses `hashlib.new("ripemd160")`, which can raise `ValueError` when the host build/provider configuration lacks RIPEMD-160. Absence of the legacy provider alone is insufficient: [OpenSSL documents](https://docs.openssl.org/3.0/man7/EVP_MD-RIPEMD160/) RIPEMD-160 in the default provider since 3.0.7. The error invalidates the block instead of executing the precompile.
 - **Proposed Lean behaviour:** a real RIPEMD-160, as the Frontier precompile 0x03 is defined in the Yellow Paper, which is the unconstrained-host behaviour (DISC-001 applies); record the host OpenSSL in every EELS evidence run (X4). The host of the recorded EELS runs (OpenSSL 3.0.16) provides RIPEMD-160.
 
 ## DISC-006: Local catch-alls make host failures look like invalid versioned hashes
 
 - **Status:** observed by running the pinned EELS over the full fixture corpus and targeted probe inputs (2026-09-29); not reported upstream; no accepted deviation.
 - **Scope:** observability of host-resource failures (O12).
-  - `is_valid_versioned_hashes` (`execution_engine/new_payload.py:60–68`) decodes every payload transaction under `except Exception: return False`. So any failure while decoding, including host failures such as `RecursionError` or `MemoryError`, is reported as O6 "invalid versioned hashes" before `execute_block` runs.
+  - `is_valid_versioned_hashes` (`execution_engine/new_payload.py:55–63`) decodes every payload transaction under `except Exception: return False`. So any failure while decoding, including host failures such as `RecursionError` or `MemoryError`, is reported as O6 "invalid versioned hashes" before `execute_block` runs.
   - Deterministic decode failures are correctly O6 on the guest path.
   - Host failures are indistinguishable from them in the output.
 - **Proposed Lean behaviour:** follow the reference for deterministic decode failures (O6). Host-resource cases stay under DISC-001; they are not decided here.

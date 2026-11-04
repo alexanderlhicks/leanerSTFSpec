@@ -1,8 +1,8 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-01.*
+*Status: conditional proof plan. Date: 2026-11-02.*
 
-Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
+Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
 ## 1. Three distinct correctness statements
 
@@ -287,11 +287,11 @@ bounds, system behavior, fees/providers/counters and G1/G2 remain open. There is
 no new public API or actual Runner/cast implementation.
 
 Signed meter refund conversion needs both unsigned bounds at its source phase.
-Preparation restore/forfeit precedes cast `vm/interpreter.py:285`, before the
-state-usage argument :291–293; normal TransactionEnd tracing :309–314 precedes
-cast :318, before state usage :324–326. Preserve both points and the existing
+Preparation restore/forfeit precedes cast `vm/interpreter.py:279`, before the
+state-usage argument :285–287; normal TransactionEnd tracing :303–308 precedes
+cast :312, before state usage :318–320. Preserve both points and the existing
 proof/fault obligations rather than postponing conversion to block settlement
-(`fork.py:1101–1110`). Base.ofInt? is the signed from_signed factory; unchecked
+(`fork.py:1055–1064`). Base.ofInt? is the signed from_signed factory; unchecked
 negative Int.toNat or wrapping ofNat also cannot replace unsigned construction.
 Int.toNat on state usage has the distinct intended clamp semantics. The helper
 proves no actual runner range, source-fault reachability, fee/provider effect,
@@ -463,7 +463,8 @@ generic coupling, global error adapter/O12, resources, C1–C4 or guest readines
 
 [EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies the pure
 SC6 decoder and nonzero storage SC10 through public RLP/Base contracts.
-Complete strict RLP parsing precedes list-to-zero or complete unsigned bytes;
+Complete strict RLP parsing precedes list-to-zero or complete unsigned bytes (the
+`tests-zkevm@v21.0.0` storage leniency; strict at the current pin, EthStateCommit §10);
 private packed checked folding equals its full Nat reference on every finite Bytes.
 The nominal witness-error carrier is owned by
 [EthState §3/§5](modules/EthState.md#3-eels-source-map).
@@ -1008,7 +1009,7 @@ For arbitrary m the predicate is action factorization, requiring an actual erasu
 
 secp256k1 recovery returns Bytes64, the unprefixed x/y bytes. Hash those bytes for an address; a 65-byte public-key hint includes prefix 0x04 and must be checked against recovery/signature semantics. Boolean parity recovery completeness is restricted to the documented `x=r<n` domain. `mapToCurveG1/G2` stop before cofactor clearing; EVM mapping wrappers clear exactly once. These are semantic adapters, not representational conveniences.
 
-For payload conversion, `Array PublicKey` erases each subtype to its ByteArray for EthBlock while retaining the 65-byte/prefix/verification checks. `AnyHeader` is the existing ParentHeader sum, not a second header representation. [REFERENCE-RECORDS](REFERENCE-RECORDS.md) fixes source field order, widths and inheritance for all wire/schema adapters. Dense transaction/receipt/withdrawal arrays in BlockOutput model index-keyed unsecured tries: root construction uses `rlp i` keys and the reference typed/legacy value encoding; receipt traversal for requests follows recorded receipt_keys, appended in transaction order, rather than sorting RLP keys (fork.py:1124; requests.py:291).
+For payload conversion, `Array PublicKey` erases each subtype to its ByteArray for EthBlock while retaining the 65-byte/prefix/verification checks. `AnyHeader` is the existing ParentHeader sum, not a second header representation. [REFERENCE-RECORDS](REFERENCE-RECORDS.md) fixes source field order, widths and inheritance for all wire/schema adapters. Dense transaction/receipt/withdrawal arrays in BlockOutput model index-keyed unsecured tries: root construction uses `rlp i` keys and the reference typed/legacy value encoding; receipt traversal for requests follows recorded receipt_keys, appended in transaction order, rather than sorting RLP keys (fork.py:1078; requests.py:291).
 
 ### Natural-reference residue arithmetic premise
 

@@ -4,7 +4,7 @@
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
-**Normative source.** The pin is `tests-zkevm@v21.0.0` @e1a316a0 ([`reference.toml`](../../reference.toml)), and the guest contract is [`STFSpec/informal/CONTRACT.md`](CONTRACT.md). The module list mirrors `src/ethereum/forks/amsterdam/` (about 17k lines of Python across 60 files), the shared `src/ethereum/{state,state_mpt,merkle_patricia_trie,exceptions}.py`, `crypto/` and `utils/`, and the pinned Python dependencies, whose behaviour is part of the semantics.
+**Normative source.** The pin is `tests-zkevm@v21.0.6` @59c1473d ([`reference.toml`](../../reference.toml); DECISIONS P1), and the guest contract is [`STFSpec/informal/CONTRACT.md`](CONTRACT.md). The module list mirrors `src/ethereum/forks/amsterdam/` (about 17k lines of Python across 60 files), the shared `src/ethereum/{state,state_mpt,merkle_patricia_trie,exceptions}.py`, `crypto/` and `utils/`, and the pinned Python dependencies, whose behaviour is part of the semantics.
 
 **Document ownership.** `reference.toml` owns source, fixture and toolchain pins; `CONTRACT.md` owns the guest contract and discrepancy policy; `scripts/boundaries.toml` owns the enforced import permissions (§3 must agree with it); this document owns the component contracts. [COMPOSITION](COMPOSITION.md) records the conditional end-to-end argument and the shared adapters that refine these contracts. Update the owning document and its consumers together when a contract changes.
 
@@ -213,7 +213,7 @@ Mathematical correctness and cryptographic security are separate deliverables (D
 |---|---|---|---|
 | `Account` | `{nonce : Nat, balance : U256, codeHash : Hash32}` | — | — |
 | `PreState` | an explicit **record of operations**, parametric in the hash monad (D5): `PreState m` with `getAccount? : Address → m (Except WitnessError (Option Account))`, `getStorage : Address → Bytes32 → m (Except WitnessError U256)`, `getCode : Hash32 → m (Except WitnessError ByteArray)` (B2), and `stateRoot : BlockDiff → m (Except WitnessError Hash32)`. Execution uses `m := Id`; lookup/full models are stated at `PreState Id`. The provider appears visibly in execution and theorem statements. | the supplied record type and supplied **`ModelsLookups consts ps σ`** (EthState R8/§5; Q57): successful answers agree with mathematical observers, *including account absence*, and code uses `σ.code? consts h` at the supplied reserved hash. Tracker premises use `BlockState.consts`; no provider field or local acquisition is added. Full `Models` stays binary at the coherent concrete Id record (§3). Generic coupling remains D5/X7 | each backend proves full `Models` (§5.4) and the caller establishes context coherence |
-| Revertible tx state | persistent `Std.ExtTreeMap` overlays. Storage is **nested by address** (`Address → Bytes32 → U256`), because clearing and committing storage are account-level operations. | `getStorage`, `getStorageOriginal`, `setStorage`, `clearStorage`, `getAccount`, `setAccount`, `getCode`, `setCode`, `snapshot`, `revert`, with laws | [C] read-after-write, read-through order. The **`clearStorage` law:** a clear suppresses lower overlays and the pre-state for slots not subsequently rewritten in that overlay. Later local writes remain visible. The clear converts pending writes to reads (`state_tracker.py:547–568`). [C] revert restores exactly the revertible component |
+| Revertible tx state | persistent `Std.ExtTreeMap` overlays. Storage is **nested by address** (`Address → Bytes32 → U256`), because clearing and committing storage are account-level operations. | `getStorage`, `getStorageOriginal`, `setStorage`, `clearStorage`, `getAccount`, `setAccount`, `getCode`, `setCode`, `snapshot`, `revert`, with laws | [C] read-after-write, read-through order. The **`clearStorage` law:** a clear suppresses lower overlays and the pre-state for slots not subsequently rewritten in that overlay. Later local writes remain visible. The clear converts pending writes to reads (`state_tracker.py:528–549`). [C] revert restores exactly the revertible component |
 | Persistent observations | **kept outside the snapshotted component** and threaded linearly alongside it: `account_reads`, `storage_reads`, `code_reads` and `created_accounts`. They are never reverted within a transaction, so no snapshot needs to hold them, and they can be ephemeral sets (`Std.HashSet`, or `TreeSet` where sorted output is needed). Keeping them inside the snapshot would make every write copy them | add and observe, with monotonicity | [C] monotone across reverts; [C] the split is invisible to callers: reading through the combined state gives the EELS results |
 | Frame accumulators | **warm access sets:** persistent trees, since a child extends the parent's set and a failed child's additions are discarded. **Logs:** a strict rope (`leaf · concat`) with O(1) append, so merging a child's logs into the parent never copies them once per call-depth level. Refund counter: a signed `Int` | as §6 | [C] merge-on-success/discard-on-failure laws on the model (a set or a list of logs) |
 | `BlockDiff` | extensional maps plus the account, storage-address and slot first-write orders (B1); the iteration order of storage clears is open (F7) | the ordered diff API consumed by the backends' `stateRoot` | [C] order metadata enumerates each live write once |
@@ -230,9 +230,9 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 
 **Log traversal.** Flatten once at receipt construction using an explicit traversal stack and one linear output builder, preserving order and duplicate occurrences. The list-append equation is a model law, not an instruction to append recursively flattened lists. That implementation can be quadratic on skewed ropes. Rope height can grow with sibling calls beyond the call-depth limit; prove traversal totality and avoid dependence on host recursive stack depth. Include empty-child merges, skewed shapes and cleanup in the C3 measurements.
 
-**Storage precedence** (`state_tracker.py:295–340`): transaction slot write → transaction clear → block slot write → block clear → pre-state. `getStorageOriginal` skips transaction writes and clears; it returns zero for an address in `created_accounts`, otherwise it reads block writes, block clears, then pre-state. These are separate public laws because SSTORE gas depends on both current and original values.
+**Storage precedence** (`state_tracker.py:276–321`): transaction slot write → transaction clear → block slot write → block clear → pre-state. `getStorageOriginal` skips transaction writes and clears; it returns zero for an address in `created_accounts`, otherwise it reads block writes, block clears, then pre-state. These are separate public laws because SSTORE gas depends on both current and original values.
 
-**Code-hash ownership.** EELS `set_code` computes keccak (`state_tracker.py:734–760`). To keep `EthState` independent of `EthHash`, the state operation accepts code bytes and an already computed hash; hash-aware callers compute the hash and establish agreement. `EthStateCommit` owns the agreement law, including empty-code handling. This rearranges ownership without changing the EELS order of state changes or observations.
+**Code-hash ownership.** EELS `set_code` computes keccak (`state_tracker.py:715–741`). To keep `EthState` independent of `EthHash`, the state operation accepts code bytes and an already computed hash; hash-aware callers compute the hash and establish agreement. `EthStateCommit` owns the agreement law, including empty-code handling. This rearranges ownership without changing the EELS order of state changes or observations.
 
 **Backend progress is separate from agreement.** `Models` constrains successful responses; a provider returning only errors would satisfy those implications vacuously. The full backend must additionally prove successful lookup and root computation for every well-formed finite state/diff. The witness backend must prove success when the required authenticated data is available and valid, respecting eager decoding and its trigger points. Authenticated absence is a successful result, not missing witness data. Security soundness and execution completeness use these different obligations explicitly.
 
@@ -310,14 +310,14 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
   |---|---|
   | `charge_gas` (`:405`) | decreases by the charge; strict only for a positive charge |
   | `charge_state_gas`: from the reservoir (`:441`) / spill path (`:445–446`) | unchanged / unchanged (moves `gas_left` into spill) |
-  | `commit_state_gas` (`:500–502`) | unchanged (spill into committed) |
-  | `restore_state_gas` (`:524–527`) | unchanged (spill back into `gas_left`) |
-  | `restore_state_gas_to_entry` (`:559–565`) | unchanged (both spills back into `gas_left`) |
-  | `credit_state_gas_refund` (`:625–627`) | unchanged (spill into `gas_left`; the rest goes to the reservoir, which is not in Φ) |
-  | `repay_state_gas_spill` (`:653–655`) | unchanged |
-  | `forfeit_remaining_gas` (`:675`) | non-increasing (`gas_left` := 0); strict when it was positive |
-  | `drain_state_gas_reservoir` (`:717–719`) | unchanged (reservoir is outside Φ) |
-  | CREATE grant (`:697`), CALL charge/grant, `restore_child_gas` (`:745`) and `incorporate_child` (`vm/__init__.py`) | withholding decreases the parent potential; returning child gas can increase it: a **cross-frame obligation**, not a local monotonicity law |
+  | `commit_state_gas` (`:488–490`) | unchanged (spill into committed) |
+  | `restore_state_gas` (`:512–515`) | unchanged (spill back into `gas_left`) |
+  | `restore_state_gas_to_entry` (`:547–553`) | unchanged (both spills back into `gas_left`) |
+  | `credit_state_gas_refund` (`:613–615`) | unchanged (spill into `gas_left`; the rest goes to the reservoir, which is not in Φ) |
+  | `repay_state_gas_spill` (`:641–643`) | unchanged |
+  | `forfeit_remaining_gas` (`:663`) | non-increasing (`gas_left` := 0); strict when it was positive |
+  | `drain_state_gas_reservoir` (`:705–707`) | unchanged (reservoir is outside Φ) |
+  | CREATE grant (`:697`), CALL charge/grant, `restore_child_gas` (`:733`) and `incorporate_child` (`vm/__init__.py`) | withholding decreases the parent potential; returning child gas can increase it: a **cross-frame obligation**, not a local monotonicity law |
 
   Within a frame, excluding child returns, Φ never increases and positive execution charges strictly decrease it. `restore_child_gas` is used when a child is never entered and adds the supplied grant; for CALL that grant can include the stipend. It does not itself restore either spill field. **Still to prove:** progress across complete CALL/CREATE iterations, covering forwarding, the 63/64 rule, paid stipends, depth/balance failures, child returns (success, revert, exceptional halt) and `incorporate_child`. Every continuing Amsterdam opcode iteration must decrease Φ by at least 1; zero-cost terminal instructions need only the final fuel unit. The local charge-kernel laws are supplied in EthVmCore §§3/7; the whole-frame and CALL/CREATE progress claims remain unproved.
 - **Shape, adopted from EVMLean (`step_semantics` @cdbd150).**
@@ -339,7 +339,7 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
   - `partial` runners with heuristic fuel (powdr `evm-semantics` `Tx.lean:239`, fuel `2·gasLimit + 100000`, no theorem);
   - `OutOfFuel` inside the EVM exception type (EVMYulLean), which O11 forbids;
   - a continuation-stack runner, unless we budget for a measure over the whole stack (D13).
-- **Gas representation:** execution/state gas amounts, reservoirs and spills use `Nat` with checked charging, never a wrapping `UInt256` as in EVMYulLean. The **refund counter is `Int`**, matching EELS `GasMeter.refund_counter` (`gas.py:307`) and SSTORE's subtraction (`storage.py:134`); do not silently saturate a negative per-frame refund. Conversion/capping at transaction settlement has its own preconditions and laws.
+- **Gas representation:** execution/state gas amounts, reservoirs and spills use `Nat` with checked charging, never a wrapping `UInt256` as in EVMYulLean. The **refund counter is `Int`**, matching EELS `GasMeter.refund_counter` (`gas.py:295`) and SSTORE's subtraction (`storage.py:134`); do not silently saturate a negative per-frame refund. Conversion/capping at transaction settlement has its own preconditions and laws.
 - **Where it lives:** only in `EthVmRunner`. Generic proofs state the conditions they need of the gas parameters, and the Amsterdam instantiation discharges them (§8).
 
 **Patterns for consumers' refinement proofs (evm-asm, pancaketh)**, from powdr:
@@ -381,7 +381,7 @@ A call snapshot captures **exactly** the revertible transaction component. Every
 | Return data | CALL-family: child output; CREATE-family: **empty**, with child output installed as code instead | child output (revert data) | empty | — | — |
 | BAL builder | — | — | — | `update_builder_from_tx` | build, hash, validate |
 
-Preflight failures and CREATE collisions do not spawn a child; their nonce, gas, access and return-data effects belong to the instruction's preflight/resume contract, not a generic child-rollback rule (`system.py` `generic_create` and `generic_call`). In particular, successful creation leaves parent return data empty (`:191`); it does not expose deployed code as CALL return data.
+Preflight failures and CREATE collisions do not spawn a child; their nonce, gas, access and return-data effects belong to the instruction's preflight/resume contract, not a generic child-rollback rule (`system.py` `generic_create` and `generic_call`). In particular, successful creation leaves parent return data empty (`:184`); it does not expose deployed code as CALL return data.
 
 ---
 
@@ -518,9 +518,9 @@ primality, backend/replacement and C1–C4 gates remain separate.
 
 **RLP total-domain options (Q47).** Retain total encoder signatures with a modular byte tag and unbounded minimal length digits; add a rejecting API; or select another total prefix completion. The owning disposition is in DECISIONS Q47. Revisit against a concrete consumer requiring behavior beyond `Encodable`, keeping mathematical completion separate from pinned-host and protocol correspondence.
 
-**Two-item field diagnostic options (Q52).** Name the path-list and leaf-value-list failures separately; reuse unrelated existing diagnostics; or introduce a generic shape catch-all. The source checks the first field at `incremental_mpt.py:946` before compact decoding and the second at `:951` only on a successfully decoded leaf flag. DECISIONS Q52 owns the disposition. The distinct names retain that order, Q48 and existing O4 projection; whole decoding and witness/guest adapters remain open.
+**Two-item field diagnostic options (Q52).** Name the path-list and leaf-value-list failures separately; reuse unrelated existing diagnostics; or introduce a generic shape catch-all. The source checks the first field at `incremental_mpt.py:939` before compact decoding and the second at `:944` only on a successfully decoded leaf flag. DECISIONS Q52 owns the disposition. The distinct names retain that order, Q48 and existing O4 projection; whole decoding and witness/guest adapters remain open.
 
-**Empty compact diagnostic options (Q48).** Name the raw first-byte failure `Malformed.compactEmpty`; reuse `rlp`; or reuse `pathEmpty`. The source raises `IndexError` at `incremental_mpt.py:878` before a decoded path/leaf flag exists, while the later extension check at `:959` rejects an empty decoded path. The owning disposition is DECISIONS Q48. All options preserve nonempty leniency and O4's output; the chosen name keeps the two phases inspectable.
+**Empty compact diagnostic options (Q48).** Name the raw first-byte failure `Malformed.compactEmpty`; reuse `rlp`; or reuse `pathEmpty`. The source raises `IndexError` at `incremental_mpt.py:871` before a decoded path/leaf flag exists, while the later extension check at `:952` rejects an empty decoded path. The owning disposition is DECISIONS Q48. All options preserve nonempty leniency and O4's output; the chosen name keeps the two phases inspectable.
 
 **Nibble provider options (Q49).** Nat-indexed bounded packed generation or model construction; guarded/clipped packed copies or a later view representation; direct packed lexicographic scan or common-prefix scan followed by next digit/length comparison. Each option preserves the same List observers and ordinary equality bridge, without public storage or unchecked digit conversion. The owning disposition is DECISIONS Q49. Exact public model/index/size laws, lawful map clients and local current-source compiled correctness supply provider evidence; views and aggregate costs are revisited under D25/D18 and C1–C4.
 
@@ -1038,6 +1038,16 @@ w-byte result; (C-modulus) a reusable proof `p ≤ 256 ^ w`, which excludes smal
 values of a larger modulus. All four agree on the R8 callers (32-byte BN254,
 secp256k1, P-256 and KZG values; 64-byte EIP-2537 coordinates), whose canonical
 values fit by the modulus bound.
+
+**Secured-trie path-length diagnostic options (Q90).** DECISIONS Q90 owns the
+selection; EthCommit §5 owns the constructor and C13 the decoder behaviour. EELS
+checks three conditions with plain `assert`s after a secured decode: a leaf's
+remaining path, an extension segment and a branch against the remaining nibbles of
+the 64-nibble key. (A) one constructor for all three, so no order among them is part
+of the contract; (B) one constructor per condition, which makes the traversal order
+that finds the first failure part of the contract; (C) a constructor carrying the
+path or remaining count, which adds data no consumer reads. Every option is an O4
+rejection on the guest path.
 
 ## 12. Not yet decided
 

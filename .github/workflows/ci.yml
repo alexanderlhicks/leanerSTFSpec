@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
@@ -214,6 +213,8 @@ jobs:
         run: uv run --no-project --python 3.12 python scripts/check_boundaries.py
       - name: Declaration check (compiled; strict)
         run: scripts/check_decls.sh core
+      - name: Kernel replay of every core module
+        run: scripts/replay_kernel.sh core
       - name: Checker regression tests
         run: |
           lake build CheckDeclsTest
@@ -240,6 +241,10 @@ jobs:
         run: uv run --no-project --python 3.12 python scripts/test_spec_checks.py
       - name: Gap register is up to date
         run: uv run --no-project --python 3.12 python scripts/gen_gaps.py --check
+      - name: Recorded EELS citation remap and its regressions
+        run: |
+          uv run --no-project --python 3.12 python scripts/remap_citations.py --check
+          uv run --no-project --python 3.12 python scripts/test_remap_citations.py
       - name: Deterministic conformance checks (core profile)
         run: |
           lake build EthConformance fixture-records --wfail
@@ -253,13 +258,6 @@ jobs:
     needs: core
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: "0.13.6"
-          enable-cache: false
-
       - name: Install elan
         run: |
           curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none
@@ -283,11 +281,15 @@ jobs:
         run: lake build --wfail
       - name: Declaration check, bridge package (sorry reported; everything else strict)
         run: scripts/check_decls.sh mathlib
+      - name: Kernel replay, bridge package
+        run: scripts/replay_kernel.sh mathlib
       - name: Build the security package
         working-directory: STFSpecSecurity
         run: lake build --wfail
       - name: Declaration check, security package (sorry reported; everything else strict)
         run: scripts/check_decls.sh security
+      - name: Kernel replay, security package
+        run: scripts/replay_kernel.sh security
 
   fixtures:
     name: Pinned EEST zkevm corpus
@@ -295,13 +297,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.13.6"
           enable-cache: false
-
       - name: Install elan
         run: |
           curl -sSfL "$ELAN_INIT" | sh -s -- -y --default-toolchain none

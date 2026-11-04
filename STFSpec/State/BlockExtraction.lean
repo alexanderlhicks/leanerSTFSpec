@@ -17,7 +17,7 @@ namespace STFSpec.State
 variable {m : Type → Type}
 
 /-- Extract the complete raw effects without calling the provider.
-EELS `src/ethereum/forks/amsterdam/state_tracker.py:880–900` copies the four
+EELS `src/ethereum/forks/amsterdam/state_tracker.py:861–881` copies the four
 effect fields. Q85 transports supplied B1 metadata through `WriteOrder.toList`,
 including malformed occurrences and extra or present-empty slot metadata.
 No WF, history, constants coherence or class premise is required. -/

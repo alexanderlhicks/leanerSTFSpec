@@ -1,6 +1,6 @@
 # `<Library>`: <one-line title>
 
-*Status: informal specification, draft. Date: YYYY-MM-DD. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: YYYY-MM-DD. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F<n>, … (DECISIONS §3) · gate: [REVIEW §3](REVIEW.md) · decisions: D<n>, … · questions: B<n>/Q<n>/F<n>, ….*
 
 The navigation line lists what an implementer of this library must also read. These links are relative to this template; when copying it into `STFSpec/informal/modules/`, add one `../` to each target. Omit the parts that do not apply.

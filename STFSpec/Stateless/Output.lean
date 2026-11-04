@@ -19,7 +19,7 @@ namespace STFSpec.Stateless
 open Base Codec
 
 /-- The fixed-width output record; EELS
-`src/ethereum/forks/amsterdam/stateless.py:181–216` at the pin. -/
+`src/ethereum/forks/amsterdam/stateless.py:171–206` at the pin. -/
 structure StatelessValidationResult where
   newPayloadRequestRoot : Hash32
   successfulValidation : Bool

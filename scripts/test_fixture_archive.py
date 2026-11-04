@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Regression cases for the independent authenticated fixture extraction tool."""
 import sys
@@ -31,6 +31,10 @@ def case(blocks=None, engine=False):
 
 def block(input="0x1501", output=OUTPUT):
     return {"statelessInputBytes": input, "statelessOutputBytes": output}
+
+
+def payload(input="0x1501", output=OUTPUT):
+    return {"params": [], **block(input, output)}
 
 
 def index(path=FILE):
@@ -339,8 +343,62 @@ class ArchiveTests(unittest.TestCase):
         report, _, _ = self.verify(value=case([{}]), records=0, distinct=0)
         self.assertEqual(report["guest_records"], 0)
 
-    def test_engine_has_no_guest_records(self):
-        self.assertEqual(fixtures.guest_records(ENGINE, case([{"params": []}], True))[0], [])
+    def test_engine_payload_guest_records(self):
+        mutated = {**payload("0x1502"), "executionWitnessMutated": True,
+                   "executionWitness": {"headers": ["0x00"]}}
+        invalid = {**payload(), "validationError": "INVALID_BLOCK", "errorCode": -32602}
+        value = case([{"params": []}, {"params": [], "validationError": "X"}, payload(),
+                      mutated, invalid], True)
+        records = fixtures.guest_records(ENGINE, value)[0]
+        self.assertEqual([item[0] for item in records],
+                         [{"file": ENGINE, "testId": "test", "blockIndex": index,
+                           "infoHash": HASH} for index in (2, 3, 4)])
+        self.assertEqual([item[1] for item in records],
+                         [hashlib.sha256(bytes.fromhex(raw)).digest()
+                          for raw in ("1501", "1502", "1501")])
+        # The mutated debug witness and validity labels change neither identity nor bytes.
+        plain = case([{"params": []}, {"params": []}, payload(), payload("0x1502"),
+                      payload()], True)
+        self.assertEqual(fixtures.guest_records(ENGINE, plain)[0], records)
+        self.assertEqual(fixtures.expected_content(ENGINE, json.dumps(value).encode(),
+                                                   fixtures.DEFAULT_FIELDS)[1],
+                         {"id": records[1][0], "input": "0x1502", "expected": OUTPUT})
+
+    def test_engine_and_block_records_counted_together(self):
+        meta = {"test_count": 2, "test_cases": [
+            {"id": "test", "json_path": FILE, "fixture_hash": HASH, "fork": "Amsterdam",
+             "format": "blockchain_test"},
+            {"id": "engine", "json_path": ENGINE, "fixture_hash": HASH, "fork": "Amsterdam",
+             "format": "blockchain_test_engine"}]}
+        engine = {"engine": case([payload(), {"params": []}, payload("0x1502")], True)["test"]}
+        report, identities, counts = self.verify(meta=meta, extra=[(ENGINE, engine)],
+                                                 records=3, distinct=2)
+        self.assertEqual(report["guest_records"], 3)
+        self.assertEqual(report["distinct_guest_input_fingerprints"], 2)
+        self.assertEqual(counts, {FILE: 1, ENGINE: 2})
+        self.assertEqual([(item["file"], item["blockIndex"]) for item in identities],
+                         [(FILE, 0), (ENGINE, 0), (ENGINE, 2)])
+
+    def test_engine_payload_malformed(self):
+        location = f"{ENGINE}:test:engineNewPayloads[1]"
+        lone = [{"params": [], field: value} for field, value in
+                (("statelessInputBytes", "0x1501"), ("statelessOutputBytes", OUTPUT))]
+        for entry, message in ((None, f"{location}: object required"),
+                               (lone[0], f"{location}: unpaired guest fields"),
+                               (lone[1], f"{location}: unpaired guest fields"),
+                               (payload("0x0"),
+                                f"{location}.statelessInputBytes: hex bytes required"),
+                               (payload(None),
+                                f"{location}.statelessInputBytes: hex bytes required"),
+                               (payload(output="0x00"),
+                                f"{location}: guest output must be 43 bytes"),
+                               (payload(output="0x" + "00" * 44),
+                                f"{location}: guest output must be 43 bytes"),
+                               (payload(output="00" * 43),
+                                f"{location}.statelessOutputBytes: hex bytes required")):
+            with self.subTest(entry=entry), self.assertRaises(fixtures.FixtureError) as caught:
+                fixtures.guest_records(ENGINE, case([payload(), entry], True))
+            self.assertEqual(str(caught.exception), message)
 
     def test_dual_shape_rejected(self):
         for engine in (False, True):
@@ -709,6 +767,22 @@ class ArchiveTests(unittest.TestCase):
         result = fixtures.check_lean(self.path, pin, executable, {FILE: 1}, 0, [FILE])
         self.assertEqual(result["lean_content_files_checked"], 1)
         self.assertEqual(result["lean_guest_records_content_compared"], 1)
+
+    def test_actual_lean_engine_content_identity_and_bytes(self):
+        executable = pathlib.Path(__file__).resolve().parents[1] / ".lake/build/bin/fixture-records"
+        mutated = {**payload("0x00AaFf"), "executionWitnessMutated": True,
+                   "executionWitness": {"headers": []}}
+        value = case([{"params": []}, mutated, {**payload(), "validationError": "X"}], True)
+        pin = archive(self.path, [(FILE, case([block()])), (ENGINE, value)])
+        result = fixtures.check_lean(self.path, pin, executable, {FILE: 1, ENGINE: 2}, None,
+                                     [FILE, ENGINE])
+        self.assertEqual(result["lean_content_files_checked"], 2)
+        self.assertEqual(result["lean_guest_records_content_compared"], 3)
+        unpaired = case([{"params": [], "statelessInputBytes": "0x1501"}], True)
+        pin = archive(self.path, [(ENGINE, unpaired)])
+        with self.assertRaisesRegex(fixtures.FixtureError,
+                                    r"Lean extraction .*unpairedGuestFields"):
+            fixtures.check_lean(self.path, pin, executable, {ENGINE: 0}, None)
 
     def test_content_mismatch_even_when_count_matches(self):
         pin = archive(self.path, [(FILE, case([block()]))])

@@ -21,7 +21,7 @@ namespace STFSpec.Commit
 open STFSpec.Base STFSpec.Codec STFSpec.Hash
 
 /-- Complete a fresh leaf once. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:48–57,267–271,316–346,486–488`, with initially
+`src/ethereum/forks/amsterdam/incremental_mpt.py:53–62,270–274,319–349,479–481`, with initially
 absent raw/hash caches, followed by materialization; paths and values may be empty. -/
 def mkLeaf {m : Type → Type} [Monad m] [KeccakQuery m]
     (path : Nibbles) (value : ByteArray) : m Node :=

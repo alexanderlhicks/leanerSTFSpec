@@ -9,7 +9,7 @@ import STFSpec.Commit.TrieError
 /-!
 # Total bare partial-trie insertion
 
-Library `EthCommit`. Pinned EELS `incremental_mpt.py:473–677`.
+Library `EthCommit`. Pinned EELS `incremental_mpt.py:466–670`.
 Insertion preserves the reached source constructors, completes fresh nodes in
 old-side/new-side/child/parent order, and retains every off-path field and cache.
 The private copying reference has the same literal CPS monad action on all inputs.
@@ -351,7 +351,7 @@ decreasing_by
   · exact branch_smaller _ _ _ _ _
 
 /-- Insert every finite value, including empty bytes, into a bare partial tree.
-Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:231–237,473–677`.
+Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:234–240,466–670`.
 Only reached stubs and missing selected branch slots produce structural errors;
 strict fresh completion forwards the actual query action and answer unchanged. -/
 def update (t : Ref) (key : Nibbles) (value : ByteArray) : m (Except TrieError Ref) :=

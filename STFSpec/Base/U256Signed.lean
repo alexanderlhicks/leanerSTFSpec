@@ -18,7 +18,7 @@ EELS citations are at the commit in `reference.toml`.
 namespace STFSpec.Base.U256
 
 /-- EVM SDIV: zero divisor first, then signed minimum divided by −1, then division
-truncated toward zero. EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:142`.
+truncated toward zero. EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:139`.
 Signed observations use `ethereum_types/numeric.py:675` (`to_signed`). -/
 def sdiv (a b : U256) : U256 :=
   if b.toInt = 0 then zero else
@@ -26,7 +26,7 @@ def sdiv (a b : U256) : U256 :=
       ofBitVec (BitVec.ofInt 256 (a.toInt.tdiv b.toInt))
 
 /-- EVM SMOD: a zero divisor returns zero; otherwise the remainder has the dividend's
-sign. EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:205`.
+sign. EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:202`.
 Signed observations use `ethereum_types/numeric.py:675` (`to_signed`). -/
 def smod (a b : U256) : U256 :=
   if b.toInt = 0 then zero else ofBitVec (BitVec.ofInt 256 (a.toInt.tmod b.toInt))

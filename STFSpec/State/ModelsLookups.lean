@@ -18,7 +18,7 @@ namespace STFSpec.State
 open Base
 
 /-- Success-only account, storage and code agreement at supplied constants (Q57).
-The provider shape is EELS `src/ethereum/state.py:100–122`; mathematical observers
+The provider shape is EELS `src/ethereum/state.py:94–116`; mathematical observers
 follow `src/ethereum/state_mpt.py:49–80`. This proposition adds no root, WF,
 authentication, availability or constants-coherence premise. -/
 def ModelsLookups (consts : HashConsts) (ps : PreState Id) (σ : MathState) : Prop :=

@@ -1,12 +1,16 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-10-31. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
 **[I]** inference, not yet checked. Paths are relative to
 `src/ethereum/forks/amsterdam/vm/precompiled_contracts/` unless they start with `crypto/`,
 `vm/` or a package name; `vm/` means `src/ethereum/forks/amsterdam/vm/`.
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -28,17 +32,17 @@ correctness through the Mathlib partners (ii), and cryptographic-security statem
 
 - **Dispatch.** If the message's `code_address` is a key of `PRE_COMPILED_CONTRACTS` and
   precompiles are not disabled for this frame, the runner calls the implementation instead of
-  interpreting code (`vm/interpreter.py:438–441`) [V]. Value transfer happens first (`:424–437`).
+  interpreting code (`vm/interpreter.py:432–435`) [V]. Value transfer happens first (`:418–431`).
   `disable_precompiles` is set when the target is an EIP-7702 delegation
-  (`vm/interpreter.py:194`); that is the runner's concern (`EthVmRunner`). All precompile
-  addresses are pre-warmed (`vm/interpreter.py:172`); `EthPrecompiles` exports the address set.
+  (`vm/interpreter.py:189`); that is the runner's concern (`EthVmRunner`). All precompile
+  addresses are pre-warmed (`vm/interpreter.py:167`); `EthPrecompiles` exports the address set.
 - **Effects.** Every implementation reads only `evm.call_data`, calls `charge_gas` (execution
-  gas only, `vm/gas.py:408–422`, `:391–405`) and assigns `evm.output`, or raises [V: every file
+  gas only, `vm/gas.py:396–410`, `:379–393`) and assigns `evm.output`, or raises [V: every file
   read]. No precompile touches state, logs, refunds, state gas, return data or memory.
 - **Failure → outcome** (`STFSpec/informal/CONTRACT.md` O8/O9). Any `ExceptionalHalt` (including
   `OutOfGasError`, `InvalidParameter`, `KZGProofError`, `vm/exceptions.py:51`, `:110`, `:134`)
   is handled by the runner: state gas restored, remaining gas forfeited, output `b""`, tx state
-  restored to the pre-call snapshot, so value transfer is undone (`vm/interpreter.py:456–474`)
+  restored to the pre-call snapshot, so value transfer is undone (`vm/interpreter.py:450–468`)
   [V]. The error class is not otherwise observable in the guest output [I: only success/failure
   reaches the parent or the receipt]. "Empty output" failures (ECRECOVER, P256VERIFY) are
   **successful** calls with `output = b""`.
@@ -56,7 +60,7 @@ correctness through the Mathlib partners (ii), and cryptographic-security statem
 
 ### 2.2 Address, gas, input and output per precompile
 
-Addresses from `__init__.py:38–55`; gas constants from `vm/gas.py:112–137` [V]. "Halt" means
+Addresses from `__init__.py:38–55`; gas constants from `vm/gas.py:103–128` [V]. "Halt" means
 exceptional halt; `⌈n⌉₃₂ := ⌈len(data)/32⌉`.
 
 | Addr | Name (EELS) | Gas | Pre-charge checks (halt) | Output / post-charge failures |
@@ -90,7 +94,7 @@ on `SignatureError` return empty (`:56–60`). Output
 `0¹² ‖ (← KeccakQuery.keccak pub)[12:32]` (`:62–64`): the public-key hash is an oracle query
 (D5), so ECRECOVER is a `PrecompileFn m`.
 
-**SHA256 / RIPEMD160 / IDENTITY** (`sha256.py:28–51`, `ripemd160.py:29–54`, `identity.py:26–49`)
+**SHA256 / RIPEMD160 / IDENTITY** (`sha256.py:25–48`, `ripemd160.py:26–51`, `identity.py:23–46`)
 [V]. The hashes are Python `hashlib.sha256` and `hashlib.new("ripemd160")`, i.e. host OpenSSL
 (`reference.toml` note) [V]; RIPEMD-160 output is 20 bytes, left-padded to 32.
 
@@ -160,18 +164,18 @@ U256(BLS_MODULUS).to_be_bytes32()` (`:69–72`).
 
 **EIP-2537 operations** (`bls12_381_g1.py`, `bls12_381_g2.py`, `bls12_381_pairing.py`) [V].
 - G1ADD/G2ADD: exact length; decode two points **without** subgroup check; output the sum
-  (`g1.py:42–70`, `g2.py:43–71`).
-- G1MSM/G2MSM: `k = len / pairLength`; gas `⌊k · MUL · disc(k) / 1000⌋` (`g1.py:97–106`,
-  `g2.py:98–107`); decode each pair with subgroup check; output `Σ mᵢ·Pᵢ` (`g1.py:109–121`).
+  (`g1.py:39–67`, `g2.py:40–68`).
+- G1MSM/G2MSM: `k = len / pairLength`; gas `⌊k · MUL · disc(k) / 1000⌋` (`g1.py:94–103`,
+  `g2.py:95–104`); decode each pair with subgroup check; output `Σ mᵢ·Pᵢ` (`g1.py:106–118`).
   `k = 1` is the former G1MUL/G2MUL (EEST `bls12_g1mul`, `bls12_g2mul` target the MSM address).
 - PAIRING: gas `32600·k + 37700` (literals in EELS, `pairing.py:45–47`; here the `GasCosts`
   fields `blsPairingPerPair` and `blsPairingBase`, B8, F9); per
   384-byte chunk, G1 (128) and G2 (256) decoded without the flag, then explicit subgroup checks
   (`:51–63`); output `0³¹‖01` iff the product of pairings is one, else `0³²` (`:67–70`).
-- MAP_FP_TO_G1: `fp = data` as a 64-byte integer, `≥ q` halts (`g1.py:147–149`); output
-  `EthCurve.Bls12381.clearCofactorG1 (mapToCurveG1 fp)` (`:151–152`).
+- MAP_FP_TO_G1: `fp = data` as a 64-byte integer, `≥ q` halts (`g1.py:144–146`); output
+  `EthCurve.Bls12381.clearCofactorG1 (mapToCurveG1 fp)` (`:148–149`).
 - MAP_FP2_TO_G2: `bytes_to_fq2(data)` (twice; the duplicate call and the `assert isinstance` at
-  `g2.py:148–151` are no-ops); output `clearCofactorG2 (mapToCurveG2 u)`.
+  `g2.py:145–148` are no-ops); output `clearCofactorG2 (mapToCurveG2 u)`.
 
 **P256VERIFY** (`p256verify.py:31–90`) [V], EIP-7951. Charge 6900 **first** (`:44`); then
 `len ≠ 160` → empty (`:46–47`). Read `h, r, s, qx, qy` (32 bytes each, `:50–59`). Empty unless
@@ -209,7 +213,7 @@ D3/B8/F8 concern selected Amsterdam parameters. This interpretation needs no new
 configuration field, public version argument or decision. There is no explicit KZG
 exemption, and none is claimed. Future PointEvaluation convenience names must reuse or
 alias the canonical Kzg value. The pinned source repeats the same byte in
-`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:69`, which EthBlock §3
+`point_evaluation.py:29` and in `forks/amsterdam/transactions.py:64`, which EthBlock §3
 plans as `versionedHashVersionKzg`; both are source duplicates of this one value, not
 competing owners. EthBlock cannot import EthPrecompiles (`scripts/boundaries.toml`), so
 a shared lower owner for the tag remains open.
@@ -238,9 +242,9 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/__init__.py::P256VERIFY_ADDRESS` | 55 | `p256verifyAddress` | `0x100` |
 | `forks/amsterdam/vm/precompiled_contracts/mapping.py::PRE_COMPILED_CONTRACTS` | 59 | `preCompiledContracts : List (Address × Precompile)`, `lookup`, `addresses` | installed by `EthFork` |
 | `forks/amsterdam/vm/precompiled_contracts/ecrecover.py::ecrecover` | 26 | `ecrecover : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/sha256.py::sha256` | 28 | `sha256 : Precompile` | hash from `EthHash` |
-| `forks/amsterdam/vm/precompiled_contracts/ripemd160.py::ripemd160` | 29 | `ripemd160 : Precompile` | hash from `EthHash` |
-| `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 26 | `identity : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/sha256.py::sha256` | 25 | `sha256 : Precompile` | hash from `EthHash` |
+| `forks/amsterdam/vm/precompiled_contracts/ripemd160.py::ripemd160` | 26 | `ripemd160 : Precompile` | hash from `EthHash` |
+| `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 23 | `identity : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::modexp` | 24 | `modexp : Precompile` | `EthField.powMod` |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::complexity` | 76 | `Modexp.complexity : Nat → Nat → Nat` | |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::iterations` | 102 | `Modexp.iterations : Nat → Nat → Nat` | |
@@ -274,14 +278,14 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::fq2_to_bytes` | 554 | `Bls12.fq2ToBytes` | |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::g2_to_bytes` | 573 | `Bls12.g2ToBytes` | |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/__init__.py::decode_g2_scalar_pair` | 594 | `Bls12.decodeG2ScalarPair` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::LENGTH_PER_PAIR` | 39 | `Bls12.g1PairLength = 160` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_g1_add` | 42 | `bls12G1Add : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_g1_msm` | 73 | `bls12G1Msm : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_map_fp_to_g1` | 124 | `bls12MapFpToG1 : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::LENGTH_PER_PAIR` | 40 | `Bls12.g2PairLength = 288` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_g2_add` | 43 | `bls12G2Add : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_g2_msm` | 74 | `bls12G2Msm : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_map_fp2_to_g2` | 125 | `bls12MapFp2ToG2 : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::LENGTH_PER_PAIR` | 36 | `Bls12.g1PairLength = 160` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_g1_add` | 39 | `bls12G1Add : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_g1_msm` | 70 | `bls12G1Msm : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g1.py::bls12_map_fp_to_g1` | 121 | `bls12MapFpToG1 : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::LENGTH_PER_PAIR` | 37 | `Bls12.g2PairLength = 288` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_g2_add` | 40 | `bls12G2Add : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_g2_msm` | 71 | `bls12G2Msm : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py::bls12_map_fp2_to_g2` | 122 | `bls12MapFp2ToG2 : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_pairing.py::bls12_pairing` | 25 | `bls12Pairing : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/p256verify.py::p256verify` | 31 | `p256verify : Precompile` | |
 
@@ -303,7 +307,8 @@ integration, security and the rest of this module remain open.
 ## 4. Tests
 
 - **EEST fixture areas** (`blockchain_tests`, from `STFSpec/informal/eest-fixture-index.txt`; the
-  `blockchain_tests_engine` copies carry no guest records, GAPS-CROSSCUTTING X5):
+  `blockchain_tests_engine` copies cover the same areas with their own guest records,
+  GAPS-CROSSCUTTING X5):
   - `0x01`: `frontier/precompiles` (`ecrecover/*`), `ported_static/stPreCompiledContracts2`
     (`call[code]_ecrecover*`, `ecrecover_short_buff`);
   - `0x02`/`0x03`: `frontier/precompiles` (`ripemd/*`), `stPreCompiledContracts2`
@@ -544,7 +549,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the warm-address set). The runner (`EthVmRunner`) and instructions never import it (D17).
 - **Seams consumed:** from `EthVmCore`: `GasMeter` with `chargeGas` and its law,
   `ExceptionalHalt` constructors (`vm/exceptions.py`), `bufferRead` and its padding law, the gas
-  parameter record (`vm/gas.py:112–137`, plus the B8 pricing fields). From `EthHash`: `sha256`, `ripemd160`, the `KeccakQuery` class (ECRECOVER),
+  parameter record (`vm/gas.py:103–128`, plus the B8 pricing fields). From `EthHash`: `sha256`, `ripemd160`, the `KeccakQuery` class (ECRECOVER),
   and the BLAKE2 F compression with parameter extraction (`crypto/blake2.py`, including
   `Blake2b`'s `get_blake2_parameters` and `compress`). From `EthPairing`/`EthCurve`/`EthField`:
   everything mathematical, with their subgroup and predicate preconditions discharged here.
@@ -585,7 +590,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   comparisons do not close precompile, host, security, resource or whole-guest gates.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
-  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:69`,
+  also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,
   and EthBlock §3 plans its own `versionedHashVersionKzg` without an EthPrecompiles
   dependency. A shared lower owner for the tag is not yet chosen.
 
@@ -625,5 +630,5 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   checked (only lengths and endpoints were evaluated).
 - **`disable_precompiles` semantics** (EIP-7702 delegation to a precompile address) belong to
   `EthVmRunner`; this spec assumes they are specified there.
-- **Tracing** (`evm_trace(PrecompileStart…)`, `vm/interpreter.py:440–442`) is not semantic and
+- **Tracing** (`evm_trace(PrecompileStart…)`, `vm/interpreter.py:434–436`) is not semantic and
   is left to the diagnostic event interface (ARCHITECTURE §7).

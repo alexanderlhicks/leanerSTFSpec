@@ -1,12 +1,16 @@
 # `EthCurve`: elliptic-curve groups, ECDSA, hash-to-curve maps and point codecs
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in `EthField` §6 and D6 · interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D7, D12, D15, D18, D25, D26 · questions: B13/Q41, Q44, Q45.*
 
 Tags: **[V]** verified by reading pinned source or running the pinned dependency (`esvenv`,
 versions per `reference.toml`); **[I]** inference, not yet checked. Line numbers without a
 path refer to `src/ethereum/crypto/elliptic_curve.py`; `py_ecc` paths are relative to
 `site-packages/py_ecc/` (py-ecc 8.0.0).
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -70,8 +74,8 @@ GLV, etc.).
 (endomorphism-based) are admissible only with a proof of equivalence on on-curve points.
 
 **R7. MSM.** `msm [(P₀, m₀), …, (P_{k−1}, m_{k−1})] = Σ mᵢ • Pᵢ`, for `k ≥ 1`. EELS computes the
-naive left fold `((m₀P₀) + m₁P₁) + …` (`bls12_381_g1.py:109–121`) [V]; the gas schedule's
-discounts assume Pippenger-style algorithms (EELS docstring `:76–79`). Order of summation is not
+naive left fold `((m₀P₀) + m₁P₁) + …` (`bls12_381_g1.py:106–118`) [V]; the gas schedule's
+discounts assume Pippenger-style algorithms (EELS docstring `:73–76`). Order of summation is not
 observable.
 
 **R8. SSWU map to G1/G2 (EIP-2537).** `mapFpToG1 u = clearCofactorG1 (isoMapG1 (sswuG1 u))`
@@ -106,7 +110,7 @@ recovered key, or `SignatureError`, exactly as EELS + `spec256k1` 0.2.3:
 1. reject if `(r³ + 7)^((p−1)/2) mod p ≠ 1`, computed on `U256` with Python `pow` (`:47–56`);
 2. build `r‖s‖v` (65 bytes, `:58–64`); `v > 255` raises an *uncaught* `ValueError` at `:64`, but
    every caller passes `v ∈ {0, 1}` (`ecrecover.py:49–57`, `transactions.py:944–1004`,
-   `vm/eoa_delegation.py:137–155`) [V], so the spec takes `v : Bool`;
+   `vm/eoa_delegation.py:133–151`) [V], so the spec takes `v : Bool`;
 3. `spec256k1` (Rust `secp256k1` 0.30.0 over `secp256k1-sys` 0.10.1, i.e. libsecp256k1, per the
    wheel SBOM [V]) recovers `Q = r⁻¹(s·R − e·G)` with `R = (r, y)`, `y` of parity `v`,
    `e = msgHash mod n`. Observed [V, empirical]: `r = 0`, `s = 0`, `r ≥ n`, `s ≥ n` → error
@@ -175,7 +179,7 @@ Scalar multiplication and cofactor clearing recurse structurally on the scalar's
   `osaka/eip7951_p256verify_precompiles` (12, including three Wycheproof files and
   `modular_comparison.json`), `frontier/precompiles/ecrecover`, `ported_static/stPreCompiledContracts2`
   (`*ecrecover*`), and every block with signed transactions or EIP-7702 authorizations
-  (secp256k1 recovery through O5/O7). `blockchain_tests` only: it holds all 29,030 guest records, and `blockchain_tests_engine` has none (GAPS-CROSSCUTTING X5).
+  (secp256k1 recovery through O7). Both `blockchain_tests` and its `blockchain_tests_engine` copies carry guest records (GAPS-CROSSCUTTING X5).
 - **EELS unit tests:** none for `crypto/` at e1a316a0 [V].
 - **`core` `#guard` cases** (F16: a `#guard` or `decide` cannot evaluate a term that reaches a `sorry` leaf, so each guard runs only once the operations it reaches are implemented):
   - typical: generators on curve; `r • G = ∞` for BN254 G1/G2 and BLS12-381 G1/G2; `G + 2G = 3G`
@@ -333,8 +337,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthField`
 - **Used by:** `EthPairing`; `EthPrecompiles` (transitively, for ECRECOVER, ECADD/ECMUL,
   EIP-2537 and P256VERIFY); `EthCurveMathlib`. **Also needed by** transaction sender recovery
-  (`transactions.py:907–912`, O5 public-key check `:916–934`) and EIP-7702 authority recovery
-  (`vm/eoa_delegation.py:155`), through the applied D26 dependency: `EthVmRunner` imports `EthCurve` directly, and `EthBlock` reaches it transitively (D26, accepted 2026-09-28).
+  (`transactions.py` `recover_sender`) and EIP-7702 authority recovery
+  (`vm/eoa_delegation.py:151`), through the applied D26 dependency: `EthVmRunner` imports `EthCurve` directly, and `EthBlock` reaches it transitively (D26, accepted 2026-09-28).
 - **Seams.** Consumes `EthField` laws only (never limbs). Guarantees invariant preservation for inputs satisfying the stated validity premises, and that ECDSA functions are total on all `U256` inputs.
 
 ## 9. Open decisions

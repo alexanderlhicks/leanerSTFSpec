@@ -15,17 +15,17 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 namespace STFSpec.Vm.Core
 
 /-- Raw gas-counter projections of EELS `BlockOutput`,
-`src/ethereum/forks/amsterdam/vm/__init__.py:72–120` at the pin.
+`src/ethereum/forks/amsterdam/vm/__init__.py:66–114` at the pin.
 All Nat/Nat/U64 records are admitted; no block-capacity premise is imposed. -/
 structure BlockGasCounters where
   /-- Execution usage, `block_gas_used` at pinned EELS
-  `src/ethereum/forks/amsterdam/vm/__init__.py:104`. -/
+  `src/ethereum/forks/amsterdam/vm/__init__.py:98`. -/
   blockGasUsed : Nat
   /-- State usage, `block_state_gas_used` at pinned EELS
-  `src/ethereum/forks/amsterdam/vm/__init__.py:105`. -/
+  `src/ethereum/forks/amsterdam/vm/__init__.py:99`. -/
   blockStateGasUsed : Nat
   /-- Blob usage, `blob_gas_used` at pinned EELS
-  `src/ethereum/forks/amsterdam/vm/__init__.py:118`. -/
+  `src/ethereum/forks/amsterdam/vm/__init__.py:112`. -/
   blobGasUsed : STFSpec.Base.U64
 
 /-- Equality of all three projections determines the complete raw counter record. -/

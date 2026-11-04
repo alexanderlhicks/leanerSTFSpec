@@ -7,7 +7,7 @@ import STFSpec.Base.Bytes
 /-!
 # Calldata token count
 
-Library `EthBlock`. Pinned EELS `src/ethereum/forks/amsterdam/transactions.py:804–814`.
+Library `EthBlock`. Pinned EELS `src/ethereum/forks/amsterdam/transactions.py:799–809`.
 Every zero byte contributes one token, every other byte four. This helper does not
 compute the all-bytes calldata floor. Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/
@@ -42,7 +42,7 @@ private theorem reference_formula (xs : List UInt8) :
       omega
 
 /-- Total calldata token count on every finite byte array; EELS
-`src/ethereum/forks/amsterdam/transactions.py:804–814`.
+`src/ethereum/forks/amsterdam/transactions.py:799–809`.
 The executable path folds the packed input without allocating its list model. -/
 def countTokensInData (data : ByteArray) : Nat :=
   (Bytes.ofByteArray data).foldl (fun n byte ↦ n + tokenWeight byte) 0

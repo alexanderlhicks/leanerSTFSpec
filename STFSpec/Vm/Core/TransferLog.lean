@@ -17,7 +17,7 @@ namespace STFSpec.Vm.Core
 open STFSpec.Base
 
 /-- Append an EIP-7708 transfer log, or return the actual frame for amount zero.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/__init__.py:253–289`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/__init__.py:247–283`.
 Address and first topic are supplied; this pure helper performs no hash query,
 producer self-suppression, transfer, charge, static check or settlement. -/
 def emitTransferLog (f : Frame) (systemAddress : Address) (topic : Hash32)

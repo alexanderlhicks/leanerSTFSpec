@@ -9,8 +9,8 @@ import STFSpec.Vm.Core
 
 Library `EthConformance`. These public-law compositions retain the local preparation
 assertions and ordinary admission hypotheses; they implement no Runner or checked cast.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:267–294`,
-`vm/gas.py:555–603,674–675,1120–1243`.
+Pinned EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:261–288`,
+`vm/gas.py:543–591,662–663,1105–1228`.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/4/7/10.
 -/
 

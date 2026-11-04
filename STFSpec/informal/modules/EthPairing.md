@@ -1,11 +1,15 @@
 # `EthPairing`: BN254 and BLS12-381 pairings, pairing checks and KZG verification
 
-*Status: informal specification, draft. Date: 2026-09-29. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D7, D12, D15, D18, D21 · questions: B13/Q40/Q42, Q39, Q44, Q45.*
 
 Tags: **[V]** verified against pinned source or by running the pinned dependency; **[I]**
 inference, not yet checked. Line numbers without a path refer to `src/ethereum/crypto/kzg.py`;
 `py_ecc` paths are relative to `site-packages/py_ecc/` (py-ecc 8.0.0).
+EELS `file:line` citations are at `59c1473d` except where marked and those listed in
+`STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0`
+(`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at
+`59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 

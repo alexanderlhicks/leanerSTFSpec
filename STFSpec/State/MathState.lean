@@ -84,7 +84,7 @@ variable (σ : MathState) (consts : HashConsts)
 local notation "EMPTY_CODE_HASH" => consts.emptyCodeHash
 
 /-- Mathematical optional code lookup with the caller's reserved-hash bypass;
-EELS `src/ethereum/state_mpt.py:49–57` and `src/ethereum/forks/amsterdam/witness_state.py:205–213`.
+EELS `src/ethereum/state_mpt.py:49–57` and `src/ethereum/forks/amsterdam/witness_state.py:129–137`.
 The mathematical `none` is distinct from the provider's missing-code error. -/
 def code? (h : Hash32) : Option ByteArray :=
   if h = EMPTY_CODE_HASH then some ByteArray.empty else σ.code[h]?

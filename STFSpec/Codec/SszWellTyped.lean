@@ -9,7 +9,7 @@ import STFSpec.Codec.SszModel
 
 Library `EthCodec`. Payload-only typing on every raw descriptor/value pair (Q71),
 independent of schema admission, source construction and operation domains.
-Source interpretation: `src/ethereum/utils/ssz.py:169–325` and eth-remerkleable 0.1.31.
+Source interpretation: `src/ethereum/utils/ssz.py:164–320` and eth-remerkleable 0.1.31.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
 
@@ -37,7 +37,7 @@ mutual
 end
 
 /-- Payload-only structural typing (Q71), with mathematical ranges at every raw width.
-Corresponds conditionally to `src/ethereum/utils/ssz.py:169–325`; source class admission,
+Corresponds conditionally to `src/ethereum/utils/ssz.py:164–320`; source class admission,
 actual uint256 backing counts, codec and root premises remain separate. -/
 def SszValue.WellTyped : SszType → SszValue → Prop := wellTyped
 

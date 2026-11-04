@@ -17,7 +17,7 @@ namespace STFSpec.State.BlockState
 variable {m : Type → Type}
 
 /-- Initialize a block over the complete supplied provider and constants.
-EELS `src/ethereum/forks/amsterdam/state_tracker.py:57–86`, used at `fork.py:325`.
+EELS `src/ethereum/forks/amsterdam/state_tracker.py:57–86`, used at `fork.py:301`.
 F20 adds the supplied constants; B1 adds empty first-write indexes. No provider
 operation or constants acquisition is performed. -/
 def new (ps : PreState m) (consts : Base.HashConsts) : BlockState m where

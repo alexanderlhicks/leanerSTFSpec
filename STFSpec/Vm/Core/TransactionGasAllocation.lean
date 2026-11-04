@@ -7,7 +7,7 @@ import STFSpec.Vm.Core.Config
 /-!
 # Transaction EVM gas allocation
 
-Library `EthVmCore`. Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:1106–1152`.
+Library `EthVmCore`. Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:1091–1137`.
 The two source subtraction bounds are local proofs; raw records remain unrestricted.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7 (Q65).
 -/
@@ -15,7 +15,7 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7 (Q65).
 namespace STFSpec.Vm.Core
 
 /-- Complete raw allocation, execution grant before state reservoir.
-EELS `src/ethereum/forks/amsterdam/vm/gas.py:1106–1117` at the pin. -/
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1091–1102` at the pin. -/
 structure EvmGasAllocation where
   /-- Execution grant after intrinsic execution gas. -/
   executionGas : Nat
@@ -37,7 +37,7 @@ theorem EvmGasAllocation.eta (allocation : EvmGasAllocation) :
   rfl
 
 /-- Source-ordered allocation on exactly the two local subtraction bounds.
-EELS `src/ethereum/forks/amsterdam/vm/gas.py:1120–1152` at the pin. -/
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:1105–1137` at the pin. -/
 def allocateEvmGas (cfg : VmConfig) (txGas intrinsicExecution : Nat)
     (_hIntrinsicLeTxGas : intrinsicExecution ≤ txGas)
     (_hIntrinsicLeCap : intrinsicExecution ≤ cfg.costs.txMaxGasLimit) : EvmGasAllocation :=

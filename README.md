@@ -1,21 +1,25 @@
 # STFspec
 
-A formal, executable Lean 4 specification of the Ethereum execution-layer state transition function, as run by the zkVM guest program (stateless block validation). It is the specification that [evm-asm](https://github.com/Verified-zkEVM/evm-asm) and [stateless-pancaketh](https://github.com/pirapira/stateless-pancaketh) are to be verified against. It is also meant to be fast enough for differential testing and fuzzing.
+A formal, executable Lean 4 specification of the Ethereum execution-layer state transition function, as run by the zkVM guest program (stateless block validation). It is the specification that [evm-asm](https://github.com/Verified-zkEVM/evm-asm) and [stateless-pancaketh](https://github.com/pirapira/stateless-pancaketh) are to be verified against. It also aims to be fast enough for differential testing and fuzzing.
 
-It will replace the spec currently in evm-asm (`EvmAsm/Stateless/SpecRef`). It is written from scratch rather than moved, and equivalence with SpecRef is not a goal (decision P6). The consumers retarget in their own repositories; this repository never edits them.
+It will replace the spec in evm-asm (`EvmAsm/Stateless/SpecRef`). The project writes it from scratch and does not move that spec, and equivalence with SpecRef is not a goal (decision P6). The consumers retarget in their own repositories. This repository never edits them.
 
-**Status (2026-10-05):** lower-layer implementation is in progress; see the [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-10-02), [EthBase implementation status](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash implementation status](STFSpec/informal/modules/EthHash.md#3-eels-source-map), [EthCodec implementation status](STFSpec/informal/modules/EthCodec.md#3-eels-source-map), [EthCommit implementation status](STFSpec/informal/modules/EthCommit.md#3-eels-source-map), [EthState implementation status](STFSpec/informal/modules/EthState.md#3-eels-source-map) and [fixture extraction status](STFSpec/informal/modules/EthConformance.md#3-eels-source-map). The semantic guest conformance runner is absent; no EEST guest execution is implemented.
+**Status (2026-10-05):** the implementation of the lower layers is in progress. The semantic guest conformance runner is absent, and the repository implements no EEST guest execution. These pages give the details:
+
+- The [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-10-02)
+- The implementation status of [EthBase](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash](STFSpec/informal/modules/EthHash.md#3-eels-source-map), [EthCodec](STFSpec/informal/modules/EthCodec.md#3-eels-source-map), [EthCommit](STFSpec/informal/modules/EthCommit.md#3-eels-source-map) and [EthState](STFSpec/informal/modules/EthState.md#3-eels-source-map)
+- The [fixture extraction status](STFSpec/informal/modules/EthConformance.md#3-eels-source-map)
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
-**Normative target:** `tests-zkevm@v21.0.0` (execution-specs `e1a316a0`, Amsterdam), pinned in [`reference.toml`](reference.toml). Passing its EEST zkevm fixtures is mandatory and decisive.
+**Normative target:** `tests-zkevm@v21.0.6` (execution-specs `59c1473d`, Amsterdam), pinned in [`reference.toml`](reference.toml). A pass of its EEST zkevm fixtures is mandatory. They decide the cases that they cover. The pinned EELS source governs other cases (CONTRIBUTING §1).
 
 ## Architecture
 
-Arrows point from a library to the libraries it depends on. The core part of the diagram is **generated from [`scripts/boundaries.toml`](scripts/boundaries.toml)**, the same table that CI enforces, and shows its transitive reduction (a dependency implied by a longer path is omitted). Proof edges come from [`contracts.toml`](STFSpec/informal/contracts.toml), and the fixture label comes from [`reference.toml`](reference.toml).
+Arrows point from a library to the libraries that it depends on. `scripts/gen_arch_diagram.py` generates the core part of the diagram **from [`scripts/boundaries.toml`](scripts/boundaries.toml)**, the same table that CI enforces. The diagram shows the transitive reduction of that table, so it omits a dependency that a longer path implies. Proof edges come from [`contracts.toml`](STFSpec/informal/contracts.toml), and the fixture label comes from [`reference.toml`](reference.toml).
 
 Key boundaries:
-- State semantics (`EthState`) never see the trie. `EthStateCommit` owns state encodings and commitment laws; the two backends implement that seam. Block execution also uses the generic trie for transaction/receipt roots.
+- State semantics (`EthState`) never see the trie. `EthStateCommit` owns state encodings and commitment laws, and the two backends implement that seam. Block execution also uses the generic trie for transaction and receipt roots.
 - Opcode handlers (`EthVmInstructions`) never see the recursive runner or the precompile implementations.
 - Nothing in the core package depends on Mathlib.
 
@@ -64,7 +68,7 @@ flowchart TB
   VCV["VCV-io (planned)"]
   CompPoly["CompPoly<br/>Montgomery Defs (D6 source candidate)"]
   CryptoSpecs["ethereum/cryptography-specs<br/>BLS12-381 · KZG reference"]
-  Oracle[("EEST zkevm fixtures · tests-zkevm@v21.0.0<br/>statelessInputBytes → statelessOutputBytes")]
+  Oracle[("EEST zkevm fixtures · tests-zkevm@v21.0.6<br/>statelessInputBytes → statelessOutputBytes")]
   evmasm -. refines .-> EthStateless
   pancake -. refines .-> EthStateless
   EthHash --> EthBase
@@ -130,8 +134,8 @@ flowchart TB
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | entry point: authority order, hard rules, and a task-to-documents map |
 | `lakefile.toml`, `STFSpec/` | the **core package** (Mathlib-free, `require`s nothing): one Lake library per component |
-| `STFSpecMathlib/` | the **Mathlib bridge package**: field isomorphisms, group laws, bilinearity (depends on the core; never the reverse) |
-| `STFSpecSecurity/` | the **security package**: witness binding, stateless ⇒ stateful, random-oracle bounds (depends on the core and the bridge package; VCV-io enters here only) |
+| `STFSpecMathlib/` | the **Mathlib bridge package**: field isomorphisms, group laws, bilinearity (depends on the core, never the reverse) |
+| `STFSpecSecurity/` | the **security package**: witness binding, stateless ⇒ stateful, random-oracle bounds (depends on the core and the bridge package, and is the only package that uses VCV-io) |
 | `scripts/` | compiled declaration checks, regression fixtures, source/document guards and generators |
 | [`reference.toml`](reference.toml) | the pinned reference: execution-specs release and commit, fixture archive, locked Python dependencies, Lean version |
 | [`STFSpec/informal/`](STFSpec/informal/README.md) | the **informal specification**: one document per library, composition, gates, gaps |
@@ -156,20 +160,21 @@ lake build EthConformance --wfail
 (cd STFSpecSecurity && lake build --wfail) && scripts/check_decls.sh security   # shares the Mathlib checkout
 ```
 
-Regenerate the fixture area index with `uv run --no-project --python 3.12 python scripts/gen_fixture_index.py <ARCHIVE>` from the authenticated archive; add `--check` to verify freshness.
+Regenerate the fixture area index with `uv run --no-project --python 3.12 python scripts/gen_fixture_index.py <ARCHIVE>` from the authenticated archive, and add `--check` to verify freshness.
 
 Regenerators that need a pinned EELS checkout (not run in CI): `uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py <EELS> --check` and `uv run --no-project --python 3.12 python scripts/gen_reference_records.py <EELS> --check`.
 
-The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks on pushes to `main` and on pull requests. Weekly and manual runs download the pinned fixture archive and verify its checksum and record counts. That verifies corpus integrity only; fixture execution arrives with the conformance runner.
+The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks on pushes to `main` and on pull requests. Weekly and manual runs download the pinned fixture archive and verify its checksum and record counts. That run verifies only the integrity of the corpus. Fixture execution arrives with the conformance runner.
 
 ## Documents
 
-Navigation by task is in [`AGENTS.md`](AGENTS.md). The main documents:
+[`AGENTS.md`](AGENTS.md) gives navigation by task. The main documents are:
 
-- [`STFSpec/informal/README.md`](STFSpec/informal/README.md): **the informal specification**: module index, end-to-end sequence diagram, seams, cross-module invariants. Spec guidance documents are in [`STFSpec/informal/modules/`](STFSpec/informal/modules); the generated gap register is [`STFSpec/informal/GAPS.md`](STFSpec/informal/GAPS.md).
+- [`STFSpec/informal/README.md`](STFSpec/informal/README.md): **the informal specification**: module index, end-to-end sequence diagram, seams, cross-module invariants. Spec guidance documents are in [`STFSpec/informal/modules/`](STFSpec/informal/modules), and the generated gap register is [`STFSpec/informal/GAPS.md`](STFSpec/informal/GAPS.md).
 - [`STFSpec/informal/CONTRACT.md`](STFSpec/informal/CONTRACT.md): input/output encoding, the outcome table O1–O13, the authority and discrepancy policy, the security scope. The pin itself is [`reference.toml`](reference.toml).
 - [`STFSpec/informal/DECISIONS.md`](STFSpec/informal/DECISIONS.md): every design decision and question disposition, with its status and the evidence needed to revisit it.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): the principles (golden rule, legibility, performance, hygiene, review), the pull-request workflow, and the Lean style and documentation conventions.
+- [`WRITING.md`](WRITING.md): the writing standard for all prose, with its [vocabulary](WRITING-VOCABULARY.md) and the [writing workflow](WRITING-WORKFLOW.md) for authors and agents.
 - [`STFSpec/informal/ARCHITECTURE.md`](STFSpec/informal/ARCHITECTURE.md): libraries, allowed dependencies, component contracts, data structures, state lifetimes, fork structure, change management, decision options.
 - [`STFSpec/informal/REVIEW.md` §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks): proof gates, composition cases, replacement gates and cost checks an implementation must meet.
 

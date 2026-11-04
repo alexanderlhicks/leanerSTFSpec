@@ -1,9 +1,9 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft. Date: 2026-10-18. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55, Q59, Q60; DISC-001, DISC-003, DISC-004.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55, Q59, Q60, Q90; DISC-001, DISC-003, DISC-004.*
 
-Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested.
+Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -15,7 +15,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 - C1. `bytesToNibbleList` splits each byte into high then low nibble (`mpt:395–404`).
 - C2. `nibbleListToCompact x isLeaf` (`mpt:360–392`): flag nibble `2·isLeaf + parity`; even length → `[16·flag]` followed by nibble pairs; odd → first byte `16·(flag) + x[0]`, then pairs. Precondition: every element `< 16` (EELS does not check; the Lean type carries it).
-- C3. `compactToNibbles` (`inc:859–889`) is the decoder used on witness data, and is **lenient** [executed]: it reads `isLeaf` from bit 1 and parity from bit 0 of the first nibble and **ignores bits 2–3**; for even parity it **ignores the low nibble** of the first byte; it raises `IndexError` on an empty input. So `0xf1 0x23` decodes to leaf path `[1,2,3]`, and `0x0f` to an empty extension path (which C14 then rejects). The Lean decoder must return exactly these results and fail exactly with `.malformed .compactEmpty` only on raw empty input (Q48). The later empty decoded extension path still belongs to `.malformed .pathEmpty` at `inc:959` (C14).
+- C3. `compactToNibbles` (`inc:852–882`) is the decoder used on witness data, and is **lenient** [executed]: it reads `isLeaf` from bit 1 and parity from bit 0 of the first nibble and **ignores bits 2–3**; for even parity it **ignores the low nibble** of the first byte; it raises `IndexError` on an empty input. So `0xf1 0x23` decodes to leaf path `[1,2,3]`, and `0x0f` to an empty extension path (which C14 then rejects). The Lean decoder must return exactly these results and fail exactly with `.malformed .compactEmpty` only on raw empty input (Q48). The later empty decoded extension path still belongs to `.malformed .pathEmpty` at `inc:952` (C14).
 - C4. `commonPrefixLength` (`mpt:350–357`).
 
 ### 2.2 The mathematical root
@@ -34,26 +34,26 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
   host premises; it is not equality of the entire Python/local generic trace.
 - C9. `_prepare_data` (`mpt:407–448`): encode each stored value once (`encode_node`, C10); stored `None` fails before encoding (`:435`), and exact empty encodings fail next (`:439`); only then hash a key if `secured` and convert it to nibbles. No stored default or invalid value is filtered. Q53 supplies the separate `Trie.PrepareSafe` proof from `TrieValue.Valid`; `NoDefault` does not supply it. The initial typed preparation/root domain is explicitly `secured = false`; secure traversal, collisions and source-history coupling remain open (§7).
 - C10. `encode_node` (`mpt:252–269`) dispatches: `Account` → `encode_account` (owned by `EthStateCommit`, needs the per-address storage root/callback); `Bytes` → identity; otherwise `rlp.encode`. `TrieValue.encode` is total on Lean values, with source agreement only on concretely interpreted valid supported non-`None` values (§7.0.3). EthBlock owns its actual transaction/receipt/withdrawal encodings. A bare `Account` has no context-free instance supplied by this contract.
-- C11. The typed trie (`mpt:274–347`): a map with `secured` and an arbitrary supplied `default`; `trie_set` compares by lawful value equality with that default and **erases** on equality, otherwise inserts without encoding, validity checks or hashing (`:334–338`). `trie_get` returns the default when absent; `copy_trie` is a shallow copy (identity on a persistent Lean map). Setters preserve `NoDefault` when it holds, but may retain invalid nondefault values; preservation of `PrepareSafe` has the exact iff in §7.0.3. EthBlock's three tries are unsecured with default `None` (`forks/amsterdam/vm/__init__.py:107–117`); their root calls (`fork.py:351–354`) must compose preparation with C8 using the supplied F20 empty root.
+- C11. The typed trie (`mpt:274–347`): a map with `secured` and an arbitrary supplied `default`; `trie_set` compares by lawful value equality with that default and **erases** on equality, otherwise inserts without encoding, validity checks or hashing (`:334–338`). `trie_get` returns the default when absent; `copy_trie` is a shallow copy (identity on a persistent Lean map). Setters preserve `NoDefault` when it holds, but may retain invalid nondefault values; preservation of `PrepareSafe` has the exact iff in §7.0.3. EthBlock's three tries are unsecured with default `None` (`forks/amsterdam/vm/__init__.py:101–111`); their root calls (`fork.py:326–329`) must compose preparation with C8 using the supplied F20 empty root.
 
 ### 2.3 Node database and eager decoding (D19; CONTRACT O4)
 
 - C12. `build_node_db` (`ws:37–42`) keys every witness entry by `keccak256(entry)`, folding in input order with **last entry wins**. In Lean `NodeDB.build` hashes through the oracle (monadic, D5/F4), so authenticity is the separate predicate `NodeDB.Authentic H db` (every entry `b` under `h` has `H b = h`), which `NodeDB.build` establishes at `m := Id` with `H := keccak256`. Repeated identical entries are harmless; different entries with the same digest must preserve last-write behaviour and yield a collision in the security proof. Extra entries are allowed (fixture `test_validation_state_extra_unused_trie_node`), subject to C16(f).
-- C13. `decode_witness_to_mpt db r` (`inc:994–1040`): if `r = EMPTY_TRIE_ROOT`, the empty trie **without consulting the DB** (`inc:1024–1030`); else `db[r]` (missing → `KeyError`, O4(a)) and decode it. Q55 makes complete decoding a generic `KeccakQuery` action: `decodeRoot emptyRoot db r`, with the caller's existing `HashConsts.emptyTrieRoot` (F20). Empty-root bypass returns `pure (.ok none)` without DB lookup or local query; missing root returns the existing typed error without a local query. The wrapper only packages a successful root with `secured`, preserving decoder effects and failures.
-- C14. `_decode_witness_node bytes` (`inc:917–991`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Q55 requires exactly one `KeccakQuery` on the complete newly entered raw preimage before whole RLP parsing, retaining its actual answer verbatim; an incoming DB key never supplies that answer); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string (list → `.malformed .compactPathList` at `inc:946`, Q52), then `compactToNibbles` (C3); **leaf**, only after successful compact decoding with the leaf flag: the second item must be a string (list → `.malformed .leafValueList` at `inc:951`, Q52) (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
-  Whole RLP decoding at `inc:936` must succeed before either field-shape check; malformed second fields or trailing bytes therefore win over Q52. Raw empty compact bytes fail with `compactEmpty` before interpreting item 1, while an empty decoded extension path fails with `pathEmpty` before child resolution. A descendant failure propagates unchanged through `inc:960` before the parent child-kind check at `:961`. Branch item 16 remains lenient; `leafValueList` belongs only to a two-item leaf. The complete C14 dispatcher is implemented in §3; WitnessError/guest adapters remain unimplemented.
-- C15. `_resolve_child_ref` (`inc:892–914`): an empty string → no child; a string of length ≠ 32 → malformed; a 32-byte string present in the DB → decode that entry (recursively, eager); absent → an **unresolved stub** `HashedNode h` (not an error); an inline list → decode `rlp.encode(list)`.
+- C13. `decode_witness_to_mpt db r` (`inc:994–1040`): if `r = EMPTY_TRIE_ROOT`, the empty trie **without consulting the DB** (`inc:1024–1030`); else `db[r]` (missing → `KeyError`, O4(a)) and decode it. Q55 makes complete decoding a generic `KeccakQuery` action: `decodeRoot emptyRoot db r`, with the caller's existing `HashConsts.emptyTrieRoot` (F20). Empty-root bypass returns `pure (.ok none)` without DB lookup or local query; missing root returns the existing typed error without a local query. The wrapper only packages a successful root with `secured`, preserving decoder effects and failures. Q90 (prospective, at `59c1473d`; §10 re-pin item (a)): with `secured := true`, after a successful complete decode, a decoded occurrence that fails a secured path-length check returns `.malformed .securedPathLength`, with no query and every decoder effect retained.
+- C14. `_decode_witness_node bytes` (`inc:910–984`), in this order: compute `keccak256(bytes)` iff `len ≥ 32` (cached, C18; Q55 requires exactly one `KeccakQuery` on the complete newly entered raw preimage before whole RLP parsing, retaining its actual answer verbatim; an incoming DB key never supplies that answer); RLP-decode (failure → O4(b)); a byte string must be empty (→ empty node) else malformed; a list of length 2: first item must be a string (list → `.malformed .compactPathList` at `inc:939`, Q52), then `compactToNibbles` (C3); **leaf**, only after successful compact decoding with the leaf flag: the second item must be a string (list → `.malformed .leafValueList` at `inc:944`, Q52) (any value, including empty [executed]); **extension**: path must be non-empty, child resolved by C15 must be a branch **or an unresolved stub**; a list of length 17: resolve the 16 children, value = item 16 if it is a string, **otherwise the empty value** [executed]; require `occupied ≥ 2` where stubs count as occupied and the value counts iff non-empty; any other length is malformed.
+  Whole RLP decoding at `inc:929` must succeed before either field-shape check; malformed second fields or trailing bytes therefore win over Q52. Raw empty compact bytes fail with `compactEmpty` before interpreting item 1, while an empty decoded extension path fails with `pathEmpty` before child resolution. A descendant failure propagates unchanged through `inc:953` before the parent child-kind check at `:954`. Branch item 16 remains lenient; `leafValueList` belongs only to a two-item leaf. The complete C14 dispatcher is implemented in §3; WitnessError/guest adapters remain unimplemented.
+- C15. `_resolve_child_ref` (`inc:885–907`): an empty string → no child; a string of length ≠ 32 → malformed; a 32-byte string present in the DB → decode that entry (recursively, eager); absent → an **unresolved stub** `HashedNode h` (not an error); an inline list → decode `rlp.encode(list)`.
 - C16. **Accepted non-canonical encodings** [executed; each reachable only with a trie that no canonical state produces]: (a) hex-prefix flag bits 2–3 set or a non-zero padding nibble (C3); (b) an inline child whose RLP is ≥ 32 bytes (it is then given a cached hash, C18); (c) a hash reference to a DB entry shorter than 32 bytes; (d) a branch value that is a list (read as empty); (e) a leaf with an empty value or a path whose length does not match its depth; (f) a child reference equal to `EMPTY_TRIE_ROOT`: if the DB contains the entry `0x80`, it decodes to **no child**, otherwise it is a stub — so adding the "unused" entry `0x80` can turn an accepted witness into a rejected one (occupancy drops below 2) [executed]. The Lean decoder must reproduce these outcomes exactly (P2), and the agreement theorem (§7.4) covers them through its collision disjunct.
-- C17. **Cycles and sharing.** EELS recurses without a visited set: a reference cycle ends in `RecursionError`, caught as `false` (O12, classified O4 by CONTRACT); the Lean decoder tracks the hashes on the current path and returns `malformed` on a repeat. A DB built by C12 can contain a cycle only through a Keccak fixpoint chain, which cannot be ruled out in Lean without an assumption, so totality needs the check (ARCHITECTURE §5.4). A **shared** hash reached along two paths is decoded twice by EELS; on a DAG-shaped witness this is exponential in depth (16 identical children per level) [inference from `inc:892–914`]. Memoising completed, validated decodings must preserve mathematical decoding and raw encodings (§7.6). This is the DAG memo of DISC-004/B15, internal to one `decodeRoot`; it is not the per-root storage-trie memo of `EthStateWitness` (F6, open). Q55's mathematical traversal baseline has no completed-node memo: repeated sibling references are distinct occurrences. B15 does not select a memo here; effect suppression, shared stateful answers and path-dependent cached failures require explicit refinement premises. Its effect on host-resource acceptance requires D14/O12 treatment. Deep acyclic chains can exceed Python's recursion limit in EELS: the guest-process limit is 100,000 (py_ecc raises it; 12,288 applies only after `import ethereum`), and the witness-chain depth at which the reference fails has not been re-measured under it (DISC-001, O12 unresolved).
+- C17. **Cycles and sharing.** EELS recurses without a visited set: a reference cycle ends in `RecursionError`, caught as `false` (O12, classified O4 by CONTRACT); the Lean decoder tracks the hashes on the current path and returns `malformed` on a repeat. A DB built by C12 can contain a cycle only through a Keccak fixpoint chain, which cannot be ruled out in Lean without an assumption, so totality needs the check (ARCHITECTURE §5.4). A **shared** hash reached along two paths is decoded twice by EELS; on a DAG-shaped witness this is exponential in depth (16 identical children per level) [inference from `inc:885–907`]. Memoising completed, validated decodings must preserve mathematical decoding and raw encodings (§7.6). This is the DAG memo of DISC-004/B15, internal to one `decodeRoot`; it is not the per-root storage-trie memo of `EthStateWitness` (F6, open). Q55's mathematical traversal baseline has no completed-node memo: repeated sibling references are distinct occurrences. B15 does not select a memo here; effect suppression, shared stateful answers and path-dependent cached failures require explicit refinement premises. Its effect on host-resource acceptance requires D14/O12 treatment. Deep acyclic chains can exceed Python's recursion limit in EELS: the guest-process limit is 100,000 (py_ecc raises it; 12,288 applies only after `import ethereum`), and the witness-chain depth at which the reference fails has not been re-measured under it (DISC-001, O12 unresolved).
 - C18. **Cached encodings.** A decoded node keeps its original bytes and, iff they are ≥ 32 bytes,
-  their hash (`inc:932–934`, `:955–956`, `:967–968`, `:986–988`). Source child embedding
-  (`inc:287–313`) uses empty bytes for none, the supplied hash for a stub, and an unmodified
+  their hash (`inc:925–927`, `:948–949`, `:960–961`, `:979–981`). Source child embedding
+  (`inc:290–316`) uses empty bytes for none, the supplied hash for a stub, and an unmodified
   cached hash verbatim; otherwise it reencodes current fields with the C6 inline/hash rule.
   Nominal Enc omits source dirty state. Concrete source agreement therefore retains compatible
   dirty/cache/current-field premises; it is not arbitrary-source cache or generic-action equality
   (§6/§7.6).
 - C19. **Visited nodes lose their cache.** Insert/delete invalidate every visited resolved node
-  before dispatch (`inc:231–237`, `:490`, `:694`), including a mismatching no-op delete; off-path
+  before dispatch (`inc:234–240`, `:483`, `:687`), including a mismatching no-op delete; off-path
   nodes retain their complete fields/caches. Invalidation clears `_hash` and `_rlp`, not `_dirty`.
   Reencoding visited current fields can change a noncanonical root even after a no-op delete
   [executed]. Functional rebuilding must preserve this semantic invalidation, but must use the
@@ -66,7 +66,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 ### 2.4 Lookup (guest path)
 
 - C20. `_trie_lookup root keyHash` (`ws:53–100`) is pure tree lookup; guest callers (`ws:148–205`) supply a Hash32 split into 64 nibbles and own hashing, root decoding/caching and later leaf decoding/defaults. Q59 preserves a total `lookup` on every finite bare Ref/Nibbles input: none → absence; stub → `.unresolved h` before key exhaustion; leaf → its complete value, including empty as present, iff its complete path equals the remaining key; extension → compare its complete path to the clipped remaining prefix and descend/drop path length only on match, including empty paths and ext-to-leaf/ext; terminal branch → nonempty value or absence before child bounds; nonterminal in-bounds branch → exactly the selected child/drop1. Only a reached out-of-range selected slot returns `.malformed (.branchIndex i children.size)`, where `i < 16` and `children.size ≤ i`. No size16/occupancy/cache/WF check, out-of-range-slot absence, off-path scan or normalization enters lookup. Raw/cache fields are ignored and unconstrained. The source invalid list access has a defined IndexError; the typed adaptation is Q59's disposition, not a demonstrated guest outcome. Source value/stub correspondence uses valid selected accesses and explicit actual Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles are governed by Lean equations, not direct byte-entry observations. Structural proper-child Node-size descent handles matched empty extensions without requiring key consumption; the local operation/proofs are supplied in §3.
-- C21. `mpt_get` (`inc:349–378`) answers from the flat `_data` map and only *records* the traversal; `_data` is empty for decoded tries. It is host-side witness construction (`stateless_host_exec_witness.py:82`, `:120`), not the guest lookup.
+- C21. `mpt_get` (`inc:349–378`) answers from the flat `_data` map and only *records* the traversal; `_data` is empty for decoded tries. It is host-side witness construction (`stateless_host_exec_witness.py:83`, `:120`), not the guest lookup.
 
 ### 2.5 Update, delete, root (guest path)
 
@@ -78,43 +78,43 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
   remains distinct. The dropped host `_data` can differ between default and nondefault empty
   values; the prospective emptyEncoding action equation concerns only the nominal secured/root
   projection (§7.0.10), not complete mutable source/witness state.
-- C23. **Insert** (`inc:473–677`; Q60): empty → a leaf with the exact remaining path/value, even
+- C23. **Insert** (`inc:466–670`; Q60): empty → a leaf with the exact remaining path/value, even
   empty value; reached stub → `.unresolved h` at invalidation before exhaustion; equal leaf path →
   replace exact value; otherwise split into the source branch and optional common-prefix
   extension, with exhausted remainder stored as branch value. A matched extension recurses into
   its child and retains that extension constructor, including an empty path and leaf/ext child;
   split suffixes reuse the old child when one segment digit remains and otherwise wrap it in the
-  source shorter extension (`inc:585–596,621–630`). No transitive/eager merging is imposed. A
+  source shorter extension (`inc:578–589,614–623`). No transitive/eager merging is imposed. A
   terminal branch stores the exact value before bounds. A nonterminal branch accesses only its
   actual selected digit: an in-bounds short/oversized array recurses and retains all other slots,
   while a missing slot yields `.malformed (.branchIndex digit children.size)` at that access
-  (`inc:671`). Maximal common-prefix selection excludes the split collision on differing
-  remainders (`inc:585,632–644`); the explicit raise at :644 survives `-O`; this is structural
+  (`inc:664`). Maximal common-prefix selection excludes the split collision on differing
+  remainders (`inc:578,625–637`); the explicit raise at :637 survives `-O`; this is structural
   source reasoning, not a global WF admission. Complete Enc/cache realization is separate from
   these construction cases.
-- C24. **Delete** (`inc:680–784`; Q60): empty → empty; reached stub → `.unresolved h` before
+- C24. **Delete** (`inc:673–777`; Q60): empty → empty; reached stub → `.unresolved h` before
   exhaustion; leaf → removed iff its complete path equals the remainder, otherwise retained with
   visited-cache invalidation. Mismatching extension stops; matched extension recurses, drops a
   vanished child, or merges one immediate resulting leaf/ext segment; other children follow the
-  actual source identity/dirty guard (`inc:742–744`, bypass `:745–746`), after immediate leaf/ext
-  merging (`:728–739`). Terminal branch with already empty value returns before collapse; clearing
+  actual source identity/dirty guard (`inc:735–737`, bypass `:738–739`), after immediate leaf/ext
+  merging (`:721–732`). Terminal branch with already empty value returns before collapse; clearing
   a nonempty value enters collapse. Nonterminal branch checks only the selected actual slot
-  (`inc:768`): missing yields `.malformed (.branchIndex digit children.size)`; in-bounds access
+  (`inc:761`): missing yields `.malformed (.branchIndex digit children.size)`; in-bounds access
   recurses. Collapse is bypassed only when `new_child is old_child` AND that surviving child is
-  not dirty (none has no dirty flag; guard `inc:776–778`, bypass `:779–780`), not when
+  not dirty (none has no dirty flag; guard `inc:769–771`, bypass `:772–773`), not when
   shapes/values merely agree. Otherwise retain the updated slot and enter C25. Nominal Enc does
   not represent `_dirty`: constructor/shape/source laws require an explicit compatible finite
   nonaliasing represented source-state/cache premise; arbitrary initially dirty source trees are
   not automatically covered.
-- C25. **Reached collapse** (`inc:787–828`; Q60): count all actual non-None children and the
+- C25. **Reached collapse** (`inc:780–821`; Q60): count all actual non-None children and the
   nonempty terminal value, without renumbering or pruning slots. Zero occupancy yields `.malformed
-  (.occupancy 0)` only when changed deletion actually calls collapse (`inc:793`); an already empty
+  (.occupancy 0)` only when changed deletion actually calls collapse (`inc:786`); an already empty
   terminal branch or a source-guarded no-change branch skips it. With one child and empty value,
-  first perform applicable source-staged witnessing (`inc:797`): stub → `.unresolved h`
-  (`inc:245`), and any underlying query failure wins before index classification. After successful
+  first perform applicable source-staged witnessing (`inc:790`): stub → `.unresolved h`
+  (`inc:248`), and any underlying query failure wins before index classification. After successful
   witnessing, actual survivor position ≥ 16 yields `.malformed (.collapseIndex index)`; 16–255
   adapts successful Python nonnibble paths, while ≥ 256 also covers its byte-constructor failure
-  (`inc:798`). For index < 16, prepend that bounded digit to a leaf/ext path or create a one-digit
+  (`inc:791`). For index < 16, prepend that bounded digit to a leaf/ext path or create a one-digit
   extension over a branch, retaining source fields/children. No children plus nonempty value →
   empty-path leaf; otherwise retain the complete branch, including positions ≥ 16. Decoder C14
   occupancy < 2 is distinct. The original zero assertion is unreachable only under appropriate
@@ -125,11 +125,11 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
   success of a mixed sequence of inserts and deletes depends on order [executed:
   delete-then-insert fails, insert-then-delete succeeds on the same trie]. Whoever sequences
   updates (`EthStateWitness`) must reproduce EELS's order.
-- C27. `mpt_root` (`inc:831–856`): empty → `EMPTY_TRIE_ROOT`; if the root's reference (C18) is bytes it is the root, else `keccak256(rlp ·)` of the inline structure — the same rule as C8.
+- C27. `mpt_root` (`inc:824–849`): empty → `EMPTY_TRIE_ROOT`; if the root's reference (C18) is bytes it is the root, else `keccak256(rlp ·)` of the inline structure — the same rule as C8.
 
 ### 2.6 Host-side items
 
-- C28. `build_mpt`/`_build_mutable_tree` (`inc:126–228`) build a mutable tree from a full map exactly as `patricialize`; `Witness`, `_record_witness`, `_compute_node_hash_and_rlp`, `_mpt_traverse_for_witness` (`inc:101–106`, `:240–346`, `:381–414`) record accessed node preimages for witness generation (`stateless_host_exec_witness.py`). They do not affect guest outputs **except** the stub `assert` of `_record_witness` inside collapse (C25). They are specified here as reference definitions for host tooling and tests: `buildMpt m` must satisfy `represents (buildMpt m) m` with no stubs, and the recorded witness of a lookup is the set of path-node preimages.
+- C28. `build_mpt`/`_build_mutable_tree` (`inc:126–228`) build a mutable tree from a full map exactly as `patricialize`; `Witness`, `_record_witness`, `_compute_node_hash_and_rlp`, `_mpt_traverse_for_witness` (`inc:106–111`, `:243–349`, `:381–414`) record accessed node preimages for witness generation (`stateless_host_exec_witness.py`). They do not affect guest outputs **except** the stub `assert` of `_record_witness` inside collapse (C25). They are specified here as reference definitions for host tooling and tests: `buildMpt m` must satisfy `represents (buildMpt m) m` with no stubs, and the recorded witness of a lookup is the set of path-node preimages.
 
 ### Clean-entry mutation realization (C19/C24/C25; Q60)
 
@@ -153,7 +153,7 @@ Private working cache/timing choices under B15/Q33 remain explicit future obliga
 
 Before deletion passes a survivor to supplied mkBranch, its private realization
 must preserve the source's consulted descendant encodings and query effects
-(`inc:302–313`). Representing visited-cache invalidation merely as a hashless Enc
+(`inc:305–316`). Representing visited-cache invalidation merely as a hashless Enc
 with empty raw on retained descendants does not establish that relation: the source
 can recompute and hash a long descendant, while childRef uses its supplied Enc.
 The B15/Q33 cache/dirty realization and its ordinary correspondence proof must account
@@ -163,7 +163,7 @@ controls are in §3; whole source-history correspondence remains open, with no n
 mkBranch admission check.
 
 The standalone public mkBranch witness realization treats its supplied survivor as
-clean, matching `inc:240–254` before index classification. A stub fails first.
+clean, matching `inc:243–257` before index classification. A stub fails first.
 A resolved stored hash bypasses current fields. Hashless supplied raw of at least
 32 bytes is queried without installing the answer. With shorter hashless raw,
 reconstruct the current-field item; short reconstruction updates only the survivor's
@@ -188,9 +188,9 @@ realization and supplies no public witness table or complete source mutable-stat
   proof-level. No host recursion limit or hash injectivity establishes totality (§7.1); no new
   host/resource/outcome policy follows.
 
-Source failures at the reached mutation sites include IndexError at `inc:671/768`,
-AssertionError at empty collapse `:793` and stub witnessing `:245`, and ValueError at
-survivor byte construction `:798` for an index at least 256. Source-stage controls
+Source failures at the reached mutation sites include IndexError at `inc:664/761`,
+AssertionError at empty collapse `:786` and stub witnessing `:248`, and ValueError at
+survivor byte construction `:791` for an index at least 256. Source-stage controls
 run with assertions enabled. Under Python `-O`, the empty-collapse assertion is
 removed and a stub witness can instead fail at attribute access; report those as
 separate source observations. Normal/-O strict *parser* controls do not select
@@ -220,8 +220,8 @@ optimized-source behavior or change the approved typed bare diagnostics.
 | `merkle_patricia_trie.py::root` | 478 | `root`, `mathRoot` | |
 | `merkle_patricia_trie.py::patricialize` | 507 | `patricialize` | |
 | `forks/amsterdam/incremental_mpt.py::*` | 50–1040 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, host-side `buildMpt`/`mptGet`/`Witness` | whole file; per-item mapping in §5 |
-| `forks/amsterdam/witness_state.py::_trie_lookup` | 53–100 | `lookup` | supplied pure Q59 bare walk/seven equations; source value/stub bridge restricted to valid selected accesses and actual Hash32 keys; typed out-of-range-slot adaptation separate |
-| `forks/amsterdam/witness_state.py::build_node_db` | 37 | `NodeDB.build` | |
+| `forks/amsterdam/witness_state.py` `_trie_lookup` (removed at v21.0.6; guest lookups use `incremental_mpt.py` `mpt_get`, claimed above) | 53–100 at `e1a316a0` | `lookup` | supplied pure Q59 bare walk/seven equations; source value/stub bridge restricted to valid selected accesses and actual Hash32 keys; typed out-of-range-slot adaptation separate; re-targeting to `mpt_get` open (§10) |
+| `forks/amsterdam/witness_state.py::build_node_db` | 28 | `NodeDB.build` | |
 
 ### Supplied nominal partial-node carriers
 
@@ -236,9 +236,9 @@ none of that gate. Outstanding operation and admission obligations are owned by 
 
 | Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–81,287–346,932–968,985–988` | `Enc`, `Enc.mk`, `Enc.rlp`, `Enc.hash?`; **supplied carrier** for every finite ByteArray and optional Hash32 | Retain complete raw/cached values; no query/effect | No error or admission API; completed caches do not model every intermediate mutable Python cache state | Private arbitrary full-field projections and both cache-presence choices at widths 31/32/33; no threshold/provenance/hash theorem |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–98` | `Node.leaf/ext/branch/hashed`; **supplied recursive carrier** | Exact §5 fields, recursive Node child and Array (Option Node) children; no effect | Arbitrary arity/cache/path/child shape is expressible; constructors supply no decoder acceptance or Node.WF | Private variant discrimination, arbitrary complete-field matches, arities 0/15/16/17 and two-level recursive-array consumers |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:92–98,892–914`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | The alias itself supplies no operation/admission/error behavior; lookup and childRef are supplied separately | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:53–86,290–349,925–961,978–981` | `Enc`, `Enc.mk`, `Enc.rlp`, `Enc.hash?`; **supplied carrier** for every finite ByteArray and optional Hash32 | Retain complete raw/cached values; no query/effect | No error or admission API; completed caches do not model every intermediate mutable Python cache state | Private arbitrary full-field projections and both cache-presence choices at widths 31/32/33; no threshold/provenance/hash theorem |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:53–103` | `Node.leaf/ext/branch/hashed`; **supplied recursive carrier** | Exact §5 fields, recursive Node child and Array (Option Node) children; no effect | Arbitrary arity/cache/path/child shape is expressible; constructors supply no decoder acceptance or Node.WF | Private variant discrimination, arbitrary complete-field matches, arities 0/15/16/17 and two-level recursive-array consumers |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:97–103,885–907`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | The alias itself supplies no operation/admission/error behavior; lookup and childRef are supplied separately | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
 
 `STFSpec/Conformance/Commit/NodeCallerProofs.lean` imports the public owning module;
 all its hand-written support is private. Ordinary kernel proofs check full retention
@@ -260,7 +260,7 @@ existing interface.
 
 | Exact pinned EELS source | Declaration/domain and status | Success/effects/failures | Laws/reference | Ordinary/source/parser evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:257–284,287–313`; C18/C16, B3/DISC-003 | `childRef : Ref → RlpItem`; **supplied**, all finite bare carriers | Empty/stub/cached hash bytes or complete current-field item; pure, no error/query/cache mutation | Five exact constructor equations (§7.0.7); private List/HP reference and ordinary all-input equality, public proper-child size/HP/Array contracts | ChildRefCallerProofs uses all five laws without production/provider unfolding; ChildRefGuards observes complete nested items/cache fields/all 32 hash bytes, arbitrary raw/arities/empty extensions; child_ref_differential.py distinguishes source-value domains and dirty/query boundaries; strict full recursive framing normal/-O |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:260–287,290–316`; C18/C16, B3/DISC-003 | `childRef : Ref → RlpItem`; **supplied**, all finite bare carriers | Empty/stub/cached hash bytes or complete current-field item; pure, no error/query/cache mutation | Five exact constructor equations (§7.0.7); private List/HP reference and ordinary all-input equality, public proper-child size/HP/Array contracts | ChildRefCallerProofs uses all five laws without production/provider unfolding; ChildRefGuards observes complete nested items/cache fields/all 32 hash bytes, arbitrary raw/arities/empty extensions; child_ref_differential.py distinguishes source-value domains and dirty/query boundaries; strict full recursive framing normal/-O |
 
 The committed source driver supplies conditional differential evidence, distinct from private
 ordinary List/HP equality. It compares actual absence and complete stub bytes; resolved clean
@@ -291,7 +291,7 @@ of secured. All finite bare carriers remain admitted.
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failures | Laws/reference | Complete-field/generic/source evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:831–856,257–313`; C5/C18/C27/F20 | `rootHash : Hash32 → Ref → m Hash32`, `mptRoot : Hash32 → IncrementalMPT → m Hash32`; Monad/KeccakQuery; **supplied**, every finite bare input | Supplied absence constant or stored hash with zero queries; otherwise exact complete top query/actual answer, no added error/handler; original underlying failure/effects forward unchanged | Six plain-Monad literal constructor/wrapper equations (§7.0.9); private ordinary full-byte/action equality to total List-wire reference, using public childRef/RLP laws | IncrementalRootCallerProofs uses all public cases, raw/secured invariance, explicit lawful run/bind and complete Encodable domains; IncrementalRootGuards records complete fields/seeded state/arbitrary distinct answers/full preimages/zero-or-one queries and both failure transformer orders; authenticated incremental_root_differential.py observes actual original mpt_root/cache/dirty/query stages and strict parser normal/-O |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:824–849,260–316`; C5/C18/C27/F20 | `rootHash : Hash32 → Ref → m Hash32`, `mptRoot : Hash32 → IncrementalMPT → m Hash32`; Monad/KeccakQuery; **supplied**, every finite bare input | Supplied absence constant or stored hash with zero queries; otherwise exact complete top query/actual answer, no added error/handler; original underlying failure/effects forward unchanged | Six plain-Monad literal constructor/wrapper equations (§7.0.9); private ordinary full-byte/action equality to total List-wire reference, using public childRef/RLP laws | IncrementalRootCallerProofs uses all public cases, raw/secured invariance, explicit lawful run/bind and complete Encodable domains; IncrementalRootGuards records complete fields/seeded state/arbitrary distinct answers/full preimages/zero-or-one queries and both failure transformer orders; authenticated incremental_root_differential.py observes actual original mpt_root/cache/dirty/query stages and strict parser normal/-O |
 
 Source correspondence is conditional differential evidence, distinct from private
 ordinary whole-action equality with the total RLP model. Absence needs a coherent
@@ -329,7 +329,7 @@ append/helper/WF predicate, shape/cache admission, error or mutation policy.
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Laws/reference | Complete-field/generic/source evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:719–750,795–819`, C18/C19/C24/C25; fresh completion `:316–346` | `mkExt : Nibbles → Node → m Node` under Monad/KeccakQuery; **supplied**, all finite bare inputs | One immediate splice; fresh own raw/hash completion; retained descendants unchanged; one own query iff complete raw ≥ 32; underlying failure forwards at that query | mkExt_leaf/ext/branch/hashed (§7.0.8); private packed-concat unconditional List equality and plain-Monad immediate List/wire equality through public mkLeaf/provider laws | ExtensionCallerProofs public-law/full-field/domain/StateT/ExceptT clients; ExtensionGuards full recursive fields/caches, seeded arbitrary/distinct answers, independent calls, both failure orders/no later query, all arities/empty paths/31–33 and field/joined-prefix boundaries; extension_differential.py compares complete Id node images from actual deletion/collapse/fresh stages; source witness/child/own queries and mutable after-state are recorded separately and strict recursive parser normal/-O |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:712–743,788–812`, C18/C19/C24/C25; fresh completion `:319–349` | `mkExt : Nibbles → Node → m Node` under Monad/KeccakQuery; **supplied**, all finite bare inputs | One immediate splice; fresh own raw/hash completion; retained descendants unchanged; one own query iff complete raw ≥ 32; underlying failure forwards at that query | mkExt_leaf/ext/branch/hashed (§7.0.8); private packed-concat unconditional List equality and plain-Monad immediate List/wire equality through public mkLeaf/provider laws | ExtensionCallerProofs public-law/full-field/domain/StateT/ExceptT clients; ExtensionGuards full recursive fields/caches, seeded arbitrary/distinct answers, independent calls, both failure orders/no later query, all arities/empty paths/31–33 and field/joined-prefix boundaries; extension_differential.py compares complete Id node images from actual deletion/collapse/fresh stages; source witness/child/own queries and mutable after-state are recorded separately and strict recursive parser normal/-O |
 
 Source correspondence is conditional differential evidence: actual returned new_child from
 unstubbed deletion or post-witness collapse, matching bounded source paths/Bytes,
@@ -347,7 +347,7 @@ The committed source driver compares complete node images at Id; it does not exp
 Lean query traces. Recording-state/arbitrary-answer/transformer/first-failure guards are
 separate effect evidence. Operational guards and source descriptors now exercise fresh
 branch and immediate-extension encoding widths 31/32/33. Changed-branch deletion removes
-one of three occupied children, retains two and reaches the parent join at inc:748–750.
+one of three occupied children, retains two and reaches the parent join at inc:741–743.
 Source agreement is derived from explicit retained-child embedding premises: a clean
 stored hash shortcuts; a hashless current item must be short with recursively compatible
 children; dirty stored hashes additionally require matching current materialization.
@@ -366,13 +366,13 @@ retention establishes none of that obligation.
 The source's omitted flat `_data` follows C21. Omitted `default` follows C22's
 caller-owned default comparison and already-encoded Option policy
 (`inc:441/452`). Omitted `witness` follows C28/C25: recorded contents are host
-support, but collapse calls `_record_witness` (`inc:797`) and its stub assertion
-(`inc:245`) remains a required future guest failure. This carrier implements no
+support, but collapse calls `_record_witness` (`inc:790`) and its stub assertion
+(`inc:248`) remains a required future guest failure. This carrier implements no
 such update, recording or collapse operation.
 
 | Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:111–123,1024–1040`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:797/:245`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:111–123,1024–1040`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
 
 `STFSpec/Conformance/Commit/IncrementalMPTCallerProofs.lean` supplies ordinary
 private full-field clients through the public owner. Only the structure's generated
@@ -394,8 +394,8 @@ no query below 32; one exact preimage query and its actual full answer at or abo
 
 | Exact pinned EELS source | Public declaration/domain and status | Success/effects and ordered failures | Ordinary proof | Complete controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:473–677`, C19/C23/Q60 | `update : Ref → Nibbles → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None/equal leaf rebuild; unequal leaf completes old side, new side, exactly 16 branch, optional preserving prefix; matched ext descends into original child even with empty path; split suffix 1 retains original child, longer suffix wraps it; terminal branch retains all actual slots; nonterminal bounds precede selected original-child recursion and fresh parent; reached stub/bounds return bare typed error; underlying query failure is forwarded | Private bounded packed offset scan, independent copying List/HP/RLP/CPS reference and all-input full literal action equality; proper-child structural totality, maximal-prefix digit distinction and nonempty extension split; no LawfulMonad/WF/source premise | UpdateCallerProofs uses only public update_branch_oob; UpdateGuards U01–31 observes full recursive fields/errors/raw/cache/preimages/answers/state, arbitrary actual arity, empty-extension descent, all own widths 31/32/33 and joined-prefix boundaries, seeded distinct/repeated/constant full 32-byte answers, each first-query failure in both transformer orders and Count 38 versus 27; direct private helper controls colocated in Update |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:668–677`, Q60 typed IndexError adaptation | `update_branch_oob` with actual bounded key digit and unrestricted supplied arity; **supplied** (§7.0.10) | Exact `.malformed (.branchIndex index arity)` at a reached root nonterminal missing slot, with no completion/query/continuation or extra bind | Ordinary literal equation under plain Monad/KeccakQuery | Generic public-import caller; complete bounds precedence and nonlawful pure-count 1 cases |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:466–670`, C19/C23/Q60 | `update : Ref → Nibbles → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None/equal leaf rebuild; unequal leaf completes old side, new side, exactly 16 branch, optional preserving prefix; matched ext descends into original child even with empty path; split suffix 1 retains original child, longer suffix wraps it; terminal branch retains all actual slots; nonterminal bounds precede selected original-child recursion and fresh parent; reached stub/bounds return bare typed error; underlying query failure is forwarded | Private bounded packed offset scan, independent copying List/HP/RLP/CPS reference and all-input full literal action equality; proper-child structural totality, maximal-prefix digit distinction and nonempty extension split; no LawfulMonad/WF/source premise | UpdateCallerProofs uses only public update_branch_oob; UpdateGuards U01–31 observes full recursive fields/errors/raw/cache/preimages/answers/state, arbitrary actual arity, empty-extension descent, all own widths 31/32/33 and joined-prefix boundaries, seeded distinct/repeated/constant full 32-byte answers, each first-query failure in both transformer orders and Count 38 versus 27; direct private helper controls colocated in Update |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:661–670`, Q60 typed IndexError adaptation | `update_branch_oob` with actual bounded key digit and unrestricted supplied arity; **supplied** (§7.0.10) | Exact `.malformed (.branchIndex index arity)` at a reached root nonterminal missing slot, with no completion/query/continuation or extra bind | Ordinary literal equation under plain Monad/KeccakQuery | Generic public-import caller; complete bounds precedence and nonlawful pure-count 1 cases |
 
 The offset worker retains the original key and offset while traversing branches,
 scans only the bounded extension/leaf window, and copies suffix/prefix paths when
@@ -469,9 +469,9 @@ completion allocation and structural/Enc equality never determine changedness.
 
 | Exact pinned EELS source | Public declaration/domain and status | Success/effects and ordered failures | Ordinary proof | Complete controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:680–784,787–828`, C19/C24/C25/Q60 | `delete : Ref → Nibbles → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None disappears without query; leaf match removes, mismatch strictly completes; ext mismatch preserves whole child, matched ext follows original child even with empty path, drops absence or splices one immediate leaf/ext before the source guard; empty terminal bypasses collapse, nonempty terminal clears then collapses; actual missing selected slot and reached stub fail first; same-origin clean no-change propagates completed child caches and preserves the parent; changed collapse witnesses before actual survivor index and forwards underlying failure | Private bounded packed match/offset worker, independent List HP/RLP fresh-wire constructors, List-set/continuations/census reference and ordinary all-input full literal CPS action equality; original proper-child structural totality; no LawfulMonad/WF/source binder | DeleteGuards 01–32 regression/effect controls retain complete recursive fields, Enc, actual arity, error payloads, preimages, answers and state; an independent literal dirty-child collapse control pins all 89 result values and zero queries. The family map below distinguishes copied-reference regression checks, source cases and Lean-only effects; private metadata/helper guards stay in Delete |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:766–781`, Q60 | `delete_branch_oob` with actual selected bounded digit and supplied arity; **supplied** (§7.0.10) | Exact bare pure branchIndex(index,arity), before recursive query/completion or continuation | Ordinary literal root equation under plain Monad/KeccakQuery | Generic public-import client; bounds/stub precedence and nonlawful pure count 1 |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:760–764,790–793`, Q60 | `delete_terminal_clear_empty` with arbitrary supplied Enc and nonempty value; **supplied** (§7.0.10) | Clearing the terminal of the empty actual array returns exact bare pure `occupancy 0`; an already empty terminal instead preserves/completes its branch | Ordinary literal root equation under plain Monad/KeccakQuery; private reached-zero precheck precedes mkBranch forwarding bind | Generic public-import client; terminal-empty/no-change bypass and negative added-error-bind count 4 versus count 1 |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:673–777,780–821`, C19/C24/C25/Q60 | `delete : Ref → Nibbles → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, every finite nominal input | None disappears without query; leaf match removes, mismatch strictly completes; ext mismatch preserves whole child, matched ext follows original child even with empty path, drops absence or splices one immediate leaf/ext before the source guard; empty terminal bypasses collapse, nonempty terminal clears then collapses; actual missing selected slot and reached stub fail first; same-origin clean no-change propagates completed child caches and preserves the parent; changed collapse witnesses before actual survivor index and forwards underlying failure | Private bounded packed match/offset worker, independent List HP/RLP fresh-wire constructors, List-set/continuations/census reference and ordinary all-input full literal CPS action equality; original proper-child structural totality; no LawfulMonad/WF/source binder | DeleteGuards 01–32 regression/effect controls retain complete recursive fields, Enc, actual arity, error payloads, preimages, answers and state; an independent literal dirty-child collapse control pins all 89 result values and zero queries. The family map below distinguishes copied-reference regression checks, source cases and Lean-only effects; private metadata/helper guards stay in Delete |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:759–774`, Q60 | `delete_branch_oob` with actual selected bounded digit and supplied arity; **supplied** (§7.0.10) | Exact bare pure branchIndex(index,arity), before recursive query/completion or continuation | Ordinary literal root equation under plain Monad/KeccakQuery | Generic public-import client; bounds/stub precedence and nonlawful pure count 1 |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:753–757,783–786`, Q60 | `delete_terminal_clear_empty` with arbitrary supplied Enc and nonempty value; **supplied** (§7.0.10) | Clearing the terminal of the empty actual array returns exact bare pure `occupancy 0`; an already empty terminal instead preserves/completes its branch | Ordinary literal root equation under plain Monad/KeccakQuery; private reached-zero precheck precedes mkBranch forwarding bind | Generic public-import client; terminal-empty/no-change bypass and negative added-error-bind count 4 versus count 1 |
 
 Every visited surviving node, including mismatch/already-empty/no-change, discards
 its old own Enc and strictly completes current fields. Unvisited fields/caches are
@@ -569,7 +569,7 @@ corresponding Lean checks may also compare against the copied regression referen
 Concrete correspondence requires finite acyclic nonaliasing represented native
 classes and bounded paths, complete assembled Encodable and actual Id/Keccak/host
 premises. A same-origin surviving no-op return must be clean only where its dirty
-flag is actually inspected at a reached parent guard (`inc:742–744,776–778`). This
+flag is actually inspected at a reached parent guard (`inc:735–737,769–771`). This
 is a local source relation, not global initial cleanliness or runtime rejection.
 Immediate leaf/ext merging precedes those guards. Dirty root no-op and dirty leaves
 under immediate merge can remain eligible; dirty resolved off-path nodes and
@@ -670,7 +670,7 @@ Supplied insertion uses the preserving completions described above.
 
 | Exact pinned EELS source | Declaration/type/domain and status | Success/effects/failure | Reference/proofs | Complete-field/generic/source controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:240–254,316–346,787–828`, C18/C19/C25/Q60 | `mkBranch : Array Ref → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, all finite bare inputs | Reached census/terminal dispatch, witness-before-index, strict fresh completion; actual query answers retained; no public witness table or partial mutable-state result | Private all-input ordinary Array/List census and complete List-wire literal action equality beside the operation; all support and laws private | BranchCallerProofs ordinary public-import clients; BranchGuards zero occupancy at arity 16, sole survivors with trailing empty slots, complete recursive fields/raw/cache, arbitrary seeded answers, repeated calls, both transformer failure orders and a nonlawful Monad bind-shape control; branch_differential.py full typed original images, staged source observations and strict full-frame parser normal/-O |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:243–257,319–349,780–821`, C18/C19/C25/Q60 | `mkBranch : Array Ref → ByteArray → m (Except TrieError Ref)` under plain Monad/KeccakQuery; **supplied**, all finite bare inputs | Reached census/terminal dispatch, witness-before-index, strict fresh completion; actual query answers retained; no public witness table or partial mutable-state result | Private all-input ordinary Array/List census and complete List-wire literal action equality beside the operation; all support and laws private | BranchCallerProofs ordinary public-import clients; BranchGuards zero occupancy at arity 16, sole survivors with trailing empty slots, complete recursive fields/raw/cache, arbitrary seeded answers, repeated calls, both transformer failure orders and a nonlawful Monad bind-shape control; branch_differential.py full typed original images, staged source observations and strict full-frame parser normal/-O |
 
 The nominal witnessing action uses supplied raw/hash, then current fields when its cache gates
 require them. A present hash bypasses all current fields. Hashless supplied raw ≥ 32 is queried without
@@ -684,7 +684,7 @@ completion retains its complete raw and has zero queries below 32 or one at ≥ 
 ordinary literal reference equality. Start with a finite acyclic nonaliasing clean source entry
 image interpreting each supplied raw/hash field, and require compatible embedding only at
 actually consulted descendants. At a reached source witness/compute gate
-(`inc:240–254,316–346`), a consulted stored hash additionally requires present source `_rlp`
+(`inc:243–257,319–349`), a consulted stored hash additionally requires present source `_rlp`
 matching the supplied raw: source checks `_rlp is not None` before its stored-hash shortcut.
 Nominal Enc does not distinguish absent source raw from present empty bytes. A touched hashless
 current reconstruction must have no source stored hash and compatible raw-presence/current-field
@@ -831,7 +831,7 @@ in the subsections below; mutation and witness consumers remain unimplemented.
 
 | Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures/handler | Model law | Deterministic/differential evidence |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:859–889` | `STFSpec.Commit.compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)`; every finite byte array | Pure; first high nibble bit1 supplies leaf, bit0 parity; ignores high bits2–3 and even low padding; retains odd low digit, then each suffix high before low | Only raw empty input: `.malformed .compactEmpty` (Q48), corresponding to `IndexError` at `:878`; guest inner handler `stateless.py:303` projects existing O4; `:959` extension-path rejection is a later consumer | `compactToNibbles_eq_model`, `_error_iff`, `_ok_iff`, `_success_iff`, `_size`, `_leaf`, `_index_lt`, `_get`; `compactToNibbles_nibbleListToCompact`; `nibbleListToCompact_inj`; normalization/image laws | `CompactGuards.allLeadingBytes` (all 256 with empty/multiple-byte suffixes), exact empty/00/0f/20/2f/f123, canonical odd/even/zero/15/mixed long paths and normalization counterexamples; authenticated `STFSpec/Conformance/Commit/compact_differential.py` |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:852–882` | `STFSpec.Commit.compactToNibbles : ByteArray → Except TrieError (Nibbles × Bool)`; every finite byte array | Pure; first high nibble bit1 supplies leaf, bit0 parity; ignores high bits2–3 and even low padding; retains odd low digit, then each suffix high before low | Only raw empty input: `.malformed .compactEmpty` (Q48), corresponding to `IndexError` at `:871`; guest inner handler `stateless.py:294` projects existing O4; `:959` extension-path rejection is a later consumer | `compactToNibbles_eq_model`, `_error_iff`, `_ok_iff`, `_success_iff`, `_size`, `_leaf`, `_index_lt`, `_get`; `compactToNibbles_nibbleListToCompact`; `nibbleListToCompact_inj`; normalization/image laws | `CompactGuards.allLeadingBytes` (all 256 with empty/multiple-byte suffixes), exact empty/00/0f/20/2f/f123, canonical odd/even/zero/15/mixed long paths and normalization counterexamples; authenticated `STFSpec/Conformance/Commit/compact_differential.py` |
 
 `CompactCallerProofs.lean` uses the public model/observer laws. The decoder
 builds an indexed digit List and crosses `Nibbles.ofList`, which maps it to a
@@ -860,7 +860,7 @@ refinement remain conditional under B3/NEW-COMMIT-1; this is no full gate closur
 | Exact pinned EELS source | Lean declaration/public type and domain | Success/effects | Ordered failures | Laws and conformance |
 |---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/incremental_mpt.py:892–991,1024–1033` | `decodeRoot` with `Monad m`, `KeccakQuery m`, supplied `emptyRoot`, arbitrary `NodeDB` and root key; returns `m (Except TrieError Ref)` | Empty-root bypass; complete eager recursive fields and actual occurrence caches; inline lists encode and actually reparse; repeated siblings/DAG occurrences query independently | Missing root before query; actual-key current-path cycle before entry query; eligible raw query before strict RLP, then original C14/C15 depth-first first error; underlying query failures forward unchanged | Public `decodeRoot_empty`, `decodeRoot_missing` require plain Monad; private threshold, raw-entry/path, inline Encodable/subterm, leaf fields, cycle, ordered-children and underlying-failure laws; complete `DecoderGuards` and authenticated acyclic source comparisons |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:994–1040` | `decodeWitnessToMpt`, same generic classes/arguments plus supplied `secured`; returns `m (Except TrieError IncrementalMPT)` | Packages the successful complete root with the exact flag; retains decoder effects and failures | Typed errors map unchanged; underlying monad failures retain their transformer behavior | Public `decodeWitnessToMpt_eq` exposes the literal bind tree with plain Monad; private public-import clients use explicit LawfulMonad for simplification and test full fields, states and both flags |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:994–1040` | `decodeWitnessToMpt`, same generic classes/arguments plus supplied `secured`; returns `m (Except TrieError IncrementalMPT)` | Packages the successful complete root with the exact flag; retains decoder effects and failures (at `e1a316a0`; Q90 adds the secured path-length check, §10 re-pin item (a)) | Typed errors map unchanged; underlying monad failures retain their transformer behavior | Public `decodeWitnessToMpt_eq` exposes the literal bind tree with plain Monad; private public-import clients use explicit LawfulMonad for simplification and test full fields, states and both flags |
 
 The private outer recursion decreases the finite list of database keys outside
 the current path after inserting an actual present key. The private inner
@@ -913,8 +913,8 @@ declarations add no acceptance rule or adapter.
 
 | Exact pinned source | Lean declaration/public type and domain | Success/effects | Ordered failure/handler | Support laws | Evidence |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:936,944–947` | `Malformed.compactPathList : Malformed`; declaration support only; whole-RLP-decoded two-item node with a list first field | Nominal diagnostic value, no traversal/effect | After whole RLP and arity; before compact decoding; future `TrieError.malformed` → WitnessError → O4, inner `stateless.py:303–304`; adapter unimplemented | Ordinary inductive distinctness and wrapper injectivity; `DecoderDiagnosticCallerProofs.malformed_inj` | `c2c0c0`, `c2c078`; competing `c4c0810180` rejects in the actual codec first |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:947–951` | `Malformed.leafValueList : Malformed`; declaration support only; successful compact decoding with leaf flag and list second field | Nominal diagnostic value, no traversal/effect | After compact success/leaf flag; raw-empty failure wins; descendant failures propagate unchanged; same unimplemented adapter/O4 as above | `compact_error_distinct`, `nonempty_compact`, `node_wire_bound`, `failed_rlp_no_item` compose public existing contracts | `c220c0`; competing `c220c080` codec failure; `c280c0` raw-empty compact failure; `c22080`, `c22078` source acceptance controls |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:929,937–940` | `Malformed.compactPathList : Malformed`; declaration support only; whole-RLP-decoded two-item node with a list first field | Nominal diagnostic value, no traversal/effect | After whole RLP and arity; before compact decoding; future `TrieError.malformed` → WitnessError → O4, inner `stateless.py:294–295`; adapter unimplemented | Ordinary inductive distinctness and wrapper injectivity; `DecoderDiagnosticCallerProofs.malformed_inj` | `c2c0c0`, `c2c078`; competing `c4c0810180` rejects in the actual codec first |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:940–944` | `Malformed.leafValueList : Malformed`; declaration support only; successful compact decoding with leaf flag and list second field | Nominal diagnostic value, no traversal/effect | After compact success/leaf flag; raw-empty failure wins; descendant failures propagate unchanged; same unimplemented adapter/O4 as above | `compact_error_distinct`, `nonempty_compact`, `node_wire_bound`, `failed_rlp_no_item` compose public existing contracts | `c220c0`; competing `c220c080` codec failure; `c280c0` raw-empty compact failure; `c22080`, `c22078` source acceptance controls |
 
 `DecoderDiagnosticGuards.lean` distinguishes every diagnostic and TrieError
 wrapper (including distinct payloads), compares complete actual RLP parses of
@@ -1456,7 +1456,7 @@ no whole remaining suffix at a branch and never scans off-path children.
 
 | Pinned source | Lean declaration/type and domain | Complete value/effects | Ordered failures and consumer boundary | Laws and controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/witness_state.py:53–100`; nominal classes `incremental_mpt.py:48–98` | `lookup : Ref → Nibbles → Except TrieError (Option ByteArray)` on every finite bare tree/key with arbitrary Enc/arity | Pure; exact complete optional bytes, including present empty leaf values; no query, codec, DB/default or mutation | Reached stub before exhaustion; mismatched extension stops before child; terminal branch value before bounds; only a reached out-of-range selected slot gives exact Q59 `(index, actual arity)`. Guest reachability/adapters remain open under CONTRACT O4/O13 | **Discharged local constructor equations:** `lookup_none`, `lookup_hashed`, `lookup_leaf`, `lookup_ext`, `lookup_branch_emptyKey`, `lookup_branch_index`, `lookup_branch_oob`; private public-import `LookupCallerProofs.lean`, complete-result `LookupGuards.lean`, fresh original `lookup_differential.py` |
+| `src/ethereum/forks/amsterdam/witness_state.py:53–100`; nominal classes `incremental_mpt.py:53–103` | `lookup : Ref → Nibbles → Except TrieError (Option ByteArray)` on every finite bare tree/key with arbitrary Enc/arity | Pure; exact complete optional bytes, including present empty leaf values; no query, codec, DB/default or mutation | Reached stub before exhaustion; mismatched extension stops before child; terminal branch value before bounds; only a reached out-of-range selected slot gives exact Q59 `(index, actual arity)`. Guest reachability/adapters remain open under CONTRACT O4/O13 | **Discharged local constructor equations:** `lookup_none`, `lookup_hashed`, `lookup_leaf`, `lookup_ext`, `lookup_branch_emptyKey`, `lookup_branch_index`, `lookup_branch_oob`; private public-import `LookupCallerProofs.lean`, complete-result `LookupGuards.lean`, fresh original `lookup_differential.py` |
 
 The source driver authenticates original pin/physical source and existing types/RLP
 wheel/installed-source inputs before and after execution, retaining original function identities,
@@ -1501,7 +1501,7 @@ frontend semantics.
 
 | Source branch / contract | Supplied support | Ordinary complete controls |
 |---|---|---|
-| Q60/C25 actual sole survivor index after applicable witnessing (`inc:797–798`); local mkBranch emission supplied separately above | `Malformed.collapseIndex (index : Nat)` declaration support; no frontend operation | Private full-Nat/wrapper/disjointness clients; all old/new reason 12 wire fields; strict decoder/imported lookup parser normal/-O; unchanged actual decoder comparison |
+| Q60/C25 actual sole survivor index after applicable witnessing (`inc:790–791`); local mkBranch emission supplied separately above | `Malformed.collapseIndex (index : Nat)` declaration support; no frontend operation | Private full-Nat/wrapper/disjointness clients; all old/new reason 12 wire fields; strict decoder/imported lookup parser normal/-O; unchanged actual decoder comparison |
 
 ### Implemented completed fresh-leaf construction
 
@@ -1515,7 +1515,7 @@ strategy.
 
 | Pinned source | Lean declaration/type and domain | Complete value/effects | Ordered failures and source boundary | Laws and controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:48–57,267–271,316–346,486–488`; HP `src/ethereum/merkle_patricia_trie.py:360–392`; locked `ethereum_rlp/rlp.py:66–135` (0.1.6) | `mkLeaf : Nibbles → ByteArray → m Node`, with Monad/KeccakQuery; every finite bounded-digit path and byte value | Retain path/value and complete encoded two-field leaf; raw size<32 returns pure with hash None; otherwise one local query on full raw and its actual answer cached verbatim | No typed error or handler; underlying long-query failure follows its monad. Source comparison starts from an original fresh leaf with both caches None followed by `_compute_node_hash_and_rlp`, with either dirty flag. Python assigns `_rlp` before hashing, so partial failure object state is outside completed-result correspondence | **Discharged local equations:** mkLeaf_inline, mkLeaf_hash, both plain Monad; private ordinary total packed/List equality; private public-import LeafCallerProofs, complete-field seeded-state/both-transformer failure LeafGuards, fresh original leaf_differential.py and strict ordinary/optimized parser controls |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:53–62,270–274,319–349,479–481`; HP `src/ethereum/merkle_patricia_trie.py:360–392`; locked `ethereum_rlp/rlp.py:66–135` (0.1.6) | `mkLeaf : Nibbles → ByteArray → m Node`, with Monad/KeccakQuery; every finite bounded-digit path and byte value | Retain path/value and complete encoded two-field leaf; raw size<32 returns pure with hash None; otherwise one local query on full raw and its actual answer cached verbatim | No typed error or handler; underlying long-query failure follows its monad. Source comparison starts from an original fresh leaf with both caches None followed by `_compute_node_hash_and_rlp`, with either dirty flag. Python assigns `_rlp` before hashing, so partial failure object state is outside completed-result correspondence | **Discharged local equations:** mkLeaf_inline, mkLeaf_hash, both plain Monad; private ordinary total packed/List equality; private public-import LeafCallerProofs, complete-field seeded-state/both-transformer failure LeafGuards, fresh original leaf_differential.py and strict ordinary/optimized parser controls |
 
 Concrete source success uses Id, actual MutableLeafNode/Bytes/Hash32 classes, bounded digits,
 identical bytes and complete assembled Encodable/finite-host/crypto premises. Encodable includes
@@ -1793,6 +1793,7 @@ inductive Malformed | rlp | nonEmptyString | compactPathList | compactEmpty | le
   | extChild | occupancy (n : Nat) | cycle
   | branchIndex (index : Nat) (arity : Nat)    -- Q59 lookup/Q60 update/delete supplied
   | collapseIndex (index : Nat)                -- Q60 local mkBranch emission (§3)
+  | securedPathLength                          -- Q90, prospective: secured-trie path length
 inductive TrieError | missingRoot (h : Hash32) | malformed (why : Malformed) | unresolved (h : Hash32)
 
 -- mkLeaf/mkExt have public laws; mkBranch has its private all-input reference (§3).
@@ -1839,7 +1840,7 @@ Mapping of `incremental_mpt.py` items:
 `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` →
 `Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (guest projection omits flat `_data` under C21,
 caller `default` under C22 (`inc:441/452`), and recorded `witness` under C28/C25; the future
-collapse stub failure at `inc:797/:245` is retained); `_encode_mutable_node`,
+collapse stub failure at `inc:790/:248` is retained); `_encode_mutable_node`,
 `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc`
 construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`,
 `_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`,
@@ -1881,7 +1882,7 @@ Bounds are checked only for the actual selected slot of a nonterminal branch. St
 failure precedes exhaustion; terminal branch value precedes bounds. Lookup never hashes,
 encodes, decodes, consults a DB/default or mutates its inputs. Source correspondence is
 restricted as stated in C20; the original decoder's sixteen-child construction
-(`inc:972–974`) does not certify every bare nominal constructor or establish a completed
+(`inc:965–967`) does not certify every bare nominal constructor or establish a completed
 reachable output invariant/guest adapter.
 
 ## 6. Data structures
@@ -2498,6 +2499,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
+- Q90: DECISIONS owns the selected single constructor `Malformed.securedPathLength` for
+  secured-trie path-length failures; §10 re-pin item (a) owns the open decoder guards,
+  caller proofs and regenerated catalogues.
+
 - Q60: DECISIONS owns approved Candidate A; C18/C19/C22–C25/C29 and §§5/7.0.10
   own its reached-site/dirty-state/source/empty-value contract. Local mkBranch, its reached
   occupancy/collapseIndex emission and private reference/controls are supplied in §3.
@@ -2636,5 +2641,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Existing-Bytes key adapter (Q54):** `instKeyBytesBytes`, its named exact-export `toBytes_bytes` equation and ordinary all-finite injection/order fields are discharged in §3, with private public-import complete generic map and root clients. Choosing a concrete Python key/equality/alias interpretation, consumer encoding/root agreement, actual map/preparation/root/retention/replacement and C1–C4 costs remains open; no raw ByteArray order, additional production value/default/equality instance or secured policy is supplied.
 - **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
-- **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes, not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
+- **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Secured-path validation** (execution-specs PR #3193; CONTRACT O4(b)). `decode_witness_to_mpt` now runs `_validate_secured_trie_paths` (`incremental_mpt.py:987–1013`) on every secured decode, after the whole reachable trie has decoded, so every node-decode failure precedes it. Against the 64-nibble key (`SECURED_TRIE_KEY_NIBBLES`), a leaf's remaining path must equal the remaining nibble count exactly (short leaves fail too), an extension segment must be strictly shorter than the remaining count, and a branch needs at least one remaining nibble; `HashedNode` stubs are skipped. `decodeWitnessToMpt` does not check this, so it accepts secured tries the reference rejects. The new fixture area `eip8025_optional_proofs/witness_state_overlength` (a leaf segment and a cumulative path exceeding the key length) exercises it. Every accepted secured trie therefore has at most 65 decoded nodes on a path (64 branches and a leaf) [I, by reading]. A deeper chain or a cycle still decodes recursively first, and now fails either the validation or the recursion limit with the same inner-handler output; host memory and C-stack limits, the DAG blow-up (DISC-004) and DISC-001 stay as they are, and C17 and the EthStateWitness deep-chain item should be restated against this bound. The validation, like the new lookup stub check at `incremental_mpt.py:375` (`_trie_lookup` raised `AssertionError` explicitly), is an `assert`, so Python `-O` removes it. The spec follows the source with assertions enabled, as for the other source asserts (§2); an `-O` host would accept over-length paths, a host-configuration difference that CONTRACT §6 would route to DISCREPANCIES with a reproducer (none recorded; O12). Under `-O` a lookup that reaches a stub still fails at the next attribute access (`node._dirty` in `_record_witness`) [I, by reading]. Q90 selects the diagnostic, `Malformed.securedPathLength`; closing this needs the constructor, the `decodeWitnessToMpt` check (C13), its guards and caller proofs, and regenerated `decoder_differential.py` and `decoder_diagnostic_differential.py` catalogues with over-length, short-leaf, extension and branch cases. DISC-003 (padding-nibble acceptance) is unchanged. (b) **Lookup owner.** `witness_state._trie_lookup` was deleted (PR #3659); guest lookups use `mpt_get` (`incremental_mpt.py:352–402`), the same walk [V by reading both], which also records visited nodes in the trie's witness. `lookup` keeps its semantics, but its docstrings (`STFSpec/Commit/Lookup.lean`, `STFSpec/Commit/Node.lean`), C20 and the §3 row name the removed function, and `STFSpec/Conformance/Commit/lookup_differential.py` imports `_trie_lookup`, so its oracle must be re-targeted to `mpt_get` before it can run at this pin. C21 ("`mpt_get` answers from `_data` … not the guest lookup"), the §3 wildcard row's "host-side … `mptGet`" and the §5 host-side `mptGetRecording` describe `e1a316a0`: at `59c1473d` `mpt_get` is the guest lookup, walks the decoded nodes and returns the value, and `_data` is gone. (c) **Mutation entry points.** `mpt_set` takes the storage root directly instead of a callback, `IncrementalMPT._data` is gone, and `mpt_set_storage_slots` (non-zero writes, then deletions, `incremental_mpt.py:445–463`) replaces the inline storage loop (PR #3659). `mptSet` already takes a caller-encoded value and the write order is unchanged [V by reading]; the frozen `set_differential.py` catalogue records the old signature and must be regenerated.

@@ -1,9 +1,9 @@
 # `EthHash`: Keccak, SHA-256, RIPEMD-160, BLAKE2b F and the `KeccakQuery` seam
 
-*Status: informal specification, draft. Date: 2026-10-01. Pin: `tests-zkevm@v21.0.0` @e1a316a0. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1–F4, F15, F16, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, Q46, F1–F4, F15, F18.*
 
-Paths are relative to `src/ethereum/` at the pin unless prefixed. Host-library behaviour was first checked in a scratch venv (Python 3.12, OpenSSL 3.0.13, pycryptodome 3.23.0) and re-observed in a lock-exact environment (CPython 3.13.7, OpenSSL 3.0.16, pycryptodome 3.23.0) used for the full-corpus EELS run. Both hosts lack OpenSSL keccak-256 and provide RIPEMD-160.
+Paths are relative to `src/ethereum/` at the pin unless prefixed. Host-library behaviour was first checked in a scratch venv (Python 3.12, OpenSSL 3.0.13, pycryptodome 3.23.0) and re-observed in a lock-exact environment (CPython 3.13.7, OpenSSL 3.0.16, pycryptodome 3.23.0) used for the full-corpus EELS run. Both hosts lack OpenSSL keccak-256 and provide RIPEMD-160. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
@@ -24,12 +24,12 @@ It also defines the tiny `KeccakQuery` monad class, its `Id` and transformer-lif
 **R3. `sha256`** is FIPS 180-4 SHA-256 via `hashlib` (external `hashlib.sha256`). The callers are:
 - `forks/amsterdam/requests.py:322–324`: `sha256` of the concatenation of per-request `sha256` digests;
 - `crypto/kzg.py:73`: versioned hash = `0x01 ‖ sha256(commitment)[1:]`;
-- `vm/precompiled_contracts/sha256.py:51`;
+- `vm/precompiled_contracts/sha256.py:48`;
 - remerkleable's `merkle_hash` (`remerkleable/settings.py:16–17`), used by `EthCodec`.
 
 The total SHA-256 input-domain policy is Q46: the padding trailer contains the low 64 bits of the original bit length, encoded big-endian. FIPS 180-4 correspondence requires `8 * msg.size < 2^64`. Beyond that domain the total extension claims neither FIPS nor pinned-host equivalence. Fixed-word compression is independent of this bound.
 
-**R4. `ripemd160`** is RIPEMD-160 via `hashlib.new("ripemd160", data)` (`vm/precompiled_contracts/ripemd160.py:52`). The precompile left-pads the 20-byte digest to 32 bytes. The pure algorithm uses
+**R4. `ripemd160`** is RIPEMD-160 via `hashlib.new("ripemd160", data)` (`vm/precompiled_contracts/ripemd160.py:49`). The precompile left-pads the 20-byte digest to 32 bytes. The pure algorithm uses
 MD4 padding: append 0x80, the minimal zeros to 56 modulo 64, then the low 64 bits
 of the original bit length in eight little-endian bytes. The corrected author
 pseudocode explicitly delegates padding to MD4; RFC 1320 §§2, 3.1–3.2 allows
@@ -37,7 +37,7 @@ arbitrary lengths and specifies the low-order 64 bits. This is the algorithm's
 total byte-message rule, separate from SHA-256's Q46 disposition. No huge-host
 message, provider capability or resource policy follows from the mathematical rule.
 
-*Host dependency (naive-reading trap).* On hosts whose OpenSSL build/provider configuration lacks RIPEMD-160, `hashlib.new("ripemd160")` raises `ValueError`, and Python 3.12 has no built-in fallback. `ValueError` is not an `ExceptionalHalt`, so on such a host the exception would escape the frame and invalidate the block (`stateless.py:303`). The checked host computes it: `9c1185a5…` for the empty input. The spec implements RIPEMD-160 unconditionally. DISC-005 records this host dependence; the exact D14/O12 policy remains open.
+*Host dependency (naive-reading trap).* On hosts whose OpenSSL build/provider configuration lacks RIPEMD-160, `hashlib.new("ripemd160")` raises `ValueError`, and Python 3.12 has no built-in fallback. `ValueError` is not an `ExceptionalHalt`, so on such a host the exception would escape the frame and invalidate the block (`stateless.py:294`). The checked host computes it: `9c1185a5…` for the empty input. The spec implements RIPEMD-160 unconditionally. DISC-005 records this host dependence; the exact D14/O12 policy remains open.
 
 **R5. BLAKE2b `F`** (`crypto/blake2.py`). The precompile (`vm/precompiled_contracts/blake2f.py:30–42`) proceeds in this order:
 1. it requires exactly 213 input bytes (`InvalidParameter` otherwise);
@@ -234,7 +234,7 @@ Q46 owns the length-domain policy. `zeroCount_bit_congr` and
 including comparison with arbitrary natural bit counts. The list padding model
 shares the zero-count formula; its equality alone does not establish minimality. Mathematical totality does not establish host
 memory availability or above-domain pinned-host agreement. EELS
-`forks/amsterdam/vm/precompiled_contracts/sha256.py:42–51` charges gas before its
+`forks/amsterdam/vm/precompiled_contracts/sha256.py:39–48` charges gas before its
 `hashlib.sha256(data).digest()` call; that gas/effect wrapper remains outside this
 implementation. FIPS 180-4 supplies the external algorithm behind that host call.
 
@@ -245,7 +245,7 @@ implementation. FIPS 180-4 supplies the external algorithm behind that host call
 | FIPS 180-4 §5.2.1 block/word parsing | `Sha256.parseWord : UInt8 → UInt8 → UInt8 → UInt8 → UInt32`, `parseBlock : Bytes → Nat → Vector UInt32 16`; big-endian four-byte words, ascending word order; helper zero-extends unavailable bytes after Nat bounds checks | `toNat_parseWord`, `parseWord_wordByte`, `toBitVec_parseWord`, `wordsModel_parseBlock`, `parseBlock_get` (caller supplies a complete 64-byte window), `getElem?_toByteArray/of_lt` | asymmetric high/low bytes, all sixteen ascending words and offset 64, huge unavailable offset; **discharged** |
 | FIPS 180-4 §6.2.2 ascending chaining | `Sha256.blocks : Bytes → Nat → Nat → Vector UInt32 8 → Vector UInt32 8`; structural remaining-block recursion, one accepted compression at each offset | `blocks_model`, `blocks_add`, `Model.blocks_chain`, `Model.Chain.eq_blocks`; separate BitVec32 serial fold and inductive chaining trace | public-law three-block split/composition client and asymmetric multiblock host inputs; **discharged** |
 | FIPS 180-4 §§6.2.1–6.2.2 output | `Sha256.wordByte : UInt32 → Nat → UInt8`, `serialize : Vector UInt32 8 → Bytes`, `digestValue : Vector UInt32 8 → Bytes32`; each of eight words serialized big-endian, leading zeros retained; public checked Base fixed-byte construction proved successful | `serialize_get/model`, `size_serialize`, `toBytes_digestValue` | eight distinct word positions, leading zeros and high-bit probes; **discharged** |
-| EELS `forks/amsterdam/vm/precompiled_contracts/sha256.py:51`; external `hashlib.sha256` / FIPS 180-4 §§5.1.1, 5.2.1, 6.2 | `STFSpec.Hash.sha256 : ByteArray → Bytes32`; standard IV, pad, ascending compression fold and ordered digest bytes; total extension on all sizes, standard-domain equivalence requires caller premise `8*msg.size < 2^64`; no gas/effect changes | `size_sha256`, `sha256_model`, `sha256_digest` against `Model.Digest`, `sha256_fipsDigest` against unwrapped `Model.fipsPad` under the explicit domain | primary production KATs: empty/abc and NIST CAVP 55/56/64-byte messages; finite authenticated pinned-host differential; **proved for the stated model/domain** |
+| EELS `forks/amsterdam/vm/precompiled_contracts/sha256.py:48`; external `hashlib.sha256` / FIPS 180-4 §§5.1.1, 5.2.1, 6.2 | `STFSpec.Hash.sha256 : ByteArray → Bytes32`; standard IV, pad, ascending compression fold and ordered digest bytes; total extension on all sizes, standard-domain equivalence requires caller premise `8*msg.size < 2^64`; no gas/effect changes | `size_sha256`, `sha256_model`, `sha256_digest` against `Model.Digest`, `sha256_fipsDigest` against unwrapped `Model.fipsPad` under the explicit domain | primary production KATs: empty/abc and NIST CAVP 55/56/64-byte messages; finite authenticated pinned-host differential; **proved for the stated model/domain** |
 
 `STFSpec/Conformance/Hash/Sha256DigestGuards.lean` owns the primary KATs
 and deterministic padding, byte-order and conceptual-length probes;
@@ -318,7 +318,7 @@ working branches store A,B,C,D,E in that order. Ascending rounds use f(j) on the
 left and f(79−j) on the right, with separate order/rotation/constant tables; updates
 are simultaneous. Feedforward reads all five original chaining words.
 
-EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–54`, notably `:52`,
+EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–54`, notably `:49`,
 invokes `hashlib.new("ripemd160", data)`, without exposing raw compression.
 The algorithm rows therefore cite Dobbertin–Bosselaers–Preneel, *RIPEMD-160:
 A Strengthened Version of RIPEMD*, FSE 1996, pp. 71–82, and
@@ -376,7 +376,7 @@ Existing reference digests and Base literals remain unchanged.
 | D5/R6; concrete EELS hash | `KeccakQuery Id` instance | Definitionally `keccak256` for every preimage | None | `keccak_id` (`rfl`) | Four concrete observations; primary empty KAT from the accepted sponge suite |
 | R6 transformer forwarding | `KeccakQuery (ExceptT ε m)` instance, given `[Monad m] [KeccakQuery m]` | One underlying query, result wrapped in `.ok` | Underlying effects/failures forward; no catch | `keccak_exceptT`, `run_keccak_exceptT` | Both transformer orders, arbitrary answers; **discharged** |
 | R6 transformer forwarding | `KeccakQuery (StateT σ m)` instance, given `[Monad m] [KeccakQuery m]` | One underlying query, added state unchanged | Underlying failure forwards; no returned state on an underlying error | `keccak_stateT`, `run_keccak_stateT` | Both transformer orders, state 91 unchanged; **discharged** |
-| EELS `state.py:36`, `merkle_patricia_trie.py:71`, `forks/amsterdam/fork.py:116`, `forks/amsterdam/vm/__init__.py:40`; F20 acquisition design | `HashConsts.query {m} [Monad m] [KeccakQuery m] : m HashConsts` | Queries `[]`, `[0x80]`, `[0xc0]`, then ASCII `Transfer(address,address,uint256)`; preserves four arbitrary answers as code/trie/ommer/topic fields | Monadic sequence propagates the first error, with no later query; caller owns acquisition and subsequent handling, no guest O-row is implemented here | `query_eq`, `query_id`; `query_of_pure_answers` additionally requires `[LawfulMonad m]` | Recording trace has exactly four explicit preimages and distinct arbitrary answers; failures at positions 0–3; **discharged acquisition interface** |
+| EELS `state.py:30`, `merkle_patricia_trie.py:71`, `forks/amsterdam/fork.py:102`, `forks/amsterdam/vm/__init__.py:35`; F20 acquisition design | `HashConsts.query {m} [Monad m] [KeccakQuery m] : m HashConsts` | Queries `[]`, `[0x80]`, `[0xc0]`, then ASCII `Transfer(address,address,uint256)`; preserves four arbitrary answers as code/trie/ommer/topic fields | Monadic sequence propagates the first error, with no later query; caller owns acquisition and subsequent handling, no guest O-row is implemented here | `query_eq`, `query_id`; `query_of_pure_answers` additionally requires `[LawfulMonad m]` | Recording trace has exactly four explicit preimages and distinct arbitrary answers; failures at positions 0–3; **discharged acquisition interface** |
 | R6 lifted acquisition | `(HashConsts.query (m := ExceptT ε m)).run`, `(HashConsts.query (m := StateT σ m)).run s` | Preserve underlying acquisition; success wrapping or unchanged added state; laws require `[LawfulMonad m]` | Underlying failure forwards; arbitrary transformer oracle's second-query failure returns its exact error and skips both remaining queries | `run_query_exceptT`, `run_query_stateT`, `run_query_error_emptyTrie` | Retained trace for ExceptT over StateT, lost result state for StateT over Except; public stacked clients; **discharged** |
 | Four actual pinned globals above | `HashConsts.query (m := Id)` versus `HashConsts.literals` | All four 32-byte fields equal under concrete evaluation | None | `query_id` gives concrete calls; equality to literals is **guarded, not a universal theorem** | Four byte-field guards plus numeric-field observation; authenticated driver supplies 12 further guards; **evaluated** |
 
@@ -409,7 +409,7 @@ backend entry seams, consumer coherence and S2 remain open.
 ### Implemented RIPEMD-160 message digest
 
 `STFSpec/Hash/Ripemd160Digest.lean` implements the public `ripemd160` operation
-at EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:52`.
+at EELS `src/ethereum/forks/amsterdam/vm/precompiled_contracts/ripemd160.py:49`.
 The underlying algorithm is the [corrected author pseudocode](https://homes.esat.kuleuven.be/~bosselae/ripemd/rmd160.txt),
 with [MD4 padding](https://www.rfc-editor.org/rfc/rfc1320.html) (§§2, 3.1–3.2) and
 [nine selected primary digest facts](https://homes.esat.kuleuven.be/~bosselae/ripemd160.html).
@@ -430,7 +430,7 @@ the model; accepted `ripemd160ToModel_compress` supplies the compression bridge.
 | Author block input | `parseBlock : Bytes → Nat → Vector UInt32 16` | Every offset; unavailable bytes zero extended; complete blocks have direct byte observations | `ripemd160ToModel_parseBlock`, `parseBlock_get`, `parseBlock_of_size_le` | Partial input and 2^64 offset; finite production digest cases |
 | Author ascending iteration | `blocks : Bytes → Nat → Nat → Vector UInt32 5 → Vector UInt32 5` | Count, offset, arbitrary initial state; offsets advance by 64; tail recursion | `blocks_model`, `blocks_add`, `Model.blocks_succ/blocks_chain`, `Model.Chain.eq_blocks` | Three-block split clients; multiblock asymmetric/random messages |
 | Author output order | `serialize : Vector UInt32 5 → Bytes`, `digestValue : Vector UInt32 5 → FixedBytes 20` | Five little-endian words; public checked Base construction | `serialize_model`, `serialize_get`, `size_serialize`, `toBytes_digestValue` | Asymmetric words/leading zeros; native complete digest comparisons |
-| EELS ripemd160.py:52 / complete algorithm | `STFSpec.Hash.ripemd160 : ByteArray → FixedBytes 20` | All finite messages; pure total 20-byte result | `size_ripemd160`, `Ripemd160.ripemd160_model`, `Ripemd160.ripemd160_digest` into independent `Model.Digest`/`Chain` | All nine primary facts including compact million-a; 176 actual pinned precompile calls, 128 random lengths 0..4096 |
+| EELS ripemd160.py:49 / complete algorithm | `STFSpec.Hash.ripemd160 : ByteArray → FixedBytes 20` | All finite messages; pure total 20-byte result | `size_ripemd160`, `Ripemd160.ripemd160_model`, `Ripemd160.ripemd160_digest` into independent `Model.Digest`/`Chain` | All nine primary facts including compact million-a; 176 actual pinned precompile calls, 128 random lengths 0..4096 |
 
 `Ripemd160DigestGuards.lean` supplies nine primary complete digest guards and
 padding/word/offset probes; `Ripemd160DigestCallerProofs.lean` uses public laws.

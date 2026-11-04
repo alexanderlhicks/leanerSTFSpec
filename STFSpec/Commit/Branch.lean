@@ -8,7 +8,7 @@ import STFSpec.Commit.TrieError
 /-!
 # Completed reached-branch collapse
 
-Library `EthCommit`. Pinned EELS `incremental_mpt.py:240–254,316–346,787–828`.
+Library `EthCommit`. Pinned EELS `incremental_mpt.py:243–257,319–349,780–821`.
 All finite bare slots are admitted. A sole empty-terminal survivor is witnessed
 before its index is classified; fresh outputs receive strict own completion.
 The private clean supplied-cache realization is a local source correspondence
@@ -290,7 +290,7 @@ private def controller {m : Type → Type} [Monad m] [KeccakQuery m]
   | .multiple => freshBranch xs v >>= fun n => pure (.ok (some n))
 
 /-- Complete a reached branch on every finite bare input.
-Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:787–828`.
+Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:780–821`.
 Sole empty-terminal collapse witnesses first, then diagnoses a nonnibble actual
 index. Zero-child/nonempty-terminal input makes a completed empty-path leaf;
 retained branch cases preserve every actual slot/value and strictly complete own raw.
