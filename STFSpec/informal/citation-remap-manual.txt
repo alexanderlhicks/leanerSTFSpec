@@ -12,11 +12,13 @@
 # written ('-' if none); reason; context hash.
 STFSpec/Commit/Decoder.lean:12	src/ethereum/forks/amsterdam/incremental_mpt.py:892–1040	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 892–1040 touches changed lines an insertion after 993, 1029, an insertion after 1033, 1039	7ab1255b9310f35f5d19
 STFSpec/Commit/Decoder.lean:292	src/ethereum/forks/amsterdam/incremental_mpt.py:994–1040	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 994–1040 touches changed lines 1029, an insertion after 1033, 1039	40d3c98c2521faa993fa
+STFSpec/Commit/IncrementalMPT.lean:19	src/ethereum/forks/amsterdam/incremental_mpt.py:111–123	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 111–123 touches changed lines 123	1e18443322ec78a0764e
 STFSpec/Commit/IncrementalMPT.lean:21	:441/452	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 441 touches changed lines 441–446; on a line with rewritten citations	9492c006d811db8074d2
 STFSpec/Commit/Lookup.lean:11	src/ethereum/forks/amsterdam/witness_state.py:53–100	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 53–100 touches changed lines 47–100	8cdc94bb6e8a52f7b98a
 STFSpec/Commit/Lookup.lean:181	src/ethereum/forks/amsterdam/witness_state.py:53–100	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 53–100 touches changed lines 47–100	736631bb8b517fff0369
 STFSpec/Commit/Node.lean:14	src/ethereum/forks/amsterdam/witness_state.py:53–100	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 53–100 touches changed lines 47–100	67bf8f7122f049fefd7e
 STFSpec/State/BlockState.lean:49	state_tracker.py:51,83	state_tracker.py	forks/amsterdam/state_tracker.py: 51 touches changed lines 51–54; 83 touches changed lines 83	39a29f8c9968dc33f69a
+STFSpec/State/TxObs.lean:19	:111	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 111 touches changed lines 111; on a line with rewritten citations	182a11bc90471f54b6a2
 STFSpec/State/TxObs.lean:26	state_tracker.py:51,111	state_tracker.py	forks/amsterdam/state_tracker.py: 51 touches changed lines 51–54; 111 touches changed lines 111	950fc7ddac89b71717de
 STFSpec/State/WitnessAncestors.lean:17	src/ethereum/forks/amsterdam/state_tracker.py:903–922	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 903–922 touches changed lines 903–924	26a11d8c3f70db7a29f4
 STFSpec/StateCommit/StorageDecode.lean:90	src/ethereum/forks/amsterdam/witness_state.py:198–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	9bab29967c4548cdcd35
@@ -71,6 +73,7 @@ STFSpec/informal/modules/EthState.md:71	block.py:48–62	block.py	forks/amsterda
 STFSpec/informal/modules/EthState.md:71	fork.py:868	fork.py	forks/amsterdam/fork.py: 868 touches changed lines 868–871	a9733b26aede1be1ab32
 STFSpec/informal/modules/EthState.md:71	fork.py:868–871	fork.py	forks/amsterdam/fork.py: 868–871 touches changed lines 868–871	20c0204fefa6c092f7f5
 STFSpec/informal/modules/EthState.md:71	st:903–922	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 903–922 touches changed lines 903–924	a5678d35d02236022a77
+STFSpec/informal/modules/EthState.md:71	st:925–946	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 925–946 touches changed lines 930–931	d7d3719326efa79986c4
 STFSpec/informal/modules/EthState.md:157	:51	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 51 touches changed lines 51–54	aee6d457039b29fd00da
 STFSpec/informal/modules/EthState.md:157	src/ethereum/forks/amsterdam/state_tracker.py:103,107,111,113	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 111 touches changed lines 111	c2d1ba6a51edba8a9f47
 STFSpec/informal/modules/EthState.md:385	src/ethereum/forks/amsterdam/state_tracker.py:903–922	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 903–922 touches changed lines 903–924	3cf8e8c51e774f259883
@@ -80,9 +83,12 @@ STFSpec/informal/modules/EthStateCommit.md:19	witness_state.py:198–203	witness
 STFSpec/informal/modules/EthStateCommit.md:33	witness_state.py:198–203	witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	c34dd0c6fd1581f39d4e
 STFSpec/informal/modules/EthStateCommit.md:145	src/ethereum/forks/amsterdam/witness_state.py:198–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	1e2b7879b42ec134fb3c
 STFSpec/informal/modules/EthStateWitness.md:16	ws:73	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 73 touches changed lines 47–100	43bf2c2caa0fd4e45a71
+STFSpec/informal/modules/EthStateWitness.md:17	ws:179–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 179–203 touches changed lines 191–194, 197–203	582aa30f396c00cd0790
 STFSpec/informal/modules/EthStateWitness.md:19	ws:215–227	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 215–227 touches changed lines 219–237	56a90cc32eb51ea60a8d
 STFSpec/informal/modules/EthStateWitness.md:19	ws:229–311	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 229–311 touches changed lines 219–237, an insertion after 240, 260–267, 284–288, 293, 304–309, 311	c01af1ee6a47798273e1
 STFSpec/informal/modules/EthStateWitness.md:20	ws:260–267	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 260–267 touches changed lines 260–267	6ea872eabf9d19e313df
+STFSpec/informal/modules/EthStateWitness.md:22	ws:279–294	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 279–294 touches changed lines 284–288, 293	2b93e093caa07a4a40c0
+STFSpec/informal/modules/EthStateWitness.md:23	ws:296–309	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 296–309 touches changed lines 304–309	a6f6690785de88dc9e56
 STFSpec/informal/modules/EthStateWitness.md:24	ws:311	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 311 touches changed lines 311	049076b6785898024876
 STFSpec/informal/modules/EthStateless.md:35	stateless.py:263–311	stateless.py	forks/amsterdam/stateless.py: 263–311 touches changed lines 300	2ce5147eccb02cb9a3ac
 STFSpec/informal/modules/EthStateless.md:40	fork.py:312–317	fork.py	forks/amsterdam/fork.py: 312–317 touches changed lines 312–318	cbf09fe4e02e0282dc36
