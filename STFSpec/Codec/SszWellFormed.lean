@@ -9,7 +9,7 @@ import STFSpec.Codec.SszModel
 
 Library `EthCodec`. Nameless structural schema validity (Q70), separate from value typing,
 source class/name admission, sizing and operation domains. Source interpretation uses
-`src/ethereum/utils/ssz.py:91–120,179–225,231–260` and eth-remerkleable 0.1.31.
+`src/ethereum/utils/ssz.py:91–115,174–220,226–255` and eth-remerkleable 0.1.31.
 Spec guidance: `STFSpec/informal/modules/EthCodec.md` §§3–7.
 -/
 
@@ -30,7 +30,7 @@ mutual
 end
 
 /-- Nameless structural schema validity (Q70).
-Corresponds structurally to `src/ethereum/utils/ssz.py:91–120,179–225,231–260` under
+Corresponds structurally to `src/ethereum/utils/ssz.py:91–115,174–220,226–255` under
 actual mapped classes/fields. No Python class, value, codec or root admission is asserted. -/
 def SszType.WellFormed : SszType → Prop := wellFormed
 

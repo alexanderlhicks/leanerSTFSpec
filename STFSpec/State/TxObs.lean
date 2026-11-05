@@ -15,8 +15,8 @@ Spec guidance: `STFSpec/informal/modules/EthState.md` §§3/5/7.
 
 namespace STFSpec.State
 
-/-- Raw D23 partition of EELS `src/ethereum/forks/amsterdam/state_tracker.py:91–117`.
-The four fields at :90, :94, :111 and :100 use canonical Base key dictionaries.
+/-- Raw D23 partition of EELS `src/ethereum/forks/amsterdam/state_tracker.py:78–104`.
+The four fields at :90, :94, :98 and :100 use canonical Base key dictionaries.
 This carrier alone establishes no linear ownership or persistence across rollback. -/
 structure TxObs where
   /-- Account read observations; EELS `state_tracker.py:90`. -/

@@ -16,7 +16,7 @@ Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§3/5/10; C21/C22/C25/C
 namespace STFSpec.Commit
 
 /-- Nominal guest incremental trie, with no admission or operation guarantee.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:111–123` at the pin;
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:116–127` at the pin;
 the guest projection is specified by EthCommit §5. Omitted `_data` follows C21,
 `default` follows C22 (`:441/452`) and `witness` follows C28/C25 (`:790/:248`);
 future collapse must retain the stub failure, despite omitted recorded contents. -/

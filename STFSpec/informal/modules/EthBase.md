@@ -26,17 +26,17 @@ The EVM opcodes use wrapping ops or explicit `Uint` intermediates (`forks/amster
 **R5. EVM word semantics (normative definitions, EELS argument order: first popped operand first).**
 - `add/sub/mul`: mod 2^256 (`arithmetic.py:25,52,79`).
 - `div a b = 0` if `b = 0`, else `⌊a/b⌋` (`:106`). `mod a b = 0` if `b = 0`, else `a % b` (`:172`).
-- `sdiv`: on the two's-complement values, `0` if the divisor is 0. `−2^255 / −1 = −2^255` is an explicit case (`:139–169`; `from_signed(2^255)` would otherwise raise). Otherwise it is truncated division (`sign(a·b)·(|a| div |b|)`, i.e. `Int.tdiv`).
+- `sdiv`: on the two's-complement values, `0` if the divisor is 0. `−2^255 / −1 = −2^255` is an explicit case (`:136–166`; `from_signed(2^255)` would otherwise raise). Otherwise it is truncated division (`sign(a·b)·(|a| div |b|)`, i.e. `Int.tdiv`).
 - `smod`: `0` if the divisor is 0, else `sign(a)·(|a| mod |b|)` (`Int.tmod`) (`:202–226`).
-- `addmod/mulmod a b n`: `0` if `n = 0`, else `(a+b) mod n` / `(a·b) mod n` over **unbounded** intermediates (`:235–289`: operands are converted to `Uint`).
+- `addmod/mulmod a b n`: `0` if `n = 0`, else `(a+b) mod n` / `(a·b) mod n` over **unbounded** intermediates (`:232–286`: operands are converted to `Uint`).
 - `exp a b = a^b mod 2^256` (`:294–323`, three-argument `pow` over `Uint`). The spec must use square-and-multiply mod 2^256, not the full power.
 - `signextend k x`: `x` if `k > 31`, else sign-extend from byte `k` counted from the least-significant end (`:331–364`).
 - `lt/gt/eq/iszero` return the word 0 or 1; `slt/sgt` compare `to_signed` values (`comparison.py:21–174`).
 - `and/or/xor/not` bitwise (`bitwise.py:21–114`).
-- `byte i x`: `0` if `i ≥ 32`, else byte `i` counted from the most-significant end (`:123–153`).
-- `shl s v`: `0` if `s ≥ 256`, else `(v << s) mod 2^256`, computed over `Uint` (`:159–183`). `shr` works the same way with `>>` (`:189–213`).
-- `sar s v`: `from_signed(to_signed v >> s)` if `s < 256`; otherwise `0` for non-negative `v` and `2^256−1` for negative `v` (`:219–245`).
-- `clz x = 256 − bitLength x` (`:251–274`, EIP-7939, new since Osaka; easy to miss).
+- `byte i x`: `0` if `i ≥ 32`, else byte `i` counted from the most-significant end (`:120–150`).
+- `shl s v`: `0` if `s ≥ 256`, else `(v << s) mod 2^256`, computed over `Uint` (`:156–180`). `shr` works the same way with `>>` (`:186–210`).
+- `sar s v`: `from_signed(to_signed v >> s)` if `s < 256`; otherwise `0` for non-negative `v` and `2^256−1` for negative `v` (`:216–242`).
+- `clz x = 256 − bitLength x` (`:248–271`, EIP-7939, new since Osaka; easy to miss).
 
 **R6. Signed conversions.** `to_signed` (`ethereum_types/numeric.py:675–686`) is two's complement at 256 bits. `from_signed` (`:594–608`) **raises** for values outside `[−2^255, 2^255)`: `from_signed(−2^255)` succeeds, `from_signed(2^255)` raises (checked). The spec provides a checked `ofInt?` and proves that every EVM use is in range.
 

@@ -96,7 +96,7 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 | Source/contract | Lean declaration and complete domain | Effect | Client evidence | Status |
 |---|---|---|---|---|
 | R-EXC-2/§5; `instructions/environment.py:606–607`, `interpreter.py:279,312` identify future conversion sites | `OverflowSite.blobBaseFee`, `OverflowSite.refundCounter : OverflowSite` | Pure nominal construction/elimination only | Private `Conformance/Vm/Core/VmFaultCallerProofs.lean` exact types, exhaustive dependent eliminator and distinct-site proof | Carrier supplied; actual checked casts unimplemented |
-| R-EXC-2/§5; State R29, `instructions/block.py:58–63` and the above conversion sites | `VmFault.state : STFSpec.State.StateError → VmFault`; `ancestorHashUnavailable : Nat → VmFault`; `u256Overflow : OverflowSite → VmFault` | Retains the complete supplied state error, raw unbounded offset or conversion site; no action or output projection | Private public-Core-facade exact constructors, exhaustive dependent eliminator, whole-value reconstruction, three injectivity proofs, all pairwise outer-tag disjointness and complete controls (§4) | Carrier supplied; producers, propagation, classification proofs and B14 freezing remain open |
+| R-EXC-2/§5; State R29, `instructions/block.py:58–62` and the above conversion sites | `VmFault.state : STFSpec.State.StateError → VmFault`; `ancestorHashUnavailable : Nat → VmFault`; `u256Overflow : OverflowSite → VmFault` | Retains the complete supplied state error, raw unbounded offset or conversion site; no action or output projection | Private public-Core-facade exact constructors, exhaustive dependent eliminator, whole-value reconstruction, three injectivity proofs, all pairwise outer-tag disjointness and complete controls (§4) | Carrier supplied; producers, propagation, classification proofs and B14 freezing remain open |
 
 `Core/VmFault.lean` imports the actual State-owned `StateError`, which already wraps
 `WitnessError`; there is no separate `VmFault.witness`. Core exports the leaf through
@@ -108,7 +108,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 35 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
 | `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 36 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` field and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
-| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 49–67 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
+| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 44–61 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 66 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 119–142 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
 | `forks/amsterdam/vm/__init__.py::Evm` | 147–185 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
@@ -362,7 +362,7 @@ typed inputs/numeric/class bindings and successful host/resource premises.
 The ordinary direct caller validates first (`fork.py:539,579`): intrinsic versus
 transaction gas, floor versus transaction gas, intrinsic versus execution cap,
 floor versus execution cap (`transactions.py:670–682`), after the earlier total
-cap check at :643–644. Preserve that order even though allocation ignores floor.
+cap check at :638–639. Preserve that order even though allocation ignores floor.
 Admission/allocation caps must be consistent, or the caller proves the allocation
 bound separately; validation under a larger cap alone is insufficient. The two
 result fields flow into the environment (`fork.py:614–616`) and entry meter
@@ -383,9 +383,9 @@ Ordinary unsigned `U256(r)` needs `0 ≤ r ∧ r < 2^256`
 which models signed `from_signed` (:594–608). Do not clamp negative refund with
 Int.toNat or wrap it with unchecked ofNat. Both source conversions stay at their
 original runner points: preparation restore/forfeit at `interpreter.py:274–276`
-precedes cast :285, which precedes state-usage argument :291–293; normal
-TransactionEnd tracing :309–314 precedes cast :318, which precedes state usage
-:324–326. The preparation-zero argument remains EthVmRunner R-TOP-2's guidance;
+precedes cast :279, which precedes state-usage argument :285–287; normal
+TransactionEnd tracing :303–308 precedes cast :312, which precedes state usage
+:318–320. The preparation-zero argument remains EthVmRunner R-TOP-2's guidance;
 no new actual caller proof or removed conversion follows. Preserve the existing
 separate proof/fault obligation at each applicable cast, including the unresolved
 normal return, before block settlement (`fork.py:1055–1064`). No new O13
@@ -466,7 +466,7 @@ added. In particular, arbitrary initial execution/reservoir and both spills are
 admitted under only the stated partial baseline/refund assertions. The complete
 entry/partial and settlement equalities retain every coordinate. This is ordinary
 allocation composition; system grants do not use its partition. Source cast
-`:285` still executes before state usage; the local zero argument excludes its
+`:279` still executes before state usage; the local zero argument excludes its
 overflow alternative without changing the proof/fault policy or Runner Nat output.
 
 ### Supplied raw block-gas counters
@@ -713,7 +713,7 @@ remain open. No helper charges gas, allocates code or checks an init size limit.
 
 | EELS source at pin | Supplied Lean declaration | Exact domain/effect/failure/model/control entry |
 |---|---|---|
-| `src/ethereum/forks/amsterdam/vm/gas.py:749–773` | `calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat` | Every cfg/n; depends only on cfg.costs.memoryPerWord. Pure Nat result, no charge/allocation/state effect or new error. MP1/MP2/MP9 discharged; complete rounding, zero-coefficient, first-quadratic-step and unrelated-config controls are supplied below. Original correspondence additionally retains actual typed bindings and successful host premises. |
+| `src/ethereum/forks/amsterdam/vm/gas.py:737–758` | `calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat` | Every cfg/n; depends only on cfg.costs.memoryPerWord. Pure Nat result, no charge/allocation/state effect or new error. MP1/MP2/MP9 discharged; complete rounding, zero-coefficient, first-quadratic-step and unrelated-config controls are supplied below. Original correspondence additionally retains actual typed bindings and successful host premises. |
 | `src/ethereum/forks/amsterdam/vm/gas.py:761–798` | `calculateGasExtendMemory (cfg : VmConfig) (m : Memory) (ws : List (U256 × U256)) : ExtendMemory` | Every cfg, aligned Memory and ordered window list; arbitrary Nat coefficient/seed. Pure complete cost/extent, no append/charge/mutation or new error. MP3–MP8/MP10 discharged; complete empty, huge-empty, cross-word, permuted, subsumed, seed and huge-Nat-endpoint controls are supplied below. Raw unaligned source memory is a separate source-only domain, not an invalid Lean proof/carrier. |
 
 The source policy reads are `GasCosts.ZERO` (`gas.py:93`) and
@@ -1174,7 +1174,7 @@ then forfeit retains committed spill; entry rollback uses its actual B≤T and q
 premises. These local facts do not establish full `ChildSettled`, reachability, or that
 CREATE returns its grant: collision happens after withholding and before draining
 (`instructions/system.py:113–127`). Failed-call preflight restores supplied grants
-before optional NEW_ACCOUNT credit (`:393–398`); completed children use incorporation.
+before optional NEW_ACCOUNT credit (`:386–391`); completed children use incorporation.
 `GasTransferGuards.lean` freezes thirty complete return/meter controls and every actual
 Lean composition intermediate, including R>B, q<0, both spill pools and beyond-word
 amounts. `gas_transfer_differential.py` strictly compares all thirty public-import

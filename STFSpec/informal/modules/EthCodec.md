@@ -39,7 +39,7 @@ It also owns **contract-address derivation** (CREATE/CREATE2). That derivation n
 - **D1r. Untyped decode.** `decode(b)` succeeds **iff `b` is exactly the encoding of some item**. It rejects, all with `DecodingError`:
   - empty input (`:148`);
   - trailing bytes after any item (`:400,422,436,455`), including after a single byte `< 0x80`, which is reported as "negative length" (`:394–397`);
-  - declared lengths exceeding the input (`:398,410,419,434,441,453,476,519,535`);
+  - declared lengths exceeding the input (`:398,410,420,434,441,453,476,519,535`);
   - a one-byte string `< 0x80` in prefixed form (`:403–404`);
   - a long-form length with a leading zero byte (`:412,443,521,537`);
   - a long form used for a length `< 56` (`:417,448`).
@@ -72,8 +72,8 @@ allocation proportional to that declaration.
     preserves empty success and the complete first child error (`:191–205,311–318,370–384`).
     It introduces no default element, cap, normalization, sorting or deduplication.
   - A `Union` requires **exactly one** alternative to succeed (`:325–343`; used for `to: Bytes0 | Address`).
-  - `decode_to` **wraps every exception raised during typed deserialization into `DecodingError`** (`:167–171`). The header fallback in `stateless.py:234–237` (Amsterdam `Header`, then `PreviousForkHeader`) depends on this. The raw `decode` step is *outside* that wrapper, so a `RecursionError` there is not converted (D2r).
-- **D4r. Naive-reading trap.** A fixed-arity `Tuple[A, B]` target is decoded with `zip` (`:346–367`), which has **no length check**: extra items are dropped, and missing items give a shorter tuple. I found no fixed-arity RLP tuple target in the Amsterdam decode sites (`transactions.py:568–580`, `blocks.py:434`, `stateless.py:235–237`); all use dataclasses. The spec therefore does not model this laxity. Any future use must be flagged.
+  - `decode_to` **wraps every exception raised during typed deserialization into `DecodingError`** (`:167–171`). The header fallback in `stateless.py:224–227` (Amsterdam `Header`, then `PreviousHeader`) depends on this. The raw `decode` step is *outside* that wrapper, so a `RecursionError` there is not converted (D2r).
+- **D4r. Naive-reading trap.** A fixed-arity `Tuple[A, B]` target is decoded with `zip` (`:346–367`), which has **no length check**: extra items are dropped, and missing items give a shorter tuple. I found no fixed-arity RLP tuple target in the Amsterdam decode sites (`transactions.py:568–580`, `blocks.py:434`, `stateless.py:225–227`); all use dataclasses. The spec therefore does not model this laxity. Any future use must be flagged.
 
 ### Contract addresses (`forks/amsterdam/utils/address.py`)
 
@@ -862,7 +862,7 @@ streams, body/mode receipts, original outcomes, failed attempts and fresh curren
 gates. These finite observations supply no cold-build, whole-host or generic
 Python refinement, callback execution/cost trace, host resource, schema-depth,
 first-consuming-handler, EEST, guest or readiness gate. Header fallback
-stateless.py:234–237 and transaction execution_engine/new_payload.py:55–63 remain
+stateless.py:224–227 and transaction execution_engine/new_payload.py:55–63 remain
 separate premises. Compiler/kernel, native integer/bytes/arithmetic/allocation,
 interpreter/startup, frozen install/RECORD, ambient host and orchestration remain
 explicit trust inputs. No whole-host certification or cold-build claim follows.
@@ -968,7 +968,7 @@ Intended source-target admission and successful reflection/class metadata
 explicit. Nat corresponds to exact source Uint (`:204–205,265–275`), not plain
 Python int or U256; its supplied decoder is exactly `Rlp.toNat`.
 
-First consuming handlers remain the header fallback (`stateless.py:234–237`,
+First consuming handlers remain the header fallback (`stateless.py:224–227`,
 CONTRACT O3) and transaction check (`execution_engine/new_payload.py:55–63`, O6).
 They must treat all projected rejections alike within their reference phase;
 single-channel rejection is no universal O6 mapping. Raw `RecursionError` lies
@@ -1158,7 +1158,7 @@ there is no executable validator, DecidablePred, instance or diagnostic producer
 
 | Source at the pin / locked dependency | Lean operation and domain | Effects and failures | Law and controls |
 |---|---|---|---|
-| `utils/ssz.py:91–120,179–225`; `remerkleable/basic.py:252–309`, `byte_arrays.py:79–103,174–194` | `SszType.WellFormed` primitive branches; byte widths 1/2/4/8/16/32; unconditional bool/vector/byte-list/progressive-byte schemas, unrestricted raw Nat lengths/limits | pure Prop; no effects or ordered errors | `wellFormed_iff`; W01–W22, C01–C04/C07 |
+| `utils/ssz.py:91–115,174–220`; `remerkleable/basic.py:252–309`, `byte_arrays.py:79–103,174–194` | `SszType.WellFormed` primitive branches; byte widths 1/2/4/8/16/32; unconditional bool/vector/byte-list/progressive-byte schemas, unrestricted raw Nat lengths/limits | pure Prop; no effects or ordered errors | `wellFormed_iff`; W01–W22, C01–C04/C07 |
 | `utils/ssz.py:176–179,210–213`; `remerkleable/complex.py:336–399`, `progressive.py:88–134` | same predicate; recursive element validity even at list limit 0 | pure Prop; limit never hides an invalid child | same law; W23–W30, C05–C06/C10 |
 | `utils/ssz.py:226–255`; `remerkleable/complex.py:800–819`, `progressive.py:440–498,535–536` | same predicate; ordinary nonempty/all-member fields; progressive final true/length ≤ 256/true-population=field count/all-member fields | no source-class or error-order assertion | same law; W31–W64, C08–C09/C11–C12 |
 
@@ -1413,7 +1413,7 @@ validator, runtime bound check, extra public law or schema/provider change is ad
 | `utils/ssz.py:206–209,214–215,271–279`; `byte_arrays.py:80–104,134–140,170–197,228–232`; `progressive.py:88–135,239–266` | same operation, fixed/ordinary/progressive bytes | fixed vectors use declared chunk count without a mix; ordinary byte lists use declared limit in chunks; lists mix actual byte count | same law; rootP2/rootC2 vectors 0/1/31/32/33/48/96/256, byte limits 0/1/32/33 and same-pack/different-count; rootP5/rootC5 progressive empty/one |
 | `utils/ssz.py:210–213,261–268`; `complex.py:140–161,333–399,492–493,512–513`; `core.py:292–293,312–323`; `progressive.py:25–32,88–135` | same operation, ordinary/progressive element lists | supported uint uses consecutive w-byte digits; Bool uses one byte each; every other descriptor is composite, including fixed vectors; count is actual elements | same law; rootP3/rootC3 packed uint64 list 5/Bool 33 and general size/unit/capacity proofs; rootP4/rootC4 composite order/duplicates and empty unused malformed schemas; rootP5/rootC5 boundaries 0/1/5/6/21/22 |
 | `utils/ssz.py:216–217,238–255,259–260,283–291`; `complex.py:726–740,768–819,854–856`; `progressive.py:450–530`; `bitfields.py:378–410`; `core.py:326–341` | same operation, ordinary/progressive containers | exact ordered paired child roots; ordinary fields have no count mix; progressive false positions are depth 0 zeros in exactly mask.length slots, separately mixed with the full activity chunk | same law; rootP6/rootC6 fields/order/arity, rootP7/rootC7 sparse leading/internal gaps, 255/256 and excluded 257; ordinary linear-scan/rank-model equality and actual true-rank bounds |
-| actual-value induction, public Rootable/pack/tree/mix/Base laws; actual schemas `forks/amsterdam/execution_engine/types.py:39–96`, `execution_engine/requests.py:41–126`, `blocks.py:38–63` | complete recursive equation and its local witnesses on C | no recursion into unused schemas; no extra count bound on fixed vectors/containers; no source, error or security completion outside C | rootP8/rootC8 real scalar projections, universally proof-independent ordered child certificates, capacities, nested byte/element counts and whole-law determination; rootP9/rootC9 Amsterdam schema/arity/whole-root recipes |
+| actual-value induction, public Rootable/pack/tree/mix/Base laws; actual schemas `forks/amsterdam/execution_engine/types.py:39–96`, `execution_engine/requests.py:41–116`, `blocks.py:38–63` | complete recursive equation and its local witnesses on C | no recursion into unused schemas; no extra count bound on fixed vectors/containers; no source, error or security completion outside C | rootP8/rootC8 real scalar projections, universally proof-independent ordered child certificates, capacities, nested byte/element counts and whole-law determination; rootP9/rootC9 Amsterdam schema/arity/whole-root recipes |
 
 Every conditional witness in the public law is available under C. Proper actual
 children supply recursive calls; exact arity prevents zip truncation. The private

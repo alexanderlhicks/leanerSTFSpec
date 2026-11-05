@@ -10,7 +10,7 @@ import STFSpec.Vm.Core.Memory
 # Pure VmConfig memory pricing
 
 Library `EthVmCore`. The private structural fold follows pinned EELS
-`src/ethereum/forks/amsterdam/vm/gas.py:749–813`: skip zero windows, price strict rounded growth and retain the
+`src/ethereum/forks/amsterdam/vm/gas.py:737–798`: skip zero windows, price strict rounded growth and retain the
 seed once. Nat endpoint observations never wrap. Pricing allocates no `Memory`.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7, Q63.
 -/
@@ -208,7 +208,7 @@ private theorem extension_congr (a b z y l : Nat) (ws : List (U256 × U256))
 
 
 /-- Pure allocation cost, observing only `memoryPerWord`.
-Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:749–773`. -/
+Pinned EELS `src/ethereum/forks/amsterdam/vm/gas.py:737–758`. -/
 def calculateMemoryGasCost (cfg : VmConfig) (n : Nat) : Nat := cost cfg.costs.memoryPerWord n
 
 /-- Complete pure extension price, without expanding `Memory`.

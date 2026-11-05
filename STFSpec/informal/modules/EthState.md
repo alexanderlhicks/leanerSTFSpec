@@ -68,8 +68,8 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 - R24. `copy_tx_state` (`st:744–777`) snapshots **exactly** `account_writes`, `storage_writes` (one level deep), `code_writes`, `storage_clears` and `transient_storage`; it **shares** `created_accounts`, `storage_reads`, `account_reads`, `code_reads` and the parent. `restore_tx_state` (`st:780–798`) reinstates exactly those five fields. EELS assigns the snapshot's dicts directly, so a snapshot is used at most once (LIFO); the persistent Lean representation removes that restriction.
 - R25. `incorporate_tx_into_block` (`st:804–858`), in this order: (1) the BAL builder is updated from the unmerged transaction and block states (`st:828`, owned by `EthBlock`); (2) the three read sets are unioned into the block's (`st:831–833`); (3) account writes overwrite block writes, keeping first-write order (`st:836–837`); (4) for each transaction clear, the address is added to the block clears **and its block storage writes are dropped** (`st:839–841`); (5) transaction storage writes are merged slot-wise (`st:843–846`); (6) code writes are merged (`st:848`); (7) the transaction state is reset: writes, clears, transient storage and `createdAccounts` emptied, fresh read sets (`st:850–858`).
 - R26. `extract_block_diff` (`st:861–881`) copies the four complete effect fields. Q85 supplies the raw B1 adaptation: both global orders use `WriteOrder.toList`, and the slot-index map is mapped through that observer with its domain unchanged. No filtering, repair, WF or history premise is imposed. EELS aliases the source dicts/clear set; pure Lean preserves their values under the typed finite nonaliasing source bridge, without modeling later mutable alias effects.
-- R27. `track_ancestor_access b o` (`st:925–946`) sets `oldestAncestorOffset := max`. It writes the **block** state during transaction execution (BLOCKHASH, `vm/instructions/block.py:61`; EIP-2935 at `fork.py:868`), so it is a persistent observation that survives reverts. `get_witness_ancestors` (`st:903–922`) is host-side witness construction; with offset `0` it would return every header (`[-0:]`), but callers only pass offsets ≥ 1 [inference from `block.py:48–62`, `fork.py:868–871`].
-- R28. A throwaway transaction state is used for the system-contract code pre-check (`fork.py:732–744`): its observations are discarded, but its pre-state calls still happen, so a witness failure there still rejects the block. The Lean API must allow a transaction state that is never incorporated.
+- R27. `track_ancestor_access b o` (`st:884–905`) sets `oldestAncestorOffset := max`. It writes the **block** state during transaction execution (BLOCKHASH, `vm/instructions/block.py:61`; EIP-2935 at `fork.py:868`), so it is a persistent observation that survives reverts. `get_witness_ancestors` (`st:903–922`) is host-side witness construction; with offset `0` it would return every header (`[-0:]`), but callers only pass offsets ≥ 1 [inference from `block.py:48–62`, `fork.py:868–871`].
+- R28. A throwaway transaction state is used for the system-contract code pre-check (`fork.py:691–702`): its observations are discarded, but its pre-state calls still happen, so a witness failure there still rejects the block. The Lean API must allow a transaction state that is never incorporated.
 
 ### 2.7 Failure behaviour
 
@@ -91,8 +91,8 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `state.py::PreState.get_storage` | 102 | `PreState.getStorage` | supplied action; carrier support below (§3/§7) |
 | `state.py::PreState.get_code` | 110 | `PreState.getCode` | supplied nonoptional action (B2); carrier support below (§3/§7) |
 | `state.py::PreState.compute_state_root` | 118 | `PreState.stateRoot` | supplied action; carrier support below (§3/§7); contract `ModelsRoot` in `EthStateCommit` |
-| `forks/amsterdam/state_tracker.py::BlockState` | 57–86 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
-| `forks/amsterdam/state_tracker.py::TransactionState` | 91–117 | `TxState` = `TxRevertible` + `TxObs` | Only raw `TxRevertible` and `TxObs` storage supplied below (D22/D23/B1 adaptation); combined `TxState` and tracker remain open. |
+| `forks/amsterdam/state_tracker.py::BlockState` | 44–73 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
+| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `TxState` = `TxRevertible` + `TxObs` | Only raw `TxRevertible` and `TxObs` storage supplied below (D22/D23/B1 adaptation); combined `TxState` and tracker remain open. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account_optional` | 107 | `getPreStateAccountOptional` | |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140 | `getPreStateAccount` | |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174 | `getAccountOptional` | |
@@ -133,12 +133,12 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 
 `State/TxRevertible.lean`, exported by `State.lean`, supplies exactly the eight
 raw fields in §5 order. This is the D22/D23/B1 adaptation of the revertible part
-of `src/ethereum/forks/amsterdam/state_tracker.py:91–117`; the copied/restored
-families are visible at `:763–817`. It implements no source tracker operation.
+of `src/ethereum/forks/amsterdam/state_tracker.py:78–104`; the copied/restored
+families are visible at `:744–798`. It implements no source tracker operation.
 
 | Source/support | Lean declaration and type | Domain, effect/failure and status | Clients and controls |
 |---|---|---|---|
-| `state_tracker.py:91–117,763–817`; D22/D23/B1 split and explicit indexes | `STFSpec.State.TxRevertible : Type`; `TxRevertible.mk` takes exactly the eight complete §5 fields, in order | **Discharged raw carrier:** every finite supplied map/set and raw WriteOrder, including tombstones, zero writes, empty inner maps, arbitrary bytecode, missing/extra slot indexes and disagreeing forward/reverse metadata. Construction retains all values without validation, normalization, lookup, hashing, effects or failure. No domain/proof/provider/monad field. | Private `Conformance/State/TxRevertibleCallerProofs.lean` imports the State facade: exact full constructor type, whole eight-field projection/reconstruction and each independent update retaining the other seven fields; complete kernel controls described in §4. |
+| `state_tracker.py:78–104,744–798`; D22/D23/B1 split and explicit indexes | `STFSpec.State.TxRevertible : Type`; `TxRevertible.mk` takes exactly the eight complete §5 fields, in order | **Discharged raw carrier:** every finite supplied map/set and raw WriteOrder, including tombstones, zero writes, empty inner maps, arbitrary bytecode, missing/extra slot indexes and disagreeing forward/reverse metadata. Construction retains all values without validation, normalization, lookup, hashing, effects or failure. No domain/proof/provider/monad field. | Private `Conformance/State/TxRevertibleCallerProofs.lean` imports the State facade: exact full constructor type, whole eight-field projection/reconstruction and each independent update retaining the other seven fields; complete kernel controls described in §4. |
 
 Only ordinary generated structure infrastructure is public; no authored public
 law, default, instance, factory, `asDiff` or operation is added. The carrier's
@@ -165,15 +165,15 @@ no linear ownership, monotonicity, reachability, lifecycle or whole-State result
 ### Implemented raw block-state carrier
 
 `State/BlockState.lean` supplies exactly the thirteen fields in §5 order, exported
-by State. EELS `src/ethereum/forks/amsterdam/state_tracker.py:57–86` has nine
-fields: provider (:74), account reads/writes (:75–78), storage reads/writes
-(:79–82), code reads/writes (:83–84), offset (:85) and clears (:86).
+by State. EELS `src/ethereum/forks/amsterdam/state_tracker.py:44–73` has nine
+fields: provider (:61), account reads/writes (:62–65), storage reads/writes
+(:66–69), code reads/writes (:70–71), offset (:72) and clears (:73).
 Lean deliberately adds F20 `consts` and three B1 `WriteOrder` indexes, arranging
 the fields as the guided overlay partition. It adds no transient/created fields.
 
 | Source/support at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
 |---|---|---|---|
-| `state_tracker.py:57–86`; F20 and B1 adaptation above | `BlockState (m : Type → Type)`, exactly the thirteen §5 fields; no class premise | Every complete supplied PreState function record, arbitrary constants, maps, sets, order metadata and optional Nat offset is retained. Pure thirteen-argument construction/projection; no operation, normalization, WF, hash query or failure | **Supplied raw carrier:** private `BlockStateCallerProofs.lean` checks exact constructor/projection types, whole construction/eta/component reconstruction, all thirteen complete updates and 78 disjoint commutations for arbitrary m. A contravariant type-constructor client needs no Monad. `BlockStateGuards.lean` checks complete independent framed observations and retained parents/siblings. No authored public law, default or instance. |
+| `state_tracker.py:44–73`; F20 and B1 adaptation above | `BlockState (m : Type → Type)`, exactly the thirteen §5 fields; no class premise | Every complete supplied PreState function record, arbitrary constants, maps, sets, order metadata and optional Nat offset is retained. Pure thirteen-argument construction/projection; no operation, normalization, WF, hash query or failure | **Supplied raw carrier:** private `BlockStateCallerProofs.lean` checks exact constructor/projection types, whole construction/eta/component reconstruction, all thirteen complete updates and 78 disjoint commutations for arbitrary m. A contravariant type-constructor client needs no Monad. `BlockStateGuards.lean` checks complete independent framed observations and retained parents/siblings. No authored public law, default or instance. |
 
 The copy/restore/incorporation context at `state_tracker.py:744–858` binds the
 partition but supplies no implementation of those functions. The finite controls
@@ -187,14 +187,14 @@ equivalence. D22/D23, F7, D5, S1/S2/W1 and C1–C4 remain open at integration.
 ### Implemented block-state initialization
 
 `State/BlockInitialization.lean`, exported by State, supplies exactly the following
-operation and its explicit F20 public law. EELS `state_tracker.py:57–86` uses empty
+operation and its explicit F20 public law. EELS `state_tracker.py:44–73` uses empty
 dict/set factories and None; the production `fork.py:301` supplies the pre-state.
 These defaults are source-checked by static reading, without original runtime execution.
 F20 constants and the three B1 indexes are deliberate guidance adaptations.
 
 | Source/support at the pin | Lean declaration and domain | Value/effects and ordered failures | Law and deterministic validation |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/state_tracker.py:57–86`, used at `fork.py:301`; F20/B1 | `BlockState.new {m : Type → Type} (ps : PreState m) (consts : HashConsts) : BlockState m`, with no class premise | Whole arbitrary ps and consts retained; every write/clear/read collection empty, both global order indexes WriteOrder.empty, per-address slot indexes absent, oldestAncestorOffset none. Pure total construction, no provider call, acquisition, coherence check, normalization or failure | **Supplied:** ordinary `BlockState.new_consts`; private owner whole-result reduction proves every default and whole arbitrary provider retention. `BlockInitializationCallerProofs.lean` checks exact class-free signature and consumes only that public law; `BlockInitializationGuards.lean` supplies complete independent interpreted `#guard` controls (§4). |
+| `src/ethereum/forks/amsterdam/state_tracker.py:44–73`, used at `fork.py:301`; F20/B1 | `BlockState.new {m : Type → Type} (ps : PreState m) (consts : HashConsts) : BlockState m`, with no class premise | Whole arbitrary ps and consts retained; every write/clear/read collection empty, both global order indexes WriteOrder.empty, per-address slot indexes absent, oldestAncestorOffset none. Pure total construction, no provider call, acquisition, coherence check, normalization or failure | **Supplied:** ordinary `BlockState.new_consts`; private owner whole-result reduction proves every default and whole arbitrary provider retention. `BlockInitializationCallerProofs.lean` checks exact class-free signature and consumes only that public law; `BlockInitializationGuards.lean` supplies complete independent interpreted `#guard` controls (§4). |
 
 Only `new_consts` is an authored public law for this operation. Default-field and
 whole-provider facts stay private to the implementation owner; external component
@@ -1190,7 +1190,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:303–309`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
+- **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:199–200`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
 - **State errors under O13** (R29): `balanceOverflow` is argued reachable in the ledger from the pinned `U256` semantics [verified by execution] but has no fixture; honest-chain unreachability is an argument, not a proof. `balanceUnderflow` and `storageOnMissingAccount` are unresolved failure-ledger entries. `StateError` cannot be frozen (B14) until they close.
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).

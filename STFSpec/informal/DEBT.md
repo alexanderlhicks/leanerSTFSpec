@@ -29,7 +29,7 @@ mathematical bounds and their direct proofs while consumer implementations and
 aggregate R4 cost evidence remain pending.
 
 The expected consumer is parent-header blob-gas arithmetic: pinned EELS
-`forks/amsterdam/vm/gas.py:901–949`, called by `fork.py:448`, performs a bounded
+`forks/amsterdam/vm/gas.py:886–934`, called by `fork.py:448`, performs a bounded
 number of additions, multiplication and subtraction per header. Its full `U64`
 input domain includes malformed or adversarial headers; upper-half values are
 not asserted to be common. This is local to checked operations, not native

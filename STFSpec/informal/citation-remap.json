@@ -3,6 +3,568 @@
  "old": "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36",
  "new": "59c1473ddfba341babaeca1c97a50e996f639a0b",
  "window": 48,
+ "confirmed": [
+  {
+   "doc": "STFSpec/Commit/Root.lean",
+   "line": 599,
+   "text": ":564–581",
+   "path": "",
+   "window": "b86032928608c862a9c1",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/ARCHITECTURE.md",
+   "line": 178,
+   "text": ":939–945",
+   "path": "Operations.lean",
+   "window": "ba9a928c819d4971bd26",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/DECISIONS.md",
+   "line": 253,
+   "text": ":93–111,133–161",
+   "path": "",
+   "window": "edf8b4b090c9a45ade0d",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 18,
+   "text": ":614–667",
+   "path": "",
+   "window": "497f9d3bf907add5b1d3",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 18,
+   "text": ":670",
+   "path": "",
+   "window": "d4d002296baa5381dbae",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 24,
+   "text": ":325–341",
+   "path": "",
+   "window": "7d5f87fb7b586952588c",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 51,
+   "text": ":477–484",
+   "path": "",
+   "window": "28f6d6d8484c1171b319",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 52,
+   "text": ":424",
+   "path": "",
+   "window": "31e9c0fdadec0346978b",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 53,
+   "text": ":566–577",
+   "path": "",
+   "window": "95e0a2cd51dcb88f7a19",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBase.md",
+   "line": 54,
+   "text": ":523",
+   "path": "",
+   "window": "5c3347208cb1b752bdb2",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 155,
+   "text": ":690–724",
+   "path": "",
+   "window": "5d22a8654f873e1207f7",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 155,
+   "text": ":727–762",
+   "path": "",
+   "window": "25010063cde413733457",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 157,
+   "text": ":463",
+   "path": "",
+   "window": "b6f8f5c5c5515b4f4569",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 161,
+   "text": ":625",
+   "path": "",
+   "window": "a3e1003653b375412575",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 824,
+   "text": ":539",
+   "path": "",
+   "window": "69e91e8a47b36cb34e05",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthBlock.md",
+   "line": 827,
+   "text": ":649–685",
+   "path": "",
+   "window": "47a0c761918488a44807",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 31,
+   "text": ":77–78",
+   "path": "",
+   "window": "4197939039d63301b024",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 40,
+   "text": ":148",
+   "path": "",
+   "window": "234ee8fa052479fe3343",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 41,
+   "text": ":394–397",
+   "path": "",
+   "window": "1489cb0074fba062f665",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 41,
+   "text": ":400,422,436,455",
+   "path": "",
+   "window": "eb339800ccd7bcb783c0",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 43,
+   "text": ":403–404",
+   "path": "",
+   "window": "911c8c4b1cbe4e5dffb9",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 44,
+   "text": ":412,443,521,537",
+   "path": "",
+   "window": "d59cf4df683cb481bcd4",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 45,
+   "text": ":417,448",
+   "path": "",
+   "window": "43ce5c906ca7dc0499a6",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 47,
+   "text": ":464–484",
+   "path": "",
+   "window": "553013b407061483ff79",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 64,
+   "text": ":162–384",
+   "path": "",
+   "window": "40d09802f1aebe82b445",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 65,
+   "text": ":270–271",
+   "path": "",
+   "window": "50b9379ac4cb18485a9f",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 76,
+   "text": ":346–367",
+   "path": "",
+   "window": "d9ff803048c4da905cc3",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 288,
+   "text": "decode_to:169",
+   "path": "",
+   "window": "69df74116e9531089d5d",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 288,
+   "text": "decode_to:171",
+   "path": "",
+   "window": "f73a7ffd33aa95d8a580",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 288,
+   "text": "deserialize_to:207",
+   "path": "",
+   "window": "00a822b5ce39b28470d6",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 289,
+   "text": "_deserialize_to_bytes:258",
+   "path": "",
+   "window": "b584c7846a8691887197",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 338,
+   "text": "decode_to:169",
+   "path": "",
+   "window": "a9bae5641e05d8d0277b",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 338,
+   "text": "decode_to:171",
+   "path": "",
+   "window": "23734fe76f379feb0c1b",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 338,
+   "text": "deserialize_to:209",
+   "path": "",
+   "window": "195c873c434450dee4fb",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCodec.md",
+   "line": 339,
+   "text": "_deserialize_to_bool:251",
+   "path": "",
+   "window": "441f94e0f2d07f3373d3",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCurve.md",
+   "line": 132,
+   "text": ":123",
+   "path": "osaka/eip7951_p256verify_precompiles/p256verify/modular_comparison.json",
+   "window": "c7840c23d7774fa55303",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCurve.md",
+   "line": 133,
+   "text": ":125–126",
+   "path": "osaka/eip7951_p256verify_precompiles/p256verify/modular_comparison.json",
+   "window": "6d5531f2cc6c059abcd7",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCurve.md",
+   "line": 134,
+   "text": ":125–131",
+   "path": "osaka/eip7951_p256verify_precompiles/p256verify/modular_comparison.json",
+   "window": "269cd09d4b9e1b4985d8",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCurve.md",
+   "line": 186,
+   "text": ":516",
+   "path": "ZiskAccel.lean",
+   "window": "5a1d54dd95f70a62c95e",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthCurve.md",
+   "line": 314,
+   "text": ":420",
+   "path": "ZiskAccel.lean",
+   "window": "9b52b0847ff61e42fdfe",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthField.md",
+   "line": 633,
+   "text": ":489",
+   "path": "RiscvZkvm/Rv64/ZiskAccel.lean",
+   "window": "04eea4c58cc6f221982a",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthField.md",
+   "line": 949,
+   "text": ":489",
+   "path": "ZiskAccel.lean",
+   "window": "b58da99403e16f9358ae",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthFieldMathlib.md",
+   "line": 26,
+   "text": ":446",
+   "path": "",
+   "window": "0b18efdd92ae0b9c86c7",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthHash.md",
+   "line": 66,
+   "text": ":259–266",
+   "path": "",
+   "window": "9a0bfe8585db4232bb2b",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthHash.md",
+   "line": 707,
+   "text": ":313",
+   "path": "",
+   "window": "7f144f355049e49d4836",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthHash.md",
+   "line": 707,
+   "text": ":489",
+   "path": "",
+   "window": "37577f8d79562166bae8",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 103,
+   "text": ":32–42",
+   "path": "",
+   "window": "c1f9e39769130bd14fef",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 105,
+   "text": ":44–48",
+   "path": "",
+   "window": "c514bd1221dd21ffdf9f",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 106,
+   "text": ":143–176",
+   "path": "",
+   "window": "540efb652b8d354cd1bb",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 110,
+   "text": ":56–58",
+   "path": "",
+   "window": "0f788a08bfa2a5946ab9",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 111,
+   "text": ":60–66",
+   "path": "",
+   "window": "46bb3999c8ebf8e341e3",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 111,
+   "text": ":68–69",
+   "path": "",
+   "window": "a437902dba19ec256916",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 112,
+   "text": ":71–73",
+   "path": "",
+   "window": "de379fb208da75b920cf",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 121,
+   "text": ":153–165",
+   "path": "",
+   "window": "cb7e6751428f90f0c4e7",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 123,
+   "text": ":181–193",
+   "path": "",
+   "window": "08fcea051beaf7af2a4e",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 124,
+   "text": ":209–215",
+   "path": "",
+   "window": "525d66d7fb6de9b1bd84",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 125,
+   "text": ":218–219",
+   "path": "",
+   "window": "0f7213793a334005d563",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 126,
+   "text": ":227–230",
+   "path": "",
+   "window": "492bbef1fefe591095b8",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 149,
+   "text": ":495–520",
+   "path": "",
+   "window": "98fc90d11b1de5bb7e6d",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 152,
+   "text": ":308",
+   "path": "",
+   "window": "ed4a1aaae43cc6e77cfc",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 152,
+   "text": ":494",
+   "path": "",
+   "window": "dca5173997a769635860",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 154,
+   "text": ":554–591",
+   "path": "",
+   "window": "0662907d10dae756d424",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 160,
+   "text": ":299–301",
+   "path": "",
+   "window": "b5713719ad4ab9225398",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 171,
+   "text": "pairing.py:45–47",
+   "path": "pairing.py",
+   "window": "b460582510a1c99a7767",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 174,
+   "text": ":51–63",
+   "path": "pairing.py",
+   "window": "9ac7742c7a6932b7c920",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthPrecompiles.md",
+   "line": 174,
+   "text": ":67–70",
+   "path": "pairing.py",
+   "window": "8f194f2d58e1fb087609",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthVmInstructions.md",
+   "line": 81,
+   "text": ":539",
+   "path": "",
+   "window": "f6a85291e9c3254ab85d",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthVmInstructions.md",
+   "line": 82,
+   "text": ":562",
+   "path": "",
+   "window": "5a58b9e004b6a72d2667",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthVmInstructions.md",
+   "line": 83,
+   "text": ":589",
+   "path": "",
+   "window": "e6189e7e7fc6dfac93f7",
+   "target": ""
+  },
+  {
+   "doc": "STFSpec/informal/modules/EthVmInstructions.md",
+   "line": 83,
+   "text": ":607",
+   "path": "",
+   "window": "a08d1ed53078312870a5",
+   "target": ""
+  }
+ ],
  "entries": [
   {"doc": "STFSpec/Base/FixedBytes.lean", "line": 489, "target": "src/ethereum/state.py", "kind": "path", "old": "src/ethereum/state.py:33", "new": "src/ethereum/state.py:27", "window": "ec92ff3e0b67b252808f", "new_window": "c285c13e19eee23e98f0"},
   {"doc": "STFSpec/Base/FixedBytes.lean", "line": 520, "target": "src/ethereum/state.py", "kind": "path", "old": "src/ethereum/state.py:33", "new": "src/ethereum/state.py:27", "window": "ff5978ae47da85125b0d", "new_window": "b56145a43b022666d03b"},
@@ -389,9 +951,9 @@
   {"doc": "STFSpec/informal/EXCLUDED.md", "line": 13, "target": "src/ethereum/forks/amsterdam/execution_engine/forkchoice_update.py", "kind": "path", "old": "forkchoice_update.py:16–26", "new": "forkchoice_update.py:12–22", "window": "18e1d6e26067be5669d3", "new_window": "790f5540632f65078ff7"},
   {"doc": "STFSpec/informal/GAPS-CROSSCUTTING.md", "line": 20, "target": "src/ethereum/forks/amsterdam/fork.py", "kind": "path", "old": "fork.py:473", "new": "fork.py:448", "window": "b49943e0fca70253d59f", "new_window": "734632475a4eae312301"},
   {"doc": "STFSpec/informal/GAPS-CROSSCUTTING.md", "line": 20, "target": "src/ethereum/forks/amsterdam/vm/gas.py", "kind": "path", "old": "vm/gas.py:936", "new": "vm/gas.py:921", "window": "78db10f0cd56d4925bc9", "new_window": "ae7c032d1e9e7ffce93e"},
-  {"doc": "STFSpec/informal/REVIEW.md", "line": 185, "target": "src/ethereum/forks/amsterdam/vm/__init__.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/__init__.py:153–191", "new": "src/ethereum/forks/amsterdam/vm/__init__.py:147–185", "window": "40c732f11b94fc570842", "new_window": "78fbf2d98d5da22b3d84"},
-  {"doc": "STFSpec/informal/REVIEW.md", "line": 252, "target": "src/ethereum/forks/amsterdam/vm/__init__.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/__init__.py:153–191", "new": "src/ethereum/forks/amsterdam/vm/__init__.py:147–185", "window": "31e39580a1b83d95eb60", "new_window": "c89533bdf4f45b0374c3"},
-  {"doc": "STFSpec/informal/REVIEW.md", "line": 287, "target": "src/ethereum/forks/amsterdam/vm/instructions/system.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/instructions/system.py:66–192", "new": "src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185", "window": "c1ba009817c5a3c4ca7b", "new_window": "e2c7bf8866f0d74b7483"},
+  {"doc": "STFSpec/informal/REVIEW.md", "line": 182, "target": "src/ethereum/forks/amsterdam/vm/__init__.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/__init__.py:153–191", "new": "src/ethereum/forks/amsterdam/vm/__init__.py:147–185", "window": "40c732f11b94fc570842", "new_window": "78fbf2d98d5da22b3d84"},
+  {"doc": "STFSpec/informal/REVIEW.md", "line": 248, "target": "src/ethereum/forks/amsterdam/vm/__init__.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/__init__.py:153–191", "new": "src/ethereum/forks/amsterdam/vm/__init__.py:147–185", "window": "31e39580a1b83d95eb60", "new_window": "c89533bdf4f45b0374c3"},
+  {"doc": "STFSpec/informal/REVIEW.md", "line": 282, "target": "src/ethereum/forks/amsterdam/vm/instructions/system.py", "kind": "path", "old": "src/ethereum/forks/amsterdam/vm/instructions/system.py:66–192", "new": "src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185", "window": "c1ba009817c5a3c4ca7b", "new_window": "e2c7bf8866f0d74b7483"},
   {"doc": "STFSpec/informal/modules/EthBase.md", "line": 20, "target": "src/ethereum/forks/amsterdam/vm/instructions/bitwise.py", "kind": "path", "old": "bitwise.py:123–274", "new": "bitwise.py:120–271", "window": "6ffb91da84f10d9afe40", "new_window": "8af2438c738d8e199710"},
   {"doc": "STFSpec/informal/modules/EthBase.md", "line": 20, "target": "src/ethereum/forks/amsterdam/execution_engine/new_payload.py", "kind": "path", "old": "execution_engine/new_payload.py:60–68", "new": "execution_engine/new_payload.py:55–63", "window": "a05d5f64a1a433959b62", "new_window": "cbb9a911b39fa0cfba51"},
   {"doc": "STFSpec/informal/modules/EthBase.md", "line": 20, "target": "src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py", "kind": "path", "old": "forks/amsterdam/vm/instructions/arithmetic.py:28–367", "new": "forks/amsterdam/vm/instructions/arithmetic.py:25–364", "window": "92d2ca59fab18c5ed76a", "new_window": "e8556f8f1b728f630152"},
@@ -829,7 +1391,7 @@
   {"doc": "STFSpec/informal/modules/EthPrecompiles.md", "line": 288, "target": "src/ethereum/forks/amsterdam/vm/precompiled_contracts/bls12_381/bls12_381_g2.py", "kind": "table", "old": "125", "new": "122", "window": "7f174ab0fc4f9cdf60ff", "new_window": "38b9e1efd080e5cabb67"},
   {"doc": "STFSpec/informal/modules/EthPrecompiles.md", "line": 552, "target": "src/ethereum/forks/amsterdam/vm/gas.py", "kind": "path", "old": "vm/gas.py:112–137", "new": "vm/gas.py:103–128", "window": "152b0c451521cd13f0e2", "new_window": "b52cbe024b413459ae75"},
   {"doc": "STFSpec/informal/modules/EthPrecompiles.md", "line": 593, "target": "src/ethereum/forks/amsterdam/transactions.py", "kind": "path", "old": "forks/amsterdam/transactions.py:69", "new": "forks/amsterdam/transactions.py:64", "window": "35ef8303664506fd544c", "new_window": "7481f71d52a27a53c0e8"},
-  {"doc": "STFSpec/informal/modules/EthPrecompiles.md", "line": 633, "target": "src/ethereum/forks/amsterdam/vm/interpreter.py", "kind": "path", "old": "vm/interpreter.py:440–442", "new": "vm/interpreter.py:434–436", "window": "1348fee9603c66f11c05", "new_window": "5f0bd18fdec3264a21f0"},
+  {"doc": "STFSpec/informal/modules/EthPrecompiles.md", "line": 636, "target": "src/ethereum/forks/amsterdam/vm/interpreter.py", "kind": "path", "old": "vm/interpreter.py:440–442", "new": "vm/interpreter.py:434–436", "window": "1348fee9603c66f11c05", "new_window": "5f0bd18fdec3264a21f0"},
   {"doc": "STFSpec/informal/modules/EthSecurity.md", "line": 17, "target": "src/ethereum/forks/amsterdam/stateless.py", "kind": "path", "old": "stateless.py:275–277", "new": "stateless.py:267–269", "window": "df2fcb067769595fa215", "new_window": "5a9373efb5c1fef1564e"},
   {"doc": "STFSpec/informal/modules/EthSecurity.md", "line": 25, "target": "src/ethereum/forks/amsterdam/fork.py", "kind": "path", "old": "fork.py:501", "new": "fork.py:476", "window": "b8f3c3ce0c1996a0e45a", "new_window": "41c49e4929ac1974b776"},
   {"doc": "STFSpec/informal/modules/EthSecurity.md", "line": 25, "target": "src/ethereum/forks/amsterdam/stateless.py", "kind": "path", "old": "stateless.py:254–256", "new": "stateless.py:246–248", "window": "da03954954d4ae0a3520", "new_window": "d6c4d008d0eae1be225d"},

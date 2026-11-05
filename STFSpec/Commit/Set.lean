@@ -126,7 +126,7 @@ private theorem runSet_emptyEncoding
   simp only [runSet, dispatch, ByteArray.size_empty, ite_true]
 
 /-- Set an already-encoded value in the nominal guest trie. Pinned EELS
-`src/ethereum/forks/amsterdam/incremental_mpt.py:447–470` after successful
+`src/ethereum/forks/amsterdam/incremental_mpt.py:420–442` after successful
 caller-owned preencoding; absent or empty encoding selects deletion. -/
 def mptSet {m : Type → Type} [Monad m] [KeccakQuery m]
     (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) :

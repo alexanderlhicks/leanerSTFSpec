@@ -194,7 +194,7 @@ VM/guest/EEST/readiness remain open.
 
 EthVmCore §3/§5/§7 owns the supplied raw eleven-field BlockEnvironment and
 sixteen-field TransactionEnvironment from EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:49–67,125–148`. Private complete
+`src/ethereum/forks/amsterdam/vm/__init__.py:44–61,119–142`. Private complete
 constructor/projection/type/reconstruction/update clients and full-value controls
 retain independent quantities/address roles, ordered duplicates, complete
 six-component authorizations, persistent sets and Option distinctions. Raw 257
