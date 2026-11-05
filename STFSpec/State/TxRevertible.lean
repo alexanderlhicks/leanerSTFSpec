@@ -21,7 +21,7 @@ namespace STFSpec.State
 
 open Base
 
-/-- Raw revertible fields of EELS `src/ethereum/forks/amsterdam/state_tracker.py:91–117`,
+/-- Raw revertible fields of EELS `src/ethereum/forks/amsterdam/state_tracker.py:78–104`,
 with D22 persistent trees, D23 observation separation and B1 order metadata.
 This carrier imposes no reachability, well-formedness or order/value agreement premise. -/
 structure TxRevertible where

@@ -13,7 +13,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.1 General rules (apply to every handler)
 
-- **R-GEN-1 Step order.** Each handler must perform its sub-steps in the EELS order: (1) static-context check, where EELS does it first; (2) pops (`StackUnderflowError`); (3) gas computation and `check_gas`/`charge_gas`; (4) state reads and writes; (5) memory expansion; (6) pushes; (7) `pc` update. The order matters beyond the exception name: **state reads are persistent observations** that survive a later exceptional halt or revert (ARCHITECTURE §6; they feed the BAL and the witness access record), so a read must happen exactly when EELS performs it, and not before a gas check that precedes it in EELS. EIP-8038's "STATE ACCESS after state-independent gas check" structure (`I/system.py:494–543`, `I/storage.py:85–116`) exists for this reason [V: comments].
+- **R-GEN-1 Step order.** Each handler must perform its sub-steps in the EELS order: (1) static-context check, where EELS does it first; (2) pops (`StackUnderflowError`); (3) gas computation and `check_gas`/`charge_gas`; (4) state reads and writes; (5) memory expansion; (6) pushes; (7) `pc` update. The order matters beyond the exception name: **state reads are persistent observations** that survive a later exceptional halt or revert (ARCHITECTURE §6; they feed the BAL and the witness access record), so a read must happen exactly when EELS performs it, and not before a gas check that precedes it in EELS. EIP-8038's "STATE ACCESS after state-independent gas check" structure (`I/system.py:487–536`, `I/storage.py:85–116`) exists for this reason [V: comments].
 - **R-GEN-2 Precedence among exceptional halts.** Where two halt conditions hold, the first in EELS order wins. All exceptional halts have the same guest-visible effect (O8), so precedence is observable only through traces and through which reads happened before the halt; both must match. Specific orders: most arithmetic/stack-consuming ops pop before charging (underflow beats OOG); DUP*/SWAP*/DUPN/SWAPN/EXCHANGE charge before the depth check (OOG beats underflow) (`I/stack.py:100–102, 132–134, 229–237`); push-producing ops charge before pushing (OOG beats overflow); CREATE/CREATE2/SSTORE/TSTORE/SELFDESTRUCT check the static flag **before** popping; CALL checks it after popping and only for non-zero value; LOG checks it after charging and expanding memory (`I/log.py:67–69`).
 - **R-GEN-3 Memory.** Every memory-touching handler computes `calculate_gas_extend_memory` for its windows, charges `base + per-word + expansion` in one `charge_gas`, then expands, then reads/writes. Windows with size 0 never expand memory and never fail, whatever their offset. Offsets and sizes are full 256-bit values; conversion to `Nat` must be exact (never truncated to 64 bits before the gas check).
 - **R-GEN-4 Words.** Arithmetic is modulo 2^256 through the `U256` API (EthBase, D1): signed operations use two's complement; `x / 0 = 0`, `x % 0 = 0`; ADDMOD/MULMOD compute over unbounded integers before reducing.
@@ -32,7 +32,7 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 00 | STOP | `I/control_flow.py:22` | – | 0 | `.stop` output ∅ |
 | 01 | ADD | `I/arithmetic.py:25` | a b → a+b | 3 | wrapping |
 | 02 | MUL | `:79` | a b → a·b | 5 | wrapping |
-| 03 | SUB | `:55` | a b → a−b | 3 | wrapping |
+| 03 | SUB | `:52` | a b → a−b | 3 | wrapping |
 | 04 | DIV | `:106` | a b → a/b | 5 | b = 0 → 0 |
 | 05 | SDIV | `:139` | a b → a÷b | 5 | signed, truncates toward 0; b = 0 → 0; (−2^255)÷(−1) = −2^255 (`U255_CEIL_VALUE`, `:136`) |
 | 06 | MOD | `:172` | a b → a mod b | 5 | b = 0 → 0 |
@@ -43,11 +43,11 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 0B | SIGNEXTEND | `:331` | k x → x' | 5 | k > 31 → x; else extend bit `8k+7` |
 | 10–15 | LT GT SLT SGT EQ ISZERO | `I/comparison.py:21, 74, 48, 101, 127, 154` | a b → 0/1 (ISZERO: a → 0/1) | 3 | signed variants via two's complement |
 | 16–19 | AND OR XOR NOT | `I/bitwise.py:21, 46, 71, 96` | a b → r (NOT: a → ~a) | 3 | |
-| 1A | BYTE | `:123` | i w → byte | 3 | i ≥ 32 → 0; byte `i` counted from the most significant |
-| 1B | SHL | `:159` | s v → v≪s | 3 | s ≥ 256 → 0 |
-| 1C | SHR | `:189` | s v → v≫s | 3 | s ≥ 256 → 0 |
-| 1D | SAR | `:219` | s v → v≫ₐs | 3 | s ≥ 256 → 0 or 2^256−1 by sign |
-| 1E | CLZ | `:251` | x → 256 − bitlen(x) | 5 (LOW) | EIP-7939; CLZ 0 = 256 |
+| 1A | BYTE | `:120` | i w → byte | 3 | i ≥ 32 → 0; byte `i` counted from the most significant |
+| 1B | SHL | `:156` | s v → v≪s | 3 | s ≥ 256 → 0 |
+| 1C | SHR | `:186` | s v → v≫s | 3 | s ≥ 256 → 0 |
+| 1D | SAR | `:216` | s v → v≫ₐs | 3 | s ≥ 256 → 0 or 2^256−1 by sign |
+| 1E | CLZ | `:248` | x → 256 − bitlen(x) | 5 (LOW) | EIP-7939; CLZ 0 = 256 |
 
 **KECCAK (KECCAK256), environment, block**
 
@@ -74,9 +74,9 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 41 | COINBASE | `:71` | → coinbase | 2 | |
 | 42 | TIMESTAMP | `:105` | → time | 2 | |
 | 43 | NUMBER | `:139` | → number | 2 | `U256(number)` |
-| 44 | PREVRANDAO | `:173` | → randao | 2 | |
-| 45 | GASLIMIT | `:206` | → limit | 2 | |
-| 46 | CHAINID | `:239` | → chain id | 2 | |
+| 44 | PREVRANDAO | `:172` | → randao | 2 | |
+| 45 | GASLIMIT | `:205` | → limit | 2 | |
+| 46 | CHAINID | `:238` | → chain id | 2 | |
 | 47 | SELFBALANCE | `I/environment.py:513` | → bal | 5 | read after charge |
 | 48 | BASEFEE | `:539` | → base fee | 2 | `U256(base_fee_per_gas)`; cannot overflow (SSZ `uint256`) |
 | 49 | BLOBHASH | `:562` | i → h | 3 | `i < \|hashes\|` → hash, else 0 |
@@ -103,9 +103,9 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 5D | TSTORE | `:189` | k v → | 100 | static first; revertible (part of the tx snapshot) |
 | 5E | MCOPY | `I/memory.py:142` | dst src len → | 3 + 3·w(len) + mem([(src,len),(dst,len)]) | read-then-write (overlap-safe) |
 | 5F | PUSH0 | `I/stack.py:49` | → 0 | 2 | |
-| 60–7F | PUSH1…PUSH32 | `:52` (`push_n`) | → imm | 3 | `n` bytes after `pc`, zero-padded past end; `pc += 1+n` |
-| 80–8F | DUP1…DUP16 | `:85` (`dup_n`) | → copy of i-th | 3 | charge, then `i > size` → underflow, then push (overflow) |
-| 90–9F | SWAP1…SWAP16 | `:113` (`swap_n`) | swap top, (i+1)-th | 3 | charge, then `i ≥ size` → underflow |
+| 60–7F | PUSH1…PUSH32 | `:49` (`push_n`) | → imm | 3 | `n` bytes after `pc`, zero-padded past end; `pc += 1+n` |
+| 80–8F | DUP1…DUP16 | `:82` (`dup_n`) | → copy of i-th | 3 | charge, then `i > size` → underflow, then push (overflow) |
+| 90–9F | SWAP1…SWAP16 | `:110` (`swap_n`) | swap top, (i+1)-th | 3 | charge, then `i ≥ size` → underflow |
 | E6 | DUPN | `:213` | → copy of n-th | 3 | EIP-8024; charge; `n = decode_single(imm)` (`InvalidParameter` for imm 91…127); `n > size` → underflow; `pc += 2` |
 | E7 | SWAPN | `:245` | swap 1st, (n+1)-th | 3 | as DUPN; `n + 1 > size` → underflow |
 | E8 | EXCHANGE | `:281` | swap (n+1)-th, (m+1)-th | 3 | `(n,m) = decode_pair(imm)` (invalid 82…127); `max(n,m)+1 > size` → underflow |
@@ -136,22 +136,22 @@ In order: (1) static → `WriteInStaticContext`; (2) pop key, new; (3) `cost := 
 
 ### 2.5 CREATE / CREATE2 and `generic_create` (`I/system.py:59–304`)
 
-- **Handler part.** Static → halt; pop `endowment, offset, size` (CREATE2 also `salt`); charge as in the table; **then** `size > MAX_INIT_CODE_SIZE (131072)` → `OutOfGasError` (`:227, 291`); expand memory; address = `compute_contract_address(target, nonce(target))` (reads the account) or `compute_create2_contract_address(target, salt, init_code)`, both through `KeccakQuery` (EthCodec's `…Q` forms, D5).
+- **Handler part.** Static → halt; pop `endowment, offset, size` (CREATE2 also `salt`); charge as in the table; **then** `size > MAX_INIT_CODE_SIZE (131072)` → `OutOfGasError` (`:220, 284`); expand memory; address = `compute_contract_address(target, nonce(target))` (reads the account) or `compute_create2_contract_address(target, salt, init_code)`, both through `KeccakQuery` (EthCodec's `…Q` forms, D5).
 - **Preflight** (`generic_create`, `:82–100`): read the init code; set `return_data := ∅`; if `balance(target) < endowment` or `nonce(target) = 2^64 − 1` or `depth + 1 > STACK_DEPTH_LIMIT`: push 0 and continue (nothing withheld; the opcode's own charge stays).
-- **Destination access** (`:112–116`): warm the address; `newAccountCharged := ¬ is_account_alive(addr)`; if so `charge_state_gas(NEW_ACCOUNT = 183600)` (may halt with OOG).
-- **Grant** (`:120`): `g := withhold_create_gas` (all but 1/64 of `gas_left`).
-- **Collision** (`:125–128`): if `¬ account_deployable(addr)` (nonce ≠ 0 or code non-empty; storage is ignored): `increment_nonce(target)`, push 0, continue; `g` is **consumed** (not returned) and the reservoir is not drained.
-- **Dispatch** (`:132–178`): `R := drain_state_gas_reservoir`; `increment_nonce(target)` (outside the child's snapshot: it survives a child failure); return `.create parent req` with child parameters `caller = target`, `current_target = addr`, `value = endowment`, empty call data, `code = init_code`, `code_address = none`, `should_transfer_value`, not static, precompiles enabled, meter `(g, R, baseline R)`, copies of the warm sets.
-- **`resumeAfterCreate`** (`:184–192`, then `pc += 1`, `:246`/`:311`): `incorporate_child`; if the child failed: `credit_state_gas_refund(NEW_ACCOUNT)` when `newAccountCharged` (the amount comes from the config, which is why resume takes it, F10), `return_data := child.output` (revert data, or ∅ after a halt), push 0; else `return_data := ∅` and push the address. Successful creation never exposes the deployed code as return data (ARCHITECTURE §6).
+- **Destination access** (`:105–109`): warm the address; `newAccountCharged := ¬ is_account_alive(addr)`; if so `charge_state_gas(NEW_ACCOUNT = 183600)` (may halt with OOG).
+- **Grant** (`:113`): `g := withhold_create_gas` (all but 1/64 of `gas_left`).
+- **Collision** (`:118–121`): if `¬ account_deployable(addr)` (nonce ≠ 0 or code non-empty; storage is ignored): `increment_nonce(target)`, push 0, continue; `g` is **consumed** (not returned) and the reservoir is not drained.
+- **Dispatch** (`:125–171`): `R := drain_state_gas_reservoir`; `increment_nonce(target)` (outside the child's snapshot: it survives a child failure); return `.create parent req` with child parameters `caller = target`, `current_target = addr`, `value = endowment`, empty call data, `code = init_code`, `code_address = none`, `should_transfer_value`, not static, precompiles enabled, meter `(g, R, baseline R)`, copies of the warm sets.
+- **`resumeAfterCreate`** (`:177–185`, then `pc += 1`, `:239`/`:304`): `incorporate_child`; if the child failed: `credit_state_gas_refund(NEW_ACCOUNT)` when `newAccountCharged` (the amount comes from the config, which is why resume takes it, F10), `return_data := child.output` (revert data, or ∅ after a halt), push 0; else `return_data := ∅` and push the address. Successful creation never exposes the deployed code as return data (ARCHITECTURE §6).
 
-### 2.6 CALL family and `generic_call` (`I/system.py:376–991`)
+### 2.6 CALL family and `generic_call` (`I/system.py:369–984`)
 
-- **CALL** (`:472`): pop 7 (`to` masked); `static ∧ value ≠ 0` → halt; `mem` over the input then the output window; `access := cold(to) ? 3000 : 100`; `transfer := value ≠ 0 ? 11300 : 0`; `check_gas(access + transfer + mem)`; warm `to`; `calculate_delegation_cost(to)` (reads `to`'s account and code); if delegated: add its warm/cold cost, `check_gas` again, warm the delegate; read the code of `code_address`; `charge_gas(extra + mem)`; if `value ≠ 0 ∧ ¬alive(to)`: `charge_state_gas(NEW_ACCOUNT)` (`newAccountCharged`); **then** compute the forwarded gas from the *remaining* `gas_left` with `calculate_message_call_gas(value, gas, gas_left, 0, 0)` and charge it; drain the reservoir; expand memory; read the sender balance.
-- **CALLCODE** (`:599`): `to := current_target`, cold/warm and delegation on the popped `code_address`; no static check (a self-transfer); `calculate_message_call_gas(value, gas, gas_left, mem, extra)` and `charge_gas(cost + mem)`; no account-creation charge; `insufficient_balance` checked.
-- **DELEGATECALL** (`:788`): pop 6; no transfer cost; child keeps the parent's `caller` and `value`, `to = current_target`, `should_transfer_value = false`; no balance check.
-- **STATICCALL** (`:891`): pop 6; child `value = 0`, `is_static = true`.
+- **CALL** (`:465`): pop 7 (`to` masked); `static ∧ value ≠ 0` → halt; `mem` over the input then the output window; `access := cold(to) ? 3000 : 100`; `transfer := value ≠ 0 ? 11300 : 0`; `check_gas(access + transfer + mem)`; warm `to`; `calculate_delegation_cost(to)` (reads `to`'s account and code); if delegated: add its warm/cold cost, `check_gas` again, warm the delegate; read the code of `code_address`; `charge_gas(extra + mem)`; if `value ≠ 0 ∧ ¬alive(to)`: `charge_state_gas(NEW_ACCOUNT)` (`newAccountCharged`); **then** compute the forwarded gas from the *remaining* `gas_left` with `calculate_message_call_gas(value, gas, gas_left, 0, 0)` and charge it; drain the reservoir; expand memory; read the sender balance.
+- **CALLCODE** (`:592`): `to := current_target`, cold/warm and delegation on the popped `code_address`; no static check (a self-transfer); `calculate_message_call_gas(value, gas, gas_left, mem, extra)` and `charge_gas(cost + mem)`; no account-creation charge; `insufficient_balance` checked.
+- **DELEGATECALL** (`:781`): pop 6; no transfer cost; child keeps the parent's `caller` and `value`, `to = current_target`, `should_transfer_value = false`; no balance check.
+- **STATICCALL** (`:884`): pop 6; child `value = 0`, `is_static = true`.
 - **`generic_call`** preflight (`:381–393`): `return_data := ∅`; if `depth + 1 > STACK_DEPTH_LIMIT` or insufficient balance: `restore_child_gas(sub_call, R)` (the stipend included), credit `NEW_ACCOUNT` if charged, push 0, continue. Otherwise read the call data from memory and return `.call parent req` (child `is_static = is_staticcall ∨ ctx.isStatic`, `disable_precompiles = is_delegated`, copies of warm sets, meter `(sub_call, R, baseline R)`).
-- **`resumeAfterCall`** (`:453–469`, then `pc += 1`): `incorporate_child`; `return_data := child.output` (for success, revert and halt alike: ∅ after a halt); credit `NEW_ACCOUNT` on failure if charged (amount from the config, F10); push 0 or `CALL_SUCCESS = 1`; write `child.output[0 : min(out_size, |output|)]` at `out_offset` (inside the already-expanded window).
+- **`resumeAfterCall`** (`:446–462`, then `pc += 1`): `incorporate_child`; `return_data := child.output` (for success, revert and halt alike: ∅ after a halt); credit `NEW_ACCOUNT` on failure if charged (amount from the config, F10); push 0 or `CALL_SUCCESS = 1`; write `child.output[0 : min(out_size, |output|)]` at `out_offset` (inside the already-expanded window).
 
 ### 2.7 SELFDESTRUCT (`I/system.py:706–778`; EIP-6780, EIP-8246)
 
@@ -160,8 +160,8 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 ### 2.8 EIP-7702 delegation (`eoa_delegation.py`)
 
 - **R-DEL-1** `is_valid_delegation c ↔ |c| = 23 ∧ c[0:3] = 0xEF0100` (`:42–61`); `get_delegated_code_address` returns `c[3:23]` (`:64–81`).
-- **R-DEL-2** `calculate_delegation_cost f a` (`:159–196`) reads `a`'s account and code and returns `(false, a, 0)` or `(true, d, warm(d) ? 100 : 3000)` **without** warming `d` (the caller warms after the second check).
-- **R-DEL-3** `resolve_delegated_code_address` (`:84–113`, used by the runner's `create_evm`) reads the code, and for a designator charges warm/cold via `charge_gas_from_meter`, warms `d` and returns `(d, true)`.
+- **R-DEL-2** `calculate_delegation_cost f a` (`:155–188`) reads `a`'s account and code and returns `(false, a, 0)` or `(true, d, warm(d) ? 100 : 3000)` **without** warming `d` (the caller warms after the second check).
+- **R-DEL-3** `resolve_delegated_code_address` (`:84–109`, used by the runner's `create_evm`) reads the code, and for a designator charges warm/cold via `charge_gas_from_meter`, warms `d` and returns `(d, true)`.
 - **R-DEL-4** Resolution is one level only: if `d`'s code is itself a designator, those 23 bytes execute as code and the first byte `0xEF` is an invalid opcode [I: follows from `get_code(code_address)` with no loop]. When `disable_precompiles` is set and `d` is a precompile address, **no code runs** and the call succeeds with empty output (runner, `interpreter.py:432–433`).
 
 ## 3. EELS source map

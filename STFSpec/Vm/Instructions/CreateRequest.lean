@@ -21,17 +21,17 @@ Producers establish preflight, gas withholding and destination effects separatel
 structure CreateRequest where
   /-- Child execution grant after withholding, `create_message_gas` (system.py:113). -/
   gas : Nat
-  /-- Parent reservoir drained into the child, `create_message_state_gas_reservoir` (:132). -/
+  /-- Parent reservoir drained into the child, `create_message_state_gas_reservoir` (:125). -/
   stateGasReservoir : Nat
-  /-- Value transferred to the child, `value=endowment` (:149). -/
+  /-- Value transferred to the child, `value=endowment` (:142). -/
   endowment : STFSpec.Base.U256
-  /-- The creating frame's target, `caller=evm.current_target` (:147). -/
+  /-- The creating frame's target, `caller=evm.current_target` (:140). -/
   caller : STFSpec.Base.Address
-  /-- The new contract's address, `current_target=contract_address` (:148). -/
+  /-- The new contract's address, `current_target=contract_address` (:141). -/
   contractAddress : STFSpec.Base.Address
-  /-- The child's code, `code=init_code` (:156, read at :89). -/
+  /-- The child's code, `code=init_code` (:149, read at :82). -/
   initCode : STFSpec.Base.Bytes
-  /-- Whether NEW_ACCOUNT was charged, refunded if the child fails (:114, :186). -/
+  /-- Whether NEW_ACCOUNT was charged, refunded if the child fails (:107, :179). -/
   newAccountCharged : Bool
 
 end STFSpec.Vm.Instructions

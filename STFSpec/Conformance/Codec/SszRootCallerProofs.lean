@@ -1071,7 +1071,7 @@ private theorem rootC8 :
 field order. These local recipes assert no decoder, Python class, guest, security
 or resource bridge. Rooting remains separate from later execution validity.
 EELS at the pin: `src/ethereum/forks/amsterdam/execution_engine/types.py:39–96`,
-`src/ethereum/forks/amsterdam/execution_engine/requests.py:41–126`,
+`src/ethereum/forks/amsterdam/execution_engine/requests.py:41–116`,
 `src/ethereum/forks/amsterdam/blocks.py:38–63`.
 Widths below are bytes; timestamp remains uint64. -/
 private abbrev withdrawalFields : List SszType := [.uint 8, .uint 8, .byteVector 20, .uint 8]

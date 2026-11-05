@@ -252,7 +252,7 @@ D9/D16/D20 keep provider, state and commitment ownership; F20 keeps caller acqui
 diff shape. `src/ethereum/state_mpt.py:29,49–80` supplies concrete lookups, while
 `:93–111,133–161` applies clears before storage writes and prunes touched empty maps.
 `src/ethereum/forks/amsterdam/witness_state.py:129–137` and
-`src/ethereum/forks/amsterdam/state_tracker.py:271–278` use the shared empty-code
+`src/ethereum/forks/amsterdam/state_tracker.py:252–259` use the shared empty-code
 bypass. Tracker deletion/clear sequencing is at
 `src/ethereum/forks/amsterdam/state_tracker.py:484–501,528–549`.
 The existing public MathState observer takes supplied HashConsts; structural WF

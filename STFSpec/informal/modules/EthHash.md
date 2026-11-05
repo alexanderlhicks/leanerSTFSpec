@@ -318,7 +318,7 @@ working branches store A,B,C,D,E in that order. Ascending rounds use f(j) on the
 left and f(79−j) on the right, with separate order/rotation/constant tables; updates
 are simultaneous. Feedforward reads all five original chaining words.
 
-EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–54`, notably `:49`,
+EELS `forks/amsterdam/vm/precompiled_contracts/ripemd160.py:26–51`, notably `:49`,
 invokes `hashlib.new("ripemd160", data)`, without exposing raw compression.
 The algorithm rows therefore cite Dobbertin–Bosselaers–Preneel, *RIPEMD-160:
 A Strengthened Version of RIPEMD*, FSE 1996, pp. 71–82, and

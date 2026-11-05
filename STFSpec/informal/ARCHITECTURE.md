@@ -308,8 +308,8 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
 
   | Operation (line) | Effect on Φ |
   |---|---|
-  | `charge_gas` (`:405`) | decreases by the charge; strict only for a positive charge |
-  | `charge_state_gas`: from the reservoir (`:441`) / spill path (`:445–446`) | unchanged / unchanged (moves `gas_left` into spill) |
+  | `charge_gas` (`:393`) | decreases by the charge; strict only for a positive charge |
+  | `charge_state_gas`: from the reservoir (`:429`) / spill path (`:433–434`) | unchanged / unchanged (moves `gas_left` into spill) |
   | `commit_state_gas` (`:488–490`) | unchanged (spill into committed) |
   | `restore_state_gas` (`:512–515`) | unchanged (spill back into `gas_left`) |
   | `restore_state_gas_to_entry` (`:547–553`) | unchanged (both spills back into `gas_left`) |
@@ -317,7 +317,7 @@ reachability, AccountWritesLookedUp or F7, and does not replace root/availabilit
   | `repay_state_gas_spill` (`:641–643`) | unchanged |
   | `forfeit_remaining_gas` (`:663`) | non-increasing (`gas_left` := 0); strict when it was positive |
   | `drain_state_gas_reservoir` (`:705–707`) | unchanged (reservoir is outside Φ) |
-  | CREATE grant (`:697`), CALL charge/grant, `restore_child_gas` (`:733`) and `incorporate_child` (`vm/__init__.py`) | withholding decreases the parent potential; returning child gas can increase it: a **cross-frame obligation**, not a local monotonicity law |
+  | CREATE grant (`:685`), CALL charge/grant, `restore_child_gas` (`:733`) and `incorporate_child` (`vm/__init__.py`) | withholding decreases the parent potential; returning child gas can increase it: a **cross-frame obligation**, not a local monotonicity law |
 
   Within a frame, excluding child returns, Φ never increases and positive execution charges strictly decrease it. `restore_child_gas` is used when a child is never entered and adds the supplied grant; for CALL that grant can include the stipend. It does not itself restore either spill field. **Still to prove:** progress across complete CALL/CREATE iterations, covering forwarding, the 63/64 rule, paid stipends, depth/balance failures, child returns (success, revert, exceptional halt) and `incorporate_child`. Every continuing Amsterdam opcode iteration must decrease Φ by at least 1; zero-cost terminal instructions need only the final fuel unit. The local charge-kernel laws are supplied in EthVmCore §§3/7; the whole-frame and CALL/CREATE progress claims remain unproved.
 - **Shape, adopted from EVMLean (`step_semantics` @cdbd150).**

@@ -17,7 +17,7 @@ Spec guidance: `STFSpec/informal/modules/EthState.md` §§3/5/7.
 
 namespace STFSpec.State
 
-/-- Raw block carrier from EELS `src/ethereum/forks/amsterdam/state_tracker.py:57–86`.
+/-- Raw block carrier from EELS `src/ethereum/forks/amsterdam/state_tracker.py:44–73`.
 The source has nine fields; F20 adds `consts`, and B1 adds the three order indexes.
 The arbitrary type constructor and complete supplied provider require no class premise.
 Constants acquisition/coherence and reachable tracker/lifetime laws remain caller obligations. -/

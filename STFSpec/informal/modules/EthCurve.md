@@ -109,7 +109,7 @@ constant (`EthPairing`), so it may be replaced by a checked constant.
 recovered key, or `SignatureError`, exactly as EELS + `spec256k1` 0.2.3:
 1. reject if `(r³ + 7)^((p−1)/2) mod p ≠ 1`, computed on `U256` with Python `pow` (`:47–56`);
 2. build `r‖s‖v` (65 bytes, `:58–64`); `v > 255` raises an *uncaught* `ValueError` at `:64`, but
-   every caller passes `v ∈ {0, 1}` (`ecrecover.py:49–57`, `transactions.py:944–1004`,
+   every caller passes `v ∈ {0, 1}` (`ecrecover.py:49–57`, `transactions.py:892–937`,
    `vm/eoa_delegation.py:133–151`) [V], so the spec takes `v : Bool`;
 3. `spec256k1` (Rust `secp256k1` 0.30.0 over `secp256k1-sys` 0.10.1, i.e. libsecp256k1, per the
    wheel SBOM [V]) recovers `Q = r⁻¹(s·R − e·G)` with `R = (r, y)`, `y` of parity `v`,

@@ -280,7 +280,7 @@ private theorem children_first_error {m : Type → Type} [Monad m] [LawfulMonad 
   simp only [pure_bind]
 
 /-- Complete eager decoding, with the caller-supplied empty root bypassing lookup/query.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:892–991,1024–1033` at the pin. -/
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:885–984,1046–1054` at the pin. -/
 def decodeRoot {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) : m (Except TrieError Ref) :=
   if r = emptyRoot then pure (.ok none) else

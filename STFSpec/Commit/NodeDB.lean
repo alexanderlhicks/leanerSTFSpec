@@ -37,7 +37,7 @@ def buildReference {m : Type → Type} [Monad m] [KeccakQuery m]
     pure ⟨db.map.insert h entry⟩) db
 
 /-- Build the raw node database by querying each entry exactly once, in input order.
-EELS `src/ethereum/forks/amsterdam/witness_state.py:37–42` at the pin.
+EELS `src/ethereum/forks/amsterdam/witness_state.py:28–30` at the pin.
 Empty and malformed RLP preimages are accepted; no constants or decoding are consulted. -/
 def build {m : Type → Type} [Monad m] [KeccakQuery m]
     (entries : Array ByteArray) : m NodeDB :=

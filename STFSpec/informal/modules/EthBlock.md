@@ -15,13 +15,13 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 
 ### 2.1 Types and codecs
 
-- **R-HDR.** `Header` must have the 23 Amsterdam fields, in RLP order (`blocks.py:72–270`): `parentHash`, `ommersHash`, `coinbase`, `stateRoot`, `transactionsRoot`, `receiptRoot`, `bloom : Bloom`, `difficulty : Nat`, `number : Nat`, `gasLimit : Nat`, `gasUsed : Nat`, `timestamp : U256`, `extraData : Bytes`, `prevRandao : Bytes32`, `nonce : Bytes8`, `baseFeePerGas : Nat`, `withdrawalsRoot`, `blobGasUsed : U64`, `excessBlobGas : U64`, `parentBeaconBlockRoot`, `requestsHash : Hash32`, `blockAccessListHash : Hash32` (EIP-7928), `slotNumber : U64` (EIP-7843). `PrevHeader` (bpo5, `forks/bpo5/blocks.py:71`) is the first 21 of these fields [V, by `diff`]. `ParentHeader := amsterdam Header | bpo5 PrevHeader` carries the parent everywhere EELS types `Header | PreviousForkHeader` (`fork.py:163, 450`). Its `rlp` must re-encode the variant it came from, because `validateHeader` hashes it (`fork.py:476`).
+- **R-HDR.** `Header` must have the 23 Amsterdam fields, in RLP order (`blocks.py:72–270`): `parentHash`, `ommersHash`, `coinbase`, `stateRoot`, `transactionsRoot`, `receiptRoot`, `bloom : Bloom`, `difficulty : Nat`, `number : Nat`, `gasLimit : Nat`, `gasUsed : Nat`, `timestamp : U256`, `extraData : Bytes`, `prevRandao : Bytes32`, `nonce : Bytes8`, `baseFeePerGas : Nat`, `withdrawalsRoot`, `blobGasUsed : U64`, `excessBlobGas : U64`, `parentBeaconBlockRoot`, `requestsHash : Hash32`, `blockAccessListHash : Hash32` (EIP-7928), `slotNumber : U64` (EIP-7843). `PrevHeader` (bpo5, `forks/bpo5/blocks.py:71`) is the first 21 of these fields [V, by `diff`]. `ParentHeader := amsterdam Header | bpo5 PrevHeader` carries the parent everywhere EELS types `Header | PreviousHeader` (`fork.py:149, 425`). Its `rlp` must re-encode the variant it came from, because `validateHeader` hashes it (`fork.py:476`).
 - **R-BLK.** `Block = {header, transactions : Array BlockTx, ommers : Array Header, withdrawals : Array Withdrawal}` (`blocks.py:276`). `BlockTx := legacy LegacyTransaction | typed Bytes` mirrors `Tuple[Bytes | LegacyTransaction, …]`. `Withdrawal = {index : U64, validatorIndex : U64, address, amount : U64}` (Gwei) (`blocks.py:38`).
 - **R-TX.** The five transaction structures must have exactly the EELS fields in RLP order (`transactions.py:89–490`). Type-specific points: `LegacyTransaction.v : U256`, and the typed variants have `yParity : U256`. `BlobTransaction.to` and `SetCodeTransaction.to` are `Address`, not optional, while the other variants have `to : Option Address` for `Bytes0 | Address`. `SetCodeTransaction.nonce : U64` whereas the other four are `U256`. `SetCodeTransaction.authorizations : Array Authorization`, with `Authorization = {chainId : U256, address, nonce : U64, yParity : U8, r s : U256}` taken from `EthBase` (`fork_types.py:87`, owned by G1).
 - **R-TX-ENC.** `encodeTransaction` (`transactions.py:535`): legacy is returned as the structure (RLP-encoded where bytes are needed); type *k* ∈ {1,2,3,4} is `[k] ++ rlp tx`.
 - **R-TX-DEC.** `decodeTransaction` (`:557`) on `typed b`: `b[0] ∈ {1,2,3,4}` decodes `b[1:]` as that type; `0xC0 ≤ b[0] ≤ 0xFE` decodes the whole of `b` as legacy; any other first byte in `0x00…0xBF` raises `TransactionTypeError b[0]`. Two branches are not EthereumExceptions: `b[0] = 0xFF` fails an `assert` (`:579`), and `b = []` fails with `IndexError` (`tx[0]`). The spec gives both explicit constructors (`BlockError.txDecode`) [V]. An RLP failure inside a typed payload (`rlp.DecodingError`, not an EthereumException) is also `txDecode`. **Scope of these errors.** On the complete guest path, an empty transaction is rejected first at `execution_engine/new_payload.py:104` (O6), and every other deterministic payload-transaction decode failure is consumed by `is_valid_versioned_hashes` (`new_payload.py:55–63`), which returns `False` and so gives O6 before `execute_block` runs; legacy payload bytes are also pre-decoded when the block is built (`validation_helpers.py:88–97`, G6). A **standalone** `executeBlock` (for example `blockchain_tests` through `stateTransition`) still raises its own decode errors (`TransactionTypeError` was reproduced), so the `txDecode` constructors are live and must not be removed. A host-resource failure (`RecursionError`, `MemoryError`) during `execute_block`'s repeated decode (`fork.py:827`) is not excluded by the first decode's success; it belongs to O12/DISC-001, not here.
 - **R-RCPT.** `Receipt = {succeeded : Bool, cumulativeGasUsed : Nat, bloom, logs : Array Log}` and `Log = {address, topics : Array Hash32, data}` (`blocks.py:330, 363`). `encodeReceipt tx r` (`:394`) is `[k] ++ rlp r` for a typed transaction of type *k*, and the bare structure for legacy. `decodeReceipt` (`:417`) is needed only by `parseDepositRequests`, on receipts this module produced.
-- **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1102`). The six signing hashes (`:1015–1172`) must hash exactly these tuples:
+- **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1102`). The six signing hashes (`:942–1099`) must hash exactly these tuples:
   - pre-155: `(nonce, gasPrice, gas, to, value, data)`;
   - EIP-155: that tuple plus `(chainId, 0, 0)`;
   - EIP-2930: `0x01 ++ rlp (chainId, nonce, gasPrice, gas, to, value, data, accessList)`;
@@ -38,7 +38,7 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 
 ### 2.3 Intrinsic gas (R-IG, `calculate_intrinsic_cost`, `transactions.py:687–796`)
 
-With `tokens(d) = zeros(d) + 4·nonzeros(d)` (`:804`) and the gas constants from `cfg.gas` (G4's `GasCosts`; Amsterdam values in brackets):
+With `tokens(d) = zeros(d) + 4·nonzeros(d)` (`:799`) and the gas constants from `cfg.gas` (G4's `GasCosts`; Amsterdam values in brackets):
 
 - `recipient` is `CREATE_ACCESS` [12000] for a creation (`to = none`); `COLD_ACCOUNT_ACCESS` [3000] plus `TX_VALUE_COST` [6000] if `value > 0` for a call with `to ≠ sender`; and **0 for a self-transfer** (`to = some sender`) (EIP-2780).
 - `initCode = init_code_cost(len data)` for a creation, else 0.
@@ -51,7 +51,7 @@ With `tokens(d) = zeros(d) + 4·nonzeros(d)` (`:804`) and the gas constants from
 
 The state-dependent parts (new-account state gas, delegation writes) are charged in the top frame (G4), not here.
 
-### 2.4 Static validity (R-VT, `validate_transaction`, `:592–689`), in order
+### 2.4 Static validity (R-VT, `validate_transaction`, `:587–684`), in order
 
 1. `U256(nonce) ≥ 2⁶⁴ − 1` raises `nonceOverflow`.
 2. A creation with `len data > MAX_INIT_CODE_SIZE` [131072] (`vm/interpreter.py`) raises `initCodeTooLarge`.
@@ -78,7 +78,7 @@ It returns `IntrinsicGasCost`.
 10. `getCode` of the sender (observed code read; may fail with O4). If `codeHash ≠ EMPTY_CODE_HASH` and the code is not a valid EIP-7702 delegation (`vm/eoa_delegation.py:42`), it raises `invalidSender` (EIP-3607).
 11. `allocate_evm_gas` (`gas.py:1105`); the access-list address and slot sets; `authorizations`. For a creation, `recipient = compute_contract_address sender account.nonce`. `accountsWithPaidWrites = {sender} ∪ ({recipient} if creation or value > 0)`. `txHash = keccak(encode tx)`. The result is `TransactionEnvironment` (G4 type).
 
-### 2.6 Header validation (R-VH, `validate_header`, `fork.py:449–503`), in order
+### 2.6 Header validation (R-VH, `validate_header`, `fork.py:424–478`), in order
 
 1. `number < 1` raises `header .numberZero`.
 2. `excessBlobGas ≠ calculate_excess_blob_gas parent` (`gas.py:886`) raises `header .excessBlobGas`. The helper reads `excessBlobGas`, `blobGasUsed` and `baseFeePerGas` from **either** parent variant. Its U64 arithmetic (`excess + used`, `used · (MAX − TARGET)`) can raise `OverflowError` on an adversarial parent, which is `BlockError.arith .excessBlobGasOverflow`. Its `calculate_blob_gas_price` is a Taylor series whose cost grows with `excess` (see Gaps).
@@ -121,18 +121,18 @@ It returns `IntrinsicGasCost`.
 8. `bal := buildBlockAccessList builder blockState`.
 9. `validateBlockAccessListGasLimit bal header.gasLimit`.
 
-**System calls** (`:706–822`). An unchecked call runs `process_top_level` with `origin = cfg.system.systemAddress` (source `SYSTEM_ADDRESS`, F8), value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It invokes `processTopLevelChecked cfg.runnerEnv`, supplying the same configured address to the emitter context for system and user calls (F8). It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:730–743`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
+**System calls** (`:665–780`). An unchecked call runs `process_top_level` with `origin = cfg.system.systemAddress` (source `SYSTEM_ADDRESS`, F8), value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It invokes `processTopLevelChecked cfg.runnerEnv`, supplying the same configured address to the emitter context for system and user calls (F8). It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:689–701`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
 
-### 2.9 Transaction processing (R-PT, `process_transaction`, `:1050–1139`), in order
+### 2.9 Transaction processing (R-PT, `process_transaction`, `:1004–1093`), in order
 
 1. The BAL index is set to `i + 1`.
 2. `trieSet txTrie (rlp i) (encode tx)`.
 3. `chainId tx`; a mismatch raises `wrongChainId expected actual`.
 4. `checkTransaction`.
-5. `updateSenderState` (`:970`): the nonce is incremented and `balance := balance − gas·effectivePrice − blobFee`, where `blobFee = blobGas · blobGasPrice(excess)`. The **actual** blob price is charged, not the cap.
+5. `updateSenderState` (`:924`): the nonce is incremented and `balance := balance − gas·effectivePrice − blobFee`, where `blobFee = blobGas · blobGasPrice(excess)`. The **actual** blob price is charged, not the cap.
 6. `processTopLevelChecked cfg.runnerEnv` (G4 runner, with the precompile table, three-field VmConfig and `cfg.system.systemAddress`, F8).
 7. `settle_transaction_gas` (`gas.py:1163`, G4): `before = gas − gasLeft − stateGasLeft`; `refund = min(before / 5, refundCounter)`; `gasUsed = max(before − refund, floor)`; `stateUsed = max(0, stateGasUsed)`; `execUsed = max(before − stateUsed, floor)`; `gasLeft' = gas − gasUsed`.
-8. `disburseGasFees` (`:1011`): `createEther origin (gasLeft' · price)` and then `createEther coinbase (gasUsed · (price − baseFee))`. Both are applied even when the amount is 0. [I] This is a touch whose BAL/state effect is `EthState`'s `create_ether` contract.
+8. `disburseGasFees` (`:965`): `createEther origin (gasLeft' · price)` and then `createEther coinbase (gasUsed · (price − baseFee))`. Both are applied even when the amount is 0. [I] This is a touch whose BAL/state effect is `EthState`'s `create_ether` contract.
 9. `blockGasUsed += execUsed` (pre-refund, EIP-7778); `blockStateGasUsed += stateUsed`; `blobGasUsed += blobGas`; `cumulativeGasUsed += gasUsed` (post-refund).
 10. `receipt := encodeReceipt tx {succeeded := error = none, cumulativeGasUsed, logsBloom logs, logs}`; `trieSet receiptTrie (rlp i) receipt`; append the receipt key.
 11. `blockLogs ++= logs`.
@@ -141,8 +141,8 @@ It returns `IntrinsicGasCost`.
 
 ### 2.10 Withdrawals, requests, bloom, tries
 
-- **R-WD** (`:1142–1161`). One `TxState` covers all withdrawals. For each `i`, `trieSet wdTrie (rlp i) (rlp wd)` and `createEther wd.address (amount · 10⁹)`. Then incorporate once, at BAL index `n + 1`.
-- **R-RQ** (EIP-7685, `:901–967`; `requests.py`). The requests are built in ascending type order:
+- **R-WD** (`:1096–1115`). One `TxState` covers all withdrawals. For each `i`, `trieSet wdTrie (rlp i) (rlp wd)` and `createEther wd.address (amount · 10⁹)`. Then incorporate once, at BAL index `n + 1`.
+- **R-RQ** (EIP-7685, `:855–921`; `requests.py`). The requests are built in ascending type order:
   1. deposits: scan the receipts **in the recorded receipt_keys order (transaction order, not sorted RLP keys)**, decoding each, for logs whose `address = cfg.system.depositContract` and whose `topics[0] = DEPOSIT_EVENT_SIGNATURE_HASH`. Each such log gives `extractDepositData data`, and the results are concatenated. They are appended as `0x00 ++ concat` only if non-empty;
   2. four checked system calls with empty calldata: withdrawal requests `0x01` (EIP-7002), consolidations `0x02` (EIP-7251), builder deposits `0x03` and builder exits `0x04` (**EIP-8282, present at the pin**). Each appends `type ++ returnData` if the return data is non-empty.
 
@@ -158,8 +158,8 @@ It returns `IntrinsicGasCost`.
   - if one is equal, `remove…Change` is called for that index.
   
   For every storage write, the slot is converted to `U256` from big-endian. If the value differs from the pre-value, `addStorageWrite` is called; otherwise `removeStorageWrite`, which deletes the slot's entry when it becomes empty (`:539`).
-- **Build** (`:831`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
-- **Hash**: `keccak (rlp bal)` (`:854`). **Gas limit** (`:863`): `Σ_accounts (1 + |writtenSlots ∪ readSlots|) > gasLimit / BLOCK_ACCESS_LIST_ITEM [2000]` raises `balGasLimitExceeded`.
+- **Build** (`:827`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
+- **Hash**: `keccak (rlp bal)` (`:850`). **Gas limit** (`:859`): `Σ_accounts (1 + |writtenSlots ∪ readSlots|) > gasLimit / BLOCK_ACCESS_LIST_ITEM [2000]` raises `balGasLimitExceeded`.
 - The BAL is **checked only through its hash** against `header.blockAccessListHash`. On the stateless path, that hash is `keccak(payload.block_access_list)` (`execution_engine/validation_helpers.py:79`, G6). EELS never decodes the supplied BAL.
 
 ### 2.12 Failure mapping
@@ -208,13 +208,13 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/blocks.py::Receipt` | 363 | `Receipt` |  |
 | `forks/amsterdam/blocks.py::encode_receipt` | 394 | `encodeReceipt` | type-prefixed except legacy |
 | `forks/amsterdam/blocks.py::decode_receipt` | 417 | `decodeReceipt` | only on self-encoded receipts |
-| `forks/bpo5/blocks.py::Withdrawal` | 37 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
+| `forks/bpo5/blocks.py::Withdrawal` | 37 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
 | `forks/bpo5/blocks.py::Header` | 71 | `PrevHeader` | bpo5 header: Amsterdam minus `blockAccessListHash`, `slotNumber`; parent only |
-| `forks/bpo5/blocks.py::Block` | 253 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
-| `forks/bpo5/blocks.py::Log` | 307 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
-| `forks/bpo5/blocks.py::Receipt` | 340 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
-| `forks/bpo5/blocks.py::encode_receipt` | 370 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
-| `forks/bpo5/blocks.py::decode_receipt` | 393 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:237`) |
+| `forks/bpo5/blocks.py::Block` | 253 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
+| `forks/bpo5/blocks.py::Log` | 307 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
+| `forks/bpo5/blocks.py::Receipt` | 340 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
+| `forks/bpo5/blocks.py::encode_receipt` | 370 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
+| `forks/bpo5/blocks.py::decode_receipt` | 393 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
 | `forks/amsterdam/transactions.py::IntrinsicGasCost` | 43 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
 | `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 64 | `versionedHashVersionKzg` | `0x01` |
 | `forks/amsterdam/transactions.py::LegacyTransaction` | 89 | `LegacyTransaction` | type 0 |
@@ -641,7 +641,7 @@ inductive DepositError | length | pubkeyOffset | wcOffset | amountOffset | signa
   | indexOffset | pubkeySize | wcSize | amountSize | signatureSize | indexSize
 inductive ArithFault | chainIdOverflow | excessBlobGasOverflow   -- O13 members (§2.12)
   | balanceOverflow    -- reserved: the create_ether/move_ether sites surface as .state .balanceOverflow (EthState R29)
-  | negativeRefund     -- consumed from G4's U256(refund_counter); :285 unreachable, :318 unresolved (Gaps)
+  | negativeRefund     -- consumed from G4's U256(refund_counter); :279 unreachable, :312 unresolved (Gaps)
 inductive TxError
   | wrongChainId (expected actual : U64)
   | transactionTypeContractCreation | blobGasLimitExceeded | insufficientMaxFeePerBlobGas
