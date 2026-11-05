@@ -94,7 +94,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthPairing`, `EthCurveMathlib` (the direct proof imports in `STFSpec/informal/contracts.toml`).
 - VCV-io is not imported here; it enters only the security package `STFSpecSecurity/` (P4).
-- Imports `EthPairing` (core), `EthCurveMathlib` (which brings `EthFieldMathlib` transitively), Mathlib v4.34.0.
+- Imports `EthPairing` (core), `EthCurveMathlib` (which brings `EthFieldMathlib` transitively), Mathlib (the version pinned by P3).
 - **Used by:** consumers proving precompile outputs (ECPAIRING, BLS12_PAIRING_CHECK,
   POINT_EVALUATION), `EthSecurity`.
 - **Seams:** relies on `EthPairing`'s predicate contract; discharges `EthPairing`'s R3 claim.

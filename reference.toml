@@ -65,4 +65,4 @@ cryptography = "45.0.7"       # P-256 verification (crypto/elliptic_curve.py)
 # ckzg 2.1.5 is in uv.lock but is not imported by src/.
 
 [lean]
-toolchain = "leanprover/lean4:v4.34.0"
+toolchain = "leanprover/lean4:v4.35.0"

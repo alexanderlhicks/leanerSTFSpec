@@ -124,12 +124,7 @@ theorem childRefM_admissible {m : Type → Type} [Monad m] [LawfulMonad m]
     (q : ByteArray → m Hash32) (node : RlpListNode) :
     (do let ref ← childRefM q node; pure (decide (AdmissibleRef ref))) =
       (do let _ ← childRefM q node; pure true : m Bool) := by
-  by_cases hs : node.encode.size < 32
-  · simp [childRefM, hs, AdmissibleRef]
-  · simp [childRefM, hs, AdmissibleRef]
-    apply map_congr
-    intro digest
-    rfl
+  by_cases hs : node.encode.size < 32 <;> simp [childRefM, hs, AdmissibleRef]
 
 /-- This particular threshold kernel commutes with an explicit query-preserving map. -/
 theorem childRefM_natural {m n : Type → Type} [Monad m] [Monad n]

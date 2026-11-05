@@ -3971,7 +3971,7 @@ def run_original(eels, evidence, profile, target_path):
         "TransactionGasSettlementNativeTests",
     ):
         artifact_paths.append(repo / (".lake/build/ir/" + module + ".c.o.export"))
-    toolchain = Path("/home/alh/.elan/toolchains/leanprover--lean4---v4.34.0")
+    toolchain = Path("/home/alh/.elan/toolchains/leanprover--lean4---v4.35.0")
     artifact_paths += [
         toolchain / path
         for path in ("bin/lean", "bin/lake", "bin/clang", "lib/lean/libleanshared.so")

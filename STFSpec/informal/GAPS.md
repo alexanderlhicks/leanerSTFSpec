@@ -1084,7 +1084,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **cryptography-specs' proofs use `native_decide`** in some files (for example
   `Proofs/Bls/Compress.lean:319`, `Proofs/Xmss/Blake2s.lean`) [V]; those cannot be imported as-is.
 - **Toolchain mismatch:** cryptography-specs is on Lean v4.29.1 / Mathlib v4.29.1 [V]; our
-  proofs are on v4.34.0.
+  proofs are on the toolchain and Mathlib that P3 pins.
 - **`sgn0`/`Fp2.sqrt?`** specifications depend on which algorithm `EthField` chooses (open there).
 
 ### [`EthCurveMathlib`](modules/EthCurveMathlib.md)

@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-11-04.*
+*Status: current contributor guidance. Date: 2026-11-05.*
 
 Contributions of these kinds are welcome:
 
@@ -62,7 +62,7 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern. 
 - **Fast definitions without compiler substitution.** The performance-appropriate executable definition is sometimes not the most legible form, for example an unrolled keccak permutation or limb arithmetic. Then the component keeps a **legible reference definition beside it**, with the equality proved as an ordinary theorem. Callers use the executable definition, and readers and proofs can use the reference. Both definitions live in the module that owns them. The model-based contract (D25) states the definition against which we prove the laws.
 - **Compiler replacements, also from dependencies.** `check-decls` enumerates every current and superseded `@[csimp]` theorem, because a dependency might register one that affects our code. Any such theorem in scope is a finding.
 - **Release theorems.** Theorems for consumers must be free of `sorry`, also through their dependencies. Conditional theorems list their hypotheses explicitly and name the bridge that discharges each one. A pass of the development check does not claim that anyone instantiated a conditional theorem.
-- **Toolchain.** Lean **v4.34.0**, pinned in the three `lean-toolchain` files and in `reference.toml` `[lean]` (DECISIONS P3).
+- **Toolchain.** Lean **v4.35.0**, pinned in the three `lean-toolchain` files and in `reference.toml` `[lean]` (DECISIONS P3).
 - **Trusted baseline ("pure Lean", D26).** The baseline has three parts: the pinned Lean kernel and its standard axioms, the Lean compiler, and the runtime primitives of Lean core. These primitives are GMP-backed `Nat`, `ByteArray`/`Array` operations and the other `@[extern]` implementations in Lean core. The baseline does **not** promise independence from the compiler or the runtime. All other code must be Lean source that passes `check-decls` on what we import, and that rule covers every third-party dependency. We choose the core dependencies separately from those of the Mathlib and security packages. A mathematical library that is useful for proofs need not become a core dependency.
 
 ## 5. Tests, review and automation
