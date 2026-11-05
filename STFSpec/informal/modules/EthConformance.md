@@ -1,7 +1,7 @@
 # `EthConformance`: EEST runners, conformance tiers, replayable failures and differential oracles
 
-*Status: informal specification, draft; fixture extraction/authentication slice implemented, guest runners unimplemented. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18 · questions: B14, Q7, Q8, Q9.*
+*Status: informal specification, draft; fixture extraction and authentication supplied; guest runners unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: P1, P2, P4, D3, D10, D14, D18, D28 · questions: B14, Q7, Q8, Q9.*
 
 **[V]** marks a claim checked against the pinned archive (`fixtures_zkevm.tar.gz`, sha256 `3a1051fb…5b73`, `tests-zkevm@v21.0.6`), the source (read at `e1a316a0` unless marked as at `59c1473d`), or by running EELS on fixture inputs; a claim marked **[V, v21.0.0]** was checked against the previous pin's archive (sha256 `44cfcb54…be1a`) and EELS @e1a316a0 and has not been rechecked (§10). **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (GAPS-CROSSCUTTING X16).
 

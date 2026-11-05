@@ -1,6 +1,6 @@
 # Protocol discrepancy register
 
-Status: no accepted deviations. Date: 2026-11-02. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
+Status: no accepted deviations. Date: 2026-11-04. This register implements the recording part of [`CONTRACT.md`](CONTRACT.md) §6; an entry does not authorize a change or imply that an upstream report exists. Preserve the pinned reference until an accepted decision says otherwise.
 
 ## DISC-001: Python host resource limits
 
@@ -22,7 +22,7 @@ Status: no accepted deviations. Date: 2026-11-02. This register implements the r
 - **Scope:** liveness only. The reference *is* total, but at impractical cost; the output is not wrong.
 - **Reference:** `utils/numeric.py:177` `taylor_exponential`, called from `vm/gas.py:921` (`calculate_excess_blob_gas`, EIP-7918), which is called from `fork.py:448` (`validate_header`) for **every** block whose parent's `excess_blob_gas + blob_gas_used ≥ BLOB_TARGET_GAS_PER_BLOCK`; also `vm/gas.py:996, 1031` and `vm/instructions/environment.py:606`. `BLOB_BASE_FEE_UPDATE_FRACTION = 11684671` (`vm/gas.py:137`).
 - **Evidence:** measured 2026-09-28 by running the loop's recurrence in Python. The iteration count is about 2.7·x, with x = excess / 11684671: 35, 245 and 2,338 iterations at excesses of 10⁸, 10⁹ and 10¹⁰. Extrapolated, an excess near 2^64 needs about 4×10¹² iterations on growing integers. The parent header is authenticated only externally (CONTRACT §7), so the guest can receive it.
-- **Proposed Lean behaviour:** the same function, with a termination proof (the accumulator reaches 0 once `i` exceeds the numerator/denominator ratio by enough). A faithful implementation is equally slow; any faster algorithm must be proved equal (D21).
+- **Proposed Lean behaviour:** the same function, with a termination proof (the accumulator reaches 0 once `i` exceeds the numerator/denominator ratio by enough). A faithful implementation is equally slow; any faster algorithm must be proved equal (D21). Implemented as EthBase `taylorExponential` (EthBase §3).
 - **Open question for upstream:** should the spec bound `excess_blob_gas` (for example by validating the parent against its own parent), or accept that guests can be made to hang on unanchored inputs?
 
 ## DISC-003: Non-canonical witness node encodings are accepted

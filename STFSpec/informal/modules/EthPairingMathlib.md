@@ -1,6 +1,6 @@
 # `EthPairingMathlib`: pairing laws and KZG correctness
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: gate: [REVIEW §3](../REVIEW.md) · decisions: D12, D15, D18, P4 · questions: B13/Q40, Q44, Q45.*
 
 ## 1. Purpose

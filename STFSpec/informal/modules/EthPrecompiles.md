@@ -1,6 +1,6 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; KZG versioned-hash helper supplied; precompile functions and table unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
@@ -620,8 +620,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   suite exists in EEST sources but not in the zkevm corpus; `test_bls12_precompiles_before_fork`
   and `test_eip_mainnet` fixtures are absent; there is no ECRECOVER area beyond `frontier` and
   `stPreCompiledContracts2` [V: fixture index and file list].
-- **`EthHash` must provide RIPEMD-160 and BLAKE2 F** with the EELS parameter extraction; `EthHash`
-  owns RIPEMD-160 (its R4), although EELS calls `hashlib` directly in `ripemd160.py`.
+- **RIPEMD-160 and BLAKE2 F providers are supplied by `EthHash`** (`Hash.ripemd160`,
+  `Blake2b.getParameters`, `Blake2b.compress`; EthHash §3). The `ripemd160` and `blake2f`
+  precompile functions that consume them, with gas charged before the computation, remain
+  unimplemented. `EthHash` owns RIPEMD-160 (its R4), although EELS calls `hashlib` directly in
+  `ripemd160.py`.
 - **Performance unmeasured.** No numbers exist for pure-Lean MODEXP at 8192 bits, BLS12-381 MSM
   at `k = 128`, or pairings; the cost envelope in §6 is analytical.
 - **Mathematical-correctness proofs (ii)** inherit every gap of `EthCurveMathlib` and

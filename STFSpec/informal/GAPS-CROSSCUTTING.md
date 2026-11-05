@@ -1,6 +1,6 @@
 ## Cross-cutting gaps and coordinated owners
 
-*Status: live cross-cutting gap register. Date: 2026-11-02.*
+*Status: live cross-cutting gap register. Date: 2026-11-05.*
 
 Maintained by hand. Each item says what is missing, the evidence, and who should own it.
 
@@ -29,7 +29,7 @@ The guest must terminate on *every* input. The design requires totality, which i
 D14/O12 has not selected a host-resource/capability policy. Record Python/OpenSSL capability for each reference run, and do not assume host failures are excluded from fidelity.
 
 ### X4. Reference evidence must use the locked environment
-The 2026-09-28 review reran its five counterexamples in a clean checkout at the exact pin using unchanged `uv.lock`, including ethereum-rlp 0.1.6 (see REVIEW §2). Earlier evidence using 0.1.7 remains historical and must be rerun when load-bearing. A repeatable CI reference harness is still missing. **Owner:** EthConformance.
+The 2026-09-28 review reran its five counterexamples in a clean checkout at the exact pin using unchanged `uv.lock`, including ethereum-rlp 0.1.6 (see REVIEW §2). Earlier evidence using 0.1.7 remains historical and must be rerun when load-bearing. CI compares some compiled outputs with frozen catalogues taken from EELS, but no CI job executes EELS. **Owner:** EthConformance.
 
 ### X5. Fixture corpus observations (verified 2026-09-28 at `tests-zkevm@v21.0.0`; record location and zero sentinels rechecked 2026-11-02 at `tests-zkevm@v21.0.6`)
 - **Where the records are.** At `tests-zkevm@v21.0.6` both formats carry guest records: 33,831 `blocks[]` entries in `blockchain_tests` and 33,854 `engineNewPayloads[]` entries in `blockchain_tests_engine`, 67,685 in all, with 29,180 distinct inputs (EthConformance R2). At `tests-zkevm@v21.0.0` all 29,030 were in `blockchain_tests` (`blockchain_tests_engine` had none), with 24,283 distinct inputs.
@@ -44,7 +44,7 @@ The 2026-09-28 review reran its five counterexamples in a clean checkout at the 
 - CALL/CREATE progress across complete iterations;
 - fuel sufficiency;
 - the four fuel guarantees;
-- termination of `taylor_exponential`, and of every loop in the codecs and trie.
+- termination of the codec and trie loops that are not yet implemented. The implemented loops, including EthBase's `taylorExponential`, are total by construction.
 
 See ARCHITECTURE §5.5 and [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7.
 
@@ -56,7 +56,7 @@ Proving directional simulation of a successful witness trace by a progressive fu
   and compare oracle answers is not implemented. `EthSecurity` owns its definition,
   byte-content equations and concrete bridge, coordinating with `EthHash` and
   `EthBase`; it belongs to X7 alongside the hash-relative provider contracts.
-- Direct proof imports are now registered in contracts.toml; the actual proof implementations are absent.
+- Direct proof imports are now registered in contracts.toml. ToVCVio supplies local RLP and Patricia reference proofs (ToVCVio §3); the EthSecurity simulation, agreement and random-oracle proofs are absent.
 
 ### X8. Consumer migration cost is unmeasured
 evm-asm's per-opcode theorems use `BitVec 256`, so the `structure U256` needs a bridge through `toBitVec`. pancaketh needs a name map. Neither has been tried.
@@ -73,16 +73,16 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 
 ### X12. Upstream crypto pieces are missing
 - The 381-bit Montgomery field (`W12`) exists only as a prototype outside the core; it is not yet in the core or upstream.
-- No BN254 Lean reference.
+- No BN254 curve or extension-tower reference (EthField supplies only the prime-field Nat reference).
 - ethereum/cryptography-specs is not reusable as-is: it targets Lean v4.29.1, and uses `partial def`, `get!` and `native_decide`, which our declaration check rejects.
 - Mathlib has no pairing theory and no point counting, so bilinearity and the group orders (D12 (ii)) have no known proof route.
 - The secp256k1 and P-256 behaviour is inferred from the standards and test runs, because the reference libraries are compiled.
 
-### X13. Shared interfaces and record instances are not compiled (implementation task, not a spec defect)
-The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). Compiling the interfaces in the core is implementation work. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
+### X13. Shared interfaces and record instances are partly compiled (implementation task, not a spec defect)
+The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest`, the guest input schema and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
-All 23 modules and COMPOSITION contain conditional arguments. No completed Lean definitions/proofs exist. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
+All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
 
 ### X15. Open interface obligations from the interface prototype
 Four items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):

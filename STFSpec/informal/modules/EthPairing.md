@@ -1,6 +1,6 @@
 # `EthPairing`: BN254 and BLS12-381 pairings, pairing checks and KZG verification
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D7, D12, D15, D18, D21 · questions: B13/Q40/Q42, Q39, Q44, Q45.*
 
 Tags: **[V]** verified against pinned source or by running the pinned dependency; **[I]**
@@ -292,8 +292,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   strategy** within current Mathlib (no divisors on curves, no Weil reciprocity). Until then,
   [C] results that need them (predicate independence, KZG completeness) are conditional on an
   explicit unproved hypothesis; tests provide evidence but cannot discharge it.
-- **No BN254 Lean reference** anywhere (cryptography-specs is BLS12-381 only; CompPoly has only
-  the BN254 scalar field) [V]. BN254 Miller loop, twist, Frobenius constants are all to be written.
+- **No BN254 curve or extension-tower reference** (cryptography-specs is BLS12-381 only; CompPoly has only
+  the BN254 scalar field) [V]. EthField supplies only the BN254 moduli and the prime-field Nat reference. BN254 Miller loop, twist, Frobenius constants are all to be written.
 - **`py_ecc` BLS12-381 sign convention** (R2) is inferred, not checked; it matters only for
   exact-value differential tests.
 - **Speed is unmeasured.** The "seconds per pairing" guess for a pure-Lean `Nat` pairing

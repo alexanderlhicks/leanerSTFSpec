@@ -1,6 +1,6 @@
 # `EthFieldMathlib`: field arithmetic is ring arithmetic in `ZMod p` and its extensions
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in `EthField` §6 and D6 · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D12, D21, D25, D26, P4 · questions: Q39, Q45.*
 
 ## 1. Purpose

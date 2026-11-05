@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-11-03.*
+*Status: current contributor guidance. Date: 2026-11-04.*
 
 Contributions of these kinds are welcome:
 
@@ -62,7 +62,7 @@ The structure follows the [hex-dev](https://github.com/kim-em/hex-dev) pattern. 
 - **Fast definitions without compiler substitution.** The performance-appropriate executable definition is sometimes not the most legible form, for example an unrolled keccak permutation or limb arithmetic. Then the component keeps a **legible reference definition beside it**, with the equality proved as an ordinary theorem. Callers use the executable definition, and readers and proofs can use the reference. Both definitions live in the module that owns them. The model-based contract (D25) states the definition against which we prove the laws.
 - **Compiler replacements, also from dependencies.** `check-decls` enumerates every current and superseded `@[csimp]` theorem, because a dependency might register one that affects our code. Any such theorem in scope is a finding.
 - **Release theorems.** Theorems for consumers must be free of `sorry`, also through their dependencies. Conditional theorems list their hypotheses explicitly and name the bridge that discharges each one. A pass of the development check does not claim that anyone instantiated a conditional theorem.
-- **Toolchain.** Lean **v4.34.0**, pinned in `lean-toolchain` and `reference.toml`.
+- **Toolchain.** Lean **v4.34.0**, pinned in the three `lean-toolchain` files and in `reference.toml` `[lean]` (DECISIONS P3).
 - **Trusted baseline ("pure Lean", D26).** The baseline has three parts: the pinned Lean kernel and its standard axioms, the Lean compiler, and the runtime primitives of Lean core. These primitives are GMP-backed `Nat`, `ByteArray`/`Array` operations and the other `@[extern]` implementations in Lean core. The baseline does **not** promise independence from the compiler or the runtime. All other code must be Lean source that passes `check-decls` on what we import, and that rule covers every third-party dependency. We choose the core dependencies separately from those of the Mathlib and security packages. A mathematical library that is useful for proofs need not become a core dependency.
 
 ## 5. Tests, review and automation
@@ -283,7 +283,7 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
 
-Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there, then `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same with `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, `citation-remap.json` and `citation-remap-manual.txt` (`scripts/remap_citations.py --apply`, no clone needed), and the README diagram. `remap_citations.py --check` fails when a recorded pre-remap EELS citation reappears in its recorded context, or a listed one changed or no longer occurs; resolve each such entry explicitly, with `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at the old commit but was moved within its document, edited around or reformatted (for a move to another document, `--drop-resolved` it and read the new line with `--since`), or `--apply --confirm DOC:LINE` (with `--eels`) if it is already correct at the pin. The check cannot recognise old line numbers in new or edited prose. So a branch cut before the remap (GAPS-CROSSCUTTING X16) must, after merging main and resolving conflicted lines to its own pre-remap numbers, run `uv run --no-project --python 3.12 python -I scripts/remap_citations.py --apply --since <merged main commit> --eels <execution-specs clone>` and commit the result. The script's docstring states its rules.
+Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there, then `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same with `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, `citation-remap.json` and `citation-remap-manual.txt` (`scripts/remap_citations.py --apply`, no clone needed), `STFSpec/informal/eest-fixture-index.txt` (`scripts/gen_fixture_index.py`), `STFSpec/Hash/PackedKeccakPermutation.lean` (`scripts/gen_packed_keccak.py`), `STFSpec/Conformance/Precompiles/KzgVersionedHashGuards.lean` (`scripts/gen_kzg_versioned_hash_guards.py`), and the README diagram. `remap_citations.py --check` fails when a recorded pre-remap EELS citation reappears in its recorded context, or a listed one changed or no longer occurs; resolve each such entry explicitly, with `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at the old commit but was moved within its document, edited around or reformatted (for a move to another document, `--drop-resolved` it and read the new line with `--since`), or `--apply --confirm DOC:LINE` (with `--eels`) if it is already correct at the pin. The check cannot recognise old line numbers in new or edited prose. So a branch cut before the remap (GAPS-CROSSCUTTING X16) must, after merging main and resolving conflicted lines to its own pre-remap numbers, run `uv run --no-project --python 3.12 python -I scripts/remap_citations.py --apply --since <merged main commit> --eels <execution-specs clone>` and commit the result. The script's docstring states its rules.
 
 ### 6.4 Review and commit gate
 
@@ -332,7 +332,7 @@ Use these roles:
 - **Adversarial reviewer** (never edits). It judges only the diff, the brief and the documents that govern the change, without the context of the implementer. It tries to break the change in these areas:
   - Fidelity to the pinned EELS, with every failure condition and its order
   - The stated laws, and the one-owner rule
-  - Totality and the hard rules (it runs `scripts/check_decls.sh` and `scripts/check_boundaries.py`)
+  - Totality and the hard rules (it runs `scripts/check_decls.sh`, `scripts/replay_kernel.sh` and `scripts/check_boundaries.py`)
   - Test adequacy (an input that passes the tests but is wrong)
   - The data structures against the guidance or DEBT
   - Documentation drift

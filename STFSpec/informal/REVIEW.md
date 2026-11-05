@@ -1,10 +1,10 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-11-02.*
+*Status: live implementation gates; dated findings retained. Date: 2026-11-05.*
 
-**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-10-02); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
+**Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-11-04); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
-Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). The pin has since moved to `tests-zkevm@v21.0.6` (`59c1473ddfba341babaeca1c97a50e996f639a0b`, DECISIONS P1); the live sections apply at the current pin, and the re-pin follow-up is GAPS-CROSSCUTTING X16. All 23 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
+Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` (`tests-zkevm@v21.0.0`). The pin has since moved to `tests-zkevm@v21.0.6` (`59c1473ddfba341babaeca1c97a50e996f639a0b`, DECISIONS P1); the live sections apply at the current pin, and the re-pin follow-up is GAPS-CROSSCUTTING X16. All 24 module documents now contain conditional correctness arguments in §7. [COMPOSITION](COMPOSITION.md) connects their premises, common types, error adapters and the complete byte-level guest. **The design remains a draft requiring the gates below.** Owning every reference declaration does not mean specifying every operation completely or proving it correct.
 
 ## 1. Findings and changes
 
@@ -74,12 +74,12 @@ Every row is required before claiming that module's corresponding refinement, in
 | EthStateWitness | Prove reachable cache history, ordered update phases and storage-root-only rewrite commutation; establish eager availability requirements and Q55 action/result-cache ownership, lifetime, first failures and Id thunk adaptation; settle the storage-trie memo (F6) and clear order (F7). |
 | EthVmCore | The two nominal OverflowSite/VmFault carriers and private complete facade clients/controls are supplied under EthVmCore §3/§4/§5/§7; actual fault producers, state lifts, propagation/outcome adapters, reachability and B14 classification/freezing remain open. The raw ChildSettled predicate and constructive Decidable instance, with private clause/all-frame/decision and conditional public rollback/forfeit clients, are supplied under EthVmCore §3/§5/§7; actual non-top committed-spill-zero preservation, incorporation, settlement/snapshots, proof production and F11 remain open. The exact raw eleven-field BlockEnvironment and sixteen-field TransactionEnvironment, private complete facade constructor/projection/type/reconstruction/update clients and full-value controls are supplied under EthVmCore §3/§5/§7; intended history/source coherence, actual assembly/admission/lookup and consumers remain open. The exact two persistent ExtTreeSet aliases and raw nine-field mutable Frame with private complete construction/projection/reconstruction/update/set clients and nontrivial full-field controls are supplied under EthVmCore §3/§5/§7; actual creation, whole source-Evm refinement/control/parent integration, F8 transport/actual producer emission and execution/resource/readiness gates remain open. The exact fifteen-data-field FrameCtx with its sole local literal depth proof and two-field Evm, private complete facade clients and boundary controls are supplied under EthVmCore §3/§5/§7; raw config limits and code/maps remain independent. Actual creation/inheritance, source coherence, read-only handler signatures, world/control/parent integration and F8 transport/actual producer emission remain open. The supplied nominal ExceptionalHalt and raw halt/revert FrameError carriers (private complete-payload clients/guards; producers, gas/settlement and adapters remain open), complete six-field GasMeter and ten all-raw-meter charge/check laws, plus commit/two rollback boundaries and eight laws on their local proof domains, and refund/repay with seven all-raw-meter laws, plus four local transfer operations with eight laws (forfeit only on pending-spill-zero), plus signed refund addition/scalar maximum with four unconditional laws and transaction state-gas usage with one equation on its local baseline-to-grant proof, are owned by EthVmCore §3/§7; partial G1 only. The bounded Stack carrier/seven operations/ten laws (Q82) are additionally supplied under EthVmCore §3/§7; actual handler/frame ownership and composed allocation costs remain open. The pure supplied-address `emitTransferLog` and its two ordinary whole-Frame laws are supplied under EthVmCore §3/§5/§7; actual producers and context transport remain open. Q83 `SatisfiesM` and `satisfiesM_id_iff` are supplied under EthVmCore §3/§5/§7; table/adapter construction and Runner bridges remain open. The shared PrecompileResult/PrecompileFn/MeterOk/PrecompileTable carriers are supplied under EthVmCore §3/§5/§7; installed-table construction, entry proofs, effect bridges and halt settlement remain open. The two scalar immediate decoders and eight ordinary laws are supplied under EthVmCore §3/§7. The standalone bufferRead and its three ordinary bridge/List/size laws are supplied under EthVmCore §3/§7. Q62’s private aligned Memory, exact six-operation API and ten ordinary laws are supplied (EthVmCore §5/§7); actual caller windows/alignment and compiled ownership remain open. The complete raw Log, public empty/leaf/concat rope constructors, two operations and six ordinary laws with private all-tree workstack refinement are supplied under EthVmCore §3/§5/§7; finite C3 traversal/cleanup evidence retains sharing and metric limits, while real producers/frame incorporation/receipt integration and general resource bounds remain open. The abstract immutable JumpdestMap, existing two operations and three ordinary all-code/all-Nat lookup equations are supplied under EthVmCore §3/§5/§7; code/map/cache provenance, actual JUMP/JUMPI ordering and compiled/resource costs remain open. The raw 144-field GasCosts data record and two ordinary ext/eta laws are supplied under EthVmCore §3/§5/§7; broader B8 classification, fork initialization and supported consumers remain open. The raw-four StateGasCosts, raw-three VmLimits and complete three-field VmConfig data with six ordinary ext/eta laws are supplied under EthVmCore §3/§5/§7; actual values, state amounts and configuration/frame consistency remain open. The raw BlockGasCounters carrier and two ordinary ext/eta laws are supplied under EthVmCore §3/§7; full EthBlock.BlockOutput and capacity arithmetic/failures remain separate. F8 Fork→Block→Runner transport and FrameCtx creation/child inheritance remain unimplemented (EthVmCore §7/§10). Implement/prove every remaining meter operation, error fields, FrameCtx/Evm creation, caller premises and refund sign; align memory allocation with charging and compiled container costs. |
 | EthVmInstructions | The 153-member Ops enum, total UInt8 conversions and exactly two ordinary round-trip laws with complete literal byte controls are supplied under EthVmInstructions §3/§5/§7. Dispatch, step and opcode effects remain open. The exact raw seven-field CreateRequest and private complete facade clients are supplied under EthVmInstructions §3/§5/§7, with unrestricted independent grants/addresses/bytes/charging flag and no added admission or public helper laws. Producers, CallRequest, StepResult, child context/frame and resume remain unimplemented; no source/admission, gas/staticness or F11 policy follows from the carrier. F8 child-context systemAddress inheritance and SELFDESTRUCT use remain unimplemented (§7/§10). Expand grouped handler claims into guard/effect/error equations and prove per-opcode source refinement; fuel/resource/guest gates remain open. |
-| EthPrecompiles | Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
+| EthPrecompiles | The raw KZG versioned hash is supplied (EthPrecompiles §3). Prove every adapter and returned-meter law; thread pricing config consistently; verify multi-error priority and all accepted infinity/subgroup cases. |
 | EthVmRunner | The minimal source-free InternalError/CheckedResult/CheckedT control shapes and private complete facade/Id composition clients are supplied (EthVmRunner §3/§5/§7); adapters, actual caller propagation, execution and guest projection remain open, with F11 and G2–G7 unchanged. The three selectable mathematical budget declarations and their private clients/complete finite interpreted/native controls are supplied in EthVmRunner §3/§5/§7; no default, runner integration or adequacy claim. The nominal three-constructor ExecKind carrier and private exhaustive/disjointness facade clients are also supplied; no Exec relation or choice of its form follows. B11 remains an unproved candidate. The exact three-field Monad-only raw RunnerEnv carrier and private complete facade construction/projection/reconstruction/update and stored-table-certificate clients are supplied (EthVmRunner §3/§5/§7). Actual config/table assembly, F8 successful createEvm copy, child inheritance and processCall context-address emission remain unimplemented (EthVmRunner §7/§10), without a new global Step/Exec or gas/fuel premise. Define Exec/measure and TerminationReady; prove complete call/create progress and all four fuel guarantees; verify every InternalError path; choose how `ChildSettled` is produced (F11). |
 | EthBlock | The raw unrestricted three-Nat BlockParams and TxParams and eight-Address/two-Nat SystemAddrs providers are supplied with private complete facade controls (EthBlock §3); F8 runnerEnv address projection at both actual runner entries, actual consumers and full configuration remain open. The standalone all-finite `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom` operations, whole result/action laws, extraction success-size law, lawful Bloom empty/sequential-append laws, private packed/reference equalities and bounded complete controls are supplied under EthBlock §3/§5/§7. Bloom preserves address-then-topic query order, every duplicate/current answer, the complete 256-byte result and supplied underlying failures/effects; its operation remains plain-Monad, and its laws use lawful sequencing without oracle purity/stability. EthBlock §4 owns the precise independent single-log known-answer provenance repair; no published EIP vector is claimed. Actual receipt/block composition, generic oracle coupling and compiled ownership/C1–C4 remain open. Deposit extraction retains all eleven ordered error identities and complete bytes; fixture literal provenance supplies no fixture/EVM/guest execution claim. The request commitment retains ordered complete inner digests, every empty/duplicate request and exact outer digest bytes; Q46 inner/outer bounds, source host/API/native agreement, streaming/resource and cryptographic binding remain separate. Intrinsic gas/floor, actual callers, source/runtime and resource correspondence remain separate. Implement/prove Q53's actual Bytes/legacy/typed/withdrawal encoding bridges and dense safe root-input composition using lawful byte keys and context empty root. Implement and prove F20 acquisition/threading and context coherence; expand every record/codec and admission arithmetic failure; prove BAL/index/receipt ordering, unchecked-system fault propagation and backend simulation. |
 | EthFork | Complete Amsterdam block parameters (including the two actual private subtraction operands and all five quantity controls) and transaction parameters are supplied with private complete facade controls (EthFork §3); block size/base-fee consumers, division safety and full coherence remain open. Complete stored Amsterdam VM GasCosts/StateGasCosts/VmLimits/VmConfig values and the definitional F8 depth law are supplied with full literal/native/parser controls (EthFork §3). Complete Amsterdam R-F2 systemAddrs data and private full-byte/budget controls are supplied (EthFork §3). Compare remaining parameter tables with source; construct coherent BlockConfig/precompile table, F8 context assembly and actual consumers; specialise behavioural termination proof; verify previous-header compatibility. |
 | EthStateless | The concrete output slice is supplied under EthStateless §3/§4/§7; host decoder inverse and whole-guest encoding composition remain open. Implement and prove F20 acquisition/threading and context coherence; complete phase-to-outcome projection and input-to-context WF/rootability; typecheck subtype/header/request adapters; compose the supplied exact output encoding with actual guest outcomes; prove O2 unreachable on decoded values. |
-| EthConformance | Co-ordinate closing X1 in the failure ledger (maintained outside this repository); implement exact guest-record/label/replay handling, locked environment and dependent-transition policy. |
+| EthConformance | Guest-record extraction from both fixture formats is supplied (EthConformance §3). Co-ordinate closing X1 in the failure ledger (maintained outside this repository); implement exact label/replay handling, locked environment and dependent-transition policy. |
 | EthFieldMathlib | Build public-operation bridges without circular typeclass premises; certify all primes/extensions and sqrt lemmas. |
 | EthCurveMathlib | Prove valid-point operation bridges, group/subgroup orders, exact map/decompression and qualified ECDSA laws. |
 | EthPairingMathlib | Supply concrete pairing laws/group/setup premises; complete convention-independence and honest-opening proofs. |
@@ -146,7 +146,7 @@ reader scope, and identifies the dated external interpreted/native/twenty-five
 original comparisons and their source/default/host premises.
 Relevant-price congruence supplies no global WF or whole payment/settlement/G2
 claim. Actual caller/coherence/composition, compiled/resource and whole VM/guest
-gates remain open; the dated §6 readiness assessment is unchanged.
+gates remain open.
 
 Q65's local allocation slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
@@ -158,8 +158,7 @@ comparisons and three source-only typed underflows. Full declaration types/proof
 values/privacy/generated raw-record and script support/axiom closure were audited;
 no public conformance helper was added. Local constructed entry/charge facts prove
 no actual Runner reachability, admission/allocation cap consistency, settlement,
-transaction conservation, resource or whole G1/G2–G7 result. Q66 and the dated §6
-readiness assessment remain unchanged.
+transaction conservation, resource or whole G1/G2–G7 result. Q66 is unchanged.
 
 Q66's local settlement slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
@@ -171,15 +170,13 @@ the complete 44 helper/six raw interpreted/native controls, strict parser scope 
 44 authenticated whole successful original comparisons plus eight source-only
 typed arithmetic failures.
 Actual caller bounds/refund range and cast ordering, provider/fee effects, whole
-G1/G2–G7, compiled/resource and VM/guest/readiness gates remain open. The dated §6
-assessment is unchanged.
+G1/G2–G7, compiled/resource and VM/guest/readiness gates remain open.
 
 The supplied Runner entry-kind carrier is project vocabulary, with no original
 EELS enum or source call. [EthVmRunner §3/§5/§7](modules/EthVmRunner.md#3-eels-source-map)
 owns its exact inventory and private exhaustive/dependent elimination, three branch
 equations and six ordered disjointness clients. This closes only the nominal tag
-slice; `Exec`, its relation form, D13/B11, F11, G2–G7 and the dated §6 readiness
-assessment remain unchanged.
+slice; `Exec`, its relation form, D13/B11, F11 and G2–G7 remain unchanged.
 
 EthVmCore §3/§5/§7 owns the supplied raw immutable FrameCtx and assembled Evm
 view of EELS `src/ethereum/forks/amsterdam/vm/__init__.py:147–185`: exactly fifteen
@@ -193,7 +190,7 @@ systemAddress are supplied policy fields. No source runtime or whole-Evm executi
 comparison is claimed. Actual creation/inheritance, source/config/history/code
 coherence, read-only handler signatures, world/control/parent integration,
 F8 address transport/actual producer emission, F20, F11, gas/fuel/resources and
-VM/guest/EEST/readiness remain open. The dated §6 assessment is unchanged.
+VM/guest/EEST/readiness remain open.
 
 EthVmCore §3/§5/§7 owns the supplied raw eleven-field BlockEnvironment and
 sixteen-field TransactionEnvironment from EELS
@@ -217,8 +214,7 @@ indexes, tombstones, zero/empty inners, arbitrary complete bytecode, independent
 clears/transient keys and retained parent/siblings. These are carrier controls,
 with no source runtime, snapshot/restore or tracker evidence. Its §10 retains
 order/value coupling, lifetime/Reachable/AccountWritesLookedUp and error/provider
-obligations, S1/S2/W1, F6/F7/F11 and C1–C4. No whole-State or dated §6 readiness
-claim changes.
+obligations, S1/S2/W1, F6/F7/F11 and C1–C4. No whole-State claim changes.
 
 EthVmRunner §3/§5/§7 owns the supplied source-free checked control carriers:
 exactly InternalError.fuelExhausted with full Nat depth, CheckedResult and CheckedT
@@ -267,7 +263,7 @@ committed, so it cannot be reproduced from this repository) retain the explicit
 Stack reversal and three finite-membership adapters, including the SOURCE
 preparation/literal-order limitations recorded by that owner. Actual producers,
 context/transport/value assembly, F20, F11, D5 coupling, fuel and cost gates remain
-open; the dated §6 assessment is unchanged.
+open.
 
 EthVmInstructions §3/§5/§7 supplies the exact 153-member `Ops` vocabulary, total
 `Ops.toByte`/`Ops.ofByte?` and exactly two ordinary round-trip laws (the second
@@ -279,8 +275,7 @@ itself is out of tree: nothing for it is committed, so it cannot be reproduced
 from this repository. The actual compiled leaf/facade/clients are warning-fatal
 and declaration-audited. There is no instance/default/alias or new policy.
 Dispatch, `step`, invalid-opcode halting, handlers and all
-source-runtime/execution/fuel/resource/guest obligations remain open; the dated
-readiness assessment is unchanged.
+source-runtime/execution/fuel/resource/guest obligations remain open.
 
 EthVmInstructions §3/§5/§7 supplies the raw seven-field `CreateRequest` at the
 creation suspension split of EELS
@@ -377,8 +372,7 @@ controls behind it are out of tree (EthField §3/§4/§7). The runtime producer 
 input-only rows; the strict full-value comparator and malformed CLI controls are
 separate. No inverse/model/policy or ordinary-caller premise changes. Remaining field
 operations, executable Montgomery/D6, concrete aliases, byte encoding/paired laws,
-field/tower/Mathlib and C1–C4/replacement/guest gates remain open. This does not change
-the dated §6 readiness assessment.
+field/tower/Mathlib and C1–C4/replacement/guest gates remain open.
 
 Read CONTRACT and `reference.toml`, the current decision statuses and DECISIONS dispositions, COMPOSITION, this review, the module's §2/§5/§7/§8/§10 and its providers' laws, the interface findings listed on the module's navigation line (DECISIONS §3), and the module's failure-ledger entries (X1) before implementing. Grouped inventory claims assign responsibility; expand them into a local declaration checklist, recording inputs, result/error types, ordered guards, observations, state effects and source/test references. Resolve `…`, bare structures, inferred/dead branches and undefined error types *in the Lean code* before treating an interface as frozen. The markdown specs are informal (`CONTRIBUTING.md` §5.4) and are not expected to reach that level themselves; where the spec is ambiguous rather than merely informal, raise it as a spec question instead of guessing.
 
@@ -411,7 +405,6 @@ Membership agreement is not raw HashSet equality. Original source records and
 copy/restore/incorporation context are read for binding; no EELS function execution
 or lifecycle equivalence is claimed. Actual tracker/TxState/StateM,
 D23 ownership/monotonicity, F7, S1/S2/W1 and C1–C4/resource/guest gates remain open.
-The dated §6 readiness assessment is unchanged.
 
 EthState §3/§5/§7 supplies the exact thirteen-field raw BlockState for arbitrary m
 without Monad/hash-query premises: complete PreState, F20 constants, persistent
@@ -434,7 +427,6 @@ claimed. Further stable public consumer laws await a named consumer and separate
 reviewed contract. No tracker operation or invariant is supplied.
 Acquisition/coherence, actual providers/sharing/linear ownership/order history,
 D22/D23, F7, D5/S1/S2/W1, replacement and C1–C4/resource/guest gates remain open.
-The dated §6 readiness assessment is unchanged.
 
 EthState §3/§5/§7 owns the two supplied logical block read predicates and exactly
 accountReadSet_iff/storageReadSet_iff. All raw blocks and complete keys are admitted,
@@ -447,7 +439,7 @@ Runtime controls transport existing Std membership decidability through the publ
 iff laws, with no new instance/API. Source fields and incorporation/BAL contexts
 are statically bound at the pin; no original tracker execution is claimed. No set
 provider, enumeration/order, codeReadSet, raw-set equality or lifecycle/ownership/
-monotonicity/resource/whole-State result follows. The dated §6 assessment is unchanged.
+monotonicity/resource/whole-State result follows.
 
 EthBase §3/§5/§7 owns Q84's exactly ten canonical Address/Bytes32 table-support
 declarations, with legible complete 20/32-digit models, structural streaming and
@@ -463,8 +455,7 @@ all three observation domains, without a distinct-hash premise. Preserve Q51's H
 model and existing expectations. This is functional support only: the raw TxObs and
 BlockState carriers are supplied separately; combined transaction state/StateM and D22/D23
 lifecycle/ownership, F7 replay failures/observations, actual distributions,
-construction/resizing/allocation, replacement and C1–C4 remain separate obligations. The
-dated §6 readiness assessment is unchanged.
+construction/resizing/allocation, replacement and C1–C4 remain separate obligations.
 
 EthBase's `utils/numeric.py:177–216` operation is supplied as
 `STFSpec.Base.taylorExponential (factor numerator denominator : Nat)
@@ -521,8 +512,7 @@ original comparison passed twenty direct unchanged helper calls with exact built
 results and three source-only assertion-597 cases, all with unchanged complete meters
 and source/runtime identities; no invalid Lean proof or other original helper replay. Caller
 reachability, remaining operations and transaction conservation remain open. These local laws
-close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate. The dated
-§6 readiness assessment is unchanged.
+close no whole G1/G2–G7, VmFault ledger, F11/B11, resource or guest/EEST gate.
 
 The bounded Stack slice's seven source/model rows and ten ordinary public laws (Q82) are
 owned by [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). Its private Array
@@ -553,7 +543,7 @@ work concerns the three amount-provider observations and their generic versus
 specialization equations; it does not unsupply the four-input data carrier.
 Actual EthFork values and configuration, F8 limits, consumers/frame/target
 consistency, actual pricing callers, ordering/resource/C1–C4 and VM/guest
-gates remain open. The dated §6 readiness assessment is unchanged.
+gates remain open.
 
 The raw GasCosts data seam is owned by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): the complete class
@@ -568,7 +558,7 @@ MODEXP classification, module-derived maximum placement, StateGasCosts
 representation, BLS index/denominator support and actual EthFork factory/config
 coherence remain open for the claims that need them. Memory pricing's policy
 disposition is owned separately by Q63. No broad B8, termination, resource, C1–C4 or guest
-readiness gate follows; the dated §6 assessment is unchanged.
+readiness gate follows.
 
 The two scalar immediate decoder APIs and eight ordinary laws are owned by
 [EthVmCore §3/§7](modules/EthVmCore.md#3-eels-source-map). They retain actual UInt8
@@ -609,7 +599,7 @@ or global frame invariant is
 introduced. BufferRead remains independent; memory pricing’s policy-threading
 contract is owned by Q63 and EthVmCore §5/§7; its local implementation/proofs are supplied below, while actual
 callers/coherence/resource obligations remain open. This supplies no implementation closure, R1/C1–C4,
-L-MEM-BOUND, G1–G7 or guest/EEST gate; the dated §6 readiness assessment is unchanged.
+L-MEM-BOUND, G1–G7 or guest/EEST gate.
 
 Q63's local pricing slice is supplied by [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map):
 two pure VmConfig-first functions, the existing two-Nat result and exactly ten ordinary
@@ -625,7 +615,6 @@ Generic-policy controls are target-only; three raw unaligned predictions remain 
 source-only controls. No returned huge extent is allocated. These local facts do not prove
 actual caller/window/payload/config/target coherence, charge/allocation/check ordering,
 L-MEM-BOUND, R1/C1–C4, G1–G7, general source-host/resources or VM/guest/EEST readiness.
-The dated §6 assessment remains unchanged.
 
 The supplied Jumpdest slice is owned by [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map):
 abstract immutable packed map, existing factory/contains operations and exactly
@@ -639,8 +628,7 @@ EthVmCore §3/§4 identifies the dated interpreted/native/retained-source eviden
 and its exact scope. Logical bitmap observations remain distinct from private
 physical shape proofs. Code/map/cache provenance, actual
 JUMP/JUMPI ordering, source-host generalization, compiled costs/ownership/resources,
-C1–C4, G1–G7 and whole VM/guest/EEST gates remain open. The dated §6 readiness
-assessment remains unchanged.
+C1–C4, G1–G7 and whole VM/guest/EEST gates remain open.
 
 The supplied chronological Log/LogRope slice is owned by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map). Its exact existing
@@ -689,7 +677,7 @@ Complete parser/local-result regressions preserve failure stage before the two-c
 coarse mapping.
 These storage gates establish no global error/granularity,
 secure roots/callbacks, authentication/progress, generic Q55 coupling, C1–C4
-or guest/EEST readiness result; the dated §6 assessment is unchanged.
+or guest/EEST readiness result.
 
 Local SC5/conditional account SC10 support is owned by EthStateCommit §3/§7.
 The definition and public contracts retain arbitrary supplied defaults,
@@ -703,7 +691,7 @@ Complete RLP-first order is observed upstream; local field order is statically
 sequential and is not exposed by the coarse error. Contextual callbacks/secure
 roots, witness authentication, backend progress, collisions/source history,
 generic coupling, global errors/O12/resources, C1–C4 and guest/EEST readiness
-remain open. The dated §6 readiness assessment is unchanged.
+remain open.
 
 The mathematical block view and exactly its ordinary application equation are
 supplied by EthState §3/§7.2. Private facade clients derive the full result, all
@@ -857,79 +845,15 @@ X1 is coordinated by EthConformance tooling; each module owns its explicit and i
 
 The highest-risk uncompleted items are closing the failure ledger's unresolved sites (X1), the complete CALL/CREATE gas proof (the fuel-adequacy investigation, §7 G2–G7), code-authenticity/oracle coupling, lenient witness root agreement (the witness/full-state agreement prototype, §7 S2), and the open interface items (X15). Until these are resolved, the repository is suitable for targeted validation and scaffolding, not an unconditional claim of end-to-end soundness.
 
-## 6. Implementation-readiness assessment (2026-10-02)
+## 6. Implementation-readiness assessment (2026-11-04)
 
-**Implemented scope.** [EthBase §3](modules/EthBase.md#3-eels-source-map) owns the
-implemented declarations, source correspondence, public proofs and operation-value
-regressions. Its §10 owns missing APIs and derived laws.
-[EthHash §3](modules/EthHash.md#3-eels-source-map) owns the reference Keccak-f[1600]
-hash providers, their public model/byte laws, primary KATs and finite differential
-evidence; its §10 owns remaining hash APIs and correspondence.
-[EthCodec §3](modules/EthCodec.md#3-eels-source-map) owns its implemented
-operations, source correspondence and conformance evidence; §7 owns public-law
-domains, and §10 owns remaining APIs and laws.
-[EthCommit §3/§7](modules/EthCommit.md#3-eels-source-map) owns implemented path,
-Q49 provider, internal-node, C12 raw database and Q53 generic storage/preparation/root APIs, public-law domains and
-source/conformance evidence.
-Q50 supplies actual finite-map domain/ending-key laws and private extension/child
-strict sum-descent support and private longest shared-prefix selection with
-ordinary domain/maximality/representative laws. Private bounded branch support
-adds full-key partition/ending and ordered supplied-callback/C6 sequencing laws
-with their explicit lawful-monad premises (EthCommit §3). Recursive C7 adds actual
-full-map construction, public dispatch/extensionality and private every-node selector
-independence. C8 adds the total local root, supplied-empty bypass and ordinary
-whole-action reference/fused equality with explicit lawful sequencing. Its §10 owns
-remaining witness/trie APIs and trie/resource obligations. Other semantic components
-remain scaffolding.
-[COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end
-theorem is proved.
-[EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns the fixture
-extraction and authentication tooling.
+**Implemented scope.** Each library's §3 owns its implemented declarations, source correspondence, public laws and evidence, and its §10 owns what is missing. Lean definitions exist in EthBase, EthHash, EthField, EthCodec, EthCommit, EthState, EthStateCommit, EthVmCore, EthVmInstructions, EthVmRunner, EthPrecompiles, EthBlock, EthFork and EthStateless, and in the local ToVCVio library of the security package. Above EthVmCore they are carriers, fork values and isolated operations: no opcode effect, step function, runner execution, block execution or guest entry point exists. EthCurve, EthPairing, EthStateFull, EthStateWitness, EthSecurity and the three Mathlib bridges remain scaffolding. [EthConformance §3](modules/EthConformance.md#3-eels-source-map) owns fixture extraction and authentication, including the guest records in both `blocks[]` and `engineNewPayloads[]`. [COMPOSITION](COMPOSITION.md) records supplied component premises; no end-to-end theorem is proved.
 
-**Evaluation.** Primitive guards and caller proofs compile through `EthConformance`.
-Path/node guards and authenticated differential drivers are owned by [EthCommit
-§3](modules/EthCommit.md#3-eels-source-map). Typed-Bytes/Python sequence support
-checks supply provider evidence; finite full-output native correctness observations
-supply no throughput or C1–C4 claim. Q49 supplies provider support; Q50 discharges
-domain/strict-descent support over actual finite maps, including all sixteen
-empty/nonempty child cases. Private callback-based branch formation adds bounded
-ordered C6 encoding support. Recursive C7 supplies complete node/query observations
-and private every-node selector independence, without a parent query at the return
-(EthCommit §3). C8 supplies the total local wrapper and full-byte/effect reference
-equality, with complete final-query and original-error observations. Canonicality,
-whole-source refinement and aggregate copy/comparison costs remain open.
-Base differential drivers compare public operation values with the pinned source.
-Q51 table-support vectors compare complete UInt64/native/source values with independent
-nonprotocol Python arithmetic and actual Std map observations (EthBase §3); this
-provides no EELS cryptographic, root or C1–C4 claim.
-The C12 source/complete-map/native slice is owned by EthCommit §3: authentication
-at Id and input-order query/overwrite laws are supplied for future consumers.
-Eager decoding, cache/root agreement, generic oracle coupling and table resource
-gates remain open; functional large/sibling runs are not cost evidence.
-[EthHash §3](modules/EthHash.md#3-eels-source-map) owns the bounded permutation,
-compression and digest drivers, provider correspondence and evidence limits.
-Production F20 entry seams, consumer coherence and D5 generic coupling remain open.
-The packed candidate retains state across blocks and proves endpoint equality;
-D4/resource/DEBT evaluation remains open.
-Extraction guards, host regressions and authenticated content comparison validate
-fixture tooling as specified by EthConformance §3–§4.
-They establish local evidence, without implementing Lean opcode effects. Guest,
-full-state and engine runners remain absent; no EEST guest records execute in Lean.
-The exact pin and dependencies are in `reference.toml`; the generated inventory,
-record catalogue and failure ledger support further implementation.
+**Evaluation.** CI builds every library, runs the declaration check and replays the modules of each package's libraries through the kernel (CONTRIBUTING §4). Guards and caller proofs compile through `EthConformance`. Some CI steps compare native and interpreted outputs with frozen catalogues taken from EELS. No CI job executes EELS. The frozen catalogues remain evidence at `e1a316a0`, and some drivers still require that commit (GAPS-CROSSCUTTING X16). Each module's §3 states its evidence and its limits. Guest, full-state and engine runners are absent, and no EEST guest record executes in Lean. The exact pin is in `reference.toml`.
 
-**Completion gates.** Lower-layer work can proceed against each module's contracts
-and §3 gates. Runner, block and guest completion still require fuel adequacy (G2–G7),
-witness/full-state agreement (S2), and X1, X6, X7 and X15. Unresolved domains, error
-priority, schemas and caller premises must remain explicit. X5 records fixture
-coverage limits; passing document checks or a prototype does not close these gates.
+**Completion gates.** Lower-layer work can proceed against each module's contracts and §3 gates, together with its re-pin items (X16). Runner, block and guest completion still require fuel adequacy (G2–G7), witness/full-state agreement (S2), and X1, X6, X7 and X15. Unresolved domains, error priority, schemas and caller premises must stay explicit. X5 records fixture coverage limits. Passing document checks or a prototype does not close these gates.
 
-**Performance and proof limits.** The C1–C4 workload and measurement gates and R4
-representation exercise remain open. No whole-guest native-baseline comparison or
-target-zkVM cost result supports a speed claim. The specification arguments and
-literature references do not supply concrete MPT, pairing, imported-crypto or
-whole-guest resource proofs (X7, X9, X12). Decision statuses are owned by DECISIONS;
-implementation debt is owned by DEBT.
+**Performance and proof limits.** The C1–C4 workload and measurement gates and the R4 representation exercise remain open. No whole-guest native-baseline comparison or target-zkVM cost result supports a speed claim. The specification arguments and literature references do not supply concrete MPT, pairing, imported-crypto or whole-guest resource proofs (X7, X9, X12). DECISIONS owns decision statuses, and DEBT owns implementation debt.
 
 ## 7. Acceptance criteria: proof gates, composition cases, replacement and cost checks
 

@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q53, Q54, Q83.*
+*Status: informal specification, draft; raw parameter records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -249,17 +249,17 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/requests.py::CONSOLIDATION_REQUEST_TYPE` | 86 | `RequestType.consolidation` | 0x02 |
 | `forks/amsterdam/requests.py::BUILDER_DEPOSIT_REQUEST_TYPE` | 93 | `RequestType.builderDeposit` | 0x03, EIP-8282 |
 | `forks/amsterdam/requests.py::BUILDER_EXIT_REQUEST_TYPE` | 100 | `RequestType.builderExit` | 0x04, EIP-8282 |
-| `forks/amsterdam/requests.py::DEPOSIT_EVENT_LENGTH` | 108 | `DepositLayout.eventLength` | 576 |
-| `forks/amsterdam/requests.py::PUBKEY_OFFSET` | 114 | `DepositLayout.pubkeyOffset` | 160 |
-| `forks/amsterdam/requests.py::WITHDRAWAL_CREDENTIALS_OFFSET` | 120 | `DepositLayout.wcOffset` | 256 |
-| `forks/amsterdam/requests.py::AMOUNT_OFFSET` | 126 | `DepositLayout.amountOffset` | 320 |
-| `forks/amsterdam/requests.py::SIGNATURE_OFFSET` | 131 | `DepositLayout.signatureOffset` | 384 |
-| `forks/amsterdam/requests.py::INDEX_OFFSET` | 136 | `DepositLayout.indexOffset` | 512 |
-| `forks/amsterdam/requests.py::PUBKEY_SIZE` | 141 | `DepositLayout.pubkeySize` | 48 |
-| `forks/amsterdam/requests.py::WITHDRAWAL_CREDENTIALS_SIZE` | 147 | `DepositLayout.wcSize` | 32 |
-| `forks/amsterdam/requests.py::AMOUNT_SIZE` | 153 | `DepositLayout.amountSize` | 8 |
-| `forks/amsterdam/requests.py::SIGNATURE_SIZE` | 158 | `DepositLayout.signatureSize` | 96 |
-| `forks/amsterdam/requests.py::INDEX_SIZE` | 163 | `DepositLayout.indexSize` | 8 |
+| `forks/amsterdam/requests.py::DEPOSIT_EVENT_LENGTH` | 108 | literal `576` in `extractDepositData`; no public declaration | 576 |
+| `forks/amsterdam/requests.py::PUBKEY_OFFSET` | 114 | literal `160` in `extractDepositData`; no public declaration | 160 |
+| `forks/amsterdam/requests.py::WITHDRAWAL_CREDENTIALS_OFFSET` | 120 | literal `256` in `extractDepositData`; no public declaration | 256 |
+| `forks/amsterdam/requests.py::AMOUNT_OFFSET` | 126 | literal `320` in `extractDepositData`; no public declaration | 320 |
+| `forks/amsterdam/requests.py::SIGNATURE_OFFSET` | 131 | literal `384` in `extractDepositData`; no public declaration | 384 |
+| `forks/amsterdam/requests.py::INDEX_OFFSET` | 136 | literal `512` in `extractDepositData`; no public declaration | 512 |
+| `forks/amsterdam/requests.py::PUBKEY_SIZE` | 141 | literal `48` in `extractDepositData`; no public declaration | 48 |
+| `forks/amsterdam/requests.py::WITHDRAWAL_CREDENTIALS_SIZE` | 147 | literal `32` in `extractDepositData`; no public declaration | 32 |
+| `forks/amsterdam/requests.py::AMOUNT_SIZE` | 153 | literal `8` in `extractDepositData`; no public declaration | 8 |
+| `forks/amsterdam/requests.py::SIGNATURE_SIZE` | 158 | literal `96` in `extractDepositData`; no public declaration | 96 |
+| `forks/amsterdam/requests.py::INDEX_SIZE` | 163 | literal `8` in `extractDepositData`; no public declaration | 8 |
 | `forks/amsterdam/requests.py::extract_deposit_data` | 170–271 | `extractDepositData : ByteArray → Except DepositError ByteArray` | Supplied on every finite input; eleven ordered checks, R-RQ; complete result/size laws below |
 | `forks/amsterdam/requests.py::parse_deposit_requests` | 274 | `parseDepositRequests` | reads receipts, not a log list |
 | `forks/amsterdam/requests.py::compute_requests_hash` | 307–328 | `computeRequestsHash : List ByteArray → Hash32` | Supplied ordered complete SHA-256-of-digests result law; no request validation; Q46/host limits below |
