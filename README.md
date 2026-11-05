@@ -167,7 +167,7 @@ Regenerate the fixture area index with `uv run --no-project --python 3.12 python
 
 Regenerators that need a pinned EELS checkout (not run in CI): `uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py <EELS> --check` and `uv run --no-project --python 3.12 python scripts/gen_reference_records.py <EELS> --check`.
 
-The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks, and the other core-job checks that CONTRIBUTING §6.3 lists, on pushes to `main` and on pull requests. The workflow file is the complete list. Weekly and manual runs download the pinned fixture archive and verify its checksum and metadata links. They also compare the Lean extraction of every record with the archive. No fixture executes yet. Execution arrives with the conformance runner.
+The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks, and the other core-job checks that CONTRIBUTING §6.3 lists, on pushes to `main` and on pull requests. The workflow file is the complete list. Weekly and manual runs download the pinned fixture archive and verify its checksum, record counts and metadata links. They also compare the Lean extraction of every record with the archive. No fixture executes yet. Execution arrives with the conformance runner.
 
 ## Documents
 
