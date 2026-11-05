@@ -4,14 +4,12 @@ A formal, executable Lean 4 specification of the Ethereum execution-layer state 
 
 It will replace the spec in evm-asm (`EvmAsm/Stateless/SpecRef`). The project writes it from scratch and does not move that spec, and equivalence with SpecRef is not a goal (decision P6). The consumers retarget in their own repositories. This repository never edits them.
 
-**Status (2026-11-04):** some libraries implement operations, and others have only records, parameters or a few helpers. No EEST fixture executes in Lean yet, because the guest, full-state and engine runners are absent. Each module's §3 lists what it implements:
+**Status (2026-11-05):** implementation is in progress, and no EEST fixture executes in Lean yet, because the guest, full-state and engine runners are absent. These documents give the details:
 
-- **Operations:** [EthBase](STFSpec/informal/modules/EthBase.md#3-eels-source-map), [EthHash](STFSpec/informal/modules/EthHash.md#3-eels-source-map), [EthField](STFSpec/informal/modules/EthField.md#3-eels-source-map), [EthCodec](STFSpec/informal/modules/EthCodec.md#3-eels-source-map), [EthCommit](STFSpec/informal/modules/EthCommit.md#3-eels-source-map), [EthState](STFSpec/informal/modules/EthState.md#3-eels-source-map), [EthStateCommit](STFSpec/informal/modules/EthStateCommit.md#3-eels-source-map), [EthVmCore](STFSpec/informal/modules/EthVmCore.md#3-eels-source-map) and [EthBlock](STFSpec/informal/modules/EthBlock.md#3-eels-source-map).
-- **Records, parameters or a few helpers:** [EthVmInstructions](STFSpec/informal/modules/EthVmInstructions.md#3-eels-source-map), [EthVmRunner](STFSpec/informal/modules/EthVmRunner.md#3-eels-source-map), [EthPrecompiles](STFSpec/informal/modules/EthPrecompiles.md#3-eels-source-map), [EthFork](STFSpec/informal/modules/EthFork.md#3-eels-source-map) and [EthStateless](STFSpec/informal/modules/EthStateless.md#3-eels-source-map).
-- **No code yet:** EthCurve, EthPairing, EthStateFull and EthStateWitness.
-- **Fixtures:** [EthConformance](STFSpec/informal/modules/EthConformance.md#3-eels-source-map) extracts and authenticates fixture records, including the guest records in engine payloads.
-- **Re-pin:** the pin moved to `tests-zkevm@v21.0.6` on 2026-11-02. The Lean code does not yet implement the semantic changes at that pin, and some citations and differential drivers still use `tests-zkevm@v21.0.0`. [GAPS-CROSSCUTTING X16](STFSpec/informal/GAPS-CROSSCUTTING.md#x16-follow-up-work-from-the-move-to-tests-zkevmv2106) lists this work.
-- **Before the runner, block and guest are complete:** the fuel-adequacy (G2–G7) and witness/full-state agreement (S2) investigations in [REVIEW §7](STFSpec/informal/REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). The [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-11-04) in REVIEW §6 lists the other items.
+- The [readiness assessment](STFSpec/informal/REVIEW.md#6-implementation-readiness-assessment-2026-11-04) in REVIEW §6 says which libraries have code and what completion requires.
+- Each module's §3 lists what it implements, and its §10 lists the remaining work. The [module index](STFSpec/informal/README.md#1-module-index) links every module document.
+- The pin moved to `tests-zkevm@v21.0.6` on 2026-11-02. [GAPS-CROSSCUTTING X16](STFSpec/informal/GAPS-CROSSCUTTING.md#x16-follow-up-work-from-the-move-to-tests-zkevmv2106) lists the follow-up work.
+- [`AGENTS.md`](AGENTS.md#open-items) lists the open items and their owners.
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md)**, which maps each task to the documents to read and update.
 
@@ -169,7 +167,7 @@ Regenerate the fixture area index with `uv run --no-project --python 3.12 python
 
 Regenerators that need a pinned EELS checkout (not run in CI): `uv run --no-project --python 3.12 python scripts/gen_eels_inventory.py <EELS> --check` and `uv run --no-project --python 3.12 python scripts/gen_reference_records.py <EELS> --check`.
 
-The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks, and the others in CONTRIBUTING §6.3, on pushes to `main` and on pull requests. CONTRIBUTING §6.3 owns the complete list. Weekly and manual runs download the pinned fixture archive and verify its checksum and metadata links. They also compare the Lean extraction of every record with the archive. No fixture executes yet; execution arrives with the conformance runner.
+The workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs these checks, and the other core-job checks that CONTRIBUTING §6.3 lists, on pushes to `main` and on pull requests. The workflow file is the complete list. Weekly and manual runs download the pinned fixture archive and verify its checksum and metadata links. They also compare the Lean extraction of every record with the archive. No fixture executes yet. Execution arrives with the conformance runner.
 
 ## Documents
 

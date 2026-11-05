@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-04. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).

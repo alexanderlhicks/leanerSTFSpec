@@ -1,6 +1,6 @@
 # Working in STFspec
 
-*Status: current repository entry point. Date: 2026-11-04.*
+*Status: current repository entry point. Date: 2026-11-05.*
 
 This file is the entry point for anyone, human or agent, who works in this repository. It tells you where things are and which document wins. It restates no facts, so follow the links.
 
@@ -65,7 +65,7 @@ Before you draft or revise any prose, use [`WRITING-WORKFLOW.md`](WRITING-WORKFL
 | Performance work | CONTRIBUTING §3 and `STFSpec/informal/REVIEW.md` §7 (cost checks C1–C4) | DEBT.md and the decision record | A benchmark with a correctness gate, with no checksum in the timed loop |
 | Change the declaration check or checkers | `scripts/CheckDecls.lean`, `scripts/replay_kernel.sh`, `scripts/test_checks.sh`, `scripts/test_spec_checks.py` | Add a regression fixture first. | `lake build CheckDeclsTest check-decls && scripts/test_checks.sh`, then `uv run --no-project --python 3.12 python scripts/test_spec_checks.py` and the regression tests of any other changed checker (`scripts/test_*.py`) |
 | Write or revise prose: documents, docstrings, comments, commit messages, pull request and issue text, review reports | `WRITING.md`, `WRITING-VOCABULARY.md` and the owner of the text (`WRITING-WORKFLOW.md` §1) | The text only, with unrelated rewrites in a separate change | The reading pass of `WRITING-WORKFLOW.md` §4, and optionally the advisory `scripts/writing_hints.py`, which is not a check |
-| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`, and `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | None | `(cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`, and the same for `STFSpecSecurity` with `security` |
+| Mathlib bridge or security package | `STFSpecMathlib/` or `STFSpecSecurity/`, and `STFSpec/informal/modules/*Mathlib.md` or `EthSecurity.md` | None | `(cd STFSpecMathlib && lake exe cache get && lake build --wfail) && scripts/check_decls.sh mathlib && scripts/replay_kernel.sh mathlib`, then `(cd STFSpecSecurity && lake build --wfail) && scripts/check_decls.sh security && scripts/replay_kernel.sh security`, which uses the same Mathlib checkout |
 
 ## Open items
 

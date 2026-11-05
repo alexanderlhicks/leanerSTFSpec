@@ -1,6 +1,6 @@
 # `EthHash`: Keccak, SHA-256, RIPEMD-160, BLAKE2b F and the `KeccakQuery` seam
 
-*Status: informal specification, draft. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1–F4, F15, F16, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D21 · questions: B10/Q12, Q18, Q19, Q46, F1–F4, F15, F18.*
 
 Paths are relative to `src/ethereum/` at the pin unless prefixed. Host-library behaviour was first checked in a scratch venv (Python 3.12, OpenSSL 3.0.13, pycryptodome 3.23.0) and re-observed in a lock-exact environment (CPython 3.13.7, OpenSSL 3.0.16, pycryptodome 3.23.0) used for the full-corpus EELS run. Both hosts lack OpenSSL keccak-256 and provide RIPEMD-160. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -682,7 +682,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D4** (hash implementations): reference first. A proved fast path follows measurement; the local reference allocation exception and replacement criterion are owned by [DEBT-HASH-REFERENCE](../DEBT.md#debt-hash-reference--boxed-reference-rounds).
 - **D5** (provisional: broad scope with monad-parametric interfaces; B10 and DECISIONS §3): **every** keccak call goes through `KeccakQuery` (R6). A compiled prototype of the interfaces showed that the dependency flows through every interface once the signatures are monad-parametric (F1–F4, F15, F18). Open: the oracle coupling for `Models` at generic `m`.
 - **D21** (accepted, 2026-09-28): no `@[csimp]` and no axiom-adding tactics (`native_decide`, `bv_decide`). A fast path is either a representation replacement proved against this module's contract (D25), or an executable definition with a legible reference beside it and an ordinary equality proof (`CONTRIBUTING.md` §4).
-- **Q46**: the SHA-256 input-domain disposition is owned by [DECISIONS §4](../DECISIONS.md#4-question-dispositions); fixed-word compression has no message-length premise.
+- **Q46**: the SHA-256 input-domain disposition is owned by [DECISIONS §4](../DECISIONS.md#4-other-questions-q); fixed-word compression has no message-length premise.
 - **P2** (authority order): host-dependent `hashlib` behaviour falls under CONTRACT §6.
 - `ripemd160` host dependency: tracked as DISC-005 (DECISIONS Q19). The spec implements the algorithm unconditionally; the host-capability policy is O12 (DISC-001).
 

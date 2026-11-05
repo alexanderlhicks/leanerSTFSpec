@@ -1,6 +1,6 @@
 ## Cross-cutting gaps and coordinated owners
 
-*Status: live cross-cutting gap register. Date: 2026-11-04.*
+*Status: live cross-cutting gap register. Date: 2026-11-05.*
 
 Maintained by hand. Each item says what is missing, the evidence, and who should own it.
 
@@ -44,7 +44,7 @@ The 2026-09-28 review reran its five counterexamples in a clean checkout at the 
 - CALL/CREATE progress across complete iterations;
 - fuel sufficiency;
 - the four fuel guarantees;
-- termination of the codec and trie loops that are not yet implemented (the implemented ones, including `taylorExponential`, are total by construction).
+- termination of the codec and trie loops that are not yet implemented. The implemented loops, including EthBase's `taylorExponential`, are total by construction.
 
 See ARCHITECTURE §5.5 and [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7.
 
@@ -82,7 +82,7 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest`, the guest input schema and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
-All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7); COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
+All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
 
 ### X15. Open interface obligations from the interface prototype
 Four items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):

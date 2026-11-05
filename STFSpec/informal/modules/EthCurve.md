@@ -1,6 +1,6 @@
 # `EthCurve`: elliptic-curve groups, ECDSA, hash-to-curve maps and point codecs
 
-*Status: informal specification, draft; unimplemented. Date: 2026-11-04. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: Montgomery backend results in `EthField` §6 and D6 · interface findings F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D6, D7, D12, D15, D18, D25, D26 · questions: B13/Q41, Q44, Q45.*
 
 Tags: **[V]** verified by reading pinned source or running the pinned dependency (`esvenv`,
