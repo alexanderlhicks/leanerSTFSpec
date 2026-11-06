@@ -3840,7 +3840,9 @@ def run_original(eels, evidence, profile, target_path):
     import io
     import marshal
     import platform
+    import shlex
     import sysconfig
+    import tomllib
     import traceback
     import types
 
@@ -3912,10 +3914,8 @@ def run_original(eels, evidence, profile, target_path):
     )
     interpreter = Path(sys.executable).resolve(strict=True)
     require(
-        interpreter
-        == Path(
-            "/home/alh/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/bin/python3.13"
-        ),
+        interpreter == (eels / ".venv/bin/python").resolve(strict=True)
+        and Path(sys.prefix).resolve(strict=True) == (eels / ".venv").resolve(strict=True),
         "source interpreter identity",
     )
     expected_files = {
@@ -3971,10 +3971,52 @@ def run_original(eels, evidence, profile, target_path):
         "TransactionGasSettlementNativeTests",
     ):
         artifact_paths.append(repo / (".lake/build/ir/" + module + ".c.o.export"))
-    toolchain = Path("/home/alh/.elan/toolchains/leanprover--lean4---v4.35.0")
+
+    def retained_text(path, encoding):
+        # Parse the retained copy, so that the parsed bytes are the hashed bytes.
+        return Path(file_info(path)["retained"]).read_text(encoding=encoding)
+
+    # The toolchain that linked the native target (`--sysroot` in its hashed link response
+    # file), at the Lean version pinned in the hashed `reference.toml`. Nothing is executed.
+    rsp = repo / ".lake/build/bin/transaction-gas-settlement-native-tests.rsp"
+    try:
+        link_args = shlex.split(retained_text(rsp, "utf-8"))
+        pinned_lean = tomllib.loads(retained_text(repo / "reference.toml", "utf-8"))["lean"]
+        pinned_lean = pinned_lean["toolchain"]
+    except AdmissionError:
+        raise
+    except (ValueError, KeyError, TypeError) as error:
+        raise AdmissionError("native link toolchain: " + type(error).__name__) from error
+    require(isinstance(pinned_lean, str) and ":v" in pinned_lean, "pinned Lean toolchain")
+    require(
+        link_args.count("--sysroot") == 1 and link_args[-1] != "--sysroot",
+        "native link toolchain",
+    )
+    toolchain = Path(link_args[link_args.index("--sysroot") + 1])
+    require(toolchain.is_absolute(), "native link toolchain")
+    toolchain = toolchain.resolve(strict=True)
+    try:
+        version_lines = retained_text(
+            toolchain / "include/lean/version.h", "ascii"
+        ).splitlines()
+    except AdmissionError:
+        raise
+    except ValueError as error:
+        raise AdmissionError("pinned Lean toolchain: " + type(error).__name__) from error
+    require(
+        '#define LEAN_VERSION_STRING "' + pinned_lean.rpartition(":v")[2] + '"'
+        in version_lines,
+        "pinned Lean toolchain",
+    )
     artifact_paths += [
         toolchain / path
-        for path in ("bin/lean", "bin/lake", "bin/clang", "lib/lean/libleanshared.so")
+        for path in (
+            "bin/lean",
+            "bin/lake",
+            "bin/clang",
+            "lib/lean/libleanshared.so",
+            "include/lean/version.h",
+        )
     ]
     artifacts = [
         file_info(path) for path in artifact_paths
