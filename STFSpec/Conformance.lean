@@ -36,6 +36,11 @@ import STFSpec.Conformance.Stateless.ProtocolForkGuards
 import STFSpec.Conformance.Stateless.RequestItemSszCallerProofs
 import STFSpec.Conformance.Stateless.RequestItemSszControls
 import STFSpec.Conformance.Stateless.RequestItemSszWireControls
+import STFSpec.Conformance.Stateless.ExecutionRequestsCallerProofs
+import STFSpec.Conformance.Stateless.ExecutionRequestsGuards
+import STFSpec.Conformance.Stateless.ExecutionRequestsSszCallerProofs
+import STFSpec.Conformance.Stateless.ExecutionRequestsSszControls
+import STFSpec.Conformance.Stateless.ExecutionRequestsSszWireControls
 import STFSpec.Conformance.Stateless.RequestItemsCallerProofs
 import STFSpec.Conformance.Stateless.RequestItemsGuards
 import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
