@@ -971,9 +971,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source
-  observations (§3–§5/§7). Header RLP/schema adapters, hashing, validation, parent
-  authentication and actual block/guest consumers remain unimplemented. Finite
-  constructor agreement closes no execution, resource or readiness gate.
+  observations (§3–§5/§7). The three forward RLP models, private complete
+  wire/size/domain clients and 133 interpreted mathematical controls are supplied
+  there. Header typed decoding/schema adapters, ordered previous-fork fallback,
+  hashing, validation, parent authentication and actual block/guest consumers
+  remain unimplemented. No Header-specific source-runtime/native encoder
+  comparison, execution, resource or readiness result is claimed.
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
