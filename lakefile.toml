@@ -249,3 +249,9 @@ root = "LogsBloomNativeTests"
 name = "reference-division-native-tests"
 srcDir = "scripts"
 root = "ReferenceDivisionNativeTests"
+
+# Complete raw header field/variant/getter observations from input-only runtime rows.
+[[lean_exe]]
+name = "header-carriers-native-tests"
+srcDir = "scripts"
+root = "HeaderCarriersNativeTests"
