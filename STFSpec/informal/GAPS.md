@@ -1004,6 +1004,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Input schema identifiers:** the five Fork-owned constants and private complete facade controls are supplied (§3). EthStateless §3/§7 supplies the selected nominal transport and aliases. Input schemas, decoder/admission, guest and resource obligations remain open.
 - **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). Actual schemas, their Q81 certifications, Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
@@ -1021,11 +1022,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented protocol fork metadata.** The complete 21-constructor carrier,
   total forward tag observation and private complete facade proofs/guards are supplied
-  in §3–§7. Amsterdam schema-index/revision/ID values remain a separate F8 follow-on:
-  Fork cannot import this Stateless-owned enum, and the planned nominal
-  `schemaForkIndex` selector has no specified dependency-safe bridge. Reconcile that
-  seam without inferring an inverse, moving ownership or changing the selector type.
-  This metadata closes no schema, admission, guest, resource or readiness gate.
+  in §3–§7. The five selected schema declarations and private bounded transport
+  from the Fork-owned raw tag are supplied there under F8. The direction remains
+  Stateless → Fork, without a public inverse or a change to the nominal carrier.
+  Input schemas, admission/decoding, guest execution and root/resource/readiness
+  obligations remain open.
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
