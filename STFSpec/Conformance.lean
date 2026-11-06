@@ -26,6 +26,9 @@ import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
 import STFSpec.Conformance.Stateless.ExecutionWitnessCallerProofs
 import STFSpec.Conformance.Stateless.ExecutionWitnessGuards
+import STFSpec.Conformance.Stateless.PayloadSszCallerProofs
+import STFSpec.Conformance.Stateless.PayloadSszControls
+import STFSpec.Conformance.Stateless.PayloadSszWireControls
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszCallerProofs
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszControls
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszWireControls
