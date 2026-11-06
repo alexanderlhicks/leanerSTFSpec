@@ -35,6 +35,7 @@ import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderCallerProofs
 import STFSpec.Conformance.Block.WithdrawalCallerProofs
 import STFSpec.Conformance.Block.WithdrawalGuards
+import STFSpec.Conformance.Block.WithdrawalSszControls
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs

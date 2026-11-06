@@ -59,7 +59,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; adapters, execution and guest projection remain open, as do F11 and G2–G7. |
-| Withdrawal | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-BLK four-field carrier. Retain every independent Base.U64/Address value and the amount in Gwei. Private complete facade proofs/interpreted controls cover storage only; RLP/SSZ, processing and Q53 root-input composition remain open. |
+| Withdrawal | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-BLK four-field carrier. Retain every independent Base.U64/Address value and the amount in Gwei. The actual Q81 SSZ dictionary and its three external certificates are supplied there, with private support/layout/count clients and complete interpreted controls. RLP, raw/guest decoding, root laws, processing and Q53 root-input composition remain open. |
 | Header, PrevHeader, ParentHeader | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-HDR fields and nine common parent getters. Preserve the complete supplied variant and nominal Base fields. Codecs, hashing, validation, authentication and actual consumers remain open. |
 | BlockConfig, BlockOutput, transaction records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
@@ -90,8 +90,9 @@ no validity, descriptor WF, inverse or opposite-operation support premise.
 
 Every actual instance owner still separately proves all three external §7
 certifications: descriptor WF and both adapter directions. These are required
-obligations, not generic class laws; no actual instances are supplied. Consumers
-needing certification cite those actual proofs or state their hypotheses. Neither
+obligations, not generic class laws. EthBlock §3/§5/§7 supplies the actual
+Withdrawal dictionary and its three external certificates. Consumers needing
+certification cite those actual proofs or state their hypotheses. Neither
 metadata nor the three certifications alone establishes raw operation support.
 Actual source schema/name/order/coercion/reflection correspondence and successful
 decode→dataclass→fresh-view support stay with the concrete owner. No decoder guard
