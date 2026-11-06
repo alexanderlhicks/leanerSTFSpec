@@ -1,6 +1,6 @@
 # Informal specification review and implementation gates
 
-*Status: live implementation gates; dated findings retained. Date: 2026-11-05.*
+*Status: live implementation gates; dated findings retained. Date: 2026-11-06.*
 
 **Structure.** §1–§2 are a dated record of the review of 2026-09-28; do not update them except to mark supersession. §3–§5 are **live**: the per-module gates and the implementation contract, kept current. §6 is a dated readiness assessment (2026-11-04); replace it, rather than patching it, when readiness changes. §7 (acceptance criteria) is **live**.
 
@@ -26,6 +26,8 @@ Review of 2026-09-28; exact reference commit `e1a316a06fc3d3e0a5da36fdc78580811e
 *(Superseded: D14 (structure and guidelines), D18, D21, D26 and D27 have since been accepted; see `STFSpec/informal/DECISIONS.md`.)* At the time of this review, D14, D18, D21, D26 and D27 retained their recorded statuses, and applying the provisional import/Log placement did not approve those decisions. Newly exposed ambiguities remain proposals/gaps, not silent protocol changes.
 
 ## 2. Evidence reproduced for this review
+
+**Probe supersession (2026-11-06).** The observations and reproduction commands below describe `tests-zkevm@v21.0.0` (`e1a316a0`). The maintained `scripts/spec_review.py` follows `reference.toml` (P1). At `tests-zkevm@v21.0.6` (`59c1473d`), it checks rejection of type-only request blobs (`execution_engine/requests.py:203–204`) and list-valued storage leaves (`witness_state.py:127`), and constructs `IncrementalMPT` without the removed `_data` field (`incremental_mpt.py:116–127`). Its other source probes remain. Run it as its docstring specifies, with the frozen EELS interpreter and assertions enabled. The historical acceptance claims below do not apply to those two decoders at this pin.
 
 The checkout was clean at the exact pin. Python dependencies were installed from its unchanged `uv.lock`: ethereum-types 0.4.1, ethereum-rlp 0.1.6, eth-remerkleable 0.1.31, py-ecc 8.0.0, pycryptodome 3.23.0, spec256k1 0.2.3 and cryptography 45.0.7. The run recorded Python 3.12.3 / OpenSSL 3.0.13. These observations describe this review environment, not all possible reference hosts. **Independent re-run (2026-09-28):** [`scripts/spec_review.py`](../../scripts/spec_review.py) was run again against the same clean pin from a fresh `uv sync --frozen --no-dev` environment (identical locked versions) on Python 3.13.7 / OpenSSL 3.0.16. All five checks returned `True`: `double_cofactor_changes_output`, `request_type_only_blob_is_normalized_away`, `insert_before_delete_avoids_stub_collapse`, `noncanonical_noop_delete_changes_root`, `account_root_update_depends_on_prior_lookup`.
 
