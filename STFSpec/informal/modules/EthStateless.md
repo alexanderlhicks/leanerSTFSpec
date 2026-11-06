@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness and five request-item carriers, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -87,11 +87,11 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/execution_engine/types.py::ExecutionPayload` | 39 | `structure ExecutionPayload` | progressive container |
 | `forks/amsterdam/execution_engine/types.py::NewPayloadRequest` | 78 | `structure NewPayloadRequest` | |
 | `forks/amsterdam/execution_engine/validation_helpers.py::*` | 23–122 | `payloadHeader`, `payloadTransactionToBlockTransaction`, `payloadBlock` (internal) | whole file |
-| `forks/amsterdam/execution_engine/requests.py::DepositRequest` | 42 | `structure DepositRequest` | |
-| `forks/amsterdam/execution_engine/requests.py::WithdrawalRequest` | 55 | `structure WithdrawalRequest` | |
-| `forks/amsterdam/execution_engine/requests.py::ConsolidationRequest` | 66 | `structure ConsolidationRequest` | |
-| `forks/amsterdam/execution_engine/requests.py::BuilderDepositRequest` | 77 | `structure BuilderDepositRequest` | EIP-8282 |
-| `forks/amsterdam/execution_engine/requests.py::BuilderExitRequest` | 89 | `structure BuilderExitRequest` | EIP-8282 |
+| `forks/amsterdam/execution_engine/requests.py::DepositRequest` | 42 | `DepositRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
+| `forks/amsterdam/execution_engine/requests.py::WithdrawalRequest` | 55 | `WithdrawalRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
+| `forks/amsterdam/execution_engine/requests.py::ConsolidationRequest` | 66 | `ConsolidationRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
+| `forks/amsterdam/execution_engine/requests.py::BuilderDepositRequest` | 77 | `BuilderDepositRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
+| `forks/amsterdam/execution_engine/requests.py::BuilderExitRequest` | 89 | `BuilderExitRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
 | `forks/amsterdam/execution_engine/requests.py::ExecutionRequests` | 99 | `structure ExecutionRequests` | progressive container |
 | `forks/amsterdam/execution_engine/requests.py::encode_execution_requests` | 148 | `encodeExecutionRequests` | empty lists omitted, ascending type |
 
@@ -137,6 +137,39 @@ reconstruction and each independent update reduce to the complete expected recor
 There are no effects or failures, hence no handler or O-row. This raw contract is
 discharged by the structure and the private facade clients in §4; it adds no public
 helper laws, wire admission or source-runtime agreement claim. The separate dictionary below supplies its Q81 certificates.
+
+**Supplied raw request items.** `STFSpec/Stateless/RequestItems.lean`, exported by
+`STFSpec.Stateless`, supplies exactly the five distinct nominal structures below.
+All field names and their source order come from EELS
+`execution_engine/requests.py:42–95` at `59c1473d` [V: read]. Underscored source
+fields use the lowerCamelCase spelling in §5 (CONTRIBUTING §7.2).
+
+| Public constructor | Complete type | Private evidence |
+|---|---|---|
+| `DepositRequest.mk` | `Bytes48 → Bytes32 → U64 → Bytes96 → U64 → DepositRequest` | complete five-field construction, reconstruction, observations and each update; independent amount/index controls |
+| `WithdrawalRequest.mk` | `Address → Bytes48 → U64 → WithdrawalRequest` | complete three-field clients and controls |
+| `ConsolidationRequest.mk` | `Address → Bytes48 → Bytes48 → ConsolidationRequest` | complete three-field clients and controls, including distinct source/target keys |
+| `BuilderDepositRequest.mk` | `Bytes48 → Bytes32 → U64 → Bytes96 → BuilderDepositRequest` | complete four-field clients and controls; no index |
+| `BuilderExitRequest.mk` | `Address → Bytes48 → BuilderExitRequest` | complete two-field clients and controls; no amount or signature |
+
+Each field in §5 has the projection type `RequestType → FieldType`, with the
+corresponding nominal request type. Credentials are `Bytes32`, independently of
+`Hash32`. The domain is every combination of canonical existing Base values:
+complete 20/32/48/96-byte contents and all `U64` observations. This includes leading
+zeros, cryptographically invalid keys/signatures/credentials, zero amounts and
+unrelated amount/index values. Amounts are stored unchanged, without unit conversion.
+There are no effects, failures, handlers or O-rows for raw construction/projection.
+The identity model is the ordered tuple of whole fields, observed through complete
+byte lists and unsigned numbers. Ordinary generated structure operations and the
+private §4 clients discharge this contract. No authored public helper, law, instance,
+default, proof argument, validator or schema is supplied.
+
+Static source reading establishes this field correspondence. Python reflection,
+mutable/frozen dataclass behaviour, annotation enforcement, cached SSZ views and
+source-host execution agreement remain separate. The raw carriers supply no BLS,
+credential-prefix, builder-eligibility, balance or index-relation admission. Their
+five Q81 dictionaries/certificates, operation support, aggregate `ExecutionRequests`,
+wire constants/encoding/decoding, roots, payload/input and guest remain separate (§10).
 
 **Supplied execution witness SSZ dictionary.**
 `STFSpec/Stateless/ExecutionWitnessSsz.lean`, exported by `STFSpec.Stateless`, supplies
@@ -211,6 +244,25 @@ distinct members, zero/nonzero/asymmetric bytes and each field update while reta
 both other arrays. Compilation checks the ordinary Lean proofs and evaluates the
 interpreted `#guard` controls. The declaration audit examines declarations, and kernel replay rechecks
 constants. These are raw storage controls, not executed EELS or guest comparisons.
+
+**Raw request-item controls.**
+`STFSpec/Conformance/Stateless/RequestItemsCallerProofs.lean` imports only the public
+Stateless facade. Private arbitrary clients check all five complete constructor
+types, every one of the 17 projection types, whole-record reconstruction and
+determination by all fields. Each independent update retains the complete other
+fields, both as a record equation and as the entire observable tuple. Public Base
+byte-injectivity, checked-constructor inverse, size and range laws establish complete
+observation injectivity and every field's checked recovery. Each `U64` field retains
+both its unsigned and bit-vector observations without a raw-record premise.
+`RequestItemsGuards.lean` compares complete tuples for all five mixed, zero and
+maximum-content records and all 17 independent updates. Literal asymmetric byte
+lists retain leading/trailing zeros at widths 20/32/48/96. Indexed controls inspect
+every position of a representative field at each width. Distinct same-width
+consolidation keys detect swaps, and separate asymmetric deposit amount/index
+values detect conflation. Zero, maximum and asymmetric unsigned words are observed
+completely. Compilation evaluates the interpreted guards and checks the ordinary
+private proofs. Declaration audit and kernel replay examine these declarations.
+These are raw storage controls, with no EELS/dependency, fixture or guest execution.
 
 **Execution witness SSZ controls.**
 `ExecutionWitnessSszCallerProofs.lean` imports the Stateless facade and privately
@@ -298,6 +350,10 @@ stale `publicKeys`/input guidance
 is a separate re-pin obligation in §10; it does not change this three-field witness.
 The complete `ProtocolFork` carrier and forward observer below are supplied with
 the exact mapping in §3; schema constants below remain prospective under F8 (§10).
+
+The five request-item structures below are supplied with exactly the ordered field
+types in §3. They add no defaults, proof fields, derived instances or validation.
+The aggregate `ExecutionRequests` and its schemas/codecs below remain prospective.
 
 ```lean
 -- constants (public)
@@ -436,6 +492,7 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 |---|---|---|---|---|---|---|
 | `ProtocolFork` | 21 nullary constructors | the complete §3 historical inventory | explicit `toIndex : ProtocolFork → UInt8` | none beyond the constructor domain | immutable value | O(1) construction/observation |
 | `ExecutionWitness` | three `Array ByteArray` | ordered triple of complete finite byte-array lists | identity, including order/duplicates/empty members | none on the raw carrier; the actual schema has exactly the §5 payload bounds | immutable value; later DB builders consume the raw preimages | O(1) construction/projection; adapters O(total member count), retaining byte payloads; decoding and DB building unimplemented |
+| five raw request items | five nominal structures over existing Base fields (§5) | ordered tuple of whole fields | identity; public complete byte/unsigned observations | none beyond each Base field domain | immutable values | O(1) construction/projection/update at fixed field counts; no byte traversal |
 | `StatelessInput` and the wire containers | Lean structures over `ByteArray`/`Array`/fixed-width words | the SSZ value | identity; SSZ `encode`/`decode` | `WF` (limits; `PublicKey` size by subtype; `extraData.size ≤ 32`) | immutable after decode | decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
 | `GuestOutcome` | inductive | the O-row plus fields | `toResult` | `valid`/`invalid` only carry `schemaId = 0x1501` implicitly | value | O(1) |
@@ -463,6 +520,17 @@ the other two. Private facade clients discharge these equations directly, withou
 additional admission or a public law family. The raw model has no wire-size, nonempty,
 RLP, header-chain, database or hash invariant. The separate actual schema is certified below; decoding and guest composition remain
 open, and no execution or refinement theorem follows.
+
+**Supplied raw request-item contract.** Each of the five §5 constructors admits
+arbitrary independently supplied Base fields and retains every field exactly.
+Reconstruction returns the whole record, and updating one field preserves every
+sibling. Complete byte/unsigned observations determine the record through public
+Base laws. The private facade clients in §4 prove these equations for arbitrary
+values, together with each field's checked recovery, size/range and `U64` model
+observations. This identity contract has no additional invariant or authored public
+law family. All five types remain nominally distinct, and the request withdrawal
+is separate from the EthBlock `Withdrawal`. Schemas, wire admission, execution and
+source-host correspondence are separate obligations.
 
 **Supplied witness schema certificates (Q81).** For the actual named dictionary
 `s := ExecutionWitness.instSszSchema`, exactly these public types are supplied:
@@ -584,6 +652,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   are supplied under F8 (§3/§5), without implementing those consumers. The
   stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
   item below. This carrier closes no input, guest, resource or readiness gate.
+
+- **Implemented raw request items.** The five nominal carriers and all 17 complete
+  independent fields are supplied under §3/§5/§7, with private arbitrary facade
+  clients and whole finite controls in §4. The five actual Q81 dictionaries and
+  their descriptor/adapter certificates, Q80 serialization and root support,
+  Q87/Q88 recovery/decoding, aggregate `ExecutionRequests`, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
+  remain separate. No runtime admission, protocol validation, resource, security,
+  cost or readiness obligation is discharged by these raw carriers.
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
