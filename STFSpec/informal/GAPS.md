@@ -1040,11 +1040,19 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   independent fields are supplied under §3/§5/§7, with private arbitrary facade
   clients and whole finite controls in §4. The five actual Q81 dictionaries and
   their descriptor/adapter certificates, Q80 serialization and root support,
-  Q87/Q88 recovery/decoding, aggregate `ExecutionRequests`, request wire constants,
+  Q87/Q88 recovery/decoding, aggregate schema, request wire constants,
   `encodeExecutionRequests`, roots and payload/input/guest composition remain
   unimplemented. Source class/reflection/cache/coercion/backing and host agreement
   remain separate. No runtime admission, protocol validation, resource, security,
   cost or readiness obligation is discharged by these raw carriers.
+
+- **Implemented raw execution requests.** The exact five-array aggregate and private
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. The
+  actual aggregate Q81 dictionary and three certificates, Q80 serialization,
+  count recovery, root support and source-decoder correspondence remain separate.
+  Request wire constants/encoding, roots and payload/request/input/guest composition
+  remain unimplemented. No admission, effect, resource, security, cost or readiness
+  gate is discharged by this raw carrier.
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
