@@ -436,8 +436,13 @@ the input, as are both reconstruction and re-forwarding paths. Every actual
 2451 payload fields, 248 transactions, 132 withdrawals, 1428 unsigned values and 764
 offsets. Inputs/expected bytes were frozen and calculated independently before this
 implementation. Literal sharing and chunking preserve all values; a separate complete
-transport readback authenticates every case. Each call has its own ordinary private
-Serializable proof through the public Codec equation. These finite interpreted controls
+transport readback authenticates every case. A shared private interpreted runner
+rejects every parse, validity or operation-support failure, then supplies an ordinary
+generic Serializable composition through the public Codec equation. Its executable
+structural length has an ordinary all-constructor equality to the complete local
+logical-length reference; fits reflection preserves every emitted-start bound without
+a final-tail cap. Negative controls check strict start bounds and reject altered complete
+expectations and extra-data overflow. These finite interpreted controls
 cover empty/nested-empty and duplicate lists, leading zeros, independent same-typed
 fields, maximum words, extra-data endpoints and offset carries. No source/native/guest,
 general decoder/root, giant-input, host-resource, security or cost result follows.

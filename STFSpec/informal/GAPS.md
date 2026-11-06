@@ -821,10 +821,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   successful-charge/current-budget/full-return potential identity and conditional
   strict/nonincrease consequences, complete source-aligned field equations and
   thirteen full-stage successes/two shortages/three boundary controls. This supplies
-  no actual CALL handler or child semantics. Source ZERO coherence, actual access/
+  additional arbitrary-return accounting, exact strict-progress equivalence and
+  execution-only bounded-return consequences, with fifty-five complete six-stage/
+  six-field successes and two shortages. Whole-field return/credit equations,
+  a supplied child-phi bridge and a ChildSettled-alone countermodel are private.
+  No reservoir bound enters phi accounting. This supplies no actual CALL handler
+  or child semantics. Source ZERO coherence, actual access/
   failure/effect ordering, saved grants/config identity and reachability, child
   returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
-  G2–G7, resources and readiness remain open.
+  G2–G7, source/default/host agreement, resources, security and guest/readiness
+  remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
