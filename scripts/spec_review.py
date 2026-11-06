@@ -1,9 +1,10 @@
 #!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Small, reproducible counterexamples for the informal-spec review.
+"""Small, reproducible source probes at the current reference.toml pin.
 
 Run with the Python interpreter from an EELS `uv sync --frozen --no-dev`
-environment, passing that checkout. This is review evidence, not conformance.
+environment: EELS/.venv/bin/python -I -B scripts/spec_review.py EELS.
+This is review evidence, not conformance. Assertions must be enabled.
 """
 import argparse
 import importlib.metadata
@@ -33,9 +34,11 @@ def main():
     sys.path.insert(0, str(args.eels / "src"))
 
     from ethereum_rlp import rlp
+    from ethereum_rlp.exceptions import DecodingError
     from ethereum_types.bytes import Bytes, Bytes32
     from ethereum_types.numeric import U256, Uint
     from ethereum.crypto.hash import keccak256
+    from ethereum.exceptions import InvalidBlock
     from ethereum.forks.amsterdam.execution_engine.requests import (
         decode_execution_requests, encode_execution_requests,
     )
@@ -55,15 +58,21 @@ def main():
     twice = clear_cofactor_G1(once)
     assert normalize(once) != normalize(twice)
 
-    requests = decode_execution_requests((Bytes(b"\x00"),))
-    assert encode_execution_requests(requests) == ()
+    # execution_engine/requests.py:173–218 rejects empty bodies for all five types.
+    assert encode_execution_requests(decode_execution_requests(())) == ()
+    for request_type in range(5):
+        try:
+            decode_execution_requests((Bytes([request_type]),))
+        except InvalidBlock:
+            pass
+        else:
+            raise AssertionError("type-only execution request unexpectedly accepted")
 
     def partial():
         branch = MutableBranchNode(children=[None] * 16, value=Bytes(b""))
         branch.children[0] = MutableLeafNode(rest_of_key=Bytes(b"\x01"), value=Bytes(b"old"))
         branch.children[1] = HashedNode(_hash=keccak256(b"unavailable sibling"))
-        return IncrementalMPT(secured=False, default=Bytes(b""), root_node=branch,
-                              _data={Bytes(b"\x01"): Bytes(b"old")})
+        return IncrementalMPT(secured=False, default=Bytes(b""), root_node=branch)
 
     failed = False
     try:
@@ -98,7 +107,7 @@ def main():
     assert with_read.get_account_optional(address) == account
     assert with_read.compute_state_root(diff) != without_read
 
-    # SC5/SC6 preserve the source decoder's broader leaf domain (O4(e)).
+    # SC5 preserves the account decoder's broader leaf domain (O4(e)).
     empty_account = Account(nonce=Uint(0), balance=U256(0), code_hash=EMPTY_CODE_HASH)
     for fields in ((b"", b"", b"", b""), ([], [], [], [])):
         assert _decode_account_from_leaf(Bytes(rlp.encode(fields))) == (empty_account, EMPTY_TRIE_ROOT)
@@ -120,7 +129,13 @@ def main():
     parent_root = keccak256(raw_account)
     state = WitnessState(_node_db={parent_root: raw_account, storage_root: storage_node},
                          _code_db={}, _state_root=parent_root)
-    assert state.get_storage(address, slot) == U256(0)
+    # witness_state.py:127 uses strict rlp.decode_to(U256, leaf) (O4(e)).
+    try:
+        state.get_storage(address, slot)
+    except DecodingError:
+        pass
+    else:
+        raise AssertionError("list-valued storage leaf unexpectedly accepted")
 
     # Lookup-path availability cannot imply progress when decoding is eager.
     valid_leaf = Bytes(rlp.encode((nibble_list_to_compact(Bytes(b"\x01"), True), b"a" * 40)))
@@ -143,12 +158,12 @@ def main():
         "dependencies": versions,
         "checks": {
             "double_cofactor_changes_output": True,
-            "request_type_only_blob_is_normalized_away": True,
+            "request_type_only_blobs_are_rejected": True,
             "insert_before_delete_avoids_stub_collapse": True,
             "noncanonical_noop_delete_changes_root": True,
             "account_root_update_depends_on_prior_lookup": True,
             "account_leaf_defaults_leading_zeros_and_rejections": True,
-            "storage_leaf_rlp_list_defaults_to_zero": True,
+            "storage_leaf_rlp_list_is_rejected": True,
             "eager_decode_rejects_malformed_available_off_path_node": True,
         },
     }, indent=2))
