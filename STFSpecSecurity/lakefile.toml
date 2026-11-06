@@ -5,6 +5,9 @@
 name = "STFSpecSecurity"
 version = "0.0.0"
 defaultTargets = ["EthSecurity", "ToVCVio"]
+# Mathlib sets `requiresModuleSystem`, so Lake warns (an error under `--wfail`) when a classic
+# file imports it. This package stays classic (DECISIONS D28) and permits that import.
+allowNonModules = true
 # Share the bridge package's dependency checkouts (Mathlib and its dependencies) instead of
 # fetching a second copy.
 packagesDir = "../STFSpecMathlib/.lake/packages"

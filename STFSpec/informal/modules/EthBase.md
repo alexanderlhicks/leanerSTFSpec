@@ -1105,7 +1105,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Used by:** directly `EthHash`, `EthField`, `EthState`; transitively every core library.
 - **Seams provided.** The word API (observer laws) consumed by `EthVmInstructions`. Checked arithmetic, whose `none` results consumers must map to the enclosing EELS handler: typically block-invalid at `stateless.py:294`, never an EVM halt. Fixed-width key types with lawful byte orders, consumed by `EthState` maps (F19) and the BAL address sort. The byte-to-U256 value bridge is provided in §3; BAL numeric slot sorting refinement remains a consumer obligation. `Envelope` as the hypothesis type of refinement theorems (`EthConformance`, consumers). The `HashConsts` record type, filled by `EthHash.HashConsts.query` and read by `EthState`, `EthCommit`, `EthVmCore` and `EthBlock`.
 - **Guarantees.** All operations are total and deterministic. No `@[extern]`/`@[implemented_by]`, and no `@[csimp]` (D21).
-- **Relies on.** Nothing, except Lean core `BitVec`/`Nat` lemmas at v4.34.0 (P3).
+- **Relies on.** Nothing, except Lean core `BitVec`/`Nat` lemmas at the pinned toolchain (P3).
 
 ## 9. Open decisions
 

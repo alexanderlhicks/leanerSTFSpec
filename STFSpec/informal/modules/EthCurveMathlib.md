@@ -16,9 +16,9 @@ supplies only the model-level predicates (`Ecdsa.verifies`) they are stated over
 ## 2. Requirements
 
 - Model: Mathlib `WeierstrassCurve.Affine.Point` with its `AddCommGroup` instance
-  (`Mathlib/AlgebraicGeometry/EllipticCurve/Affine/Point.lean:807`), and the `Projective`/`Jacobian`
+  (`Mathlib/AlgebraicGeometry/EllipticCurve/Affine/Point.lean:805`), and the `Projective`/`Jacobian`
   point types for coordinate bridges (`Projective/Point.lean:572`, `Jacobian/Point.lean:588`)
-  [V: Mathlib at v4.34.0 as pinned by CompPoly].
+  [V: Mathlib v4.35.0 (P3), 2026-11-05].
 - One commuting theorem per `EthCurve` operation (ARCHITECTURE §4), stated through
   `EthCurve.Proj.toAffine`, so a coordinate change (D7) re-proves only these.
 - The precedent is cryptography-specs' Jacobian G1 development (`Proofs/Bls/G1Group.lean`:
@@ -108,7 +108,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthCurve`, `EthFieldMathlib`.
 - VCV-io is not imported here; it enters only the security package `STFSpecSecurity/` (P4).
-- Imports `EthCurve` (core), `EthFieldMathlib`, Mathlib v4.34.0.
+- Imports `EthCurve` (core), `EthFieldMathlib`, Mathlib (the version pinned by P3).
 - **Used by:** `EthPairingMathlib` (subgroup facts), `EthSecurity` (states its signature assumptions over `Ecdsa.verifies`),
   consumers proving precompile results.
 - **Seams:** uses only `EthCurve`'s public operations and invariant.

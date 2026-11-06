@@ -110,8 +110,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthField`.
 - VCV-io is not imported here; it enters only the security package `STFSpecSecurity/` (P4).
-- Imports `EthField` (core) and Mathlib v4.34.0 (`STFSpecMathlib/lakefile.toml`); possibly CompPoly for
-  Pratt certificates and `FastField` (D6), which already pins Mathlib v4.34.0 @`5ed29652`, as VCV-io `f5119c6` does [V].
+- Imports `EthField` (core) and Mathlib (the version that P3 pins, in `STFSpecMathlib/lakefile.toml`). It may
+  also import CompPoly for Pratt certificates and `FastField` (D6). When checked [V], CompPoly pinned Mathlib
+  v4.34.0 @`5ed29652`, as VCV-io `f5119c6` does. Adopting either requires a revision built on this package's Mathlib.
 - **Used by:** `EthCurveMathlib`, `EthPairingMathlib`; `EthSecurity` indirectly.
 - **Seams:** relies only on `EthField`'s public API and its core commuting equations.
 
@@ -138,5 +139,5 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **cryptography-specs' proofs use `native_decide`** in some files (for example
   `Proofs/Bls/Compress.lean:319`, `Proofs/Xmss/Blake2s.lean`) [V]; those cannot be imported as-is.
 - **Toolchain mismatch:** cryptography-specs is on Lean v4.29.1 / Mathlib v4.29.1 [V]; our
-  proofs are on v4.34.0.
+  proofs are on the toolchain and Mathlib that P3 pins.
 - **`sgn0`/`Fp2.sqrt?`** specifications depend on which algorithm `EthField` chooses (open there).

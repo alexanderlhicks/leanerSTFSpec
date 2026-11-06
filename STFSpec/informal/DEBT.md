@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-11-02):** current register under D18. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
+**Status (2026-11-05):** current register under D18. The P3 move to Lean v4.35.0 (2026-11-05) triggered the toolchain-update reviews below. After normalizing variable numbering, the generated C of each cited function is identical on v4.35.0 and v4.34.0, so the static code-shape evidence still holds. Outside the cited functions, v4.35.0 drops one dead bounds test (`n ≤ n`) from the private `FixedBytes` `decodeFast`. The timing, peak-memory and allocation measurements below were made on Lean 4.34.0 and were not repeated. v4.35.0 changes the runtime allocator and scalar-array copying, and bundles clang 23.1.0 in place of 22.1.4. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 
@@ -108,7 +108,7 @@ compression 64; the digest providers multiply this cost by the message block cou
 Expected consumers are witness/trie and code hashing, SSZ/request roots and the
 SHA precompile. No digest or guest cost is established by this reference work.
 
-Reproduce the code-shape evidence on the pinned Lean 4.34.0 with
+Reproduce the code-shape evidence (recorded on Lean 4.34.0 and v4.35.0) with
 `lake build EthHash --wfail`, then inspect `keccakOfLanes`, the five step functions
 and `keccakRounds` in `.lake/build/ir/STFSpec/Hash/KeccakPermutation.c`, and
 `scheduleStep`, `round`, `rounds` and `feedForward` in
@@ -424,7 +424,7 @@ with no slicing or mutation API and no claim of list fusion or one packed alloca
 This exception keeps the representation private and uses the proven public construction
 boundary. Q49 supplies a packed generator and its observer laws; the decoder still uses
 the List/`Nibbles.ofList` boundary. Replacing it through that public generator is a
-separate decoder work item. Reproduce the code shape on pinned Lean 4.34.0 with `lake
+separate decoder work item. Reproduce the code shape (recorded on Lean 4.34.0 and v4.35.0) with `lake
 build EthCommit:static --wfail`, then inspect `compactToNibbles` and its specialized
 `List.ofFn`/`Nibbles.ofList` path in `.lake/build/ir/STFSpec/Commit/Compact.c` and
 `Nibbles.c`: list construction and mapping precede the byte-array conversion. This is
@@ -444,15 +444,15 @@ No input restriction or host-error policy is authorized.
 
 ## DEBT-OPS-DECODE — linear opcode decoder
 
-**Status:** open, 2026-10-31. **Owner:** EthVmInstructions maintainers. **Authority:** D18.
+**Status:** open, 2026-10-31; amended 2026-11-05 (P3). **Owner:** EthVmInstructions maintainers. **Authority:** D18.
 
 `Ops.ofByte? : UInt8 → Option Ops` in `STFSpec/Vm/Instructions/Ops.lean` preserves its
 complete public contract: `Ops.ofByte_toByte`, `Ops.toByte_ofByte`, and the 256 literal
 decoder equations in `OpsCallerProofs` (153 assigned bytes, 103 holes). It is a direct
 153-arm literal match on `b.toNat`, mirroring the pinned source table, so every equation
-closes by `rfl`. On pinned Lean 4.34.0 the compiler turns it into a nested chain of up to
-153 natural equality tests in source order. Every unassigned byte, including INVALID
-`0xFE`, takes all 153 tests; `toByte` is a constant-time tag switch. Reproduce with
+closes by `rfl`. On Lean 4.34.0 and v4.35.0 the compiler turns it into a nested
+chain of up to 153 natural equality tests in source order. Every unassigned byte, including
+INVALID `0xFE`, takes all 153 tests; `toByte` is a constant-time tag switch. Reproduce with
 `lake build STFSpec.Vm.Instructions.Ops --wfail` and inspect `Ops.ofByte?` in
 `.lake/build/ir/STFSpec/Vm/Instructions/Ops.c`. This is static code-shape evidence, not a
 throughput measurement.
@@ -461,9 +461,10 @@ No consumer decodes opcodes yet; `step` dispatch is the expected hot-path caller
 fuzzed code hits holes often. The literal match keeps the reference legible and its
 proofs trivial until then.
 
-Replace before `step` dispatch integrates the decoder, or at the next toolchain update if
-earlier. The replacement keeps the literal match as the legible reference and adds a
-constant-time decoder beside it (D25): a 256-entry `Vector (Option Ops) 256` indexed under
-`b.toNat < 256`, or a high-/low-nibble match. It proves an ordinary equality with the
-reference by a 256-case split, preserves both public laws and all 256 literal equations,
-and records the compiled code shape. Close this entry with that evidence.
+Replace before `step` dispatch integrates the decoder. The P3 move to Lean v4.35.0 left
+this decoder in place. Its code shape is unchanged on v4.35.0. The replacement
+keeps the literal match as the legible reference and adds a constant-time decoder beside it
+(D25): a 256-entry `Vector (Option Ops) 256` indexed under `b.toNat < 256`, or a
+high-/low-nibble match. It proves an ordinary equality with the reference by a 256-case
+split, preserves both public laws and all 256 literal equations, and records the compiled
+code shape. Close this entry with that evidence.
