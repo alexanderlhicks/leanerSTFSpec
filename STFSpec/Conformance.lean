@@ -28,6 +28,8 @@ import STFSpec.Conformance.Stateless.ExecutionWitnessCallerProofs
 import STFSpec.Conformance.Stateless.ExecutionWitnessGuards
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
+import STFSpec.Conformance.Stateless.ProtocolForkCallerProofs
+import STFSpec.Conformance.Stateless.ProtocolForkGuards
 import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
 import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
