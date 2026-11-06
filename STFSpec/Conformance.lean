@@ -24,6 +24,8 @@ import STFSpec.Conformance.Field.ReferenceDecodeGuards
 import STFSpec.Conformance.Field.ReferenceArithmeticCallerProofs
 import STFSpec.Conformance.Field.ReferenceArithmeticGuards
 import STFSpec.Conformance.Field.ReferenceGuards
+import STFSpec.Conformance.Stateless.ExecutionWitnessCallerProofs
+import STFSpec.Conformance.Stateless.ExecutionWitnessGuards
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
 import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
