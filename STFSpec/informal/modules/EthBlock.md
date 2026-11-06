@@ -201,7 +201,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | order R-PT |
 | `forks/amsterdam/fork.py::process_withdrawals` | 1096 | `processWithdrawals` |  |
 | `forks/amsterdam/fork.py::check_gas_limit` | 1118 | `checkGasLimit` | Bool |
-| `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw carrier and certified SSZ dictionary supplied below; RLP remains open |
+| `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw carrier, forward RLP model and certified SSZ dictionary supplied below |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` | raw 23-field carrier supplied below |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
 | `forks/amsterdam/blocks.py::Log` | 330 | `Log` |  |
@@ -348,9 +348,39 @@ provider types is admitted. The amount remains in Gwei.
 
 This carrier has no defaults, derived instances, admission predicate, error or
 additional public helper/law family. The SSZ dictionary is supplied separately
-below. RLP, amount conversion, `processWithdrawals` and Q53 withdrawal root-input
-composition remain unimplemented. Static field reading and interpreted storage
+below, as is the forward RLP model. Amount conversion, `processWithdrawals` and
+Q53 withdrawal root-input composition remain unimplemented. Static field reading and interpreted storage
 controls supply no source-runtime, fixture, execution or resource result.
+
+### Supplied withdrawal forward RLP model
+
+`STFSpec/Block/WithdrawalRlp.lean`, exported by `STFSpec.Block`, supplies exactly
+`Withdrawal.instRlpEncode : Codec.RlpEncode Withdrawal`. Its method directly
+returns the complete public reference model in §7. It has no proof premise,
+effect, failure or amount conversion. The existing `Codec.Rlp.encodeOf` wrapper
+encodes that model without an additional Withdrawal encoder.
+
+| Exact pinned source / domain | Lean declaration / operation | Effects / failures | Model and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:38–66`; locked `ethereum_rlp/rlp.py:66–135` (0.1.6) and `ethereum_types/numeric.py:477–484` (0.4.1); every raw Withdrawal with canonical Base fields | `Withdrawal.instRlpEncode`; direct four-child `RlpEncode.toRlp` in source order | Pure; no errors, admission, hashing or Gwei scaling | §7 complete public reference model; private `WithdrawalRlpCallerProofs.lean` clients prove arbitrary field/model preservation, minimal words, all-input `Encodable`, complete payload/wire equations and tight size/tag bounds through public Base/Codec laws |
+| `src/ethereum/forks/amsterdam/fork.py:1106–1111`; isolated value encoding only | existing `Codec.Rlp.encodeOf w` at the actual instance | One raw RLP encoding of the model | `WithdrawalRlpControls.lean` compares 50 complete independently calculated inputs, all 200 raw/encoded fields, joined payloads and all 2198 wire bytes; private raw Codec inverse client supplies no typed Withdrawal decoder |
+
+The three words are minimal unsigned big-endian, with empty zero payloads. The
+address retains every one of its twenty bytes, including leading zeros, and the
+amount remains in Gwei. An encoded word field has width 1–9; the address has
+width 21. The joined payload has width 24–48 and the complete wire has width
+25–49, with short-list tag 0xd8–0xf0. Both wire bounds are attained. All additional
+model/domain/wire/size clients remain private. No arbitrary outer-list or block
+`Encodable` premise follows from a bound on one Withdrawal.
+
+Source correspondence retains ordinary dataclass order and exact integer/byte
+observations, the locked dispatch/conversion behavior, successful reflection and
+`astuple` conversion, and source/runtime/host premises. Static source reading and
+mathematical controls supply no EELS, dependency or guest execution result. The
+Q53 consumer must use ordinal key `i`, rather than `withdrawal.index`, and retain
+already-RLP Bytes unchanged through trie preparation. That consumer, population,
+root composition, Gwei-to-wei processing, raw/typed decoding and SSZ layout reuse
+are outside this adapter.
 
 ### Certified withdrawal SSZ dictionary (Q81)
 
@@ -588,6 +618,17 @@ separate obligations.
   Every guard observes all three complete words and all twenty address bytes.
   These controls introduce no native runner or source-runtime comparison claim.
 
+- **Withdrawal RLP.** `WithdrawalRlpCallerProofs.lean` imports the public Block
+  facade and raw Codec inverse provider. Private proofs retain the complete
+  arbitrary four-field model, minimal unsigned digits, every address byte,
+  all-input Encodable, full payload/wire equations, tight size/tag bounds and the
+  raw RLP inverse. `WithdrawalRlpControls.lean` compares all 50 frozen complete
+  inputs and all 2198 expected wire bytes, plus each raw field, encoded field and
+  joined payload. Cases cover 0/1/127/128/255/256/2^63/max in independent word
+  slots, significant address zeros, all twenty address positions and asymmetric
+  field order. These are interpreted mathematical controls without a source
+  execution or typed Withdrawal inverse claim. No new native producer is added.
+
 - **Withdrawal SSZ.** `WithdrawalSszControls.lean` imports the public Block facade
   and the Codec count-recovery provider. Private clients check the exact metadata,
   all three complete theorem types for the actual dictionary, arbitrary complete
@@ -602,7 +643,7 @@ separate obligations.
   each overflowing word at 2^64 and 2^64+1, addresses of length 0/19/21 and combined
   malformed fields. They test the local implementation without a public off-WT
   contract or a source malformed-input comparison. No runner or generator gate is
-  added. RLP, raw-byte decoding, roots and guest/resource results remain separate.
+  added. Raw-byte decoding, roots and guest/resource results remain separate.
 
 - **Raw headers.** `HeaderCallerProofs.lean` checks arbitrary constructor types,
   all 44 positional field projections, both complete reconstructions and every
@@ -746,6 +787,11 @@ structure Withdrawal where
   validatorIndex : Base.U64
   address : Base.Address
   amount : Base.U64                 -- Gwei
+
+-- Supplied forward RLP reference model, without admission or amount scaling.
+instance Withdrawal.instRlpEncode : Codec.RlpEncode Withdrawal
+-- toRlp w := .list [Codec.Rlp.ofNat w.index.toNat, Codec.Rlp.ofNat w.validatorIndex.toNat,
+--   .bytes w.address.toBytes.toByteArray, Codec.Rlp.ofNat w.amount.toNat]
 
 -- Supplied actual SSZ dictionary (Q81), in namespace Withdrawal.
 instance Withdrawal.instSszSchema : Codec.SszSchema Withdrawal
@@ -1031,6 +1077,21 @@ fields. The private complete facade clients in §3 prove these structure reducti
 on every well-typed input. No wire schema or processing premise restricts this raw
 carrier.
 
+The supplied Withdrawal RLP instance directly implements this complete public
+reference model for every `w : Withdrawal`:
+
+```lean
+Codec.RlpEncode.toRlp w = Codec.RlpItem.list
+  [Codec.Rlp.ofNat w.index.toNat, Codec.Rlp.ofNat w.validatorIndex.toNat,
+   Codec.RlpItem.bytes w.address.toBytes.toByteArray, Codec.Rlp.ofNat w.amount.toNat]
+```
+
+The model is independent of the SSZ dictionary and its fixed44 little-endian
+layout. The private clients in §3 prove the complete all-input domain and wire
+facts through public provider laws. The raw `Rlp.decode (Rlp.encodeOf w)` client
+returns this whole model, not a typed Withdrawal. No decoder, inverse/image policy,
+additional public helper or theorem family is supplied.
+
 The supplied actual Withdrawal SSZ dictionary has exactly these three external
 certificates, with `s := Withdrawal.instSszSchema`:
 
@@ -1159,9 +1220,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
-  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
-  (§3–§5/§7). Actual-value support and complete layout clients remain private.
-  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  proofs/interpreted controls, the forward RLP reference instance and the actual
+  certified SSZ dictionary are supplied (§3–§5/§7). Supplementary RLP model/domain/
+  wire/size clients and SSZ support/layout clients remain private. Raw/guest
+  decoding, root laws, `processWithdrawals`, amount conversion
   and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
   scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
   Execution, resource/C1–C4, security and readiness gates remain open.

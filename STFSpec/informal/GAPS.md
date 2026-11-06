@@ -962,9 +962,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthBlock`](modules/EthBlock.md)
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
-  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
-  (§3–§5/§7). Actual-value support and complete layout clients remain private.
-  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  proofs/interpreted controls, the forward RLP reference instance and the actual
+  certified SSZ dictionary are supplied (§3–§5/§7). Supplementary RLP model/domain/
+  wire/size clients and SSZ support/layout clients remain private. Raw/guest
+  decoding, root laws, `processWithdrawals`, amount conversion
   and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
   scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
   Execution, resource/C1–C4, security and readiness gates remain open.

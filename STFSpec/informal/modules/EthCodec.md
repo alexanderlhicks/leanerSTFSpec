@@ -2447,6 +2447,11 @@ premise using public Base/leaf laws. No all-Nat `Encodable` assertion or new pub
 law family is supplied. The per-instance Nat typed roundtrip above is supplied
 with `RlpDecode` and `decodeTo`; Q68 fixes their diagnostic equation.
 
+EthBlock owns the supplied direct forward Withdrawal instance and its complete
+public reference model (EthBlock §3/§5/§7). Its supplementary all-input domain,
+complete wire/size and raw Codec inverse clients are private. They add no Codec
+class, typed Withdrawal decoder or arbitrary outer-list/block Encodable result.
+
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
 specified in §3. `decode_window_model` observes exact clipped public byte windows.
