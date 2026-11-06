@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-04.*
+*Status: conditional proof plan. Date: 2026-11-06.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -59,7 +59,8 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; adapters, execution and guest projection remain open, as do F11 and G2–G7. |
-| BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
+| Header, PrevHeader, ParentHeader | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-HDR fields and nine common parent getters. Preserve the complete supplied variant and nominal Base fields. Codecs, hashing, validation, authentication and actual consumers remain open. |
+| BlockConfig, BlockOutput, transaction records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | StatelessInput and StatelessValidationResult | EthStateless | The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
 ### Supplied local SSZ count-recovery handoff (Q87)
