@@ -21,7 +21,6 @@ STFSpec/State/BlockState.lean:49	state_tracker.py:51,83	state_tracker.py	forks/a
 STFSpec/State/TxObs.lean:19	:111	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 111 touches changed lines 111; on a line with rewritten citations	182a11bc90471f54b6a2
 STFSpec/State/TxObs.lean:26	state_tracker.py:51,111	state_tracker.py	forks/amsterdam/state_tracker.py: 51 touches changed lines 51–54; 111 touches changed lines 111	950fc7ddac89b71717de
 STFSpec/State/WitnessAncestors.lean:17	src/ethereum/forks/amsterdam/state_tracker.py:903–922	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 903–922 touches changed lines 903–924	26a11d8c3f70db7a29f4
-STFSpec/StateCommit/StorageDecode.lean:90	src/ethereum/forks/amsterdam/witness_state.py:198–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	9bab29967c4548cdcd35
 STFSpec/Vm/Core/Environments.lean:12	src/ethereum/forks/amsterdam/vm/__init__.py:49–67,125–148	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	ab3547b2a46e61ee9b6e
 STFSpec/informal/ARCHITECTURE.md:244	incremental_mpt.py:1024–1030	incremental_mpt.py	its block mentions e1a316a0	6fdd05393ee8aa52d6c8
 STFSpec/informal/ARCHITECTURE.md:306	vm/gas.py:606–628	vm/gas.py	its block mentions e1a316a0	3559e265817a9dca6299
@@ -34,8 +33,8 @@ STFSpec/informal/DECISIONS.md:200	src/ethereum/forks/amsterdam/stateless.py:250,
 STFSpec/informal/DECISIONS.md:201	execution_engine/new_payload.py:112–136,147–157	execution_engine/new_payload.py	its block mentions e1a316a0	67d0d2c8742d337bb03b
 STFSpec/informal/DECISIONS.md:202	fork.py:265,309–325,498	fork.py	its block mentions e1a316a0	a9c7fba77cc9471bb1bb
 STFSpec/informal/EXCLUDED.md:12	stateless.py:89–100	stateless.py	its block mentions e1a316a0	ff1d7c0b69f71549d02e
-STFSpec/informal/REVIEW.md:495	:674	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	9f345e26b6aab617ccc9
-STFSpec/informal/REVIEW.md:501	:242	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	6a623192901fffe48a6f
+STFSpec/informal/REVIEW.md:497	:674	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	9f345e26b6aab617ccc9
+STFSpec/informal/REVIEW.md:503	:242	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	6a623192901fffe48a6f
 STFSpec/informal/modules/EthBase.md:710	forks/amsterdam/execution_engine/requests.py:123,125,133,149	forks/amsterdam/execution_engine/requests.py	forks/amsterdam/execution_engine/requests.py: 123 touches changed lines 119–197; 125 touches changed lines 119–197; 133 touches changed lines 119–197; 149 touches changed lines 119–197	84e67a60053cd74ddbae
 STFSpec/informal/modules/EthBlock.md:34	:944	-	no file named earlier in its block	acd6a2d7729b5cc449ae
 STFSpec/informal/modules/EthBlock.md:35	:883	-	its block names no file (crypto/elliptic_curve.py in its section); none defines a nearby name around it	e82b2558cb243730284b
@@ -79,9 +78,6 @@ STFSpec/informal/modules/EthState.md:157	src/ethereum/forks/amsterdam/state_trac
 STFSpec/informal/modules/EthState.md:385	src/ethereum/forks/amsterdam/state_tracker.py:903–922	src/ethereum/forks/amsterdam/state_tracker.py	forks/amsterdam/state_tracker.py: 903–922 touches changed lines 903–924	3cf8e8c51e774f259883
 STFSpec/informal/modules/EthStateCommit.md:16	:168	-	its block names several files (witness_state.py, state_mpt.py); none defines a nearby name around it; on a line with rewritten citations	54adba71703b0917097e
 STFSpec/informal/modules/EthStateCommit.md:16	:191	-	its block names several files (witness_state.py, state_mpt.py); none defines a nearby name around it; on a line with rewritten citations	a3502f04f53fa123e22d
-STFSpec/informal/modules/EthStateCommit.md:19	witness_state.py:198–203	witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	4e8d1d187a45cb2d5d3a
-STFSpec/informal/modules/EthStateCommit.md:33	witness_state.py:198–203	witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	c34dd0c6fd1581f39d4e
-STFSpec/informal/modules/EthStateCommit.md:145	src/ethereum/forks/amsterdam/witness_state.py:198–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 198–203 touches changed lines 197–203	1e2b7879b42ec134fb3c
 STFSpec/informal/modules/EthStateWitness.md:16	ws:73	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 73 touches changed lines 47–100	43bf2c2caa0fd4e45a71
 STFSpec/informal/modules/EthStateWitness.md:17	ws:179–203	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 179–203 touches changed lines 191–194, 197–203	582aa30f396c00cd0790
 STFSpec/informal/modules/EthStateWitness.md:19	ws:215–227	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 215–227 touches changed lines 219–237	56a90cc32eb51ea60a8d
