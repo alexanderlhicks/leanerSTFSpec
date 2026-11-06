@@ -307,8 +307,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
-  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
-  certification is supplied. All three per-instance §7 obligations remain required;
+  controls, are supplied (§3/§4). This generic module supplies no actual instance,
+  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
   The private output consumer is unchanged. No guest/resource/security/cost or
@@ -371,7 +372,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  actual schema instances, typed decoding and error producers remain unimplemented.
+  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
+  Other actual schema instances, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -960,9 +962,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthBlock`](modules/EthBlock.md)
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
-  proofs/interpreted controls are supplied (§3–§5/§7). RLP/SSZ adapters,
-  `processWithdrawals`, amount conversion and Q53 withdrawal root-input composition
-  remain unimplemented. Raw storage closes no execution, resource or readiness gate.
+  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
+  (§3–§5/§7). Actual-value support and complete layout clients remain private.
+  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
+  scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
+  Execution, resource/C1–C4, security and readiness gates remain open.
 
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source
