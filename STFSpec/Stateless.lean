@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Stateless.ExecutionWitness
 import STFSpec.Stateless.Output
+import STFSpec.Stateless.WireLimits
 
 /-!
 # STFSpec.Stateless
