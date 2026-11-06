@@ -1476,8 +1476,10 @@ admission, inverse/typed adapters, roots and guest outcomes stay separate.
 `STFSpec/Codec/SszSchema.lean` supplies the five-field metadata carrier and
 exactly the two forward wrappers with two ordinary raw-call equations in §5/§7.
 **Discharged:** each wrapper forwards the actual named dictionary's descriptor,
-`toValue a` and operation-local proof directly. No actual instances are supplied;
-descriptor WF and both adapter obligations remain external per actual instance.
+`toValue a` and operation-local proof directly. This generic module supplies no
+actual instances. EthStateless §3/§5/§7 supplies the concrete ExecutionWitness
+dictionary and its three certificates; operation support remains separate.
+Descriptor WF and both adapter obligations remain external per actual instance.
 The class does not certify arbitrary dictionaries or provide generic schema laws.
 
 | EELS source at pin | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and regression |
@@ -3109,7 +3111,8 @@ There is no completion outside the selected proof domain or runtime support chec
   and `∀ v a, SszValue.WellTyped s.type v ∧ s.ofValue? v = some a → s.valid a ∧ s.toValue a = v`.
   The second adapter direction prevents lossy conversions from changing the decoded
   request's commitment. These obligations remain required and external; none is a
-  class field or unconditional generic theorem, and no actual instance is supplied.
+  class field or unconditional generic theorem. Concrete instance status is owned
+  by the schema owner (ExecutionWitness: EthStateless §3/§5/§7).
   Consumers needing them cite their actual instance's proofs or state hypotheses.
 
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.

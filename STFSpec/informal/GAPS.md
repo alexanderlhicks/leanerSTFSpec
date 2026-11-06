@@ -1028,8 +1028,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   This metadata closes no schema, admission, guest, resource or readiness gate.
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
-  complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
-  their certifications, wire admission, RLP/header validation, database construction,
+  complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
+  in §3/§5/§7, with complete private controls in §4. Other input schemas, wire
+  admission, RLP/header validation, database construction,
   hashing and guest composition remain unimplemented. The five size-limit aliases
   are supplied under F8 (§3/§5), without implementing those consumers. The
   stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin

@@ -61,7 +61,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | InternalError, CheckedResult, `CheckedT` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; adapters, execution and guest projection remain open, as do F11 and G2–G7. |
 | BlockConfig, BlockOutput, transaction/header records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | ProtocolFork | EthStateless | The complete historical carrier and total forward UInt8 tag observation are supplied under EthStateless §3/§4/§7, with private complete facade proofs and literal guards. No inverse, schema selector/decoder or guest policy is supplied; the F8 schema-constant bridge remains a separate follow-on (EthStateless §10). |
-| ExecutionWitness, StatelessInput and StatelessValidationResult | EthStateless | The raw three-array witness and private complete facade clients/controls are supplied under EthStateless §3/§4/§7; wire schemas, header decoding and DB/hash construction remain separate. EthFork §3 supplies the five F8 wire-limit values, and EthStateless §3/§5 supplies their transparent consumer aliases without wire admission or schema certification. The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+| ExecutionWitness, StatelessInput and StatelessValidationResult | EthStateless | The raw three-array witness and private complete facade clients/controls are supplied under EthStateless §3/§4/§7; the actual witness dictionary and three Q81 certificates are supplied under EthStateless §3/§5/§7, independently of Serializable/Rootable, source backing and host premises. Other input schemas, decoding and DB/hash construction remain separate. EthFork §3 supplies the five F8 wire-limit values, and EthStateless §3/§5 supplies their transparent consumer aliases without wire admission; the actual witness schema consumes those aliases. The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
 ### Supplied local SSZ count-recovery handoff (Q87)
 
@@ -89,8 +89,9 @@ no validity, descriptor WF, inverse or opposite-operation support premise.
 
 Every actual instance owner still separately proves all three external §7
 certifications: descriptor WF and both adapter directions. These are required
-obligations, not generic class laws; no actual instances are supplied. Consumers
-needing certification cite those actual proofs or state their hypotheses. Neither
+obligations, rather than generic class laws. EthStateless §3/§5/§7 supplies the actual
+ExecutionWitness dictionary and all three certificates. Consumers needing
+certification cite their actual instance proofs or state their hypotheses. Neither
 metadata nor the three certifications alone establishes raw operation support.
 Actual source schema/name/order/coercion/reflection correspondence and successful
 decode→dataclass→fresh-view support stay with the concrete owner. No decoder guard
