@@ -144,9 +144,22 @@ def natural(raw):
     return int(raw)
 
 
+def _parse_byte_list(raw):
+    if type(raw) is not str or "\n" in raw or "\r" in raw:
+        return ast.literal_eval(raw)
+    try:
+        value = json.loads(raw)
+    except (ValueError, TypeError, RecursionError, MemoryError):
+        pass
+    else:
+        if type(value) is list and all(type(byte) is int and 0 <= byte < 256 for byte in value):
+            return value
+    return ast.literal_eval(raw)
+
+
 def byte_list(raw, *, width=None):
     """Check UInt8 list types and bounds before equality or bytes conversion."""
-    value = ast.literal_eval(raw)
+    value = _parse_byte_list(raw)
     require(type(value) is list, raw)
     require(all(type(byte) is int and 0 <= byte < 256 for byte in value), raw)
     require(width is None or len(value) == width, raw)
