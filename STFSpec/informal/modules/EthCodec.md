@@ -1478,8 +1478,10 @@ exactly the two forward wrappers with two ordinary raw-call equations in §5/§7
 **Discharged:** each wrapper forwards the actual named dictionary's descriptor,
 `toValue a` and operation-local proof directly. This generic module supplies no
 actual instances. EthStateless §3/§5/§7 supplies the concrete ExecutionWitness
-dictionary and its three certificates; operation support remains separate.
-Descriptor WF and both adapter obligations remain external per actual instance.
+dictionary and its three certificates; EthBlock §3/§5/§7 supplies the actual
+Withdrawal dictionary and its three external certificates. Operation support
+remains separate. Descriptor WF and both adapter obligations remain external
+per actual instance.
 The class does not certify arbitrary dictionaries or provide generic schema laws.
 
 | EELS source at pin | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and regression |
@@ -2024,7 +2026,7 @@ def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
 -- SSZ: raw vocabulary/providers and generic forward metadata/wrappers are supplied;
--- raw/typed decoding and actual schema instances remain future.
+-- raw/typed decoding remains future; EthBlock owns the certified Withdrawal instance.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -3111,8 +3113,9 @@ There is no completion outside the selected proof domain or runtime support chec
   and `∀ v a, SszValue.WellTyped s.type v ∧ s.ofValue? v = some a → s.valid a ∧ s.toValue a = v`.
   The second adapter direction prevents lossy conversions from changing the decoded
   request's commitment. These obligations remain required and external; none is a
-  class field or unconditional generic theorem. Concrete instance status is owned
-  by the schema owner (ExecutionWitness: EthStateless §3/§5/§7).
+  class field or unconditional generic theorem. This generic module supplies no
+  instances. Concrete instance status is owned by EthStateless §3/§5/§7 for
+  ExecutionWitness and EthBlock §3/§5/§7 for Withdrawal.
   Consumers needing them cite their actual instance's proofs or state hypotheses.
 
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
@@ -3255,8 +3258,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
-  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
-  certification is supplied. All three per-instance §7 obligations remain required;
+  controls, are supplied (§3/§4). This generic module supplies no actual instance,
+  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
   The private output consumer is unchanged. No guest/resource/security/cost or
@@ -3319,7 +3323,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  actual schema instances, typed decoding and error producers remain unimplemented.
+  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
+  Other actual schema instances, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
