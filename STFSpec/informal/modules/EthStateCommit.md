@@ -1,13 +1,13 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft; account and storage leaf encoders and lenient decoders supplied; roots and `Models` unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; account and storage leaf encoders, lenient account and strict storage decoders supplied; roots and `Models` unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55, Q57.*
 
 EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
 ## 1. Purpose
 
-`EthStateCommit` is the small integration component (ARCHITECTURE §3, v2.1; D20) between state semantics (`EthState`) and the generic trie (`EthCommit`). It owns the account and storage leaf encodings and their (lenient) witness decodings, the state root of a mathematical state `mathStateRoot`, code-hash agreement, and the binary full backend contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups constsId ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`. Here `constsId` names `Id.run (HashConsts.query (m := Id))`, the existing concrete interpretation in SC7/§7.3 (Q57). Both backends prove `Models` against these definitions; neither `EthState` nor `EthCommit` imports the other.
+`EthStateCommit` is the small integration component (ARCHITECTURE §3, v2.1; D20) between state semantics (`EthState`) and the generic trie (`EthCommit`). It owns the account and storage leaf encodings and their lenient account and strict storage witness decodings, the state root of a mathematical state `mathStateRoot`, code-hash agreement, and the binary full backend contract `Models ps σ := MathState.WF σ ∧ CodeAuthentic σ ∧ ModelsLookups constsId ps σ ∧ ModelsCode ps ∧ ModelsRoot ps σ`. Here `constsId` names `Id.run (HashConsts.query (m := Id))`, the existing concrete interpretation in SC7/§7.3 (Q57). Both backends prove `Models` against these definitions; neither `EthState` nor `EthCommit` imports the other.
 
 ## 2. Requirements
 
@@ -16,11 +16,11 @@ EELS `file:line` citations are at `59c1473d` except where marked and those liste
 - SC3. **Secured keys**: account keys are `keccak256(address)`, storage keys `keccak256(slot)` (`Trie(secured=True, …)`, `state_mpt.py:40`, `:106`; `witness_state.py:91`, `:168`, `:191`).
 - SC4. **`mathStateRoot σ`** = `mathRoot` of `{keccak256 a ↦ encodeAccount (σ.accounts a) (storageRoot σ a)}` where `storageRoot σ a = mathRoot {keccak256 k ↦ rlp v | σ.storageAt a k = v ≠ 0}`, which is `EMPTY_TRIE_ROOT` for no storage (`state_mpt.py:113–118`; `merkle_patricia_trie.py:429–433`). Storage of absent accounts does not contribute. Every hash here (secure keys, node references, the root) goes through `KeccakQuery` (D5), and the empty constants come from `HashConsts` (`EthBase`); the model definitions are stated at `m := Id` (§5).
 - SC5. **Account leaf decoding** (`witness_state.py:38–62`), lenient [executed against pinned `ethereum_rlp`]: the leaf must RLP-decode to a list of exactly 4 items (else malformed); each field that is falsy (the empty string **or the empty list**) takes its default (`0`, `0`, `EMPTY_TRIE_ROOT`, `EMPTY_CODE_HASH`, i.e. the `HashConsts` fields, which the decoder therefore takes as a parameter); otherwise nonce and balance are big-endian with **leading zeros accepted**, nonce unbounded, balance ≥ 2²⁵⁶ fails (`OverflowError`); a non-empty storage root or code hash of length ≠ 32 fails (`ValueError`); a non-empty list in any field fails (`TypeError`). An empty leaf value fails (`rlp.decode(b"")`). All failures are witness failures (O4).
-- SC6. **Storage leaf decoding** (`witness_state.py:198–203`): RLP-decode; a string → its big-endian value (leading zeros accepted; > 32 significant bytes fails with `OverflowError`); the empty string → `0`; **a list → `0`** silently. RLP failure → witness failure.
+- SC6. **Storage leaf decoding** (`witness_state.py:127`): complete canonical RLP parsing first, then reject lists; for byte strings, reject a first zero byte before checking the payload width ≤32. An admitted payload yields its full unsigned big-endian U256 value, with the empty payload yielding zero. Raw empty input, malformed RLP, trailing bytes and every typed rejection map to `.malformed .leaf` (CONTRACT O4(e)). The caller's empty-root and absent-leaf zero cases precede this helper and are separate.
 - SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:30`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:33–35`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
 - SC8. **`ModelsRoot ps σ`** (for `ps : PreState Id`): for every `d` with `BlockDiff.WF σ d`, `ps.stateRoot d = .ok r → r = Id.run (mathStateRoot (m := Id) constsId (σ.apply d))`. This spells out the existing concrete root interpretation. `code_changes` never affects the root (the MPT commits to code hashes only, `state_mpt.py:87–89`; `state.py:123–129`).
 - SC9. **`Models ps σ`** is stated for `ps : PreState Id` (D5, F1); the oracle coupling for a generic `m` is open (D5, `EthSecurity`). It requires `MathState.WF σ` and `CodeAuthentic σ`. For a witness backend with authenticated node/code DBs, coherent HashConsts and the specified Id-run decoder/thunk agreement via the existing error-adapter obligation (WitnessBackend.WF, Q55), it holds **up to a computable collision** (§7): for every structurally WF, code-authentic σ whose `mathStateRoot` is the parent root, `Models ps σ` or a Keccak collision is found among node/key/code preimages, including the witness code DB and σ’s code bytes. Backend **progress** is separate (ARCHITECTURE §5.3) and stated in each backend.
-- SC10. The encodings are canonical: for every supplied `consts`, `decodeAccountLeaf consts (encodeAccount a r) = .ok (a, r)` under complete assembled `Rlp.Encodable (.list [Rlp.ofNat a.nonce, Rlp.ofNat a.balance.toNat, .bytes r.toBytes.toByteArray, .bytes a.codeHash.toBytes.toByteArray])` (Q47), and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient decodings of non-canonical leaves are reachable only under a collision (§7.2).
+- SC10. The encodings are canonical: for every supplied `consts`, `decodeAccountLeaf consts (encodeAccount a r) = .ok (a, r)` under complete assembled `Rlp.Encodable (.list [Rlp.ofNat a.nonce, Rlp.ofNat a.balance.toNat, .bytes r.toBytes.toByteArray, .bytes a.codeHash.toBytes.toByteArray])` (Q47), and `decodeStorageLeaf (encodeStorage v) = .ok v` for `v ≠ 0`; lenient account decodings of non-canonical leaves are reachable only under a collision (§7.2).
 
 ## 3. EELS source map
 
@@ -30,7 +30,7 @@ EELS `file:line` citations are at `59c1473d` except where marked and those liste
 | `forks/amsterdam/fork_types.py::encode_account` | 67 | `encodeAccount` | the fork-local copy; same RLP `(nonce, balance, storage_root, code_hash)` as the shared one (verified by reading both); one Lean definition serves both |
 | `forks/amsterdam/witness_state.py::_decode_account_from_leaf` | 38 | `decodeAccountLeaf` | lenient, SC5 |
 
-Also specified here without their own inventory items: the storage-leaf decoding inlined in `WitnessState.get_storage` (`witness_state.py:198–203`, `decodeStorageLeaf`), contextual `Account` encoding in `encode_node` (`merkle_patricia_trie.py:263–265`) and the storage-root callback of `root`/`_prepare_data` (`merkle_patricia_trie.py:410`, `:430–433`). Q53 does not supply a bare Account class instance.
+Also specified here without their own inventory items: the storage-leaf decoding inlined in `WitnessState.get_storage` (`witness_state.py:127`, `decodeStorageLeaf`), contextual `Account` encoding in `encode_node` (`merkle_patricia_trie.py:263–265`) and the storage-root callback of `root`/`_prepare_data` (`merkle_patricia_trie.py:410`, `:430–433`). Q53 does not supply a bare Account class instance.
 
 **External semantics.** `ethereum_rlp.rlp` (strict decode; integer encoding of `Uint`/`U256` as minimal big-endian strings); `int.from_bytes(·, "big")` (leading zeros allowed); `ethereum_types` `U256`/`Uint` constructors (`U256` rejects ≥ 2²⁵⁶ with `OverflowError`) and `Bytes32`/`Hash32` constructors (reject wrong lengths with `ValueError`) — all [executed].
 
@@ -55,8 +55,8 @@ from wire equality, and proves the 33-byte bound through public provider sizes.
 These committed guards compare complete wires; the symbolic clients consume public
 provider laws on every U256. They supply component encoding and typed-trie evidence.
 EEST guest and assembled-root coverage and whole-source/host agreement remain open.
-The lenient storage decoder and storage SC10 are supplied below; a strict typed
-RLP/U256 decoder does not substitute for that witness behavior.
+The strict storage decoder and nonzero storage SC10 are supplied below.
+Encoding zero does not authorize storing zero in a trie.
 
 `encodeStorage_eq` states the exact `Rlp.encode (Rlp.ofNat v.toNat)` equation.
 The adjacent private List-wire reference has an ordinary equality proof on every
@@ -133,17 +133,17 @@ The existing unconditional nonempty, complete-domain binding and conditional
 account SC10 laws remain supplied. This pure operation acquires no defaults or
 storage root and supplies no callback, secured-root or whole-backend bridge.
 
-### Implemented lenient storage decoder (SC6, storage SC10)
+### Implemented strict storage decoder (SC6, nonzero storage SC10)
 
 `STFSpec/StateCommit/StorageDecode.lean` supplies exactly `decodeStorageLeaf`
-and four public laws below (five declarations); all numeric/reference/domain support
-is private. The nominal `State.WitnessError` carrier is owned by
+and four public laws below (five declarations). Supporting domain proofs are
+private. The nominal `State.WitnessError` carrier is owned by
 [EthState §3/§5](EthState.md#3-eels-source-map).
 
 | Source at the pin | Public declaration/type and status | Domain, success and effects | Ordered failures | Laws and tests |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/witness_state.py:198–203`; `ethereum_rlp/rlp.py:143–156,387–543` (0.1.6); `ethereum_types/numeric.py:44–48,690–712` (0.4.1) | `decodeStorageLeaf : ByteArray → Except State.WitnessError U256`; **discharged local composition** | Every finite raw leaf; complete strict RLP first, then every list → zero or complete unsigned byte payload checked against 2^256; empty payload → zero; unrestricted leading zeros. Pure, no state/hash/cache effects | RLP error first → `.malformed .leaf`; only successfully parsed bytes can then overflow → `.malformed .leaf`. These enumerate two local O4(e) classes, not a global adapter or diagnostic freeze | `decodeStorageLeaf_of_rlp_error`, `_of_rlp_list`, `_of_rlp_bytes`; private ordinary all-Bytes packed/reference equality, prefix invariant, absorbing overflow and candidate <2^264; complete parser/local-result guards and public-law clients |
-| SC10 of the same operation | `decodeStorageLeaf_encodeStorage (v : U256) (h : v ≠ U256.zero) : decodeStorageLeaf (encodeStorage v) = .ok v`; **discharged** | Exactly nonzero words; local Q47 byte domain proved from public 32-byte width bound | None on this domain | Public-contract symbolic client and full values at 1/127/128/255/256, every bit, maximum; no new stored-zero policy or instance |
+| `src/ethereum/forks/amsterdam/witness_state.py:127`; ethereum-rlp 0.1.6 `ethereum_rlp/rlp.py:162–171,268–275`; ethereum-types 0.4.1 `ethereum_types/numeric.py:566–577` | `decodeStorageLeaf : ByteArray → Except State.WitnessError U256`; **discharged local composition** | Every finite raw leaf; success exactly on canonical RLP byte strings with no first zero byte and width ≤32; complete unsigned value, empty payload zero. Pure, no state/hash/cache effects | Complete RLP parse, including nested children and trailing bytes; list shape; first-zero rejection; width; full value construction. Every failure maps to `.malformed .leaf`; no global adapter or diagnostic freeze | `decodeStorageLeaf_of_rlp_error`, `_of_rlp_list`, `_of_rlp_bytes`; private symbolic clients, exact provider diagnostics and complete finite observations |
+| SC10 of the same operation | `decodeStorageLeaf_encodeStorage (v : U256) (h : v ≠ U256.zero) : decodeStorageLeaf (encodeStorage v) = .ok v`; **discharged** | Exactly the existing nonzero public domain; local Q47 byte domain follows the public 32-byte bound | None on this domain | Private all-word roundtrip includes encoded zero; no new stored-zero policy or instance |
 
 The three behavior statement types are:
 
@@ -153,38 +153,57 @@ theorem decodeStorageLeaf_of_rlp_error (leaf : ByteArray) (e : RlpError)
     decodeStorageLeaf leaf = .error (.malformed .leaf)
 theorem decodeStorageLeaf_of_rlp_list (leaf : ByteArray) (items : List RlpItem)
     (h : Rlp.decode leaf = .ok (.list items)) :
-    decodeStorageLeaf leaf = .ok U256.zero
+    decodeStorageLeaf leaf = .error (.malformed .leaf)
 theorem decodeStorageLeaf_of_rlp_bytes (leaf payload : ByteArray)
     (h : Rlp.decode leaf = .ok (.bytes payload)) :
     decodeStorageLeaf leaf =
-      match U256.ofNat? (Uint.ofBeBytes (Bytes.ofByteArray payload)) with
-      | some v => .ok v
-      | none => .error (.malformed .leaf)
+      if payload[0]? = some 0 then .error (.malformed .leaf)
+      else if payload.size ≤ 32 then
+        .ok (U256.ofNat (Uint.ofBeBytes (Bytes.ofByteArray payload)))
+      else .error (.malformed .leaf)
 ```
 
-The executable numeric path is `Bytes.foldl` over `Option U256`, initialized
-at `some zero`: success checks `256 * acc.toNat + byte.toNat`, overflow retains
-`none` over every suffix. Each candidate is <2^264; retained values are <2^256.
-The legible reference `U256.ofNat? (Uint.ofBeBytes payload)` is proof-facing;
-ordinary public-model fold commutation proves equality on every finite Bytes.
-No numeric-path list conversion, growing overflowing Nat, byte-count/minimality
-cap, wrapping, clipping or child numeric traversal occurs. Full parser allocations
-and traversal remain upstream; fixed numeric bounds establish no measured
-allocation/throughput, host/resource or composed C1–C4 result.
+The executable composes public `Rlp.decode`, `Rlp.toNatBounded 32` and
+`U256.ofNat`. The shared typed integer provider owns shape, first-zero and width
+checks; numeric construction sees at most 32 bytes. Proofs consume public provider
+laws without opening foreign instances or representations. The superseded storage
+packed fold and lenient reference have been removed; account support is separate.
+Full parser allocation/traversal and host failures remain upstream; no composed
+resource or C1–C4 result follows from the numeric width bound.
 
-`StorageDecodeCallerProofs.lean` derives arbitrary-input success iff the complete
-integer fits, exact full success values, overflow iff ≥2^256, list/error equations
-and nonzero SC10 solely through public contracts. `StorageDecodeGuards.lean`
-retains exact parser errors and complete local results, including raw empty versus
-empty payload, canonical framing, malformed nested children, trailing wire bytes,
-33-significant-byte list children, 55/56/57 and 255/256/257 length thresholds,
-long leading zeros/late digits, every significant position, maximum, overflow and
-absorbing arbitrary suffix patterns. The nonzero fitting-byte and empty-list
-trailing cases check exact parser errors before otherwise successful value branches.
-These committed component cases preserve parser/local-result failure order. The
-ordinary all-Bytes packed/reference proof is separate from finite guard coverage.
-Secure roots/callbacks, authentication, backend progress, generic coupling and
-global errors/resources remain open.
+`StorageDecodeCallerProofs.lean` derives, for arbitrary parsed byte payloads,
+success iff minimality, width and the complete value agree, and error iff first
+zero or excess width. It also proves whole-wire success iff `leaf = encodeStorage v`
+and privately covers encoded zero. `StorageDecodeGuards.lean` preserves exact raw
+parser diagnostics and local results for empty input versus empty payload, lists,
+first zeros, 31/32/33-byte and 55/56/57/255/256/257 framing boundaries, every bit,
+maximum and asymmetric/interior/trailing-zero payloads. Separate typed-provider
+observations retain `integer leading zero` before `integer width`, and raw parsing
+before typed list or integer checks; coarse leaf errors alone cannot show this order.
+
+The committed `storage_decode_recipe.py` reconstructs independently frozen
+mathematical expectations without a decoder or source/target import.
+`storage_decode_inputs.jsonl` and `storage_decode_expected.jsonl` retain 635 complete
+ordered rows (332 successes, 303 errors), including four exact duplicate tail rows.
+`StorageDecodeNativeTests.lean` emits every raw byte and full result through the
+public decoder, natively and interpreted. `storage_decode_differential.py`
+authenticates the frozen input/expectation bytes and checks complete framing,
+cardinality, order, duplicates and full U256 integers. Its parser controls run
+normally and with `-O`, rejecting booleans as integers, floats, duplicate keys,
+byte/value changes and malformed framing.
+
+Separate original-source observations at `59c1473d`, acquired on 2026-11-06 through
+the frozen interpreter in normal and optimized profiles, matched every full row.
+They used the original `rlp.decode_to(U256, leaf)` binding from `get_storage`,
+with exact original U256 successes and DecodingError cause/trace records.
+Those traces retain raw parsing before typed conversion, list/type rejection,
+first-zero rejection and width-before-construction. Checkout source and installed
+RECORD consistency were checked before/after; raw wheel archives were not
+independently authenticated. The committed checker runs no EELS source.
+These are finite observations under the recorded runtime and dependency trust
+inputs, not a universal Python refinement or host/resource result. Empty-root,
+absence, account lookup, trie/cache phases, secure roots/callbacks, authentication,
+backend progress, generic coupling and guest/EEST acceptance remain open.
 
 ### Implemented lenient account decoder (SC5, conditional account SC10)
 
@@ -268,7 +287,7 @@ remain open.
 
 - **EEST fixture areas:** every blockchain fixture's post-state root exercises `mathStateRoot` (through `EthStateFull`) and its witness variant; `amsterdam/eip8025_optional_proofs` for leaves read from witnesses; `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` `TestGetAccountOptional`, `TestGetStorage`, `TestComputeStateRoot` (leaf decoding and roots through the backend).
-- **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount consts) consts.emptyTrieRoot` bytes, with `consts = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient cases of SC5/SC6 (all-empty-string and all-empty-list leaves decode to the defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails (a longer encoding with leading zeros can still fit); list-valued storage leaf decodes to `0`; empty leaf value fails).
+- **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount consts) consts.emptyTrieRoot` bytes, with `consts = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient account SC5 cases (all-empty-string and all-empty-list account fields take defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails, although longer leading-zero encodings can fit); strict storage SC6 cases (empty payload zero, raw empty failure, list/first-zero/width rejection and full-value boundaries).
 - **Property tests:** round trips on random accounts and values; `mathStateRoot` invariant under insertion order; `mathStateRoot σ` unchanged by adding storage for an absent account.
 
 ## 5. Interface
@@ -349,8 +368,8 @@ Q55 chooses none and adds no local constants acquisition.
 
 ## 6. Data structures
 
-The storage decoder uses a private packed `Option U256` fold; its reference is
-proof-facing and its fixed numeric bound is specified in §3. No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
+The storage decoder uses the public strict RLP parser and bounded integer provider
+(§3), with numeric construction limited to admitted payloads of at most 32 bytes. No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
 
 ## 7. Contract and laws
 
@@ -408,9 +427,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
-- **Lenient leaf decoding integration:** local SC5/SC6 acceptance/value/constructor contracts and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first and statically sequential account-field order, coarse `.malformed .leaf` results, ordinary bounded/reference proofs and malformed-wire regressions are supplied. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
-- **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
+- **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
+- **Falsy empty lists** in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
 - **Blockchain-test pre-states** (`EthStateFull`) must satisfy `MathState.WF` (no orphan storage); this is argued from `state_mpt.set_storage`'s assertion (`state_mpt.py:198`) and genesis loading, not checked on the corpus.
-- **Re-pin to `tests-zkevm@v21.0.6`: strict storage leaves (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d`).** `WitnessState.get_storage` now returns `rlp.decode_to(U256, leaf)` (`witness_state.py:127`, execution-specs PR #3659). With ethereum-rlp 0.1.6 a storage leaf that decodes to a list, to a byte string with a leading zero byte, or to more than 32 bytes now fails (CONTRACT O4(e)); at `tests-zkevm@v21.0.0` the list read as zero and the others were accepted when the value fit. `decodeStorageLeaf` (`STFSpec/StateCommit/StorageDecode.lean`) still implements the old SC6 leniency, as do its laws `decodeStorageLeaf_of_rlp_list` and `decodeStorageLeaf_of_rlp_bytes`, the `StorageDecode{Guards,CallerProofs}.lean` conformance files and the frozen `storage_encoding_differential.py` catalogue. SC6 and the "Silent list-to-zero" item above describe the old reference for storage. The `scripts/spec_review.py` check `storage_leaf_rlp_list_is_rejected` follows this pin. Account leaves are unchanged (`_decode_account_from_leaf`), so SC5 stands.
+- **Re-pin evidence (GAPS-CROSSCUTTING X16):** the strict storage semantic migration is supplied in §3 at `59c1473d`; SC5 remains lenient. The earlier description of `storage_encoding_differential.py` as a frozen decoder catalogue was incorrect: that driver covers encoding only, remains at `e1a316a0` and still needs its separate SC2 source reauthentication. Its old evidence does not validate strict decoding. Backend/trie re-pin work, account encoding evidence and other X16 items remain open.

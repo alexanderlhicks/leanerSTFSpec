@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-04.*
+*Status: conditional proof plan. Date: 2026-11-06.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -463,12 +463,14 @@ generic coupling, global error adapter/O12, resources, C1–C4 or guest readines
 
 [EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies the pure
 SC6 decoder and nonzero storage SC10 through public RLP/Base contracts.
-Complete strict RLP parsing precedes list-to-zero or complete unsigned bytes (the
-`tests-zkevm@v21.0.0` storage leniency; strict at the current pin, EthStateCommit §10);
-private packed checked folding equals its full Nat reference on every finite Bytes.
+Complete strict RLP parsing precedes integer interpretation. The shared typed
+integer provider rejects lists, then leading-zero byte payloads, then payloads
+longer than 32 bytes before constructing the complete unsigned word.
 The nominal witness-error carrier is owned by
 [EthState §3/§5](modules/EthState.md#3-eels-source-map).
-Only invalid RLP and parsed numeric overflow map locally to `.malformed .leaf`.
+Invalid RLP and integer shape, minimality or width failures map locally to
+`.malformed .leaf`. The empty byte payload decodes as zero; a singleton zero-byte
+payload is rejected.
 This supplies no global O4 adapter, granularity refinement,
 authentication, lookup/progress, secure root/callback, Q55 action or generic
 oracle coupling; those remain their owners' obligations. Local Q47 encodability
