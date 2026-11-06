@@ -160,6 +160,19 @@ retain old spills and signed refund. Source ZERO coherence, actual handler/acces
 failure/effect order, cfg/grant identity, child execution/return bounds and
 incorporation/settlement/step/loop remain open. This closes no G2–G7 gate.
 
+That owner also supplies private clients for arbitrary supplied execution g and
+reservoir R after the actual drain. They prove returned.phi+E+cost=initial.phi+g
+and strict progress iff g+1≤E+cost. Only g≤subCall is needed for the worst-case
+stipend bound and the same financed consequences. Phi excludes reservoir, baseline
+and refund, so no reservoir bound is used. Complete whole-field equations and
+fifty-five six-stage/six-field successes plus two shortages retain the actual
+numeric operations and pre-target mathematical expectations. A supplied child-phi
+bound implies its execution bound locally. The arbitrary-Frame ChildSettled
+countermodel shows that settlement alone provides neither bound. Actual child and
+handler effects, returned-phi preservation, successful-child credit bookkeeping,
+F11 proof production, source/default/host agreement, F11/B11/D5/S2/G2–G7,
+resources, security and guest integration remain open, with no readiness increase.
+
 Q65's local allocation slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
 execution/reservoir carrier, VmConfig-first helper with exactly two local bounds,
