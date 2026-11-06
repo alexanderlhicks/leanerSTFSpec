@@ -1,8 +1,10 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Regressions of the complete native Hash32 observation parser; no Lean build needed."""
 
+import ast
 import importlib.util
 from pathlib import Path
+import re
 import unittest
 
 
@@ -78,6 +80,52 @@ class Hash32OutputParserTests(unittest.TestCase):
         self.assertEqual(summary, {"vectors": 6, "maps": 21,
                                   "whole_key_payload_lookups": 20504,
                                   "observations": 20531})
+
+    def test_legacy_byte_list_syntax(self):
+        for prefix, field, value in (("V|0|", 4, [0] * 32),
+                                     ("M|tiny|3|", 3, [0] * 31 + [3]),
+                                     ("M|tiny|3|", 4, [3, 0, 170, 85])):
+            decimal = repr(value)
+            variants = ("[" + ", ".join(hex(b) for b in value) + "]",
+                        "[" + ", ".join(f"+{b}" for b in value) + "]",
+                        "[" + ", ".join(str(b)[:-1] + "_" + str(b)[-1:]
+                                        if b >= 10 else str(b) for b in value) + "]",
+                        decimal[:-1] + ",]", decimal + " # byte list",
+                        "[" + ", ".join("-0" if b == 0 else str(b) for b in value) + "]",
+                        "(" + decimal + ")", "\t" + decimal)
+            for literal in variants:
+                with self.subTest(prefix=prefix, field=field, literal=literal):
+                    self.assertEqual(check_output(self.mutated(prefix, field, literal), self.vectors),
+                                     {"vectors": 6, "maps": 21,
+                                      "whole_key_payload_lookups": 20504, "observations": 20531})
+
+    def test_json_nonbyte_literals(self):
+        for literal in ("[true]", "[false]", "[NaN]", "[Infinity]", "[-Infinity]"):
+            with self.subTest(literal=literal):
+                self.reject(self.mutated("M|tiny|3|", 4, literal))
+
+    def test_literal_error_diagnostics(self):
+        def message(error):
+            return re.sub(r"(<ast\.[A-Za-z]+ object at )0x[0-9a-fA-F]+(>)", r"\1ADDRESS\2",
+                          str(error))
+
+        for literal in ("[", "[true]", "[false]", "[NaN]", "[Infinity]", "[1,,2]"):
+            with self.subTest(literal=literal):
+                try:
+                    ast.literal_eval(literal)
+                except (SyntaxError, ValueError) as expected:
+                    expected_type, expected_message = type(expected), message(expected)
+                raw = self.mutated("V|0|", 4, literal)
+                with self.assertRaises(AssertionError) as raised:
+                    check_output(raw, self.vectors)
+                error = raised.exception
+                self.assertEqual(str(error), "Invalid byte list: " + raw.splitlines()[0])
+                self.assertIs(type(error.__cause__), expected_type)
+                self.assertEqual(message(error.__cause__), expected_message)
+                self.assertIs(error.__context__, error.__cause__)
+                self.assertTrue(error.__suppress_context__)
+                self.assertIsNone(error.__cause__.__cause__)
+                self.assertIsNone(error.__cause__.__context__)
 
     def test_byte_classes_and_bounds(self):
         for prefix, field, valid in (("V|1|", 4, [0] * 31 + [1]),

@@ -89,6 +89,19 @@ def main := Hash32TableProbe.main
 '''.replace("VALUES", values)
 
 
+def _parse_byte_list(raw):
+    if type(raw) is not str or "\n" in raw or "\r" in raw:
+        return ast.literal_eval(raw)
+    try:
+        value = json.loads(raw)
+    except (ValueError, TypeError, RecursionError, MemoryError):
+        pass
+    else:
+        if type(value) is list and all(type(byte) is int and 0 <= byte < 256 for byte in value):
+            return value
+    return ast.literal_eval(raw)
+
+
 def check_output(raw, vectors):
     def require(condition, message):
         if not condition:
@@ -103,7 +116,7 @@ def check_output(raw, vectors):
 
     def byte_list(field, width, line):
         try:
-            value = ast.literal_eval(field)
+            value = _parse_byte_list(field)
         except (SyntaxError, ValueError) as error:
             raise AssertionError(f"Invalid byte list: {line}") from error
         require(type(value) is list and len(value) == width, f"Expected {width} bytes: {line}")
