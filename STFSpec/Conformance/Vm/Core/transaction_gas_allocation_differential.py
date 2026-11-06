@@ -884,12 +884,10 @@ def run_original(eels, evidence, profile, target_path):
         "runtime/options",
     )
     require(
-        interpreter
-        == Path(
-            "/home/alh/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/bin/python3.13"
-        ),
+        interpreter == (eels / ".venv/bin/python").resolve(strict=True)
+        and Path(sys.prefix).resolve(strict=True) == (eels / ".venv").resolve(strict=True),
         "provenance",
-        "interpreter path",
+        "interpreter identity",
     )
     expected_text = {
         "src/ethereum/forks/amsterdam/vm/gas.py": (
