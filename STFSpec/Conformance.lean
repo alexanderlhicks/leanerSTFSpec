@@ -299,6 +299,8 @@ import STFSpec.Conformance.Vm.Core.MemoryGasGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasSettlementCallerProofs
 import STFSpec.Conformance.Vm.Core.TransactionGasSettlementGuards
 import STFSpec.Conformance.Vm.Core.CallGasCallerProofs
+import STFSpec.Conformance.Vm.Core.CallPreflightGasCallerProofs
+import STFSpec.Conformance.Vm.Core.CallPreflightGasControls
 import STFSpec.Conformance.Vm.Core.CallGasGuards
 
 import STFSpec.Conformance.Codec.RlpDecodeOfCallerProofs

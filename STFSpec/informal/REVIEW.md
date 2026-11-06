@@ -150,6 +150,16 @@ Relevant-price congruence supplies no global WF or whole payment/settlement/G2
 claim. Actual caller/coherence/composition, compiled/resource and whole VM/guest
 gates remain open.
 
+The separate private CALL preflight numeric composition is owned by
+[EthVmCore §3/§4/§7/§10](modules/EthVmCore.md#private-call-preflight-numeric-composition).
+It composes exact successful overhead/optional-state/current-budget forwarding
+charges, reservoir drain, full grant return and optional credit through public
+laws. The identity returned.phi+E=initial.phi+t needs local t+1≤E for strict
+progress or t≤E for nonincrease; complete field observations and finite controls
+retain old spills and signed refund. Source ZERO coherence, actual handler/access/
+failure/effect order, cfg/grant identity, child execution/return bounds and
+incorporation/settlement/step/loop remain open. This closes no G2–G7 gate.
+
 Q65's local allocation slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): unrestricted raw
 execution/reservoir carrier, VmConfig-first helper with exactly two local bounds,
