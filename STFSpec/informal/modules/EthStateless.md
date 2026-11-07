@@ -59,11 +59,11 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/stateless.py::MAX_WITNESS_HEADERS` | 32 | `maxWitnessHeaders : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_WITNESS_HEADERS` (F8); SSZ list limit and R4 assert remain future consumers |
+| `forks/amsterdam/stateless.py::MAX_WITNESS_HEADERS` | 32 | `maxWitnessHeaders : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_WITNESS_HEADERS` (F8); the actual witness schema uses it as the SSZ list limit (`STFSpec/Stateless/ExecutionWitnessSsz.lean`); the R4 assert remains a future consumer |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_CODE` | 33 | `maxBytesPerCode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_CODE` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_HEADER` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_WITNESS_NODE` (F8) |
-| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–69 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | supplied unrestricted three-field carrier and actual Q81 dictionary/certificates below |
+| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | supplied unrestricted three-field carrier and actual Q81 dictionary/certificates below |
 | `forks/amsterdam/stateless.py::ProtocolFork` | 101–126 | `ProtocolFork`, `ProtocolFork.toIndex : ProtocolFork → UInt8` (`STFSpec/Stateless/ProtocolFork.lean`) | discharged historical 21-constructor carrier and total forward observation of the numeric assignments at 106–126; complete contract and private controls below |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex := ProtocolFork.amsterdam` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8 := 1` | |
@@ -128,7 +128,7 @@ Schema selection, wire admission and guest execution remain separate (§10).
 
 **Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
 `state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
-arguments and no defaults or derived instances. EELS `stateless.py:41–69` at
+arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
 `59c1473d` supplies the source field names/order and raw byte collections [V: read].
 The accepted raw domain is every triple of finite arrays of complete byte arrays,
 including empty arrays, empty members, duplicates, malformed RLP and lengths outside
@@ -141,7 +141,7 @@ helper laws, wire admission or source-runtime agreement claim. The separate dict
 **Supplied raw request items.** `STFSpec/Stateless/RequestItems.lean`, exported by
 `STFSpec.Stateless`, supplies exactly the five distinct nominal structures below.
 All field names and their source order come from EELS
-`execution_engine/requests.py:42–95` at `59c1473d` [V: read]. Underscored source
+`execution_engine/requests.py:42–93` at `59c1473d` [V: read]. Underscored source
 fields use the lowerCamelCase spelling in §5 (CONTRIBUTING §7.2).
 
 | Public constructor | Complete type | Private evidence |
@@ -198,7 +198,7 @@ support or source-host premise. The raw carrier remains unrestricted.
 
 | EELS source at `59c1473d` | Lean declaration | Domain, effects and failures | Law and regression |
 |---|---|---|---|
-| `stateless.py:41–69`; `src/ethereum/utils/ssz.py:174–253,258–320` | `ExecutionWitness.instSszSchema : Codec.SszSchema ExecutionWitness` | pure metadata and complete ordered adapters; payload domain in §5; no decoder, runtime bounds validator or O-row | three actual-dictionary certificates below; complete facade clients and controls in §4 |
+| `stateless.py:41–70`; `src/ethereum/utils/ssz.py:174–253,258–320` | `ExecutionWitness.instSszSchema : Codec.SszSchema ExecutionWitness` | pure metadata and complete ordered adapters; payload domain in §5; no decoder, runtime bounds validator or O-row | three actual-dictionary certificates below; complete facade clients and controls in §4 |
 | `src/ethereum/utils/ssz.py:174–253` (structural interpretation, Q81) | `ExecutionWitness.ssz_type_wellFormed` | no premise; actual descriptor WF | §7 exact type; independent descriptor/names/Fork-limit controls |
 | `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `ExecutionWitness.ssz_ofValue_toValue` | actual validity premise; complete reconstruction and WT image | §7 exact type; arbitrary whole-array clients and full finite recovery controls |
 | `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `ExecutionWitness.ssz_toValue_ofValue` | actual WT plus successful reconstruction; validity and complete value preservation | §7 exact type; arbitrary whole-value clients and malformed-shape controls |
@@ -316,14 +316,16 @@ outer tag, arities 0/1/2/4, each wrong field tag and non-byte members in first/m
 last positions of each field. These are private implementation controls, rather
 than a new public off-WT contract.
 `ExecutionWitnessSszWireControls.lean` compares all 7159 bytes of 25 complete small
-wire cases through the actual `SszSchema.encodeBytes`, each with its own private
-ordinary Serializable proof. Whole inputs and expected offsets/field bytes/wire
-bytes were frozen and independently computed before implementation, by two
-source-free mathematical calculations. Expectations are literal byte arrays,
-independent of the target/helper. These controls cover empty/equal offsets, ordered
-and duplicate payloads, 00/ff bytes, independent field changes and little-endian
-carry boundaries. They run no source encoder, guest or fixture corpus, and close
-no general source, decoder, root, host-resource or readiness obligation.
+wire cases through the actual `SszSchema.encodeBytes`. Each case's private
+Serializable proof applies one shared private support lemma, proved for every
+witness from the public `Ssz.serializable_iff`, to its decided premises. Whole
+inputs and expected offsets/field bytes/wire bytes were frozen and independently
+computed before implementation, by two source-free mathematical calculations.
+Expectations are literal byte arrays, independent of the target/helper. These
+controls cover empty/equal offsets, ordered and duplicate payloads, 00/ff bytes,
+independent field changes and little-endian carry boundaries. They run no source
+encoder, guest or fixture corpus, and close no general source, decoder, root,
+host-resource or readiness obligation.
 
 **EEST fixture areas.** Every guest record (67,685 at this pin, in `blockchain_tests` and `blockchain_tests_engine`; `reference.toml`) passes through this library. Areas that target it specifically (`STFSpec/informal/eest-fixture-index.txt`): `blockchain_tests/for_amsterdam/amsterdam/eip8025_optional_proofs` (96 files), in particular `stateless_input_bytes/` (the zero-sentinel records: at v21.0.0 these were 9, empty input, 1-byte input, schema only, wrong fork byte `0x16`, wrong revision `0x02`, truncated body, trailing garbage, invalid first offset, shifted offsets [V, v21.0.0]; at this pin there are 10 per format, without trailing garbage and with two witness-header SSZ limit cases, EthCodec §4), `witness_validation_headers/` (non-contiguous chain, missing parent header, empty headers, missing oldest BLOCKHASH ancestor, malformed RLP header), `witness_headers/`, `witness_validation_chain_id/`, `stateless_input_versioned_hashes/`, `witness_validation_state/`, `witness_validation_codes/`; and the transition directory `for_bpo2toamsterdamattime15k/*` (previous-fork parent header). Payload conversion is exercised by `prague/eip7685_general_purpose_el_requests`, `eip6110_deposits`, `eip7002_*`, `eip7251_*`, `amsterdam/eip8282_builder_execution_requests`, `cancun/eip4844_blobs` (versioned hashes) and `amsterdam/eip7928_block_level_access_lists` (BAL bytes and hash).
 
