@@ -14,7 +14,7 @@ Spec guidance: `STFSpec/informal/modules/EthStateless.md` §§3–7.
 namespace STFSpec.Stateless
 
 /-- Raw witness data in source field order; EELS
-`src/ethereum/forks/amsterdam/stateless.py:41–69` at the pin.
+`src/ethereum/forks/amsterdam/stateless.py:41–70` at the pin.
 Wire admission and header decoding are separate from this carrier. -/
 structure ExecutionWitness where
   state : Array ByteArray
