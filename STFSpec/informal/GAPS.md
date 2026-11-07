@@ -1095,8 +1095,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   The actual input dictionary and three Q81 certificates, private count/support/layout
   clients and complete 48-input/385957-byte mathematical wire controls are supplied
   in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
-  30-case/183-byte controls are supplied in §3/§4/§7; actual request-count bounds,
-  decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  30-case/183-byte controls, actual raw request-size formulas, operation-local
+  encoded-size laws, fixed classifications and inherited child/member support are
+  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
+  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
