@@ -101,7 +101,8 @@ private theorem rejected_second_start :
 
 private theorem count_recovery (a : StatelessInput) :
     Ssz.CountRecoverable actual.type (actual.toValue a) := by
-  dsimp only [actual, SszSchema.type, SszSchema.toValue, StatelessInput.instSszSchema, NewPayloadRequest.instSszSchema,
+  dsimp only [actual, SszSchema.type, SszSchema.toValue, StatelessInput.instSszSchema,
+    NewPayloadRequest.instSszSchema,
     ExecutionWitness.instSszSchema,
     ExecutionPayload.instSszSchema, ExecutionRequests.instSszSchema,
     DepositRequest.instSszSchema, WithdrawalRequest.instSszSchema,
@@ -115,7 +116,8 @@ private theorem count_recovery (a : StatelessInput) :
     Ssz.countRecoverable_iff (.byteVector _) (.bytes _),
     Ssz.countRecoverable_iff (.byteList _) (.bytes _),
     Ssz.countRecoverable_iff (.progressiveByteList) (.bytes _),
-    SszType.fixedSize?_eq (.progressiveByteList), SszType.fixedSize?_eq (.byteList _), SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.progressiveByteList), SszType.fixedSize?_eq (.byteList _),
+    SszType.fixedSize?_eq (.container _),
     SszType.fixedSize?_eq (.uint _), SszType.fixedSize?_eq (.byteVector _)]
 
 end STFSpec.Conformance.Stateless.InputSszCallerProofs
