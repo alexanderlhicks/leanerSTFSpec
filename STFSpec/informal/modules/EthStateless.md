@@ -63,7 +63,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_CODE` | 33 | `maxBytesPerCode := 2^16` | |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader := 2^10` | |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode := 2^10` | |
-| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–69 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
+| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
 | `forks/amsterdam/stateless.py::ProtocolFork` | 101 | `inductive ProtocolFork` + `toIndex` | only `amsterdam` is used |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex := ProtocolFork.amsterdam` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8 := 1` | |
@@ -97,7 +97,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 
 **Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
 `state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
-arguments and no defaults or derived instances. EELS `stateless.py:41–69` at
+arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
 `59c1473d` supplies the source field names/order and raw byte collections [V: read].
 The accepted raw domain is every triple of finite arrays of complete byte arrays,
 including empty arrays, empty members, duplicates, malformed RLP and lengths outside
