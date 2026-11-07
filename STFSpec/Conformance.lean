@@ -43,6 +43,7 @@ import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
+import STFSpec.Conformance.Block.HeaderCallerProofs
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Fork.AmsterdamWireLimitsGuards
