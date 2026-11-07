@@ -40,6 +40,7 @@ equations, the mathematical block view with its ordinary application equation, b
 structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
 ancestor selection are supplied. TxState assembles unchanged providers, retaining the
 code-read discrepancy in EthState §10 X16(b); it supplies no current-pin full-state
-refinement. Lookup providers, model mutation, tracker effects and lifecycle laws remain scaffolding.
+refinement. Lookup providers, model mutation, tracker effects and lifecycle laws remain
+scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
