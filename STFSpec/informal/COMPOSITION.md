@@ -80,6 +80,18 @@ preservation supplies no complete raw-meter rollback. Actual handler/effect/erro
 ordering, source coherence/reachability, child execution/returned-potential bounds,
 incorporation/settlement/step/loop, F11/B11/D5/S2 and G2–G7 remain separate.
 
+The same owner supplies private arbitrary-return clients after the actual drain.
+For returned execution g and arbitrary reservoir R, accounting is
+returned.phi+E+cost=initial.phi+g, and strict progress holds iff g+1≤E+cost.
+Only g≤subCall is needed to recover the worst-case stipend bound and its financed
+strict/nonincrease consequences. Phi excludes R, baseline and refund, so these
+statements require no reservoir bound. Whole-field equations and complete controls
+retain all raw fields. A local child.phi≤grant hypothesis implies gasLeft≤grant,
+but no running child supplies that hypothesis here. ChildSettled alone permits
+gasLeft=grant+1 for either flag. Actual returned-phi bounds, handler effects and
+successful-child credit bookkeeping, F11 proof production, source/default/host
+agreement, settlement/step/loop, resources, security and guest/readiness remain open.
+
 ### Supplied raw execution-request aggregate handoff
 
 EthStateless §3/§5/§7 owns the exact five-array `ExecutionRequests` carrier over the
