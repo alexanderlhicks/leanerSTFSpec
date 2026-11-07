@@ -135,7 +135,8 @@ allocation proportional to that declaration.
 byte-list reference on every item, and the computed size equals actual output
 width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
 Byte/list payloads and all length digits are preserved in order. Raw wire laws
-are owned by §7; schema instances and guest outcomes remain unimplemented.
+are owned by §7; schema instances other than the EthBlock forward RLP models
+(EthBlock §3/§5/§7) and guest outcomes remain unimplemented.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
@@ -194,7 +195,8 @@ Interpreter/native runtime, startup, installation and RECORD remain trust inputs
 This is bounded encoder evidence, without typed decoding/inverse, all-Nat Python
 equivalence, host/resource, guest/EEST or throughput claims. `RlpDecode`,
 `decodeTo` and Nat decoding are supplied by the typed decoding foundation below;
-schema instances remain open. Q68 owns the diagnostic equation.
+schema instances other than the EthBlock forward RLP models remain open. Q68 owns
+the diagnostic equation.
 
 ### Implemented typed RLP decoding foundation
 
@@ -2450,6 +2452,11 @@ byte-model and width laws. For Nat, `Encodable (ofNat n)` gives the raw-wire ima
 premise using public Base/leaf laws. No all-Nat `Encodable` assertion or new public
 law family is supplied. The per-instance Nat typed roundtrip above is supplied
 with `RlpDecode` and `decodeTo`; Q68 fixes their diagnostic equation.
+
+EthBlock owns the supplied direct forward Withdrawal instance and its complete
+public reference model (EthBlock §3/§5/§7). Its supplementary all-input domain,
+complete wire/size and raw Codec inverse clients are private. They add no Codec
+class, typed Withdrawal decoder or arbitrary outer-list/block Encodable result.
 
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
