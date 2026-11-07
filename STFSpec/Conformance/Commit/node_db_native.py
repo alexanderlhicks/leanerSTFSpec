@@ -11,13 +11,17 @@ since its provenance assertions require the default interpreter mode.
 """
 
 import argparse
-import ast
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+import byte_lists
+from byte_lists import parse_byte_list
 
 
 def digest(path):
@@ -144,22 +148,9 @@ def natural(raw):
     return int(raw)
 
 
-def _parse_byte_list(raw):
-    if type(raw) is not str or "\n" in raw or "\r" in raw:
-        return ast.literal_eval(raw)
-    try:
-        value = json.loads(raw)
-    except (ValueError, TypeError, RecursionError, MemoryError):
-        pass
-    else:
-        if type(value) is list and all(type(byte) is int and 0 <= byte < 256 for byte in value):
-            return value
-    return ast.literal_eval(raw)
-
-
 def byte_list(raw, *, width=None):
     """Check UInt8 list types and bounds before equality or bytes conversion."""
-    value = _parse_byte_list(raw)
+    value = parse_byte_list(raw)
     require(type(value) is list, raw)
     require(all(type(byte) is int and 0 <= byte < 256 for byte in value), raw)
     require(width is None or len(value) == width, raw)
@@ -343,6 +334,7 @@ def main():
         if path.is_file():
             provenance[str(path.relative_to(out))] = digest(path)
     provenance["script"] = digest(Path(__file__))
+    provenance["parser"] = digest(Path(byte_lists.__file__))
     provenance["observations"] = digest(args.observations)
     provenance["package_archives"] = {str(p): digest(p) for p in packages}
     provenance["toolchain"] = str(toolchain)
