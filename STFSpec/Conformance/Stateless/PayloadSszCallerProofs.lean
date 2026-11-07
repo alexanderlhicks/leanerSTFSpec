@@ -95,18 +95,25 @@ private theorem checked_recovery (a : ExecutionPayload)
     (blobGasUsed : Nat)
     (excessBlobGas : Nat)
     (slotNumber : Nat)
-    (h_parentHash : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray parentHash) = some a.parentHash)
-    (h_feeRecipient : STFSpec.Base.Address.ofBytes? (STFSpec.Base.Bytes.ofByteArray feeRecipient) = some a.feeRecipient)
-    (h_stateRoot : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray stateRoot) = some a.stateRoot)
-    (h_receiptsRoot : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray receiptsRoot) = some a.receiptsRoot)
-    (h_logsBloom : STFSpec.Base.FixedBytes.ofBytes? (STFSpec.Base.Bytes.ofByteArray logsBloom) = some a.logsBloom)
-    (h_prevRandao : STFSpec.Base.FixedBytes.ofBytes? (STFSpec.Base.Bytes.ofByteArray prevRandao) = some a.prevRandao)
+    (h_parentHash : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray parentHash) =
+      some a.parentHash)
+    (h_feeRecipient : STFSpec.Base.Address.ofBytes? (STFSpec.Base.Bytes.ofByteArray feeRecipient) =
+      some a.feeRecipient)
+    (h_stateRoot : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray stateRoot) =
+      some a.stateRoot)
+    (h_receiptsRoot : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray receiptsRoot) =
+      some a.receiptsRoot)
+    (h_logsBloom : STFSpec.Base.FixedBytes.ofBytes? (STFSpec.Base.Bytes.ofByteArray logsBloom) =
+      some a.logsBloom)
+    (h_prevRandao : STFSpec.Base.FixedBytes.ofBytes? (STFSpec.Base.Bytes.ofByteArray prevRandao) =
+      some a.prevRandao)
     (h_blockNumber : STFSpec.Base.U64.ofNat? blockNumber = some a.blockNumber)
     (h_gasLimit : STFSpec.Base.U64.ofNat? gasLimit = some a.gasLimit)
     (h_gasUsed : STFSpec.Base.U64.ofNat? gasUsed = some a.gasUsed)
     (h_timestamp : STFSpec.Base.U64.ofNat? timestamp = some a.timestamp)
     (h_baseFeePerGas : STFSpec.Base.U256.ofNat? baseFeePerGas = some a.baseFeePerGas)
-    (h_blockHash : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray blockHash) = some a.blockHash)
+    (h_blockHash : STFSpec.Base.Hash32.ofBytes? (STFSpec.Base.Bytes.ofByteArray blockHash) =
+      some a.blockHash)
     (h_blobGasUsed : STFSpec.Base.U64.ofNat? blobGasUsed = some a.blobGasUsed)
     (h_excessBlobGas : STFSpec.Base.U64.ofNat? excessBlobGas = some a.excessBlobGas)
     (h_slotNumber : STFSpec.Base.U64.ofNat? slotNumber = some a.slotNumber)

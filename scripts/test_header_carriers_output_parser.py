@@ -110,7 +110,8 @@ class HeaderOutput(unittest.TestCase):
         parent = next(i for i, row in enumerate(self.frames)
                       if row.get("family") == "ParentHeader")
         mutation("missing-accessor", lambda r: r[parent]["commonAccessors"].pop())
-        mutation("wrong-accessor", lambda r: r[parent]["commonAccessors"][0].__setitem__("value", 1))
+        mutation("wrong-accessor", lambda r: r[parent]["commonAccessors"][0].__setitem__(
+            "value", 1))
         mutation("extra-accessor", lambda r: r[parent]["commonAccessors"].append(
             r[parent]["commonAccessors"][0]))
         mutation("swapped-accessors", lambda r: r[parent]["commonAccessors"].__setitem__(
@@ -122,9 +123,11 @@ class HeaderOutput(unittest.TestCase):
         for label, raw in {
             "empty": b"", "missing-lf": self.good[:-1], "crlf": self.good.replace(b"\n", b"\r\n"),
             "blank": b"\n" + self.good, "bom": b"\xef\xbb\xbf" + self.good,
-            "extra-json": self.good + b"{}\n", "array": b"[]\n", "invalid-utf8": b"\xff" + self.good,
+            "extra-json": self.good + b"{}\n", "array": b"[]\n",
+            "invalid-utf8": b"\xff" + self.good,
             "duplicate-key": self.good.replace(b'"count":2798', b'"count":2798,"count":2798', 1),
-            "duplicate-nested-key": self.good.replace(b'"position":0', b'"position":0,"position":0', 1),
+            "duplicate-nested-key": self.good.replace(
+                b'"position":0', b'"position":0,"position":0', 1),
             "negative-zero": self.good.replace(b'"value":0', b'"value":-0', 1),
             "nonfinite": self.good.replace(b'"value":0', b'"value":NaN', 1),
         }.items():
