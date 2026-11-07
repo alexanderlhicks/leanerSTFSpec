@@ -17,10 +17,6 @@ namespace STFSpec.Conformance.Stateless.InputSszWireControls
 
 open STFSpec.Stateless STFSpec.Base STFSpec.Codec
 
-set_option maxRecDepth 16384
-set_option maxHeartbeats 8000000
-set_option synthInstance.maxSize 1024
-
 namespace Payload
 
 private abbrev schema := ExecutionPayload.instSszSchema
@@ -595,9 +591,10 @@ private theorem witness_support (a : ExecutionWitness)
 
 -- Catalogue begins
 
--- Literal bytes are lowercase hex strings, which elaborate as single tokens.
--- `hex` yields `[]` on an odd length or a non-hex digit; the guard after the
--- literals requires every hex literal to decode to a non-empty list.
+-- Non-empty literals whose values all fit in a byte are lowercase hex strings, which
+-- elaborate as single tokens; other literals stay ordinary lists. `hex` yields `[]`
+-- on an odd length or a non-hex digit; the guard after the literals requires every
+-- hex literal to decode to a non-empty list.
 private def hexDigit? (c : Char) : Option Nat :=
   if '0' ≤ c ∧ c ≤ '9' then some (c.toNat - '0'.toNat)
   else if 'a' ≤ c ∧ c ≤ 'f' then some (c.toNat - 'a'.toNat + 10)
