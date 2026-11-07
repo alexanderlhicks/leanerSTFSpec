@@ -118,10 +118,11 @@ class NodeDBOutputParserTests(unittest.TestCase):
                         decimal.replace("0", "-0"), "(" + decimal + ")", "\t" + decimal)
             for literal in variants:
                 with self.subTest(prefix=prefix, field=field, literal=literal):
-                    self.assertEqual(check_output(self.mutated(prefix, field, literal), self.cases),
-                                     {"maps": 18, "full_key_value_observations": 10512,
-                                      "missing_or_present_queries": 54, "ordered_queries": 1818,
-                                      "failure_positions": 4})
+                    self.assertEqual(
+                        check_output(self.mutated(prefix, field, literal), self.cases),
+                        {"maps": 18, "full_key_value_observations": 10512,
+                         "missing_or_present_queries": 54, "ordered_queries": 1818,
+                         "failure_positions": 4})
 
     def test_json_nonbyte_literals(self):
         for prefix, field in (("M|id1|0|", 3), ("M|id1|999999|", 4),

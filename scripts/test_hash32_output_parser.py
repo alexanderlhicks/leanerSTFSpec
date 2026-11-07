@@ -95,9 +95,10 @@ class Hash32OutputParserTests(unittest.TestCase):
                         "(" + decimal + ")", "\t" + decimal)
             for literal in variants:
                 with self.subTest(prefix=prefix, field=field, literal=literal):
-                    self.assertEqual(check_output(self.mutated(prefix, field, literal), self.vectors),
-                                     {"vectors": 6, "maps": 21,
-                                      "whole_key_payload_lookups": 20504, "observations": 20531})
+                    self.assertEqual(
+                        check_output(self.mutated(prefix, field, literal), self.vectors),
+                        {"vectors": 6, "maps": 21,
+                         "whole_key_payload_lookups": 20504, "observations": 20531})
 
     def test_json_nonbyte_literals(self):
         for literal in ("[true]", "[false]", "[NaN]", "[Infinity]", "[-Infinity]"):
