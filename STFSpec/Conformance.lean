@@ -62,6 +62,8 @@ import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
+import STFSpec.Conformance.Block.HeaderRlpCallerProofs
+import STFSpec.Conformance.Block.HeaderRlpControls
 import STFSpec.Conformance.Block.HeaderCallerProofs
 import STFSpec.Conformance.Block.WithdrawalCallerProofs
 import STFSpec.Conformance.Block.WithdrawalGuards
