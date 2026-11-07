@@ -70,7 +70,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID` | 131 | `schemaId : UInt16 := 0x1501` | `#guard`/`decide` |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_SIZE` | 134 | `schemaIdSize := 2` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_BYTES` | 135 | `schemaIdBytes : ByteArray := ⟨#[0x15, 0x01]⟩` | big-endian |
-| `forks/amsterdam/stateless.py::StatelessInput` | 144–166 | `StatelessInput` (`STFSpec/Stateless/Input.lean`) | supplied exact three-field raw carrier and actual ordinary Q81 dictionary/certificates below; guest remains separate |
+| `forks/amsterdam/stateless.py::StatelessInput` | 144–165 | `StatelessInput` (`STFSpec/Stateless/Input.lean`) | supplied exact three-field raw carrier and actual ordinary Q81 dictionary/certificates below; guest remains separate |
 | `forks/amsterdam/stateless.py::StatelessValidationResult` | 171–206 | `StatelessValidationResult` (`STFSpec/Stateless/Output.lean`) | supplied: complete four-field carrier; §7 output laws and §4 controls |
 | `forks/amsterdam/stateless.py::compute_new_payload_request_root` | 210 | `computeNewPayloadRequestRoot` | total (R3) |
 | `forks/amsterdam/stateless.py::_decode_header` | 219 | `decodeHeader` (internal) | fallback only on RLP error |
@@ -217,13 +217,13 @@ guest composition and resource/security/readiness remain separate (§10).
 
 **Supplied raw stateless input.** `STFSpec/Stateless/Input.lean`, exported by
 `STFSpec.Stateless`, supplies exactly the three-field nominal structure in §5.
-EELS `stateless.py:144–166` at `59c1473d` fixes the source order and types [V: read].
+EELS `stateless.py:144–165` at `59c1473d` fixes the source order and types [V: read].
 Source `new_payload_request` and `chain_id` use the lowerCamelCase names below
 (CONTRIBUTING §7.2).
 
 | EELS source at `59c1473d` | Lean declaration | Domain, effects and failures | Contract and regression |
 |---|---|---|---|
-| `stateless.py:144–166` | `StatelessInput.mk : NewPayloadRequest → ExecutionWitness → Base.U64 → StatelessInput`; `newPayloadRequest : StatelessInput → NewPayloadRequest`, `witness : StatelessInput → ExecutionWitness`, `chainId : StatelessInput → Base.U64` | every independent combination of the actual complete providers; pure raw storage, no failure, effect, handler or O-row | ordered whole-three-field identity model; private arbitrary construction/reconstruction/determination and each whole-field update (§7); complete nested finite controls (§4) |
+| `stateless.py:144–165` | `StatelessInput.mk : NewPayloadRequest → ExecutionWitness → Base.U64 → StatelessInput`; `newPayloadRequest : StatelessInput → NewPayloadRequest`, `witness : StatelessInput → ExecutionWitness`, `chainId : StatelessInput → Base.U64` | every independent combination of the actual complete providers; pure raw storage, no failure, effect, handler or O-row | ordered whole-three-field identity model; private arbitrary construction/reconstruction/determination and each whole-field update (§7); complete nested finite controls (§4) |
 
 The raw domain includes every provider value: malformed/oversized opaque bytes,
 empty/duplicate/reversed/unequal nested arrays and every `Base.U64`, including zero
