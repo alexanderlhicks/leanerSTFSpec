@@ -6,17 +6,17 @@ import STFSpec.Stateless.ExecutionRequests
 import STFSpec.Stateless.ExecutionRequestsSsz
 import STFSpec.Stateless.ExecutionWitness
 import STFSpec.Stateless.ExecutionWitnessSsz
-import STFSpec.Stateless.NewPayloadSsz
 import STFSpec.Stateless.Input
 import STFSpec.Stateless.InputSsz
+import STFSpec.Stateless.NewPayloadSsz
 import STFSpec.Stateless.Output
 import STFSpec.Stateless.Payload
 import STFSpec.Stateless.PayloadSsz
 import STFSpec.Stateless.ProtocolFork
 import STFSpec.Stateless.RequestItemSsz
 import STFSpec.Stateless.RequestItems
-import STFSpec.Stateless.WireLimits
 import STFSpec.Stateless.SchemaIdentifiers
+import STFSpec.Stateless.WireLimits
 
 /-!
 # STFSpec.Stateless

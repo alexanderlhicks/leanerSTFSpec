@@ -112,8 +112,8 @@ of byte-array size with the owned width. Private facade clients in
 exact types and complete values, the ID and byte formulas, size and helper privacy.
 EthStateless §3/§5/§7 owns the consumer aliases and private bounded nominal transport.
 This is input-prefix data (CONTRACT §2), separate from output SSZ's little-endian
-schema field (CONTRACT §3). Actual decoding at `stateless_guest.py:26–38`, schema
-certification, request roots and guest/resource obligations remain open.
+schema field (CONTRACT §3). Actual decoding at `stateless_guest.py:26–38`, request
+roots and guest/resource obligations remain open.
 
 ### Supplied Amsterdam input wire limits
 
@@ -408,7 +408,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Input schema identifiers:** the five Fork-owned constants and private complete facade controls are supplied (§3). EthStateless §3/§7 supplies the selected nominal transport and aliases. Input schemas, decoder/admission, guest and resource obligations remain open.
+- **Input schema identifiers:** the five Fork-owned constants and private complete facade controls are supplied (§3). EthStateless §3/§7 supplies the selected nominal transport and aliases. Decoder/admission, guest and resource obligations remain open.
 - **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless, with the Withdrawal member schema in EthBlock; Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
