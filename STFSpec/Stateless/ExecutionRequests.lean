@@ -14,7 +14,7 @@ Spec guidance: `STFSpec/informal/modules/EthStateless.md` §§3–7.
 namespace STFSpec.Stateless
 
 /-- Raw ordered request collections; EELS
-`src/ethereum/forks/amsterdam/execution_engine/requests.py:99–121` at the pin.
+`src/ethereum/forks/amsterdam/execution_engine/requests.py:99–116` at the pin.
 Construction retains every array, including empty arrays and repeated items,
 without validation or effects. -/
 structure ExecutionRequests where

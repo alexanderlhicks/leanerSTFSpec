@@ -112,7 +112,8 @@ theorem ssz_ofValue_toValue (a : NewPayloadRequest) (h : instSszSchema.valid a) 
       exact (SszValue.wellTyped_iff _ _).mpr
         (by simpa only [Bytes.size_toByteArray] using (Hash32.size_toBytes x))
     · exact (SszValue.wellTyped_iff _ _).mpr
-        (by simpa only [Bytes.size_toByteArray] using (Hash32.size_toBytes a.parentBeaconBlockRoot))
+        (by simpa only [Bytes.size_toByteArray] using
+          (Hash32.size_toBytes a.parentBeaconBlockRoot))
 
 /-- Typed successful reconstruction retains actual child validity and the whole model.
 Both actual child reverse certificates receive independently derived WT and success. -/

@@ -25,7 +25,8 @@ private def amountType : Withdrawal → U64 := Withdrawal.amount
 private def fields (w : Withdrawal) : U64 × U64 × Address × U64 :=
   (w.index, w.validatorIndex, w.address, w.amount)
 
-private theorem constructor_fields (index validatorIndex : U64) (address : Address) (amount : U64) :
+private theorem constructor_fields (index validatorIndex : U64) (address : Address)
+    (amount : U64) :
     fields (Withdrawal.mk index validatorIndex address amount) =
       (index, validatorIndex, address, amount) := rfl
 
