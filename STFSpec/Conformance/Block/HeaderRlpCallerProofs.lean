@@ -318,7 +318,8 @@ private theorem prevHeader_wire_minimum (h : PrevHeader) :
     598 ≤ (encodeOf h).size := by
   have minimum := prevHeader_minimum h
   have digits : 2 ≤ (Uint.toBeBytes (encodePayloadModel (prevHeaderFields h)).length).size := by
-    have notSmall : ¬(Uint.toBeBytes (encodePayloadModel (prevHeaderFields h)).length).size ≤ 1 := by
+    have notSmall :
+        ¬(Uint.toBeBytes (encodePayloadModel (prevHeaderFields h)).length).size ≤ 1 := by
       intro width
       have := (Uint.size_toBeBytes_le_iff _ 1).mp width
       omega
@@ -368,7 +369,8 @@ private theorem header_assembled_domain (h : Header)
     extra_domain _ extra, fixed_domain h.prevRandao (by decide),
     fixed_domain h.nonce (by decide), numeric_domain _ baseFee, hash_domain h.withdrawalsRoot,
     word_domain h.blobGasUsed, word_domain h.excessBlobGas, hash_domain h.parentBeaconBlockRoot,
-    hash_domain h.requestsHash, hash_domain h.blockAccessListHash, word_domain h.slotNumber, by simp⟩
+    hash_domain h.requestsHash, hash_domain h.blockAccessListHash, word_domain h.slotNumber,
+    by simp⟩
 
 private theorem prevHeader_assembled_domain (h : PrevHeader)
     (difficulty : h.difficulty < 2 ^ 256) (number : h.number < 2 ^ 256)
