@@ -37,7 +37,7 @@ private def fromValue? : SszValue → Option ExecutionWitness
       pure ⟨state.toArray, codes.toArray, headers.toArray⟩
   | _ => none
 
-/-- Actual witness metadata from EELS `src/ethereum/forks/amsterdam/stateless.py:41–69`
+/-- Actual witness metadata from EELS `src/ethereum/forks/amsterdam/stateless.py:41–70`
 and `src/ethereum/utils/ssz.py:174–320` at the pin. Only payload bounds enter validity;
 state and code counts, operation support and source-host construction remain separate. -/
 instance instSszSchema : SszSchema ExecutionWitness where
