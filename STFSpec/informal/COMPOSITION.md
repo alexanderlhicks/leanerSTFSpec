@@ -513,12 +513,14 @@ generic coupling, global error adapter/O12, resources, C1–C4 or guest readines
 
 [EthStateCommit §3](modules/EthStateCommit.md#3-eels-source-map) supplies the pure
 SC6 decoder and nonzero storage SC10 through public RLP/Base contracts.
-Complete strict RLP parsing precedes list-to-zero or complete unsigned bytes (the
-`tests-zkevm@v21.0.0` storage leniency; strict at the current pin, EthStateCommit §10);
-private packed checked folding equals its full Nat reference on every finite Bytes.
+Complete strict RLP parsing precedes integer interpretation. The shared typed
+integer provider rejects lists, then leading-zero byte payloads, then payloads
+longer than 32 bytes before constructing the complete unsigned word.
 The nominal witness-error carrier is owned by
 [EthState §3/§5](modules/EthState.md#3-eels-source-map).
-Only invalid RLP and parsed numeric overflow map locally to `.malformed .leaf`.
+Invalid RLP and integer shape, minimality or width failures map locally to
+`.malformed .leaf`. The empty byte payload decodes as zero; a singleton zero-byte
+payload is rejected.
 This supplies no global O4 adapter, granularity refinement,
 authentication, lookup/progress, secure root/callback, Q55 action or generic
 oracle coupling; those remain their owners' obligations. Local Q47 encodability
