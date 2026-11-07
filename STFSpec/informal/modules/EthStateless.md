@@ -141,7 +141,7 @@ helper laws, wire admission or source-runtime agreement claim. The separate dict
 **Supplied raw request items.** `STFSpec/Stateless/RequestItems.lean`, exported by
 `STFSpec.Stateless`, supplies exactly the five distinct nominal structures below.
 All field names and their source order come from EELS
-`execution_engine/requests.py:42–95` at `59c1473d` [V: read]. Underscored source
+`execution_engine/requests.py:42–93` at `59c1473d` [V: read]. Underscored source
 fields use the lowerCamelCase spelling in §5 (CONTRIBUTING §7.2).
 
 | Public constructor | Complete type | Private evidence |
