@@ -33,12 +33,14 @@ private def withdrawalRequestObserve (r : WithdrawalRequest) : WithdrawalRequest
 
 private abbrev ConsolidationRequestObservation := List UInt8 × List UInt8 × List UInt8
 
-private def consolidationRequestObserve (r : ConsolidationRequest) : ConsolidationRequestObservation :=
+private def consolidationRequestObserve (r : ConsolidationRequest) :
+    ConsolidationRequestObservation :=
   (r.sourceAddress.toBytes.toList, r.sourcePubkey.toBytes.toList, r.targetPubkey.toBytes.toList)
 
 private abbrev BuilderDepositRequestObservation := List UInt8 × List UInt8 × Nat × List UInt8
 
-private def builderDepositRequestObserve (r : BuilderDepositRequest) : BuilderDepositRequestObservation :=
+private def builderDepositRequestObserve (r : BuilderDepositRequest) :
+    BuilderDepositRequestObservation :=
   (r.pubkey.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
     r.signature.toBytes.toList)
 
@@ -180,7 +182,8 @@ private def expectedWitness : WitnessObservation :=
   (expectedRequest, ([], [], []), 0x0102030405060708)
 #guard same (observe (StatelessInput.mk emptyRequest ⟨#[], #[], #[]⟩ U64.zero))
   (expectedEmptyRequest, ([], [], []), 0)
-#guard same (observe { input with witness := ⟨witness.headers.reverse, witness.state, witness.codes⟩ })
+#guard same
+  (observe { input with witness := ⟨witness.headers.reverse, witness.state, witness.codes⟩ })
   (expectedRequest, ([[], [1, 0], [128]], [[255, 0, 128], [], [255, 0, 128]], [[0]]),
     0x0102030405060708)
 #guard same (observe { input with witness :=

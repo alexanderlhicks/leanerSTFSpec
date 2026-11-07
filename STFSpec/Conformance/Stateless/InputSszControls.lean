@@ -31,7 +31,8 @@ private def payloadFields : List SszValue := [
 private def requests : SszValue := .container [.list [], .list [], .list [], .list [], .list []]
 
 private def request (extra : Nat := 0) : SszValue := .container [
-  .container (payloadFields.set 10 (.bytes (filled extra))), .list [], .bytes (filled 32), requests]
+  .container (payloadFields.set 10 (.bytes (filled extra))), .list [], .bytes (filled 32),
+  requests]
 
 private def witness (n c h count : Nat) : SszValue := .container [
   .list [.bytes (filled n)], .list [.bytes (filled c)],
@@ -41,7 +42,8 @@ private def fields : List SszValue := [request, witness 0 0 0 0, .uint 0]
 
 private def fails (v : SszValue) : Bool := (schema.ofValue? v).isNone
 
-private def tags : List SszValue := [.uint 0, .bool false, .bytes (filled 0), .list [], .container []]
+private def tags : List SszValue :=
+  [.uint 0, .bool false, .bytes (filled 0), .list [], .container []]
 
 #guard (schema.ofValue? (.container fields)).isSome
 #guard (tags.take 4).all fails
