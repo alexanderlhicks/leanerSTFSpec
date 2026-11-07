@@ -1074,7 +1074,7 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 | `NewPayloadRequest` SSZ adapters | ordinary four-member value (§5) | whole actual child models and ordered hash bytes | public provider models/inversion certificates and Base checked constructors | composed actual child wire validity | immutable bytes and arrays retained | O(payload transactions + withdrawals + hashes + request items) traversal plus fixed-field conversions; allocation/retention/reclamation unmeasured (C1–C4) |
 | `StatelessInput` | nominal three-field structure over actual request/witness/Base.U64 providers | ordered tuple of all three whole fields | identity, preserving all nested bytes/words/ordered arrays | none beyond provider domains | immutable record; read-only payloads may be shared | O(1) structural field work at three fields; no byte/member traversal; allocation, retention and discarded-payload reclamation remain unmeasured (C1–C4, ARCHITECTURE §5.0) |
 | `StatelessInput` SSZ adapters | ordinary three-member value (§5) | complete actual request/witness models and unsigned chain ID | actual public provider models/inversion certificates and checked Base constructor | composed actual child wire validity | immutable payloads retained | O(request adapter work + witness member count); no additional member-byte copy; allocation/retention/reclamation unmeasured (C1–C4) |
-| prospective input wire codecs | SSZ descriptors over the raw carriers | the SSZ value | SSZ `encode`/`decode` | prospective `WF`: witness bounds, payload `extraData.size ≤ maxExtraDataBytes` and other schema obligations | immutable after decode | prospective decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
+| prospective input decoding and roots | the supplied SSZ dictionaries above | the SSZ value | prospective SSZ `decode` and `hash_tree_root` (encoding is supplied above) | prospective decode admission: witness bounds, payload `extraData.size ≤ maxExtraDataBytes` and other schema obligations | immutable after decode | prospective decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
 | `GuestOutcome` | inductive | the O-row plus fields | `toResult` | `valid`/`invalid` only carry `schemaId = 0x1501` implicitly | value | O(1) |
 | header chain result | `Array AnyHeader × Array Hash32` | a list of headers with hashes | `hashes[i] = keccak(raw[i])` | contiguity (R4) | linear-only | O(Σ header bytes) keccak |
@@ -1108,9 +1108,9 @@ returns the original record; equality of all three whole fields determines it.
 Each independent update retains the other two whole fields. The §4 private facade
 clients prove these equations by ordinary structure operations and public provider
 laws. The identity model has no wire-size, validity or consistency premise, effect
-or failure; it adds no authored public law family. Prospective input WF/schema,
-decoding, root support, guest composition and backend/security/resource gates
-remain open (§10).
+or failure; it adds no authored public law family. Its SSZ dictionary and
+certificates are supplied below; decoding, root support, guest composition and
+backend/security/resource gates remain open (§10).
 
 **Supplied raw payload/request contract.** Each §5 constructor accepts all
 nineteen/four arbitrary independent raw fields with their exact types and order,
