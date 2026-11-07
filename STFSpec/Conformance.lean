@@ -31,6 +31,8 @@ import STFSpec.Conformance.Stateless.ExecutionWitnessSszControls
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszWireControls
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
+import STFSpec.Conformance.Stateless.PayloadCallerProofs
+import STFSpec.Conformance.Stateless.PayloadGuards
 import STFSpec.Conformance.Stateless.ProtocolForkCallerProofs
 import STFSpec.Conformance.Stateless.ProtocolForkGuards
 import STFSpec.Conformance.Stateless.ExecutionRequestsCallerProofs
@@ -46,6 +48,7 @@ import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderCallerProofs
 import STFSpec.Conformance.Block.WithdrawalCallerProofs
 import STFSpec.Conformance.Block.WithdrawalGuards
+import STFSpec.Conformance.Block.WithdrawalSszControls
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Fork.AmsterdamWireLimitsGuards
