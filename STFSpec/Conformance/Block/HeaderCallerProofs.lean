@@ -43,277 +43,277 @@ private def header_requestsHash_type : Header → Hash32 := Header.requestsHash
 private def header_blockAccessListHash_type : Header → Hash32 := Header.blockAccessListHash
 private def header_slotNumber_type : Header → U64 := Header.slotNumber
 
-private theorem header_parentHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_parentHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).parentHash = parentHash := rfl
 
-private theorem header_ommersHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_ommersHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).ommersHash = ommersHash := rfl
 
-private theorem header_coinbase_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_coinbase_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).coinbase = coinbase := rfl
 
-private theorem header_stateRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_stateRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).stateRoot = stateRoot := rfl
 
-private theorem header_transactionsRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_transactionsRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).transactionsRoot = transactionsRoot := rfl
 
-private theorem header_receiptRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_receiptRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).receiptRoot = receiptRoot := rfl
 
-private theorem header_bloom_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_bloom_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).bloom = bloom := rfl
 
-private theorem header_difficulty_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_difficulty_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).difficulty = difficulty := rfl
 
-private theorem header_number_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_number_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).number = number := rfl
 
-private theorem header_gasLimit_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_gasLimit_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).gasLimit = gasLimit := rfl
 
-private theorem header_gasUsed_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_gasUsed_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).gasUsed = gasUsed := rfl
 
-private theorem header_timestamp_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_timestamp_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).timestamp = timestamp := rfl
 
-private theorem header_extraData_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_extraData_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).extraData = extraData := rfl
 
-private theorem header_prevRandao_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_prevRandao_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).prevRandao = prevRandao := rfl
 
-private theorem header_nonce_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_nonce_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).nonce = nonce := rfl
 
-private theorem header_baseFeePerGas_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_baseFeePerGas_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).baseFeePerGas = baseFeePerGas := rfl
 
-private theorem header_withdrawalsRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_withdrawalsRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).withdrawalsRoot = withdrawalsRoot := rfl
 
-private theorem header_blobGasUsed_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_blobGasUsed_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).blobGasUsed = blobGasUsed := rfl
 
-private theorem header_excessBlobGas_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_excessBlobGas_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).excessBlobGas = excessBlobGas := rfl
 
-private theorem header_parentBeaconBlockRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_parentBeaconBlockRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).parentBeaconBlockRoot = parentBeaconBlockRoot := rfl
 
-private theorem header_requestsHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_requestsHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).requestsHash = requestsHash := rfl
 
-private theorem header_blockAccessListHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_blockAccessListHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
       blockAccessListHash slotNumber).blockAccessListHash = blockAccessListHash := rfl
 
-private theorem header_slotNumber_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32)
-      (blockAccessListHash : Hash32) (slotNumber : U64) :
+private theorem header_slotNumber_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) (blockAccessListHash : Hash32)
+    (slotNumber : U64) :
     (Header.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash
@@ -513,232 +513,232 @@ private def prevHeader_parentBeaconBlockRoot_type : PrevHeader → Root :=
       PrevHeader.parentBeaconBlockRoot
 private def prevHeader_requestsHash_type : PrevHeader → Hash32 := PrevHeader.requestsHash
 
-private theorem prevHeader_parentHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_parentHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).parentHash =
       parentHash := rfl
 
-private theorem prevHeader_ommersHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_ommersHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).ommersHash =
       ommersHash := rfl
 
-private theorem prevHeader_coinbase_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_coinbase_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).coinbase =
       coinbase := rfl
 
-private theorem prevHeader_stateRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_stateRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).stateRoot =
       stateRoot := rfl
 
-private theorem prevHeader_transactionsRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_transactionsRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot
       requestsHash).transactionsRoot = transactionsRoot := rfl
 
-private theorem prevHeader_receiptRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_receiptRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).receiptRoot =
       receiptRoot := rfl
 
-private theorem prevHeader_bloom_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_bloom_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).bloom =
       bloom := rfl
 
-private theorem prevHeader_difficulty_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_difficulty_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).difficulty =
       difficulty := rfl
 
-private theorem prevHeader_number_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_number_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).number =
       number := rfl
 
-private theorem prevHeader_gasLimit_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_gasLimit_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).gasLimit =
       gasLimit := rfl
 
-private theorem prevHeader_gasUsed_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_gasUsed_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).gasUsed =
       gasUsed := rfl
 
-private theorem prevHeader_timestamp_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_timestamp_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).timestamp =
       timestamp := rfl
 
-private theorem prevHeader_extraData_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_extraData_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).extraData =
       extraData := rfl
 
-private theorem prevHeader_prevRandao_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_prevRandao_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).prevRandao =
       prevRandao := rfl
 
-private theorem prevHeader_nonce_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_nonce_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).nonce =
       nonce := rfl
 
-private theorem prevHeader_baseFeePerGas_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_baseFeePerGas_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).baseFeePerGas =
       baseFeePerGas := rfl
 
-private theorem prevHeader_withdrawalsRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_withdrawalsRoot_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot
       requestsHash).withdrawalsRoot = withdrawalsRoot := rfl
 
-private theorem prevHeader_blobGasUsed_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_blobGasUsed_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).blobGasUsed =
       blobGasUsed := rfl
 
-private theorem prevHeader_excessBlobGas_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_excessBlobGas_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).excessBlobGas =
       excessBlobGas := rfl
 
-private theorem prevHeader_parentBeaconBlockRoot_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_parentBeaconBlockRoot_projection (parentHash : Hash32)
+    (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root)
+    (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat)
+    (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot
       requestsHash).parentBeaconBlockRoot = parentBeaconBlockRoot := rfl
 
-private theorem prevHeader_requestsHash_projection
-    (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
-      (transactionsRoot : Root) (receiptRoot : Root) (bloom : Bloom) (difficulty : Nat) (number :
-      Nat) (gasLimit : Nat) (gasUsed : Nat) (timestamp : U256) (extraData : Bytes) (prevRandao :
-      Bytes32) (nonce : Bytes8) (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64)
-      (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
+private theorem prevHeader_requestsHash_projection (parentHash : Hash32) (ommersHash : Hash32)
+    (coinbase : Address) (stateRoot : Root) (transactionsRoot : Root) (receiptRoot : Root)
+    (bloom : Bloom) (difficulty : Nat) (number : Nat) (gasLimit : Nat) (gasUsed : Nat)
+    (timestamp : U256) (extraData : Bytes) (prevRandao : Bytes32) (nonce : Bytes8)
+    (baseFeePerGas : Nat) (withdrawalsRoot : Root) (blobGasUsed : U64) (excessBlobGas : U64)
+    (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
       withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).requestsHash =
