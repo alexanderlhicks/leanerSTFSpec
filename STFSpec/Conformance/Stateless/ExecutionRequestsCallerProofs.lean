@@ -60,8 +60,8 @@ private theorem whole_conversion_recovery (r : ExecutionRequests) :
   simp only [Array.toArray_toList]
 
 private theorem reconstruction (r : ExecutionRequests) :
-    ExecutionRequests.mk r.deposits r.withdrawals r.consolidations r.builderDeposits r.builderExits
-      = r := rfl
+    ExecutionRequests.mk r.deposits r.withdrawals r.consolidations r.builderDeposits
+      r.builderExits = r := rfl
 
 private theorem fields_determine (r s : ExecutionRequests) (h : fields r = fields s) :
     r = s := by
