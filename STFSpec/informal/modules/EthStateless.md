@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers and actual witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, raw StatelessInput, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers, raw StatelessInput and actual input/witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q80, Q81, Q87, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -70,7 +70,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID` | 131 | `schemaId : UInt16 := 0x1501` | `#guard`/`decide` |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_SIZE` | 134 | `schemaIdSize := 2` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID_BYTES` | 135 | `schemaIdBytes : ByteArray := ⟨#[0x15, 0x01]⟩` | big-endian |
-| `forks/amsterdam/stateless.py::StatelessInput` | 144–165 | `StatelessInput` (`STFSpec/Stateless/Input.lean`) | supplied exact three-field raw carrier; complete domain/model/private clients below; schema and guest remain separate |
+| `forks/amsterdam/stateless.py::StatelessInput` | 144–165 | `StatelessInput` (`STFSpec/Stateless/Input.lean`) | supplied exact three-field raw carrier and actual ordinary Q81 dictionary/certificates below; guest remains separate |
 | `forks/amsterdam/stateless.py::StatelessValidationResult` | 171–206 | `StatelessValidationResult` (`STFSpec/Stateless/Output.lean`) | supplied: complete four-field carrier; §7 output laws and §4 controls |
 | `forks/amsterdam/stateless.py::compute_new_payload_request_root` | 210 | `computeNewPayloadRequestRoot` | total (R3) |
 | `forks/amsterdam/stateless.py::_decode_header` | 219 | `decodeHeader` (internal) | fallback only on RLP error |
@@ -169,7 +169,7 @@ mutable/frozen dataclass behaviour, annotation enforcement, cached SSZ views and
 source-host execution agreement remain separate. The raw carriers supply no BLS,
 credential-prefix, builder-eligibility, balance or index-relation admission. The five actual Q81 dictionaries/certificates, private operation-support clients
 and aggregate schema are supplied independently below. Wire constants/engine
-encoding, raw decoding, roots, payload/input and guest remain open (§10).
+encoding, raw decoding, roots and payload/input/guest composition remain open (§10).
 
 **Supplied raw execution requests.** `STFSpec/Stateless/ExecutionRequests.lean`,
 exported by `STFSpec.Stateless`, supplies exactly the §5 five-array structure.
@@ -232,8 +232,10 @@ or chain policy. There is no additional invariant, default, derived instance,
 proof field, helper or authored public law family. Construction/projection retain
 each whole field, and each update preserves both siblings. Static field
 correspondence supplies no Python class/reflection/cache/coercion/backing, host,
-decoding or guest agreement. Input schemas, support, codecs/roots, validation and
-all resource/security/readiness obligations remain separate (§10).
+decoding or guest agreement. The StatelessInput SSZ dictionary and certificates are
+supplied below and in §5/§7; the whole-input WF, public operation support, decoding,
+roots, validation and all resource/security/readiness obligations remain separate
+(§10).
 
 **Supplied execution witness SSZ dictionary.**
 `STFSpec/Stateless/ExecutionWitnessSsz.lean`, exported by `STFSpec.Stateless`, supplies
@@ -424,6 +426,40 @@ The decoders and size constants of `execution_engine/requests.py` (engine wire f
 - `ethereum_rlp.rlp` (`stateless.py:9`, `new_payload.py:7`, `validation_helpers.py:7`): `decode_to(Header, ·)` and `encode`. Canonical-form and `DecodingError` behaviour are specified by `EthCodec`; `EthStateless` needs (a) `decode_to` failure on the Amsterdam shape is a *DecodingError* in every case where the fallback must fire [I: needs a check of `ethereum-rlp` 0.1.6 for non-`DecodingError` exceptions, e.g. from field constructors]; (b) `rlp.encode(decode b) = b` for successfully decoded headers, which makes `keccak(raw bytes)` (R4) and `keccak(rlp(parent_header))` (`fork.py:491`) agree.
 - `ethereum_types` `Bytes`, `U16`, `U64`, `slotted_freezable`: plain value types; `U16(STATELESS_INPUT_SCHEMA_ID)` and `int.from_bytes(·, "big")` fix the schema-id encoding. `slotted_freezable` has no semantic content.
 - SSZ via `eth-remerkleable` 0.1.31 (through `utils/ssz.py`, owned by `EthCodec`): canonical decoding, progressive list/container merkleization and `hash_tree_root`.
+
+**Supplied stateless input dictionary (Q81).**
+`STFSpec/Stateless/InputSsz.lean` supplies the actual ordinary three-field
+`StatelessInput.instSszSchema` and exactly its three external certificates.
+
+| EELS source at the pin | Lean declaration | Domain, effects and failures | Law and controls |
+|---|---|---|---|
+| `stateless.py:144–165`; `src/ethereum/utils/ssz.py:174–253` | `StatelessInput.instSszSchema` | exact ordinary three-field descriptor; actual request/witness validity; total pure adapters | §5 complete metadata; private actual facade and complete wire controls (§4) |
+| `src/ethereum/utils/ssz.py:174–253` (structural interpretation, Q81) | `StatelessInput.ssz_type_wellFormed` | no premise; actual descriptor WF | §7 exact certificate; actual provider/order/name controls |
+| `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `StatelessInput.ssz_ofValue_toValue` | actual composed validity; complete reconstruction and WT image | §7 exact certificate; arbitrary whole-field and finite complete recovery |
+| `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `StatelessInput.ssz_toValue_ofValue` | actual WT and successful reconstruction, in one conjunction | §7 exact certificate; complete child validity and whole-value preservation |
+
+The private inverse matches exactly `container [request, witness, uint chainId]`,
+invokes both actual child inverses in field order and uses checked `Base.U64.ofNat?`.
+Wrong outer/scalar tags, wrong arity, reached child failure and unsigned overflow
+return `none`; no scalar wraps. Reverse derives actual child WT independently of
+child success before passing both to its public certificate. Shape-only child
+reconstruction can retain wire-invalid values: it does not imply WT or validity.
+All complete bytes, unsigned observations, ordered arrays and duplicates are retained.
+No public off-WT completion or new whole-input WF predicate is supplied.
+
+Private count recovery inspects the complete actual child descriptor tree: fixed
+Withdrawal width is 44; hash width is 32; request-item widths are 192/76/116/184/68;
+variable byte-list/progressive-byte-list elements have `fixedSize? = none`.
+No immediate list element has fixed width zero. CountRecoverable holds for every
+forward input without a wire-validity or operation-support premise.
+Q80's outer head is 16 and emitted starts are 16 and 16+R for request byte length R.
+Each recursively emitted child start retains its own bound below 2^32. There is no
+final witness/end cap or root-count premise; schema-ID bytes are outside this body
+and do not shift its offset origin. Private structural support reflection proves an
+ordinary equality with the complete public Codec support equation. This supplies
+mathematical serialization only; Q88 decoding, root/O2, source reflection/coercion/
+backing/cache/host correspondence, admission, guest/security/resources and C1–C4
+remain separate. Source correspondence here is static: no EELS algorithm executes.
 
 ## 4. Tests
 
@@ -666,7 +702,6 @@ ordinary private Serializable proof using actual child descriptors and public Co
 equations; only recursively emitted starts are bounded, without a final-size cap.
 Compilation executes these interpreted guards. No source/native/fixture/guest,
 general decoder/root, host-resource, security, cost or readiness result follows.
-
 **Raw stateless input controls.**
 `STFSpec/Conformance/Stateless/InputCallerProofs.lean` imports the public Stateless
 facade. Private ordinary clients check the exact constructor and three projection
@@ -679,6 +714,34 @@ duplicates, reversals, malformed transaction/BAL/header bytes, 33-byte extraData
 and a 1025-byte witness node. Compilation evaluates these interpreted controls;
 declaration audit and kernel replay examine the ordinary clients. No source runtime,
 wire codec, fixture or guest executes in these raw storage controls.
+
+**Stateless input SSZ controls.** `InputSszCallerProofs.lean` imports the public
+Stateless facade. All clients are private: exact actual inference/descriptor/names,
+composed validity, complete model, all three certificate types, arbitrary complete
+construction/recovery/re-forwarding, CountRecoverable and 16-byte head/emitted starts.
+Symbolic endpoint controls distinguish second starts 2^32−1/2^32 and permit an
+unbounded final witness end while retaining every child support premise.
+`InputSszControls.lean` checks wrong outer/field tags, arities 0/1/2/4/5, swapped and
+duplicated children, both actual child failures and chain-ID 0/1/2^64−1/2^64/2^64+1/2^128.
+Separate controls retain complete extraData33, witness member lengths 1025/65537/1025
+and 257 headers through inverse completion while validity and typing fail; exact
+wire endpoints 32/1024/65536/1024/256 remain valid. No public completion law follows.
+
+`InputSszWireControls.lean` transports all 48 independently frozen mathematical
+whole inputs through private checked Base construction. Shared complete natural
+literals retain all 2987 recursive nodes, 523 unsigned leaves, 1597 byte leaves and
+1682 offsets. Every byte digit, fixed width, scalar range and framed consumption is
+checked. Complete raw observations, ordered models, both reconstruction paths and
+re-forwarding are compared with the input. Actual `SszSchema.encodeBytes` compares
+all 385957 independent expected bytes. A private interpreted support decision has
+an ordinary universal reflection proof against public `Ssz.serializable_iff`,
+including every recursive child and emitted start; unsupported cases return false.
+Literal sharing preserves complete cases, and separate full transport expansion
+checks every raw input and byte expectation. Inputs/expectations were frozen before
+implementation, independently of the target, its projections/encoder and EELS.
+Compilation executes these interpreted guards; declaration audit and kernel replay
+inspect the declarations. These finite controls close no source/native/fixture/guest,
+general decoder/root, host-resource, security, cost or readiness obligation.
 
 **EEST fixture areas.** Every guest record (67,685 at this pin, in `blockchain_tests` and `blockchain_tests_engine`; `reference.toml`) passes through this library. Areas that target it specifically (`STFSpec/informal/eest-fixture-index.txt`): `blockchain_tests/for_amsterdam/amsterdam/eip8025_optional_proofs` (96 files), in particular `stateless_input_bytes/` (the zero-sentinel records: at v21.0.0 these were 9, empty input, 1-byte input, schema only, wrong fork byte `0x16`, wrong revision `0x02`, truncated body, trailing garbage, invalid first offset, shifted offsets [V, v21.0.0]; at this pin there are 10 per format, without trailing garbage and with two witness-header SSZ limit cases, EthCodec §4), `witness_validation_headers/` (non-contiguous chain, missing parent header, empty headers, missing oldest BLOCKHASH ancestor, malformed RLP header), `witness_headers/`, `witness_validation_chain_id/`, `stateless_input_versioned_hashes/`, `witness_validation_state/`, `witness_validation_codes/`; and the transition directory `for_bpo2toamsterdamattime15k/*` (previous-fork parent header). Payload conversion is exercised by `prague/eip7685_general_purpose_el_requests`, `eip6110_deposits`, `eip7002_*`, `eip7251_*`, `amsterdam/eip8282_builder_execution_requests`, `cancun/eip4844_blobs` (versioned hashes) and `amsterdam/eip7928_block_level_access_lists` (BAL bytes and hash).
 
@@ -735,7 +798,7 @@ All in namespace `STFSpec.Stateless`; public unless marked.
 complete `Array ByteArray` values without bounds, validation, decoded `Header`,
 database or hashing dependency. The five wire-limit aliases below are supplied
 from Fork-owned values (F8). The actual dictionaries are supplied
-below; the StatelessInput schema and raw byte decoding remain prospective.
+below, including StatelessInput; raw byte decoding remains prospective.
 The complete `ProtocolFork` carrier and forward observer below are supplied with
 the exact mapping in §3; schema constants below remain prospective under F8 (§10).
 
@@ -747,7 +810,8 @@ The nineteen-field `ExecutionPayload` and four-field `NewPayloadRequest` below a
 supplied by `Payload.lean` exactly as written, using existing Base types, actual
 `Block.Withdrawal` and actual `ExecutionRequests`. Their actual dictionaries are supplied below.
 The three-field `StatelessInput` below is supplied by `Input.lean` over those actual
-providers and existing `Base.U64`. Its WF predicate and schema remain prospective.
+providers and existing `Base.U64`. Its actual dictionary is supplied below; the broader
+WF predicate remains prospective.
 
 ```lean
 -- constants (public)
@@ -794,7 +858,7 @@ structure StatelessInput where
 structure StatelessValidationResult where
   newPayloadRequestRoot : Hash32; successfulValidation : Bool; chainId : U64; schemaId : UInt16
 def StatelessInput.WF : StatelessInput → Prop            -- prospective; all SSZ limits (§6)
-instance : SszSchema StatelessInput                      -- prospective; from EthCodec; also for every wire type above
+instance StatelessInput.instSszSchema : SszSchema StatelessInput -- supplied below (Q81)
 abbrev AnyHeader := ParentHeader
 
 -- errors (public, one constructor per EELS failure site)
@@ -978,6 +1042,24 @@ The private inverse and separated operation/source domains are described in §3.
 The actual child descriptors retain their own progressive masks. The ordinary outer
 container emits no mask or count prefix and adds no version-byte predicate.
 
+**Supplied actual input dictionary (Q81).** With
+`s := StatelessInput.instSszSchema : Codec.SszSchema StatelessInput`,
+`r := NewPayloadRequest.instSszSchema` and `w := ExecutionWitness.instSszSchema`:
+
+```text
+s.type = container [r.type, w.type, uint 8]
+s.fieldNames = ["new_payload_request", "witness", "chain_id"]
+s.valid a = r.valid a.newPayloadRequest ∧ w.valid a.witness
+s.toValue a = container [r.toValue a.newPayloadRequest,
+  w.toValue a.witness, uint a.chainId.toNat]
+s.ofValue? : Codec.SszValue → Option StatelessInput
+```
+
+The private checked inverse is described in §3. The scalar width is eight bytes.
+No chain-ID relation, hash/version/gas relation, witness execution invariant,
+source-host limit, global WF, Serializable or Rootable premise enters validity.
+The schema ID is outside the body, and the descriptor contains no mask or fourth field.
+
 The payload entry and helpers take `consts : HashConsts` with local EELS notation (CONTRIBUTING §7.2, F20). `isValidBlockHash` and `payloadBlock` each build `payloadHeader`, so both take the record explicitly. `executeNewPayloadRequest` forwards that record through these helpers and `Amsterdam.executeBlock`; none of those kernels acquires it. `classifyWith` follows R5 and supplies the record to the witness backend and `L.executePayload`. Consumers whose state or backend already holds the record read its fields.
 
 Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above is an alias for that type. `ChainContext`, `Block`, `BlockTx`, `BlockError`, transaction-decode diagnostics and `executeBlock` come from `EthBlock`/`EthFork`; `PreState`/`BlockDiff` from `EthState`; `WitnessBackend.build` and `CodeDB.build` from `EthStateWitness`, `NodeDB.build` from `EthCommit` (both monadic, F4); `HashConsts` from `EthBase` and `HashConsts.query`/`KeccakQuery` from `EthHash`. The executable seam uses `CheckedResult` (from `CheckedT`, `EthVmRunner`, F14): validation errors are the inner `Except`, and internal failures, including fuel exhaustion, the outer `InternalError`. There is no separate `FuelM`. `classifyWith` is the leaf-parametric composition; the real composition code runs unchanged under test leaves, and `runStatelessGuest_eq` ties the public function to it at `Id`.
@@ -995,7 +1077,8 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 | `ExecutionRequests` SSZ adapters | five lists of actual item models (§5) | complete ordered aggregate | actual child dictionaries | wire validity is True | immutable record | O(total items) traversal at fixed field widths, preserving every item |
 | `NewPayloadRequest` SSZ adapters | ordinary four-member value (§5) | whole actual child models and ordered hash bytes | public provider models/inversion certificates and Base checked constructors | composed actual child wire validity | immutable bytes and arrays retained | O(payload transactions + withdrawals + hashes + request items) traversal plus fixed-field conversions; allocation/retention/reclamation unmeasured (C1–C4) |
 | `StatelessInput` | nominal three-field structure over actual request/witness/Base.U64 providers | ordered tuple of all three whole fields | identity, preserving all nested bytes/words/ordered arrays | none beyond provider domains | immutable record; read-only payloads may be shared | O(1) structural field work at three fields; no byte/member traversal; allocation, retention and discarded-payload reclamation remain unmeasured (C1–C4, ARCHITECTURE §5.0) |
-| prospective input wire schemas/codecs | SSZ descriptors over the raw carriers | the SSZ value | SSZ `encode`/`decode` | prospective `WF`: witness bounds, payload `extraData.size ≤ maxExtraDataBytes` and other schema obligations | immutable after decode | prospective decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
+| `StatelessInput` SSZ adapters | ordinary three-member value (§5) | complete actual request/witness models and unsigned chain ID | actual public provider models/inversion certificates and checked Base constructor | composed actual child wire validity | immutable payloads retained | O(request adapter work + witness member count); no additional member-byte copy; allocation/retention/reclamation unmeasured (C1–C4) |
+| prospective input decoding and roots | the supplied SSZ dictionaries above | the SSZ value | prospective SSZ `decode`; `hash_tree_root` through the supplied generic `SszSchema.hashTreeRoot`, with `Rootable` support for the actual inputs open (encoding is supplied above) | prospective decode admission (`WF`): witness bounds, payload `extraData.size ≤ maxExtraDataBytes` and other schema obligations | immutable after decode | prospective decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
 | `GuestOutcome` | inductive | the O-row plus fields | `toResult` | `valid`/`invalid` only carry `schemaId = 0x1501` implicitly | value | O(1) |
 | header chain result | `Array AnyHeader × Array Hash32` | a list of headers with hashes | `hashes[i] = keccak(raw[i])` | contiguity (R4) | linear-only | O(Σ header bytes) keccak |
@@ -1029,9 +1112,9 @@ returns the original record; equality of all three whole fields determines it.
 Each independent update retains the other two whole fields. The §4 private facade
 clients prove these equations by ordinary structure operations and public provider
 laws. The identity model has no wire-size, validity or consistency premise, effect
-or failure; it adds no authored public law family. Prospective input WF/schema,
-decoding, root support, guest composition and backend/security/resource gates
-remain open (§10).
+or failure; it adds no authored public law family. Its SSZ dictionary and
+certificates are supplied below; the prospective whole-input WF, decoding, root
+support, guest composition and backend/security/resource gates remain open (§10).
 
 **Supplied raw payload/request contract.** Each §5 constructor accepts all
 nineteen/four arbitrary independent raw fields with their exact types and order,
@@ -1057,6 +1140,25 @@ is required. Ordinary generated structure support suffices, without an authored
 public law family. The actual aggregate schema and private operation-support clients
 are supplied below. Roots, raw decoding and guest composition remain separate (§10).
 
+
+**Supplied stateless input certificates (Q81).** With
+`s := StatelessInput.instSszSchema`, exactly these three public laws are supplied:
+
+```lean
+theorem StatelessInput.ssz_type_wellFormed : s.type.WellFormed
+theorem StatelessInput.ssz_ofValue_toValue (a : StatelessInput) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+theorem StatelessInput.ssz_toValue_ofValue (v : Codec.SszValue) (a : StatelessInput)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+```
+
+WF and forward reconstruction/typing compose the actual child certificates and
+public U64 laws. Reverse derives each child's actual WT from outer WT, obtains
+its successful reconstruction independently, and passes both to the child's public
+certificate. The result retains both child validity predicates and the complete
+three-member model. All support/count/layout/control facts remain private; no
+unconditional inverse success, off-WT completion, decoder or root law is published.
 
 **Supplied new-payload request certificates (Q81).** With
 `s := NewPayloadRequest.instSszSchema`, exactly these three public laws are supplied:
@@ -1296,7 +1398,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
-  in §3/§5/§7, with complete private controls in §4. StatelessInput schema, wire
+  in §3/§5/§7, with complete private controls in §4. Input wire
   admission, RLP/header validation, database construction,
   hashing and guest composition remain unimplemented. The five size-limit aliases
   are supplied under F8 (§3/§5), without implementing those consumers. Input hint retirement follows CONTRACT §2/O5 and P1, as recorded below. This carrier
@@ -1328,7 +1430,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
   The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
   in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
-  controls in §4. StatelessInput schema, general Q80 source refinement,
+  controls in §4. General Q80 source refinement,
   Q88 raw decoding, root support/O2, block/header adapters and validation,
   request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
   remain separate. Static source-field correspondence supplies no source runtime,
@@ -1339,12 +1441,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   model, private arbitrary complete facade clients and nested finite controls are
   supplied in §3–§7. This module's input hint fields, arguments, limits, cases,
   O5 mapping and L-hint-equivalence guidance follow CONTRACT §2/O5 and P1.
-  Actual input schema/Q81 certificates, operation support, Q87/Q88 decoding,
-  serialization, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  The actual input dictionary and three Q81 certificates, private count/support/layout
+  clients and complete 48-input/385957-byte mathematical wire controls are supplied
+  in §3/§4/§5/§7. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 
