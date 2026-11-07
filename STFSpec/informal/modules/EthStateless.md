@@ -63,7 +63,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_CODE` | 33 | `maxBytesPerCode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_CODE` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_HEADER` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_WITNESS_NODE` (F8) |
-| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–69 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
+| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
 | `forks/amsterdam/stateless.py::ProtocolFork` | 101–126 | `ProtocolFork`, `ProtocolFork.toIndex : ProtocolFork → UInt8` (`STFSpec/Stateless/ProtocolFork.lean`) | discharged historical 21-constructor carrier and total forward observation of the numeric assignments at 106–126; complete contract and private controls below |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex : ProtocolFork` | discharged selected nominal transport from Fork-owned raw tag; complete contract below |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8` | discharged transparent Fork-owner alias |
@@ -147,7 +147,7 @@ inverse/parser, unsupported completion, runtime check or extra public law is sup
 
 **Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
 `state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
-arguments and no defaults or derived instances. EELS `stateless.py:41–69` at
+arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
 `59c1473d` supplies the source field names/order and raw byte collections [V: read].
 The accepted raw domain is every triple of finite arrays of complete byte arrays,
 including empty arrays, empty members, duplicates, malformed RLP and lengths outside
