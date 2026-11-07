@@ -267,7 +267,7 @@ wheel. No resource, security, performance or readiness result follows.
 
 | EELS source at the pin | Supplied Lean declaration in `STFSpec/Stateless/ExecutionRequestsSsz.lean` | Domain, effects and failures | Law, model and controls |
 |---|---|---|---|
-| `execution_engine/requests.py:99–121`; `src/ethereum/utils/ssz.py:174–320` | `ExecutionRequests.instSszSchema` | All finite existing aggregates; pure ordered adapters, no public diagnostic or O-row | Exact §5 model/metadata; three §7 certificates; every complete input/field/recovery and all 150780 bytes of the 80 mathematical cases in §4 |
+| `execution_engine/requests.py:99–116`; `src/ethereum/utils/ssz.py:174–320` | `ExecutionRequests.instSszSchema` | All finite existing aggregates; pure ordered adapters, no public diagnostic or O-row | Exact §5 model/metadata; three §7 certificates; every complete input/field/recovery and all 150780 bytes of the 80 mathematical cases in §4 |
 | `src/ethereum/utils/ssz.py:174–253` (structural interpretation) | `ExecutionRequests.ssz_type_wellFormed` | No premise; actual descriptor WF | Exact §7 type; private actual child/mask/field-name clients |
 | `src/ethereum/utils/ssz.py:258–291` (forward interpretation) | `ExecutionRequests.ssz_ofValue_toValue` | Actual validity premise; complete reconstruction and WT image; pure | Exact §7 type; private arbitrary whole-array/model clients and complete §4 finite controls |
 | `src/ethereum/utils/ssz.py:294–320` (reverse interpretation) | `ExecutionRequests.ssz_toValue_ofValue` | Actual WT-and-success conjunction; complete model preservation and validity; pure | Exact §7 type; actual child certificates with paired WT/success; §4 recovery/malformed controls |

@@ -38,7 +38,7 @@ private def fromValue? : SszValue → Option ExecutionRequests
   | _ => none
 
 /-- Actual progressive aggregate metadata; EELS
-`src/ethereum/forks/amsterdam/execution_engine/requests.py:99–121` and
+`src/ethereum/forks/amsterdam/execution_engine/requests.py:99–116` and
 `src/ethereum/utils/ssz.py:174–320` at the pin. Validity is mathematical wire
 payload typing, without count, host or protocol conditions. -/
 instance instSszSchema : SszSchema ExecutionRequests where
