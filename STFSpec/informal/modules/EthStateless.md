@@ -173,13 +173,13 @@ encoding, raw decoding, roots, payload/input and guest remain open (§10).
 
 **Supplied raw execution requests.** `STFSpec/Stateless/ExecutionRequests.lean`,
 exported by `STFSpec.Stateless`, supplies exactly the §5 five-array structure.
-EELS `execution_engine/requests.py:99–121` at `59c1473d` fixes the complete order
+EELS `execution_engine/requests.py:99–116` at `59c1473d` fixes the complete order
 and nominal item types [V: read]. Source `builder_deposits` and `builder_exits`
 use `builderDeposits` and `builderExits` (CONTRIBUTING §7.2).
 
 | EELS source at `59c1473d` | Lean declaration | Domain, effects and failures | Law and regression |
 |---|---|---|---|
-| `execution_engine/requests.py:99–121` | `ExecutionRequests.mk : Array DepositRequest → Array WithdrawalRequest → Array ConsolidationRequest → Array BuilderDepositRequest → Array BuilderExitRequest → ExecutionRequests`; the five projections have exactly the corresponding `ExecutionRequests → Array Item` types | every independent ordered array of existing nominal items, including empty arrays, duplicates and unequal counts; pure construction/projection with no failures or O-row | generated structure operations and private arbitrary complete clients (§7); whole finite controls (§4) |
+| `execution_engine/requests.py:99–116` | `ExecutionRequests.mk : Array DepositRequest → Array WithdrawalRequest → Array ConsolidationRequest → Array BuilderDepositRequest → Array BuilderExitRequest → ExecutionRequests`; the five projections have exactly the corresponding `ExecutionRequests → Array Item` types | every independent ordered array of existing nominal items, including empty arrays, duplicates and unequal counts; pure construction/projection with no failures or O-row | generated structure operations and private arbitrary complete clients (§7); whole finite controls (§4) |
 
 The identity model is the ordered tuple of all five complete arrays. Each array
 retains the raw item domain described above, without an additional invariant,
