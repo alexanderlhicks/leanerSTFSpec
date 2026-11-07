@@ -198,7 +198,8 @@ private theorem whole_wire (a : DepositRequest) :
       exact bytes_ext (Ssz.encode_eq (.byteVector 96) (.bytes a.signature.toBytes.toByteArray) h)
     · intro h
       exact uint_bytes a.index.toNat h
-  have he := fixed_container_wire [.byteVector 48, .byteVector 32, .uint 8, .byteVector 96, .uint 8]
+  have he := fixed_container_wire
+    [.byteVector 48, .byteVector 32, .uint 8, .byteVector 96, .uint 8]
     [(.bytes a.pubkey.toBytes.toByteArray : SszValue),
       .bytes a.withdrawalCredentials.toBytes.toByteArray, .uint a.amount.toNat,
       .bytes a.signature.toBytes.toByteArray, .uint a.index.toNat]
@@ -336,9 +337,11 @@ private theorem whole_wire (a : ConsolidationRequest) :
       exact bytes_ext (Ssz.encode_eq (.byteVector 20)
         (.bytes a.sourceAddress.toBytes.toByteArray) h)
     · intro h
-      exact bytes_ext (Ssz.encode_eq (.byteVector 48) (.bytes a.sourcePubkey.toBytes.toByteArray) h)
+      exact bytes_ext (Ssz.encode_eq (.byteVector 48)
+        (.bytes a.sourcePubkey.toBytes.toByteArray) h)
     · intro h
-      exact bytes_ext (Ssz.encode_eq (.byteVector 48) (.bytes a.targetPubkey.toBytes.toByteArray) h)
+      exact bytes_ext (Ssz.encode_eq (.byteVector 48)
+        (.bytes a.targetPubkey.toBytes.toByteArray) h)
   have he := fixed_container_wire [.byteVector 20, .byteVector 48, .byteVector 48]
     [(.bytes a.sourceAddress.toBytes.toByteArray : SszValue),
       .bytes a.sourcePubkey.toBytes.toByteArray, .bytes a.targetPubkey.toBytes.toByteArray]
@@ -5936,7 +5939,8 @@ private def case001 : Option Bool := do
   pure (DepositRequest.check ⟨pubkey, withdrawalCredentials, amount, signature, index⟩
     [.inl bytes0004.data.toList, .inl bytes0005.data.toList, .inr 0, .inl bytes0006.data.toList,
       .inr 0]
-    (.container [.bytes bytes0004, .bytes bytes0005, .uint 0, .bytes bytes0006, .uint 0]) bytes0007)
+    (.container [.bytes bytes0004, .bytes bytes0005, .uint 0, .bytes bytes0006, .uint 0])
+    bytes0007)
 #guard case001 == some true
 
 -- DepositRequest/all-ff-max
@@ -11987,7 +11991,8 @@ private def case500 : Option Bool := do
   pure (BuilderDepositRequest.check ⟨pubkey, withdrawalCredentials, amount, signature⟩
     [.inl bytes0785.data.toList, .inl bytes0786.data.toList, .inr 4294967295,
       .inl bytes0787.data.toList]
-    (.container [.bytes bytes0785, .bytes bytes0786, .uint 4294967295, .bytes bytes0787]) bytes0959)
+    (.container [.bytes bytes0785, .bytes bytes0786, .uint 4294967295, .bytes bytes0787])
+    bytes0959)
 #guard case500 == some true
 
 -- BuilderDepositRequest/uint/amount/4294967296
@@ -11999,7 +12004,8 @@ private def case501 : Option Bool := do
   pure (BuilderDepositRequest.check ⟨pubkey, withdrawalCredentials, amount, signature⟩
     [.inl bytes0785.data.toList, .inl bytes0786.data.toList, .inr 4294967296,
       .inl bytes0787.data.toList]
-    (.container [.bytes bytes0785, .bytes bytes0786, .uint 4294967296, .bytes bytes0787]) bytes0960)
+    (.container [.bytes bytes0785, .bytes bytes0786, .uint 4294967296, .bytes bytes0787])
+    bytes0960)
 #guard case501 == some true
 
 -- BuilderDepositRequest/uint/amount/9223372036854775808
