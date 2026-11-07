@@ -85,7 +85,7 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 - The secp256k1 and P-256 behaviour is inferred from the standards and test runs, because the reference libraries are compiled.
 
 ### X13. Shared interfaces and record instances are partly compiled (implementation task, not a spec defect)
-The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest`, the guest input schema and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
+The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest` and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
@@ -301,14 +301,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   bounded source evidence retains actual routes, historical source-root metadata
   and nominal internal-observer limits (§3). Actual
   source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
-  premises, universal refinement, schemas/adapters/Rootable/request support,
+  premises, universal refinement, Rootable/request support for the actual schemas,
   O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
   controls, are supplied (§3/§4). This generic module supplies no actual instance,
-  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  descriptor WF or adapter certification. EthStateless §3/§5/§7 owns the actual
+  certified ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests,
+  NewPayloadRequest and StatelessInput dictionaries, and EthBlock §3/§5/§7 the
   Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
@@ -322,8 +324,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Actual certified schema
-  instances and their consumers,
+  source diagnostic/failure/resource order remain open. Consumers of the actual
+  certified schema instances,
   inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -359,8 +361,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
   Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
-  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
-  remain unimplemented.
+  Q81 schema metadata/forward wrappers; raw/typed decoders remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -372,8 +373,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
-  Other actual schema instances, typed decoding and error producers remain open.
+  EthStateless §3/§5/§7 supplies the actual certified ExecutionWitness,
+  ExecutionPayload, five request-item, ExecutionRequests, NewPayloadRequest and
+  StatelessInput SSZ dictionaries, and EthBlock §3/§5/§7 the actual certified
+  Withdrawal SSZ dictionary. Other actual schema instances, such as the output
+  record, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -1020,7 +1024,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless; Q88 guest-first decoding and header validation remain EthStateless obligations.
+- **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless, with the Withdrawal member schema in EthBlock; Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.

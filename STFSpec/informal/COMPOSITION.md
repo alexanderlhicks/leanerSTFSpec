@@ -65,7 +65,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | ExecutionPayload, NewPayloadRequest | EthStateless | Use exactly the nineteen-/four-field raw constructors/projections in EthStateless §3/§5/§7, with private complete arbitrary clients and whole finite controls in §4. Retain every independent whole field, including actual Block.Withdrawal and ExecutionRequests providers, all opaque bytes and ordered duplicate arrays. Raw storage adds no admission, effects, public helper laws or schema; actual Payload/NewPayloadRequest dictionaries and their Q81 certificates, private count/support/layout clients and complete mathematical wire controls are supplied there. Raw decoding/roots, validation, Header adapters, source-host and input/guest/resource/security/readiness remain separate (§10). |
 | ProtocolFork | EthStateless | The complete historical carrier and total forward UInt8 tag observation are supplied under EthStateless §3/§4/§7, with private complete facade proofs and literal guards. No inverse, schema selector/decoder or guest policy is supplied; the F8 schema-constant bridge remains a separate follow-on (EthStateless §10). |
 | five execution-request item types | EthStateless | Use the exact nominal raw constructors/projections owned by EthStateless §3/§5/§7, with private complete facade proofs and controls in §4. Preserve all independent Base fields and complete byte/unsigned observations, without admission or amount conversion. The five actual Q81 dictionaries and fifteen certificates, with private actual Serializable/CountRecoverable/full-wire clients and complete finite controls, are supplied there. The raw aggregate is supplied by the handoff below; its actual schema/certificates are supplied there, while raw decoding, roots, source-host agreement and payload/input/guest composition remain separate (§10). |
-| ExecutionWitness, StatelessInput and StatelessValidationResult | EthStateless | The exact three-field raw StatelessInput and private whole-field clients/complete nested controls are supplied under EthStateless §3–§7, using actual NewPayloadRequest, ExecutionWitness and Base.U64 without admission or authored public helper laws. The actual input dictionary and three Q81 certificates, private actual count/support/layout clients and complete 48-input/385957-byte mathematical controls are supplied there. Raw decoding/roots and caller/guest/security/resource/readiness remain separate (§10). The raw three-array witness and private complete facade clients/controls are supplied under EthStateless §3/§4/§7; the actual witness dictionary and three Q81 certificates are supplied under EthStateless §3/§5/§7, independently of Serializable/Rootable, source backing and host premises. Raw decoding and DB/hash construction remain separate. EthFork §3 supplies the five F8 wire-limit values, and EthStateless §3/§5 supplies their transparent consumer aliases without wire admission; the actual witness schema consumes those aliases. The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
+| ExecutionWitness, StatelessInput and StatelessValidationResult | EthStateless | The exact three-field raw StatelessInput and private whole-field clients/complete nested controls are supplied under EthStateless §3–§7, using actual NewPayloadRequest, ExecutionWitness and Base.U64 without admission or authored public helper laws. The actual input dictionary and three Q81 certificates, private actual count/support/layout clients and complete 48-input/385957-byte mathematical controls are supplied there. Raw decoding/roots and caller/guest/security/resource/readiness remain separate (§10). The raw three-array witness and private complete facade clients/controls are supplied under EthStateless §3/§4/§7; the actual witness dictionary and three Q81 certificates are supplied under EthStateless §3/§5/§7, independently of Serializable/Rootable, source backing and host premises. Raw witness decoding and DB/hash construction remain separate. EthFork §3 supplies the five F8 wire-limit values, and EthStateless §3/§5 supplies their transparent consumer aliases without wire admission; the actual witness schema consumes those aliases. The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
 ### Supplied raw execution-request aggregate handoff
 
@@ -108,10 +108,10 @@ no validity, descriptor WF, inverse or opposite-operation support premise.
 
 Every actual instance owner separately proves all three external §7 certifications:
 descriptor WF and both adapter directions. EthStateless §3/§5/§7 supplies the actual
-ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests and
-NewPayloadRequest dictionaries and their three certificates each. EthBlock §3/§5/§7
-supplies the actual Withdrawal dictionary and its three certificates. The ordinary
-NewPayloadRequest descriptor delegates both actual child types/models/inverses;
+ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests,
+NewPayloadRequest and StatelessInput dictionaries and their three certificates each.
+EthBlock §3/§5/§7 supplies the actual Withdrawal dictionary and its three certificates.
+The ordinary NewPayloadRequest descriptor delegates both actual child types/models/inverses;
 validity composes actual child predicates, and reverse child certificates retain WT
 plus success. Private count/support/layout facts and complete mathematical controls
 remain separate. Consumers needing certification cite actual instance proofs. Neither
@@ -1086,7 +1086,7 @@ It consumes the actual Block Withdrawal dictionary and certificates. Callers ret
 the extra-data-valid forward premise and the single WT-and-success reverse premise.
 Private complete clients/count recovery and 129 independent whole-wire controls are
 owned by §4; operation support and source parser/backing/host domains stay separate.
-NewPayloadRequest/input schemas, decoding, roots/O2, validation, guest and resource/
+NewPayloadRequest/input decoding, roots/O2, validation, guest and resource/
 security/readiness obligations remain open. This handoff adds no public helper,
 decoder policy, guest outcome or completed integration gate.
 
@@ -1226,7 +1226,7 @@ This is a proof dependency graph, not the core import graph; in particular State
 | Premise | Producer | Consumer | Current discharge |
 |---|---|---|---|
 | Integer/byte/model equations | Base | all layers | partial discharge: implemented primitive model laws in [EthBase §3](modules/EthBase.md#3-eels-source-map); remaining premises in EthBase §10 |
-| Canonical codecs and actual schema domains | Codec + record owners | Guest, Commit, Block | partial: primitive typed-RLP round trips proved (EthCodec §3 and §7); schema instances, SSZ inverses and domains open |
+| Canonical codecs and actual schema domains | Codec + record owners | Guest, Commit, Block | partial: primitive typed-RLP round trips proved (EthCodec §3 and §7); actual SSZ input dictionaries and Q81 certificates supplied (EthStateless, EthBlock §3/§5/§7); other schema instances, SSZ decoder inverses and domains open |
 | Valid curve/pairing and exact adapters | Field/Curve/Pairing + bridges | Precompiles/Runner/Block | conditional arguments; concrete proofs open |
 | Reachability, ordered diff and rollback | State + Block/Instructions/Runner | Witness/BAL/block simulation | API revised; caller induction open |
 | Canonical vs accepted witness agreement | Commit/StateCommit/Witness | Security | counterexamples reproduced; extractors/commutation open |
