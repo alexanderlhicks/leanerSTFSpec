@@ -167,8 +167,8 @@ private def depositRequest : DepositRequest :=
     241), (7, some 22), (8, some 59), (9, some 96), (10, some 133), (11, some 170), (12, some 207),
     (13, some 244), (14, some 25), (15, some 62),
     (16, some 99), (17, some 136), (18, some 173), (19, some 210), (20, some 247), (21, some 28),
-      (22, some 65), (23, some 102), (24, some 139), (25, some 176), (26, some 213), (27, some 250),
-      (28, some 31), (29, some 68), (30, some 105), (31, some 142),
+      (22, some 65), (23, some 102), (24, some 139), (25, some 176), (26, some 213),
+      (27, some 250), (28, some 31), (29, some 68), (30, some 105), (31, some 142),
     (32, some 179), (33, some 216), (34, some 253), (35, some 34), (36, some 71), (37, some 108),
       (38, some 145), (39, some 182), (40, some 219), (41, some 0), (42, some 37), (43, some 74),
       (44, some 111), (45, some 148), (46, some 185), (47, some 0)]
@@ -187,8 +187,8 @@ private def depositRequest : DepositRequest :=
     23), (7, some 60), (8, some 97), (9, some 134), (10, some 171), (11, some 208), (12, some 245),
     (13, some 26), (14, some 63), (15, some 100),
     (16, some 137), (17, some 174), (18, some 211), (19, some 248), (20, some 29), (21, some 66),
-      (22, some 103), (23, some 140), (24, some 177), (25, some 214), (26, some 251), (27, some 32),
-      (28, some 69), (29, some 106), (30, some 143), (31, some 180),
+      (22, some 103), (23, some 140), (24, some 177), (25, some 214), (26, some 251),
+      (27, some 32), (28, some 69), (29, some 106), (30, some 143), (31, some 180),
     (32, some 217), (33, some 254), (34, some 35), (35, some 72), (36, some 109), (37, some 146),
       (38, some 183), (39, some 220), (40, some 1), (41, some 38), (42, some 75), (43, some 112),
       (44, some 149), (45, some 186), (46, some 223), (47, some 4),
@@ -216,7 +216,8 @@ private def withdrawalRequestValidatorPubkey : Bytes48 :=
     255, 36, 73, 110, 147, 184, 221, 2, 39, 76, 113, 150, 187, 224, 5, 0] (by decide)
 
 private def withdrawalRequest : WithdrawalRequest :=
-  ⟨withdrawalRequestSourceAddress, withdrawalRequestValidatorPubkey, U64.ofNat 18446744073709551615⟩
+  ⟨withdrawalRequestSourceAddress, withdrawalRequestValidatorPubkey,
+    U64.ofNat 18446744073709551615⟩
 
 #guard withdrawalRequestObserve withdrawalRequest ==
   ([0, 113, 150, 187, 224, 5, 42, 79, 116, 153, 190, 227, 8, 45, 82, 119,
@@ -318,7 +319,8 @@ private def consolidationRequest : ConsolidationRequest :=
     List.replicate 48 255,
     List.replicate 48 255)
 
-#guard consolidationRequestObserve { consolidationRequest with sourceAddress := Address.ofNat 0 } ==
+#guard consolidationRequestObserve
+    { consolidationRequest with sourceAddress := Address.ofNat 0 } ==
   (List.replicate 20 0,
     [0, 170, 207, 244, 25, 62, 99, 136, 173, 210, 247, 28, 65, 102, 139, 176,
     213, 250, 31, 68, 105, 142, 179, 216, 253, 34, 71, 108, 145, 182, 219, 0,
