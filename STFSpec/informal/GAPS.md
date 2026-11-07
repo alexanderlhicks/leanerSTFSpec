@@ -1073,7 +1073,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Implemented raw payload/request carriers.** The exact nineteen-field
   ExecutionPayload and four-field NewPayloadRequest over actual provider types,
   private complete arbitrary facade clients and whole finite controls are supplied
-  in §3–§7. Payload/request schemas and Q81 certificates, Q80 serialization,
+  in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
+  §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
+  NewPayloadRequest/input schemas, general Q80 serialization/source refinement,
   Q87/Q88 recovery/decoding, root support/O2, block/header adapters and validation,
   request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
   remain separate. Static source-field correspondence supplies no source runtime,
