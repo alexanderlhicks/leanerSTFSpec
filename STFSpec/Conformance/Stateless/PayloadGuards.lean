@@ -802,8 +802,8 @@ private def executionRequestsZero_withdrawalsExpected : List WithdrawalRequestOb
 private def executionRequestsZero_consolidationsExpected : List ConsolidationRequestObservation :=
   []
 
-private def executionRequestsZero_builderDepositsExpected : List BuilderDepositRequestObservation
-  :=
+private def executionRequestsZero_builderDepositsExpected :
+    List BuilderDepositRequestObservation :=
   []
 
 private def executionRequestsZero_builderExitsExpected : List BuilderExitRequestObservation :=
@@ -828,8 +828,8 @@ private def executionRequestsMax_withdrawalsExpected : List WithdrawalRequestObs
 private def executionRequestsMax_consolidationsExpected : List ConsolidationRequestObservation :=
   [consolidationRequestMaxExpected]
 
-private def executionRequestsMax_builderDepositsExpected : List BuilderDepositRequestObservation
-  :=
+private def executionRequestsMax_builderDepositsExpected :
+    List BuilderDepositRequestObservation :=
   [builderDepositRequestMaxExpected]
 
 private def executionRequestsMax_builderExitsExpected : List BuilderExitRequestObservation :=

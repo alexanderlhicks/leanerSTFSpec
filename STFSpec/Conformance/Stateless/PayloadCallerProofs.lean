@@ -326,9 +326,9 @@ private def executionPayloadFields (r : ExecutionPayload) : Hash32 × Address ×
 private theorem executionPayload_construction (parentHash : Hash32) (feeRecipient : Address)
   (stateRoot : Hash32) (receiptsRoot : Hash32) (logsBloom : Bloom) (prevRandao : Bytes32)
   (blockNumber : U64) (gasLimit : U64) (gasUsed : U64) (timestamp : U64) (extraData : ByteArray)
-  (baseFeePerGas : U256) (blockHash : Hash32) (transactions : Array ByteArray) (withdrawals :
-  Array Block.Withdrawal) (blobGasUsed : U64) (excessBlobGas : U64) (blockAccessList : ByteArray)
-  (slotNumber : U64) :
+  (baseFeePerGas : U256) (blockHash : Hash32) (transactions : Array ByteArray)
+  (withdrawals : Array Block.Withdrawal) (blobGasUsed : U64) (excessBlobGas : U64)
+  (blockAccessList : ByteArray) (slotNumber : U64) :
     executionPayloadFields (executionPayloadConstructor parentHash feeRecipient stateRoot
       receiptsRoot logsBloom prevRandao blockNumber gasLimit gasUsed timestamp extraData
       baseFeePerGas blockHash transactions withdrawals blobGasUsed excessBlobGas blockAccessList
@@ -336,12 +336,12 @@ private theorem executionPayload_construction (parentHash : Hash32) (feeRecipien
       blockNumber, gasLimit, gasUsed, timestamp, extraData, baseFeePerGas, blockHash,
       transactions, withdrawals, blobGasUsed, excessBlobGas, blockAccessList, slotNumber) := rfl
 
-private theorem executionPayload_construction_observations (parentHash : Hash32) (feeRecipient :
-  Address) (stateRoot : Hash32) (receiptsRoot : Hash32) (logsBloom : Bloom) (prevRandao : Bytes32)
-  (blockNumber : U64) (gasLimit : U64) (gasUsed : U64) (timestamp : U64) (extraData : ByteArray)
-  (baseFeePerGas : U256) (blockHash : Hash32) (transactions : Array ByteArray) (withdrawals :
-  Array Block.Withdrawal) (blobGasUsed : U64) (excessBlobGas : U64) (blockAccessList : ByteArray)
-  (slotNumber : U64) :
+private theorem executionPayload_construction_observations (parentHash : Hash32)
+  (feeRecipient : Address) (stateRoot : Hash32) (receiptsRoot : Hash32) (logsBloom : Bloom)
+  (prevRandao : Bytes32) (blockNumber : U64) (gasLimit : U64) (gasUsed : U64) (timestamp : U64)
+  (extraData : ByteArray) (baseFeePerGas : U256) (blockHash : Hash32)
+  (transactions : Array ByteArray) (withdrawals : Array Block.Withdrawal) (blobGasUsed : U64)
+  (excessBlobGas : U64) (blockAccessList : ByteArray) (slotNumber : U64) :
     executionPayloadObserve (ExecutionPayload.mk parentHash feeRecipient stateRoot receiptsRoot
       logsBloom prevRandao blockNumber gasLimit gasUsed timestamp extraData baseFeePerGas
       blockHash transactions withdrawals blobGasUsed excessBlobGas blockAccessList slotNumber) =
@@ -774,15 +774,15 @@ private def newPayloadRequestFields (r : NewPayloadRequest) : ExecutionPayload �
   (r.executionPayload, r.versionedHashes, r.parentBeaconBlockRoot, r.executionRequests)
 
 private theorem newPayloadRequest_construction (executionPayload : ExecutionPayload)
-  (versionedHashes : Array VersionedHash) (parentBeaconBlockRoot : Hash32) (executionRequests :
-  ExecutionRequests) :
+  (versionedHashes : Array VersionedHash) (parentBeaconBlockRoot : Hash32)
+  (executionRequests : ExecutionRequests) :
     newPayloadRequestFields (newPayloadRequestConstructor executionPayload versionedHashes
       parentBeaconBlockRoot executionRequests) = (executionPayload, versionedHashes,
       parentBeaconBlockRoot, executionRequests) := rfl
 
 private theorem newPayloadRequest_construction_observations (executionPayload : ExecutionPayload)
-  (versionedHashes : Array VersionedHash) (parentBeaconBlockRoot : Hash32) (executionRequests :
-  ExecutionRequests) :
+  (versionedHashes : Array VersionedHash) (parentBeaconBlockRoot : Hash32)
+  (executionRequests : ExecutionRequests) :
     newPayloadRequestObserve (NewPayloadRequest.mk executionPayload versionedHashes
       parentBeaconBlockRoot executionRequests) = (executionPayloadObserve executionPayload,
       (versionedHashes.toList.map (fun h ↦ h.toBytes.toList)),
