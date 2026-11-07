@@ -72,12 +72,13 @@ private theorem depositRequest_observe_update_pubkey (r : DepositRequest) (value
       (value.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
         r.signature.toBytes.toList, r.index.toNat) := rfl
 
-private theorem depositRequest_update_withdrawalCredentials (r : DepositRequest) (value : Bytes32) :
+private theorem depositRequest_update_withdrawalCredentials (r : DepositRequest)
+  (value : Bytes32) :
     { r with withdrawalCredentials := value } = DepositRequest.mk r.pubkey value r.amount
       r.signature r.index := rfl
 
-private theorem depositRequest_observe_update_withdrawalCredentials (r : DepositRequest) (value :
-  Bytes32) :
+private theorem depositRequest_observe_update_withdrawalCredentials (r : DepositRequest)
+  (value : Bytes32) :
     depositRequestObserve { r with withdrawalCredentials := value } =
       (r.pubkey.toBytes.toList, value.toBytes.toList, r.amount.toNat, r.signature.toBytes.toList,
         r.index.toNat) := rfl
@@ -176,23 +177,27 @@ private theorem withdrawalRequest_observations_determine (r s : WithdrawalReques
     U64.toNat_inj.mp h2⟩
 
 private theorem withdrawalRequest_update_sourceAddress (r : WithdrawalRequest) (value : Address) :
-    { r with sourceAddress := value } = WithdrawalRequest.mk value r.validatorPubkey r.amount := rfl
+    { r with sourceAddress := value } =
+      WithdrawalRequest.mk value r.validatorPubkey r.amount := rfl
 
-private theorem withdrawalRequest_observe_update_sourceAddress (r : WithdrawalRequest) (value :
-  Address) :
+private theorem withdrawalRequest_observe_update_sourceAddress (r : WithdrawalRequest)
+  (value : Address) :
     withdrawalRequestObserve { r with sourceAddress := value } =
       (value.toBytes.toList, r.validatorPubkey.toBytes.toList, r.amount.toNat) := rfl
 
-private theorem withdrawalRequest_update_validatorPubkey (r : WithdrawalRequest) (value : Bytes48) :
-    { r with validatorPubkey := value } = WithdrawalRequest.mk r.sourceAddress value r.amount := rfl
+private theorem withdrawalRequest_update_validatorPubkey (r : WithdrawalRequest)
+  (value : Bytes48) :
+    { r with validatorPubkey := value } =
+      WithdrawalRequest.mk r.sourceAddress value r.amount := rfl
 
-private theorem withdrawalRequest_observe_update_validatorPubkey (r : WithdrawalRequest) (value :
-  Bytes48) :
+private theorem withdrawalRequest_observe_update_validatorPubkey (r : WithdrawalRequest)
+  (value : Bytes48) :
     withdrawalRequestObserve { r with validatorPubkey := value } =
       (r.sourceAddress.toBytes.toList, value.toBytes.toList, r.amount.toNat) := rfl
 
 private theorem withdrawalRequest_update_amount (r : WithdrawalRequest) (value : U64) :
-    { r with amount := value } = WithdrawalRequest.mk r.sourceAddress r.validatorPubkey value := rfl
+    { r with amount := value } =
+      WithdrawalRequest.mk r.sourceAddress r.validatorPubkey value := rfl
 
 private theorem withdrawalRequest_observe_update_amount (r : WithdrawalRequest) (value : U64) :
     withdrawalRequestObserve { r with amount := value } =
@@ -255,33 +260,33 @@ private theorem consolidationRequest_observations_determine (r s : Consolidation
     FixedBytes.toBytes_inj.mp (Bytes.ext h1),
     FixedBytes.toBytes_inj.mp (Bytes.ext h2)⟩
 
-private theorem consolidationRequest_update_sourceAddress (r : ConsolidationRequest) (value :
-  Address) :
-    { r with sourceAddress := value } = ConsolidationRequest.mk value r.sourcePubkey r.targetPubkey
-      := rfl
+private theorem consolidationRequest_update_sourceAddress (r : ConsolidationRequest)
+  (value : Address) :
+    { r with sourceAddress := value } =
+      ConsolidationRequest.mk value r.sourcePubkey r.targetPubkey := rfl
 
-private theorem consolidationRequest_observe_update_sourceAddress (r : ConsolidationRequest) (value
-  : Address) :
+private theorem consolidationRequest_observe_update_sourceAddress (r : ConsolidationRequest)
+  (value : Address) :
     consolidationRequestObserve { r with sourceAddress := value } =
       (value.toBytes.toList, r.sourcePubkey.toBytes.toList, r.targetPubkey.toBytes.toList) := rfl
 
-private theorem consolidationRequest_update_sourcePubkey (r : ConsolidationRequest) (value :
-  Bytes48) :
-    { r with sourcePubkey := value } = ConsolidationRequest.mk r.sourceAddress value r.targetPubkey
-      := rfl
+private theorem consolidationRequest_update_sourcePubkey (r : ConsolidationRequest)
+  (value : Bytes48) :
+    { r with sourcePubkey := value } =
+      ConsolidationRequest.mk r.sourceAddress value r.targetPubkey := rfl
 
-private theorem consolidationRequest_observe_update_sourcePubkey (r : ConsolidationRequest) (value :
-  Bytes48) :
+private theorem consolidationRequest_observe_update_sourcePubkey (r : ConsolidationRequest)
+  (value : Bytes48) :
     consolidationRequestObserve { r with sourcePubkey := value } =
       (r.sourceAddress.toBytes.toList, value.toBytes.toList, r.targetPubkey.toBytes.toList) := rfl
 
-private theorem consolidationRequest_update_targetPubkey (r : ConsolidationRequest) (value :
-  Bytes48) :
-    { r with targetPubkey := value } = ConsolidationRequest.mk r.sourceAddress r.sourcePubkey value
-      := rfl
+private theorem consolidationRequest_update_targetPubkey (r : ConsolidationRequest)
+  (value : Bytes48) :
+    { r with targetPubkey := value } =
+      ConsolidationRequest.mk r.sourceAddress r.sourcePubkey value := rfl
 
-private theorem consolidationRequest_observe_update_targetPubkey (r : ConsolidationRequest) (value :
-  Bytes48) :
+private theorem consolidationRequest_observe_update_targetPubkey (r : ConsolidationRequest)
+  (value : Bytes48) :
     consolidationRequestObserve { r with targetPubkey := value } =
       (r.sourceAddress.toBytes.toList, r.sourcePubkey.toBytes.toList, value.toBytes.toList) := rfl
 
@@ -322,8 +327,8 @@ private def builderDepositRequestObserve (r : BuilderDepositRequest) :
   (r.pubkey.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
     r.signature.toBytes.toList)
 
-private theorem builderDepositRequest_constructor (pubkey : Bytes48) (withdrawalCredentials :
-  Bytes32) (amount : U64) (signature : Bytes96) :
+private theorem builderDepositRequest_constructor (pubkey : Bytes48)
+  (withdrawalCredentials : Bytes32) (amount : U64) (signature : Bytes96) :
     builderDepositRequestFields (builderDepositRequestConstructor pubkey withdrawalCredentials
       amount signature) = (pubkey, withdrawalCredentials, amount, signature) := rfl
 
@@ -352,8 +357,8 @@ private theorem builderDepositRequest_update_pubkey (r : BuilderDepositRequest) 
     { r with pubkey := value } = BuilderDepositRequest.mk value r.withdrawalCredentials r.amount
       r.signature := rfl
 
-private theorem builderDepositRequest_observe_update_pubkey (r : BuilderDepositRequest) (value :
-  Bytes48) :
+private theorem builderDepositRequest_observe_update_pubkey (r : BuilderDepositRequest)
+  (value : Bytes48) :
     builderDepositRequestObserve { r with pubkey := value } =
       (value.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
         r.signature.toBytes.toList) := rfl
@@ -363,29 +368,29 @@ private theorem builderDepositRequest_update_withdrawalCredentials (r : BuilderD
     { r with withdrawalCredentials := value } = BuilderDepositRequest.mk r.pubkey value r.amount
       r.signature := rfl
 
-private theorem builderDepositRequest_observe_update_withdrawalCredentials (r :
-  BuilderDepositRequest) (value : Bytes32) :
+private theorem builderDepositRequest_observe_update_withdrawalCredentials
+  (r : BuilderDepositRequest) (value : Bytes32) :
     builderDepositRequestObserve { r with withdrawalCredentials := value } =
-      (r.pubkey.toBytes.toList, value.toBytes.toList, r.amount.toNat, r.signature.toBytes.toList) :=
-        rfl
+      (r.pubkey.toBytes.toList, value.toBytes.toList, r.amount.toNat,
+        r.signature.toBytes.toList) := rfl
 
 private theorem builderDepositRequest_update_amount (r : BuilderDepositRequest) (value : U64) :
     { r with amount := value } = BuilderDepositRequest.mk r.pubkey r.withdrawalCredentials value
       r.signature := rfl
 
-private theorem builderDepositRequest_observe_update_amount (r : BuilderDepositRequest) (value :
-  U64) :
+private theorem builderDepositRequest_observe_update_amount (r : BuilderDepositRequest)
+  (value : U64) :
     builderDepositRequestObserve { r with amount := value } =
       (r.pubkey.toBytes.toList, r.withdrawalCredentials.toBytes.toList, value.toNat,
         r.signature.toBytes.toList) := rfl
 
-private theorem builderDepositRequest_update_signature (r : BuilderDepositRequest) (value : Bytes96)
-  :
+private theorem builderDepositRequest_update_signature (r : BuilderDepositRequest)
+  (value : Bytes96) :
     { r with signature := value } = BuilderDepositRequest.mk r.pubkey r.withdrawalCredentials
       r.amount value := rfl
 
-private theorem builderDepositRequest_observe_update_signature (r : BuilderDepositRequest) (value :
-  Bytes96) :
+private theorem builderDepositRequest_observe_update_signature (r : BuilderDepositRequest)
+  (value : Bytes96) :
     builderDepositRequestObserve { r with signature := value } =
       (r.pubkey.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
         value.toBytes.toList) := rfl
@@ -447,19 +452,20 @@ private theorem builderExitRequest_observations_determine (r s : BuilderExitRequ
   exact ⟨Address.toBytes_inj.mp (Bytes.ext h0),
     FixedBytes.toBytes_inj.mp (Bytes.ext h1)⟩
 
-private theorem builderExitRequest_update_sourceAddress (r : BuilderExitRequest) (value : Address) :
+private theorem builderExitRequest_update_sourceAddress (r : BuilderExitRequest)
+  (value : Address) :
     { r with sourceAddress := value } = BuilderExitRequest.mk value r.pubkey := rfl
 
-private theorem builderExitRequest_observe_update_sourceAddress (r : BuilderExitRequest) (value :
-  Address) :
+private theorem builderExitRequest_observe_update_sourceAddress (r : BuilderExitRequest)
+  (value : Address) :
     builderExitRequestObserve { r with sourceAddress := value } =
       (value.toBytes.toList, r.pubkey.toBytes.toList) := rfl
 
 private theorem builderExitRequest_update_pubkey (r : BuilderExitRequest) (value : Bytes48) :
     { r with pubkey := value } = BuilderExitRequest.mk r.sourceAddress value := rfl
 
-private theorem builderExitRequest_observe_update_pubkey (r : BuilderExitRequest) (value : Bytes48)
-  :
+private theorem builderExitRequest_observe_update_pubkey (r : BuilderExitRequest)
+  (value : Bytes48) :
     builderExitRequestObserve { r with pubkey := value } =
       (r.sourceAddress.toBytes.toList, value.toBytes.toList) := rfl
 
