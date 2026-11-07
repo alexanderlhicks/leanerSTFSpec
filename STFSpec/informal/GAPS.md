@@ -1045,7 +1045,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
-  in §3/§5/§7, with complete private controls in §4. Other input schemas, wire
+  in §3/§5/§7, with complete private controls in §4. StatelessInput schema, wire
   admission, RLP/header validation, database construction,
   hashing and guest composition remain unimplemented. The five size-limit aliases
   are supplied under F8 (§3/§5), without implementing those consumers. The
@@ -1054,29 +1054,32 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented raw request items.** The five nominal carriers and all 17 complete
   independent fields are supplied under §3/§5/§7, with private arbitrary facade
-  clients and whole finite controls in §4. The five actual Q81 dictionaries and
-  their descriptor/adapter certificates, Q80 serialization and root support,
-  Q87/Q88 recovery/decoding, aggregate schema, request wire constants,
-  `encodeExecutionRequests`, roots and input/guest composition remain
-  unimplemented. Raw payload/request carriers are supplied separately below. Source class/reflection/cache/coercion/backing and host agreement
+  clients and whole finite controls in §4. Their five actual Q81 dictionaries and
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
   remain separate. No runtime admission, protocol validation, resource, security,
   cost or readiness obligation is discharged by these raw carriers.
 
 - **Implemented raw execution requests.** The exact five-array aggregate and private
-  arbitrary complete facade clients/finite controls are supplied in §3–§7. The
-  actual aggregate Q81 dictionary and three certificates, Q80 serialization,
-  count recovery, root support and source-decoder correspondence remain separate.
-  Request wire constants/encoding, roots and input/guest composition
-  remain unimplemented. Raw payload/request carriers are supplied separately below. No admission, effect, resource, security, cost or readiness
-  gate is discharged by this raw carrier.
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. Its
+  actual aggregate Q81 dictionary and three certificates, with private Q80 support,
+  count recovery and full-wire controls, are supplied in §3/§4/§5/§7. Root support
+  and source-decoder correspondence remain separate. Request wire constants/encoding,
+  roots and payload/request/input/guest composition remain unimplemented. No admission,
+  effect, resource, security, cost or readiness gate is discharged by this raw carrier.
 
 - **Implemented raw payload/request carriers.** The exact nineteen-field
   ExecutionPayload and four-field NewPayloadRequest over actual provider types,
   private complete arbitrary facade clients and whole finite controls are supplied
   in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
   §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
-  NewPayloadRequest/input schemas, general Q80 serialization/source refinement,
-  Q87/Q88 recovery/decoding, root support/O2, block/header adapters and validation,
+  The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
+  in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
+  controls in §4. StatelessInput schema, general Q80 source refinement,
+  Q88 raw decoding, root support/O2, block/header adapters and validation,
   request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
   remain separate. Static source-field correspondence supplies no source runtime,
   backing/coercion/cache/host or guest agreement; O12 remains with its owner.

@@ -1,7 +1,7 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers and actual witness/payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
+*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers and actual witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q80, Q81, Q87, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -85,14 +85,14 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/execution_engine/new_payload.py::execute_new_payload_request` | 70 | `executeNewPayloadRequest` | backend-generic |
 | `forks/amsterdam/execution_engine/types.py::MAX_EXTRA_DATA_BYTES` | 33 | `maxExtraDataBytes : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_EXTRA_DATA_BYTES` (F8); payload SSZ limit |
 | `forks/amsterdam/execution_engine/types.py::ExecutionPayload` | 39–72 | `ExecutionPayload` (`STFSpec/Stateless/Payload.lean`) | supplied exact unrestricted nineteen-field carrier and actual progressive Q81 dictionary/certificates below |
-| `forks/amsterdam/execution_engine/types.py::NewPayloadRequest` | 78–96 | `NewPayloadRequest` (`STFSpec/Stateless/Payload.lean`) | supplied exact unrestricted four-field carrier below; schema remains separate |
+| `forks/amsterdam/execution_engine/types.py::NewPayloadRequest` | 78–96 | `NewPayloadRequest` (`STFSpec/Stateless/Payload.lean`) | supplied exact unrestricted four-field carrier and actual ordinary Q81 dictionary/certificates below |
 | `forks/amsterdam/execution_engine/validation_helpers.py::*` | 23–122 | `payloadHeader`, `payloadTransactionToBlockTransaction`, `payloadBlock` (internal) | whole file |
 | `forks/amsterdam/execution_engine/requests.py::DepositRequest` | 42 | `DepositRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
 | `forks/amsterdam/execution_engine/requests.py::WithdrawalRequest` | 55 | `WithdrawalRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
 | `forks/amsterdam/execution_engine/requests.py::ConsolidationRequest` | 66 | `ConsolidationRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
 | `forks/amsterdam/execution_engine/requests.py::BuilderDepositRequest` | 77 | `BuilderDepositRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
 | `forks/amsterdam/execution_engine/requests.py::BuilderExitRequest` | 89 | `BuilderExitRequest` (`STFSpec/Stateless/RequestItems.lean`) | supplied raw carrier; exact constructor/projection domain and private clients below |
-| `forks/amsterdam/execution_engine/requests.py::ExecutionRequests` | 99 | `ExecutionRequests` (`STFSpec/Stateless/ExecutionRequests.lean`) | supplied unrestricted five-array carrier; aggregate schema remains separate |
+| `forks/amsterdam/execution_engine/requests.py::ExecutionRequests` | 99 | `ExecutionRequests` (`STFSpec/Stateless/ExecutionRequests.lean`) | supplied unrestricted five-array carrier; actual Q81 dictionary and certificates below |
 | `forks/amsterdam/execution_engine/requests.py::encode_execution_requests` | 148 | `encodeExecutionRequests` | empty lists omitted, ascending type |
 
 **Supplied wire-limit aliases.** `STFSpec/Stateless/WireLimits.lean` exports the
@@ -167,9 +167,9 @@ default, proof argument, validator or schema is supplied.
 Static source reading establishes this field correspondence. Python reflection,
 mutable/frozen dataclass behaviour, annotation enforcement, cached SSZ views and
 source-host execution agreement remain separate. The raw carriers supply no BLS,
-credential-prefix, builder-eligibility, balance or index-relation admission. Their
-five Q81 dictionaries/certificates, operation support, aggregate schema,
-wire constants/encoding/decoding, roots, payload/input and guest remain separate (§10).
+credential-prefix, builder-eligibility, balance or index-relation admission. The five actual Q81 dictionaries/certificates, private operation-support clients
+and aggregate schema are supplied independently below. Wire constants/engine
+encoding, raw decoding, roots, payload/input and guest remain open (§10).
 
 **Supplied raw execution requests.** `STFSpec/Stateless/ExecutionRequests.lean`,
 exported by `STFSpec.Stateless`, supplies exactly the §5 five-array structure.
@@ -212,7 +212,7 @@ source's broader Python U256 class; baseFeePerGas retains the guided `U256`.
 Static field correspondence does not establish runtime/source-object agreement
 outside annotated wire domains, Python class/reflection/coercion/cache/backing
 behaviour or host agreement. Progressive masks and SSZ limits belong to separate
-schemas; the actual payload dictionary is supplied below. Schemas, support, codecs/roots, request validation, conversion to Header,
+schemas; the actual payload and request dictionaries are supplied below. Support, codecs/roots, request validation, conversion to Header,
 guest composition and resource/security/readiness remain separate (§10).
 
 **Supplied execution witness SSZ dictionary.**
@@ -289,6 +289,114 @@ It adds no final BAL/end cap. Q78 root counts and source backing/host bounds are
 validity conditions. Source parser per-field progressive extents at most `2^32` and
 its nonempty variable-list strict scope check remain source-refinement premises,
 separate from the mathematical Q80/Q88 domains. No O12 or decoder policy is changed.
+
+**Supplied request-item dictionaries (Q81).**
+`STFSpec/Stateless/RequestItemSsz.lean`, reexported by `STFSpec.Stateless`, supplies
+exactly five actual dictionaries and three ordinary certificates per dictionary.
+Each row lists all four authored public declarations. These are pure metadata
+and adapters on every raw typed record, with no execution effects or public error.
+
+| EELS source at the pin | Supplied declarations | Domain, laws and complete controls |
+|---|---|---|
+| `execution_engine/requests.py:42`; `src/ethereum/utils/ssz.py:174–320` | `DepositRequest.instSszSchema`, `DepositRequest.ssz_type_wellFormed`, `DepositRequest.ssz_ofValue_toValue`, `DepositRequest.ssz_toValue_ofValue` | All `DepositRequest` values; exact §5 metadata and §7 certificate types; full 192-byte comparisons and every field/shape/width/range control in §4 |
+| `execution_engine/requests.py:55`; `src/ethereum/utils/ssz.py:174–320` | `WithdrawalRequest.instSszSchema`, `WithdrawalRequest.ssz_type_wellFormed`, `WithdrawalRequest.ssz_ofValue_toValue`, `WithdrawalRequest.ssz_toValue_ofValue` | All `WithdrawalRequest` values; exact §5 metadata and §7 certificate types; full 76-byte comparisons and every field/shape/width/range control in §4 |
+| `execution_engine/requests.py:66`; `src/ethereum/utils/ssz.py:174–320` | `ConsolidationRequest.instSszSchema`, `ConsolidationRequest.ssz_type_wellFormed`, `ConsolidationRequest.ssz_ofValue_toValue`, `ConsolidationRequest.ssz_toValue_ofValue` | All `ConsolidationRequest` values; exact §5 metadata and §7 certificate types; full 116-byte comparisons and every field/shape/width/range control in §4 |
+| `execution_engine/requests.py:77`; `src/ethereum/utils/ssz.py:174–320` | `BuilderDepositRequest.instSszSchema`, `BuilderDepositRequest.ssz_type_wellFormed`, `BuilderDepositRequest.ssz_ofValue_toValue`, `BuilderDepositRequest.ssz_toValue_ofValue` | All `BuilderDepositRequest` values; exact §5 metadata and §7 certificate types; full 184-byte comparisons and every field/shape/width/range control in §4 |
+| `execution_engine/requests.py:89`; `src/ethereum/utils/ssz.py:174–320` | `BuilderExitRequest.instSszSchema`, `BuilderExitRequest.ssz_type_wellFormed`, `BuilderExitRequest.ssz_ofValue_toValue`, `BuilderExitRequest.ssz_toValue_ofValue` | All `BuilderExitRequest` values; exact §5 metadata and §7 certificate types; full 68-byte comparisons and every field/shape/width/range control in §4 |
+
+The source declares ordinary fixed containers [V: source reading at the pin].
+Every descriptor retains source order and source field names. Byte vectors use the
+complete Base byte observation, and uint fields use the complete `U64.toNat`.
+The wire-domain predicate is `True`, because the Base types already enforce all
+mathematical lengths and ranges. It imposes no protocol, BLS, signature, credential,
+nonzero, amount-scale or cross-field condition.
+
+The private total inverse matches exact container arity and leaf tags. It checks
+all byte leaves with `FixedBytes.ofBytes? (Bytes.ofByteArray b)` or nominal
+`Address.ofBytes?`, and every uint with `U64.ofNat?`. It constructs the whole raw
+record only after all checks succeed. Other patterns or failed checks return
+`none`. This completion is private implementation behaviour. Q81 publishes only
+the three §7 certificates, retaining the forward validity hypothesis and the
+reverse WT-and-success conjunction. No public rejection/image law is added.
+
+The five complete fixed products have widths 192/76/116/184/68 bytes in the row
+order. Private public-Codec-law clients establish actual Serializable and
+CountRecoverable support and full fixed concatenation on arbitrary records.
+Every quantity contributes exactly eight little-endian bytes. No offset or length
+prefix is emitted. These are mathematical wire facts, without an EELS/dependency
+runtime comparison. Source reflection/cache/class/backing and host agreement,
+raw byte decoding (Q88), Rootable and guest composition remain
+separate. The aggregate dictionary is supplied below. Installed dependency RECORD agreement does not authenticate a locked
+wheel. No resource, security, performance or readiness result follows.
+
+
+**Supplied execution-request aggregate schema (Q81).**
+
+| EELS source at the pin | Supplied Lean declaration in `STFSpec/Stateless/ExecutionRequestsSsz.lean` | Domain, effects and failures | Law, model and controls |
+|---|---|---|---|
+| `execution_engine/requests.py:99–116`; `src/ethereum/utils/ssz.py:174–320` | `ExecutionRequests.instSszSchema` | All finite existing aggregates; pure ordered adapters, no public diagnostic or O-row | Exact §5 model/metadata; three §7 certificates; every complete input/field/recovery and all 150780 bytes of the 80 mathematical cases in §4 |
+| `src/ethereum/utils/ssz.py:174–253` (structural interpretation) | `ExecutionRequests.ssz_type_wellFormed` | No premise; actual descriptor WF | Exact §7 type; private actual child/mask/field-name clients |
+| `src/ethereum/utils/ssz.py:258–291` (forward interpretation) | `ExecutionRequests.ssz_ofValue_toValue` | Actual validity premise; complete reconstruction and WT image; pure | Exact §7 type; private arbitrary whole-array/model clients and complete §4 finite controls |
+| `src/ethereum/utils/ssz.py:294–320` (reverse interpretation) | `ExecutionRequests.ssz_toValue_ofValue` | Actual WT-and-success conjunction; complete model preservation and validity; pure | Exact §7 type; actual child certificates with paired WT/success; §4 recovery/malformed controls |
+
+The descriptor uses five progressive lists of the actual named item dictionary
+types, in source field order, and a progressive container with five true active
+bits [V: pinned source reading]. Names retain source snake_case. The ordered
+model maps every complete array member through its actual child dictionary.
+Validity is exactly `True`. Counts, ordering, duplicates, empty arrays, unequal
+counts, opaque fixed bytes and full unsigned fields add no condition.
+
+The private total inverse matches exactly five list-valued fields, traverses each
+actual child inverse in order and constructs all five arrays after complete
+success. Other patterns or child failure return `none`. This completion adds no
+public rejection or image law. The reverse certificate derives each child's
+WellTyped premise from public typing equations and pairs it with actual inverse
+success before applying the child's public reverse certificate. The implementation
+unfolds no foreign private inverse. All adapters are pure, without hashes,
+validation effects or a public diagnostic.
+
+Private ordinary clients establish CountRecoverable on every forward aggregate
+and Serializable under exactly the five emitted-start bounds in §5. Mathematical
+full-wire controls use actual `SszSchema.encodeBytes`. Rootable, source reflection,
+class/coercion/backing, per-field decoder scopes and host success remain separate.
+No source/dependency encoder, raw byte decoder, root or guest is executed here.
+
+**Supplied new-payload request dictionary (Q81).**
+`STFSpec/Stateless/NewPayloadSsz.lean`, exported by `STFSpec.Stateless`, supplies
+exactly `NewPayloadRequest.instSszSchema` and the three §7 certificates. The four-field
+ordinary descriptor uses the actual Payload and ExecutionRequests dictionaries,
+without an outer progressive mask. §5 gives all five metadata fields.
+
+| EELS source at `59c1473d` | Lean declaration | Domain, effects and failures | Law and regression |
+|---|---|---|---|
+| `execution_engine/types.py:78–96`; `src/ethereum/utils/ssz.py:174–320` | `NewPayloadRequest.instSszSchema : Codec.SszSchema NewPayloadRequest` | pure ordered metadata/adapters; validity composes both actual child predicates; no effect, handler or O-row | complete §5 model; private facade, boundary and complete wire controls in §4 |
+| `src/ethereum/utils/ssz.py:174–255` (structural interpretation, Q81) | `NewPayloadRequest.ssz_type_wellFormed` | no premise; actual descriptor WF | discharged §7 certificate; actual provider identities/order/names |
+| `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `NewPayloadRequest.ssz_ofValue_toValue` | actual validity premise; complete reconstruction and WT image | discharged §7 certificate; arbitrary whole model and finite complete recovery |
+| `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `NewPayloadRequest.ssz_toValue_ofValue` | actual WT and successful reconstruction, in one conjunction | discharged §7 certificate; actual child validity and whole-value re-forwarding |
+
+The model delegates whole child models and retains every versioned hash and root
+byte, ordered occurrence, duplicate and empty collection. Validity composes actual
+child predicates; their contracts reduce it to the payload extra-data bound. It adds
+no version-byte predicate, hash/gas/execution check, count, root, host or final-size
+condition. The private total inverse matches exactly four fields and the list/byte
+leaf tags, delegates both actual child inverses, traverses checked Base Hash32
+constructors for every versioned hash, and checks the root through the same nominal
+Base constructor. Wrong shape or a failed checked construction returns `none`.
+Public off-WT completion remains unspecified. The reverse certificate derives each
+child WT from outer WT independently of reconstruction success, then passes both
+premises to each public child reverse certificate. No foreign private helper unfolds.
+
+[V: static reading at the pin] Correspondence assumes intended annotated values,
+normal ordered reflection, coherent classes/coercions/caches/backing, dependency
+endian/serializer behavior and sufficient host resources. Installed dependency RECORD
+agreement is self-consistency, not independent archive authentication. This slice
+executes no EELS/dependency encoder, parser or guest. Q80's exact outer head is 44
+bytes and its emitted starts are `44`, `44+P`, `44+P+32h`, for actual payload length P
+and versioned-hash count h. Every actual nested start retains its own Q80 bound,
+including the actual 540-byte payload and 20-byte aggregate heads. There is no final
+request/tail cap. Private CountRecoverable holds for every whole forward value,
+separately from actual validity, Serializable, Q78 Rootable and source-host bounds.
+Q88, O2/O12, F20/D5, fuel/S2, security, resources and readiness remain unchanged.
 
 The decoders and size constants of `execution_engine/requests.py` (engine wire form → typed) are host-side and claimed by `EthConformance`; `verify_and_notify_new_payload` (the stateful path) is claimed by `EthConformance`. Scaffolding types, `forkchoice_update.py`, `get_payload.py` and the unused engine types are excluded in `STFSpec/informal/EXCLUDED.md` with reasons.
 
@@ -449,6 +557,96 @@ cover empty/nested-empty and duplicate lists, leading zeros, independent same-ty
 fields, maximum words, extra-data endpoints and offset carries. No source/native/guest,
 general decoder/root, giant-input, host-resource, security or cost result follows.
 
+**Request-item SSZ controls.**
+`RequestItemSszCallerProofs.lean` imports the public Stateless facade and privately
+checks all five actual dictionary types, exact descriptors/names/validity, all
+fifteen certificate types, arbitrary complete forward models, checked recovery,
+reverse preservation, CountRecoverable and fixed sizes.
+`RequestItemSszWireControls.lean` proves actual Serializable support and the whole
+fixed wire for arbitrary records, using public Base and Codec laws. It compares
+all 681 independently frozen mathematical whole inputs and all 100476 expected
+wire bytes through the actual `SszSchema.encodeBytes`. Checked Base constructors
+and complete field observations protect against wrapping or content loss. The
+ordered model and its complete reconstructed observations are also compared.
+The case counts are 201/83/129/193/75 in §3 order. They cover asymmetric, zero and
+maximum values, all U64 carry boundaries in the catalogue, each byte position,
+every whole-field zero/ff change and source/target swaps. Closed literal sharing
+retains every byte of each input and expected wire. A separate complete parse and
+expansion check verifies that transport against the independently frozen inputs
+and expectations. Expectations do not use the target, its projections or encoder.
+`RequestItemSszControls.lean` evaluates 178 private controls for wrong outer/leaf
+tags, exact arity, extra trailing fields, each byte width n−1/n+1 with zero and
+indexed contents, unsigned 2^64/2^64+1 and combined malformed leaves. Exact-width
+arbitrary cryptographic bytes and maximum quantities still succeed. Compilation
+evaluates these interpreted guards and checks ordinary private proofs. Declaration
+audit and kernel replay inspect their declarations. These controls execute no
+EELS/dependency algorithm, native request-item producer, fixture or guest.
+
+
+**Execution-request aggregate SSZ controls.**
+`ExecutionRequestsSszCallerProofs.lean` imports the public Stateless facade and
+privately checks actual dictionary inference, the complete descriptor/mask/names,
+validity and all three exact certificate types. Arbitrary complete forward models,
+construction from all five arrays, recovery of all arrays and reverse re-forwarding
+use those actual certificates. Private public-Codec-law clients prove positive
+192/76/116/184/68 child widths and CountRecoverable for every forward aggregate.
+`ExecutionRequestsSszWireControls.lean` proves actual child support/full fixed wires,
+fixed-list concatenation and aggregate Serializable under precisely the five local
+emitted starts in §5. All supplementary declarations remain private.
+
+Its 80 complete mathematical cases compare every one of 816 items, 3891 fields,
+1489 unsigned fields and 150780 expected wire bytes through actual
+`SszSchema.encodeBytes`. Checked Base constructors prevent wrapping. The controls
+compare complete raw observations, ordered models and both recovery paths against
+independently frozen inputs. Literal byte/item sharing retains complete finite
+transport, without digest or length substitutes. The catalogue covers all empty,
+each independently populated, all five populated with unequal counts, internal
+empties, duplicates, independent reversals/changes, opaque bytes, unsigned boundaries
+and offset carries. A separate complete transport expansion checks every literal
+against the frozen mathematical inputs and expectations.
+
+`ExecutionRequestsSszControls.lean` checks wrong outer tags, arities 0–4/6 and each
+wrong field tag. Every child's wrong tags, arity, byte width and uint overflow is
+placed at first/middle/last collection positions, with mixed malformed collections.
+Exact-width arbitrary cryptographic bytes and maximum uint64 values succeed.
+Compilation evaluates these interpreted controls and checks ordinary proofs.
+Declaration audit and kernel replay inspect their declarations. These controls
+establish no public off-WT contract, EELS/dependency, native request producer,
+fixture, decoder, root, resource or readiness result.
+
+**New-payload request SSZ controls.** `NewPayloadSszCallerProofs.lean` imports the
+public Stateless facade. Its private clients check actual inference, exact four-field
+metadata and provider identities, composed validity and the three exact law types.
+Arbitrary whole forward models, valid reconstruction/WT and WT-plus-success reverse
+clients retain both complete children, all hashes and the root. Private ordinary
+public-Codec-law clients establish CountRecoverable for every forward value, the
+44-byte head and its three emitted starts, separately from validity and operation support.
+
+`NewPayloadSszControls.lean` checks every wrong outer tag and arity, each incompatible
+field tag, malformed root widths, malformed hash tags/widths at first/middle/last
+positions, mixed malformed members and failures of both actual children. Complete
+opaque zero/ff/indexed/leading-zero, reversed and duplicate arrays retain every byte;
+no version predicate applies. Extra-data 0/32/33 controls preserve complete raw values
+and private inverse completion, while length 33 fails actual validity and WT. This
+supplies no public success-implies-validity or off-WT promise.
+
+`NewPayloadSszWireControls.lean` transports all 96 independently frozen mathematical
+whole requests through private checked parsers and existing Base constructors.
+Shared bounded natural literals retain all 384 outer fields, 1824 payload fields,
+480 aggregate fields, 332 transactions, 168 withdrawals, 1294 request items,
+4004 item fields, 1990 unsigned values and 280 versioned hashes. Exact shape,
+byte digits/widths, unsigned ranges and complete framed consumption precede
+construction. Complete raw observations, whole models, both reconstruction paths
+and re-forwarding are compared against the inputs. Actual `SszSchema.encodeBytes`
+compares every one of 365636 independent expected bytes, including all 1484 offsets.
+Expectations were independently calculated before implementation, without the target,
+its projections/encoder or EELS. A separate complete literal-expansion readback
+checks transport against those frozen inputs/expectations. Each finite call has an
+ordinary private Serializable proof using actual child descriptors and public Codec
+equations; only recursively emitted starts are bounded, without a final-size cap.
+Compilation executes these interpreted guards. No source/native/fixture/guest,
+general decoder/root, host-resource, security, cost or readiness result follows.
+
 **EEST fixture areas.** Every guest record (67,685 at this pin, in `blockchain_tests` and `blockchain_tests_engine`; `reference.toml`) passes through this library. Areas that target it specifically (`STFSpec/informal/eest-fixture-index.txt`): `blockchain_tests/for_amsterdam/amsterdam/eip8025_optional_proofs` (96 files), in particular `stateless_input_bytes/` (the zero-sentinel records: at v21.0.0 these were 9, empty input, 1-byte input, schema only, wrong fork byte `0x16`, wrong revision `0x02`, truncated body, trailing garbage, invalid first offset, shifted offsets [V, v21.0.0]; at this pin there are 10 per format, without trailing garbage and with two witness-header SSZ limit cases, EthCodec §4), `witness_validation_headers/` (non-contiguous chain, missing parent header, empty headers, missing oldest BLOCKHASH ancestor, malformed RLP header), `witness_headers/`, `witness_validation_chain_id/`, `stateless_input_versioned_hashes/`, `witness_validation_state/`, `witness_validation_codes/`; and the transition directory `for_bpo2toamsterdamattime15k/*` (previous-fork parent header). Payload conversion is exercised by `prague/eip7685_general_purpose_el_requests`, `eip6110_deposits`, `eip7002_*`, `eip7251_*`, `amsterdam/eip8282_builder_execution_requests`, `cancun/eip4844_blobs` (versioned hashes) and `amsterdam/eip7928_block_level_access_lists` (BAL bytes and hash).
 
 Corpus facts relevant here [V, v21.0.0; not recomputed at this pin, §10]: 27,822 records succeed, 1,199 fail with schema `0x1501`, 9 are the zero sentinel; the largest input is 8,396,936 bytes; one record has an empty header list; 28,975 of 29,030 records carry exactly one witness header.
@@ -503,8 +701,8 @@ All in namespace `STFSpec.Stateless`; public unless marked.
 `ExecutionWitness` below is supplied as a raw carrier. Its fields retain arbitrary
 complete `Array ByteArray` values without bounds, validation, decoded `Header`,
 database or hashing dependency. The five wire-limit aliases below are supplied
-from Fork-owned values (F8). The separate actual witness dictionary is supplied
-below; the other input schemas remain prospective. The
+from Fork-owned values (F8). The actual dictionaries are supplied
+below; the StatelessInput schema and raw byte decoding remain prospective. The
 stale `publicKeys`/input guidance
 is a separate re-pin obligation in §10; it does not change this three-field witness.
 The complete `ProtocolFork` carrier and forward observer below are supplied with
@@ -513,11 +711,10 @@ the exact mapping in §3; schema constants below remain prospective under F8 (§
 The five request-item structures below are supplied with exactly the ordered field
 types in §3. They add no defaults, proof fields, derived instances or validation.
 The aggregate `ExecutionRequests` below is supplied with exactly the five independent
-Array fields. Its schema and codecs remain prospective.
+Array fields. Its actual Q81 dictionary is supplied below. Byte decoding remains prospective.
 The nineteen-field `ExecutionPayload` and four-field `NewPayloadRequest` below are
 supplied by `Payload.lean` exactly as written, using existing Base types, actual
-`Block.Withdrawal` and actual `ExecutionRequests`. The actual payload dictionary below is
-supplied; the NewPayloadRequest schema remains prospective.
+`Block.Withdrawal` and actual `ExecutionRequests`. Their actual dictionaries are supplied below.
 
 ```lean
 -- constants (public)
@@ -680,6 +877,76 @@ Widths are bytes. There is no encoded mask member. Validity contains no transact
 withdrawal or BAL count/size cap, gas relation, hash consistency, execution validity,
 serialization/root support or source-host premise. §3 owns the private inverse algorithm.
 
+**Supplied actual request-item dictionaries (Q81).** Each namespace `X` in the
+following table supplies exactly `X.instSszSchema : Codec.SszSchema X`. Write
+`B x := Codec.SszValue.bytes x.toBytes.toByteArray` and
+`N x := Codec.SszValue.uint x.toNat` in this table only. These are explanatory
+notation, with no additional public helper.
+
+| X | `s.type` (ordinary container) | `s.fieldNames` | `s.toValue a` (ordered container) |
+|---|---|---|---|
+| `DepositRequest` | `container [byteVector 48, byteVector 32, uint 8, byteVector 96, uint 8]` | `["pubkey", "withdrawal_credentials", "amount", "signature", "index"]` | `container [B a.pubkey, B a.withdrawalCredentials, N a.amount, B a.signature, N a.index]` |
+| `WithdrawalRequest` | `container [byteVector 20, byteVector 48, uint 8]` | `["source_address", "validator_pubkey", "amount"]` | `container [B a.sourceAddress, B a.validatorPubkey, N a.amount]` |
+| `ConsolidationRequest` | `container [byteVector 20, byteVector 48, byteVector 48]` | `["source_address", "source_pubkey", "target_pubkey"]` | `container [B a.sourceAddress, B a.sourcePubkey, B a.targetPubkey]` |
+| `BuilderDepositRequest` | `container [byteVector 48, byteVector 32, uint 8, byteVector 96]` | `["pubkey", "withdrawal_credentials", "amount", "signature"]` | `container [B a.pubkey, B a.withdrawalCredentials, N a.amount, B a.signature]` |
+| `BuilderExitRequest` | `container [byteVector 20, byteVector 48]` | `["source_address", "pubkey"]` | `container [B a.sourceAddress, B a.pubkey]` |
+
+For each row, `s.valid a = True`, and `s.ofValue? : Codec.SszValue → Option X`
+is the checked inverse in §3. `.uint 8` means eight bytes. Credentials retain
+`Bytes32`, and source addresses retain nominal `Address`. Builder deposits have
+no index, and builder exits have no amount or signature. All supplementary
+support, layout, count-recovery and malformed facts remain private.
+
+
+**Supplied actual aggregate dictionary (Q81).** With
+`s := ExecutionRequests.instSszSchema : Codec.SszSchema ExecutionRequests`:
+
+```text
+s.type = progressiveContainer [true, true, true, true, true] [
+  progressiveList DepositRequest.instSszSchema.type,
+  progressiveList WithdrawalRequest.instSszSchema.type,
+  progressiveList ConsolidationRequest.instSszSchema.type,
+  progressiveList BuilderDepositRequest.instSszSchema.type,
+  progressiveList BuilderExitRequest.instSszSchema.type]
+s.fieldNames = ["deposits", "withdrawals", "consolidations", "builder_deposits", "builder_exits"]
+s.valid a = True
+s.toValue a = container [
+  list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
+  list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
+  list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
+  list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
+  list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)]
+s.ofValue? : Codec.SszValue → Option ExecutionRequests
+```
+
+The inverse algorithm is described in §3. Private Serializable clients require
+only each emitted start below 2^32. For counts d/w/c/b/e in source order, these
+starts are 20, 20+192d, 20+192d+76w, 20+192d+76w+116c and
+20+192d+76w+116c+184b. The first bound is automatic. There is no final 68e/end
+bound or additional count<2^256 condition. Rootable owns its separate actual-count
+premise. Source deserialization's per-field extents/backing/host premises remain
+separate correspondence assumptions, including for the final field. Neither these
+private proofs nor the dictionary changes Q88 or O12.
+
+**Supplied actual new-payload request dictionary (Q81).** With
+`s := NewPayloadRequest.instSszSchema : Codec.SszSchema NewPayloadRequest`,
+`p := ExecutionPayload.instSszSchema` and `r := ExecutionRequests.instSszSchema`:
+
+```text
+s.type = container [p.type, progressiveList (byteVector 32), byteVector 32, r.type]
+s.fieldNames = ["execution_payload", "versioned_hashes", "parent_beacon_block_root",
+  "execution_requests"]
+s.valid a = p.valid a.executionPayload ∧ r.valid a.executionRequests
+s.toValue a = container [p.toValue a.executionPayload,
+  list (a.versionedHashes.toList.map (fun h => bytes h.toBytes.toByteArray)),
+  bytes a.parentBeaconBlockRoot.toBytes.toByteArray, r.toValue a.executionRequests]
+s.ofValue? : Codec.SszValue → Option NewPayloadRequest
+```
+
+The private inverse and separated operation/source domains are described in §3.
+The actual child descriptors retain their own progressive masks. The ordinary outer
+container emits no mask or count prefix and adds no version-byte predicate.
+
 The payload entry and helpers take `consts : HashConsts` with local EELS notation (CONTRIBUTING §7.2, F20). `isValidBlockHash` and `payloadBlock` each build `payloadHeader`, so both take the record explicitly. `executeNewPayloadRequest` forwards that record through these helpers and `Amsterdam.executeBlock`; none of those kernels acquires it. `classifyWith` follows R5 and supplies the record to the witness backend and `L.executePayload`. Consumers whose state or backend already holds the record read its fields.
 
 Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above is an alias for that type. `ChainContext`, `Block`, `BlockTx`, `BlockError`, transaction-decode diagnostics and `executeBlock` come from `EthBlock`/`EthFork`; `PreState`/`BlockDiff` from `EthState`; `WitnessBackend.build` and `CodeDB.build` from `EthStateWitness`, `NodeDB.build` from `EthCommit` (both monadic, F4); `HashConsts` from `EthBase` and `HashConsts.query`/`KeccakQuery` from `EthHash`. The executable seam uses `CheckedResult` (from `CheckedT`, `EthVmRunner`, F14): validation errors are the inner `Except`, and internal failures, including fuel exhaustion, the outer `InternalError`. There is no separate `FuelM`. `classifyWith` is the leaf-parametric composition; the real composition code runs unchanged under test leaves, and `runStatelessGuest_eq` ties the public function to it at `Id`.
@@ -694,6 +961,8 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 | `ExecutionRequests` | five independent typed Arrays (§5) | ordered tuple of complete item lists | identity, retaining order/duplicates/empty arrays | none beyond each raw item domain | immutable record | O(1) construction/projection/update at five fields; no traversal or list conversion |
 | `ExecutionPayload`, `NewPayloadRequest` | nominal nineteen-/four-field structures (§5) | ordered tuple of all whole fields | identity; complete byte/word/ordered nested observations | none beyond existing field domains | immutable records; read-only payloads may be shared | O(1) structural field work at fixed field counts; no byte/member traversal; allocation, retention and discarded-payload reclamation remain unmeasured (C1–C4, ARCHITECTURE §5.0) |
 | `ExecutionPayload` SSZ adapters | nineteen-member progressive value (§5) | complete ordered field/container model | public Base observers and actual Withdrawal adapters | exactly extraData bound in wire validity | immutable raw bytes/ordered arrays retained | O(transaction + withdrawal count) traversal plus fixed-field conversion; no extra/BAL byte copy; native allocation/retention/reclamation costs unmeasured |
+| `ExecutionRequests` SSZ adapters | five lists of actual item models (§5) | complete ordered aggregate | actual child dictionaries | wire validity is True | immutable record | O(total items) traversal at fixed field widths, preserving every item |
+| `NewPayloadRequest` SSZ adapters | ordinary four-member value (§5) | whole actual child models and ordered hash bytes | public provider models/inversion certificates and Base checked constructors | composed actual child wire validity | immutable bytes and arrays retained | O(payload transactions + withdrawals + hashes + request items) traversal plus fixed-field conversions; allocation/retention/reclamation unmeasured (C1–C4) |
 | `StatelessInput` and the prospective wire containers | Lean structures over `ByteArray`/`Array`/fixed-width words | the SSZ value | identity; SSZ `encode`/`decode` | `WF` (limits; `PublicKey` size by subtype; `extraData.size ≤ 32`) | immutable after decode | decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
 | `GuestOutcome` | inductive | the O-row plus fields | `toResult` | `valid`/`invalid` only carry `schemaId = 0x1501` implicitly | value | O(1) |
@@ -743,8 +1012,47 @@ determines the record. Updating any one field preserves the other four arrays.
 The private facade clients in §4 prove these equations and public Array conversion
 recovery. No count, wire-size, nonempty, validity, sorting or deduplication premise
 is required. Ordinary generated structure support suffices, without an authored
-public law family. Aggregate SSZ, operation support, roots, codecs and guest
-composition remain separate (§10).
+public law family. The actual aggregate schema and private operation-support clients
+are supplied below. Roots, raw decoding and guest composition remain separate (§10).
+
+
+**Supplied new-payload request certificates (Q81).** With
+`s := NewPayloadRequest.instSszSchema`, exactly these three public laws are supplied:
+
+```lean
+theorem NewPayloadRequest.ssz_type_wellFormed : s.type.WellFormed
+theorem NewPayloadRequest.ssz_ofValue_toValue (a : NewPayloadRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+theorem NewPayloadRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : NewPayloadRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+```
+
+WF composes actual child WF. Forward reconstruction/typing uses actual child
+validity and certificates, with complete Base byte observations. Reverse derives
+actual child WT from outer WT and separately obtains inverse success, retaining
+both when applying each child's public reverse certificate. Count/support/layout
+facts remain private. These laws add no decoder completeness, rejection or root law.
+
+**Supplied aggregate schema certificates (Q81).** With
+`s := ExecutionRequests.instSszSchema`, exactly these three public laws are supplied:
+
+```lean
+theorem ExecutionRequests.ssz_type_wellFormed : s.type.WellFormed
+theorem ExecutionRequests.ssz_ofValue_toValue (a : ExecutionRequests) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+theorem ExecutionRequests.ssz_toValue_ofValue (v : Codec.SszValue) (a : ExecutionRequests)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+```
+
+The descriptor proof uses every actual child WF certificate and public mask equations.
+Private ordinary traversal induction lifts each public child adapter certificate.
+The reverse direction retains the single WT-and-success conjunction and uses both
+premises for every child. Both directions preserve complete records and all ordered
+members. Count, support, layout and control facts remain private and supply no
+additional public helper or law class. No byte inverse, root or source-host theorem
+follows from these certificates.
 
 **Supplied raw request-item contract.** Each of the five §5 constructors admits
 arbitrary independently supplied Base fields and retains every field exactly.
@@ -754,8 +1062,61 @@ Base laws. The private facade clients in §4 prove these equations for arbitrary
 values, together with each field's checked recovery, size/range and `U64` model
 observations. This identity contract has no additional invariant or authored public
 law family. All five types remain nominally distinct, and the request withdrawal
-is separate from the EthBlock `Withdrawal`. Schemas, wire admission, execution and
-source-host correspondence are separate obligations.
+is separate from the EthBlock `Withdrawal`. The actual item dictionaries and their certificates are supplied below. Wire
+admission, execution and source-host correspondence remain separate obligations.
+
+**Supplied request-item schema certificates (Q81).** For each block below,
+`s` denotes that block's actual `X.instSszSchema`, without an arbitrary dictionary.
+Exactly these fifteen public theorem types are supplied:
+
+```lean
+-- s := DepositRequest.instSszSchema
+ theorem DepositRequest.ssz_type_wellFormed : s.type.WellFormed
+ theorem DepositRequest.ssz_ofValue_toValue (a : DepositRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+ theorem DepositRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : DepositRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+
+-- s := WithdrawalRequest.instSszSchema
+ theorem WithdrawalRequest.ssz_type_wellFormed : s.type.WellFormed
+ theorem WithdrawalRequest.ssz_ofValue_toValue (a : WithdrawalRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+ theorem WithdrawalRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : WithdrawalRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+
+-- s := ConsolidationRequest.instSszSchema
+ theorem ConsolidationRequest.ssz_type_wellFormed : s.type.WellFormed
+ theorem ConsolidationRequest.ssz_ofValue_toValue (a : ConsolidationRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+ theorem ConsolidationRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : ConsolidationRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+
+-- s := BuilderDepositRequest.instSszSchema
+ theorem BuilderDepositRequest.ssz_type_wellFormed : s.type.WellFormed
+ theorem BuilderDepositRequest.ssz_ofValue_toValue (a : BuilderDepositRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+ theorem BuilderDepositRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : BuilderDepositRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+
+-- s := BuilderExitRequest.instSszSchema
+ theorem BuilderExitRequest.ssz_type_wellFormed : s.type.WellFormed
+ theorem BuilderExitRequest.ssz_ofValue_toValue (a : BuilderExitRequest) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+ theorem BuilderExitRequest.ssz_toValue_ofValue (v : Codec.SszValue) (a : BuilderExitRequest)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+```
+
+Private ordinary checked-constructor lemmas preserve all 17 field occurrences
+and complete ByteArray/Nat observations. The public Base inverse, size and range
+laws and public Codec WF/WT equations establish these certificates, without
+foreign private unfolding. Private §4 clients separately establish actual support,
+count recovery and complete fixed wire layout. Those facts add no public theorem
+family, schema field, decoder, root or execution guarantee.
 
 **Supplied witness schema certificates (Q81).** For the actual named dictionary
 `s := ExecutionWitness.instSszSchema`, exactly these public types are supplied:
@@ -893,7 +1254,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
-  in §3/§5/§7, with complete private controls in §4. Other input schemas, wire
+  in §3/§5/§7, with complete private controls in §4. StatelessInput schema, wire
   admission, RLP/header validation, database construction,
   hashing and guest composition remain unimplemented. The five size-limit aliases
   are supplied under F8 (§3/§5), without implementing those consumers. The
@@ -902,29 +1263,32 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Implemented raw request items.** The five nominal carriers and all 17 complete
   independent fields are supplied under §3/§5/§7, with private arbitrary facade
-  clients and whole finite controls in §4. The five actual Q81 dictionaries and
-  their descriptor/adapter certificates, Q80 serialization and root support,
-  Q87/Q88 recovery/decoding, aggregate schema, request wire constants,
-  `encodeExecutionRequests`, roots and input/guest composition remain
-  unimplemented. Raw payload/request carriers are supplied separately below. Source class/reflection/cache/coercion/backing and host agreement
+  clients and whole finite controls in §4. Their five actual Q81 dictionaries and
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
   remain separate. No runtime admission, protocol validation, resource, security,
   cost or readiness obligation is discharged by these raw carriers.
 
 - **Implemented raw execution requests.** The exact five-array aggregate and private
-  arbitrary complete facade clients/finite controls are supplied in §3–§7. The
-  actual aggregate Q81 dictionary and three certificates, Q80 serialization,
-  count recovery, root support and source-decoder correspondence remain separate.
-  Request wire constants/encoding, roots and input/guest composition
-  remain unimplemented. Raw payload/request carriers are supplied separately below. No admission, effect, resource, security, cost or readiness
-  gate is discharged by this raw carrier.
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. Its
+  actual aggregate Q81 dictionary and three certificates, with private Q80 support,
+  count recovery and full-wire controls, are supplied in §3/§4/§5/§7. Root support
+  and source-decoder correspondence remain separate. Request wire constants/encoding,
+  roots and payload/request/input/guest composition remain unimplemented. No admission,
+  effect, resource, security, cost or readiness gate is discharged by this raw carrier.
 
 - **Implemented raw payload/request carriers.** The exact nineteen-field
   ExecutionPayload and four-field NewPayloadRequest over actual provider types,
   private complete arbitrary facade clients and whole finite controls are supplied
   in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
   §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
-  NewPayloadRequest/input schemas, general Q80 serialization/source refinement,
-  Q87/Q88 recovery/decoding, root support/O2, block/header adapters and validation,
+  The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
+  in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
+  controls in §4. StatelessInput schema, general Q80 source refinement,
+  Q88 raw decoding, root support/O2, block/header adapters and validation,
   request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
   remain separate. Static source-field correspondence supplies no source runtime,
   backing/coercion/cache/host or guest agreement; O12 remains with its owner.
