@@ -21,7 +21,6 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 import byte_lists
-from byte_lists import parse_byte_list
 
 
 def digest(path):
@@ -150,7 +149,7 @@ def natural(raw):
 
 def byte_list(raw, *, width=None):
     """Check UInt8 list types and bounds before equality or bytes conversion."""
-    value = parse_byte_list(raw)
+    value = byte_lists.parse_byte_list(raw)
     require(type(value) is list, raw)
     require(all(type(byte) is int and 0 <= byte < 256 for byte in value), raw)
     require(width is None or len(value) == width, raw)

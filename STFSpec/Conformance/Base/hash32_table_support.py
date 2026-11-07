@@ -19,7 +19,6 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 import byte_lists
-from byte_lists import parse_byte_list
 
 
 def support(value):
@@ -107,7 +106,7 @@ def check_output(raw, vectors):
 
     def byte_list(field, width, line):
         try:
-            value = parse_byte_list(field)
+            value = byte_lists.parse_byte_list(field)
         except (SyntaxError, ValueError) as error:
             raise AssertionError(f"Invalid byte list: {line}") from error
         require(type(value) is list and len(value) == width, f"Expected {width} bytes: {line}")
