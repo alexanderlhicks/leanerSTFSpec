@@ -11,8 +11,8 @@ import STFSpec.Codec
 Library `EthConformance`. All 133 complete inputs, ordered leaf payloads and
 357572 wire bytes are independent mathematical literals prepared before the
 adapter implementation. Strictly decoded lowercase hex strings preserve every
-literal byte.
-These interpreted controls claim no source-runtime or native adapter execution.
+literal byte. These interpreted controls claim no source-runtime or native adapter
+execution.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md` §§3–7.
 -/
 
@@ -24,9 +24,6 @@ private inductive Field where
   | number (n : Nat)
   | bytes (b : List UInt8)
   deriving BEq
-
-private def digits (runs : List (Nat × Nat)) : List UInt8 :=
-  runs.flatMap fun (count, byte) ↦ List.replicate count (UInt8.ofNat byte)
 
 private def leaves : RlpItem → Option (List (List UInt8))
   | .list xs => xs.mapM fun x ↦ match x with
@@ -162,9 +159,10 @@ private def prevHeaderControl (values : List Field) (model : List (List UInt8))
       (Rlp.encodeOf h).data.toList == wire &&
       (Rlp.encodeOf (ParentHeader.bpo5 h)).data.toList == wire
 
--- Literal bytes are lowercase hex strings, which elaborate as single tokens.
--- `hex` yields `[]` on an odd length or a non-hex digit; the guard after the
--- literals requires every hex literal to decode to a non-empty list.
+-- Non-empty literals are lowercase hex strings, which elaborate as single tokens; the
+-- empty literal stays an ordinary list. `hex` yields `[]` on an odd length or a
+-- non-hex digit; the guard after the literals requires every hex literal to decode to
+-- a non-empty list.
 private def hexDigit? (c : Char) : Option Nat :=
   if '0' ≤ c ∧ c ≤ '9' then some (c.toNat - '0'.toNat)
   else if 'a' ≤ c ∧ c ≤ 'f' then some (c.toNat - 'a'.toNat + 10)
@@ -197,8 +195,7 @@ private def literal002 : List UInt8 := hex "000000000000000000000000000000000000
   000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\
   00000000000000000000000000000000000000000000000000000000000000000000000000"
 
-private def literal003 : List UInt8 :=
-  digits []
+private def literal003 : List UInt8 := []
 
 private def literal004 : List UInt8 := hex "0000000000000000"
 
