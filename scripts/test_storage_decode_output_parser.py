@@ -17,13 +17,14 @@ recipe = importlib.util.module_from_spec(recipe_spec)
 recipe_spec.loader.exec_module(recipe)
 constructed = recipe.build()
 constructed_expected = b"".join((json.dumps({k: row[k] for k in
-    ("id", "raw_hex", "result")}, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
-    for row in constructed)
+    ("id", "raw_hex", "result")}, separators=(",", ":"), ensure_ascii=True)
+    + "\n").encode("ascii") for row in constructed)
 if constructed_expected != expected:
     raise RuntimeError("frozen mathematical recipe/expectation disagreement")
 constructed_input = b"".join((json.dumps({k: row[k] for k in ("id", "raw_hex")},
     separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii") for row in constructed)
-if constructed_input != (ROOT / "STFSpec/Conformance/StateCommit/storage_decode_inputs.jsonl").read_bytes():
+if constructed_input != (
+        ROOT / "STFSpec/Conformance/StateCommit/storage_decode_inputs.jsonl").read_bytes():
     raise RuntimeError("frozen mathematical recipe/input disagreement")
 lines=expected.splitlines(keepends=True)
 rows=[json.loads(x) for x in lines]
@@ -38,7 +39,8 @@ variants={
  'missing-final-lf':expected[:-1], 'crlf':expected.replace(b'\n',b'\r\n'),
  'blank-row':expected+b'\n', 'extra-row':expected+lines[0],
  'missing-row':b''.join(lines[:-1]), 'swapped-rows':b''.join([lines[1],lines[0]]+lines[2:]),
- 'duplicate-collapse':b''.join(lines[:-4]), 'duplicate-reorder':b''.join(lines[:-4]+[lines[-3],lines[-4],lines[-2],lines[-1]]),
+ 'duplicate-collapse':b''.join(lines[:-4]),
+ 'duplicate-reorder':b''.join(lines[:-4]+[lines[-3],lines[-4],lines[-2],lines[-1]]),
  'bool-success':result({'ok':True}), 'float-success':result({'ok':1.0}),
  'string-success':result({'ok':'1'}), 'null-success':result({'ok':None}),
  'negative-success':result({'ok':-1}), 'overflow-success':result({'ok':2**256}),
@@ -48,10 +50,12 @@ variants={
  'id-change':change(0,'id','different'), 'bytes-change':change(2,'raw_hex','02'),
  'hex-upper':change(4,'raw_hex','7F'), 'hex-odd':change(2,'raw_hex','1'),
  'hex-space':change(2,'raw_hex','01 '), 'hex-prefix':change(2,'raw_hex','0x01'),
- 'wire-array':change(2,'raw_hex',[1]), 'extra-field':expected.replace(b'{"id":',b'{"extra":0,"id":',1),
+ 'wire-array':change(2,'raw_hex',[1]),
+ 'extra-field':expected.replace(b'{"id":',b'{"extra":0,"id":',1),
  'duplicate-key':expected.replace(b'{"id":',b'{"id":"shadow","id":',1),
  'result-duplicate-key':expected.replace(b'{"ok":1}',b'{"ok":0,"ok":1}',1),
- 'field-reorder':expected.replace(b'{"id":"raw-empty","raw_hex":""',b'{"raw_hex":"","id":"raw-empty"',1),
+ 'field-reorder':expected.replace(b'{"id":"raw-empty","raw_hex":""',
+                                 b'{"raw_hex":"","id":"raw-empty"',1),
  'json-whitespace':b' '+expected, 'garbage-tail':expected+b'x',
  'nonfinite':expected.replace(b'{"ok":1}',b'{"ok":NaN}',1),
  'float-exponent':expected.replace(b'{"ok":1}',b'{"ok":1e0}',1),
@@ -70,4 +74,5 @@ for name,actual in variants.items():
     else:
         raise RuntimeError('control unexpectedly accepted: '+name)
 n=check(expected,expected)
-print(json.dumps({'positive_rows':n,'negative_controls':report},sort_keys=True,separators=(',',':')))
+print(json.dumps({'positive_rows':n,'negative_controls':report},sort_keys=True,
+                 separators=(',',':')))

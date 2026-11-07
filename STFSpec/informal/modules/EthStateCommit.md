@@ -192,18 +192,20 @@ cardinality, order, duplicates and full U256 integers. Its parser controls run
 normally and with `-O`, rejecting booleans as integers, floats, duplicate keys,
 byte/value changes and malformed framing.
 
-Separate original-source observations at `59c1473d`, acquired on 2026-11-06 through
-the frozen interpreter in normal and optimized profiles, matched every full row.
-They used the original `rlp.decode_to(U256, leaf)` binding from `get_storage`,
-with exact original U256 successes and DecodingError cause/trace records.
-Those traces retain raw parsing before typed conversion, list/type rejection,
-first-zero rejection and width-before-construction. Checkout source and installed
-RECORD consistency were checked before/after; raw wheel archives were not
-independently authenticated. The committed checker runs no EELS source.
-These are finite observations under the recorded runtime and dependency trust
-inputs, not a universal Python refinement or host/resource result. Empty-root,
-absence, account lookup, trie/cache phases, secure roots/callbacks, authentication,
-backend progress, generic coupling and guest/EEST acceptance remain open.
+The following source-side evidence is out of tree: nothing for it is committed, so
+it cannot be reproduced from this repository. Separate original-source observations
+at `59c1473d`, acquired on 2026-11-06 through the frozen interpreter in normal and
+optimized profiles, matched every full row. They used the original
+`rlp.decode_to(U256, leaf)` binding from `get_storage`, with exact original U256
+successes and DecodingError cause/trace records. Those traces retain raw parsing
+before typed conversion, list/type rejection, first-zero rejection and
+width-before-construction. Checkout source and installed RECORD consistency were
+checked before/after; raw wheel archives were not independently authenticated. The
+committed checker runs no EELS source. These are finite observations under the
+recorded runtime and dependency trust inputs, not a universal Python refinement or
+host/resource result. Empty-root, absence, account lookup, trie/cache phases, secure
+roots/callbacks, authentication, backend progress, generic coupling and guest/EEST
+acceptance remain open.
 
 ### Implemented lenient account decoder (SC5, conditional account SC10)
 

@@ -8,8 +8,8 @@ import STFSpec.Codec.RlpU256
 /-!
 # Complete storage decoder semantic and first-failure regressions
 
-Library `EthConformance`. Complete numeric values and complete parser results
-are observed separately. The typed 32-byte admission and framing thresholds are checked independently.
+Library `EthConformance`. Complete numeric values and complete parser results are observed
+separately. The typed 32-byte admission and framing thresholds are checked independently.
 Spec guidance: `STFSpec/informal/modules/EthStateCommit.md` §§3–4.
 -/
 
@@ -56,8 +56,10 @@ private def parserError (wire : List UInt8) (expected : RlpError) : Bool :=
     ([1, 127, 128, 255] : List UInt8).all fun b ↦
       stringValue (List.replicate k 0 ++ [b]) == none
 #guard ([0, 1, 31, 32, 33, 55, 56, 57, 64, 256, 1024] : List Nat).all fun k ↦
-  stringValue (List.replicate k 0 ++ [1] ++ List.replicate 31 0) == (if k = 0 then some (2 ^ 248) else none) &&
-  stringValue (List.replicate k 0 ++ List.replicate 32 255) == (if k = 0 then some (2 ^ 256 - 1) else none) &&
+  stringValue (List.replicate k 0 ++ [1] ++ List.replicate 31 0) ==
+    (if k = 0 then some (2 ^ 248) else none) &&
+  stringValue (List.replicate k 0 ++ List.replicate 32 255) ==
+    (if k = 0 then some (2 ^ 256 - 1) else none) &&
   stringValue (List.replicate k 0 ++ [1] ++ List.replicate 32 0) == none
 #guard (List.range 32).all fun j ↦
   stringValue (List.replicate j 0 ++ [1] ++ List.replicate (31 - j) 0) ==

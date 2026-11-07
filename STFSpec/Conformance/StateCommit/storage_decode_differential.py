@@ -4,8 +4,9 @@ Expectations were frozen on 2026-11-06 before the strict Lean migration, from
 CONTRACT O4(e) and EthCodec E1/E2. storage_decode_recipe.py reconstructs the finite
 grammar and full radix-256 sums without a parser or source/target imports. The
 635 rows retain four exact duplicate tail rows. Original pinned decode_to(U256)
-observations separately matched all rows; this checker runs neither that source
-nor a guest, backend, account decoder or resource test.
+observations separately matched all rows; that evidence is out of tree: nothing for
+it is committed, so it cannot be reproduced from this repository. This checker runs
+neither that source nor a guest, backend, account decoder or resource test.
 Spec guidance: STFSpec/informal/modules/EthStateCommit.md §§3–7.
 """
 import json
@@ -37,18 +38,21 @@ def parse(data):
     for line in data[:-1].split(b'\n'):
         require(bool(line),'blank row')
         try:
-            x=json.loads(line.decode('ascii'),object_pairs_hook=pairs,parse_float=no_float,parse_constant=no_float)
+            x=json.loads(line.decode('ascii'),object_pairs_hook=pairs,parse_float=no_float,
+                         parse_constant=no_float)
         except (UnicodeError,json.JSONDecodeError) as e:
             raise Rejected('JSON syntax') from e
         require(type(x) is dict and list(x)==['id','raw_hex','result'],'row fields/order')
         require(type(x['id']) is str and bool(x['id']),'id')
         h=x['raw_hex']
-        require(type(h) is str and re.fullmatch(r'(?:[0-9a-f]{2})*',h) is not None,'exact lowercase byte hex')
+        require(type(h) is str and re.fullmatch(r'(?:[0-9a-f]{2})*',h) is not None,
+                'exact lowercase byte hex')
         r=x['result']; require(type(r) is dict and len(r)==1,'result fields')
         if list(r)==['ok']:
             require(type(r['ok']) is int and 0<=r['ok']<2**256,'full U256 integer')
         elif list(r)==['error']:
-            require(type(r['error']) is str and r['error']=='WitnessError.malformed.leaf','coarse error')
+            require(type(r['error']) is str and r['error']=='WitnessError.malformed.leaf',
+                    'coarse error')
         else:
             raise Rejected('result tag')
         canonical=json.dumps(x,separators=(',',':'),ensure_ascii=True).encode('ascii')
