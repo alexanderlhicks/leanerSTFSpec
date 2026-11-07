@@ -93,7 +93,8 @@ end DepositRequest
 
 namespace WithdrawalRequest
 
-private abbrev actual : SszSchema WithdrawalRequest := STFSpec.Stateless.WithdrawalRequest.instSszSchema
+private abbrev actual : SszSchema WithdrawalRequest :=
+  STFSpec.Stateless.WithdrawalRequest.instSszSchema
 
 private theorem count_recovery (a : WithdrawalRequest) :
     Ssz.CountRecoverable actual.type (actual.toValue a) := by
@@ -112,7 +113,8 @@ end WithdrawalRequest
 
 namespace ConsolidationRequest
 
-private abbrev actual : SszSchema ConsolidationRequest := STFSpec.Stateless.ConsolidationRequest.instSszSchema
+private abbrev actual : SszSchema ConsolidationRequest :=
+  STFSpec.Stateless.ConsolidationRequest.instSszSchema
 
 private theorem count_recovery (a : ConsolidationRequest) :
     Ssz.CountRecoverable actual.type (actual.toValue a) := by
@@ -130,7 +132,8 @@ end ConsolidationRequest
 
 namespace BuilderDepositRequest
 
-private abbrev actual : SszSchema BuilderDepositRequest := STFSpec.Stateless.BuilderDepositRequest.instSszSchema
+private abbrev actual : SszSchema BuilderDepositRequest :=
+  STFSpec.Stateless.BuilderDepositRequest.instSszSchema
 
 private theorem count_recovery (a : BuilderDepositRequest) :
     Ssz.CountRecoverable actual.type (actual.toValue a) := by
@@ -149,7 +152,8 @@ end BuilderDepositRequest
 
 namespace BuilderExitRequest
 
-private abbrev actual : SszSchema BuilderExitRequest := STFSpec.Stateless.BuilderExitRequest.instSszSchema
+private abbrev actual : SszSchema BuilderExitRequest :=
+  STFSpec.Stateless.BuilderExitRequest.instSszSchema
 
 private theorem count_recovery (a : BuilderExitRequest) :
     Ssz.CountRecoverable actual.type (actual.toValue a) := by
@@ -187,9 +191,11 @@ private theorem count_recovery (a : ExecutionRequests) :
         (by rw [DepositRequest.fixed_size]; decide) DepositRequest.count_recovery
     · exact list_recovery STFSpec.Stateless.WithdrawalRequest.instSszSchema a.withdrawals.toList
         (by rw [WithdrawalRequest.fixed_size]; decide) WithdrawalRequest.count_recovery
-    · exact list_recovery STFSpec.Stateless.ConsolidationRequest.instSszSchema a.consolidations.toList
+    · exact list_recovery STFSpec.Stateless.ConsolidationRequest.instSszSchema
+        a.consolidations.toList
         (by rw [ConsolidationRequest.fixed_size]; decide) ConsolidationRequest.count_recovery
-    · exact list_recovery STFSpec.Stateless.BuilderDepositRequest.instSszSchema a.builderDeposits.toList
+    · exact list_recovery STFSpec.Stateless.BuilderDepositRequest.instSszSchema
+        a.builderDeposits.toList
         (by rw [BuilderDepositRequest.fixed_size]; decide) BuilderDepositRequest.count_recovery
     · exact list_recovery STFSpec.Stateless.BuilderExitRequest.instSszSchema a.builderExits.toList
         (by rw [BuilderExitRequest.fixed_size]; decide) BuilderExitRequest.count_recovery
