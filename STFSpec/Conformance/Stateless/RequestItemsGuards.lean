@@ -173,8 +173,8 @@ private def depositRequest : DepositRequest :=
       (38, some 145), (39, some 182), (40, some 219), (41, some 0), (42, some 37), (43, some 74),
       (44, some 111), (45, some 148), (46, some 185), (47, some 0)]
 
-#guard ((List.range 32).map (fun i ↦ (i, depositRequest.withdrawalCredentials.toBytes.toList[i]?)))
-  ==
+#guard ((List.range 32).map
+    (fun i ↦ (i, depositRequest.withdrawalCredentials.toBytes.toList[i]?))) ==
   [(0, some 0), (1, some 75), (2, some 112), (3, some 149), (4, some 186), (5, some 223), (6, some
     4), (7, some 41), (8, some 78), (9, some 115), (10, some 152), (11, some 189), (12, some 226),
     (13, some 7), (14, some 44), (15, some 81),
@@ -329,8 +329,8 @@ private def consolidationRequest : ConsolidationRequest :=
     232, 13, 50, 87, 124, 161, 198, 235, 16, 53, 90, 127, 164, 201, 238, 19,
     56, 93, 130, 167, 204, 241, 22, 59, 96, 133, 170, 207, 244, 25, 62, 0])
 
-#guard consolidationRequestObserve { consolidationRequest with sourcePubkey := FixedBytes.ofNat 0 }
-  ==
+#guard consolidationRequestObserve
+    { consolidationRequest with sourcePubkey := FixedBytes.ofNat 0 } ==
   ([0, 151, 188, 225, 6, 43, 80, 117, 154, 191, 228, 9, 46, 83, 120, 157,
     194, 231, 12, 0],
     List.replicate 48 0,
@@ -338,8 +338,8 @@ private def consolidationRequest : ConsolidationRequest :=
     232, 13, 50, 87, 124, 161, 198, 235, 16, 53, 90, 127, 164, 201, 238, 19,
     56, 93, 130, 167, 204, 241, 22, 59, 96, 133, 170, 207, 244, 25, 62, 0])
 
-#guard consolidationRequestObserve { consolidationRequest with targetPubkey := FixedBytes.ofNat 0 }
-  ==
+#guard consolidationRequestObserve
+    { consolidationRequest with targetPubkey := FixedBytes.ofNat 0 } ==
   ([0, 151, 188, 225, 6, 43, 80, 117, 154, 191, 228, 9, 46, 83, 120, 157,
     194, 231, 12, 0],
     [0, 170, 207, 244, 25, 62, 99, 136, 173, 210, 247, 28, 65, 102, 139, 176,
@@ -449,8 +449,8 @@ private def builderDepositRequest : BuilderDepositRequest :=
     17, 54, 91, 128, 165, 202, 239, 20, 57, 94, 131, 168, 205, 242, 23, 60,
     97, 134, 171, 208, 245, 26, 63, 100, 137, 174, 211, 248, 29, 66, 103, 0])
 
-#guard builderDepositRequestObserve { builderDepositRequest with signature := FixedBytes.ofNat 0 }
-  ==
+#guard builderDepositRequestObserve
+    { builderDepositRequest with signature := FixedBytes.ofNat 0 } ==
   ([0, 208, 245, 26, 63, 100, 137, 174, 211, 248, 29, 66, 103, 140, 177, 214,
     251, 32, 69, 106, 143, 180, 217, 254, 35, 72, 109, 146, 183, 220, 1, 38,
     75, 112, 149, 186, 223, 4, 41, 78, 115, 152, 189, 226, 7, 44, 81, 0],
