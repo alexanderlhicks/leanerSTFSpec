@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run --no-project --python 3.12 python
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Small, reproducible source probes at the current reference.toml pin.
 
@@ -21,6 +20,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("eels", type=pathlib.Path)
     args = parser.parse_args()
+    if not __debug__:
+        parser.error("assertions are disabled (-O); run without -O")
     root = pathlib.Path(__file__).resolve().parents[1]  # scripts/ -> repository root
     release = tomllib.loads((root / "reference.toml").read_text())["release"]
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.eels, text=True).strip()
@@ -60,11 +61,13 @@ def main():
 
     # execution_engine/requests.py:173–218 rejects empty bodies for all five types.
     assert encode_execution_requests(decode_execution_requests(())) == ()
-    for request_type in range(5):
+    names = ("deposit", "withdrawal", "consolidation", "builder deposit", "builder exit")
+    for request_type, name in enumerate(names):
         try:
             decode_execution_requests((Bytes([request_type]),))
-        except InvalidBlock:
-            pass
+        except InvalidBlock as error:
+            # Rejected by the empty-payload check at :203–204 for this type, not earlier.
+            assert str(error) == f"Empty {name} request payload", error
         else:
             raise AssertionError("type-only execution request unexpectedly accepted")
 
