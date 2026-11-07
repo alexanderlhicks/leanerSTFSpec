@@ -193,14 +193,16 @@ private theorem logicalSize_recurrence (t : SszType) (v : SszValue) :
     | list e limit =>
       change (match SszType.fixedSize? e with
         | some w => w * xs.length
-        | none => 4 * xs.length + ((logicalChildren xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
+        | none => 4 * xs.length +
+          ((logicalChildren xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
       rw [logicalChildren_eq]
       simp only [List.map_map]
       rfl
     | progressiveList e =>
       change (match SszType.fixedSize? e with
         | some w => w * xs.length
-        | none => 4 * xs.length + ((logicalChildren xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
+        | none => 4 * xs.length +
+          ((logicalChildren xs).map (fun (k : SszType → Nat) ↦ k e)).sum) = _
       rw [logicalChildren_eq]
       simp only [List.map_map]
       rfl
@@ -251,8 +253,8 @@ private theorem layout_fold_length (qs : List ((SszType × SszValue) × ByteArra
     simp only [List.foldl_cons, ih, List.map_cons, List.sum_cons]
     cases hf : q.1.1.fixedSize? <;>
       simp only [layoutStep, hf, List.length_append, littleEndian, List.length_map,
-        List.length_range, Array.length_toList, ByteArray.size_data, Option.isSome, Bool.false_eq_true,
-        ↓reduceIte, Nat.add_zero] <;> omega
+        List.length_range, Array.length_toList, ByteArray.size_data, Option.isSome,
+        Bool.false_eq_true, ↓reduceIte, Nat.add_zero] <;> omega
 
 private theorem layout_length (ps : List (SszType × SszValue)) (bs : List ByteArray) :
     (layout ps bs).length = ((ps.zip bs).map
@@ -682,12 +684,14 @@ private def sizeValue06 : SszValue :=
 
 private theorem sizeSupport06 : Ssz.Serializable sizeType06 sizeValue06 := by
   change Ssz.Serializable
-    (.uint 32) (.uint 115792089237316195423570985008687907853269984665640564039457584007913129639935)
+    (.uint 32)
+    (.uint 115792089237316195423570985008687907853269984665640564039457584007913129639935)
   apply (Ssz.serializable_iff _ _).mpr
   decide
 
 private def sizeWire06 : List UInt8 :=
-  [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
+  [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]
 
 private theorem sizeModel06 : logicalSize sizeType06 sizeValue06 = 32 := by
   decide
@@ -894,7 +898,8 @@ private abbrev sizeType16 : SszType := (.progressiveList .bool)
 private def sizeValue16 : SszValue := (.list [(.bool true), (.bool false), (.bool true)])
 
 private theorem sizeSupport16 : Ssz.Serializable sizeType16 sizeValue16 := by
-  change Ssz.Serializable (.progressiveList .bool) (.list [(.bool true), (.bool false), (.bool true)])
+  change Ssz.Serializable (.progressiveList .bool)
+    (.list [(.bool true), (.bool false), (.bool true)])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨?_, ?_⟩
   · intro x hx
@@ -925,7 +930,9 @@ private def sizeValue17 : SszValue :=
   (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[]))])
 
 private theorem sizeSupport17 : Ssz.Serializable sizeType17 sizeValue17 := by
-  change Ssz.Serializable (.list (.byteVector 0) 3) (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[]))])
+  change Ssz.Serializable (.list (.byteVector 0) 3)
+    (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[])),
+      (.bytes (ByteArray.mk #[]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨by decide, ?_, ?_⟩
   · intro x hx
@@ -955,7 +962,8 @@ private abbrev sizeType18 : SszType := (.progressiveList (.container []))
 private def sizeValue18 : SszValue := (.list [(.container []), (.container [])])
 
 private theorem sizeSupport18 : Ssz.Serializable sizeType18 sizeValue18 := by
-  change Ssz.Serializable (.progressiveList (.container [])) (.list [(.container []), (.container [])])
+  change Ssz.Serializable (.progressiveList (.container []))
+    (.list [(.container []), (.container [])])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨?_, ?_⟩
   · intro x hx
@@ -990,7 +998,9 @@ private def sizeValue19 : SszValue :=
   (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[9])), (.bytes (ByteArray.mk #[]))])
 
 private theorem sizeSupport19 : Ssz.Serializable sizeType19 sizeValue19 := by
-  change Ssz.Serializable (.progressiveList .progressiveByteList) (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[9])), (.bytes (ByteArray.mk #[]))])
+  change Ssz.Serializable (.progressiveList .progressiveByteList)
+    (.list [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[9])),
+      (.bytes (ByteArray.mk #[]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨?_, ?_⟩
   · intro x hx
@@ -1067,7 +1077,8 @@ private def sizeValue22 : SszValue :=
   (.container [(.uint 7), (.bytes (ByteArray.mk #[9, 8])), (.bytes (ByteArray.mk #[3, 4]))])
 
 private theorem sizeSupport22 : Ssz.Serializable sizeType22 sizeValue22 := by
-  change Ssz.Serializable (.container [(.uint 1), (.byteList 5), (.byteVector 2)]) (.container [(.uint 7), (.bytes (ByteArray.mk #[9, 8])), (.bytes (ByteArray.mk #[3, 4]))])
+  change Ssz.Serializable (.container [(.uint 1), (.byteList 5), (.byteVector 2)])
+    (.container [(.uint 7), (.bytes (ByteArray.mk #[9, 8])), (.bytes (ByteArray.mk #[3, 4]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨rfl, ?_, ?_⟩
   · intro x hx
@@ -1098,7 +1109,8 @@ private abbrev sizeType23 : SszType := (.progressiveContainer [false] [(.uint 1)
 private def sizeValue23 : SszValue := (.container [(.uint 2), (.bytes (ByteArray.mk #[5, 6]))])
 
 private theorem sizeSupport23 : Ssz.Serializable sizeType23 sizeValue23 := by
-  change Ssz.Serializable (.progressiveContainer [false] [(.uint 1), (.byteList 2)]) (.container [(.uint 2), (.bytes (ByteArray.mk #[5, 6]))])
+  change Ssz.Serializable (.progressiveContainer [false] [(.uint 1), (.byteList 2)])
+    (.container [(.uint 2), (.bytes (ByteArray.mk #[5, 6]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨rfl, ?_, ?_⟩
   · intro x hx
@@ -1125,10 +1137,13 @@ private theorem sizeActual23 : (Ssz.encode sizeType23 sizeValue23 sizeSupport23)
 private abbrev sizeType24 : SszType := (.container [(.progressiveList (.byteList 4)), .bool])
 
 private def sizeValue24 : SszValue :=
-  (.container [(.list [(.bytes (ByteArray.mk #[1, 2])), (.bytes (ByteArray.mk #[]))]), (.bool true)])
+  (.container [(.list [(.bytes (ByteArray.mk #[1, 2])), (.bytes (ByteArray.mk #[]))]),
+    (.bool true)])
 
 private theorem sizeSupport24 : Ssz.Serializable sizeType24 sizeValue24 := by
-  change Ssz.Serializable (.container [(.progressiveList (.byteList 4)), .bool]) (.container [(.list [(.bytes (ByteArray.mk #[1, 2])), (.bytes (ByteArray.mk #[]))]), (.bool true)])
+  change Ssz.Serializable (.container [(.progressiveList (.byteList 4)), .bool])
+    (.container [(.list [(.bytes (ByteArray.mk #[1, 2])), (.bytes (ByteArray.mk #[]))]),
+      (.bool true)])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨rfl, ?_, ?_⟩
   · intro x hx
@@ -1166,7 +1181,8 @@ private def sizeValue25 : SszValue :=
   (.container [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[0, 4]))])
 
 private theorem sizeSupport25 : Ssz.Serializable sizeType25 sizeValue25 := by
-  change Ssz.Serializable (.container [(.byteList 0), (.byteList 3)]) (.container [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[0, 4]))])
+  change Ssz.Serializable (.container [(.byteList 0), (.byteList 3)])
+    (.container [(.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[0, 4]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨rfl, ?_, ?_⟩
   · intro x hx
@@ -1226,7 +1242,9 @@ private def sizeValue27 : SszValue :=
   (.list [(.container [(.bytes (ByteArray.mk #[]))]), (.container [(.bytes (ByteArray.mk #[]))])])
 
 private theorem sizeSupport27 : Ssz.Serializable sizeType27 sizeValue27 := by
-  change Ssz.Serializable (.list (.container [(.byteVector 0)]) 2) (.list [(.container [(.bytes (ByteArray.mk #[]))]), (.container [(.bytes (ByteArray.mk #[]))])])
+  change Ssz.Serializable (.list (.container [(.byteVector 0)]) 2)
+    (.list [(.container [(.bytes (ByteArray.mk #[]))]),
+      (.container [(.bytes (ByteArray.mk #[]))])])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨by decide, ?_, ?_⟩
   · intro x hx
@@ -1269,7 +1287,9 @@ private def sizeValue28 : SszValue :=
   (.list [(.bytes (ByteArray.mk #[1])), (.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[2]))])
 
 private theorem sizeSupport28 : Ssz.Serializable sizeType28 sizeValue28 := by
-  change Ssz.Serializable (.list (.byteList 1) 3) (.list [(.bytes (ByteArray.mk #[1])), (.bytes (ByteArray.mk #[])), (.bytes (ByteArray.mk #[2]))])
+  change Ssz.Serializable (.list (.byteList 1) 3)
+    (.list [(.bytes (ByteArray.mk #[1])), (.bytes (ByteArray.mk #[])),
+      (.bytes (ByteArray.mk #[2]))])
   apply (Ssz.serializable_iff _ _).mpr
   refine ⟨by decide, ?_, ?_⟩
   · intro x hx
