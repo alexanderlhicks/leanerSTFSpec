@@ -431,7 +431,7 @@ The decoders and size constants of `execution_engine/requests.py` (engine wire f
 
 | EELS source at the pin | Lean declaration | Domain, effects and failures | Law and controls |
 |---|---|---|---|
-| `stateless.py:144–166`; `src/ethereum/utils/ssz.py:174–253` | `StatelessInput.instSszSchema` | exact ordinary three-field descriptor; actual request/witness validity; total pure adapters | §5 complete metadata; private actual facade and complete wire controls (§4) |
+| `stateless.py:144–165`; `src/ethereum/utils/ssz.py:174–253` | `StatelessInput.instSszSchema` | exact ordinary three-field descriptor; actual request/witness validity; total pure adapters | §5 complete metadata; private actual facade and complete wire controls (§4) |
 | `src/ethereum/utils/ssz.py:174–253` (structural interpretation, Q81) | `StatelessInput.ssz_type_wellFormed` | no premise; actual descriptor WF | §7 exact certificate; actual provider/order/name controls |
 | `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `StatelessInput.ssz_ofValue_toValue` | actual composed validity; complete reconstruction and WT image | §7 exact certificate; arbitrary whole-field and finite complete recovery |
 | `src/ethereum/utils/ssz.py:258–320` (typed adapters, Q81) | `StatelessInput.ssz_toValue_ofValue` | actual WT and successful reconstruction, in one conjunction | §7 exact certificate; complete child validity and whole-value preservation |

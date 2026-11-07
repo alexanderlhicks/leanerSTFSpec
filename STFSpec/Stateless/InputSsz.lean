@@ -26,7 +26,7 @@ private def fromValue? : SszValue → Option StatelessInput
       pure ⟨request, witness, chainId⟩
   | _ => none
 
-/-- Actual ordinary input metadata; EELS `src/ethereum/forks/amsterdam/stateless.py:144–166`
+/-- Actual ordinary input metadata; EELS `src/ethereum/forks/amsterdam/stateless.py:144–165`
 and `src/ethereum/utils/ssz.py:174–320` at the pin. Validity composes actual children. -/
 instance instSszSchema : SszSchema StatelessInput where
   type := .container [NewPayloadRequest.instSszSchema.type,
