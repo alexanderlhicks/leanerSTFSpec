@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -708,6 +708,41 @@ Python capture and the actual-call cfg expression remain distinct. Actual caller
 frame/target coherence, source-host generalization, payment/state spill composition,
 child return/settlement, compiled/resource costs and whole G1–G7/VM/guest gates
 remain open. No helper charges gas, allocates code or checks an init size limit.
+
+### Private CALL preflight numeric composition
+
+`CallPreflightGasCallerProofs.lean` supplies private clients of the existing public
+Core laws, without a new API or global meter/configuration invariant. This is the
+numeric no-child prefix of CALL, conditional on the exact successful operations.
+The source effects and failure ordering of an actual handler are not implemented.
+
+| EELS source at pin | Private Lean client | Exact domain/effect/law/control entry |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:536–559,386–394`; `vm/gas.py:801–843,689–734` | `preflight_return_accounting`, `preflight_return_progress`, `preflight_return_nonincrease` | Successful overhead charge E; either unchanged paid meter or successful state charge A; calculator on exactly the resulting gasLeft with literal 0 memory/extra and explicit stipend; successful forwarding charge; reservoir drain and complete grant/saved-reservoir return; optional credit A. The returned potential plus E equals initial potential plus selected stipend t. Strict decrease requires only t+1≤E; nonincrease t≤E. All unrelated raw fields remain arbitrary. |
+| Same CALL prefix and preflight; `vm/gas.py:379–436,594–616` | `no_state_return_fields`, `state_return_credit_fields` | Complete six-field observations for no-state/no-credit and state-charge/full-credit paths, derived through public equations. With d=A−paid.stateGasLeft and x=min A (paid.stateGasSpilled+d), the latter has execution paid.gasLeft−d+t+x, reservoir paid.stateGasLeft−A+(A−x), pending spill paid.stateGasSpilled+d−x; baseline, signed refund and committed spill are retained. |
+
+`CallPreflightGasControls.lean` freezes thirteen independent successful full-stage
+results, two shortage results and three potential-boundary controls. Each success
+observes all six fields of paid/current/forward-charged/drained/returned/credited
+meters and the actual cost, complete grant and saved reservoir. No target output
+was used as an expectation. Reproduce with:
+
+```sh
+lake build STFSpec.Conformance.Vm.Core.CallPreflightGasCallerProofs --wfail
+lake build STFSpec.Conformance.Vm.Core.CallPreflightGasControls --wfail
+```
+
+The representative static source check at the pin confirms overhead before optional
+state charge, the post-charge calculator budget, forwarding charge then reservoir
+drain, and full preflight return with optional matching state credit at the cited
+lines. This is source reading, not Python/EELS runtime comparison. Source ZERO=0
+identification is separate from the literal 0 arguments: `source_zero_selection`
+retains its explicit cfg.costs.zero=0 premise, while general clients permit any
+raw zero price and explicit stipend. State credit may repay preexisting pending
+spill and redistribute the reservoir; potential preservation is not raw rollback.
+Actual state/code access and error ordering, cfg/grant coherence and reachability,
+child returned-potential bounds, incorporation/settlement/step/loop, F11/B11/D5/S2,
+G2–G7 and resource/readiness obligations remain separate.
 
 ### Supplied memory pricing (Q63)
 
@@ -1564,6 +1599,7 @@ actual complete records and source/runtime identities beside each fresh run.
 - **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve assertion :674 and unchanged full meter; no invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
 - **Supplied refund controls:** `GasRefundGuards.lean` and the strict normal/`-O` complete-frame parser retain twenty full outputs and actual Lean charge/refund/repay intermediates. Public clients use all seven laws and prove the conditional inverse with local initial pending spill zero; a complete-field counterexample excludes unconditional inversion. Min boundaries, R>B, signed refund, both spills, zero execution and unbounded amounts are covered. Source calls use only the two unchanged original helpers on fresh typed meters, with expected `None`, complete fields and enabled repayment postcondition.
 - **Supplied rollback controls:** the three helpers have complete-field zero/equality, signed-refund, both-spill, above-baseline (where admitted) and beyond-word cases; guards retain every intermediate meter of the two-boundary composition. Public callers consume all eight laws, without unfolding provider internals. The strict normal/`-O` parser rejects malformed/duplicate/missing/extra fields, Bool-as-Nat, bad arities, reordered/incomplete streams and wrong whole results. Original assertions are checked only in Python, with location/order and unchanged input retained; they are proof arguments in Lean.
+- **Supplied CALL preflight composition controls:** `CallPreflightGasControls.lean` observes every six-field intermediate and complete calculator/saved-reservoir result for thirteen successes. Nonspill/spill, old pending and committed spill, signed refunds, zero/nonzero effective stipend, zero/capped requests, exact overhead/state affordability and two one-over shortages, t+1=E and t=E boundaries and no strict progress at zero overhead are covered. Full credit with existing pending spill deliberately differs from raw rollback. Literal calculator zeros remain independent of raw cfg.zero. These numeric controls establish no actual handler/source-effect/child/loop result.
 - **Supplied charge-kernel controls:** `GasMeterGuards.lean` retains every field for zero, exact and one-over execution charges; reservoir zero/exact, first spill, exact total and one-over total; zero gas, reservoir above baseline, negative refunds, both spill pools and beyond-64-bit amounts. It checks the three zero defaults, every nominal exception tag, all UInt8 opcode payloads and complete String payloads including NUL/newline/Unicode. Public callers cover all ten laws, conditional positive-charge progress, zero-charge neutrality and execution-then-state accounting without unfolding the kernel. The strict differential parser rejects duplicate/missing/extra fields, Bool-as-Nat, wrong arities, malformed payloads and incomplete/reordered streams; compare the complete observations with authenticated original numeric helpers. Other tests below remain obligations for their unsupplied operations.
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`, `blockchain_tests/for_amsterdam/…`; the `_engine` copies cover the same areas with their own guest records, GAPS-CROSSCUTTING X5): gas meter and state gas: `amsterdam/eip8037_state_creation_gas_cost_increase` (270), `amsterdam/eip8038_state_access_gas_cost_increase` (88), `amsterdam/eip7778_block_gas_accounting_without_refunds` (9), `amsterdam/eip2780_reduce_intrinsic_tx_gas` (61), `amsterdam/eip7976_increase_calldata_floor_cost`, `osaka/eip7825_transaction_gas_limit_cap`; memory: `ported_static/stMemoryTest` (72), `stMemoryStressTest` (36), `stMemExpandingEIP150Calls`, `cancun/eip5656_mcopy`; call gas: `tangerine_whistle/eip150_operation_gas_costs`, `ported_static/stEIP150Specific`, `stEIP150singleCodeGasPrices`; stack limits: `ported_static/stStackTests`, `amsterdam/eip8024_dupn_swapn_exchange` (66); refunds: `ported_static/stRefundTest`, `istanbul/eip2200_net_gas_metering`; transfer logs: `amsterdam/eip7708_eth_transfer_logs` (40); blob gas: `cancun/eip4844_blobs`, `osaka/eip7918_blob_reserve_price`, `cancun/eip7516_blobgasfee`.
 - **EELS unit tests:** none exercise `vm/` directly at e1a316a0 [V: `tests/json_loader/*` touches only tracing (`test_trace.py`)]. The EEST sources under `tests/amsterdam/eip8037_*` (`test_state_gas_reservoir.py`, `test_state_gas_cross_frame_refund.py`, `test_state_gas_ordering.py`) and `tests/amsterdam/eip8024_*` (`test_eip_vectors.py`) are the best specification of the meter and decoders.
@@ -3023,10 +3059,16 @@ gas at least `A / 64`. A successful charge and the explicit local hypothesis
 `t + 1 ≤ memoryCost + extraGas` suffice for the corresponding private
 `post.phi + result.subCall + 1 ≤ meter.phi` consequence; nonincrease needs
 `t ≤ memoryCost + extraGas`. No global price/WF relation replaces those premises.
-Real CALL prepays overhead/memory, may spill for state charges, then passes
-current ZERO twice to the calculator. Those earlier payments, child entry/return,
-failed preflight/refunds, settlement and whole continuing-iteration G2 must be
-composed separately. No local arithmetic theorem closes those obligations.
+The separate private CALL preflight clients in §3 now compose successful overhead
+charge E, optional successful state charge A, exact current-meter calculator with
+literal zero memory/extra, forwarding charge, drain, full grant/reservoir return
+and optional credit A. They prove returned.phi+E=initial.phi+t; strict decrease
+requires only t+1≤E and nonincrease t≤E. Complete no-state/no-credit and
+state-charge/full-credit field equations retain arbitrary raw meters/configs.
+Real CALL's source ZERO identification needs separate price coherence. Actual
+handler/config/grant/effect-order derivation, child entry/execution/return bounds,
+settlement and whole continuing-iteration G2 remain open. No local arithmetic
+theorem closes those obligations.
 
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
@@ -3281,9 +3323,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   literal controls and six complete charge witnesses, plus the dated external
   interpreted/native and twenty-five original comparisons scoped in §3, are local evidence. General
   source/default/host agreement, actual caller/config/target coherence, earlier
-  CALL payments/state spill, preflight/child return/settlement, compiled/resource
+  CALL reachability/effect ordering, child execution/return bounds and settlement, compiled/resource
   and whole G1/G2–G7/VM/guest gates remain open. The supplied scalar maximum and
   existing guards are reused; no global invariant or hidden default follows.
+
+- **Private CALL preflight numeric composition is supplied:** §3/§4/§7 own the
+  successful-charge/current-budget/full-return potential identity and conditional
+  strict/nonincrease consequences, complete source-aligned field equations and
+  thirteen full-stage successes/two shortages/three boundary controls. This supplies
+  no actual CALL handler or child semantics. Source ZERO coherence, actual access/
+  failure/effect ordering, saved grants/config identity and reachability, child
+  returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
+  G2–G7, resources and readiness remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 

@@ -67,6 +67,19 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | five execution-request item types | EthStateless | Use the exact nominal raw constructors/projections owned by EthStateless §3/§5/§7, with private complete facade proofs and controls in §4. Preserve all independent Base fields and complete byte/unsigned observations, without admission or amount conversion. The five actual Q81 dictionaries and fifteen certificates, with private actual Serializable/CountRecoverable/full-wire clients and complete finite controls, are supplied there. The raw aggregate is supplied by the handoff below; its actual schema/certificates are supplied there, while raw decoding, roots, source-host agreement and payload/input/guest composition remain separate (§10). |
 | ExecutionWitness, StatelessInput and StatelessValidationResult | EthStateless | The exact three-field raw StatelessInput and private whole-field clients/complete nested controls are supplied under EthStateless §3–§7, using actual NewPayloadRequest, ExecutionWitness and Base.U64 without admission or authored public helper laws. The actual input dictionary and three Q81 certificates, private actual count/support/layout clients and complete 48-input/385957-byte mathematical controls are supplied there. Its co-located private generic public-law size foundation and actual raw request-size formulas, operation-local encoded-size laws, fixed classifications and inherited child/member support are described in EthStateless §3/§4/§7. Whole-input request support, later outer-start and count/leaf bounds, decoded-support and input-to-Rootable bridges remain separate. Raw decoding/roots and caller/guest/security/resource/readiness remain separate (§10). The raw three-array witness and private complete facade clients/controls are supplied under EthStateless §3/§4/§7; the actual witness dictionary and three Q81 certificates are supplied under EthStateless §3/§5/§7, independently of Serializable/Rootable, source backing and host premises. Raw witness decoding and DB/hash construction remain separate. EthFork §3 supplies the five F8 wire-limit values, and EthStateless §3/§5 supplies their transparent consumer aliases without wire admission; the actual witness schema consumes those aliases. The bounded output record/serializer/sentinel and ordinary complete layout, size and injectivity laws are supplied under EthStateless §3/§7; its §10 owns remaining input/guest/host-inverse obligations. EthConformance uses the same schemas; expected bytes are independent of a containing fixture's block-validity label. |
 
+### Private CALL preflight gas handoff
+
+EthVmCore §3/§4/§7/§10 owns the private successful-prefix composition clients and
+complete six-field controls. Consumers must establish the actual successful
+overhead/state/forwarding operations, exact post-charge calculator budget and
+explicit stipend, and exact drained/saved/full-return amounts. The numeric identity
+is returned.phi+E=initial.phi+t; strict progress additionally needs t+1≤E and
+nonincrease t≤E. Literal zero memory/extra does not identify arbitrary cfg.zero
+with source ZERO. Matching state credit can repay old pending spill, so potential
+preservation supplies no complete raw-meter rollback. Actual handler/effect/error
+ordering, source coherence/reachability, child execution/returned-potential bounds,
+incorporation/settlement/step/loop, F11/B11/D5/S2 and G2–G7 remain separate.
+
 ### Supplied raw execution-request aggregate handoff
 
 EthStateless §3/§5/§7 owns the exact five-array `ExecutionRequests` carrier over the
