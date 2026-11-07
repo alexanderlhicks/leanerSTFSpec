@@ -63,7 +63,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_CODE` | 33 | `maxBytesPerCode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_CODE` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_HEADER` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_WITNESS_NODE` (F8) |
-| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–69 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | supplied unrestricted three-field carrier and actual Q81 dictionary/certificates below |
+| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | supplied unrestricted three-field carrier and actual Q81 dictionary/certificates below |
 | `forks/amsterdam/stateless.py::ProtocolFork` | 101–126 | `ProtocolFork`, `ProtocolFork.toIndex : ProtocolFork → UInt8` (`STFSpec/Stateless/ProtocolFork.lean`) | discharged historical 21-constructor carrier and total forward observation of the numeric assignments at 106–126; complete contract and private controls below |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex := ProtocolFork.amsterdam` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8 := 1` | |
