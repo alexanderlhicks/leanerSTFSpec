@@ -228,7 +228,8 @@ def main (args : List String) : IO UInt32 := do
       | _ => throw (IO.userError "expected one input path")
     let rows := (← IO.FS.readFile path).splitOn "\n" |>.filter (· != "")
     emit <| Json.mkObj [("schema", toJson "header-carriers-v1"),
-      ("catalog", toJson "4639932a31950e19686713ce32266d01ba172dc64417b66d0c922a3cb2152d63"), ("count", toJson rows.length)]
+      ("catalog", toJson "4639932a31950e19686713ce32266d01ba172dc64417b66d0c922a3cb2152d63"),
+      ("count", toJson rows.length)]
     for row in rows do
       match row.splitOn "\t" with
       | id :: family :: variant :: values => observe id family variant values.toArray
