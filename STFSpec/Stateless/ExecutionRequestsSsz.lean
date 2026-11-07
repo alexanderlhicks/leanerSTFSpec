@@ -116,7 +116,8 @@ theorem ssz_ofValue_toValue (a : ExecutionRequests) (h : instSszSchema.valid a) 
       SszValue.WellTyped instSszSchema.type (instSszSchema.toValue a) := by
   have _ := h
   constructor
-  · change fromValue? (.container [.list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
+  · change fromValue?
+      (.container [.list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
       .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
       .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
       .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
@@ -183,7 +184,8 @@ theorem ssz_toValue_ofValue (v : SszValue) (a : ExecutionRequests)
         SszValue.WellTyped (.progressiveList WithdrawalRequest.instSszSchema.type) (.list ws) ∧
         SszValue.WellTyped (.progressiveList ConsolidationRequest.instSszSchema.type) (.list cs) ∧
         SszValue.WellTyped (.progressiveList BuilderDepositRequest.instSszSchema.type) (.list bs) ∧
-        SszValue.WellTyped (.progressiveList BuilderExitRequest.instSszSchema.type) (.list es) := by
+        SszValue.WellTyped (.progressiveList BuilderExitRequest.instSszSchema.type)
+          (.list es) := by
       simpa using ht
     cases h0 : members? DepositRequest.instSszSchema ds with
     | none => simp [h0] at hs
@@ -202,7 +204,8 @@ theorem ssz_toValue_ofValue (v : SszValue) (a : ExecutionRequests)
             | some x4 =>
               simp [h0, h1, h2, h3, h4] at hs
               subst a
-              change SszValue.container [.list (x0.toArray.toList.map DepositRequest.instSszSchema.toValue),
+              change SszValue.container
+                [.list (x0.toArray.toList.map DepositRequest.instSszSchema.toValue),
                 .list (x1.toArray.toList.map WithdrawalRequest.instSszSchema.toValue),
                 .list (x2.toArray.toList.map ConsolidationRequest.instSszSchema.toValue),
                 .list (x3.toArray.toList.map BuilderDepositRequest.instSszSchema.toValue),
