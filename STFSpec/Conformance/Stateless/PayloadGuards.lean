@@ -59,12 +59,14 @@ private def withdrawalRequestObserve (r : WithdrawalRequest) : WithdrawalRequest
 
 private abbrev ConsolidationRequestObservation := List UInt8 × List UInt8 × List UInt8
 
-private def consolidationRequestObserve (r : ConsolidationRequest) : ConsolidationRequestObservation :=
+private def consolidationRequestObserve (r : ConsolidationRequest) :
+  ConsolidationRequestObservation :=
   (r.sourceAddress.toBytes.toList, r.sourcePubkey.toBytes.toList, r.targetPubkey.toBytes.toList)
 
 private abbrev BuilderDepositRequestObservation := List UInt8 × List UInt8 × Nat × List UInt8
 
-private def builderDepositRequestObserve (r : BuilderDepositRequest) : BuilderDepositRequestObservation :=
+private def builderDepositRequestObserve (r : BuilderDepositRequest) :
+  BuilderDepositRequestObservation :=
   (r.pubkey.toBytes.toList, r.withdrawalCredentials.toBytes.toList, r.amount.toNat,
     r.signature.toBytes.toList)
 
@@ -1404,7 +1406,8 @@ private def newPayloadRequestZeroExpected : NewPayloadRequestObservation :=
     newPayloadRequestZero_parentBeaconBlockRootExpected,
     newPayloadRequestZero_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestZero) newPayloadRequestZeroExpected
+#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestZero)
+  newPayloadRequestZeroExpected
 
 private def newPayloadRequestMax_executionPayloadExpected : ExecutionPayloadObservation :=
   executionPayloadMaxExpected
@@ -1432,7 +1435,8 @@ private def newPayloadRequestMaxExpected : NewPayloadRequestObservation :=
     newPayloadRequestMax_parentBeaconBlockRootExpected,
     newPayloadRequestMax_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestMax) newPayloadRequestMaxExpected
+#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestMax)
+  newPayloadRequestMaxExpected
 
 private def newPayloadRequestA_executionPayloadExpected : ExecutionPayloadObservation :=
   executionPayloadAExpected
@@ -1466,7 +1470,8 @@ private def newPayloadRequestAExpected : NewPayloadRequestObservation :=
     newPayloadRequestA_parentBeaconBlockRootExpected,
     newPayloadRequestA_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestA) newPayloadRequestAExpected
+#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestA)
+  newPayloadRequestAExpected
 
 private def newPayloadRequestB_executionPayloadExpected : ExecutionPayloadObservation :=
   executionPayloadBExpected
@@ -1500,9 +1505,11 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     newPayloadRequestB_parentBeaconBlockRootExpected,
     newPayloadRequestB_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestB) newPayloadRequestBExpected
+#guard newPayloadRequestEqual (newPayloadRequestObserve newPayloadRequestB)
+  newPayloadRequestBExpected
 
-#guard executionPayloadObserve { executionPayloadA with parentHash := executionPayloadB.parentHash } ==
+#guard executionPayloadObserve
+    { executionPayloadA with parentHash := executionPayloadB.parentHash } ==
   (executionPayloadB_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1514,7 +1521,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with feeRecipient := executionPayloadB.feeRecipient } ==
+#guard executionPayloadObserve
+    { executionPayloadA with feeRecipient := executionPayloadB.feeRecipient } ==
   (executionPayloadA_parentHashExpected, executionPayloadB_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1526,7 +1534,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with stateRoot := executionPayloadB.stateRoot } ==
+#guard executionPayloadObserve
+    { executionPayloadA with stateRoot := executionPayloadB.stateRoot } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadB_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1538,7 +1547,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with receiptsRoot := executionPayloadB.receiptsRoot } ==
+#guard executionPayloadObserve
+    { executionPayloadA with receiptsRoot := executionPayloadB.receiptsRoot } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadB_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1550,7 +1560,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with logsBloom := executionPayloadB.logsBloom } ==
+#guard executionPayloadObserve
+    { executionPayloadA with logsBloom := executionPayloadB.logsBloom } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadB_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1562,7 +1573,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with prevRandao := executionPayloadB.prevRandao } ==
+#guard executionPayloadObserve
+    { executionPayloadA with prevRandao := executionPayloadB.prevRandao } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadB_prevRandaoExpected,
@@ -1574,7 +1586,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with blockNumber := executionPayloadB.blockNumber } ==
+#guard executionPayloadObserve
+    { executionPayloadA with blockNumber := executionPayloadB.blockNumber } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1610,7 +1623,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with timestamp := executionPayloadB.timestamp } ==
+#guard executionPayloadObserve
+    { executionPayloadA with timestamp := executionPayloadB.timestamp } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1622,7 +1636,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with extraData := executionPayloadB.extraData } ==
+#guard executionPayloadObserve
+    { executionPayloadA with extraData := executionPayloadB.extraData } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1634,7 +1649,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with baseFeePerGas := executionPayloadB.baseFeePerGas } ==
+#guard executionPayloadObserve
+    { executionPayloadA with baseFeePerGas := executionPayloadB.baseFeePerGas } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1646,7 +1662,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with blockHash := executionPayloadB.blockHash } ==
+#guard executionPayloadObserve
+    { executionPayloadA with blockHash := executionPayloadB.blockHash } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1658,7 +1675,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with transactions := executionPayloadB.transactions } ==
+#guard executionPayloadObserve
+    { executionPayloadA with transactions := executionPayloadB.transactions } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1670,7 +1688,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with withdrawals := executionPayloadB.withdrawals } ==
+#guard executionPayloadObserve
+    { executionPayloadA with withdrawals := executionPayloadB.withdrawals } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1682,7 +1701,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with blobGasUsed := executionPayloadB.blobGasUsed } ==
+#guard executionPayloadObserve
+    { executionPayloadA with blobGasUsed := executionPayloadB.blobGasUsed } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1694,7 +1714,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with excessBlobGas := executionPayloadB.excessBlobGas } ==
+#guard executionPayloadObserve
+    { executionPayloadA with excessBlobGas := executionPayloadB.excessBlobGas } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1706,7 +1727,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadB_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with blockAccessList := executionPayloadB.blockAccessList } ==
+#guard executionPayloadObserve
+    { executionPayloadA with blockAccessList := executionPayloadB.blockAccessList } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1718,7 +1740,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadB_blockAccessListExpected,
     executionPayloadA_slotNumberExpected)
 
-#guard executionPayloadObserve { executionPayloadA with slotNumber := executionPayloadB.slotNumber } ==
+#guard executionPayloadObserve
+    { executionPayloadA with slotNumber := executionPayloadB.slotNumber } ==
   (executionPayloadA_parentHashExpected, executionPayloadA_feeRecipientExpected,
     executionPayloadA_stateRootExpected, executionPayloadA_receiptsRootExpected,
     executionPayloadA_logsBloomExpected, executionPayloadA_prevRandaoExpected,
@@ -1730,22 +1753,26 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_excessBlobGasExpected, executionPayloadA_blockAccessListExpected,
     executionPayloadB_slotNumberExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve { newPayloadRequestA with executionPayload := newPayloadRequestB.executionPayload })
+#guard newPayloadRequestEqual (newPayloadRequestObserve
+    { newPayloadRequestA with executionPayload := newPayloadRequestB.executionPayload })
   (newPayloadRequestB_executionPayloadExpected, newPayloadRequestA_versionedHashesExpected,
     newPayloadRequestA_parentBeaconBlockRootExpected,
     newPayloadRequestA_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve { newPayloadRequestA with versionedHashes := newPayloadRequestB.versionedHashes })
+#guard newPayloadRequestEqual (newPayloadRequestObserve
+    { newPayloadRequestA with versionedHashes := newPayloadRequestB.versionedHashes })
   (newPayloadRequestA_executionPayloadExpected, newPayloadRequestB_versionedHashesExpected,
     newPayloadRequestA_parentBeaconBlockRootExpected,
     newPayloadRequestA_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve { newPayloadRequestA with parentBeaconBlockRoot := newPayloadRequestB.parentBeaconBlockRoot })
+#guard newPayloadRequestEqual (newPayloadRequestObserve
+    { newPayloadRequestA with parentBeaconBlockRoot := newPayloadRequestB.parentBeaconBlockRoot })
   (newPayloadRequestA_executionPayloadExpected, newPayloadRequestA_versionedHashesExpected,
     newPayloadRequestB_parentBeaconBlockRootExpected,
     newPayloadRequestA_executionRequestsExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve { newPayloadRequestA with executionRequests := newPayloadRequestB.executionRequests })
+#guard newPayloadRequestEqual (newPayloadRequestObserve
+    { newPayloadRequestA with executionRequests := newPayloadRequestB.executionRequests })
   (newPayloadRequestA_executionPayloadExpected, newPayloadRequestA_versionedHashesExpected,
     newPayloadRequestA_parentBeaconBlockRootExpected,
     newPayloadRequestB_executionRequestsExpected)
@@ -1772,7 +1799,8 @@ private def newPayloadRequestBExpected : NewPayloadRequestObservation :=
     executionPayloadA_blobGasUsedExpected, executionPayloadA_excessBlobGasExpected,
     executionPayloadA_blockAccessListExpected, executionPayloadA_slotNumberExpected)
 
-#guard newPayloadRequestEqual (newPayloadRequestObserve { newPayloadRequestA with versionedHashes := #[] })
+#guard newPayloadRequestEqual (newPayloadRequestObserve
+    { newPayloadRequestA with versionedHashes := #[] })
   (newPayloadRequestA_executionPayloadExpected, [],
     newPayloadRequestA_parentBeaconBlockRootExpected,
     newPayloadRequestA_executionRequestsExpected)
