@@ -16,7 +16,8 @@ open STFSpec.Base STFSpec.Block
 
 private def headerConstructorType :
     Hash32 → Hash32 → Address → Root → Root → Root → Bloom → Nat → Nat → Nat → Nat → U256 → Bytes →
-      Bytes32 → Bytes8 → Nat → Root → U64 → U64 → Root → Hash32 → Hash32 → U64 → Header := Header.mk
+      Bytes32 → Bytes8 → Nat → Root → U64 → U64 → Root → Hash32 → Hash32 → U64 → Header :=
+      Header.mk
 
 private def header_parentHash_type : Header → Hash32 := Header.parentHash
 private def header_ommersHash_type : Header → Hash32 := Header.ommersHash
@@ -340,10 +341,10 @@ private theorem header_update_ommersHash (h : Header) (value : Hash32) :
 
 private theorem header_update_coinbase (h : Header) (value : Address) :
     { h with coinbase := value } =
-      Header.mk h.parentHash h.ommersHash value h.stateRoot h.transactionsRoot h.receiptRoot h.bloom
-      h.difficulty h.number h.gasLimit h.gasUsed h.timestamp h.extraData h.prevRandao h.nonce
-      h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas h.parentBeaconBlockRoot
-      h.requestsHash h.blockAccessListHash h.slotNumber := rfl
+      Header.mk h.parentHash h.ommersHash value h.stateRoot h.transactionsRoot h.receiptRoot
+      h.bloom h.difficulty h.number h.gasLimit h.gasUsed h.timestamp h.extraData h.prevRandao
+      h.nonce h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas
+      h.parentBeaconBlockRoot h.requestsHash h.blockAccessListHash h.slotNumber := rfl
 
 private theorem header_update_stateRoot (h : Header) (value : Root) :
     { h with stateRoot := value } =
@@ -564,8 +565,8 @@ private theorem prevHeader_transactionsRoot_projection
       (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
-      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).transactionsRoot
-      = transactionsRoot := rfl
+      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot
+      requestsHash).transactionsRoot = transactionsRoot := rfl
 
 private theorem prevHeader_receiptRoot_projection
     (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
@@ -586,8 +587,8 @@ private theorem prevHeader_bloom_projection
       (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
-      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).bloom = bloom :=
-      rfl
+      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).bloom =
+      bloom := rfl
 
 private theorem prevHeader_difficulty_projection
     (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
@@ -674,8 +675,8 @@ private theorem prevHeader_nonce_projection
       (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
-      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).nonce = nonce :=
-      rfl
+      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).nonce =
+      nonce := rfl
 
 private theorem prevHeader_baseFeePerGas_projection
     (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
@@ -801,8 +802,8 @@ private theorem prevHeader_update_bloom (h : PrevHeader) (value : Bloom) :
 private theorem prevHeader_update_difficulty (h : PrevHeader) (value : Nat) :
     { h with difficulty := value } =
       PrevHeader.mk h.parentHash h.ommersHash h.coinbase h.stateRoot h.transactionsRoot
-      h.receiptRoot h.bloom value h.number h.gasLimit h.gasUsed h.timestamp h.extraData h.prevRandao
-      h.nonce h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas
+      h.receiptRoot h.bloom value h.number h.gasLimit h.gasUsed h.timestamp h.extraData
+      h.prevRandao h.nonce h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas
       h.parentBeaconBlockRoot h.requestsHash := rfl
 
 private theorem prevHeader_update_number (h : PrevHeader) (value : Nat) :
@@ -843,8 +844,8 @@ private theorem prevHeader_update_extraData (h : PrevHeader) (value : Bytes) :
 private theorem prevHeader_update_prevRandao (h : PrevHeader) (value : Bytes32) :
     { h with prevRandao := value } =
       PrevHeader.mk h.parentHash h.ommersHash h.coinbase h.stateRoot h.transactionsRoot
-      h.receiptRoot h.bloom h.difficulty h.number h.gasLimit h.gasUsed h.timestamp h.extraData value
-      h.nonce h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas
+      h.receiptRoot h.bloom h.difficulty h.number h.gasLimit h.gasUsed h.timestamp h.extraData
+      value h.nonce h.baseFeePerGas h.withdrawalsRoot h.blobGasUsed h.excessBlobGas
       h.parentBeaconBlockRoot h.requestsHash := rfl
 
 private theorem prevHeader_update_nonce (h : PrevHeader) (value : Bytes8) :
