@@ -135,7 +135,8 @@ allocation proportional to that declaration.
 byte-list reference on every item, and the computed size equals actual output
 width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
 Byte/list payloads and all length digits are preserved in order. Raw wire laws
-are owned by §7; schema instances and guest outcomes remain unimplemented.
+are owned by §7; schema instances other than the EthBlock forward RLP models
+(EthBlock §3/§5/§7) and guest outcomes remain unimplemented.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
@@ -194,7 +195,8 @@ Interpreter/native runtime, startup, installation and RECORD remain trust inputs
 This is bounded encoder evidence, without typed decoding/inverse, all-Nat Python
 equivalence, host/resource, guest/EEST or throughput claims. `RlpDecode`,
 `decodeTo` and Nat decoding are supplied by the typed decoding foundation below;
-schema instances remain open. Q68 owns the diagnostic equation.
+schema instances other than the EthBlock forward RLP models remain open. Q68 owns
+the diagnostic equation.
 
 ### Implemented typed RLP decoding foundation
 
