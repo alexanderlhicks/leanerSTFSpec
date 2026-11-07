@@ -959,6 +959,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
+  proofs/interpreted controls are supplied (§3–§5/§7). RLP/SSZ adapters,
+  `processWithdrawals`, amount conversion and Q53 withdrawal root-input composition
+  remain unimplemented. Raw storage closes no execution, resource or readiness gate.
+
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source
   observations (§3–§5/§7). Header RLP/schema adapters, hashing, validation, parent
