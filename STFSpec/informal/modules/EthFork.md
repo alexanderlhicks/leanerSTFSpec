@@ -1,6 +1,6 @@
 # `EthFork`: the Amsterdam composition
 
-*Status: informal specification, draft; Amsterdam block, transaction, system-address, VM parameter and input wire-limit values supplied; `config`, the precompile table and block execution unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; Amsterdam block, transaction, system-address, VM parameter, input wire-limit and schema identifier values supplied; `config`, the precompile table and block execution unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F9, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D13, D17, D21 · questions: B8 (Q1/Q26/Q43), B11, Q5, Q8, Q83.*
 
 Line references are to `src/ethereum/forks/amsterdam/`. **[V]** means read (or evaluated) at the pin; **[I]** means an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -88,6 +88,32 @@ It exports one configured entry point, `Amsterdam.executeBlock`, for `EthStatele
 | `forks/amsterdam/transactions.py::ACCESS_LIST_STORAGE_KEY_FLOOR_TOKENS` | 77 | `STFSpec.Fork.Amsterdam.txParams.accessListStorageKeyFloorTokens` | 128 (EIP-7981) |
 | `forks/amsterdam/requests.py::DEPOSIT_CONTRACT_ADDRESS` | 49 | `STFSpec.Fork.Amsterdam.systemAddrs.depositContract` | mainnet `0x00000000219a…05fa` |
 | `forks/amsterdam/__init__.py::FORK_CRITERIA` | 43 | `forkCriteria` | `Unscheduled(order_index=3)`; unused by the guest (O-exclusion) |
+
+### Supplied Amsterdam input schema identifiers
+
+Under F8, `STFSpec/Fork/Amsterdam/SchemaIdentifiers.lean` owns all five selected
+values and exports them through `STFSpec.Fork`. Each declaration has no inputs,
+proof premises, effects, failures, handler or O-row. The source constants were
+read at `59c1473d` [V]; no EELS or guest execution is claimed for this slice.
+
+| Pinned EELS quantity / source domain | Actual Lean declaration / value | Laws / status / validation |
+|---|---|---|
+| `stateless.py:126,129`, `STATELESS_INPUT_SCHEMA_FORK_INDEX`, selected `IntEnum` value | `STFSpec.Fork.Amsterdam.STATELESS_INPUT_SCHEMA_FORK_INDEX : UInt8`, `0x15` | **discharged** fixed raw tag; exact type/value proof and interpreted whole-integer facade guard |
+| `stateless.py:130`, `STATELESS_INPUT_SCHEMA_REVISION`, nonnegative `int` | `STFSpec.Fork.Amsterdam.STATELESS_INPUT_SCHEMA_REVISION : UInt8`, `1` | **discharged** fixed revision; same controls |
+| `stateless.py:131–133`, `STATELESS_INPUT_SCHEMA_ID`, shift/or of those two globals | `STFSpec.Fork.Amsterdam.STATELESS_INPUT_SCHEMA_ID : UInt16`, `0x1501` | **discharged** actual owned tag widened and shifted left eight bits, or'ed with the widened owned revision; private formula/value controls |
+| `stateless.py:134`, `STATELESS_INPUT_SCHEMA_ID_SIZE`, nonnegative `int` | `STFSpec.Fork.Amsterdam.STATELESS_INPUT_SCHEMA_ID_SIZE : Nat`, `2` | **discharged** fixed byte count; exact type/value controls |
+| `stateless.py:135–138`, `STATELESS_INPUT_SCHEMA_ID_BYTES`, complete `bytes` | `STFSpec.Fork.Amsterdam.STATELESS_INPUT_SCHEMA_ID_BYTES : ByteArray`, `[0x15, 0x01]` | **discharged** two-byte big-endian encoding of the owned ID: high byte from `ID >>> 8`, low byte from `ID`; whole-array/value/formula and size controls |
+
+The core `UInt8`/`UInt16` types represent these selected values exactly, without
+Base narrow-word wrappers. The provider imports no Stateless metadata. Private
+ordinary owner proofs establish the complete tag/revision byte equation and equality
+of byte-array size with the owned width. Private facade clients in
+`STFSpec/Conformance/Fork/AmsterdamSchemaIdentifiersGuards.lean` check all five
+exact types and complete values, the ID and byte formulas, size and helper privacy.
+EthStateless §3/§5/§7 owns the consumer aliases and private bounded nominal transport.
+This is input-prefix data (CONTRACT §2), separate from output SSZ's little-endian
+schema field (CONTRACT §3). Actual decoding at `stateless_guest.py:26–38`, schema
+certification, request roots and guest/resource obligations remain open.
 
 ### Supplied Amsterdam input wire limits
 
@@ -237,6 +263,7 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
   - the transition set `for_bpo2toamsterdamattime15k/*` (15 areas), with a pre-fork parent header.
 - **EELS unit tests** (`tests/json_loader/`): `test_forks.py`, `test_fork_blob_schedule.py`, `test_fork_transition_schedule.py` and `test_fork_transition_networks.py`. These test EELS's fork machinery; they are relevant only as documentation of the blob schedule and transition rules.
 - **`core` `#guard` cases.**
+  - The five input schema identifiers have exact type, complete value, formula, size and private-helper controls through the public facade (§3).
   - The five input wire limits have independent numeric/type controls through the public facade (§3). Inspect their literal bodies separately to exclude coupling between equal-valued bounds or VM limits.
   - R-F2 has private public-facade exact type/complete record controls, all 160 actual address bytes and each independent budget (§3); the out-of-tree interpreted full-table comparison retains field order. Consumer controls remain separate.
   - R-F4 stored VM values have the complete independent literal, interpreted guard, public-import and native-reader controls listed in §3. R-F3 has all three actual projection guards and the private complete-record control in §3. R-F1 has all three actual public projection/triple controls and the two owner-private operand guards in §3; inspect the actual subtraction expression separately. The separate state amount observations remain to be implemented and checked.
@@ -250,6 +277,15 @@ No benchmark or whole-config/behaviour/readiness conclusion follows.
 
 ```lean
 namespace STFSpec.Fork.Amsterdam                       -- public
+-- supplied input schema data; complete values and formulas in §3
+def STATELESS_INPUT_SCHEMA_FORK_INDEX : UInt8 := 0x15
+def STATELESS_INPUT_SCHEMA_REVISION : UInt8 := 1
+def STATELESS_INPUT_SCHEMA_ID : UInt16 :=
+  (STATELESS_INPUT_SCHEMA_FORK_INDEX.toUInt16 <<< 8) |||
+    STATELESS_INPUT_SCHEMA_REVISION.toUInt16
+def STATELESS_INPUT_SCHEMA_ID_SIZE : Nat := 2
+def STATELESS_INPUT_SCHEMA_ID_BYTES : ByteArray :=
+  ⟨#[(STATELESS_INPUT_SCHEMA_ID >>> 8).toUInt8, STATELESS_INPUT_SCHEMA_ID.toUInt8]⟩
 def MAX_WITNESS_HEADERS : Nat := 256
 def MAX_BYTES_PER_CODE : Nat := 2 ^ 16
 def MAX_BYTES_PER_HEADER : Nat := 2 ^ 10
@@ -291,6 +327,7 @@ theorem termination_ready : Vm.Runner.TerminationReady config             -- pub
 
 | Item | Representation | Model | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
+| Selected input schema data | core UInt8/UInt16, Nat and complete two-byte ByteArray | the five §3 source values | fixed selected values; no caller premise | immutable constants | O(1) |
 | Raw BlockParams | three unrestricted Nat fields; two private Nat operands in the Fork owner | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
 | Raw TxParams | three unrestricted Nat fields | themselves | none; later config hypotheses are separate | read-only constant, shared | O(1) access |
 | Raw SystemAddrs | eight Address fields and two independent Nat budgets | themselves | none; full configuration hypotheses remain separate | read-only constant, shared | O(1) access |
@@ -300,6 +337,11 @@ theorem termination_ready : Vm.Runner.TerminationReady config             -- pub
 No mutable or snapshot-reachable state lives here.
 
 ## 7. Contract and laws
+
+The five supplied input schema constants have ordinary value/formula reduction
+and private complete-byte/size proofs (§3). F8 value ownership stays here; the
+nominal metadata and bounded consumer transport stay in EthStateless. This fixed
+data contract supplies no decoder or public inverse.
 
 The five supplied input wire limits have ordinary numeric reduction (§3). Their
 consumer aliases preserve these values without adding a public law family or
@@ -366,6 +408,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Input schema identifiers:** the five Fork-owned constants and private complete facade controls are supplied (§3). EthStateless §3/§7 supplies the selected nominal transport and aliases. Input schemas, decoder/admission, guest and resource obligations remain open.
 - **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless, with the Withdrawal member schema in EthBlock; Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.

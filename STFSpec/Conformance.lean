@@ -369,6 +369,9 @@ import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
 import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 import STFSpec.Conformance.Vm.Core.TransferLogGuards
 
+import STFSpec.Conformance.Fork.AmsterdamSchemaIdentifiersGuards
+import STFSpec.Conformance.Stateless.SchemaIdentifiersGuards
+
 /-!
 # STFSpec.Conformance
 
