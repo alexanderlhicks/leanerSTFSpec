@@ -755,15 +755,15 @@ private theorem whole_wire (a : ExecutionRequests) (h : ∀ o ∈ starts a, o < 
         STFSpec.Stateless.BuilderExitRequest.instSszSchema.toValue)),
       Ssz.encode (.progressiveList STFSpec.Stateless.BuilderExitRequest.instSszSchema.type)
         (.list (a.builderExits.toList.map
-          STFSpec.Stateless.BuilderExitRequest.instSszSchema.toValue)) hc = e)
-    : (SszSchema.encodeBytes a (supported a h)).data.toList =
+          STFSpec.Stateless.BuilderExitRequest.instSszSchema.toValue)) hc = e) :
+    (SszSchema.encodeBytes a (supported a h)).data.toList =
       ((List.range 4).map (fun i => UInt8.ofNat ((20 / 256 ^ i) % 256))) ++
       ((List.range 4).map (fun i => UInt8.ofNat (((20 + d.size) / 256 ^ i) % 256))) ++
       ((List.range 4).map (fun i => UInt8.ofNat (((20 + d.size + w.size) / 256 ^ i) % 256))) ++
-      ((List.range 4).map (fun i => UInt8.ofNat (((20 + d.size + w.size + c.size) /
-        256 ^ i) % 256))) ++
-      ((List.range 4).map (fun i => UInt8.ofNat (((20 + d.size + w.size + c.size + b.size) /
-        256 ^ i) % 256))) ++
+      ((List.range 4).map
+        (fun i => UInt8.ofNat (((20 + d.size + w.size + c.size) / 256 ^ i) % 256))) ++
+      ((List.range 4).map
+        (fun i => UInt8.ofNat (((20 + d.size + w.size + c.size + b.size) / 256 ^ i) % 256))) ++
       d.data.toList ++ w.data.toList ++ c.data.toList ++ b.data.toList ++ e.data.toList := by
   let fs : List SszType := [.progressiveList STFSpec.Stateless.DepositRequest.instSszSchema.type,
     .progressiveList STFSpec.Stateless.WithdrawalRequest.instSszSchema.type,
@@ -870,12 +870,10 @@ private def check (input : List (List (List (Sum (List UInt8) Nat))))
         (SszSchema.encodeBytes a (supported a hs)).data.toList == wire
     else false
 
-set_option maxRecDepth 16384
-set_option maxHeartbeats 4000000
-
--- Literal bytes are lowercase hex strings, which elaborate as single tokens.
--- `hex` yields `[]` on an odd length or a non-hex digit; the guard after the
--- literals requires every hex literal to decode to a non-empty list.
+-- Non-empty literals whose values all fit in a byte are lowercase hex strings, which
+-- elaborate as single tokens; other literals stay ordinary lists. `hex` yields `[]`
+-- on an odd length or a non-hex digit; the guard after the literals requires every
+-- hex literal to decode to a non-empty list.
 private def hexDigit? (c : Char) : Option Nat :=
   if '0' ≤ c ∧ c ≤ '9' then some (c.toNat - '0'.toNat)
   else if 'a' ≤ c ∧ c ≤ 'f' then some (c.toNat - 'a'.toNat + 10)

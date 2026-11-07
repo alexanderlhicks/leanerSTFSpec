@@ -118,10 +118,10 @@ theorem ssz_ofValue_toValue (a : ExecutionRequests) (h : instSszSchema.valid a) 
   constructor
   · change fromValue?
       (.container [.list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
-      .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
-      .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
-      .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
-      .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)]) = some a
+        .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
+        .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
+        .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
+        .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)]) = some a
     simp only [fromValue?]
     rw [members?_forward DepositRequest.instSszSchema
       (fun x => (DepositRequest.ssz_ofValue_toValue x trivial).1)]
@@ -142,10 +142,10 @@ theorem ssz_ofValue_toValue (a : ExecutionRequests) (h : instSszSchema.valid a) 
     .progressiveList BuilderDepositRequest.instSszSchema.type,
     .progressiveList BuilderExitRequest.instSszSchema.type])
       (.container [.list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
-      .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
-      .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
-      .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
-      .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)])
+        .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
+        .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
+        .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
+        .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)])
     rw [SszValue.wellTyped_iff]
     simp
     refine ⟨?_, ?_, ?_, ?_, ?_⟩
