@@ -492,7 +492,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation are supplied (§3/§5/§7). The
+  BlockState.view with its exact application equation, plus raw three-field
+  TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations/contextual
   tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -502,6 +503,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
+- **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
+  complete unchanged providers and the exact state/error transformer order, with
+  private ordinary wiring clients only. Current-pin full-state refinement remains
+  blocked by X16(b); this item does not change either codeReads provider.
+  TxState.new, tracker operations, snapshot/restore, observation effects and
+  lifetimes, initialization/coherence, StateError semantics/freezing, S1/S2/W1,
+  generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
@@ -535,7 +543,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
   §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
-  TxState and StateM remain open.
+  Their nominal TxState/StateM assembly is supplied in §3, retaining X16(b).
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay
