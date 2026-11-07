@@ -128,7 +128,7 @@ Schema selection, wire admission and guest execution remain separate (§10).
 
 **Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
 `state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
-arguments and no defaults or derived instances. EELS `stateless.py:41–69` at
+arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
 `59c1473d` supplies the source field names/order and raw byte collections [V: read].
 The accepted raw domain is every triple of finite arrays of complete byte arrays,
 including empty arrays, empty members, duplicates, malformed RLP and lengths outside
