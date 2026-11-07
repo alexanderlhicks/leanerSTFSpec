@@ -13,6 +13,7 @@ import STFSpec.State.StateError
 import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
+import STFSpec.State.TxState
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
@@ -31,12 +32,14 @@ Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.t
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
 support, raw MathState observers, raw BlockDiff values, raw mathematical diff
 application, the raw PreState carrier with coarse witness-error values, the nominal
-StateError carrier, the raw eight-field TxRevertible carrier, the raw TxObs and
-BlockState carriers, block initialization with its F20 law, logical account/storage read
+StateError carrier, the raw eight-field TxRevertible carrier, the raw TxObs,
+BlockState and three-field TxState carriers, the StateM transformer alias,
+block initialization with its F20 law, logical account/storage read
 views and membership laws, raw block-diff extraction with seven complete field
 equations, the mathematical block view with its ordinary application equation, bounded
 structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
-ancestor selection are supplied. Lookup providers, model mutation, combined transaction
-state, tracker effects and lifecycle laws remain scaffolding.
+ancestor selection are supplied. TxState assembles unchanged providers, retaining the
+code-read discrepancy in EthState §10 X16(b); it supplies no current-pin full-state
+refinement. Lookup providers, model mutation, tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
