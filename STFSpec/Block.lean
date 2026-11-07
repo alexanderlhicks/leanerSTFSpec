@@ -23,7 +23,7 @@ Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.t
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The calldata token, fixed deposit extraction,
 ordered request commitment and logs bloom helpers, raw block and transaction parameters
 and system address/budget records, raw headers, common parent projections and the raw
-withdrawal carrier with its forward RLP model and certified SSZ dictionary are supplied. The remaining
-pipeline is scaffolding.
+withdrawal carrier with its forward RLP model and certified SSZ dictionary are supplied.
+The remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/
