@@ -459,6 +459,25 @@ mathematical serialization only; Q88 decoding, root/O2, source reflection/coerci
 backing/cache/host correspondence, admission, guest/security/resources and C1–C4
 remain separate. Source correspondence here is static: no EELS algorithm executes.
 
+
+**Private encoding-size foundation.** `InputSszCallerProofs.lean` supplies a local
+logical byte-length model with the complete recursor in public
+`Ssz.serializable_iff`, including unmatched zero. Ordinary private proofs derive
+actual `Ssz.encode` length, fixed-class length and the exact public layout-fold
+length from `Ssz.encode_eq`, `Ssz.serializable_iff`, `SszType.fixedSize?_eq` and
+public data laws. Ordered actual child-byte certificates retain every occurrence;
+proof irrelevance identifies different support proofs. Section 7 states the local
+premises. This foundation is co-located with the actual input clients for later
+private composition; it exports no provider or caller API.
+
+The domain is arbitrary raw supported type/value pairs. Zero-byte vectors,
+nonempty fixed-zero-child lists/products, empty ordinary containers and malformed
+raw progressive masks remain supported where Q80 permits them. No WF,
+CountRecoverable, Rootable, positive-width, uint256-count or final-size premise is
+added. Actual request-count bounds, decoded-input support, rootability, schema-ID
+joins, source-host agreement and guest/resource/security/readiness obligations
+remain separate (§10).
+
 ## 4. Tests
 
 **Protocol fork metadata controls.**
@@ -722,6 +741,17 @@ duplicated children, both actual child failures and chain-ID 0/1/2^64−1/2^64/2
 Separate controls retain complete extraData33, witness member lengths 1025/65537/1025
 and 257 headers through inverse completion while validity and typing fail; exact
 wire endpoints 32/1024/65536/1024/256 remain valid. No public completion law follows.
+
+
+The same caller module also checks 30 independently frozen raw supported cases
+against 183 complete handwritten byte literals, with actual size and logical-size
+controls. The cases cover all nine descriptor families, every supported scalar
+width, zero/exact/fixed/variable children, empty/duplicate members, equal starts,
+empty containers and malformed progressive masks. Each support proof uses the
+public support equation. Generic symbolic probes allow an arbitrary final byte
+tail, retain the emitted-start bound without a final-end cap, separate fixed-zero
+forward support from count recovery, and rule out unsupported widths/tags and
+wrong byte lengths. These controls supply no decoder or protocol admission claim.
 
 `InputSszWireControls.lean` transports all 48 independently frozen mathematical
 whole inputs through private checked Base construction. Shared complete natural
@@ -1112,6 +1142,27 @@ or failure; it adds no authored public law family. Prospective input WF/schema,
 decoding, root support, guest composition and backend/security/resource gates
 remain open (§10).
 
+
+**Private encoding-size laws.** In `InputSszCallerProofs.lean`, let `L(t,v)` denote
+the complete local logical-size recursor from §3. For every raw `t`, `v` and
+`h : Ssz.Serializable t v`, the ordinary private law is
+`(Ssz.encode t v h).size = L(t,v)`. If additionally `t.fixedSize? = some n`, the
+actual encoded size is `n`, including `n = 0`. The fixed-width model argument uses
+supported container arity and the public structural-width fold; it adds no
+positive-width or child-root premise.
+
+For the exact layout fold in public `Ssz.encode_eq`, the private length equation
+is the sum over `ps.zip bs` of each actual child byte length plus four precisely
+when that child's descriptor is variable. This equation needs no declared-width
+assumption and describes only the zipped occurrences if lengths differ. Applying
+it to an encoder result constructs a length-aligned ordered child-byte certificate
+from actual child support. Each certificate identifies complete child bytes for
+every support proof. Replacing a fixed child's actual length by its declared width
+then uses the supported fixed-width law; replacing a variable child's length uses
+the induction hypothesis. Thus no fixed child is silently assumed to have its
+declared width. These private laws neither complete unsupported encodings nor
+establish actual input-to-Rootable or decoder success.
+
 **Supplied raw payload/request contract.** Each §5 constructor accepts all
 nineteen/four arbitrary independent raw fields with their exact types and order,
 retaining every complete value. Reconstruction returns the whole record; equality
@@ -1439,7 +1490,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   O5 mapping and L-hint-equivalence guidance follow CONTRACT §2/O5 and P1.
   The actual input dictionary and three Q81 certificates, private count/support/layout
   clients and complete 48-input/385957-byte mathematical wire controls are supplied
-  in §3/§4/§5/§7. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
+  30-case/183-byte controls are supplied in §3/§4/§7; actual request-count bounds,
+  decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
