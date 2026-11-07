@@ -35,6 +35,8 @@ import STFSpec.Conformance.Stateless.PayloadSszWireControls
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszCallerProofs
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszControls
 import STFSpec.Conformance.Stateless.ExecutionWitnessSszWireControls
+import STFSpec.Conformance.Stateless.InputCallerProofs
+import STFSpec.Conformance.Stateless.InputGuards
 import STFSpec.Conformance.Stateless.OutputCallerProofs
 import STFSpec.Conformance.Stateless.OutputGuards
 import STFSpec.Conformance.Stateless.PayloadCallerProofs
