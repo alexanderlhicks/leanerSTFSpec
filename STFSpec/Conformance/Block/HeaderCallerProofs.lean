@@ -609,8 +609,8 @@ private theorem prevHeader_number_projection
       (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
-      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).number = number
-      := rfl
+      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).number =
+      number := rfl
 
 private theorem prevHeader_gasLimit_projection
     (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
@@ -697,8 +697,8 @@ private theorem prevHeader_withdrawalsRoot_projection
       (excessBlobGas : U64) (parentBeaconBlockRoot : Root) (requestsHash : Hash32) :
     (PrevHeader.mk parentHash ommersHash coinbase stateRoot transactionsRoot receiptRoot bloom
       difficulty number gasLimit gasUsed timestamp extraData prevRandao nonce baseFeePerGas
-      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot requestsHash).withdrawalsRoot
-      = withdrawalsRoot := rfl
+      withdrawalsRoot blobGasUsed excessBlobGas parentBeaconBlockRoot
+      requestsHash).withdrawalsRoot = withdrawalsRoot := rfl
 
 private theorem prevHeader_blobGasUsed_projection
     (parentHash : Hash32) (ommersHash : Hash32) (coinbase : Address) (stateRoot : Root)
