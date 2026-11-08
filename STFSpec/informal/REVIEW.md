@@ -883,6 +883,16 @@ effect/C8/empty-root/F20/D5/witness/security/budget/nonvacuity/cost/readiness st
 
 An implementation gate does not prohibit useful spikes or an incomplete development branch. It prohibits presenting unvalidated behaviour as the normative finished spec. Debt handling follows D18 (accepted): record performance exceptions in `STFSpec/informal/DEBT.md`, and keep missing premises explicit rather than silently weakening them. A patch affecting an observer, failure priority, gas policy, schema, ordering or state lifetime must update all affected contracts and the composition proof before a conformance claim is restored.
 
+The actual ExecutionPayload SSZ dictionary and exactly its three Q81 certificates
+are supplied by [EthStateless §3/§5/§7](modules/EthStateless.md#3-eels-source-map).
+It consumes the actual Block Withdrawal dictionary and certificates. Callers retain
+the extra-data-valid forward premise and the single WT-and-success reverse premise.
+Private complete clients/count recovery and 129 independent whole-wire controls are
+owned by §4; operation support and source parser/backing/host domains stay separate.
+NewPayloadRequest/input schemas, decoding, roots/O2, validation, guest and resource/
+security/readiness obligations remain open. This handoff adds no public helper,
+decoder policy, guest outcome or completed integration gate.
+
 ## 5. Blocking obligations and proposed ownership
 
 X1 is coordinated by EthConformance tooling; each module owns its explicit and implicit exception sites, and EthStateless owns phase projection. X6 belongs to Core/Instructions/Runner with the fuel-adequacy investigation ([§7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7) as its integration gate. X10 is jointly discharged by State's reachable trace and Witness/Commit's ordered update laws. X7 belongs to Security/StateCommit, with full-state progress and oracle coupling supplied explicitly. Exact schemas belong to their record owner and Codec instances. These are assignments of review work, not assertions that the work is finished.
