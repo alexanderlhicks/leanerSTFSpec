@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and parameter records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw headers, withdrawal and parameter records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -201,7 +201,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | order R-PT |
 | `forks/amsterdam/fork.py::process_withdrawals` | 1096 | `processWithdrawals` |  |
 | `forks/amsterdam/fork.py::check_gas_limit` | 1118 | `checkGasLimit` | Bool |
-| `forks/amsterdam/blocks.py::Withdrawal` | 38 | `Withdrawal` | SSZ container in Amsterdam, plain in bpo5; field order is the RLP order |
+| `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw four-field carrier supplied below; SSZ/RLP adapters remain open |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` | raw 23-field carrier supplied below |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
 | `forks/amsterdam/blocks.py::Log` | 330 | `Log` |  |
@@ -335,6 +335,22 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 | Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+
+### Supplied raw withdrawal
+
+`STFSpec/Block/Withdrawal.lean`, exported by `STFSpec.Block`, supplies the
+four independent R-BLK fields in source order. Every value of the existing Base
+provider types is admitted. The amount remains in Gwei.
+
+| Exact pinned EELS source / domain | Lean declaration and types | Effects / failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:38–66`; all canonical `Base.U64` and `Base.Address` values, independently supplied | `Withdrawal : Type`; `Withdrawal.mk : Base.U64 → Base.U64 → Base.Address → Base.U64 → Withdrawal`; `index`, `validatorIndex`, `amount : Withdrawal → Base.U64`; `address : Withdrawal → Base.Address` | Pure field storage; no effects or failures | **supplied:** private public-facade `WithdrawalCallerProofs.lean` clients check complete constructor/projection types, arbitrary construction, reconstruction, equality determined by all four fields and each independent update preserving the other three. `WithdrawalGuards.lean` checks complete unsigned values and all twenty address bytes. |
+
+This carrier has no defaults, derived instances, admission predicate, error or
+additional public helper/law family. Source SSZ annotations belong to a separate
+schema adapter. RLP/SSZ, amount conversion, `processWithdrawals` and Q53 withdrawal
+root-input composition remain unimplemented. Static field reading and interpreted
+storage controls supply no source-runtime, fixture, execution or resource result.
 
 ### Supplied raw headers
 
@@ -543,6 +559,14 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
+  facade and checks the complete arbitrary four-field contract in §3.
+  `WithdrawalGuards.lean` has 30 interpreted complete-value guards: zero/max words,
+  distinct word positions, ascending/reversed asymmetric addresses, all twenty
+  independent address-byte positions with high-bit markers and each field update.
+  Every guard observes all three complete words and all twenty address bytes.
+  These controls introduce no native runner or source-runtime comparison claim.
+
 - **Raw headers.** `HeaderCallerProofs.lean` checks arbitrary constructor types,
   all 44 positional field projections, both complete reconstructions and every
   independent field update, together with all 18 parent-getter cases. The runtime
@@ -680,7 +704,11 @@ def BlockConfig.runnerEnv (cfg : BlockConfig) : RunnerEnv :=
 -- Generic table construction and actual effect/dispatch bridges remain open.
 
 -- types (§2.1)
-structure Withdrawal
+structure Withdrawal where
+  index : Base.U64
+  validatorIndex : Base.U64
+  address : Base.Address
+  amount : Base.U64                 -- Gwei
 structure Header where
   parentHash : Hash32
   ommersHash : Hash32
@@ -929,7 +957,8 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 |---|---|---|---|---|---|
 | `BlockParams` | three unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
-| Header, transactions, withdrawals, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
+| `Withdrawal` | four required independent fields in §5 order | itself | none beyond provider types | read-only, shared freely | O(1) projection/update |
+| Header, transactions, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
 | `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
 | Transaction, receipt and withdrawal tries | an `Array ByteArray` of values in index order, built linearly; the root is computed once by `EthCommit` over `rlp i ↦ v` | finite map `Nat ⇀ Bytes` with domain `[0, n)` | α = `fun a i => a[i]?`; invariant: dense | linear-only (`Array`), never snapshotted | O(1) amortised append; root O(n log n) or better (EthCommit) |
 | `receiptKeys` | implicit (`0…n−1`) | list of `rlp i` | α = `(List.range n).map rlp` | — | — |
@@ -946,6 +975,14 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 RunnerEnv; Block never imports Precompiles. Action factorization and its exact Id
 law add no observer parameter or construction premise. Actual generic producer
 and Runner lift/dispatch/settlement proofs remain separate obligations.
+
+The supplied raw `Withdrawal` retains exactly the four independent R-BLK fields
+in §5 order, including the complete Address and the amount in Gwei. Construction
+projects each supplied field, reconstruction returns the original record, and
+all four fields determine equality. Each record update preserves the other three
+fields. The private complete facade clients in §3 prove these structure reductions
+on every well-typed input. No wire schema or processing premise restricts this raw
+carrier.
 
 The supplied raw headers retain exactly their required R-HDR fields in constructor
 order. Construction and independent record updates preserve every other field;
@@ -1052,6 +1089,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
 
 ## 10. Gaps
+
+- **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
+  proofs/interpreted controls are supplied (§3–§5/§7). RLP/SSZ adapters,
+  `processWithdrawals`, amount conversion and Q53 withdrawal root-input composition
+  remain unimplemented. Raw storage closes no execution, resource or readiness gate.
 
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source
