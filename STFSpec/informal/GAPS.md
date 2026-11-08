@@ -1045,40 +1045,53 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
-  in §3/§5/§7, with complete private controls in §4. Other input schemas, wire
+  in §3/§5/§7, with complete private controls in §4. StatelessInput schema, wire
   admission, RLP/header validation, database construction,
   hashing and guest composition remain unimplemented. The five size-limit aliases
-  are supplied under F8 (§3/§5), without implementing those consumers. The
-  stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
-  item below. This carrier closes no input, guest, resource or readiness gate.
+  are supplied under F8 (§3/§5), without implementing those consumers. Input hint retirement follows CONTRACT §2/O5 and P1, as recorded below. This carrier
+  closes no input, guest, resource or readiness gate.
 
 - **Implemented raw request items.** The five nominal carriers and all 17 complete
   independent fields are supplied under §3/§5/§7, with private arbitrary facade
-  clients and whole finite controls in §4. The five actual Q81 dictionaries and
-  their descriptor/adapter certificates, Q80 serialization and root support,
-  Q87/Q88 recovery/decoding, aggregate schema, request wire constants,
-  `encodeExecutionRequests`, roots and input/guest composition remain
-  unimplemented. Raw payload/request carriers are supplied separately below. Source class/reflection/cache/coercion/backing and host agreement
+  clients and whole finite controls in §4. Their five actual Q81 dictionaries and
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
   remain separate. No runtime admission, protocol validation, resource, security,
   cost or readiness obligation is discharged by these raw carriers.
 
 - **Implemented raw execution requests.** The exact five-array aggregate and private
-  arbitrary complete facade clients/finite controls are supplied in §3–§7. The
-  actual aggregate Q81 dictionary and three certificates, Q80 serialization,
-  count recovery, root support and source-decoder correspondence remain separate.
-  Request wire constants/encoding, roots and input/guest composition
-  remain unimplemented. Raw payload/request carriers are supplied separately below. No admission, effect, resource, security, cost or readiness
-  gate is discharged by this raw carrier.
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. Its
+  actual aggregate Q81 dictionary and three certificates, with private Q80 support,
+  count recovery and full-wire controls, are supplied in §3/§4/§5/§7. Root support
+  and source-decoder correspondence remain separate. Request wire constants/encoding,
+  roots and payload/request/input/guest composition remain unimplemented. No admission,
+  effect, resource, security, cost or readiness gate is discharged by this raw carrier.
 
 - **Implemented raw payload/request carriers.** The exact nineteen-field
   ExecutionPayload and four-field NewPayloadRequest over actual provider types,
   private complete arbitrary facade clients and whole finite controls are supplied
-  in §3–§7. Payload/request schemas and Q81 certificates, Q80 serialization,
-  Q87/Q88 recovery/decoding, root support/O2, block/header adapters and validation,
+  in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
+  §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
+  The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
+  in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
+  controls in §4. StatelessInput schema, general Q80 source refinement,
+  Q88 raw decoding, root support/O2, block/header adapters and validation,
   request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
   remain separate. Static source-field correspondence supplies no source runtime,
   backing/coercion/cache/host or guest agreement; O12 remains with its owner.
   No execution, resource, security, cost or readiness gate closes.
+
+- **Implemented raw stateless input.** The exact three-field carrier, identity
+  model, private arbitrary complete facade clients and nested finite controls are
+  supplied in §3–§7. This module's input hint fields, arguments, limits, cases,
+  O5 mapping and L-hint-equivalence guidance follow CONTRACT §2/O5 and P1.
+  Actual input schema/Q81 certificates, operation support, Q87/Q88 decoding,
+  serialization, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  source-host agreement and resource/security/cost/readiness obligations remain open.
+  Other owners' X16 execution/hint migration remains separate, as recorded below.
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
@@ -1096,12 +1109,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **SSZ progressive types.** Correctness of `ProgressiveContainer`/progressive-list decoding and merkleization rests on `eth-remerkleable` 0.1.31 (EIP-7495/EIP-7916 as implemented there). EthCodec implements progressive merkleization, roots and forward encoding (Q75, Q79, Q80); progressive decoding is specified (Q88) but unimplemented, and no independent reference beyond `eth-remerkleable` 0.1.31 is pinned.
 - **`payloadHeader` totality** is inferred: EELS catches any exception there, and the spec asserts none can occur on decoded values. Needs a line-by-line check of `Header` field constructors (e.g. `Uint`/`U256` widening, `Bytes8`).
 - **Order of `legacyDecode`.** `_payload_transaction_to_block_transaction` asserts the decoded type is legacy; after `is_valid_versioned_hashes` succeeds this is believed dead [I]; unproved.
-- **Hint equivalence** (L-hint-equivalence) depends on `EthBlock` proving that the reference key check (`transactions.py:931–932`) accepts exactly the recovered key; the cheaper checks CONTRACT §2 permits are not specified.
+- **Input hint retirement.** CONTRACT §2/O5 and P1 retire this module's L-hint-equivalence obligation. This supplies no sender-recovery proof or backend/security theorem; the other owners' migration remains X16 work.
 - **Error-constructor fidelity is untestable by fixtures** (R8); only reading and `core` cases check it.
 - **F20 implementation/refinement:** implement L-constants and establish witness, provider and context coherence at the R5 boundary. DECISIONS §6 records the design; production refinement and generic oracle coupling remain open.
 - **Consumer seams.** The exact `Faithful` statement evm-asm and pancaketh want (bytes-level equality versus `classify`-level) is not agreed with them; toolchain skew (they are on v4.33.x) is not addressed here.
 - **Upstream churn.** `ExecutionPayloadHeader`/`NewPayloadRequestHeader` are TODO scaffolding (`stateless.py:76–98`) and EIP-7709 may empty `headers`; either change alters this module's wire types.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `StatelessInput` has three fields (CONTRACT §2): `public_keys`, `PUBLIC_KEY_BYTES` and the `transaction_public_keys` parameters of `execute_new_payload_request` and `execute_block` are gone, and senders are always recovered from the signature. The schema id stays `0x1501`. O5 is retired. Still describing `tests-zkevm@v21.0.0` here: §2 (the `public_keys` decoding limits, the "hint always supplied" step with its count check, and `execute_block`'s `transaction_public_keys`), §3 (`StatelessInput` incl. `publicKeys`), §4 (the empty-`public_keys` edge case), §5 (`publicKeyBytes`, `PublicKey`, the `publicKeys` field and the `keys` parameters), the §7 O5 row and the `BlockError` comment. Elsewhere: EthBlock and EthVmCore (their re-pin items), EthSecurity §5 (`x.publicKeys`), EthConformance (byte-level public-key mutations, the engine cross-check's recovered keys and L-build) and the COMPOSITION paragraphs on the 65-byte hint and `Array PublicKey`. No Lean implements input decoding or the hint, so nothing compiled is affected. (b) **Request encoding.** `execution_engine/requests.py` encodes through `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` instead of five hand-written encoders (PR #3658); the §3 rows for `_encode_*` are gone. Every request container is fixed-size and its field order matches the old encoder, so the bytes are unchanged [by reading; not run]. (c) **Renames.** `PreviousForkHeader` is now `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). (d) **Corpus facts.** The §4 corpus facts and the zero-sentinel list are marked by pin; recomputing the v21.0.0 figures is EthConformance's re-pin item.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** This module's raw input and hint-only guidance follow CONTRACT §2/O5 and P1 (§3–§7); no caller, guest or sender recovery is implemented. EthBlock, EthVmCore, EthSecurity and EthConformance retain their separately owned execution/hint migration, together with COMPOSITION's historical hint-adapter paragraphs. Public cryptographic key types elsewhere are outside this input slice. **Request encoding:** `execution_engine/requests.py` uses `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` (PR #3658); the §3 `_encode_*` rows are absent. The fixed-size containers retain the field order of the old encoders, so bytes are unchanged [by reading at `59c1473d`; not run]. **Renames:** `PreviousForkHeader` is `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). **Corpus facts:** the §4 facts and zero-sentinel list retain their stated pins; recomputing the v21.0.0 figures is EthConformance's re-pin item.
 
 ### [`EthConformance`](modules/EthConformance.md)
 
