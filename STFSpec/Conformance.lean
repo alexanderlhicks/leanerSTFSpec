@@ -36,6 +36,8 @@ import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
+import STFSpec.Conformance.Fork.AmsterdamWireLimitsGuards
+import STFSpec.Conformance.Stateless.WireLimitsGuards
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationCallerProofs
 import STFSpec.Conformance.Vm.Core.PreparationFailureGasCallerProofs
 import STFSpec.Conformance.Vm.Core.TransactionGasAllocationGuards
