@@ -1039,8 +1039,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Implemented raw request items.** The five nominal carriers and all 17 complete
   independent fields are supplied under §3/§5/§7, with private arbitrary facade
   clients and whole finite controls in §4. The five actual Q81 dictionaries and
-  their descriptor/adapter certificates, Q80 serialization and root support,
-  Q87/Q88 recovery/decoding, aggregate `ExecutionRequests`, request wire constants,
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, aggregate `ExecutionRequests`, request wire constants,
   `encodeExecutionRequests`, roots and payload/input/guest composition remain
   unimplemented. Source class/reflection/cache/coercion/backing and host agreement
   remain separate. No runtime admission, protocol validation, resource, security,
