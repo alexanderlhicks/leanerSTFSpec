@@ -7,8 +7,10 @@ Run uv run --no-project --python 3.12 python -B scripts/test_node_db_output_pars
 build, pinned environment or external artifacts are required.
 """
 
+import ast
 import importlib.util
 from pathlib import Path
+import re
 import unittest
 
 MODULE_PATH = (Path(__file__).resolve().parents[1] /
@@ -101,6 +103,81 @@ class NodeDBOutputParserTests(unittest.TestCase):
                          {"maps": 18, "full_key_value_observations": 10512,
                           "missing_or_present_queries": 54, "ordered_queries": 1818,
                           "failure_positions": 4})
+
+    def test_legacy_byte_list_syntax(self):
+        for prefix, field, value in (("M|id1|0|", 3, [0] * 32),
+                                     ("M|id1|999999|", 4, [255]),
+                                     ("Q|id1|999999|", 3, [255]),
+                                     ("T|control0|[128, 0]", 2, [128, 0])):
+            decimal = repr(value)
+            variants = ("[" + ", ".join(hex(b) for b in value) + "]",
+                        "[" + ", ".join(f"+{b}" for b in value) + "]",
+                        "[" + ", ".join(str(b)[:-1] + "_" + str(b)[-1:]
+                                        if b >= 10 else "0_0" for b in value) + "]",
+                        decimal[:-1] + ",]", decimal + " # byte list",
+                        decimal.replace("0", "-0"), "(" + decimal + ")", "\t" + decimal)
+            for literal in variants:
+                with self.subTest(prefix=prefix, field=field, literal=literal):
+                    self.assertEqual(
+                        check_output(self.mutated(prefix, field, literal), self.cases),
+                        {"maps": 18, "full_key_value_observations": 10512,
+                         "missing_or_present_queries": 54, "ordered_queries": 1818,
+                         "failure_positions": 4})
+
+    def test_json_nonbyte_literals(self):
+        for prefix, field in (("M|id1|0|", 3), ("M|id1|999999|", 4),
+                              ("Q|id1|999999|", 3), ("T|control0|[255]", 2)):
+            for literal in ("[true]", "[false]", "[NaN]", "[Infinity]", "[-Infinity]"):
+                with self.subTest(prefix=prefix, literal=literal):
+                    self.reject(self.mutated(prefix, field, literal))
+
+    def test_literal_error_diagnostics(self):
+        def message(error):
+            return re.sub(r"(<ast\.[A-Za-z]+ object at )0x[0-9a-fA-F]+(>)", r"\1ADDRESS\2",
+                          str(error))
+
+        for literal in ("[", "[true]", "[false]", "[NaN]", "[Infinity]", "[1,,2]"):
+            with self.subTest(literal=literal):
+                try:
+                    ast.literal_eval(literal)
+                except (SyntaxError, ValueError) as expected:
+                    expected_type, expected_message = type(expected), message(expected)
+                with self.assertRaises(expected_type) as raised:
+                    check_output(self.mutated("M|id1|0|", 3, literal), self.cases)
+                error = raised.exception
+                self.assertEqual(message(error), expected_message)
+                self.assertIsNone(error.__cause__)
+                self.assertIsNone(error.__context__)
+                self.assertFalse(error.__suppress_context__)
+
+    def test_direct_byte_list_inputs(self):
+        for value in (b"[0, 255]", bytearray(b"[0, 255]"), [0, 255], (0, 255), None):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError) as raised:
+                    module.byte_list(value)
+                self.assertEqual(str(raised.exception), f"malformed node or string: {value!r}")
+                self.assertIsNone(raised.exception.__cause__)
+                self.assertIsNone(raised.exception.__context__)
+        literal = ast.List(elts=[ast.Constant(value=0), ast.Constant(value=255)], ctx=ast.Load())
+        self.assertEqual(module.byte_list(literal, width=2), [0, 255])
+        self.assertEqual(module.byte_list(ast.Expression(body=literal)), [0, 255])
+
+    def test_direct_multiline_byte_lists(self):
+        for literal in ("\n [0]", "\n  []", "\n\t[0,255]", "[0]\n ",
+                        "\r [0]", "\r\t[0,255]", "[0]\r ", "\r\n [0]", "[0]\r\n "):
+            with self.subTest(refused=literal):
+                with self.assertRaises(IndentationError) as expected:
+                    ast.literal_eval(literal)
+                with self.assertRaises(IndentationError) as raised:
+                    module.byte_list(literal)
+                self.assertIs(type(raised.exception), type(expected.exception))
+                self.assertEqual(str(raised.exception), str(expected.exception))
+                self.assertIsNone(raised.exception.__cause__)
+                self.assertIsNone(raised.exception.__context__)
+        for literal in ("[\n 0,\n 255,\n]", "\n[0, 255]", "[0,\r\n255]",
+                        "(\n[0, 255]\n)", "[0, 255]\n", "\r[0,255]\r", "[\r0,\r255\r]"):
+            with self.subTest(accepted=literal):
+                self.assertEqual(module.byte_list(literal, width=2), [0, 255])
 
     def test_byte_member_types_and_bounds(self):
         for prefix, field, valid, index in (
