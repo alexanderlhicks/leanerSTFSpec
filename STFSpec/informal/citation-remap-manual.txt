@@ -90,12 +90,7 @@ STFSpec/informal/modules/EthStateWitness.md:20	ws:260–267	src/ethereum/forks/a
 STFSpec/informal/modules/EthStateWitness.md:22	ws:279–294	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 279–294 touches changed lines 284–288, 293	2b93e093caa07a4a40c0
 STFSpec/informal/modules/EthStateWitness.md:23	ws:296–309	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 296–309 touches changed lines 304–309	a6f6690785de88dc9e56
 STFSpec/informal/modules/EthStateWitness.md:24	ws:311	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 311 touches changed lines 311	049076b6785898024876
-STFSpec/informal/modules/EthStateless.md:35	stateless.py:263–311	stateless.py	forks/amsterdam/stateless.py: 263–311 touches changed lines 300	2ce5147eccb02cb9a3ac
-STFSpec/informal/modules/EthStateless.md:40	fork.py:312–317	fork.py	forks/amsterdam/fork.py: 312–317 touches changed lines 312–318	cbf09fe4e02e0282dc36
-STFSpec/informal/modules/EthStateless.md:40	transactions.py:916–934	transactions.py	forks/amsterdam/transactions.py: 916–934 touches changed lines 893–948	96e10b5ece4144ba7654
-STFSpec/informal/modules/EthStateless.md:45	execution_engine/new_payload.py:75–136	execution_engine/new_payload.py	forks/amsterdam/execution_engine/new_payload.py: 75–136 touches changed lines 79, 97–98, 134	7bf2a7d2ba793521c21b
 STFSpec/informal/modules/EthStateless.md:377	incremental_mpt.py:892–1026	incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 892–1026 touches changed lines an insertion after 993	f148f615e830171f9644
-STFSpec/informal/modules/EthStateless.md:382	transactions.py:931–932	transactions.py	forks/amsterdam/transactions.py: 931–932 touches changed lines 893–948	f661e52bcd3aa35f32ac
 STFSpec/informal/modules/EthVmCore.md:16	__init__.py:49–67	__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67; on a line with rewritten citations	38512b3221cdbf44b3c0
 STFSpec/informal/modules/EthVmCore.md:65	:749–773	-	forks/amsterdam/vm/gas.py (identified among its section's files): 749–773 touches changed lines 770–773	8e3e622040cbeee2739d
 STFSpec/informal/modules/EthVmCore.md:189	src/ethereum/forks/amsterdam/vm/__init__.py:49–67	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	4182b52184a2fc2033fc
