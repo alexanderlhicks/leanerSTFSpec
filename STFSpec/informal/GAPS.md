@@ -75,7 +75,7 @@ Several literature items were read at abstract level only; the full text of Alla
 - **Earlier lookups.** For changed accounts, the storage root comes from a cache filled by earlier lookups, and is the empty root if the address was never looked up. This is safe only because every account write is preceded by a lookup: an invariant to prove (COMPOSITION §3, item 2).
 
 ### X11. Reference acceptance is not canonical
-The reference accepts non-canonical witness encodings (DISC-003) and lenient account-leaf decodings (leading-zero integers, and empty lists in an account leaf read as defaults). Storage leaves decode strictly at `tests-zkevm@v21.0.6` (`rlp.decode_to(U256, …)`); the list-to-zero and leading-zero storage leniencies of `tests-zkevm@v21.0.0` are gone, and the Lean storage decoder still implements them (EthStateCommit §10). CONTRACT O4(e) lists the leaf failures; exact adapters and precedence remain to be proved under EthStateCommit SC5/SC6. The spec must reproduce the accepted set exactly.
+The reference accepts non-canonical witness encodings (DISC-003) and lenient account-leaf decodings (leading-zero integers, and empty lists in an account leaf read as defaults). Storage leaves decode strictly at `tests-zkevm@v21.0.6` (`rlp.decode_to(U256, …)`); the list-to-zero and leading-zero storage leniencies of `tests-zkevm@v21.0.0` are gone, and the local Lean storage decoder now follows the strict contract (EthStateCommit §3). CONTRACT O4(e) lists the leaf failures; exact adapters and precedence remain to be proved under EthStateCommit SC5/SC6. The spec must reproduce the accepted set exactly.
 
 ### X12. Upstream crypto pieces are missing
 - The 381-bit Montgomery field (`W12`) exists only as a prototype outside the core; it is not yet in the core or upstream.
@@ -85,7 +85,7 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 - The secp256k1 and P-256 behaviour is inferred from the standards and test runs, because the reference libraries are compiled.
 
 ### X13. Shared interfaces and record instances are partly compiled (implementation task, not a spec defect)
-The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest`, the guest input schema and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
+The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest` and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
@@ -103,7 +103,7 @@ Four items from the interface-composition prototype are open (`STFSpec/informal/
 The pin moved from `tests-zkevm@v21.0.0` (`e1a316a0`) to `tests-zkevm@v21.0.6` (`59c1473d`) in one metadata change (DECISIONS P1). That change regenerated the inventory, the reference records and the fixture index, and updated CONTRACT; it changed no Lean semantics. What remains:
 - **Citations.** CONTRACT and the generated files cite `59c1473d`. The mechanical remap (`scripts/remap_citations.py`) covers the informal documents (except CONTRACT and the generated files) and Lean comments: it moved to `59c1473d` every EELS `file:line` citation, bare `:N` and §3 line column there that it could map exactly, and citations into unchanged files needed no change. The rest are listed with their reasons in `STFSpec/informal/citation-remap-manual.txt`: they touch changed lines or lie past the end of the file, name no execution-specs file or no determinable one, have an ambiguous path, would read as another listed citation once rewritten, or sit in a block that mentions `e1a316a0`. A listed citation stays at `e1a316a0` until a manual review resolves it, even inside a marked block. The tool tracks it by its text and context, so any edit to either fails the check until the entry is resolved explicitly: `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at `e1a316a0` but was moved within its document, edited around or reformatted, or `--apply --confirm DOC:LINE` if it is already correct at `59c1473d` (recorded, and never listed again). Any other citation in that scope is at `59c1473d` unless marked. Entries whose reason ends "on a line with rewritten citations" mark lines that now mix the two commits. Resolving an entry does not recompute that flag for the entries left on its line, so a few unflagged lines also mix the two commits. A manual review has resolved the entries whose code and surrounding prose still hold at `59c1473d`, by rewriting them or recording them as correct. An entry is still listed because its code changed between the two commits, because the prose around it describes changed or removed code or a driver pinned to `e1a316a0`, or because its block or record is dated to `e1a316a0`. Most wait for the modules' re-pin items or the driver re-pin (below). A citation listed because its block or record is dated to `e1a316a0` stays listed until that block is re-verified, and the few others wait for a later manual review. CI runs the tool's `--check`, which catches a pre-remap citation only where its recorded document and surrounding context are unchanged, and a listed citation that disappears; it cannot recognise old line numbers in new or edited prose. A branch cut before the remap must therefore, after merging main, resolve conflicted lines to its own pre-remap numbers and run `--apply --since` with the merged main commit (CONTRIBUTING §6.3). Citations in Python docstrings (the conformance drivers) are not remapped and stay at `e1a316a0` until the drivers are re-pinned (below). Verified observations remain at `e1a316a0` unless marked as at `59c1473d`. Each module that cites EELS states the rule in its conventions line.
 - **Differential evidence.** Ten drivers compare the checkout's `HEAD` with a hard-coded `e1a316a0` and so refuse a `59c1473d` checkout (`STFSpec/Conformance/Vm/Core/gas_{accounting,meter,refund,rollback,transfer}_differential.py`, `Vm/Core/{stack,tx_state_gas_usage}_differential.py`, `Block/count_tokens_differential.py`, `StateCommit/{account,storage}_encoding_differential.py`). Five more assert `e1a316a0` in code: `Block/{requests_hash,deposit_data}_differential.py` require it as the `head` of a source run, and `Vm/Core/{jumpdest,buffer_read}_differential.py` and `Precompiles/kzg_versioned_hash_differential.py` require it as the pin of their frozen catalogue or controls. Further drivers and catalogues embed the old commit in their metadata (for example `Commit/{set,update,delete}_differential.py`, `Vm/Core/{memory_gas,call_init,transaction_gas_allocation,transaction_gas_settlement}_differential.py` and `Fork/amsterdam_vm_catalogue.json`). The frozen catalogues remain evidence at `e1a316a0`; re-stamping them, and regenerating those whose EELS target changed, is open. The drivers whose targets changed are listed with the owning module's re-pin gap.
-- **Semantic deltas.** Each is a re-pin item in its owning module's §10: EthState, EthCommit, EthStateCommit, EthStateWitness, EthStateless, EthBlock, EthVmCore and EthConformance.
+- **Semantic deltas.** Each is a re-pin item in its owning module's §10: EthState, EthCommit, EthStateWitness, EthStateless, EthBlock, EthVmCore and EthConformance. EthStateCommit §3 supplies the strict storage-leaf semantic migration; its §10 retains separate encoding-driver reauthentication and backend integration obligations.
 
 **Owners:** EthConformance (drivers and corpus evidence); each module for its citations and re-pin item.
 
@@ -301,14 +301,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   bounded source evidence retains actual routes, historical source-root metadata
   and nominal internal-observer limits (§3). Actual
   source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
-  premises, universal refinement, schemas/adapters/Rootable/request support,
+  premises, universal refinement, Rootable/request support for the actual schemas,
   O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
   controls, are supplied (§3/§4). This generic module supplies no actual instance,
-  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  descriptor WF or adapter certification. EthStateless §3/§5/§7 owns the actual
+  certified ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests,
+  NewPayloadRequest and StatelessInput dictionaries, and EthBlock §3/§5/§7 the
   Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
@@ -322,8 +324,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Actual certified schema
-  instances and their consumers,
+  source diagnostic/failure/resource order remain open. Consumers of the actual
+  certified schema instances,
   inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -359,8 +361,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
   Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
-  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
-  remain unimplemented.
+  Q81 schema metadata/forward wrappers; raw/typed decoders remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -372,8 +373,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
-  Other actual schema instances, typed decoding and error producers remain open.
+  EthStateless §3/§5/§7 supplies the actual certified ExecutionWitness,
+  ExecutionPayload, five request-item, ExecutionRequests, NewPayloadRequest and
+  StatelessInput SSZ dictionaries, and EthBlock §3/§5/§7 the actual certified
+  Withdrawal SSZ dictionary. Other actual schema instances, such as the output
+  record, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -488,7 +492,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation are supplied (§3/§5/§7). The
+  BlockState.view with its exact application equation, plus raw three-field
+  TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations/contextual
   tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -498,6 +503,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
+- **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
+  complete unchanged providers and the exact state/error transformer order, with
+  private ordinary wiring clients only. Current-pin full-state refinement remains
+  blocked by X16(b); this item does not change either codeReads provider.
+  TxState.new, tracker operations, snapshot/restore, observation effects and
+  lifetimes, initialization/coherence, StateError semantics/freezing, S1/S2/W1,
+  generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
@@ -531,7 +543,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
   §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
-  TxState and StateM remain open.
+  Their nominal TxState/StateM assembly is supplied in §3, retaining X16(b).
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay
@@ -661,12 +673,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
-- **Lenient leaf decoding integration:** local SC5/SC6 acceptance/value/constructor contracts and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first and statically sequential account-field order, coarse `.malformed .leaf` results, ordinary bounded/reference proofs and malformed-wire regressions are supplied. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
-- **Silent list-to-zero** in storage leaves (SC6) and falsy empty lists in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
+- **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
+- **Falsy empty lists** in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
 - **Blockchain-test pre-states** (`EthStateFull`) must satisfy `MathState.WF` (no orphan storage); this is argued from `state_mpt.set_storage`'s assertion (`state_mpt.py:198`) and genesis loading, not checked on the corpus.
-- **Re-pin to `tests-zkevm@v21.0.6`: strict storage leaves (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d`).** `WitnessState.get_storage` now returns `rlp.decode_to(U256, leaf)` (`witness_state.py:127`, execution-specs PR #3659). With ethereum-rlp 0.1.6 a storage leaf that decodes to a list, to a byte string with a leading zero byte, or to more than 32 bytes now fails (CONTRACT O4(e)); at `tests-zkevm@v21.0.0` the list read as zero and the others were accepted when the value fit. `decodeStorageLeaf` (`STFSpec/StateCommit/StorageDecode.lean`) still implements the old SC6 leniency, as do its laws `decodeStorageLeaf_of_rlp_list` and `decodeStorageLeaf_of_rlp_bytes`, the `StorageDecode{Guards,CallerProofs}.lean` conformance files and the frozen `storage_encoding_differential.py` catalogue. SC6 and the "Silent list-to-zero" item above describe the old reference for storage. The `scripts/spec_review.py` check `storage_leaf_rlp_list_is_rejected` follows this pin. Account leaves are unchanged (`_decode_account_from_leaf`), so SC5 stands.
+- **Re-pin evidence (GAPS-CROSSCUTTING X16):** the strict storage semantic migration is supplied in §3 at `59c1473d`; SC5 remains lenient. The earlier description of `storage_encoding_differential.py` as a frozen decoder catalogue was incorrect: that driver covers encoding only, remains at `e1a316a0` and still needs its separate SC2 source reauthentication. Its old evidence does not validate strict decoding. Backend/trie re-pin work, account encoding evidence and other X16 items remain open.
 
 ### [`EthStateFull`](modules/EthStateFull.md)
 
@@ -813,9 +825,24 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   literal controls and six complete charge witnesses, plus the dated external
   interpreted/native and twenty-five original comparisons scoped in §3, are local evidence. General
   source/default/host agreement, actual caller/config/target coherence, earlier
-  CALL payments/state spill, preflight/child return/settlement, compiled/resource
+  CALL reachability/effect ordering, child execution/return bounds and settlement, compiled/resource
   and whole G1/G2–G7/VM/guest gates remain open. The supplied scalar maximum and
   existing guards are reused; no global invariant or hidden default follows.
+
+- **Private CALL preflight numeric composition is supplied:** §3/§4/§7 own the
+  successful-charge/current-budget/full-return potential identity and conditional
+  strict/nonincrease consequences, complete source-aligned field equations and
+  thirteen full-stage successes/two shortages/three boundary controls. This supplies
+  additional arbitrary-return accounting, exact strict-progress equivalence and
+  execution-only bounded-return consequences, with fifty-five complete six-stage/
+  six-field successes and two shortages. Whole-field return/credit equations,
+  a supplied child-phi bridge and a ChildSettled-alone countermodel are private.
+  No reservoir bound enters phi accounting. This supplies no actual CALL handler
+  or child semantics. Source ZERO coherence, actual access/
+  failure/effect ordering, saved grants/config identity and reachability, child
+  returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
+  G2–G7, source/default/host agreement, resources, security and guest/readiness
+  remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
@@ -962,9 +989,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthBlock`](modules/EthBlock.md)
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
-  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
-  (§3–§5/§7). Actual-value support and complete layout clients remain private.
-  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  proofs/interpreted controls, the forward RLP reference instance and the actual
+  certified SSZ dictionary are supplied (§3–§5/§7). Supplementary RLP model/domain/
+  wire/size clients and SSZ support/layout clients remain private. Raw/guest
+  decoding, root laws, `processWithdrawals`, amount conversion
   and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
   scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
   Execution, resource/C1–C4, security and readiness gates remain open.
@@ -1020,6 +1048,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Input schema identifiers:** the five Fork-owned constants and private complete facade controls are supplied (§3). EthStateless §3/§7 supplies the selected nominal transport and aliases. Decoder/admission, guest and resource obligations remain open.
+- **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless, with the Withdrawal member schema in EthBlock; Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
@@ -1034,7 +1064,70 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateless`](modules/EthStateless.md)
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Implemented protocol fork metadata.** The complete 21-constructor carrier,
+  total forward tag observation and private complete facade proofs/guards are supplied
+  in §3–§7. The five selected schema declarations and private bounded transport
+  from the Fork-owned raw tag are supplied there under F8. The direction remains
+  Stateless → Fork, without a public inverse or a change to the nominal carrier.
+  Raw decoding/admission, guest execution and root/resource/readiness obligations
+  remain open.
+
+- **Implemented raw execution witness.** The exact three-field carrier and private
+  complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
+  in §3/§5/§7, with complete private controls in §4. Input wire
+  admission, RLP/header validation, database construction,
+  hashing and guest composition remain unimplemented. The five size-limit aliases
+  are supplied under F8 (§3/§5), without implementing those consumers. Input hint retirement follows CONTRACT §2/O5 and P1, as recorded below. This carrier
+  closes no input, guest, resource or readiness gate.
+
+- **Implemented raw request items.** The five nominal carriers and all 17 complete
+  independent fields are supplied under §3/§5/§7, with private arbitrary facade
+  clients and whole finite controls in §4. Their five actual Q81 dictionaries and
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
+  remain separate. No runtime admission, protocol validation, resource, security,
+  cost or readiness obligation is discharged by these raw carriers.
+
+- **Implemented raw execution requests.** The exact five-array aggregate and private
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. Its
+  actual aggregate Q81 dictionary and three certificates, with private Q80 support,
+  count recovery and full-wire controls, are supplied in §3/§4/§5/§7. Root support
+  and source-decoder correspondence remain separate. Request wire constants/encoding,
+  roots and payload/request/input/guest composition remain unimplemented. No admission,
+  effect, resource, security, cost or readiness gate is discharged by this raw carrier.
+
+- **Implemented raw payload/request carriers.** The exact nineteen-field
+  ExecutionPayload and four-field NewPayloadRequest over actual provider types,
+  private complete arbitrary facade clients and whole finite controls are supplied
+  in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
+  §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
+  The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
+  in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
+  controls in §4. General Q80 source refinement,
+  Q88 raw decoding, root support/O2, block/header adapters and validation,
+  request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
+  remain separate. Static source-field correspondence supplies no source runtime,
+  backing/coercion/cache/host or guest agreement; O12 remains with its owner.
+  No execution, resource, security, cost or readiness gate closes.
+
+- **Implemented raw stateless input.** The exact three-field carrier, identity
+  model, private arbitrary complete facade clients and nested finite controls are
+  supplied in §3–§7. This module's input hint fields, arguments, limits, cases,
+  O5 mapping and L-hint-equivalence guidance follow CONTRACT §2/O5 and P1.
+  The actual input dictionary and three Q81 certificates, private count/support/layout
+  clients and complete 48-input/385957-byte mathematical wire controls are supplied
+  in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
+  30-case/183-byte controls, actual raw request-size formulas, operation-local
+  encoded-size laws, fixed classifications and inherited child/member support are
+  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
+  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  source-host agreement and resource/security/cost/readiness obligations remain open.
+  Other owners' X16 execution/hint migration remains separate, as recorded below.
+
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 
@@ -1050,12 +1143,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **SSZ progressive types.** Correctness of `ProgressiveContainer`/progressive-list decoding and merkleization rests on `eth-remerkleable` 0.1.31 (EIP-7495/EIP-7916 as implemented there). EthCodec implements progressive merkleization, roots and forward encoding (Q75, Q79, Q80); progressive decoding is specified (Q88) but unimplemented, and no independent reference beyond `eth-remerkleable` 0.1.31 is pinned.
 - **`payloadHeader` totality** is inferred: EELS catches any exception there, and the spec asserts none can occur on decoded values. Needs a line-by-line check of `Header` field constructors (e.g. `Uint`/`U256` widening, `Bytes8`).
 - **Order of `legacyDecode`.** `_payload_transaction_to_block_transaction` asserts the decoded type is legacy; after `is_valid_versioned_hashes` succeeds this is believed dead [I]; unproved.
-- **Hint equivalence** (L-hint-equivalence) depends on `EthBlock` proving that the reference key check (`transactions.py:931–932`) accepts exactly the recovered key; the cheaper checks CONTRACT §2 permits are not specified.
+- **Input hint retirement.** CONTRACT §2/O5 and P1 retire this module's L-hint-equivalence obligation. This supplies no sender-recovery proof or backend/security theorem; the other owners' migration remains X16 work.
 - **Error-constructor fidelity is untestable by fixtures** (R8); only reading and `core` cases check it.
 - **F20 implementation/refinement:** implement L-constants and establish witness, provider and context coherence at the R5 boundary. DECISIONS §6 records the design; production refinement and generic oracle coupling remain open.
 - **Consumer seams.** The exact `Faithful` statement evm-asm and pancaketh want (bytes-level equality versus `classify`-level) is not agreed with them; toolchain skew (they are on v4.33.x) is not addressed here.
 - **Upstream churn.** `ExecutionPayloadHeader`/`NewPayloadRequestHeader` are TODO scaffolding (`stateless.py:76–98`) and EIP-7709 may empty `headers`; either change alters this module's wire types.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `StatelessInput` has three fields (CONTRACT §2): `public_keys`, `PUBLIC_KEY_BYTES` and the `transaction_public_keys` parameters of `execute_new_payload_request` and `execute_block` are gone, and senders are always recovered from the signature. The schema id stays `0x1501`. O5 is retired. Still describing `tests-zkevm@v21.0.0` here: §2 (the `public_keys` decoding limits, the "hint always supplied" step with its count check, and `execute_block`'s `transaction_public_keys`), §3 (`StatelessInput` incl. `publicKeys`), §4 (the empty-`public_keys` edge case), §5 (`publicKeyBytes`, `PublicKey`, the `publicKeys` field and the `keys` parameters), the §7 O5 row and the `BlockError` comment. Elsewhere: EthBlock and EthVmCore (their re-pin items), EthSecurity §5 (`x.publicKeys`), EthConformance (byte-level public-key mutations, the engine cross-check's recovered keys and L-build) and the COMPOSITION paragraphs on the 65-byte hint and `Array PublicKey`. No Lean implements input decoding or the hint, so nothing compiled is affected. (b) **Request encoding.** `execution_engine/requests.py` encodes through `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` instead of five hand-written encoders (PR #3658); the §3 rows for `_encode_*` are gone. Every request container is fixed-size and its field order matches the old encoder, so the bytes are unchanged [by reading; not run]. (c) **Renames.** `PreviousForkHeader` is now `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). (d) **Corpus facts.** The §4 corpus facts and the zero-sentinel list are marked by pin; recomputing the v21.0.0 figures is EthConformance's re-pin item.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** This module's raw input and hint-only guidance follow CONTRACT §2/O5 and P1 (§3–§7); no caller, guest or sender recovery is implemented. EthBlock, EthVmCore, EthSecurity and EthConformance retain their separately owned execution/hint migration, together with COMPOSITION's historical hint-adapter paragraphs. Public cryptographic key types elsewhere are outside this input slice. **Request encoding:** `execution_engine/requests.py` uses `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` (PR #3658); the §3 `_encode_*` rows are absent. The fixed-size containers retain the field order of the old encoders, so bytes are unchanged [by reading at `59c1473d`; not run]. **Renames:** `PreviousForkHeader` is `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). **Corpus facts:** the §4 facts and zero-sentinel list retain their stated pins; recomputing the v21.0.0 figures is EthConformance's re-pin item.
 
 ### [`EthConformance`](modules/EthConformance.md)
 

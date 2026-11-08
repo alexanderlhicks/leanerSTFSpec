@@ -255,3 +255,9 @@ root = "ReferenceDivisionNativeTests"
 name = "header-carriers-native-tests"
 srcDir = "scripts"
 root = "HeaderCarriersNativeTests"
+
+# Complete strict storage-leaf results on independently frozen raw inputs.
+[[lean_exe]]
+name = "storage-decode-native-tests"
+srcDir = "scripts"
+root = "StorageDecodeNativeTests"
