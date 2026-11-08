@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw execution witness, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -63,7 +63,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_CODE` | 33 | `maxBytesPerCode := 2^16` | |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader := 2^10` | |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode := 2^10` | |
-| `forks/amsterdam/stateless.py::ExecutionWitness` | 41 | `structure ExecutionWitness` | |
+| `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
 | `forks/amsterdam/stateless.py::ProtocolFork` | 101 | `inductive ProtocolFork` + `toIndex` | only `amsterdam` is used |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex := ProtocolFork.amsterdam` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8 := 1` | |
@@ -95,6 +95,18 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/execution_engine/requests.py::ExecutionRequests` | 99 | `structure ExecutionRequests` | progressive container |
 | `forks/amsterdam/execution_engine/requests.py::encode_execution_requests` | 148 | `encodeExecutionRequests` | empty lists omitted, ascending type |
 
+**Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
+`state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
+arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
+`59c1473d` supplies the source field names/order and raw byte collections [V: read].
+The accepted raw domain is every triple of finite arrays of complete byte arrays,
+including empty arrays, empty members, duplicates, malformed RLP and lengths outside
+the wire limits. Construction/projection retain the supplied arrays exactly;
+reconstruction and each independent update reduce to the complete expected record.
+There are no effects or failures, hence no handler or O-row. This raw contract is
+discharged by the structure and the private facade clients in §4; it adds no public
+helper laws, schema, wire admission or source-runtime agreement claim.
+
 The decoders and size constants of `execution_engine/requests.py` (engine wire form → typed) are host-side and claimed by `EthConformance`; `verify_and_notify_new_payload` (the stateful path) is claimed by `EthConformance`. Scaffolding types, `forkchoice_update.py`, `get_payload.py` and the unused engine types are excluded in `STFSpec/informal/EXCLUDED.md` with reasons.
 
 **External semantics.** The inventory lists these external uses in the claimed files:
@@ -103,6 +115,18 @@ The decoders and size constants of `execution_engine/requests.py` (engine wire f
 - SSZ via `eth-remerkleable` 0.1.31 (through `utils/ssz.py`, owned by `EthCodec`): canonical decoding, progressive list/container merkleization and `hash_tree_root`.
 
 ## 4. Tests
+
+**Raw execution witness controls.**
+`STFSpec/Conformance/Stateless/ExecutionWitnessCallerProofs.lean` imports the public
+facade and privately checks the complete constructor/projection types, arbitrary
+reconstruction, determination by all fields and each independent whole-record update.
+These quantified clients cover every array/member length without wire-bound premises.
+`ExecutionWitnessGuards.lean` checks complete byte-list triples for empty arrays,
+empty members in each field, unequal array/member lengths, repeated and reordered
+distinct members, zero/nonzero/asymmetric bytes and each field update while retaining
+both other arrays. Ordinary Lean proofs and interpreted `#guard` controls are checked
+by the build/declaration audit/kernel replay; these are raw storage controls, not
+executed EELS or guest comparisons.
 
 **EEST fixture areas.** Every guest record (67,685 at this pin, in `blockchain_tests` and `blockchain_tests_engine`; `reference.toml`) passes through this library. Areas that target it specifically (`STFSpec/informal/eest-fixture-index.txt`): `blockchain_tests/for_amsterdam/amsterdam/eip8025_optional_proofs` (96 files), in particular `stateless_input_bytes/` (the zero-sentinel records: at v21.0.0 these were 9, empty input, 1-byte input, schema only, wrong fork byte `0x16`, wrong revision `0x02`, truncated body, trailing garbage, invalid first offset, shifted offsets [V, v21.0.0]; at this pin there are 10 per format, without trailing garbage and with two witness-header SSZ limit cases, EthCodec §4), `witness_validation_headers/` (non-contiguous chain, missing parent header, empty headers, missing oldest BLOCKHASH ancestor, malformed RLP header), `witness_headers/`, `witness_validation_chain_id/`, `stateless_input_versioned_hashes/`, `witness_validation_state/`, `witness_validation_codes/`; and the transition directory `for_bpo2toamsterdamattime15k/*` (previous-fork parent header). Payload conversion is exercised by `prague/eip7685_general_purpose_el_requests`, `eip6110_deposits`, `eip7002_*`, `eip7251_*`, `amsterdam/eip8282_builder_execution_requests`, `cancun/eip4844_blobs` (versioned hashes) and `amsterdam/eip7928_block_level_access_lists` (BAL bytes and hash).
 
@@ -154,6 +178,13 @@ Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values, retaining who
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
 All in namespace `STFSpec.Stateless`; public unless marked.
+
+`ExecutionWitness` below is supplied as a raw carrier. Its fields retain arbitrary
+complete `Array ByteArray` values without a schema, bounds, validation, decoded
+`Header`, database or hashing dependency. The schema/value-limit declarations below
+remain prospective: F8 owns Amsterdam values, so the local-limit guidance needs
+reconciliation before concrete witness schemas. The stale `publicKeys`/input guidance
+is a separate re-pin obligation in §10; it does not change this three-field witness.
 
 ```lean
 -- constants (public)
@@ -267,7 +298,7 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
-| `ExecutionWitness` | three `Array ByteArray` | a triple of finite lists | identity | `WF`: node/code/header size limits, `headers.size ≤ 256` | linear-only (read once to build DBs) | decode O(n); DB build O(total bytes) keccak |
+| `ExecutionWitness` | three `Array ByteArray` | ordered triple of complete finite byte-array lists | identity, including order/duplicates/empty members | none on the raw carrier; wire limits belong to its future schema | immutable value; later DB builders consume the raw preimages | O(1) construction/projection; decoding and DB building unimplemented |
 | `StatelessInput` and the wire containers | Lean structures over `ByteArray`/`Array`/fixed-width words | the SSZ value | identity; SSZ `encode`/`decode` | `WF` (limits; `PublicKey` size by subtype; `extraData.size ≤ 32`) | immutable after decode | decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
 | `GuestOutcome` | inductive | the O-row plus fields | `toResult` | `valid`/`invalid` only carry `schemaId = 0x1501` implicitly | value | O(1) |
@@ -277,6 +308,14 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 Widths: `blockNumber`, `gasLimit`, `gasUsed` are `Uint` in EELS but SSZ `uint64` (`types.py:226–229`); `timestamp` is `U256` with SSZ `uint(64)`; `baseFeePerGas` is SSZ `uint256`. The spec stores the SSZ width and widens explicitly where `Header` needs `Uint`/`U256`; a decoded value is always in range, so no check is lost [V: SSZ decoding rejects values outside the declared field widths]. Consequently the NUMBER, GASLIMIT and BASEFEE `U256` conversions in the VM cannot overflow; only BLOBBASEFEE (computed, not decoded) can (O13).
 
 ## 7. Contract and laws
+
+**Supplied raw execution witness contract.** The public constructor/projections have
+exactly the §5 types. For arbitrary arrays, construction retains all three complete
+values, reconstruction returns the original record and updating any one field retains
+the other two. Private facade clients discharge these equations directly, without
+additional admission or a public law family. The raw model has no wire-size, nonempty,
+RLP, header-chain, database or hash invariant. Schema certification/decoding and guest
+composition remain separate obligations; no execution or refinement theorem follows.
 
 **Supplied output laws.** `STFSpec/Stateless/Output.lean` supplies the ordinary
 `serializeStatelessOutput_eq` complete byte-list equation, `serializeStatelessOutput_size`
@@ -362,6 +401,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Fork-activation check: resolved, DECISIONS Q5 (follow the reference; explicit exclusion, CONTRACT §5).
 
 ## 10. Gaps
+
+- **Implemented raw execution witness.** The exact three-field carrier and private
+  complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
+  their certifications, wire admission, RLP/header validation, database construction,
+  hashing and guest composition remain unimplemented. Reconcile the proposed local
+  size-limit declarations in §3/§5 with F8 before concrete witness schema work. The
+  stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
+  item below. This carrier closes no input, guest, resource or readiness gate.
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 

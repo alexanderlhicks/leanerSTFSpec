@@ -1018,6 +1018,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateless`](modules/EthStateless.md)
 
+- **Implemented raw execution witness.** The exact three-field carrier and private
+  complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
+  their certifications, wire admission, RLP/header validation, database construction,
+  hashing and guest composition remain unimplemented. Reconcile the proposed local
+  size-limit declarations in §3/§5 with F8 before concrete witness schema work. The
+  stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
+  item below. This carrier closes no input, guest, resource or readiness gate.
+
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
