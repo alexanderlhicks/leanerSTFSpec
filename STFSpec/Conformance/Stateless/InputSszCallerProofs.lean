@@ -1345,4 +1345,408 @@ private theorem fixed_zero_count_boundary :
   intro h
   exact h.1 rfl
 
+/-! ### Private actual request sizes and inherited support -/
+
+private def transactionSize (transactions : Array ByteArray) : Nat :=
+  4 * transactions.size + (transactions.toList.map ByteArray.size).sum
+
+private def payloadSize (p : ExecutionPayload) : Nat :=
+  540 + p.extraData.size + transactionSize p.transactions + 44 * p.withdrawals.size +
+    p.blockAccessList.size
+
+private def requestsSize (a : ExecutionRequests) : Nat :=
+  20 + 192 * a.deposits.size + 76 * a.withdrawals.size + 116 * a.consolidations.size +
+    184 * a.builderDeposits.size + 68 * a.builderExits.size
+
+private def requestSize (q : NewPayloadRequest) : Nat :=
+  44 + payloadSize q.executionPayload + 32 * q.versionedHashes.size +
+    requestsSize q.executionRequests
+
+private theorem withdrawal_fixed_size :
+    STFSpec.Block.Withdrawal.instSszSchema.type.fixedSize? = some 44 := by
+  dsimp only [SszSchema.type, STFSpec.Block.Withdrawal.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _), SszType.fixedSize?_eq (.uint _)]
+
+private theorem deposit_fixed_size : DepositRequest.instSszSchema.type.fixedSize? = some 192 := by
+  dsimp only [SszSchema.type, DepositRequest.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _), SszType.fixedSize?_eq (.uint _)]
+
+private theorem withdrawal_request_fixed_size :
+    WithdrawalRequest.instSszSchema.type.fixedSize? = some 76 := by
+  dsimp only [SszSchema.type, WithdrawalRequest.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _), SszType.fixedSize?_eq (.uint _)]
+
+private theorem consolidation_fixed_size :
+    ConsolidationRequest.instSszSchema.type.fixedSize? = some 116 := by
+  dsimp only [SszSchema.type, ConsolidationRequest.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _)]
+
+private theorem builder_deposit_fixed_size :
+    BuilderDepositRequest.instSszSchema.type.fixedSize? = some 184 := by
+  dsimp only [SszSchema.type, BuilderDepositRequest.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _), SszType.fixedSize?_eq (.uint _)]
+
+private theorem builder_exit_fixed_size :
+    BuilderExitRequest.instSszSchema.type.fixedSize? = some 68 := by
+  dsimp only [SszSchema.type, BuilderExitRequest.instSszSchema]
+  simp [SszType.fixedSize?_eq (.container _),
+    SszType.fixedSize?_eq (.byteVector _)]
+
+private theorem payload_variable_size : ExecutionPayload.instSszSchema.type.fixedSize? = none := by
+  dsimp only [SszSchema.type, ExecutionPayload.instSszSchema]
+  simp [SszType.fixedSize?_eq (.progressiveContainer _ _),
+    SszType.fixedSize?_eq (.byteVector _), SszType.fixedSize?_eq (.uint _),
+    SszType.fixedSize?_eq (.byteList _), SszType.fixedSize?_eq (.progressiveList _),
+    SszType.fixedSize?_eq .progressiveByteList]
+
+private theorem requests_variable_size :
+    ExecutionRequests.instSszSchema.type.fixedSize? = none := by
+  dsimp only [SszSchema.type, ExecutionRequests.instSszSchema]
+  simp [SszType.fixedSize?_eq (.progressiveContainer _ _),
+    SszType.fixedSize?_eq (.progressiveList _)]
+
+private theorem transactions_logical_size (transactions : Array ByteArray) :
+    logicalSize (.progressiveList .progressiveByteList)
+      (.list (transactions.toList.map SszValue.bytes)) = transactionSize transactions := by
+  rw [logicalSize_recurrence]
+  simp only [SszType.fixedSize?_eq .progressiveByteList, List.length_map,
+    Array.length_toList, List.map_map, Function.comp_def,
+    logicalSize_recurrence .progressiveByteList (.bytes _), transactionSize]
+
+private theorem payload_logical_size (p : ExecutionPayload) :
+    logicalSize ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue p) = payloadSize p := by
+  change logicalSize (.progressiveContainer (List.replicate 19 true) [
+    .byteVector 32, .byteVector 20, .byteVector 32, .byteVector 32,
+    .byteVector 256, .byteVector 32, .uint 8, .uint 8, .uint 8, .uint 8,
+    .byteList maxExtraDataBytes, .uint 32, .byteVector 32,
+    .progressiveList .progressiveByteList,
+    .progressiveList STFSpec.Block.Withdrawal.instSszSchema.type,
+    .uint 8, .uint 8, .progressiveByteList, .uint 8]) (.container [
+      .bytes p.parentHash.toBytes.toByteArray, .bytes p.feeRecipient.toBytes.toByteArray,
+      .bytes p.stateRoot.toBytes.toByteArray, .bytes p.receiptsRoot.toBytes.toByteArray,
+      .bytes p.logsBloom.toBytes.toByteArray, .bytes p.prevRandao.toBytes.toByteArray,
+      .uint p.blockNumber.toNat, .uint p.gasLimit.toNat, .uint p.gasUsed.toNat,
+      .uint p.timestamp.toNat, .bytes p.extraData, .uint p.baseFeePerGas.toNat,
+      .bytes p.blockHash.toBytes.toByteArray,
+      .list (p.transactions.toList.map SszValue.bytes),
+      .list (p.withdrawals.toList.map STFSpec.Block.Withdrawal.instSszSchema.toValue),
+      .uint p.blobGasUsed.toNat, .uint p.excessBlobGas.toNat, .bytes p.blockAccessList,
+      .uint p.slotNumber.toNat]) = _
+  rw [logicalSize_recurrence]
+  simp only [List.zip_cons_cons, List.zip_nil_left, List.map_cons, List.map_nil,
+    List.sum_cons, List.sum_nil, SszType.fixedSize?_eq (.byteVector _),
+    SszType.fixedSize?_eq (.uint _), SszType.fixedSize?_eq (.byteList _),
+    SszType.fixedSize?_eq (.progressiveList _),
+    SszType.fixedSize?_eq .progressiveByteList,
+    logicalSize_recurrence (.byteList _) (.bytes _),
+    logicalSize_recurrence .progressiveByteList (.bytes _),
+    transactions_logical_size, logicalSize_recurrence
+      (.progressiveList STFSpec.Block.Withdrawal.instSszSchema.type) (.list _),
+    withdrawal_fixed_size, List.length_map, Array.length_toList, payloadSize]
+  omega
+
+private theorem requests_logical_size (a : ExecutionRequests) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue a) = requestsSize a := by
+  change logicalSize (.progressiveContainer [true, true, true, true, true] [
+    .progressiveList DepositRequest.instSszSchema.type,
+    .progressiveList WithdrawalRequest.instSszSchema.type,
+    .progressiveList ConsolidationRequest.instSszSchema.type,
+    .progressiveList BuilderDepositRequest.instSszSchema.type,
+    .progressiveList BuilderExitRequest.instSszSchema.type]) (.container [
+      .list (a.deposits.toList.map DepositRequest.instSszSchema.toValue),
+      .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue),
+      .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue),
+      .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue),
+      .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)]) = _
+  rw [logicalSize_recurrence]
+  simp only [List.zip_cons_cons, List.zip_nil_left, List.map_cons, List.map_nil,
+    List.sum_cons, List.sum_nil, SszType.fixedSize?_eq (.progressiveList _),
+    logicalSize_recurrence (.progressiveList _) (.list _), deposit_fixed_size,
+    withdrawal_request_fixed_size, consolidation_fixed_size, builder_deposit_fixed_size,
+    builder_exit_fixed_size, List.length_map, Array.length_toList, requestsSize]
+  omega
+
+private theorem request_logical_size (q : NewPayloadRequest) :
+    logicalSize NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q) = requestSize q := by
+  change logicalSize (.container [ExecutionPayload.instSszSchema.type,
+    .progressiveList (.byteVector 32), .byteVector 32, ExecutionRequests.instSszSchema.type])
+    (.container [ExecutionPayload.instSszSchema.toValue q.executionPayload,
+      .list (q.versionedHashes.toList.map (fun h ↦ .bytes h.toBytes.toByteArray)),
+      .bytes q.parentBeaconBlockRoot.toBytes.toByteArray,
+      ExecutionRequests.instSszSchema.toValue q.executionRequests]) = _
+  rw [logicalSize_recurrence]
+  simp only [List.zip_cons_cons, List.zip_nil_left, List.map_cons, List.map_nil,
+    List.sum_cons, List.sum_nil, payload_variable_size, requests_variable_size,
+    SszType.fixedSize?_eq (.progressiveList _), SszType.fixedSize?_eq (.byteVector _),
+    payload_logical_size, requests_logical_size,
+    logicalSize_recurrence (.progressiveList _) (.list _),
+    List.length_map, Array.length_toList, requestSize]
+  omega
+
+private theorem transactions_encoded_size (transactions : Array ByteArray)
+    (h : Ssz.Serializable (.progressiveList .progressiveByteList)
+      (.list (transactions.toList.map SszValue.bytes))) :
+    (Ssz.encode _ _ h).size = transactionSize transactions :=
+  (encode_size_model _ _ h).trans (transactions_logical_size transactions)
+
+private theorem payload_encoded_size (p : ExecutionPayload)
+    (h : Ssz.Serializable ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue p)) :
+    (Ssz.encode _ _ h).size = payloadSize p :=
+  (encode_size_model _ _ h).trans (payload_logical_size p)
+
+private theorem requests_encoded_size (a : ExecutionRequests)
+    (h : Ssz.Serializable ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = requestsSize a :=
+  (encode_size_model _ _ h).trans (requests_logical_size a)
+
+private theorem request_encoded_size (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    (Ssz.encode _ _ h).size = requestSize q :=
+  (encode_size_model _ _ h).trans (request_logical_size q)
+
+private theorem withdrawal_encoded_size (a : STFSpec.Block.Withdrawal)
+    (h : Ssz.Serializable STFSpec.Block.Withdrawal.instSszSchema.type
+      (STFSpec.Block.Withdrawal.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 44 :=
+  encode_fixed_size _ _ h 44 withdrawal_fixed_size
+
+private theorem deposit_encoded_size (a : DepositRequest)
+    (h : Ssz.Serializable DepositRequest.instSszSchema.type
+      (DepositRequest.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 192 :=
+  encode_fixed_size _ _ h 192 deposit_fixed_size
+
+private theorem withdrawal_request_encoded_size (a : WithdrawalRequest)
+    (h : Ssz.Serializable WithdrawalRequest.instSszSchema.type
+      (WithdrawalRequest.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 76 :=
+  encode_fixed_size _ _ h 76 withdrawal_request_fixed_size
+
+private theorem consolidation_encoded_size (a : ConsolidationRequest)
+    (h : Ssz.Serializable ConsolidationRequest.instSszSchema.type
+      (ConsolidationRequest.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 116 :=
+  encode_fixed_size _ _ h 116 consolidation_fixed_size
+
+private theorem builder_deposit_encoded_size (a : BuilderDepositRequest)
+    (h : Ssz.Serializable BuilderDepositRequest.instSszSchema.type
+      (BuilderDepositRequest.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 184 :=
+  encode_fixed_size _ _ h 184 builder_deposit_fixed_size
+
+private theorem builder_exit_encoded_size (a : BuilderExitRequest)
+    (h : Ssz.Serializable BuilderExitRequest.instSszSchema.type
+      (BuilderExitRequest.instSszSchema.toValue a)) :
+    (Ssz.encode _ _ h).size = 68 :=
+  encode_fixed_size _ _ h 68 builder_exit_fixed_size
+
+private theorem request_children_serializable (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    Ssz.Serializable ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue q.executionPayload) ∧
+    Ssz.Serializable (.progressiveList (.byteVector 32))
+      (.list (q.versionedHashes.toList.map (fun h ↦ .bytes h.toBytes.toByteArray))) ∧
+    Ssz.Serializable (.byteVector 32) (.bytes q.parentBeaconBlockRoot.toBytes.toByteArray) ∧
+    Ssz.Serializable ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue q.executionRequests) := by
+  have hs := ((Ssz.serializable_iff _ _).mp h).2.1
+  refine ⟨hs (ExecutionPayload.instSszSchema.type,
+      ExecutionPayload.instSszSchema.toValue q.executionPayload) ?_,
+    hs (.progressiveList (.byteVector 32), .list (q.versionedHashes.toList.map
+      (fun h ↦ .bytes h.toBytes.toByteArray))) ?_,
+    hs (.byteVector 32, .bytes q.parentBeaconBlockRoot.toBytes.toByteArray) ?_,
+    hs (ExecutionRequests.instSszSchema.type,
+      ExecutionRequests.instSszSchema.toValue q.executionRequests) ?_⟩ <;>
+    simp
+
+private theorem payload_children_serializable (p : ExecutionPayload)
+    (h : Ssz.Serializable ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue p)) :
+    Ssz.Serializable (.progressiveList .progressiveByteList)
+      (.list (p.transactions.toList.map SszValue.bytes)) ∧
+    Ssz.Serializable (.progressiveList STFSpec.Block.Withdrawal.instSszSchema.type)
+      (.list (p.withdrawals.toList.map STFSpec.Block.Withdrawal.instSszSchema.toValue)) ∧
+    Ssz.Serializable (.byteList maxExtraDataBytes) (.bytes p.extraData) ∧
+    Ssz.Serializable .progressiveByteList (.bytes p.blockAccessList) := by
+  have hs := ((Ssz.serializable_iff _ _).mp h).2.1
+  refine ⟨hs (.progressiveList .progressiveByteList,
+      .list (p.transactions.toList.map SszValue.bytes)) ?_,
+    hs (.progressiveList STFSpec.Block.Withdrawal.instSszSchema.type,
+      .list (p.withdrawals.toList.map STFSpec.Block.Withdrawal.instSszSchema.toValue)) ?_,
+    hs (.byteList maxExtraDataBytes, .bytes p.extraData) ?_,
+    hs (.progressiveByteList, .bytes p.blockAccessList) ?_⟩ <;>
+    simp
+
+private theorem requests_children_serializable (a : ExecutionRequests)
+    (h : Ssz.Serializable ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue a)) :
+    Ssz.Serializable (.progressiveList DepositRequest.instSszSchema.type)
+      (.list (a.deposits.toList.map DepositRequest.instSszSchema.toValue)) ∧
+    Ssz.Serializable (.progressiveList WithdrawalRequest.instSszSchema.type)
+      (.list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue)) ∧
+    Ssz.Serializable (.progressiveList ConsolidationRequest.instSszSchema.type)
+      (.list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue)) ∧
+    Ssz.Serializable (.progressiveList BuilderDepositRequest.instSszSchema.type)
+      (.list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue)) ∧
+    Ssz.Serializable (.progressiveList BuilderExitRequest.instSszSchema.type)
+      (.list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)) := by
+  have hs := ((Ssz.serializable_iff _ _).mp h).2.1
+  refine ⟨hs (.progressiveList DepositRequest.instSszSchema.type,
+      .list (a.deposits.toList.map DepositRequest.instSszSchema.toValue)) ?_,
+    hs (.progressiveList WithdrawalRequest.instSszSchema.type,
+      .list (a.withdrawals.toList.map WithdrawalRequest.instSszSchema.toValue)) ?_,
+    hs (.progressiveList ConsolidationRequest.instSszSchema.type,
+      .list (a.consolidations.toList.map ConsolidationRequest.instSszSchema.toValue)) ?_,
+    hs (.progressiveList BuilderDepositRequest.instSszSchema.type,
+      .list (a.builderDeposits.toList.map BuilderDepositRequest.instSszSchema.toValue)) ?_,
+    hs (.progressiveList BuilderExitRequest.instSszSchema.type,
+      .list (a.builderExits.toList.map BuilderExitRequest.instSszSchema.toValue)) ?_⟩ <;>
+    simp
+
+private theorem progressive_members_serializable {α : Type} (t : SszType)
+    (model : α → SszValue) (xs : List α)
+    (h : Ssz.Serializable (.progressiveList t) (.list (xs.map model))) :
+    ∀ x ∈ xs, Ssz.Serializable t (model x) := by
+  have hs := ((Ssz.serializable_iff _ _).mp h).1
+  intro x hx
+  exact hs _ (List.mem_map.mpr ⟨x, hx, rfl⟩)
+
+private theorem request_hashes_serializable (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    ∀ b ∈ q.versionedHashes.toList,
+      Ssz.Serializable (.byteVector 32) (.bytes b.toBytes.toByteArray) :=
+  progressive_members_serializable _ _ _ (request_children_serializable q h).2.1
+
+private theorem payload_members_serializable (p : ExecutionPayload)
+    (h : Ssz.Serializable ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue p)) :
+    (∀ b ∈ p.transactions.toList, Ssz.Serializable .progressiveByteList (.bytes b)) ∧
+    (∀ w ∈ p.withdrawals.toList, Ssz.Serializable STFSpec.Block.Withdrawal.instSszSchema.type
+      (STFSpec.Block.Withdrawal.instSszSchema.toValue w)) := by
+  have hs := payload_children_serializable p h
+  exact ⟨progressive_members_serializable _ _ _ hs.1,
+    progressive_members_serializable _ _ _ hs.2.1⟩
+
+private theorem requests_members_serializable (a : ExecutionRequests)
+    (h : Ssz.Serializable ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue a)) :
+    (∀ d ∈ a.deposits.toList, Ssz.Serializable DepositRequest.instSszSchema.type
+      (DepositRequest.instSszSchema.toValue d)) ∧
+    (∀ w ∈ a.withdrawals.toList, Ssz.Serializable WithdrawalRequest.instSszSchema.type
+      (WithdrawalRequest.instSszSchema.toValue w)) ∧
+    (∀ c ∈ a.consolidations.toList, Ssz.Serializable ConsolidationRequest.instSszSchema.type
+      (ConsolidationRequest.instSszSchema.toValue c)) ∧
+    (∀ b ∈ a.builderDeposits.toList, Ssz.Serializable BuilderDepositRequest.instSszSchema.type
+      (BuilderDepositRequest.instSszSchema.toValue b)) ∧
+    (∀ b ∈ a.builderExits.toList, Ssz.Serializable BuilderExitRequest.instSszSchema.type
+      (BuilderExitRequest.instSszSchema.toValue b)) := by
+  have hs := requests_children_serializable a h
+  exact ⟨progressive_members_serializable _ _ _ hs.1,
+    progressive_members_serializable _ _ _ hs.2.1,
+    progressive_members_serializable _ _ _ hs.2.2.1,
+    progressive_members_serializable _ _ _ hs.2.2.2.1,
+    progressive_members_serializable _ _ _ hs.2.2.2.2⟩
+
+/-! ### Symbolic actual-size probes -/
+
+private theorem empty_transactions_logical_size (n : Nat) :
+    logicalSize (.progressiveList .progressiveByteList)
+      (.list (List.replicate n (.bytes (ByteArray.mk #[])))) = 4 * n := by
+  rw [logicalSize_recurrence]
+  simp [SszType.fixedSize?_eq .progressiveByteList,
+    logicalSize_recurrence .progressiveByteList (.bytes _),
+    show (ByteArray.mk #[]).size = 0 from rfl]
+
+private theorem final_transaction_logical_size (n : Nat) (b : ByteArray) :
+    logicalSize (.progressiveList .progressiveByteList)
+      (.list (List.replicate n (.bytes (ByteArray.mk #[])) ++ [.bytes b])) =
+        4 * (n + 1) + b.size := by
+  rw [logicalSize_recurrence]
+  simp [SszType.fixedSize?_eq .progressiveByteList,
+    logicalSize_recurrence .progressiveByteList (.bytes _),
+    show (ByteArray.mk #[]).size = 0 from rfl]
+
+private theorem payload_bal_replacement_size (p : ExecutionPayload) (b : ByteArray) :
+    logicalSize ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue { p with blockAccessList := b }) +
+        p.blockAccessList.size =
+    logicalSize ExecutionPayload.instSszSchema.type (ExecutionPayload.instSszSchema.toValue p) +
+      b.size := by
+  rw [payload_logical_size, payload_logical_size]
+  simp only [payloadSize]
+  omega
+
+-- This raw equation includes b.size above the extra-data wire limit; it makes no encoder call.
+private theorem payload_extra_data_replacement_size (p : ExecutionPayload) (b : ByteArray) :
+    logicalSize ExecutionPayload.instSszSchema.type
+      (ExecutionPayload.instSszSchema.toValue { p with extraData := b }) + p.extraData.size =
+    logicalSize ExecutionPayload.instSszSchema.type (ExecutionPayload.instSszSchema.toValue p) +
+      b.size := by
+  rw [payload_logical_size, payload_logical_size]
+  simp only [payloadSize]
+  omega
+
+private theorem deposit_append_logical_size (a : ExecutionRequests) (x : DepositRequest) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue { a with deposits := a.deposits.push x }) =
+    logicalSize ExecutionRequests.instSszSchema.type (ExecutionRequests.instSszSchema.toValue a) +
+      192 := by
+  rw [requests_logical_size, requests_logical_size]
+  simp only [requestsSize, Array.size_push]
+  omega
+
+private theorem withdrawal_request_append_logical_size (a : ExecutionRequests)
+    (x : WithdrawalRequest) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue { a with withdrawals := a.withdrawals.push x }) =
+    logicalSize ExecutionRequests.instSszSchema.type (ExecutionRequests.instSszSchema.toValue a) +
+      76 := by
+  rw [requests_logical_size, requests_logical_size]
+  simp only [requestsSize, Array.size_push]
+  omega
+
+private theorem consolidation_append_logical_size (a : ExecutionRequests)
+    (x : ConsolidationRequest) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue
+        { a with consolidations := a.consolidations.push x }) =
+    logicalSize ExecutionRequests.instSszSchema.type (ExecutionRequests.instSszSchema.toValue a) +
+      116 := by
+  rw [requests_logical_size, requests_logical_size]
+  simp only [requestsSize, Array.size_push]
+  omega
+
+private theorem builder_deposit_append_logical_size (a : ExecutionRequests)
+    (x : BuilderDepositRequest) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue
+        { a with builderDeposits := a.builderDeposits.push x }) =
+    logicalSize ExecutionRequests.instSszSchema.type (ExecutionRequests.instSszSchema.toValue a) +
+      184 := by
+  rw [requests_logical_size, requests_logical_size]
+  simp only [requestsSize, Array.size_push]
+  omega
+
+private theorem builder_exit_append_logical_size (a : ExecutionRequests) (x : BuilderExitRequest) :
+    logicalSize ExecutionRequests.instSszSchema.type
+      (ExecutionRequests.instSszSchema.toValue { a with builderExits := a.builderExits.push x }) =
+    logicalSize ExecutionRequests.instSszSchema.type (ExecutionRequests.instSszSchema.toValue a) +
+      68 := by
+  rw [requests_logical_size, requests_logical_size]
+  simp only [requestsSize, Array.size_push]
+  omega
+
 end STFSpec.Conformance.Stateless.InputSszCallerProofs
