@@ -1019,6 +1019,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateless`](modules/EthStateless.md)
 
+- **Implemented protocol fork metadata.** The complete 21-constructor carrier,
+  total forward tag observation and private complete facade proofs/guards are supplied
+  in §3–§7. Amsterdam schema-index/revision/ID values remain a separate F8 follow-on:
+  Fork cannot import this Stateless-owned enum, and the planned nominal
+  `schemaForkIndex` selector has no specified dependency-safe bridge. Reconcile that
+  seam without inferring an inverse, moving ownership or changing the selector type.
+  This metadata closes no schema, admission, guest, resource or readiness gate.
+
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
   their certifications, wire admission, RLP/header validation, database construction,

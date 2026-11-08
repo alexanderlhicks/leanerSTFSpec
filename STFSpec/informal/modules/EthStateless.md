@@ -1,6 +1,6 @@
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; input wire-limit aliases, raw execution witness, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -64,7 +64,7 @@ The payload's BAL bytes are only hashed at this level; `execute_block` compares 
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_HEADER` | 34 | `maxBytesPerHeader : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_HEADER` (F8) |
 | `forks/amsterdam/stateless.py::MAX_BYTES_PER_WITNESS_NODE` | 35 | `maxBytesPerWitnessNode : Nat` | supplied transparent alias of `Fork.Amsterdam.MAX_BYTES_PER_WITNESS_NODE` (F8) |
 | `forks/amsterdam/stateless.py::ExecutionWitness` | 41–70 | `ExecutionWitness` (`STFSpec/Stateless/ExecutionWitness.lean`) | discharged raw three-field carrier only; full domain and controls below |
-| `forks/amsterdam/stateless.py::ProtocolFork` | 101 | `inductive ProtocolFork` + `toIndex` | only `amsterdam` is used |
+| `forks/amsterdam/stateless.py::ProtocolFork` | 101–126 | `ProtocolFork`, `ProtocolFork.toIndex : ProtocolFork → UInt8` (`STFSpec/Stateless/ProtocolFork.lean`) | discharged historical 21-constructor carrier and total forward observation of the numeric assignments at 106–126; complete contract and private controls below |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_FORK_INDEX` | 129 | `schemaForkIndex := ProtocolFork.amsterdam` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_REVISION` | 130 | `schemaRevision : UInt8 := 1` | |
 | `forks/amsterdam/stateless.py::STATELESS_INPUT_SCHEMA_ID` | 131 | `schemaId : UInt16 := 0x1501` | `#guard`/`decide` |
@@ -103,6 +103,29 @@ depart from EELS constant spelling (CONTRIBUTING §7.2). EthFork §3 owns the va
 The aliases have no inputs, effects, failures or proof premises. They enforce no
 bounds on the raw witness and supply no schema, validity predicate or decoder.
 
+**Supplied protocol fork metadata.** `STFSpec.Stateless.ProtocolFork` admits exactly
+the 21 nullary constructors below, with no precondition or default. The explicit
+total match `ProtocolFork.toIndex` returns the corresponding core `UInt8` literal:
+
+```text
+frontier=0x01, homestead=0x02, daoFork=0x03, tangerineWhistle=0x04,
+spuriousDragon=0x05, byzantium=0x06, stPetersburg=0x07, istanbul=0x08,
+muirGlacier=0x09, berlin=0x0a, london=0x0b, arrowGlacier=0x0c,
+grayGlacier=0x0d, paris=0x0e, shanghai=0x0f, cancun=0x10,
+prague=0x11, osaka=0x12, bpo1=0x13, bpo2=0x14, amsterdam=0x15.
+```
+
+EELS `stateless.py:101–126` at `59c1473d` supplies this complete inventory and its
+explicit tags [V: read]. All historical values are admitted; tags are not zero-based
+constructor ordinals. Constructor names use lowerCamelCase, including `DAOFork` →
+`daoFork`, `StPetersburg` → `stPetersburg`, `BPO1` → `bpo1` and `BPO2` → `bpo2`.
+`toIndex` is a Lean forward observation of source `IntEnum` values, not a source
+function. Construction and observation have no effects, failures, handler or O-row.
+Ordinary reduction and the private complete clients in §4 discharge this finite
+data contract; no public law family or instance is added. Python integer equality,
+arithmetic, reflection and numeric construction are outside this correspondence.
+Schema selection, wire admission and guest execution remain separate (§10).
+
 **Supplied raw execution witness.** `STFSpec.Stateless.ExecutionWitness` has exactly
 `state`, `codes`, `headers : Array ByteArray`, in that order, with required independent
 arguments and no defaults or derived instances. EELS `stateless.py:41–70` at
@@ -123,6 +146,18 @@ The decoders and size constants of `execution_engine/requests.py` (engine wire f
 - SSZ via `eth-remerkleable` 0.1.31 (through `utils/ssz.py`, owned by `EthCodec`): canonical decoding, progressive list/container merkleization and `hash_tree_root`.
 
 ## 4. Tests
+
+**Protocol fork metadata controls.**
+`STFSpec/Conformance/Stateless/ProtocolForkCallerProofs.lean` imports the public
+Stateless facade and privately checks every constructor's exact type and the complete
+`ProtocolFork → UInt8` observer type. Its arbitrary `ProtocolFork → Sort u` eliminator
+handles every constructor, with every dependent branch equation. Separate literal
+observer equations, a quantified exhaustive mapping equation and tag injectivity
+check the entire domain without a public equality instance.
+`ProtocolForkGuards.lean` interprets all 21 complete `UInt8.toNat` observations against
+independently written source literals, including `0x0f`/`0x10` and final `0x15`.
+Compilation, declaration audit and kernel replay check these ordinary private clients.
+These controls execute no EELS algorithm, guest or schema decoder.
 
 **Wire-limit alias controls.** `STFSpec/Conformance/Stateless/WireLimitsGuards.lean`
 imports the public facades and privately checks each exact `Nat` type, definitional
@@ -199,6 +234,8 @@ complete `Array ByteArray` values without a schema, bounds, validation, decoded
 supplied from Fork-owned values (F8). Concrete schemas remain prospective. The
 stale `publicKeys`/input guidance
 is a separate re-pin obligation in §10; it does not change this three-field witness.
+The complete `ProtocolFork` carrier and forward observer below are supplied with
+the exact mapping in §3; schema constants below remain prospective under F8 (§10).
 
 ```lean
 -- constants (public)
@@ -312,6 +349,7 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 
 | Type | Representation | Model | Abstraction | Invariant | Persistence | Complexity |
 |---|---|---|---|---|---|---|
+| `ProtocolFork` | 21 nullary constructors | the complete §3 historical inventory | explicit `toIndex : ProtocolFork → UInt8` | none beyond the constructor domain | immutable value | O(1) construction/observation |
 | `ExecutionWitness` | three `Array ByteArray` | ordered triple of complete finite byte-array lists | identity, including order/duplicates/empty members | none on the raw carrier; wire limits belong to its future schema | immutable value; later DB builders consume the raw preimages | O(1) construction/projection; decoding and DB building unimplemented |
 | `StatelessInput` and the wire containers | Lean structures over `ByteArray`/`Array`/fixed-width words | the SSZ value | identity; SSZ `encode`/`decode` | `WF` (limits; `PublicKey` size by subtype; `extraData.size ≤ 32`) | immutable after decode | decode O(input); `hash_tree_root` O(size) SHA-256 compressions |
 | `StatelessValidationResult` | structure | 4-tuple | `serialize` = fixed 43-byte layout (LE `chainId`, LE `schemaId`, boolean byte) | none | value | O(1) |
@@ -322,6 +360,13 @@ Use `ParentHeader` from `EthBlock` for the Amsterdam/BPO5 sum; `AnyHeader` above
 Widths: `blockNumber`, `gasLimit`, `gasUsed` are `Uint` in EELS but SSZ `uint64` (`types.py:226–229`); `timestamp` is `U256` with SSZ `uint(64)`; `baseFeePerGas` is SSZ `uint256`. The spec stores the SSZ width and widens explicitly where `Header` needs `Uint`/`U256`; a decoded value is always in range, so no check is lost [V: SSZ decoding rejects values outside the declared field widths]. Consequently the NUMBER, GASLIMIT and BASEFEE `U256` conversions in the VM cannot overflow; only BLOBBASEFEE (computed, not decoded) can (O13).
 
 ## 7. Contract and laws
+
+The supplied `ProtocolFork` carrier admits all and only the 21 §3 identifiers.
+Its explicit `toIndex` match is the legible executable reference. Private facade
+clients establish arbitrary dependent elimination, each branch, the complete
+quantified mapping and tag injectivity by ordinary cases/reduction. There are no
+proof premises or additional public laws. This finite contract supplies no inverse,
+schema selector, decoder or guest/refinement theorem.
 
 The supplied wire-limit aliases reduce to the five Fork-owned constants (§3/§5).
 This data contract adds no public law family, schema certification or wire admission.
@@ -418,6 +463,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Fork-activation check: resolved, DECISIONS Q5 (follow the reference; explicit exclusion, CONTRACT §5).
 
 ## 10. Gaps
+
+- **Implemented protocol fork metadata.** The complete 21-constructor carrier,
+  total forward tag observation and private complete facade proofs/guards are supplied
+  in §3–§7. Amsterdam schema-index/revision/ID values remain a separate F8 follow-on:
+  Fork cannot import this Stateless-owned enum, and the planned nominal
+  `schemaForkIndex` selector has no specified dependency-safe bridge. Reconcile that
+  seam without inferring an inverse, moving ownership or changing the selector type.
+  This metadata closes no schema, admission, guest, resource or readiness gate.
 
 - **Implemented raw execution witness.** The exact three-field carrier and private
   complete facade clients/finite controls are supplied in §3–§7. Witness schemas and
