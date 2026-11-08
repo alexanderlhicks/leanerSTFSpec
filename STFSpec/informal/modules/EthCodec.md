@@ -135,7 +135,8 @@ allocation proportional to that declaration.
 byte-list reference on every item, and the computed size equals actual output
 width. Standard RLP/pinned-source correspondence retains `Encodable` (Q47).
 Byte/list payloads and all length digits are preserved in order. Raw wire laws
-are owned by §7; schema instances and guest outcomes remain unimplemented.
+are owned by §7; schema instances other than the EthBlock forward RLP models
+(EthBlock §3/§5/§7) and guest outcomes remain unimplemented.
 
 | Locked dependency source | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and deterministic regression |
 |---|---|---|---|---|
@@ -194,7 +195,8 @@ Interpreter/native runtime, startup, installation and RECORD remain trust inputs
 This is bounded encoder evidence, without typed decoding/inverse, all-Nat Python
 equivalence, host/resource, guest/EEST or throughput claims. `RlpDecode`,
 `decodeTo` and Nat decoding are supplied by the typed decoding foundation below;
-schema instances remain open. Q68 owns the diagnostic equation.
+schema instances other than the EthBlock forward RLP models remain open. Q68 owns
+the diagnostic equation.
 
 ### Implemented typed RLP decoding foundation
 
@@ -1477,8 +1479,12 @@ admission, inverse/typed adapters, roots and guest outcomes stay separate.
 exactly the two forward wrappers with two ordinary raw-call equations in §5/§7.
 **Discharged:** each wrapper forwards the actual named dictionary's descriptor,
 `toValue a` and operation-local proof directly. This generic module supplies no
-instances. EthBlock §3/§5/§7 supplies the actual Withdrawal dictionary and its three
-external certificates; certification remains external per actual instance.
+actual instances. EthStateless §3/§5/§7 supplies the concrete ExecutionWitness,
+ExecutionPayload, five request-item, ExecutionRequests, NewPayloadRequest and
+StatelessInput dictionaries and their three certificates each; EthBlock §3/§5/§7
+supplies the actual Withdrawal dictionary and its three external certificates.
+Operation support remains separate. Descriptor WF and both adapter obligations
+remain external per actual instance.
 The class does not certify arbitrary dictionaries or provide generic schema laws.
 
 | EELS source at pin | Lean declaration and public type | Domain, value/effects | Ordered failures | Public law and regression |
@@ -2023,7 +2029,7 @@ def computeCreate2ContractAddressQ [Monad m] [KeccakQuery m] :
     Address → Bytes32 → ByteArray → m Address     -- two queries: keccak initCode, then the preimage
 
 -- SSZ: raw vocabulary/providers and generic forward metadata/wrappers are supplied;
--- raw/typed decoding remains future; EthBlock owns the certified Withdrawal instance.
+-- raw/typed decoding remains future; EthStateless and EthBlock own the certified instances.
 inductive SszType where
   | uint (bytes : Nat) | bool
   | byteVector (n : Nat) | byteList (limit : Nat)
@@ -2446,6 +2452,11 @@ byte-model and width laws. For Nat, `Encodable (ofNat n)` gives the raw-wire ima
 premise using public Base/leaf laws. No all-Nat `Encodable` assertion or new public
 law family is supplied. The per-instance Nat typed roundtrip above is supplied
 with `RlpDecode` and `decodeTo`; Q68 fixes their diagnostic equation.
+
+EthBlock owns the supplied direct forward Withdrawal instance and its complete
+public reference model (EthBlock §3/§5/§7). Its supplementary all-input domain,
+complete wire/size and raw Codec inverse clients are private. They add no Codec
+class, typed Withdrawal decoder or arbitrary outer-list/block Encodable result.
 
 **Discharged raw decoder laws.** `decode_eq_model` preserves the whole result
 including diagnostics and every nested child, with shared parser semantics as
@@ -3111,7 +3122,9 @@ There is no completion outside the selected proof domain or runtime support chec
   The second adapter direction prevents lossy conversions from changing the decoded
   request's commitment. These obligations remain required and external; none is a
   class field or unconditional generic theorem. This generic module supplies no
-  instances; EthBlock §3/§5/§7 owns the actual certified Withdrawal dictionary.
+  instances. Concrete instance status is owned by EthStateless §3/§5/§7 for
+  ExecutionWitness, ExecutionPayload, the five request items, ExecutionRequests,
+  NewPayloadRequest and StatelessInput, and by EthBlock §3/§5/§7 for Withdrawal.
   Consumers needing them cite their actual instance's proofs or state hypotheses.
 
 - [S] **Binding:** on the actual guest schemas, with well-typed values, exact active-field interpretation and every length mix-in representable in uint256, equal `hashTreeRoot`s imply equal values or an explicit SHA-256 collision. This is the request-binding theorem of CONTRACT §7. Induct over the schema and Merkle tree: equal child preimages permit descent; unequal preimages with equal hash give the collision. Fixed widths and mixed-in lengths disambiguate padding. Extending this law to arbitrary `SszType` requires specifying inactive fields and the domain of unbounded progressive lengths; it is not asserted without those premises.
@@ -3177,8 +3190,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   proof, total completion and source/guest bridges remain open in §10.
 
 - **Q81** owns the generic forward metadata/support disposition; §5/§7 owns its
-  supplied class, two wrappers and two ordinary equations. Actual instances,
-  certification and source/decoder/guest bridges remain open in §10.
+  supplied class, two wrappers and two ordinary equations. EthStateless §3/§5/§7
+  supplies the actual ExecutionWitness, ExecutionPayload, five request-item,
+  ExecutionRequests, NewPayloadRequest and StatelessInput instances, and EthBlock
+  §3/§5/§7 the actual Withdrawal instance, each with its three certificates.
+  Source/decoder/guest bridges remain open in §10.
 
 - **Q88** owns the decoder's success domain and diagnostics: exactly the canonical
   encodings of CountRecoverable values succeed, and rejection returns some `SszError`
@@ -3248,14 +3264,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   bounded source evidence retains actual routes, historical source-root metadata
   and nominal internal-observer limits (§3). Actual
   source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
-  premises, universal refinement, schemas/adapters/Rootable/request support,
+  premises, universal refinement, Rootable/request support for the actual schemas,
   O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
   controls, are supplied (§3/§4). This generic module supplies no actual instance,
-  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  descriptor WF or adapter certification. EthStateless §3/§5/§7 owns the actual
+  certified ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests,
+  NewPayloadRequest and StatelessInput dictionaries, and EthBlock §3/§5/§7 the
   Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
@@ -3269,8 +3287,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Actual certified schema
-  instances and their consumers,
+  source diagnostic/failure/resource order remain open. Consumers of the actual
+  certified schema instances,
   inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -3306,8 +3324,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
   Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
-  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
-  remain unimplemented.
+  Q81 schema metadata/forward wrappers; raw/typed decoders remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -3319,8 +3336,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
-  Other actual schema instances, typed decoding and error producers remain open.
+  EthStateless §3/§5/§7 supplies the actual certified ExecutionWitness,
+  ExecutionPayload, five request-item, ExecutionRequests, NewPayloadRequest and
+  StatelessInput SSZ dictionaries, and EthBlock §3/§5/§7 the actual certified
+  Withdrawal SSZ dictionary. Other actual schema instances, such as the output
+  record, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
