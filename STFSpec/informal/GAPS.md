@@ -1036,6 +1036,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
   item below. This carrier closes no input, guest, resource or readiness gate.
 
+- **Implemented raw request items.** The five nominal carriers and all 17 complete
+  independent fields are supplied under §3/§5/§7, with private arbitrary facade
+  clients and whole finite controls in §4. The five actual Q81 dictionaries and
+  their descriptor/adapter certificates, Q80 serialization and root support,
+  Q87/Q88 recovery/decoding, aggregate `ExecutionRequests`, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
+  remain separate. No runtime admission, protocol validation, resource, security,
+  cost or readiness obligation is discharged by these raw carriers.
+
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
