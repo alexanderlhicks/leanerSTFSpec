@@ -201,7 +201,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | order R-PT |
 | `forks/amsterdam/fork.py::process_withdrawals` | 1096 | `processWithdrawals` |  |
 | `forks/amsterdam/fork.py::check_gas_limit` | 1118 | `checkGasLimit` | Bool |
-| `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw four-field carrier supplied below; SSZ/RLP adapters remain open |
+| `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw carrier and certified SSZ dictionary supplied below; RLP remains open |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` | raw 23-field carrier supplied below |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
 | `forks/amsterdam/blocks.py::Log` | 330 | `Log` |  |
@@ -347,10 +347,31 @@ provider types is admitted. The amount remains in Gwei.
 | `src/ethereum/forks/amsterdam/blocks.py:38–66`; all canonical `Base.U64` and `Base.Address` values, independently supplied | `Withdrawal : Type`; `Withdrawal.mk : Base.U64 → Base.U64 → Base.Address → Base.U64 → Withdrawal`; `index`, `validatorIndex`, `amount : Withdrawal → Base.U64`; `address : Withdrawal → Base.Address` | Pure field storage; no effects or failures | **supplied:** private public-facade `WithdrawalCallerProofs.lean` clients check complete constructor/projection types, arbitrary construction, reconstruction, equality determined by all four fields and each independent update preserving the other three. `WithdrawalGuards.lean` checks complete unsigned values and all twenty address bytes. |
 
 This carrier has no defaults, derived instances, admission predicate, error or
-additional public helper/law family. Source SSZ annotations belong to a separate
-schema adapter. RLP/SSZ, amount conversion, `processWithdrawals` and Q53 withdrawal
-root-input composition remain unimplemented. Static field reading and interpreted
-storage controls supply no source-runtime, fixture, execution or resource result.
+additional public helper/law family. The SSZ dictionary is supplied separately
+below. RLP, amount conversion, `processWithdrawals` and Q53 withdrawal root-input
+composition remain unimplemented. Static field reading and interpreted storage
+controls supply no source-runtime, fixture, execution or resource result.
+
+### Certified withdrawal SSZ dictionary (Q81)
+
+`STFSpec/Block/WithdrawalSsz.lean`, exported by `STFSpec.Block`, supplies exactly
+`Withdrawal.instSszSchema : Codec.SszSchema Withdrawal` and the three external
+certificates in §7. Widths count bytes. Its five fields are concrete in §5.
+
+| Exact pinned EELS source / typed domain | Lean declaration / operation | Effects / Option behaviour | Certification and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:38–66`; `src/ethereum/utils/ssz.py:174–253`; actual ordinary Withdrawal source views with successful schema/name/reflection and exact integer/byte observations | `Withdrawal.instSszSchema`; ordinary `.container [.uint 8, .uint 8, .byteVector 20, .uint 8]`; names `["index", "validator_index", "address", "amount"]` | Pure metadata; `valid := fun _ ↦ True` admits all canonical Base field values for the wire domain | `ssz_type_wellFormed`; private facade checks retain exact descriptor/names/validity and actual instance identity |
+| `src/ethereum/utils/ssz.py:258–291`; all canonical Withdrawal values | actual `toValue : Withdrawal → Codec.SszValue`, retaining every unsigned observation and all address bytes in source order | Pure complete conversion; amount stays in Gwei | `ssz_ofValue_toValue` retains the validity premise and proves complete roundtrip plus WT; arbitrary private clients and 44 complete positive controls |
+| `src/ethereum/utils/ssz.py:294–320`; typed raw source views under those same exact-observation and successful-reflection premises | actual `ofValue? : Codec.SszValue → Option Withdrawal`; private exact four-child reconstruction uses three `Base.U64.ofNat?` checks and `Base.Address.ofBytes? (Base.Bytes.ofByteArray b)` | Pure Option reconstruction; unmatched shapes return none locally. No wrapping, truncation, padding, scaling or extra validity condition | `ssz_toValue_ofValue` retains WT plus success and returns validity plus the entire raw value; 34 private malformed-value regressions assert no public off-WT policy or Option error priority |
+| `src/ethereum/utils/ssz.py:124–126` through the generic Codec wrapper, under the typed source-view premises above | `Codec.SszSchema.encodeBytes` at the actual dictionary and separately derived actual Serializable support | Three little-endian words and unchanged address bytes, at intervals [0,8), [8,16), [16,36), [36,44) | private public-law clients derive Serializable, CountRecoverable, fixed44 and the complete layout through `Ssz.encode_eq` and `SszSchema.encodeBytes_eq`; all 1936 independently calculated positive-control bytes are compared |
+
+The certificates concern this named dictionary. They do not certify arbitrary
+metadata or supply operation support automatically. Every support/layout/count
+helper and proof-only client stays private. Source correspondence here concerns
+actual typed source views under the stated premises. Arbitrary Python objects or
+coercions, overridden behaviour, backing/cache/host failures and source-runtime
+agreement remain outside this result. No raw-byte decoder, diagnostic, public
+image/rejection guarantee, root law, RLP conversion or execution validity follows.
 
 ### Supplied raw headers
 
@@ -567,6 +588,22 @@ separate obligations.
   Every guard observes all three complete words and all twenty address bytes.
   These controls introduce no native runner or source-runtime comparison claim.
 
+- **Withdrawal SSZ.** `WithdrawalSszControls.lean` imports the public Block facade
+  and the Codec count-recovery provider. Private clients check the exact metadata,
+  all three complete theorem types for the actual dictionary, arbitrary complete
+  roundtrip/WT, word bounds, and separately derived actual Serializable and
+  CountRecoverable. Public constructor/wrapper equations prove the complete wire
+  layout. The 44 interpreted positive controls compare complete recovered records,
+  forward raw values, roundtrips and all 44 output bytes against independent
+  mathematical literals prepared before implementation. They cover zero/max,
+  distinct words, independent word changes at 0/1/255/256/2^63/2^64−1, leading and
+  trailing zero bytes and every address position. The 34 negative controls cover
+  all four wrong outer tags, arities 0/1/3/5, every wrong child tag at each position,
+  each overflowing word at 2^64 and 2^64+1, addresses of length 0/19/21 and combined
+  malformed fields. They test the local implementation without a public off-WT
+  contract or a source malformed-input comparison. No runner or generator gate is
+  added. RLP, raw-byte decoding, roots and guest/resource results remain separate.
+
 - **Raw headers.** `HeaderCallerProofs.lean` checks arbitrary constructor types,
   all 44 positional field projections, both complete reconstructions and every
   independent field update, together with all 18 parent-getter cases. The runtime
@@ -709,6 +746,16 @@ structure Withdrawal where
   validatorIndex : Base.U64
   address : Base.Address
   amount : Base.U64                 -- Gwei
+
+-- Supplied actual SSZ dictionary (Q81), in namespace Withdrawal.
+instance Withdrawal.instSszSchema : Codec.SszSchema Withdrawal
+-- type := .container [.uint 8, .uint 8, .byteVector 20, .uint 8]
+-- fieldNames := ["index", "validator_index", "address", "amount"]
+-- valid := fun _ ↦ True
+-- toValue := fun a ↦ .container [.uint a.index.toNat, .uint a.validatorIndex.toNat,
+--   .bytes a.address.toBytes.toByteArray, .uint a.amount.toNat]
+-- ofValue? := private exact four-child checked reconstruction described in §3.
+
 structure Header where
   parentHash : Hash32
   ommersHash : Hash32
@@ -984,6 +1031,27 @@ fields. The private complete facade clients in §3 prove these structure reducti
 on every well-typed input. No wire schema or processing premise restricts this raw
 carrier.
 
+The supplied actual Withdrawal SSZ dictionary has exactly these three external
+certificates, with `s := Withdrawal.instSszSchema`:
+
+```lean
+theorem Withdrawal.ssz_type_wellFormed : s.type.WellFormed
+theorem Withdrawal.ssz_ofValue_toValue (a : Withdrawal) (h : s.valid a) :
+  s.ofValue? (s.toValue a) = some a ∧ Codec.SszValue.WellTyped s.type (s.toValue a)
+theorem Withdrawal.ssz_toValue_ofValue (v : Codec.SszValue) (a : Withdrawal)
+    (h : Codec.SszValue.WellTyped s.type v ∧ s.ofValue? v = some a) :
+  s.valid a ∧ s.toValue a = v
+```
+
+The forward proof uses the public checked Base constructor inverses and exact
+range/length laws. The reverse proof recovers every integer observation and the
+complete address bytes from checked constructor success. WT remains in the public
+reverse premise. Descriptor WF follows from the ordinary nonempty container and
+its admitted leaf widths. Private support clients apply the public Codec laws
+separately: four fixed fields emit no offsets, and the complete encoder equation
+concatenates 8+8+20+8 bytes with little-endian words. These facts add no public
+support or off-WT image theorem and prove no decoder or source-runtime claim.
+
 The supplied raw headers retain exactly their required R-HDR fields in constructor
 order. Construction and independent record updates preserve every other field;
 reconstruction returns the original record. Each common parent getter projects
@@ -1091,9 +1159,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
-  proofs/interpreted controls are supplied (§3–§5/§7). RLP/SSZ adapters,
-  `processWithdrawals`, amount conversion and Q53 withdrawal root-input composition
-  remain unimplemented. Raw storage closes no execution, resource or readiness gate.
+  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
+  (§3–§5/§7). Actual-value support and complete layout clients remain private.
+  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
+  scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
+  Execution, resource/C1–C4, security and readiness gates remain open.
 
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source

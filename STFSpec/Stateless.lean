@@ -6,6 +6,7 @@ import STFSpec.Stateless.ExecutionRequests
 import STFSpec.Stateless.ExecutionWitness
 import STFSpec.Stateless.ExecutionWitnessSsz
 import STFSpec.Stateless.Output
+import STFSpec.Stateless.Payload
 import STFSpec.Stateless.ProtocolFork
 import STFSpec.Stateless.RequestItems
 import STFSpec.Stateless.WireLimits
@@ -20,6 +21,8 @@ Library `EthStateless`. Its allowed dependencies are listed in `scripts/boundari
 historical `ProtocolFork` identifiers with their forward tags are supplied.
 The five raw execution-request item carriers retain all independent Base fields.
 The raw `ExecutionRequests` aggregate retains all five independent ordered arrays.
+The raw `ExecutionPayload` and `NewPayloadRequest` retain all nineteen/four fields,
+including complete Block withdrawals and the actual execution-request aggregate.
 The actual execution witness SSZ dictionary and three Q81 certificates are supplied
 separately from serialization/root support, decoding and guest composition.
 The concrete output record, serializer and zero sentinel have complete layout, size
