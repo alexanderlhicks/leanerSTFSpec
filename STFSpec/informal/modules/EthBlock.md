@@ -484,9 +484,10 @@ the fixed bpo5 contribution 586, actual payload minima 595/629 and wire minima
 and arithmetic support are private; no public helper or law family is added.
 
 `HeaderRlpControls.lean` retains 133 complete independently prepared mathematical
-inputs, all 2,931 ordered fields and all 357,572 expected wire bytes. Closed literal
-runs transport repeated bytes losslessly; every expanded byte was compared with
-the frozen expectations independently of the target. Checked Base constructors
+inputs, all 2,931 ordered fields and all 357,572 expected wire bytes. Strictly
+decoded lowercase hex strings transport every literal byte, and a guard requires
+each to decode to a non-empty list; every byte was compared with the frozen
+expectations independently of the target. Checked Base constructors
 build actual records. Each interpreted guard compares every actual field value,
 the entire ordered leaf model and every direct/parent output byte. Section 4
 owns the boundary coverage. These controls execute the adapter through the
