@@ -195,4 +195,134 @@ private theorem source_zero_selection (cfg : VmConfig) (stipend : Nat)
     (if U256.zero = U256.zero then cfg.costs.zero else stipend) = 0 := by
   simp only [↓reduceIte, hzero]
 
+/-! ### Arbitrary supplied return amounts -/
+
+private def returnActual (charged : GasMeter) (execution reservoir : Nat) : GasMeter :=
+  restoreChildGas (drainStateGasReservoir charged).2 execution reservoir
+
+private theorem return_actual_fields (charged : GasMeter) (execution reservoir : Nat) :
+    returnActual charged execution reservoir =
+      { charged with gasLeft := charged.gasLeft + execution, stateGasLeft := reservoir } := by
+  simp only [returnActual, drainStateGasReservoir_eq, restoreChildGas_eq, Nat.zero_add]
+
+private theorem return_actual_credit_fields (charged : GasMeter)
+    (execution reservoir amount : Nat) :
+    let x := min amount charged.stateGasSpilled
+    creditStateGasRefund (returnActual charged execution reservoir) amount =
+      { charged with
+        gasLeft := charged.gasLeft + execution + x
+        stateGasLeft := reservoir + (amount - x)
+        stateGasSpilled := charged.stateGasSpilled - x } := by
+  rw [return_actual_fields, creditStateGasRefund_eq]
+
+/-- Only the returned execution amount enters potential accounting. The supplied
+reservoir is arbitrary, and optional credit is only the existing numeric operation. -/
+private theorem preflight_actual_return_accounting (cfg : VmConfig) (value : U256)
+    (requested stipend overhead stateAmount execution reservoir : Nat)
+    (initial paid current charged : GasMeter) (credit : Bool)
+    (hpaid : chargeGas initial overhead = .ok paid)
+    (hstate : current = paid ∨ chargeStateGas paid stateAmount = .ok current)
+    (hforward : chargeGas current
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost =
+        .ok charged) :
+    let r := calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend
+    let returned := optionalCredit (returnActual charged execution reservoir) stateAmount credit
+    returned.phi + overhead + r.cost = initial.phi + execution := by
+  dsimp only
+  rw [optional_credit_phi]
+  have hp := chargeGas_phi initial overhead paid hpaid
+  have hs : current.phi = paid.phi := by
+    rcases hstate with he | hc
+    · rw [he]
+    · exact chargeStateGas_phi paid stateAmount current hc
+  have hf := chargeGas_phi current _ charged hforward
+  have hd := drainStateGasReservoir_phi charged
+  have hr := restoreChildGas_phi (drainStateGasReservoir charged).2 execution reservoir
+  dsimp only [returnActual]
+  omega
+
+private theorem preflight_actual_return_progress_iff (cfg : VmConfig) (value : U256)
+    (requested stipend overhead stateAmount execution reservoir : Nat)
+    (initial paid current charged : GasMeter) (credit : Bool)
+    (hpaid : chargeGas initial overhead = .ok paid)
+    (hstate : current = paid ∨ chargeStateGas paid stateAmount = .ok current)
+    (hforward : chargeGas current
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost =
+        .ok charged) :
+    (optionalCredit (returnActual charged execution reservoir) stateAmount credit).phi + 1 ≤
+        initial.phi ↔
+      execution + 1 ≤ overhead +
+        (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost := by
+  have h := preflight_actual_return_accounting cfg value requested stipend overhead stateAmount
+    execution reservoir initial paid current charged credit hpaid hstate hforward
+  dsimp only at h
+  omega
+
+private theorem preflight_actual_return_bound (cfg : VmConfig) (value : U256)
+    (requested stipend overhead stateAmount execution reservoir : Nat)
+    (initial paid current charged : GasMeter) (credit : Bool)
+    (hpaid : chargeGas initial overhead = .ok paid)
+    (hstate : current = paid ∨ chargeStateGas paid stateAmount = .ok current)
+    (hforward : chargeGas current
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost =
+        .ok charged)
+    (hreturn : execution ≤
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).subCall) :
+    (optionalCredit (returnActual charged execution reservoir) stateAmount credit).phi +
+        overhead ≤ initial.phi +
+      (if value = U256.zero then cfg.costs.zero else stipend) := by
+  have h := preflight_actual_return_accounting cfg value requested stipend overhead stateAmount
+    execution reservoir initial paid current charged credit hpaid hstate hforward
+  have hs := current_forward_share cfg value requested stipend current
+  dsimp only at h hs
+  omega
+
+private theorem preflight_actual_return_progress (cfg : VmConfig) (value : U256)
+    (requested stipend overhead stateAmount execution reservoir : Nat)
+    (initial paid current charged : GasMeter) (credit : Bool)
+    (hpaid : chargeGas initial overhead = .ok paid)
+    (hstate : current = paid ∨ chargeStateGas paid stateAmount = .ok current)
+    (hforward : chargeGas current
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost =
+        .ok charged)
+    (hreturn : execution ≤
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).subCall)
+    (hfinance : (if value = U256.zero then cfg.costs.zero else stipend) + 1 ≤ overhead) :
+    (optionalCredit (returnActual charged execution reservoir) stateAmount credit).phi + 1 ≤
+      initial.phi := by
+  have h := preflight_actual_return_bound cfg value requested stipend overhead stateAmount
+    execution reservoir initial paid current charged credit hpaid hstate hforward hreturn
+  omega
+
+private theorem preflight_actual_return_nonincrease (cfg : VmConfig) (value : U256)
+    (requested stipend overhead stateAmount execution reservoir : Nat)
+    (initial paid current charged : GasMeter) (credit : Bool)
+    (hpaid : chargeGas initial overhead = .ok paid)
+    (hstate : current = paid ∨ chargeStateGas paid stateAmount = .ok current)
+    (hforward : chargeGas current
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).cost =
+        .ok charged)
+    (hreturn : execution ≤
+      (calculateMessageCallGas cfg value requested current.gasLeft 0 0 stipend).subCall)
+    (hfinance : (if value = U256.zero then cfg.costs.zero else stipend) ≤ overhead) :
+    (optionalCredit (returnActual charged execution reservoir) stateAmount credit).phi ≤
+      initial.phi := by
+  have h := preflight_actual_return_bound cfg value requested stipend overhead stateAmount
+    execution reservoir initial paid current charged credit hpaid hstate hforward hreturn
+  omega
+
+/-- This supplied child-potential hypothesis is not a theorem about child execution. -/
+private theorem child_execution_le_of_phi_le (child : GasMeter) (grant : Nat)
+    (hphi : child.phi ≤ grant) : child.gasLeft ≤ grant := by
+  simp only [GasMeter.phi] at hphi
+  omega
+
+/-- Every arbitrary Frame admits a settled meter update exceeding any supplied grant.
+The public predicate's success and failure clauses impose no execution-gas bound. -/
+private theorem child_settled_does_not_bound_execution (child : Frame)
+    (grant reservoir : Nat) (failed : Bool) :
+    let updated := { child with gasMeter := GasMeter.mk (grant + 1) reservoir reservoir 0 0 0 }
+    ChildSettled updated failed ∧ ¬ updated.gasMeter.gasLeft ≤ grant := by
+  cases failed <;> simp [ChildSettled]
+
 end STFSpec.Conformance.Vm.Core.CallPreflightGasCallerProofs
