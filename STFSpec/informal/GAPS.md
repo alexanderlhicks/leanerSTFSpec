@@ -85,7 +85,7 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 - The secp256k1 and P-256 behaviour is inferred from the standards and test runs, because the reference libraries are compiled.
 
 ### X13. Shared interfaces and record instances are partly compiled (implementation task, not a spec defect)
-The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest`, the guest input schema and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
+The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest` and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
@@ -301,14 +301,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   bounded source evidence retains actual routes, historical source-root metadata
   and nominal internal-observer limits (§3). Actual
   source/class/name/coercion/backing/cache/stream/host and visited `uint32(scope)`
-  premises, universal refinement, schemas/adapters/Rootable/request support,
+  premises, universal refinement, Rootable/request support for the actual schemas,
   O2/O12/O13, EEST/guest/security and resource/C1–C4/readiness remain open.
 
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
-  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
-  certification is supplied. All three per-instance §7 obligations remain required;
+  controls, are supplied (§3/§4). This generic module supplies no actual instance,
+  descriptor WF or adapter certification. EthStateless §3/§5/§7 owns the actual
+  certified ExecutionWitness, ExecutionPayload, five request-item, ExecutionRequests,
+  NewPayloadRequest and StatelessInput dictionaries, and EthBlock §3/§5/§7 the
+  Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
   The private output consumer is unchanged. No guest/resource/security/cost or
@@ -321,8 +324,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls are supplied (§3/§4). Fifty-five finite genuine source paths match the
   literals; six mathematical cases are separately labelled. Actual class/name/
   coercion/backing/cache/endian/host premises, universal source refinement and
-  source diagnostic/failure/resource order remain open. Actual certified schema
-  instances and their consumers,
+  source diagnostic/failure/resource order remain open. Consumers of the actual
+  certified schema instances,
   inverse proof/strict decoder completion and actual Q87 consumer bridges, actual root/guest
   domains, O1/O2/O12/O13, binding, EEST/security, measured allocation/lifetime/
   throughput, C1–C4 and readiness remain open. Q67–Q79 contracts and remaining
@@ -358,8 +361,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   and payload typing, raw byte packing, zero hashes, the Q74/Q75
   ordinary/progressive contents trees, the Q76/Q77 length/activity mix-ins,
   Q78 local root support, the Q79 computational raw root, Q80 forward bytes, and
-  Q81 schema metadata/forward wrappers; actual instances and raw/typed decoders
-  remain unimplemented.
+  Q81 schema metadata/forward wrappers; raw/typed decoders remain unimplemented.
   The whole typed-result equation and local single-channel
   observation are supplied without a new projection API. Local intended-source,
   reflection/callback/host and first-handler premises, actual schema-depth
@@ -371,7 +373,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  actual schema instances, typed decoding and error producers remain unimplemented.
+  EthStateless §3/§5/§7 supplies the actual certified ExecutionWitness,
+  ExecutionPayload, five request-item, ExecutionRequests, NewPayloadRequest and
+  StatelessInput SSZ dictionaries, and EthBlock §3/§5/§7 the actual certified
+  Withdrawal SSZ dictionary. Other actual schema instances, such as the output
+  record, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -811,9 +817,24 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   literal controls and six complete charge witnesses, plus the dated external
   interpreted/native and twenty-five original comparisons scoped in §3, are local evidence. General
   source/default/host agreement, actual caller/config/target coherence, earlier
-  CALL payments/state spill, preflight/child return/settlement, compiled/resource
+  CALL reachability/effect ordering, child execution/return bounds and settlement, compiled/resource
   and whole G1/G2–G7/VM/guest gates remain open. The supplied scalar maximum and
   existing guards are reused; no global invariant or hidden default follows.
+
+- **Private CALL preflight numeric composition is supplied:** §3/§4/§7 own the
+  successful-charge/current-budget/full-return potential identity and conditional
+  strict/nonincrease consequences, complete source-aligned field equations and
+  thirteen full-stage successes/two shortages/three boundary controls. This supplies
+  additional arbitrary-return accounting, exact strict-progress equivalence and
+  execution-only bounded-return consequences, with fifty-five complete six-stage/
+  six-field successes and two shortages. Whole-field return/credit equations,
+  a supplied child-phi bridge and a ChildSettled-alone countermodel are private.
+  No reservoir bound enters phi accounting. This supplies no actual CALL handler
+  or child semantics. Source ZERO coherence, actual access/
+  failure/effect ordering, saved grants/config identity and reachability, child
+  returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
+  G2–G7, source/default/host agreement, resources, security and guest/readiness
+  remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
@@ -959,6 +980,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
+  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
+  (§3–§5/§7). Actual-value support and complete layout clients remain private.
+  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
+  scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
+  Execution, resource/C1–C4, security and readiness gates remain open.
+
+- **Raw headers:** R-HDR storage and the nine common parent projections are supplied
+  with private complete arbitrary clients and finite native/interpreted/source
+  observations (§3–§5/§7). Header RLP/schema adapters, hashing, validation, parent
+  authentication and actual block/guest consumers remain unimplemented. Finite
+  constructor agreement closes no execution, resource or readiness gate.
+
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
@@ -1004,6 +1039,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). The actual input schemas and their Q81 certifications are supplied in EthStateless, with the Withdrawal member schema in EthBlock; Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
@@ -1018,7 +1054,70 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateless`](modules/EthStateless.md)
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Implemented protocol fork metadata.** The complete 21-constructor carrier,
+  total forward tag observation and private complete facade proofs/guards are supplied
+  in §3–§7. Amsterdam schema-index/revision/ID values remain a separate F8 follow-on:
+  Fork cannot import this Stateless-owned enum, and the planned nominal
+  `schemaForkIndex` selector has no specified dependency-safe bridge. Reconcile that
+  seam without inferring an inverse, moving ownership or changing the selector type.
+  This metadata closes no schema, admission, guest, resource or readiness gate.
+
+- **Implemented raw execution witness.** The exact three-field carrier and private
+  complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
+  in §3/§5/§7, with complete private controls in §4. Input wire
+  admission, RLP/header validation, database construction,
+  hashing and guest composition remain unimplemented. The five size-limit aliases
+  are supplied under F8 (§3/§5), without implementing those consumers. Input hint retirement follows CONTRACT §2/O5 and P1, as recorded below. This carrier
+  closes no input, guest, resource or readiness gate.
+
+- **Implemented raw request items.** The five nominal carriers and all 17 complete
+  independent fields are supplied under §3/§5/§7, with private arbitrary facade
+  clients and whole finite controls in §4. Their five actual Q81 dictionaries and
+  fifteen ordinary descriptor/adapter certificates are supplied in §3/§5/§7, with
+  private actual Serializable, CountRecoverable and whole-wire clients/controls
+  in §4. Root support, Q88 raw decoding, request wire constants,
+  `encodeExecutionRequests`, roots and payload/input/guest composition remain
+  unimplemented. Source class/reflection/cache/coercion/backing and host agreement
+  remain separate. No runtime admission, protocol validation, resource, security,
+  cost or readiness obligation is discharged by these raw carriers.
+
+- **Implemented raw execution requests.** The exact five-array aggregate and private
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. Its
+  actual aggregate Q81 dictionary and three certificates, with private Q80 support,
+  count recovery and full-wire controls, are supplied in §3/§4/§5/§7. Root support
+  and source-decoder correspondence remain separate. Request wire constants/encoding,
+  roots and payload/request/input/guest composition remain unimplemented. No admission,
+  effect, resource, security, cost or readiness gate is discharged by this raw carrier.
+
+- **Implemented raw payload/request carriers.** The exact nineteen-field
+  ExecutionPayload and four-field NewPayloadRequest over actual provider types,
+  private complete arbitrary facade clients and whole finite controls are supplied
+  in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
+  §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
+  The actual NewPayloadRequest dictionary and its three Q81 certificates are supplied
+  in §3/§5/§7, with private complete clients/count/layout and 96-case whole-wire
+  controls in §4. General Q80 source refinement,
+  Q88 raw decoding, root support/O2, block/header adapters and validation,
+  request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
+  remain separate. Static source-field correspondence supplies no source runtime,
+  backing/coercion/cache/host or guest agreement; O12 remains with its owner.
+  No execution, resource, security, cost or readiness gate closes.
+
+- **Implemented raw stateless input.** The exact three-field carrier, identity
+  model, private arbitrary complete facade clients and nested finite controls are
+  supplied in §3–§7. This module's input hint fields, arguments, limits, cases,
+  O5 mapping and L-hint-equivalence guidance follow CONTRACT §2/O5 and P1.
+  The actual input dictionary and three Q81 certificates, private count/support/layout
+  clients and complete 48-input/385957-byte mathematical wire controls are supplied
+  in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
+  30-case/183-byte controls, actual raw request-size formulas, operation-local
+  encoded-size laws, fixed classifications and inherited child/member support are
+  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
+  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  source-host agreement and resource/security/cost/readiness obligations remain open.
+  Other owners' X16 execution/hint migration remains separate, as recorded below.
+
+- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 
@@ -1034,12 +1133,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **SSZ progressive types.** Correctness of `ProgressiveContainer`/progressive-list decoding and merkleization rests on `eth-remerkleable` 0.1.31 (EIP-7495/EIP-7916 as implemented there). EthCodec implements progressive merkleization, roots and forward encoding (Q75, Q79, Q80); progressive decoding is specified (Q88) but unimplemented, and no independent reference beyond `eth-remerkleable` 0.1.31 is pinned.
 - **`payloadHeader` totality** is inferred: EELS catches any exception there, and the spec asserts none can occur on decoded values. Needs a line-by-line check of `Header` field constructors (e.g. `Uint`/`U256` widening, `Bytes8`).
 - **Order of `legacyDecode`.** `_payload_transaction_to_block_transaction` asserts the decoded type is legacy; after `is_valid_versioned_hashes` succeeds this is believed dead [I]; unproved.
-- **Hint equivalence** (L-hint-equivalence) depends on `EthBlock` proving that the reference key check (`transactions.py:931–932`) accepts exactly the recovered key; the cheaper checks CONTRACT §2 permits are not specified.
+- **Input hint retirement.** CONTRACT §2/O5 and P1 retire this module's L-hint-equivalence obligation. This supplies no sender-recovery proof or backend/security theorem; the other owners' migration remains X16 work.
 - **Error-constructor fidelity is untestable by fixtures** (R8); only reading and `core` cases check it.
 - **F20 implementation/refinement:** implement L-constants and establish witness, provider and context coherence at the R5 boundary. DECISIONS §6 records the design; production refinement and generic oracle coupling remain open.
 - **Consumer seams.** The exact `Faithful` statement evm-asm and pancaketh want (bytes-level equality versus `classify`-level) is not agreed with them; toolchain skew (they are on v4.33.x) is not addressed here.
 - **Upstream churn.** `ExecutionPayloadHeader`/`NewPayloadRequestHeader` are TODO scaffolding (`stateless.py:76–98`) and EIP-7709 may empty `headers`; either change alters this module's wire types.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `StatelessInput` has three fields (CONTRACT §2): `public_keys`, `PUBLIC_KEY_BYTES` and the `transaction_public_keys` parameters of `execute_new_payload_request` and `execute_block` are gone, and senders are always recovered from the signature. The schema id stays `0x1501`. O5 is retired. Still describing `tests-zkevm@v21.0.0` here: §2 (the `public_keys` decoding limits, the "hint always supplied" step with its count check, and `execute_block`'s `transaction_public_keys`), §3 (`StatelessInput` incl. `publicKeys`), §4 (the empty-`public_keys` edge case), §5 (`publicKeyBytes`, `PublicKey`, the `publicKeys` field and the `keys` parameters), the §7 O5 row and the `BlockError` comment. Elsewhere: EthBlock and EthVmCore (their re-pin items), EthSecurity §5 (`x.publicKeys`), EthConformance (byte-level public-key mutations, the engine cross-check's recovered keys and L-build) and the COMPOSITION paragraphs on the 65-byte hint and `Array PublicKey`. No Lean implements input decoding or the hint, so nothing compiled is affected. (b) **Request encoding.** `execution_engine/requests.py` encodes through `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` instead of five hand-written encoders (PR #3658); the §3 rows for `_encode_*` are gone. Every request container is fixed-size and its field order matches the old encoder, so the bytes are unchanged [by reading; not run]. (c) **Renames.** `PreviousForkHeader` is now `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). (d) **Corpus facts.** The §4 corpus facts and the zero-sentinel list are marked by pin; recomputing the v21.0.0 figures is EthConformance's re-pin item.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** This module's raw input and hint-only guidance follow CONTRACT §2/O5 and P1 (§3–§7); no caller, guest or sender recovery is implemented. EthBlock, EthVmCore, EthSecurity and EthConformance retain their separately owned execution/hint migration, together with COMPOSITION's historical hint-adapter paragraphs. Public cryptographic key types elsewhere are outside this input slice. **Request encoding:** `execution_engine/requests.py` uses `REQUEST_ITEM_TYPES` and `SszContainer.encode_bytes` (PR #3658); the §3 `_encode_*` rows are absent. The fixed-size containers retain the field order of the old encoders, so bytes are unchanged [by reading at `59c1473d`; not run]. **Renames:** `PreviousForkHeader` is `PreviousHeader`, and `validate_headers` names `MAX_WITNESS_HEADERS` (still 256) (PR #3655). **Corpus facts:** the §4 facts and zero-sentinel list retain their stated pins; recomputing the v21.0.0 figures is EthConformance's re-pin item.
 
 ### [`EthConformance`](modules/EthConformance.md)
 
