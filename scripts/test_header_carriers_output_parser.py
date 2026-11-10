@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import shutil
 import tempfile
 import unittest
 
@@ -77,8 +76,7 @@ class HeaderOutput(unittest.TestCase):
             out = OUTPUT
             out.mkdir(parents=True, exist_ok=False)
         else:
-            out = Path(tempfile.mkdtemp(prefix="header-parser-"))
-            self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+            out = Path(self.enterContext(tempfile.TemporaryDirectory(prefix="header-parser-")))
         cases = {"positive": (self.good, True)}
 
         def mutation(label, change):
