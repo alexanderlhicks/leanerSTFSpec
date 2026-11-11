@@ -213,20 +213,20 @@ result = {
 }
 # Check the precise source exception/descendant order, independently of Lean dispatch.
 expected_lines = {
-    "list_compact_path": [("_decode_witness_node", 946)],
-    "list_leaf_value": [("_decode_witness_node", 951)],
+    "list_compact_path": [("_decode_witness_node", 939)],
+    "list_leaf_value": [("_decode_witness_node", 944)],
     "path_list_second_bad_rlp": [("decode", 153), ("decode", 156),
-                                  ("_decode_witness_node", 936)],
-    "leaf_list_with_trailing": [("decode", 156), ("_decode_witness_node", 936)],
-    "empty_empty_list": [("compact_to_nibbles", 878), ("_decode_witness_node", 947)],
-    "list_path_bad_ref": [("_decode_witness_node", 946)],
-    "empty_extension_bad_ref": [("_decode_witness_node", 959)],
-    "odd_extension_empty_inline": [("_decode_witness_node", 991),
-                                    ("_resolve_child_ref", 914), ("_decode_witness_node", 960)],
-    "odd_extension_list_path_child": [("_decode_witness_node", 946),
-                                       ("_resolve_child_ref", 914), ("_decode_witness_node", 960)],
-    "odd_extension_leaf_list_child": [("_decode_witness_node", 951),
-                                       ("_resolve_child_ref", 914), ("_decode_witness_node", 960)],
+                                  ("_decode_witness_node", 929)],
+    "leaf_list_with_trailing": [("decode", 156), ("_decode_witness_node", 929)],
+    "empty_empty_list": [("compact_to_nibbles", 871), ("_decode_witness_node", 940)],
+    "list_path_bad_ref": [("_decode_witness_node", 939)],
+    "empty_extension_bad_ref": [("_decode_witness_node", 952)],
+    "odd_extension_empty_inline": [("_decode_witness_node", 984),
+                                    ("_resolve_child_ref", 907), ("_decode_witness_node", 953)],
+    "odd_extension_list_path_child": [("_decode_witness_node", 939),
+                                       ("_resolve_child_ref", 907), ("_decode_witness_node", 953)],
+    "odd_extension_leaf_list_child": [("_decode_witness_node", 944),
+                                       ("_resolve_child_ref", 907), ("_decode_witness_node", 953)],
 }
 for case in cases:
     if case["name"] in expected_lines:
