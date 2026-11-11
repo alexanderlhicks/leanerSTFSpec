@@ -372,7 +372,7 @@ such update, recording or collapse operation.
 
 | Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:111–123,1046–1065`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:114–127,1046–1065`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
 
 `STFSpec/Conformance/Commit/IncrementalMPTCallerProofs.lean` supplies ordinary
 private full-field clients through the public owner. Only the structure's generated

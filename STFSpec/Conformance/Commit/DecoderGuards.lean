@@ -281,7 +281,7 @@ private def securedRelation (db : NodeDB) (accept : Bool) : Bool :=
       else secured == 0 :: errorWire (.malformed .securedPathLength)
     | _ => false
 
--- Root leaf: exactly 64 nibbles is accepted; 0, 1, 63 and 65 are rejected.
+-- Root leaf: exactly 64 nibbles is accepted; 0, 1, 63, 65, 66 and 128 are rejected.
 #guard securedRelation (database [(1, securedLeafRaw (ones 64))]) true
 #guard [0, 1, 63, 65, 66, 128].all fun n =>
   securedRelation (database [(1, securedLeafRaw (ones n))]) false
