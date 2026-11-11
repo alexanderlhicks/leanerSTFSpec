@@ -7,9 +7,9 @@ import STFSpec.Commit
 # Generic decoder public-import clients
 
 Library `EthConformance`. These ordinary private clients use only the public
-decoder declarations and the public Q90 secured-path check. Plain Monad equations retain bind shape; simplification of
-the wrapper requires LawfulMonad. Arbitrary full roots, supplied flags, typed
-errors and underlying effects remain visible.
+decoder declarations and the public Q90 secured-path check. Plain Monad equations
+retain bind shape; simplification of the wrapper requires LawfulMonad. Arbitrary
+full roots, supplied flags, typed errors and underlying effects remain visible.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` C13–C17/Q55.
 -/
 

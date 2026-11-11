@@ -424,7 +424,8 @@ theorem securedPathsOk_branch (children : Array Ref) (value : ByteArray) (enc : 
     securedPathsOk (some (.branch children value enc)) remaining =
       (decide (0 < remaining) &&
         children.toList.all (fun child => securedPathsOk child (remaining - 1))) := by
-  have hall : ∀ l : List Ref, (l.attach.all fun child => securedPathsOk child.val (remaining - 1)) =
+  have hall : ∀ l : List Ref,
+      (l.attach.all fun child => securedPathsOk child.val (remaining - 1)) =
       l.all (fun child => securedPathsOk child (remaining - 1)) := by
     intro l
     rw [show (fun child : {x // x ∈ l} => securedPathsOk child.val (remaining - 1)) =

@@ -54,7 +54,8 @@ inductive Malformed where
   | collapseIndex (index : Nat)
   /-- Q90: a decoded occurrence in a secured trie fails a path-length check against the
   64-nibble key. One diagnostic for all three source assertions; which check fails is
-  not part of the contract. EELS `incremental_mpt.py:987–1013` at the pin. -/
+  not part of the contract.
+  EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:987–1013` at the pin. -/
   | securedPathLength
   deriving DecidableEq
 
