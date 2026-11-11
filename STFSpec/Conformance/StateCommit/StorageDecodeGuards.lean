@@ -3,12 +3,13 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.StateCommit
+import STFSpec.Codec.RlpU256
 
 /-!
 # Complete storage decoder semantic and first-failure regressions
 
-Library `EthConformance`. Complete numeric values and complete parser results
-are observed separately. Length thresholds here are regression sizes, not limits.
+Library `EthConformance`. Complete numeric values and complete parser results are observed
+separately. The typed 32-byte admission and framing thresholds are checked independently.
 Spec guidance: `STFSpec/informal/modules/EthStateCommit.md` §§3–4.
 -/
 
@@ -36,30 +37,33 @@ private def parserError (wire : List UInt8) (expected : RlpError) : Bool :=
 
 #guard leafError (raw [])
 #guard parserBytes [128] [] ∧ observed (raw [128]) = some 0
-#guard ([0, 1, 127] : List UInt8).all fun b ↦
+#guard ([1, 127] : List UInt8).all fun b ↦
   parserBytes [b] [b] && observed (raw [b]) == some b.toNat
 #guard parserBytes [129, 128] [128] ∧ observed (raw [129, 128]) = some 128
 #guard parserBytes [129, 255] [255] ∧ observed (raw [129, 255]) = some 255
-#guard observed (raw [130, 0, 1]) = some 1
-#guard observed (raw [130, 0, 0]) = some 0
+#guard leafError (raw [0])
+#guard leafError (raw [130, 0, 1])
+#guard leafError (raw [130, 0, 0])
 #guard ([[], [0], [128], [192], [0, 129, 128], [193, 192]] : List (List UInt8)).all
-  fun body ↦ observed (Rlp.encode (.list (body.map fun b ↦ .bytes (raw [b])))) == some 0
-#guard observed (raw [192]) = some 0
-#guard observed (raw [193, 0]) = some 0
-#guard observed (raw [193, 128]) = some 0
+  fun body ↦ leafError (Rlp.encode (.list (body.map fun b ↦ .bytes (raw [b]))))
+#guard leafError (raw [192])
+#guard leafError (raw [193, 0])
+#guard leafError (raw [193, 128])
 
 -- Complete payload boundary observations include every significant position.
 #guard ([1, 31, 32, 33, 55, 56, 57, 64, 255, 256, 257, 1024] : List Nat).all
-  fun k ↦ stringValue (List.replicate k 0) == some 0 &&
+  fun k ↦ stringValue (List.replicate k 0) == none &&
     ([1, 127, 128, 255] : List UInt8).all fun b ↦
-      stringValue (List.replicate k 0 ++ [b]) == some b.toNat
+      stringValue (List.replicate k 0 ++ [b]) == none
 #guard ([0, 1, 31, 32, 33, 55, 56, 57, 64, 256, 1024] : List Nat).all fun k ↦
-  stringValue (List.replicate k 0 ++ [1] ++ List.replicate 31 0) == some (2 ^ 248) &&
-  stringValue (List.replicate k 0 ++ List.replicate 32 255) == some (2 ^ 256 - 1) &&
+  stringValue (List.replicate k 0 ++ [1] ++ List.replicate 31 0) ==
+    (if k = 0 then some (2 ^ 248) else none) &&
+  stringValue (List.replicate k 0 ++ List.replicate 32 255) ==
+    (if k = 0 then some (2 ^ 256 - 1) else none) &&
   stringValue (List.replicate k 0 ++ [1] ++ List.replicate 32 0) == none
 #guard (List.range 32).all fun j ↦
   stringValue (List.replicate j 0 ++ [1] ++ List.replicate (31 - j) 0) ==
-    some (2 ^ (8 * (31 - j)))
+    (if j = 0 then some (2 ^ 248) else none)
 #guard (List.range 256).all fun j ↦
   observed (encodeStorage (U256.ofNat (2 ^ j))) == some (2 ^ j)
 #guard observed (encodeStorage (U256.ofNat (2 ^ 256 - 1))) = some (2 ^ 256 - 1)
@@ -74,7 +78,7 @@ private def parserError (wire : List UInt8) (expected : RlpError) : Bool :=
 -- Numeric-looking list children are parsed fully but never checked as U256.
 private def mixedList : RlpItem := .list [.bytes (raw (List.replicate 33 255)),
   .list [.bytes (raw (List.replicate 1024 0 ++ [1])), .list []], .bytes (raw [128])]
-#guard observed (Rlp.encode mixedList) = some 0
+#guard leafError (Rlp.encode mixedList)
 
 -- Explicit parser diagnostics and local errors establish failure order.
 #guard parserError [] .empty
@@ -102,3 +106,20 @@ private def overflowWire : List UInt8 :=
 private def malformedList : List UInt8 :=
   228 :: overflowWire ++ [129, 0]
 #guard parserError malformedList (.nonCanonical "prefixed single byte")
+
+-- Empty numeric payload is accepted privately, without changing stored-zero policy.
+#guard observed (encodeStorage U256.zero) = some 0
+#guard parserError [130, 0, 1, 128] .trailing
+#guard parserError [193, 0, 128] .trailing
+private def leadingWide : ByteArray := raw (0 :: List.replicate 31 0 ++ [1])
+private def typedError (leaf : ByteArray) (expected : RlpError) : Bool :=
+  match Rlp.decodeTo (α := U256) leaf with
+  | .error e => e == expected
+  | .ok _ => false
+#guard typedError (Rlp.encodeBytes leadingWide) (.nonCanonical "integer leading zero")
+#guard typedError (Rlp.encodeBytes (raw (1 :: List.replicate 32 0))) (.shape "integer width")
+#guard typedError (raw [192]) (.shape "integer")
+#guard typedError (raw [130, 0, 1, 128]) .trailing
+#guard typedError (raw [194, 129, 0]) (.nonCanonical "prefixed single byte")
+#guard leafError (Rlp.encodeBytes leadingWide)
+#guard parserError ((Rlp.encodeBytes leadingWide).data.toList ++ [0]) .trailing

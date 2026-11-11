@@ -19,8 +19,8 @@ backends build on it.
 
 Library `EthStateCommit`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Total storage encoding and its all-value
-laws, contextual account encoding and its complete-domain binding law, and lenient
-storage/account decoders with their local roundtrip laws are implemented; other
-integration operations remain specified in the guidance document.
+laws, contextual account encoding and its complete-domain binding law, and strict
+storage and lenient account decoders with their local roundtrip laws are implemented;
+other integration operations remain specified in the guidance document.
 Spec guidance: `STFSpec/informal/modules/EthStateCommit.md`.
 -/
