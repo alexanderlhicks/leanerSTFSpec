@@ -307,8 +307,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Generic schema forward seam (Q81) supplied; certification remains external.**
   The five metadata fields, two direct forward wrappers and complete ordinary
   raw-call equations, with private facade signatures/clients and full small byte/root
-  controls, are supplied (§3/§4). No actual instance, descriptor WF or adapter
-  certification is supplied. All three per-instance §7 obligations remain required;
+  controls, are supplied (§3/§4). This generic module supplies no actual instance,
+  descriptor WF or adapter certification. EthBlock §3/§5/§7 owns the actual certified
+  Withdrawal dictionary. All three per-instance §7 obligations remain required;
   raw support, source class/name/coercion/reflection refinement, typed decoding,
   inverse/Q87 consumer bridges, decoded-request support and O2 freedom remain separate.
   The private output consumer is unchanged. No guest/resource/security/cost or
@@ -371,7 +372,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordinary/progressive contents trees, the Q76 local length and Q77 local activity
   mix-ins, `Ssz.Rootable`, the Q79 computational raw root and their complete
   public equations, plus Q80 forward bytes and Q81 metadata/forward equations;
-  actual schema instances, typed decoding and error producers remain unimplemented.
+  EthBlock §3/§5/§7 supplies the actual certified Withdrawal SSZ dictionary.
+  Other actual schema instances, typed decoding and error producers remain open.
   Generic List composition requires supplied child instances and local inverses;
   the `toFields` leaf does not discharge schema child typing, and local diagnostic
   correspondence does not implement the consuming header/transaction handlers.
@@ -959,6 +961,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
+  proofs/interpreted controls and the actual certified SSZ dictionary are supplied
+  (§3–§5/§7). Actual-value support and complete layout clients remain private.
+  RLP adapters, raw/guest decoding, root laws, `processWithdrawals`, amount conversion
+  and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
+  scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
+  Execution, resource/C1–C4, security and readiness gates remain open.
+
+- **Raw headers:** R-HDR storage and the nine common parent projections are supplied
+  with private complete arbitrary clients and finite native/interpreted/source
+  observations (§3–§5/§7). Header RLP/schema adapters, hashing, validation, parent
+  authentication and actual block/guest consumers remain unimplemented. Finite
+  constructor agreement closes no execution, resource or readiness gate.
+
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
@@ -1004,6 +1020,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Input wire limits:** the five Fork-owned values and private complete facade controls are supplied (§3). Actual schemas, their Q81 certifications, Q88 guest-first decoding and header validation remain EthStateless obligations.
 - **Block parameters:** complete R-F1 data, the actual private subtraction operands and all five quantity controls are supplied (§3); raw construction remains unrestricted in EthBlock. Size/base-fee consumers, division safety, full BlockConfig/WF/coherence and index adequacy remain open.
 - **System address assembly (F8):** the concrete R-F2 value and complete private twenty-byte/budget controls are supplied (§3). Full config assembly, runnerEnv/context/child transport and both producer refinements remain unimplemented. Require all twenty literal bytes, complete output logs and independently varied synthetic address/topic controls at consumer owners; the raw SystemAddrs provider and unchanged implemented VmConfig values do not discharge these obligations.
 - **Transaction parameters:** complete R-F3 data and private full-field controls are supplied (§3); raw construction remains unrestricted in EthBlock. Admission/intrinsic costing, full BlockConfig/WF and blob-budget specialization remain open.
@@ -1017,6 +1034,53 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`TerminationReady`** is a placeholder: its exact statement depends on the unfinished fuel-adequacy investigation (ARCHITECTURE §5.5; [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
 
 ### [`EthStateless`](modules/EthStateless.md)
+
+- **Implemented protocol fork metadata.** The complete 21-constructor carrier,
+  total forward tag observation and private complete facade proofs/guards are supplied
+  in §3–§7. Amsterdam schema-index/revision/ID values remain a separate F8 follow-on:
+  Fork cannot import this Stateless-owned enum, and the planned nominal
+  `schemaForkIndex` selector has no specified dependency-safe bridge. Reconcile that
+  seam without inferring an inverse, moving ownership or changing the selector type.
+  This metadata closes no schema, admission, guest, resource or readiness gate.
+
+- **Implemented raw execution witness.** The exact three-field carrier and private
+  complete facade clients/finite controls are supplied in §3–§7. The actual witness SSZ dictionary and exactly its three Q81 certificates are supplied
+  in §3/§5/§7, with complete private controls in §4. Other input schemas, wire
+  admission, RLP/header validation, database construction,
+  hashing and guest composition remain unimplemented. The five size-limit aliases
+  are supplied under F8 (§3/§5), without implementing those consumers. The
+  stale `publicKeys`/guest-input reconciliation remains separately owned by the re-pin
+  item below. This carrier closes no input, guest, resource or readiness gate.
+
+- **Implemented raw request items.** The five nominal carriers and all 17 complete
+  independent fields are supplied under §3/§5/§7, with private arbitrary facade
+  clients and whole finite controls in §4. The five actual Q81 dictionaries and
+  their descriptor/adapter certificates, Q80 serialization and root support,
+  Q87/Q88 recovery/decoding, aggregate schema, request wire constants,
+  `encodeExecutionRequests`, roots and input/guest composition remain
+  unimplemented. Raw payload/request carriers are supplied separately below. Source class/reflection/cache/coercion/backing and host agreement
+  remain separate. No runtime admission, protocol validation, resource, security,
+  cost or readiness obligation is discharged by these raw carriers.
+
+- **Implemented raw execution requests.** The exact five-array aggregate and private
+  arbitrary complete facade clients/finite controls are supplied in §3–§7. The
+  actual aggregate Q81 dictionary and three certificates, Q80 serialization,
+  count recovery, root support and source-decoder correspondence remain separate.
+  Request wire constants/encoding, roots and input/guest composition
+  remain unimplemented. Raw payload/request carriers are supplied separately below. No admission, effect, resource, security, cost or readiness
+  gate is discharged by this raw carrier.
+
+- **Implemented raw payload/request carriers.** The exact nineteen-field
+  ExecutionPayload and four-field NewPayloadRequest over actual provider types,
+  private complete arbitrary facade clients and whole finite controls are supplied
+  in §3–§7. The actual payload dictionary and its three Q81 certificates are supplied in
+  §3/§5/§7, with private complete clients/count recovery and finite wire controls in §4.
+  NewPayloadRequest/input schemas, general Q80 serialization/source refinement,
+  Q87/Q88 recovery/decoding, root support/O2, block/header adapters and validation,
+  request encoding, F20/D5, input/guest/errors/fuel/S2/security and resources/costs
+  remain separate. Static source-field correspondence supplies no source runtime,
+  backing/coercion/cache/host or guest agreement; O12 remains with its owner.
+  No execution, resource, security, cost or readiness gate closes.
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Actual typed input schemas, decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 

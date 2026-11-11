@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-11-05.*
+*Status: current contributor guidance. Date: 2026-11-06.*
 
 Contributions of these kinds are welcome:
 
@@ -255,6 +255,15 @@ lake env lean --run scripts/ReferenceDivisionNativeTests.lean > .lake/reference-
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division-interpreted.jsonl
 uv run --no-project --python 3.12 python -B scripts/test_reference_division_output_parser.py
 uv run --no-project --python 3.12 python -B -O scripts/test_reference_division_output_parser.py
+lake build header-carriers-native-tests --wfail
+lake exe check-decls HeaderCarriersNativeTests
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carrier_cases.py --write-input .lake/header-carriers-input.tsv
+lake exe header-carriers-native-tests .lake/header-carriers-input.tsv > .lake/header-carriers-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carriers_differential.py --check-target .lake/header-carriers-native.jsonl
+lake env lean --run scripts/HeaderCarriersNativeTests.lean .lake/header-carriers-input.tsv > .lake/header-carriers-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carriers_differential.py --check-target .lake/header-carriers-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_header_carriers_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_header_carriers_output_parser.py
 lake build storage-decode-native-tests --wfail
 lake exe check-decls StorageDecodeNativeTests
 lake exe storage-decode-native-tests > .lake/storage-decode-native.jsonl

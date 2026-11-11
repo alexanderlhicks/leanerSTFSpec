@@ -195,6 +195,17 @@ jobs:
           uv run --no-project --python 3.12 python -B STFSpec/Conformance/Field/reference_division_differential.py --check-target .lake/reference-division-interpreted.jsonl
           uv run --no-project --python 3.12 python -B scripts/test_reference_division_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_reference_division_output_parser.py
+      - name: Complete raw header carrier regressions
+        run: |
+          lake build header-carriers-native-tests --wfail
+          lake exe check-decls HeaderCarriersNativeTests
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carrier_cases.py --write-input .lake/header-carriers-input.tsv
+          lake exe header-carriers-native-tests .lake/header-carriers-input.tsv > .lake/header-carriers-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carriers_differential.py --check-target .lake/header-carriers-native.jsonl
+          lake env lean --run scripts/HeaderCarriersNativeTests.lean .lake/header-carriers-input.tsv > .lake/header-carriers-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carriers_differential.py --check-target .lake/header-carriers-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_header_carriers_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_header_carriers_output_parser.py
       - name: Complete strict storage-leaf regressions
         run: |
           lake build storage-decode-native-tests --wfail
