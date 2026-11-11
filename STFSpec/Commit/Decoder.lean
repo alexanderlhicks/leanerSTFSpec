@@ -9,7 +9,7 @@ import Std.Data.HashSet.Lemmas
 /-!
 # Complete eager witness decoding
 
-Library `EthCommit`. Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:892–1040`.
+Library `EthCommit`. Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:885–1065`.
 Actual query answers and original raw encodings are retained. Database keys detect
 current-path cycles; siblings remain independent occurrences. The two termination
 measures occur only in proofs, imposing no runtime bound or admission predicate.
@@ -288,13 +288,55 @@ def decodeRoot {m : Type → Type} [Monad m] [KeccakQuery m]
     | none => pure (.error (.missingRoot r))
     | some raw => decodeEntry db {} r raw h
 
-/-- Preserve the supplied secured flag and the complete decoded partial root.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:994–1040` at the pin. -/
+/-- The 64-nibble key length of a secured trie (`SECURED_TRIE_KEY_NIBBLES`).
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:47` at the pin. -/
+def securedTrieKeyNibbles : Nat := 64
+
+private theorem ext_child_smaller (path : Nibbles) (child : Node) (enc : Enc) :
+    sizeOf (some child : Ref) < sizeOf (some (.ext path child enc) : Ref) := by
+  simp only [Option.some.sizeOf_spec, Node.ext.sizeOf_spec]
+  omega
+
+private theorem branch_child_smaller (children : Array Ref) (value : ByteArray)
+    (enc : Enc) (child : Ref) (hchild : child ∈ children.toList) :
+    sizeOf child < sizeOf (some (.branch children value enc) : Ref) := by
+  have h := Array.sizeOf_lt_of_mem (show child ∈ children from by simpa using hchild)
+  simp only [Option.some.sizeOf_spec, Node.branch.sizeOf_spec]
+  omega
+
+/-- Path lengths of every decoded occurrence against the nibbles that remain of the
+secured key (Q90). Absence and hashed stubs pass; a leaf's path must use exactly the
+remaining nibbles, an extension path must be strictly shorter than them, and a
+branch needs at least one, each child receiving one fewer. Pure: no query or effect.
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:987–1013` at the pin. -/
+def securedPathsOk (root : Ref) (remaining : Nat) : Bool :=
+  match root with
+  | none => true
+  | some (.hashed _) => true
+  | some (.leaf path _ _) => path.size == remaining
+  | some (.ext path child _) =>
+    decide (path.size < remaining) && securedPathsOk (some child) (remaining - path.size)
+  | some (.branch children _ _) =>
+    decide (0 < remaining) &&
+      children.toList.attach.all (fun child => securedPathsOk child.val (remaining - 1))
+termination_by sizeOf root
+decreasing_by
+  · exact ext_child_smaller _ _ _
+  · exact branch_child_smaller _ _ _ _ child.property
+
+/-- Preserve the supplied secured flag and the complete decoded partial root. A secured
+decode then checks every decoded path length (Q90) after the whole reachable trie has
+decoded, so every node-decode diagnostic precedes `securedPathLength`; an unsecured
+decode is unchanged. EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:1016–1065`
+at the pin. -/
 def decodeWitnessToMpt {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) (secured : Bool) :
     m (Except TrieError IncrementalMPT) := do
   let result ← decodeRoot emptyRoot db r
-  pure (result.map (fun root => IncrementalMPT.mk secured root))
+  pure (result.bind (fun root =>
+    if secured && !securedPathsOk root securedTrieKeyNibbles then
+      .error (.malformed .securedPathLength)
+    else .ok (IncrementalMPT.mk secured root)))
 
 /-- The supplied empty root returns `pure (.ok none)` with no lookup or local query.
 This retains the literal plain-Monad expression, without assuming laws for `pure`. -/
@@ -318,6 +360,76 @@ theorem decodeWitnessToMpt_eq {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) (secured : Bool) :
     decodeWitnessToMpt (m := m) emptyRoot db r secured = (do
       let result ← decodeRoot emptyRoot db r
-      pure (result.map (fun root => IncrementalMPT.mk secured root))) := rfl
+      pure (result.bind (fun root =>
+        if secured && !securedPathsOk root securedTrieKeyNibbles then
+          .error (.malformed .securedPathLength)
+        else .ok (IncrementalMPT.mk secured root)))) := rfl
+
+/-- An unsecured decode is the complete decoded root, as before Q90. -/
+theorem decodeWitnessToMpt_unsecured {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
+    decodeWitnessToMpt (m := m) emptyRoot db r false = (do
+      let result ← decodeRoot emptyRoot db r
+      pure (result.map (fun root => IncrementalMPT.mk false root))) := by
+  simp only [decodeWitnessToMpt, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+  congr
+
+/-- A secured decode keeps every decode error, then rejects exactly the decoded roots
+that fail the path-length check, with the one Q90 diagnostic. -/
+theorem decodeWitnessToMpt_secured {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
+    decodeWitnessToMpt (m := m) emptyRoot db r true = (do
+      let result ← decodeRoot emptyRoot db r
+      pure (match result with
+        | .error e => .error e
+        | .ok root =>
+          if securedPathsOk root securedTrieKeyNibbles then .ok (IncrementalMPT.mk true root)
+          else .error (.malformed .securedPathLength))) := by
+  simp only [decodeWitnessToMpt, Bool.true_and]
+  congr
+  funext result
+  cases result with
+  | error e => rfl
+  | ok root =>
+    cases h : securedPathsOk root securedTrieKeyNibbles <;>
+      simp only [Except.bind, h, Bool.not_true, Bool.not_false, Bool.false_eq_true,
+        ↓reduceIte]
+
+/-- The empty trie passes the secured check. -/
+theorem securedPathsOk_none (remaining : Nat) : securedPathsOk none remaining = true := by
+  simp only [securedPathsOk]
+
+/-- Hashed stubs are skipped. -/
+theorem securedPathsOk_hashed (h : Hash32) (remaining : Nat) :
+    securedPathsOk (some (.hashed h)) remaining = true := by
+  simp only [securedPathsOk]
+
+/-- A leaf must use exactly the remaining nibbles. -/
+theorem securedPathsOk_leaf (path : Nibbles) (value : ByteArray) (enc : Enc)
+    (remaining : Nat) :
+    securedPathsOk (some (.leaf path value enc)) remaining = (path.size == remaining) := by
+  simp only [securedPathsOk]
+
+/-- An extension must be strictly shorter than the remaining nibbles, and its child
+is checked against what remains after it. -/
+theorem securedPathsOk_ext (path : Nibbles) (child : Node) (enc : Enc) (remaining : Nat) :
+    securedPathsOk (some (.ext path child enc)) remaining =
+      (decide (path.size < remaining) &&
+        securedPathsOk (some child) (remaining - path.size)) := by
+  simp only [securedPathsOk]
+
+/-- A branch needs a remaining nibble, and every child is checked against one fewer. -/
+theorem securedPathsOk_branch (children : Array Ref) (value : ByteArray) (enc : Enc)
+    (remaining : Nat) :
+    securedPathsOk (some (.branch children value enc)) remaining =
+      (decide (0 < remaining) &&
+        children.toList.all (fun child => securedPathsOk child (remaining - 1))) := by
+  have hall : ∀ l : List Ref, (l.attach.all fun child => securedPathsOk child.val (remaining - 1)) =
+      l.all (fun child => securedPathsOk child (remaining - 1)) := by
+    intro l
+    rw [show (fun child : {x // x ∈ l} => securedPathsOk child.val (remaining - 1)) =
+        (fun child => securedPathsOk child (remaining - 1)) ∘ Subtype.val from rfl,
+      ← List.all_map, List.attach_map_subtype_val]
+  rw [securedPathsOk, hall]
 
 end STFSpec.Commit
