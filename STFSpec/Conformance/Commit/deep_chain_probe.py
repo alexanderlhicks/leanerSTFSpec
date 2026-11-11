@@ -4,7 +4,7 @@
 
 Run with the frozen EELS interpreter, from the repository root:
 EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/deep_chain_probe.py --eels EELS \
-  --chain 63 64 49995 49996 --value-nest 33330 33331
+  --chain 63 64 49994 49995 49996 --value-nest 33330 33331
 
 `--chain N` builds a chain of N branch nodes. Each has a hashed child at slot 0 (the
 next node) and a 32-byte stub at slot 1 that is absent from the node DB. The chain ends
