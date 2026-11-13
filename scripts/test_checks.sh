@@ -29,6 +29,53 @@ expect_msg() { # expect_msg <description> <dir> <grep pattern>: rejected, with t
 prepend() { # prepend <file> <printf format>: add header text at the top of a module
   printf "$2" | cat - "$1" > "$1.x" && mv "$1.x" "$1"; }
 
+# Declaration diagnostics start on the keyword's line, or on its private/protected modifier.
+# Keep the lexer's LF-based line numbering, including for CR and Unicode whitespace.
+if uv run --no-project --python 3.12 python -B - "$ROOT/scripts" <<'PY'
+import re, sys
+sys.path.insert(0, sys.argv[1]); import check_boundaries as cb
+bad = []
+for keyword in ("axiom", "opaque"):
+    cases = [  # (description, source, reported declaration lines)
+        ("plain", f"{keyword} forbidden : Nat\n", [1]),
+        ("blank lines", f"\n\n\n{keyword} forbidden : Nat\n", [4]),
+        ("line comment", f"-- note\n\n{keyword} forbidden : Nat\n", [3]),
+        ("long block comment", "/-\n" + "comment\n" * 256 + f"-/\n\n{keyword} forbidden : Nat\n", [260]),
+        ("long blank region", " \t\n" * 256 + f"  {keyword} forbidden : Nat\n", [257]),
+        ("private", f"\n\tprivate {keyword} forbidden : Nat\n", [2]),
+        ("protected", f"\n  protected\t{keyword} forbidden : Nat\n", [2]),
+        ("split private", f"\n\nprivate\n  {keyword} forbidden : Nat\n", [3]),
+        ("split protected", f"\nprotected\n\n{keyword} forbidden : Nat\n", [2]),
+        ("comment after modifier", f"\nprivate /- note\n nested /- x -/ -/\n{keyword} forbidden : Nat\n", [2]),
+        ("CRLF", f"\r\n\r\n\t{keyword} forbidden : Nat\r\n", [3]),
+        ("CR indentation", f"\r\r{keyword} forbidden : Nat\n", [1]),
+        ("CR is not LF", f"def x := 0\r{keyword} forbidden : Nat\n", []),
+        ("whitespace indentation", f"\n\t\v\f\r\u0085\u00a0\u2003\u2028\u2029{keyword} forbidden : Nat\n", [2]),
+        ("modifier whitespace", f"\nprotected\r\n\u00a0\u2028{keyword} forbidden : Nat\n", [2]),
+        ("separate declarations", f"\n{keyword} first : Nat\n\n-- gap\n\t{keyword} second : Nat\n", [2, 5]),
+        ("adjacent declarations", f"{keyword} first : Nat\n{keyword} second : Nat\n", [1, 2]),
+        ("comment", f"/-\n{keyword} hidden : Nat\n-/\n-- {keyword} hidden : Nat\n", []),
+        ("string", f'def s := "\n{keyword} hidden : Nat\n"\n', []),
+        ("raw string", f'def s := r#"\n{keyword} hidden : Nat\n"#\n', []),
+        ("quoted name", f"def «{keyword}» : Nat := 0\n", []),
+        ("longer names", f"{keyword}Count\nprivate {keyword}_name\n", []),
+        ("primed keyword tripwire", f"protected {keyword}'\n", [1]),
+        ("noninitial keyword", f"def x := {keyword}\n", []),
+        ("lookalike before declaration", f'def s := "{keyword}"\n\n{keyword} forbidden : Nat\n', [3]),
+    ]
+    pattern = next(p for p, what in cb.BANNED if what == keyword)
+    for name, src, want in cases:
+        code = cb.strip_comments(src)
+        got = [code.count("\n", 0, m.start()) + 1 for m in re.finditer(pattern, code, re.M)]
+        if got != want:
+            bad.append((keyword, name, got, want))
+for keyword, name, got, want in bad:
+    print(f"FAIL: {keyword} {name}: declaration lines {got}, expected {want}")
+sys.exit(1 if bad else 0)
+PY
+then echo "ok:   axiom and opaque classification and declaration lines"
+else FAIL=1; fi
+
 T=$(fresh); expect 0 "clean tree passes" "$T"
 T=$(fresh); sed -i 's/roots = \["STFSpec.Base"\]/roots = ["STFSpec.Hash"]/' "$T/lakefile.toml"; expect 1 "Lake roots must match the boundary roots" "$T"
 T=$(fresh); printf 'import/- separator -/Mathlib.Tactic\n' | cat - "$T/STFSpec/Base.lean" > "$T/x" && mv "$T/x" "$T/STFSpec/Base.lean"; expect 1 "a comment separating import tokens cannot hide an import" "$T"
