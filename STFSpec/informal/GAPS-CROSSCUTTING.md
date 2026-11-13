@@ -1,6 +1,6 @@
 ## Cross-cutting gaps and coordinated owners
 
-*Status: live cross-cutting gap register. Date: 2026-11-05.*
+*Status: live cross-cutting gap register. Date: 2026-11-11.*
 
 Maintained by hand. Each item says what is missing, the evidence, and who should own it.
 
@@ -18,7 +18,7 @@ Under the reference's two catch-all handlers (`STFSpec/informal/CONTRACT.md` §4
 ### X2. Adversarial inputs on which the reference effectively does not terminate
 The guest must terminate on *every* input. The design requires totality, which is not yet proved. DISC-002/004 already record the Taylor/DAG cases; host depth/resource acceptance needs a deliberate policy:
 - **Blob gas price Taylor loop.** `taylor_exponential` (`utils/numeric.py:177`) runs about 2.7·x iterations on growing integers, with x = excess / 11684671. Measured: 2,338 iterations at an excess of 10¹⁰. It is called for *every* block from `validate_header` → `calculate_excess_blob_gas(parent)` → `calculate_blob_gas_price` (`fork.py:448`, `vm/gas.py:921`, EIP-7918) whenever the parent's blob gas is at or above target. A crafted parent header with an excess near 2^64 needs about 4×10¹² iterations. The parent header is authenticated only externally (CONTRACT §7), so this is reachable in the guest. It is a liveness issue, not a soundness one.
-- **Deep witness nesting.** Eager witness decoding (D19) recurses without a depth limit. The guest-process recursion limit is 100,000 (py_ecc raises it). The earlier estimate of about 1,000 nested nodes assumed a limit of 12,288, and the threshold has not been re-measured. Where the reference raises `RecursionError`, the output is `false`, whereas a spec with no depth limit could accept (EthStateless). Tracked in DISC-001; the spec must decide deliberately.
+- **Deep witness nesting.** Eager witness decoding (D19) recurses without a depth limit. For chains of trie nodes, the secured path check (Q90, EthCommit C13) bounds an accepted trie to 65 decoded nodes on a path, so a deeper chain gives `false` in both the spec and the reference. RLP nesting inside a witness node's branch value is not bounded by that check: the reference raises `RecursionError` (`false`) where a total spec accepts (EthStateless). Measurements and remaining host cases: DISC-001; the spec must decide deliberately.
 - **Deep RLP nesting.** In the guest process, 20,000 nesting levels decode and 40,000 raise `RecursionError`, reachable through payload transactions. On the guest path, `is_valid_versioned_hashes` consumes that error, so the output is O6 (DISC-001, DISC-006; EthCodec).
 - **`MemoryError`:** host-dependent (CONTRACT O12).
 
