@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""ADD/SUB/MUL/DIV framing and actual CLI regressions, under normal Python and -O."""
+"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD framing and actual CLI regressions, under normal Python and -O."""
 
 import copy
 import importlib.util
@@ -105,6 +105,71 @@ class ArithmeticParserTests(unittest.TestCase):
             probes.append(bad)
         for bad in probes:
             with self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+
+    def test_signed_and_unsigned_controls(self):
+        rows = module.expected_frames()
+        probes = []
+        def result(op, words, tag="continue"):
+            return next(i for i, r in enumerate(rows) if r["op"] == op and
+                        r["tag"] == tag and r["before"]["stack"][:len(words)] == words)
+        modulus = 2**256
+        # Signed floor quotients, unsigned quotients and reversed operands differ.
+        for words, alternatives in [([modulus - 7, 2], [-4, (modulus - 7) // 2, 0]),
+                                    ([7, modulus - 2], [-4, 0]),
+                                    ([2, 7], [3]),
+                                    ([2**255, modulus - 1], [2**255 - 1, 0])]:
+            i = result("sdiv", words)
+            for value in alternatives:
+                bad = copy.deepcopy(rows)
+                bad[i]["after"]["stack"][0] = value % modulus
+                probes.append(bad)
+        # Remainder follows the dividend sign, independently of the divisor sign.
+        for words, alternatives in [([modulus - 7, 2], [1]),
+                                    ([7, modulus - 2], [-1, 7]),
+                                    ([modulus - 7, modulus - 2], [1]),
+                                    ([2**255, 3], [1, 2])]:
+            i = result("smod", words)
+            for value in alternatives:
+                bad = copy.deepcopy(rows)
+                bad[i]["after"]["stack"][0] = value % modulus
+                probes.append(bad)
+        for words, value in [([modulus - 1, 0], modulus - 1),
+                             ([modulus - 1, 2**255], modulus - 1),
+                             ([2, 7], 1), ([2**255, 3], 1)]:
+            i = result("mod", words)
+            bad = copy.deepcopy(rows)
+            bad[i]["after"]["stack"][0] = value
+            probes.append(bad)
+        for op in ["sdiv", "mod", "smod"]:
+            i = result(op, [2**255, 0, 17], "halt")
+            bad = copy.deepcopy(rows)
+            bad[i]["tag"], bad[i]["error"] = "continue", None
+            bad[i]["after"]["stack"].insert(0, 0)
+            bad[i]["after"]["pc"] += 1
+            probes.append(bad)
+            i = result(op, [7, 2])
+            for amount in [1, rows[i]["veryLow"], rows[i]["otherCost"]]:
+                bad = copy.deepcopy(rows)
+                if amount > rows[i]["before"]["meter"][0]:
+                    bad[i]["after"] = copy.deepcopy(rows[i]["before"])
+                    bad[i]["after"]["stack"] = bad[i]["after"]["stack"][2:]
+                    bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+                else:
+                    bad[i]["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
+                bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
+                probes.append(bad)
+            for key in rows[i]["after"]:
+                bad = copy.deepcopy(rows)
+                bad[i]["after"][key] = None
+                probes.append(bad)
+            for key in rows[i]["worldAfter"]:
+                bad = copy.deepcopy(rows)
+                bad[i]["worldAfter"][key] = None
+                probes.append(bad)
+        for bad in probes:
+            with self.subTest(case=next(r["case"] for r, good in zip(bad, rows) if r != good)), \
+                    self.assertRaises(module.FrameError):
                 module.compare_frames(wire(bad))
 
     def test_framing(self):
