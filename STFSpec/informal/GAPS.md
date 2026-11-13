@@ -496,7 +496,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation, plus raw three-field
+  BlockState.view with its exact application equation, mathematical TxState.view
+  with its sole account law and private conversion, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations, other contextual
@@ -515,8 +516,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
-  clients only. Actual initialization, snapshot/restore, transient lifetime, views,
-  `asDiff`, tracker operations and observations, write/clear/order coupling,
+  clients for the carrier; the separate mathematical transaction view and private
+  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
+  transient lifetime, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.

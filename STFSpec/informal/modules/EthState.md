@@ -208,7 +208,8 @@ families are visible at `:744–798`. It implements no source tracker operation.
 | `state_tracker.py:78–104,744–798`; D22/D23/B1 split and explicit indexes | `STFSpec.State.TxRevertible : Type`; `TxRevertible.mk` takes exactly the eight complete §5 fields, in order | **Discharged raw carrier:** every finite supplied map/set and raw WriteOrder, including tombstones, zero writes, empty inner maps, arbitrary bytecode, missing/extra slot indexes and disagreeing forward/reverse metadata. Construction retains all values without validation, normalization, lookup, hashing, effects or failure. No domain/proof/provider/monad field. | Private `Conformance/State/TxRevertibleCallerProofs.lean` imports the State facade: exact full constructor type, whole eight-field projection/reconstruction and each independent update retaining the other seven fields; complete kernel controls described in §4. |
 
 Only ordinary generated structure infrastructure is public; no authored public
-law, default, instance, factory, `asDiff` or operation is added. The carrier's
+law, default, instance, factory or operation is added by the carrier. The separate
+mathematical transaction view below owns a Lean-private `asDiff`. The carrier's
 presence supplies no actual snapshot, persistence-cost, tracker/source-refinement
 or S1/S2/W1 result. Observation hash support (Q84, EthBase §3), provider/cache
 lifetime (F6), clear replay order (F7), F11 and the remaining §10 obligations stay
@@ -323,6 +324,33 @@ resource/readiness gates remain open. Static source reading grounds composition;
 interpreted `#guard` controls compare mathematical models (no native runner or
 external comparison is committed for this slice), without original-source numerical
 or EEST execution.
+
+### Implemented mathematical transaction view
+
+`State/TransactionView.lean`, exported by State, supplies the existing §5/§7.1
+composition on arbitrary raw inputs. Its `TxRevertible.asDiff` is Lean-private in
+that owning module; it is not a new public raw-diff interface.
+
+| Source/model support at the pin | Lean declaration and domain | Value/effects and failures | Law and validation |
+|---|---|---|---|
+| Mathematical composition of transaction effects `src/ethereum/forks/amsterdam/state_tracker.py:78–104`, block extraction `:861–881`, and application `src/ethereum/state_mpt.py:133–161`; no standalone Python view function | `TxState.view {m : Type → Type} (σ₀ : MathState) (t : TxState m) : MathState` | Every finite raw state and transaction carrier, without class, WF, provider, constants-coherence or history premises. Exactly `(t.block.view σ₀).apply t.rev.asDiff`; no provider action, hashing, normalization or failure | **Discharged mathematical slice:** exactly one public ordinary `TxState.view_account?_eq` law (§7.2), needed by the future `getAccountOptional_model` consumer. Private construction, complete application, raw-field and metadata support proofs stay in the owner. Private facade clients use only the public account law, including an arbitrary non-Monad constructor; complete native/interpreted 118-case controls and strict normal/-O readers are in §4. |
+
+The private conversion copies whole accountWrites, storageWrites, codeWrites and
+storageClears, retaining tombstones, zero writes and empty patches. Account and
+storage-address metadata use existing `WriteOrder.toList` directly. Slot metadata
+maps every existing address to its index's `toList`, preserving the entire domain:
+missing remains missing, present-empty remains present-empty and extra entries
+remain present. There is no filtering, repair, synthesized metadata or traversal
+from zero to `next`. Only transient writes are omitted. Whole private construction
+and optional slot-map proofs establish this exact transport; mathematical apply
+ignores metadata. This internal completion does not extend Q85's public contract.
+
+Both layers use the existing raw apply semantics, including account deletion
+without storage clear, clear-before-write, local zero deletion, touched-empty
+pruning, untouched malformed storage and raw code overwrites. View construction
+traverses supplied reverse-map and slot-index entries, and application retains its
+existing costs. No O(1), C1–C4, full WF/reachable history, witness/replay agreement,
+backend, guest or readiness result follows.
 
 ### Implemented internal order support
 
@@ -527,6 +555,27 @@ resource or C1–C4 result.
   values; the nonempty sets contain providerAccount.codeHash. No complete source-to-Lean
   state projection is supplied. These controls establish no backend/root,
   snapshot/lifetime, EEST guest, S2, F7, B14 or cost/readiness result.
+- **Implemented mathematical transaction-view controls:** private
+  `TransactionViewCallerProofs.lean` imports only the State facade and consumes the
+  sole public account law, checking arbitrary-m and non-Monad signatures, tombstones
+  and transaction misses. `scripts/TransactionViewNativeTests.lean` executes actual
+  public block and transaction views on `transaction_view_inputs.json` natively
+  and interpreted. `transaction_view_model.py` checks all 118 complete raw results
+  against independently frozen integer/list maps in `transaction_view_expected.json`.
+  Accounts, nested storage and raw code retain every key, full payload, zero and
+  empty inner map or code byte string. Cases distinguish deletion without clear, clear/rewrite,
+  missing versus present-empty, zero deletion, orphan and untouched malformed
+  storage, touched-empty pruning, raw reserved code and block/transaction precedence.
+  Six ignoredVariant families supply nonempty contradictory forward/reverse metadata,
+  gaps, duplicate/stale reverse keys, missing/empty/extra slot indexes, huge `next`,
+  transient zero/nonzero writes, unrelated observations, independent constants and
+  typed sentinel-failure providers. The view never queries them; private ordinary
+  construction/slot-domain proofs cover exact internal metadata transport without
+  exposing the helper to tests. Strict-reader regressions run normally and with -O,
+  rejecting framing/count/order/schema/field/type/payload errors, including boolean
+  or noninteger numbers. These are finite mathematical model-agreement controls;
+  no standalone Python view exists and no source differential, operational history,
+  backend, guest, WF or cost claim follows.
 - **Implemented mathematical block-view cases:** private
   `BlockViewCallerProofs.lean` clients use only the public view equation, seven
   extraction laws and public application/observer laws. `BlockViewGuards.lean`
@@ -678,11 +727,13 @@ thirteen-field BlockState carrier are also supplied. BlockState.new and its expl
 F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
-also supplied. Both pre-transaction account actions below are supplied; other
-trackers and adapters remain open. The raw eight-field TxRevertible
+also supplied. TxState.view and exactly its account observer law are supplied
+separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
+account actions below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
-class premises or authored public laws; their nominal boundary supplies no source refinement.
+class premises or authored public laws in the carrier module; their nominal boundary
+supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
 PreState providers and tracker operations other than getPreStateAccountOptional
@@ -859,9 +910,15 @@ def BlockState.view {m : Type → Type} (σ₀ : MathState) (b : BlockState m) :
   -- exactly σ₀.apply (extractBlockDiff b), supplied without a class premise
 theorem BlockState.apply_extractBlockDiff {m : Type → Type}
     (σ₀ : MathState) (b : BlockState m) : σ₀.apply (extractBlockDiff b) = b.view σ₀
-def TxState.view (σ₀ : MathState) (t : TxState m) : MathState         -- (b.view σ₀).apply t.rev.asDiff
+def TxState.view {m : Type → Type} (σ₀ : MathState) (t : TxState m) : MathState
+  -- exactly (t.block.view σ₀).apply t.rev.asDiff; supplied without class premises
+theorem TxState.view_account?_eq {m : Type → Type}
+    (σ₀ : MathState) (t : TxState m) (a : Address) :
+    (t.view σ₀).account? a = match t.rev.accountWrites[a]? with
+      | some account => account
+      | none => (t.block.view σ₀).account? a
 def TxState.originalAt (σ₀) (t) (a) (k) : U256
-def TxRevertible.asDiff (r : TxRevertible) : BlockDiff               -- internal
+private def TxRevertible.asDiff (r : TxRevertible) : BlockDiff       -- owning view module
 def BlockDiff.merge (d₁ d₂ : BlockDiff) : BlockDiff                  -- incorporate's rule, R25
 -- Read-only BAL views; they expose source semantics, never container layout.
 def preTxAccount (t : TxState m) (a : Address) : m (Except StateError (Option Account))   -- falls through to the pre-state
@@ -1133,8 +1190,9 @@ inputs. No authored public law or instance is supplied. Private arbitrary facade
 clients check complete construction, reconstruction and each independent field update.
 Raw `WriteOrder.WF` and `Agrees` are not carrier premises; malformed or disagreeing
 indexes remain stored unchanged. Transient writes and clear membership are independent
-of account/storage/code writes and order metadata. The operational `asDiff`, snapshot,
-restore and lifecycle contracts below remain unimplemented targets.
+of account/storage/code writes and order metadata. The mathematical view owns the
+Lean-private conversion specified in §3/§7.1. Snapshot, restore and lifecycle
+contracts below remain unimplemented targets.
 
 ### 7.1 Model and commuting equations
 
@@ -1143,9 +1201,12 @@ Fix `t : TxState Id` and σ₀ with `MathState.WF σ₀` and
 transaction/block contexts retain that same initial supplied record and provider;
 constructor/context preservation remains F20. The model of `t` is the triple
 (`t.view σ₀`, `t.originalAt σ₀`, `t.rev.transient`) together with the observation sets.
-Define `TxRevertible.asDiff` as the diff whose clears are `storageClears` and whose changes
-are the writes; then **both layers use the same `apply`**, and R11 is a consequence of
-that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
+The supplied Lean-private `TxRevertible.asDiff` copies the four effect fields whole
+and uses the exact direct ordered observers/domain-preserving map in §3. Both layers
+use the same `apply`; their mathematical composition requires no premises. The
+tracker equations below retain the initial WF, ModelsLookups and success premises;
+R11 as an operational storage-precedence law remains a future tracker obligation.
+Per operation, under success (`op t = .ok (x, t')`) [C]:
 
 - `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
 - `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
@@ -1179,6 +1240,12 @@ The defaulted pre-transaction wrapper supplies exactly these five public laws:
 
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
+- **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
+  `(t.view σ₀).account? a = match t.rev.accountWrites[a]? with
+  | some account => account | none => (t.block.view σ₀).account? a` on every raw
+  input and arbitrary m, without any class or validity premise. This is the only
+  public transaction-view law, for the future `getAccountOptional_model` consumer.
+  Whole construction/application, metadata, other observers and support stay private.
 - **Read-after-write:** `setStorage a k v; getStorage a k` returns `v`; same for accounts, code writes and transient storage.
 - **Frame:** a write to `(a,k)` leaves `getStorage a' k'` unchanged for `(a',k') ≠ (a,k)`; writes never change `getStorageOriginal`.
 - **Clear suppression:** after `destroyStorage a`, `getStorage a k = 0` until `(a,k)` is written again in the same transaction; later writes are visible. At block level: a transaction clear hides all earlier block writes of `a`, and later transactions see only the post-clear writes.
@@ -1278,6 +1345,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   compose existing public operations on every raw input (§3/§7.2). Complete private
   public-law clients and finite model controls add no tracker/WF/history/replay,
   provider/progress, D5/F20 or resource/readiness guarantee.
+- **Mathematical transaction view supplied:** §3/§7.1/§7.2 supplies the class-free
+  composition and only its account observer law. Callers use that law; the raw
+  conversion and all other construction/support facts remain owner-private.
+  Finite complete model controls supply no operational or readiness refinement.
 - **Raw extraction supplied (Q85):** the class-free operation and seven complete equations are in §3/§7; full ordered-write integration/WF/history remains separate.
 - **Raw transaction assembly supplied:** TxState and the exact StateM alias are
   owned by §3/§5/§7. Their private complete clients supply no tracker operation or
@@ -1327,6 +1398,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Mathematical BlockState.view follows the existing §5/§7.2 composition; its
   supplied equation selects no new domain or policy. Full WF/history and operational
   witness agreement remain separate.
+- Mathematical TxState.view follows the existing §5/§7.1 composition. Its private
+  direct metadata transport selects no public normalization policy or new Q85
+  disposition. The sole public account equation has the named next consumer
+  getAccountOptional_model; later observer laws need their own consumers.
 - Q85: raw extraction follows the §7 direct observer/domain-preserving equations; the disposition is owned by DECISIONS. Full WF, history and F7 remain separate.
 - Q58: the bounded structural predicate and laws in §7.4; full optional slot-order-map policy, replay history and reachability remain open.
 
@@ -1345,7 +1420,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation, plus raw three-field
+  BlockState.view with its exact application equation, mathematical TxState.view
+  with its sole account law and private conversion, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations, other contextual
@@ -1364,8 +1440,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
-  clients only. Actual initialization, snapshot/restore, transient lifetime, views,
-  `asDiff`, tracker operations and observations, write/clear/order coupling,
+  clients for the carrier; the separate mathematical transaction view and private
+  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
+  transient lifetime, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.

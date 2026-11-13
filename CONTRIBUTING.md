@@ -221,6 +221,14 @@ uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_outpu
 uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_source.py
+lake build transaction-view-native-tests --wfail
+lake exe check-decls scripts.TransactionViewNativeTests
+lake exe transaction-view-native-tests > .lake/transaction-view-native.jsonl
+lake env lean --run scripts/TransactionViewNativeTests.lean > .lake/transaction-view-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_view_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_view_output_parser.py
 lake build pre-state-account-default-native-tests --wfail
 lake exe check-decls scripts.PreStateAccountDefaultNativeTests
 lake exe pre-state-account-default-native-tests > .lake/pre-state-account-default-native.jsonl

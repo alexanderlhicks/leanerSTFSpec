@@ -421,6 +421,20 @@ Full clear/restore/incorporation/extraction, caller reachability and account-rea
 history remain open, together with S1/S2 and composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
 
+### Supplied mathematical transaction view
+
+EthState §3/§5/§7.1/§7.2 owns class-free `TxState.view`, exactly block view followed
+by applying whole revertible effects. Its raw conversion is Lean-private, using
+direct WriteOrder observers and domain-preserving slot mapping. Consumers use only
+`TxState.view_account?_eq`: a transaction entry, including a tombstone, overrides
+the block-view account; a miss observes the block view. This unconditional law has
+the named future `getAccountOptional_model` consumer, whose operational theorem
+still needs its initial WF/ModelsLookups/success premises. Complete native and
+interpreted finite controls compare raw account/storage/code maps. Metadata,
+transient, providers, constants and observations add no mathematical effects;
+private whole-construction proofs retain exact metadata. Traversal uses existing
+entries, with no O(1), history/WF, S1/S2/W1, F7, backend, guest or C1–C4 result.
+
 ### Raw mathematical-state premise
 
 [EthState §3/§7](modules/EthState.md#3-eels-source-map) supplies the Account value
