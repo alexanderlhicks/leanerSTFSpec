@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Bounded ADD/SUB frame comparison; no dispatch, trace, reachability or guest claim.
+"""Bounded ADD/SUB/MUL/DIV frame comparison; no dispatch, trace, reachability or guest claim.
 
 Parser: canonical Python 3.12, --check-target FILE. Source mode: the frozen
 EELS/.venv/bin/python -I -B SCRIPT --source --eels EELS --wheels WHEELS
 --output FRESH_DIRECTORY --frames FILE. --preflight authenticates without calls.
-The real Evm and original ADD/SUB execute with a fail-on-access PreState provider;
+The real Evm and original ADD/SUB/MUL/DIV execute with a fail-on-access PreState provider;
 that provider is instrumentation, not a state backend or interpreter execution.
 """
 
@@ -63,6 +63,25 @@ def cases():
         for _ in range(16):
             emit([rng.getrandbits(256) for _ in range(rng.randrange(0, 7))],
                  3, rng.randrange(0, 7))
+    for op in ["mul", "div"]:
+        for words in [[], [maximum]]:
+            emit(words, 5, 0)
+            emit(words, 2**300 + 7, 2**300 + 8)
+        for price in [0, 1, 5, 2**300 + 7]:
+            for gas in [max(0, price - 1), price, price + 1]:
+                emit([maximum, 0, 17, 0], price, gas)
+        for x, y in [(0, 0), (0, 1), (1, 0), (maximum, 0), (0, maximum),
+                     (maximum, 1), (1, maximum), (maximum, maximum),
+                     (9, 2), (2, 9), (10, 3), (3, 10), (2**255, 2), (2, 2**255),
+                     (2**255, 2**255), (2**128, 2**128), (2**128 + 1, 2**128 + 1),
+                     (maximum, 2), (2, maximum)]:
+            emit([x, y], 5, 5)
+        emit(list(range(1024, 0, -1)), 5, 4)
+        emit([maximum, 0] + list(range(1022, 0, -1)), 5, 6)
+        rng = random.Random(857)
+        for _ in range(20):
+            emit([rng.getrandbits(256) for _ in range(rng.randrange(0, 7))],
+                 5, rng.randrange(0, 9))
     return result
 
 
@@ -102,7 +121,16 @@ def expected_frames():
                     error = "outOfGas"
                 else:
                     tag, error = "continue", None
-                    value = x + y if c["op"] == "add" else x - y
+                    if c["op"] == "add":
+                        value = x + y
+                    elif c["op"] == "sub":
+                        value = x - y
+                    elif c["op"] == "mul":
+                        value = x * y
+                    elif c["op"] == "div":
+                        value = 0 if y == 0 else x // y
+                    else:
+                        raise FrameError("unknown arithmetic opcode")
                     after["stack"].insert(0, value % 2**256)
                     after["meter"][0] -= c["cost"]
                     after["pc"] += 1
@@ -129,19 +157,19 @@ def exact(actual, expected):
 
 
 def compare_frames(data):
-    require(len(data) <= 3_000_000, "oversized ADD/SUB evidence")
+    require(len(data) <= 3_000_000, "oversized ADD/SUB/MUL/DIV evidence")
     try:
         rows = [json.loads(line, object_pairs_hook=pairs,
                            parse_constant=lambda _: (_ for _ in ()).throw(FrameError("constant")))
                 for line in data.splitlines()]
     except (ValueError, RecursionError) as error:
-        raise FrameError("malformed ADD/SUB evidence") from error
+        raise FrameError("malformed ADD/SUB/MUL/DIV evidence") from error
     exact(rows, expected_frames())
     return rows
 
 
 def source_compare(args):
-    """Authenticate the frozen source and installed imports before executing ADD/SUB."""
+    """Authenticate the frozen source and installed imports before executing ADD/SUB/MUL/DIV."""
     import builtins
     import base64
     import dataclasses
@@ -437,20 +465,26 @@ def source_compare(args):
     Uint, U256, U64 = numeric.Uint, numeric.U256, numeric.U64
     gas_module = importlib.import_module("ethereum.forks.amsterdam.vm.gas")
     stack_module = importlib.import_module("ethereum.forks.amsterdam.vm.stack")
-    require(control.add.__globals__ is vars(control) and control.sub.__globals__ is vars(control),
+    require(all(f.__globals__ is vars(control) for f in
+                [control.add, control.sub, control.mul, control.div]),
             "original arithmetic globals")
-    require(control.Uint is Uint and control.pop is stack_module.pop and
+    require(control.Uint is Uint and control.U256 is U256 and
+            control.GasCosts is gas_module.GasCosts and control.pop is stack_module.pop and
             control.push is stack_module.push and control.charge_gas is gas_module.charge_gas,
             "original arithmetic helper bindings")
-    require(control.add.__code__.co_firstlineno == 25 and control.sub.__code__.co_firstlineno == 52,
+    require([f.__code__.co_firstlineno for f in
+             [control.add, control.sub, control.mul, control.div]] == [25, 52, 79, 106],
             "arithmetic source locations")
-    require(int(gas_module.GasCosts.OPCODE_ADD) == int(gas_module.GasCosts.OPCODE_SUB) == 3,
+    require(int(gas_module.GasCosts.OPCODE_ADD) == int(gas_module.GasCosts.OPCODE_SUB) == 3
+            and int(gas_module.GasCosts.OPCODE_MUL) == int(gas_module.GasCosts.OPCODE_DIV) == 5,
             "pinned selected prices")
     require(importlib.metadata.version("ethereum-types") == "0.4.1" and
             importlib.metadata.version("ethereum-rlp") == "0.1.6", "numeric/RLP pin")
-    functions = [control.add, control.sub, vm.Evm.__init__, stack_module.pop, stack_module.push,
+    functions = [control.add, control.sub, control.mul, control.div, vm.Evm.__init__,
+                 stack_module.pop, stack_module.push,
                  gas_module.charge_gas, gas_module.charge_gas_from_meter,
-                 U256.wrapping_add, U256.wrapping_sub, Uint.__init__, Uint.__add__, Uint.__sub__]
+                 U256.wrapping_add, U256.wrapping_sub, U256.wrapping_mul, U256.__floordiv__, U256.__eq__,
+                 U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__]
     original_functions = list(functions)
     require([int(Uint(x) + Uint(1)) for x in (0, 2**64, 2**300 + 19)] ==
             [1, 2**64 + 1, 2**300 + 20], "Uint exact successor relation")
@@ -473,10 +507,17 @@ def source_compare(args):
             if info["raw_wheel_authenticated"]:
                 current = identity(Path(info["path"]))
                 require(all(current[k] == info[k] for k in current), "wheel changed")
-        require([control.add, control.sub, vm.Evm.__init__, stack_module.pop, stack_module.push,
+        require([control.add, control.sub, control.mul, control.div, vm.Evm.__init__,
+                 stack_module.pop, stack_module.push,
                  gas_module.charge_gas, gas_module.charge_gas_from_meter,
-                 U256.wrapping_add, U256.wrapping_sub, Uint.__init__, Uint.__add__, Uint.__sub__]
-                == original_functions and control.pop is stack_module.pop and
+                 U256.wrapping_add, U256.wrapping_sub, U256.wrapping_mul, U256.__floordiv__, U256.__eq__,
+                 U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__]
+                == original_functions and control.Uint is Uint and control.U256 is U256 and
+            control.GasCosts is gas_module.GasCosts and
+                all(f.__globals__ is vars(control) for f in original_functions[:4]) and
+                int(gas_module.GasCosts.OPCODE_ADD) == int(gas_module.GasCosts.OPCODE_SUB) == 3 and
+                int(gas_module.GasCosts.OPCODE_MUL) == int(gas_module.GasCosts.OPCODE_DIV) == 5 and
+                control.pop is stack_module.pop and
                 control.push is stack_module.push and control.charge_gas is gas_module.charge_gas,
                 "source binding changed")
         return {
@@ -489,7 +530,7 @@ def source_compare(args):
                            "code_sha256": sha(marshal.dumps(f.__code__, 2))} for f in functions],
             "sources": loaded_sources, "installed": installed, "records": record_files,
             "wheels": wheel_records, "trusted_startup_files": startup_inputs,
-            "adapter": "real Evm and original ADD/SUB; fail-on-access PreState; direct body only",
+            "adapter": "real Evm and original ADD/SUB/MUL/DIV; fail-on-access PreState; direct body only",
         }
 
     before_identity = snapshot()
@@ -507,13 +548,13 @@ def source_compare(args):
 
     class UnreadPreState:
         def get_account_optional(self, address):
-            raise FrameError("ADD/SUB accessed pre-state account")
+            raise FrameError("ADD/SUB/MUL/DIV accessed pre-state account")
         def get_storage(self, address, key):
-            raise FrameError("ADD/SUB accessed pre-state storage")
+            raise FrameError("ADD/SUB/MUL/DIV accessed pre-state storage")
         def get_code(self, code_hash):
-            raise FrameError("ADD/SUB accessed pre-state code")
+            raise FrameError("ADD/SUB/MUL/DIV accessed pre-state code")
         def state_root(self, diff):
-            raise FrameError("ADD/SUB accessed pre-state root")
+            raise FrameError("ADD/SUB/MUL/DIV accessed pre-state root")
 
     def address(n):
         return fork.Address(n.to_bytes(20, "big"))
@@ -583,7 +624,13 @@ def source_compare(args):
                 "warmSlots": sorted([[int.from_bytes(a, "big"), int.from_bytes(k, "big")]
                                      for a, k in evm.accessed_storage_keys])}
 
-    related = [row for row in frames if row["cost"] == 3]
+    source_functions = {"add": control.add, "sub": control.sub,
+                        "mul": control.mul, "div": control.div}
+    source_prices = {"add": int(gas_module.GasCosts.OPCODE_ADD),
+                     "sub": int(gas_module.GasCosts.OPCODE_SUB),
+                     "mul": int(gas_module.GasCosts.OPCODE_MUL),
+                     "div": int(gas_module.GasCosts.OPCODE_DIV)}
+    related = [row for row in frames if row["cost"] == source_prices[row["op"]]]
     progress = 0
     try:
         with (output / "observations.jsonl").open("x") as observed:
@@ -591,7 +638,7 @@ def source_compare(args):
                 evm = source_frame(row)
                 original = encode(evm)
                 exact(frame_observation(evm), row["before"])
-                function = control.add if row["op"] == "add" else control.sub
+                function = source_functions[row["op"]]
                 caught = None
                 try:
                     returned = function(evm)
@@ -625,7 +672,7 @@ def source_compare(args):
         require(before_identity == after_identity and pinned_before == pin_after,
                 "source/runtime identities changed")
     print(json.dumps({"source_calls": progress, "raw_price_lean_only": len(frames) - len(related),
-                      "actual_original_ADD_SUB": True, "dispatch_or_guest_execution": False}))
+                      "actual_original_ADD_SUB_MUL_DIV": True, "dispatch_or_guest_execution": False}))
 
 
 

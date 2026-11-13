@@ -6,11 +6,11 @@ import STFSpec.Vm.Instructions.Handler
 import STFSpec.Base.U256Arithmetic
 
 /-!
-# ADD and SUB
+# ADD, SUB, MUL and DIV
 
 Library `EthVmInstructions`. Ordered pops, execution charge, wrapping operation,
 push and PC advance follow pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–76`.
+`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–133`.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md` §§3/5/7.
 -/
 
@@ -259,6 +259,150 @@ theorem sub_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id
     (h : ((sub ctx f).run w).run = .ok (.continue f', w'))
     (hc : 1 ≤ ctx.config.costs.opcodeSub) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have hp := sub_continue_phi ctx f f' w w' h
+  omega
+
+/-- Multiply the top two words after ordered pops and the selected execution charge.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:79–103`. -/
+def mul {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binary ctx f ctx.config.costs.opcodeMul U256.mul)
+
+/-- Empty-stack underflow keeps the complete frame and supplied world. -/
+theorem mul_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((mul ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeMul U256.mul, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeMul U256.mul h]
+
+/-- The first pop survives second-pop underflow, before any charge. -/
+theorem mul_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((mul ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeMul U256.mul x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeMul U256.mul, w)) = _
+  rw [hr]
+
+/-- Both pops survive an execution shortage; the complete meter remains unchanged. -/
+theorem mul_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeMul) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((mul ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeMul U256.mul x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeMul U256.mul, w)) = _
+  rw [hr]
+
+/-- Complete successful result, including proved push availability and whole-world retention. -/
+theorem mul_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : ctx.config.costs.opcodeMul ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.mul x y) = .ok out ∧
+      out.toList = U256.mul x y :: xs ∧
+      ((mul ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeMul } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeMul U256.mul x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeMul U256.mul, w)) = _
+  rw [hr]
+
+/-- Every actual Id continuation loses exactly the selected raw opcode price. -/
+theorem mul_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mul ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeMul = f.gasMeter.phi := by
+  change Except.ok (binary ctx f ctx.config.costs.opcodeMul U256.mul, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeMul U256.mul
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- Strict continuing progress requires only positivity of the selected price. -/
+theorem mul_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mul ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeMul) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := mul_continue_phi ctx f f' w w' h
+  omega
+
+/-- Divide the top two words after ordered pops and the selected execution charge.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:106–133`. -/
+def div {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binary ctx f ctx.config.costs.opcodeDiv U256.div)
+
+/-- Empty-stack underflow keeps the complete frame and supplied world. -/
+theorem div_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((div ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeDiv U256.div, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeDiv U256.div h]
+
+/-- The first pop survives second-pop underflow, before any charge. -/
+theorem div_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((div ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeDiv U256.div x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeDiv U256.div, w)) = _
+  rw [hr]
+
+/-- Both pops survive an execution shortage; the complete meter remains unchanged. -/
+theorem div_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeDiv) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((div ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeDiv U256.div x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeDiv U256.div, w)) = _
+  rw [hr]
+
+/-- Complete successful result, including proved push availability and whole-world retention. -/
+theorem div_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : ctx.config.costs.opcodeDiv ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.div x y) = .ok out ∧
+      out.toList = U256.div x y :: xs ∧
+      ((div ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeDiv } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeDiv U256.div x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeDiv U256.div, w)) = _
+  rw [hr]
+
+/-- Every actual Id continuation loses exactly the selected raw opcode price. -/
+theorem div_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((div ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeDiv = f.gasMeter.phi := by
+  change Except.ok (binary ctx f ctx.config.costs.opcodeDiv U256.div, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeDiv U256.div
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- Strict continuing progress requires only positivity of the selected price. -/
+theorem div_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((div ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeDiv) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := div_continue_phi ctx f f' w w' h
   omega
 
 end STFSpec.Vm.Instructions

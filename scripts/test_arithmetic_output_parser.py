@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""ADD/SUB framing and actual CLI regressions, under normal Python and -O."""
+"""ADD/SUB/MUL/DIV framing and actual CLI regressions, under normal Python and -O."""
 
 import copy
 import importlib.util
@@ -76,6 +76,33 @@ class ArithmeticParserTests(unittest.TestCase):
         bad = copy.deepcopy(rows)
         bad[i]["phiAfter"] += 1
         probes.append(bad)
+        i = next(i for i, r in enumerate(rows) if r["op"] == "mul" and
+                 r["tag"] == "continue" and r["before"]["stack"][:2] == [2**255, 2])
+        bad = copy.deepcopy(rows)
+        bad[i]["after"]["stack"][0] = 1
+        probes.append(bad)
+        i = next(i for i, r in enumerate(rows) if r["op"] == "div" and
+                 r["tag"] == "continue" and r["before"]["stack"][:2] == [9, 2])
+        bad = copy.deepcopy(rows)
+        bad[i]["after"]["stack"][0] = 2 // 9
+        probes.append(bad)
+        i = next(i for i, r in enumerate(rows) if r["op"] == "div" and
+                 r["error"] == "outOfGas" and r["before"]["stack"][1] == 0)
+        bad = copy.deepcopy(rows)
+        bad[i]["tag"], bad[i]["error"] = "continue", None
+        bad[i]["after"]["stack"].insert(0, 0)
+        bad[i]["after"]["pc"] += 1
+        probes.append(bad)
+        for op in ["mul", "div"]:
+            i = next(i for i, r in enumerate(rows) if r["op"] == op and
+                     r["cost"] == 5 and r["tag"] == "continue")
+            bad = copy.deepcopy(rows)
+            bad[i]["after"]["meter"][0] -= 1
+            bad[i]["phiAfter"] -= 1
+            probes.append(bad)
+            bad = copy.deepcopy(rows)
+            bad[i]["otherCost"] += 1
+            probes.append(bad)
         for bad in probes:
             with self.assertRaises(module.FrameError):
                 module.compare_frames(wire(bad))
