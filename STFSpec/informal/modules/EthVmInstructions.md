@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw CreateRequest carrier and opcode byte conversions supplied. Date: 2026-11-02. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw CallRequest/CreateRequest carriers and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -222,6 +222,21 @@ of an EELS function. The source read identifies where the seven values arise and
 where they are consumed. It supplies no source/admission bridge, gas-correctness
 proof, child context, handler or resume implementation.
 
+### Supplied raw call suspension carrier
+
+| EELS split origin at `59c1473d` | Lean declaration | Domain | Effects / ordered failures | Laws and clients | Status |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:340–462` (`GenericCall`; `generic_call` dispatch `:395–439`, outcome `:443–462`) | `STFSpec.Vm.Instructions.CallRequest` in `STFSpec/Vm/Instructions/CallRequest.lean`, exported by `STFSpec.Vm.Instructions` | Exactly fourteen independent fields in §5 order: two unrestricted `Nat` grants, nominal `U256` value, three nominal `Address` values, four `Bool` flags, complete `Bytes` input/code and two nominal `U256` output-window words; no class/monad, WF, coherence or admission premise | Pure raw construction/projection; no preflight, state access, copying from memory, gas calculation, child execution or failure | Generated record infrastructure only; private `CallRequestCallerProofs` facade clients prove complete constructor preservation, reconstruction, all-field determination and all fourteen independent updates. Public Base observations/laws retain all nominal values and ordered bytes; complete asymmetric and negative controls below | Supplied raw carrier and private clients/controls; producers, consumers and whole `generic_call` correspondence unimplemented |
+
+This is the Lean-side suspension carrier of §5. EELS has `GenericCall`, rather
+than a Python `CallRequest` class. Source contexts identify grants at `:422–424`,
+value/addresses/flags at `:409–418`, input bytes at `:396–400,412`, account-charge
+use at `:390,449` and output windows at `:455–462`. The source combines staticness
+at `:414`; this raw record merely retains the supplied `isStatic` field. No
+producer/staticness policy or source execution/refinement follows from storage.
+The carrier neither constrains nor interprets the independently supplied grants,
+flags, addresses, byte arrays or output windows.
+
 **External semantics.** `ethereum_types` `U256` operations used by handlers: `wrapping_add/sub/mul`, `//`, `%`, `to_signed`, `from_signed` (raises for out-of-range; unreachable from these handlers because all results are in range) [V], `from_be_bytes`, `to_be_bytes32`, `bit_length`, `~`, `&`, `|`, `^`, `>>`; `Uint(...)` conversions (exact, unbounded); `U8` for immediates; Python's `pow(b, e, 2^256)`; Python negative list indexing in BLOCKHASH (IndexError beyond length) and in DUPN/SWAPN/EXCHANGE (always in range after the checks). Each must be given by an `EthBase` `U256`/`Nat` law, not by Lean `BitVec` instances (D1).
 
 ## 4. Tests
@@ -251,6 +266,23 @@ zero and greater-than-256-bit grants, maximum/full-width nominal values, distinc
 and equal caller/destination, empty and ordered duplicate init bytes, and both
 charging flags. These checks test raw data retention; the opcode/source tests
 below remain unimplemented.
+
+**Supplied raw call carrier controls.**
+`STFSpec/Conformance/Vm/Instructions/CallRequestCallerProofs.lean` imports only the
+public Instructions facade. Ordinary private clients check the exact ordered
+constructor and projection tuple, arbitrary complete field retention,
+reconstruction, whole-record determination and all fourteen independent updates
+while retaining every sibling. Generic Bool parameters admit every flag
+combination. Complete byte-list construction and nominal Base numeric laws use
+public observers without unfolding provider storage. Four complete deterministic
+observations cover zero and independently huge grants, full-width values and
+windows, three unequal/equal addresses, empty/ordered duplicate and unequal
+input/code bytes, and all-false/all-true/asymmetric flags. Negative complete
+observations distinguish swapped destination/code addresses and a changed
+flag/input/code/window tuple. Static transfer with nonzero value and output size
+larger than code/input remain raw data. Warning-fatal compilation evaluates these
+controls; the declaration audit covers leaf/facade/clients. These are storage
+checks, with no Python oracle execution, opcode conformance or rollback claim.
 
 **F8 inheritance/producer controls (unimplemented).** Check both child-context
 systemAddress equations with a nonliteral parent address, independently varying
@@ -288,9 +320,14 @@ The exact seven-field `CreateRequest` below is **supplied** through the public
 `STFSpec.Vm.Instructions` facade. It has generated record infrastructure only:
 no authored defaults, deriving/instances, public helper laws, semantic constructor
 or invariant/proof field. Its two Nat grants, addresses, complete init bytes and
-charging flag remain independent. The remaining interfaces below, including
-`CallRequest`, `StepResult`, child construction and resume, remain unimplemented;
-this carrier selects no CallRequest/staticness or F11 policy.
+charging flag remain independent. The exact fourteen-field `CallRequest` below is
+also **supplied** with only
+generated record infrastructure. All fields remain complete and independent;
+there is no class/monad binder, WF, depth/grant, account/code coherence or
+admission premise. Neither carrier adds a default, instance or public helper
+law. The remaining interfaces, including `StepResult`, child construction and
+resume, remain unimplemented; raw storage selects no producer/staticness or F11
+policy.
 
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
 
@@ -374,7 +411,7 @@ theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ �
 | `Ops` (supplied) | inductive, 153 constructors; direct literal matches | byte value via `toByte` | both round trips in §7 discharged; 103 unassigned bytes decode to `none` | value | target `ofByte?` O(1) (a 256-entry table or a nibble match beside the literal reference, D25); the current literal 153-arm match compiles to a comparison chain (DEBT-OPS-DECODE); no table allocation or performance measurement claimed |
 | `StepResult ctx` | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
 | `CreateRequest` (supplied) | raw seven-field record; init code uses Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.5 grants/effects | value | fixed-field record construction/projection; init bytes retained through the Base provider |
-| `CallRequest` (unimplemented) | record; `callData`, `code` use Base `Bytes` | — | future producers compute `gas` by the 63/64 rule from the parent's `gas_left` at the grant | value | O(1) plus the input copy O(\|in\|) already paid by gas |
+| `CallRequest` (supplied) | raw fourteen-field record; `callData`, `code` use Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.6 grants/effects and input copying | value | fixed-field construction/projection; complete bytes retained through the Base provider |
 | `ChildOutcome` | record | — | `ChildSettled` | value | — |
 | handlers | functions in `VmM m` (pure at `m := Id`) | — | preserve `Frame` invariants (stack ≤ 1024, memory size % 32 = 0) | — | O(1) for word ops; O(k) for copies/hashes of k bytes, k bounded by gas |
 
@@ -404,6 +441,15 @@ updates on arbitrary records without adding public ext/eta/equation laws or
 admission. The 63/64 requirement belongs to future producers (§2.5), not a raw
 record proof field. No preflight, state/gas correctness, source refinement,
 child-context/staticness, settlement or resume law follows from construction.
+
+**Supplied raw call request.** Its public contract is exactly the fourteen fields
+in §5, with ordinary generated constructor/projection/reconstruction reduction.
+Private complete facade clients establish all-field retention, determination and
+independent updates on arbitrary records. No public helper law or extra admission
+is introduced. The complete `Bytes` and nominal words are retained without
+truncation, zero padding, window clamping, flag combination or code/address
+coherence checks. Grant/staticness/source correctness and child/resume effects
+belong to future producers and consumers (§2.6); construction proves none of them.
 
 **Per-opcode semantic lemmas** [R] (for evm-asm and pancaketh), one per handler, stated only with EthVmCore's stack/memory/meter laws and EthState's lookup laws, never by unfolding representations. Template (ADD):
 
@@ -466,7 +512,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw creation carrier supplied; execution open:** §3 owns the exact `CreateRequest` type and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, `StepResult`, `CallRequest`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carrier adds no admission/staticness policy and resolves neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, `StepResult`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top
