@@ -16,6 +16,7 @@ node decoder and pure bare lookup are supplied; WitnessError/guest adapters rema
 unimplemented. Q59 branchIndex is supplied for pure lookup; Q60 also approves its
 future mutation scope, reached occupancy 0 and collapseIndex after applicable witnessing.
 Only the collapseIndex constructor is supplied here; mutation emission remains future.
+Q90 securedPathLength is emitted by the secured `decodeWitnessToMpt` check.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.1/2.7/5.
 -/
 
@@ -51,6 +52,11 @@ inductive Malformed where
   /-- Q60 sole collapse survivor has a nonnibble index, after applicable witnessing.
   Constructor supplied; mutation emission and guest projection remain future. -/
   | collapseIndex (index : Nat)
+  /-- Q90: a decoded occurrence in a secured trie fails a path-length check against the
+  64-nibble key. One diagnostic for all three source assertions; which check fails is
+  not part of the contract.
+  EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:987–1013` at the pin. -/
+  | securedPathLength
   deriving DecidableEq
 
 

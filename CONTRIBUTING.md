@@ -264,6 +264,14 @@ lake env lean --run scripts/HeaderCarriersNativeTests.lean .lake/header-carriers
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/header_carriers_differential.py --check-target .lake/header-carriers-interpreted.jsonl
 uv run --no-project --python 3.12 python -B scripts/test_header_carriers_output_parser.py
 uv run --no-project --python 3.12 python -B -O scripts/test_header_carriers_output_parser.py
+lake build storage-decode-native-tests --wfail
+lake exe check-decls StorageDecodeNativeTests
+lake exe storage-decode-native-tests > .lake/storage-decode-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/StateCommit/storage_decode_differential.py --check-target .lake/storage-decode-native.jsonl
+lake env lean --run scripts/StorageDecodeNativeTests.lean > .lake/storage-decode-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/StateCommit/storage_decode_differential.py --check-target .lake/storage-decode-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_storage_decode_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_storage_decode_output_parser.py
 lake build fixed-endian-bench --wfail
 lake exe check-decls FixedEndianBench
 lake build log-rope-bench --wfail

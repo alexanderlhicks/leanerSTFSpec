@@ -1,6 +1,8 @@
+| actual request models above | `requestCounts`, `counts_le_requestSize`, `transaction_le_requestSize`, `extraData_le_requestSize`, `blockAccessList_le_requestSize` and corresponding `*_le_request_encoded_size` clients | raw counts/member byte lengths ≤ R without support; actual encoded bounds require only request Serializable | complete eight-count list, membership-local Nat sum, symbolic empty transaction data/offset distinction |
+| `stateless.py:144–166`, `src/ethereum/utils/ssz.py:174–253` | `input_request_serializable`, `input_request_logical_bound`, `input_request_encoded_bound` | actual input Serializable projects request Serializable and strict 16+R<2^32; encoded form accepts any support proof for that actual request | public support equation, actual later witness start and existing strict-boundary/final-tail controls |
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
-*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers, raw StatelessInput and actual input/witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-07. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; protocol fork metadata, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers, raw StatelessInput and actual input/witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F13, F14, F18, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D13, D14, D18, D19 · questions: B12 (Q4), Q5, Q6/Q20, Q80, Q81, Q87, Q88, O2, O13.*
 
 Source references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** marks a claim checked by reading the pinned source or by running the pinned EELS or the pinned fixtures (environment and reproduction: [REVIEW §2](../REVIEW.md)); **[I]** marks an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -476,30 +478,31 @@ The domain is arbitrary raw supported type/value pairs. Zero-byte vectors,
 nonempty fixed-zero-child lists/products, empty ordinary containers and malformed
 raw progressive masks remain supported where Q80 permits them. No WF,
 CountRecoverable, Rootable, positive-width, uint256-count or final-size premise is
-added. Actual request-count bounds, decoded-input support, rootability, schema-ID
-joins, source-host agreement and guest/resource/security/readiness obligations
-remain separate (§10).
+added. Decoded-input support, rootability, schema-ID joins, source-host agreement
+and guest/resource/security/readiness obligations remain separate (§10).
 
 
 **Private actual request sizes.** The same caller module specializes that foundation
 using the public actual dictionary types and models. Section 7 owns the raw logical
 formulas, operation-local encoded-size laws, six fixed-width classifications and
-inherited child/member support. These are mathematical caller proofs, without a
-new public declaration or production operation.
+inherited child/member support. Private bounds cover all eight actual counts,
+every transaction member, extra data and BAL. Actual whole-input Serializable
+projects request support and bounds the later witness start strictly below 2^32.
+These are mathematical caller proofs, without a new public declaration or
+production operation.
 
 | Pinned source metadata | Private Lean client | Domain and result | Controls |
 |---|---|---|---|
-| `execution_engine/types.py:65`, `utils/ssz.py:258–291` | `transactionSize`, `transactions_logical_size`, `transactions_encoded_size` | raw transaction array formula; actual bytes require only its own Serializable proof | arbitrary repeated empties and arbitrary final transaction |
-| `execution_engine/types.py:39–72`, `utils/ssz.py:258–291` | `payloadSize`, `payload_logical_size`, `payload_encoded_size` | every raw payload; actual bytes require only payload Serializable | arbitrary BAL and extra-data replacement, including over-limit raw extra data |
-| `execution_engine/requests.py:99–116`, `utils/ssz.py:258–291` | `requestsSize`, `requests_logical_size`, `requests_encoded_size` | every raw aggregate; actual bytes require only aggregate Serializable | one arbitrary item appended to each of the five arrays |
-| `execution_engine/types.py:78–96`, `utils/ssz.py:258–291` | `requestSize`, `request_logical_size`, `request_encoded_size` | every raw request; actual bytes require only request Serializable | universal formula and local proof parameter |
+| `execution_engine/types.py:65`, `src/ethereum/utils/ssz.py:258–291` | `transactionSize`, `transactions_logical_size`, `transactions_encoded_size` | raw transaction array formula; actual bytes require only its own Serializable proof | arbitrary repeated empties and arbitrary final transaction |
+| `execution_engine/types.py:39–72`, `src/ethereum/utils/ssz.py:258–291` | `payloadSize`, `payload_logical_size`, `payload_encoded_size` | every raw payload; actual bytes require only payload Serializable | arbitrary BAL and extra-data replacement, including over-limit raw extra data |
+| `execution_engine/requests.py:99–116`, `src/ethereum/utils/ssz.py:258–291` | `requestsSize`, `requests_logical_size`, `requests_encoded_size` | every raw aggregate; actual bytes require only aggregate Serializable | one arbitrary item appended to each of the five arrays |
+| `execution_engine/types.py:78–96`, `src/ethereum/utils/ssz.py:258–291` | `requestSize`, `request_logical_size`, `request_encoded_size` | every raw request; actual bytes require only request Serializable | universal formula and local proof parameter |
 | `blocks.py:38–66`, `execution_engine/requests.py:42–93` | `withdrawal_fixed_size`, the five item `*_fixed_size` and corresponding `*_encoded_size` clients | actual descriptor widths; each actual item encoding uses only its own Serializable proof | public classifier equations and universal local-width consequences |
 | actual container/list models above | `request_children_serializable`, `payload_children_serializable`, `requests_children_serializable` and their member clients | enclosing actual Serializable projects only to the actual children and array members | public support equation and membership-local projections |
 
 These clients have no effects or error results. They establish neither source
-execution nor source serialization agreement. Whole-input request support, later
-outer-start and count/leaf bounds, Rootable assembly and decoded-value bridges
-remain open (§10).
+execution nor source serialization agreement. Rootable assembly and decoded-value
+bridges remain open (§10).
 
 ## 4. Tests
 
@@ -786,9 +789,12 @@ arbitrary last transaction's complete length. The BAL and extra-data replacement
 laws retain the complete replacement length, with no support premise or wire
 limit on the raw extra data. Five `*_append_logical_size` laws append one arbitrary
 item to each actual aggregate array and check its distinct fixed-width increment.
-These universal probes allocate no large list and add no second finite wire
-catalogue. The existing complete byte, malformed-mask, zero-width and final-tail
-controls remain in place.
+The private count and leaf bounds retain all eight counts and every actual member;
+transaction counts use the four-byte offset contribution independently of payload
+bytes. `empty_transactions_offset_distinction` proves logical size 4*n while the
+payload-byte sum is zero, for every n. These universal probes allocate no large
+list and add no second finite wire catalogue. The existing complete byte,
+malformed-mask, zero-width and final-tail controls remain in place.
 
 `InputSszWireControls.lean` transports all 48 independently frozen mathematical
 whole inputs through private checked Base construction. Shared complete natural
@@ -1238,9 +1244,34 @@ transaction list, Withdrawal list, extra-data leaf and BAL leaf. An aggregate
 supplies all five actual lists. The corresponding member laws retain the actual
 arrays and public item models, with support for every member of each mapped list,
 including the hash members. No empty, duplicate or reordered occurrence is removed,
-and no `.valid` hypothesis is turned into operation support. These projections
-supply no whole-input support, count/leaf bound, later outer-start bound, request
-Rootable or decoder/WF result.
+and no `.valid` hypothesis is turned into operation support.
+
+The private `requestCounts q` list contains exactly the counts of versioned
+hashes, payload transactions, payload Withdrawals, deposits, request withdrawals,
+consolidations, builder deposits and builder exits, in that order. For every
+raw request q, each listed count is ≤ R(q). Every actual member transaction b
+has b.size ≤ R(q), as do q.executionPayload.extraData.size and
+q.executionPayload.blockAccessList.size. These bounds need no support or
+validity premise. The transaction count uses 4*transactions.size, including
+empty occurrences; member lengths use their complete nonnegative Nat sum.
+The four corresponding encoded-size bounds replace R(q) by
+`(Ssz.encode NewPayloadRequest.instSszSchema.type
+  (NewPayloadRequest.instSszSchema.toValue q) h).size` and require only that
+actual request's Serializable proof h.
+
+For every actual input a, `input_request_serializable` projects support for
+a.newPayloadRequest from exactly
+`h : Ssz.Serializable StatelessInput.instSszSchema.type
+  (StatelessInput.instSszSchema.toValue a)`. Under that same h,
+`input_request_logical_bound` proves `16 + R(a.newPayloadRequest) < 2^32`.
+It identifies the public support law's later emitted witness start with
+16+R, using the actual outer head and raw request-size equation.
+`input_request_encoded_bound` replaces R by the actual request encoding size
+under any Serializable proof hr for that same actual request; hr need not
+be the projected proof. No enclosing validity, WF, Rootable or uint256
+premise is added. Schema-ID bytes remain outside the body head. There is no
+final witness-end or total-input bound. Request Rootable and decoder/WF
+bridges remain open.
 
 **Supplied raw payload/request contract.** Each §5 constructor accepts all
 nineteen/four arbitrary independent raw fields with their exact types and order,
@@ -1572,8 +1603,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
   30-case/183-byte controls, actual raw request-size formulas, operation-local
   encoded-size laws, fixed classifications and inherited child/member support are
-  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
-  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  supplied in §3/§4/§7, together with raw count/leaf bounds, their operation-local
+  encoded forms, actual input-to-request support and the strict later witness-start
+  bound. Decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding,
+  general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
@@ -1588,7 +1621,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`DecodingError` versus other exceptions in `_decode_header`.** The fallback fires only on `rlp.DecodingError`. If `ethereum-rlp` 0.1.6 raises another exception type for some malformed Amsterdam header (for example from a field constructor), EELS skips the fallback; the output is the same (inner failure), but the constructor differs. Unchecked.
 - **Missing BLOCKHASH ancestor** is a Python negative-index `IndexError` (`vm/instructions/block.py:58`), fixture-witnessed. It is O13 with the named constructor `VmFault.ancestorHashUnavailable` (`EthVmCore`/`EthVmInstructions`), not O4 or O6 (R5). Note that an ancestor deeper than the witness but within 256 blocks fails the block, while one beyond 256 returns zero without touching the witness.
 - **O2** has no fixture and no reachable spec path; L-root is unproved (open, DECISIONS §3 O2). If a future SSZ type made `hash_tree_root` partial (e.g. a resource limit), the constructor would be needed.
-- **O12 candidates (DISC-001, unresolved).** The guest-process recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288). (a) Deep RLP nesting in a witness header or transaction: 20,000 levels decode and 40,000 raise `RecursionError` in `ethereum-rlp` (witnessed by probe inputs). For a transaction it is caught inside `is_valid_versioned_hashes` and becomes O6 (DISC-006); for a header, in the inner phase. Since valid headers and transactions have bounded nesting, the output probably coincides with the spec's structural failure [I]. (b) Eager witness decoding (`incremental_mpt.py:892–1026`) has no depth or key-length bound; a finite, acyclic DB with a deep chain of nested hashed nodes reachable from a crafted parent `state_root` would make EELS raise `RecursionError` (→ `false`), while a spec decoder without a depth limit could accept it. The depth at which this happens under the 100,000 limit has not been re-measured (the earlier "~1,000 nodes" estimate predates it). This is a guest-level divergence on crafted inputs, uncovered by fixtures, and needs a reproducer and a decision with `EthStateWitness`.
+- **O12 candidates (DISC-001, unresolved).** The guest-process recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288). (a) Deep RLP nesting in a witness header or transaction: 20,000 levels decode and 40,000 raise `RecursionError` in `ethereum-rlp` (witnessed by probe inputs). For a transaction it is caught inside `is_valid_versioned_hashes` and becomes O6 (DISC-006); for a header, in the inner phase. Since valid headers and transactions have bounded nesting, the output probably coincides with the spec's structural failure [I]. (b) Eager witness decoding (`incremental_mpt.py:885–1065`) recurses without a depth limit. For chains of trie nodes this no longer gives a divergence: every guest decode is secured, and EELS's path check (`incremental_mpt.py:987–1013`) or its recursion limit and the Q90 decoder all give `false` (EthCommit C17) [I, by reading]. RLP nesting inside a witness node's branch value is not bounded by the check: beyond a host-dependent depth EELS raises `RecursionError` (→ `false`), while the spec's total decoder accepts the node and reads the value as empty (DISC-003). This is a guest-level divergence on crafted inputs, uncovered by fixtures, and needs a decision with `EthStateWitness`; DISC-001 has the decode-level reproducer.
 - **Input size envelope.** Transactions, the BAL bytes and the progressive lists are unbounded in SSZ; the largest fixture input is 8.4 MB. There is no stated maximum input, memory or cycle envelope; `EthBase`'s `Envelope` record does not yet cover the guest.
 - **SSZ progressive types.** Correctness of `ProgressiveContainer`/progressive-list decoding and merkleization rests on `eth-remerkleable` 0.1.31 (EIP-7495/EIP-7916 as implemented there). EthCodec implements progressive merkleization, roots and forward encoding (Q75, Q79, Q80); progressive decoding is specified (Q88) but unimplemented, and no independent reference beyond `eth-remerkleable` 0.1.31 is pinned.
 - **`payloadHeader` totality** is inferred: EELS catches any exception there, and the spec asserts none can occur on decoded values. Needs a line-by-line check of `Header` field constructors (e.g. `Uint`/`U256` widening, `Bytes8`).
