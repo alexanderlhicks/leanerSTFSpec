@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Bounded ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND frame comparison; no dispatch, trace, reachability or guest claim.
+"""Bounded ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD frame comparison; no dispatch, trace, reachability or guest claim.
 
 Parser: canonical Python 3.12, --check-target FILE. Source mode: the frozen
 EELS/.venv/bin/python [-O] -I -B SCRIPT --source --eels EELS --wheels WHEELS
 --output FRESH_DIRECTORY --frames FILE. --preflight authenticates without calls.
-The real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND execute with a fail-on-access PreState provider;
+The real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD execute with a fail-on-access PreState provider;
 that provider is instrumentation, not a state backend or interpreter execution.
 """
 
@@ -110,6 +110,7 @@ def cases():
     # Frozen input-only controls cover every byte position and independent raw prices.
     extra = json.loads(Path(__file__).with_name("arithmetic_signextend_inputs.json").read_text())
     result.extend(extra)
+    result.extend(json.loads(Path(__file__).with_name("arithmetic_ternary_inputs.json").read_text()))
     return result
 
 
@@ -141,7 +142,24 @@ def expected_frames():
         }
         after = copy.deepcopy(before)
         tag, error = "halt", "stackUnderflow"
-        if after["stack"]:
+        if c["op"] in {"addmod", "mulmod"}:
+            operands = []
+            for _ in range(3):
+                if not after["stack"]:
+                    break
+                operands.append(after["stack"].pop(0))
+            if len(operands) == 3:
+                if c["gas"] < c["cost"]:
+                    error = "outOfGas"
+                else:
+                    x, y, z = operands
+                    unbounded = x + y if c["op"] == "addmod" else x * y
+                    value = 0 if z == 0 else unbounded % z
+                    after["stack"].insert(0, value)
+                    after["meter"][0] -= c["cost"]
+                    after["pc"] += 1
+                    tag, error = "continue", None
+        elif after["stack"]:
             x = after["stack"].pop(0)
             if after["stack"]:
                 y = after["stack"].pop(0)
@@ -205,19 +223,19 @@ def exact(actual, expected):
 
 
 def compare_frames(data):
-    require(len(data) <= 3_000_000, "oversized ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND evidence")
+    require(len(data) <= 3_000_000, "oversized ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD evidence")
     try:
         rows = [json.loads(line, object_pairs_hook=pairs,
                            parse_constant=lambda _: (_ for _ in ()).throw(FrameError("constant")))
                 for line in data.splitlines()]
     except (ValueError, RecursionError) as error:
-        raise FrameError("malformed ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND evidence") from error
+        raise FrameError("malformed ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD evidence") from error
     exact(rows, expected_frames())
     return rows
 
 
 def source_compare(args):
-    """Authenticate the frozen source and installed imports before executing ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND."""
+    """Authenticate the frozen source and installed imports before executing ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD."""
     import builtins
     import base64
     import dataclasses
@@ -517,7 +535,7 @@ def source_compare(args):
     sign_module = importlib.import_module("ethereum.utils.numeric")
     require(all(f.__globals__ is vars(control) for f in
                 [control.add, control.sub, control.mul, control.div,
-                 control.sdiv, control.mod, control.smod, control.signextend]),
+                 control.sdiv, control.mod, control.smod, control.signextend, control.addmod, control.mulmod]),
             "original arithmetic globals")
     require(control.Uint is Uint and control.U256 is U256 and
             control.GasCosts is gas_module.GasCosts and control.pop is stack_module.pop and
@@ -527,24 +545,27 @@ def source_compare(args):
             "original arithmetic helper bindings")
     require([f.__code__.co_firstlineno for f in
              [control.add, control.sub, control.mul, control.div,
-              control.sdiv, control.mod, control.smod, control.signextend]] == [25, 52, 79, 106, 139, 172, 202, 331],
+              control.sdiv, control.mod, control.smod, control.signextend, control.addmod, control.mulmod]] == [25, 52, 79, 106, 139, 172, 202, 331, 232, 263],
             "arithmetic source locations")
     require(int(gas_module.GasCosts.OPCODE_ADD) == int(gas_module.GasCosts.OPCODE_SUB) == 3
             and int(gas_module.GasCosts.OPCODE_MUL) == int(gas_module.GasCosts.OPCODE_DIV) ==
             int(gas_module.GasCosts.OPCODE_SDIV) == int(gas_module.GasCosts.OPCODE_MOD) ==
             int(gas_module.GasCosts.OPCODE_SMOD) == int(gas_module.GasCosts.OPCODE_SIGNEXTEND) == 5,
             "pinned selected prices")
+    require(int(gas_module.GasCosts.OPCODE_ADDMOD) ==
+            int(gas_module.GasCosts.OPCODE_MULMOD) == 8, "pinned ternary prices")
     require(importlib.metadata.version("ethereum-types") == "0.4.1" and
             importlib.metadata.version("ethereum-rlp") == "0.1.6", "numeric/RLP pin")
     functions = [control.add, control.sub, control.mul, control.div,
-                 control.sdiv, control.mod, control.smod, control.signextend, vm.Evm.__init__,
+                 control.sdiv, control.mod, control.smod, control.signextend, control.addmod, control.mulmod, vm.Evm.__init__,
                  stack_module.pop, stack_module.push,
                  gas_module.charge_gas, gas_module.charge_gas_from_meter,
                  U256.wrapping_add, U256.wrapping_sub, U256.wrapping_mul, U256.__floordiv__, U256.__mod__, U256.__eq__,
                  U256.to_signed, U256.from_signed, sign_module.get_sign,
                  U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__,
                  U256.to_be_bytes32, U256.from_be_bytes.__func__,
-                 U256.__gt__, U256.__add__, U256.__sub__, U256.__int__]
+                 U256.__gt__, U256.__add__, U256.__sub__, U256.__int__,
+                 Uint.__mul__, Uint.__mod__, Uint.__eq__]
     original_functions = list(functions)
     require([int(Uint(x) + Uint(1)) for x in (0, 2**64, 2**300 + 19)] ==
             [1, 2**64 + 1, 2**300 + 20], "Uint exact successor relation")
@@ -568,21 +589,24 @@ def source_compare(args):
                 current = identity(Path(info["path"]))
                 require(all(current[k] == info[k] for k in current), "wheel changed")
         require([control.add, control.sub, control.mul, control.div,
-                 control.sdiv, control.mod, control.smod, control.signextend, vm.Evm.__init__,
+                 control.sdiv, control.mod, control.smod, control.signextend, control.addmod, control.mulmod, vm.Evm.__init__,
                  stack_module.pop, stack_module.push,
                  gas_module.charge_gas, gas_module.charge_gas_from_meter,
                  U256.wrapping_add, U256.wrapping_sub, U256.wrapping_mul, U256.__floordiv__, U256.__mod__, U256.__eq__,
                  U256.to_signed, U256.from_signed, sign_module.get_sign,
                  U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__,
                  U256.to_be_bytes32, U256.from_be_bytes.__func__,
-                 U256.__gt__, U256.__add__, U256.__sub__, U256.__int__]
+                 U256.__gt__, U256.__add__, U256.__sub__, U256.__int__,
+                 Uint.__mul__, Uint.__mod__, Uint.__eq__]
                 == original_functions and control.Uint is Uint and control.U256 is U256 and
             control.GasCosts is gas_module.GasCosts and
-                all(f.__globals__ is vars(control) for f in original_functions[:8]) and
+                all(f.__globals__ is vars(control) for f in original_functions[:10]) and
                 int(gas_module.GasCosts.OPCODE_ADD) == int(gas_module.GasCosts.OPCODE_SUB) == 3 and
                 int(gas_module.GasCosts.OPCODE_MUL) == int(gas_module.GasCosts.OPCODE_DIV) ==
                 int(gas_module.GasCosts.OPCODE_SDIV) == int(gas_module.GasCosts.OPCODE_MOD) ==
                 int(gas_module.GasCosts.OPCODE_SMOD) == int(gas_module.GasCosts.OPCODE_SIGNEXTEND) == 5 and
+                int(gas_module.GasCosts.OPCODE_ADDMOD) ==
+                int(gas_module.GasCosts.OPCODE_MULMOD) == 8 and
                 control.pop is stack_module.pop and
                 control.push is stack_module.push and control.charge_gas is gas_module.charge_gas and
             control.get_sign is sign_module.get_sign and control.U255_CEIL_VALUE == 2**255 and control.Bytes is bytes_module.Bytes and
@@ -598,7 +622,7 @@ def source_compare(args):
                            "code_sha256": sha(marshal.dumps(f.__code__, 2))} for f in functions],
             "sources": loaded_sources, "installed": installed, "records": record_files,
             "wheels": wheel_records, "trusted_startup_files": startup_inputs,
-            "adapter": "real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND; fail-on-access PreState; direct body only",
+            "adapter": "real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD; fail-on-access PreState; direct body only",
         }
 
     before_identity = snapshot()
@@ -616,13 +640,13 @@ def source_compare(args):
 
     class UnreadPreState:
         def get_account_optional(self, address):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND accessed pre-state account")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state account")
         def get_storage(self, address, key):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND accessed pre-state storage")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state storage")
         def get_code(self, code_hash):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND accessed pre-state code")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state code")
         def state_root(self, diff):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND accessed pre-state root")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state root")
 
     def address(n):
         return fork.Address(n.to_bytes(20, "big"))
@@ -694,7 +718,8 @@ def source_compare(args):
 
     source_functions = {"add": control.add, "sub": control.sub,
                         "mul": control.mul, "div": control.div, "sdiv": control.sdiv,
-                        "mod": control.mod, "smod": control.smod, "signextend": control.signextend}
+                        "mod": control.mod, "smod": control.smod, "signextend": control.signextend,
+                        "addmod": control.addmod, "mulmod": control.mulmod}
     source_prices = {"add": int(gas_module.GasCosts.OPCODE_ADD),
                      "sub": int(gas_module.GasCosts.OPCODE_SUB),
                      "mul": int(gas_module.GasCosts.OPCODE_MUL),
@@ -702,7 +727,9 @@ def source_compare(args):
                      "sdiv": int(gas_module.GasCosts.OPCODE_SDIV),
                      "mod": int(gas_module.GasCosts.OPCODE_MOD),
                      "smod": int(gas_module.GasCosts.OPCODE_SMOD),
-                     "signextend": int(gas_module.GasCosts.OPCODE_SIGNEXTEND)}
+                     "signextend": int(gas_module.GasCosts.OPCODE_SIGNEXTEND),
+                     "addmod": int(gas_module.GasCosts.OPCODE_ADDMOD),
+                     "mulmod": int(gas_module.GasCosts.OPCODE_MULMOD)}
     related = [row for row in frames if row["cost"] == source_prices[row["op"]]]
     progress = 0
     try:
@@ -745,7 +772,7 @@ def source_compare(args):
         require(before_identity == after_identity and pinned_before == pin_after,
                 "source/runtime identities changed")
     print(json.dumps({"source_calls": progress, "raw_price_lean_only": len(frames) - len(related),
-                      "actual_original_ADD_SUB_MUL_DIV_SDIV_MOD_SMOD_SIGNEXTEND": True, "dispatch_or_guest_execution": False}))
+                      "actual_original_ADD_SUB_MUL_DIV_SDIV_MOD_SMOD_SIGNEXTEND_ADDMOD_MULMOD": True, "dispatch_or_guest_execution": False}))
 
 
 
