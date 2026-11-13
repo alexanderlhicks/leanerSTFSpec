@@ -15,7 +15,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:245–247` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:119–142`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:298–300`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
+- **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). EthVmInstructions §3/§5/§7 supplies the indexed result and read-only Handler signature; the raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:66–114`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
@@ -292,7 +292,7 @@ VM/guest/EEST/readiness remain open.
 
 | EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:160,162,167–177`; F8 policy fields; `interpreter.py:79` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance, source coherence and read-only handler signatures remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:160,162,167–177`; F8 policy fields; `interpreter.py:79` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance and source coherence remain open; EthVmInstructions owns the supplied read-only result/signature types |
 | The same source `Evm:147–185`, R-ENV-3 partition | `STFSpec.Vm.Core.Evm` in the same leaf/facade | Exactly `ctx : FrameCtx` and `frame : Frame`. Every pair of supplied values is admitted; no additional coherence/WF proof, state or control field. No effects or failures. | Private complete constructor signature/projections/reconstruction and independent context/frame replacements; all three complete controls retain an arbitrary whole Frame. | **supplied raw data**; no whole source-Evm execution equivalence |
 
 The source Evm has 26 fields: thirteen fixed context fields, nine mutable Frame
@@ -308,8 +308,8 @@ particular config, systemAddress, caller/target/value/data/codeAddress/code/map 
 three flags vary independently. A raw context may contain empty code and a map
 built from different nonempty code. Intended creation must establish code/map,
 source/environment/history/config coherence and inherited policy later; the raw
-record adds none of these restrictions. The future Handler/StepResult signatures
-supply read-only context discipline; raw Evm construction does not prevent context
+record adds none of these restrictions. EthVmInstructions §3/§5/§7 supplies the Handler/StepResult signatures for
+read-only context discipline; raw Evm construction does not prevent context
 replacement by arbitrary Lean callers.
 
 Three complete ordinary boundary controls quantify arbitrary GasCosts, both whole
@@ -1727,8 +1727,8 @@ quantities and options are independent. The exact fifteen-data-field `FrameCtx`
 with its sole local depth proof, and the two-field `Evm`, are also **supplied**.
 The depth bound is independent of raw configuration limits; code/map and all other
 fields have no additional coherence premise. These carriers make no global meter-WF,
-source/context or execution claim. Actual creation and read-only handler discipline
-remain open.
+source/context or execution claim. Actual creation remains open; EthVmInstructions
+§3/§5/§7 owns the supplied read-only Handler/StepResult signatures.
 
 ```lean
 -- Environments (public)
@@ -2118,7 +2118,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `PrecompileResult`, `PrecompileTable` | supplied inductive result; record of a lookup closure, an `AddrSet` domain and two logical proof fields | itself (public carriers) | `lookup_iff` and `meter_law` as fields; no global WF | immutable value | O(1) projection; proof fields are erased; lookup cost belongs to the installed table (EthVmRunner §6) |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
-| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; handler read-only discipline remains a future signature obligation | field access O(1); no compiled sharing/resource claim |
+| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; EthVmInstructions owns the supplied read-only Handler/StepResult signatures; actual execution remains open | field access O(1); no compiled sharing/resource claim |
 | `Evm` | supplied raw pair of FrameCtx and Frame | complete fields themselves | only existing field types; no additional coherence/WF proof | value; execution ownership remains a caller obligation | field access O(1); no new operation/cost claim |
 
 ## 7. Contract and laws
@@ -2214,7 +2214,8 @@ other field remains unrestricted beyond its provider type. Complete controls and
 public contains equations cover both depth boundaries and independent code/maps.
 No manually authored public context/Evm laws, global coherence predicate, defaults
 or extra instances are supplied. Actual creation, inheritance and source coherence
-remain caller obligations; handler signatures must supply read-only context use.
+remain caller obligations; EthVmInstructions §3/§5/§7 owns the supplied read-only
+Handler/StepResult signatures.
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -3337,8 +3338,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
   private complete generic clients and boundary controls. Raw config limits,
   code/map choices, supplied addresses, environments, frame and flags remain
-  independent. Actual creation/inheritance, source/config/history/code coherence,
-  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  independent. EthVmInstructions §3/§5/§7 owns the supplied read-only Handler/StepResult
+  signatures. Actual creation/inheritance, source/config/history/code coherence,
+  world/control/parent execution, F20/F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
   default, instance or global coherence/WF predicate is supplied.
 

@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw CallRequest/CreateRequest carriers and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, indexed StepResult, Handler signature and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -237,6 +237,20 @@ producer/staticness policy or source execution/refinement follows from storage.
 The carrier neither constrains nor interprets the independently supplied grants,
 flags, addresses, byte arrays or output windows.
 
+### Supplied typed results and handler signature
+
+| Source context at `59c1473d` | Lean declaration / exact type | Domain | Effects / ordered failures | Laws and clients | Status |
+|---|---|---|---|---|---|
+| Project control abstraction of `src/ethereum/forks/amsterdam/vm/__init__.py:147–185`; execution control in `interpreter.py:438–465`; suspension splits in `I/system.py:133–185,395–462` | `STFSpec.Vm.Instructions.StepResult` in `STFSpec/Vm/Instructions/StepResult.lean`, exported by the Instructions facade | Exactly six constructors in §5 order under the original `ctx : FrameCtx`; complete Frame/Bytes/ExceptionalHalt/request payloads. Only call/create require the two existing strict literal depth and parent-stack proofs | Pure typed control carrier; no opcode, admission, state, gas, settlement or failure computation | Generated inductive infrastructure only; private `StepResultCallerProofs` checks exact signatures, complete payload retention/injectivity, all fifteen case distinctions, dependent elimination/reconstruction and both local proof boundaries | Supplied typed carrier; source-Evm/control refinement and actual producers/consumers unimplemented |
+| Project handler interface for the R-ENV-3 partition and D17 suspension split; no Python Handler alias | `STFSpec.Vm.Instructions.Handler` in `STFSpec/Vm/Instructions/Handler.lean`, exported by the Instructions facade | Exactly `(ctx : FrameCtx) → Frame → VmM m (StepResult ctx)` for arbitrary `m : Type → Type`, without a Monad or hash instance | Alias formation only; no execution or changed context returned | Private exact alias/application/run-type clients form the alias without class premises, retaining the original ctx index and Core's existing state/error transformer order | Supplied signature; every actual handler/step/dispatch remains unimplemented |
+
+These are the guided Lean control interfaces, not Python counterparts or opcode
+implementations. Call/create retain independent complete supplied requests and
+frames; their only local proofs are `ctx.depth < STACK_DEPTH_LIMIT` and
+`parent.stack.size < STACK_DEPTH_LIMIT`. The literal Core limit is independent of
+`ctx.config.limits.stackDepthLimit`. Construction establishes no preflight,
+withholding, staticness, gas-progress, child settlement or F11 policy.
+
 **External semantics.** `ethereum_types` `U256` operations used by handlers: `wrapping_add/sub/mul`, `//`, `%`, `to_signed`, `from_signed` (raises for out-of-range; unreachable from these handlers because all results are in range) [V], `from_be_bytes`, `to_be_bytes32`, `bit_length`, `~`, `&`, `|`, `^`, `>>`; `Uint(...)` conversions (exact, unbounded); `U8` for immediates; Python's `pow(b, e, 2^256)`; Python negative list indexing in BLOCKHASH (IndexError beyond length) and in DUPN/SWAPN/EXCHANGE (always in range after the checks). Each must be given by an `EthBase` `U256`/`Nat` law, not by Lean `BitVec` instances (D1).
 
 ## 4. Tests
@@ -284,6 +298,22 @@ larger than code/input remain raw data. Warning-fatal compilation evaluates thes
 controls; the declaration audit covers leaf/facade/clients. These are storage
 checks, with no Python oracle execution, opcode conformance or rollback claim.
 
+**Supplied typed result/signature controls.**
+`STFSpec/Conformance/Vm/Instructions/StepResultCallerProofs.lean` imports only the
+public Instructions facade. Private clients check all six exact constructor types,
+complete arbitrary Frame/Bytes/ExceptionalHalt/request retention and injectivity,
+all fifteen distinct constructor pairs, dependent ctx-indexed elimination and
+reconstruction, and extraction of both child bounds. Arbitrary type constructors
+form and apply the exact Handler alias, including its complete run-result type,
+without a Monad premise. Public Stack model/operation laws construct witnesses at
+1024 and 1023; equality at the depth limit excludes child cases, and equality at
+the stack limit excludes that suspended parent. Generic strict-bound construction
+admits every smaller depth and stack, independently of arbitrary configured limits.
+All four non-child constructors remain available at both limits with complete
+payloads. No Stack/Memory/nominal storage is unfolded. Warning-fatal compilation
+and declaration auditing cover the leaf types, facade and private clients; no
+Python oracle, source execution, opcode, child/resume or admission proof is claimed.
+
 **F8 inheritance/producer controls (unimplemented).** Check both child-context
 systemAddress equations with a nonliteral parent address, independently varying
 the F20 topic. SELFDESTRUCT cases compare complete logs for zero/nonzero balances
@@ -314,7 +344,7 @@ precedence and runner-owned revert/halt discard.
 The opcode API below is **supplied** through `STFSpec.Vm.Instructions`, with
 exactly 153 constructors, the two total conversions and exactly the two ordinary
 laws in §7. No deriving, instance, alias or public convenience declaration is
-added. The remaining dispatch and handler signatures are targets.
+added. The remaining dispatch and handler operation signatures are targets.
 
 The exact seven-field `CreateRequest` below is **supplied** through the public
 `STFSpec.Vm.Instructions` facade. It has generated record infrastructure only:
@@ -325,9 +355,16 @@ also **supplied** with only
 generated record infrastructure. All fields remain complete and independent;
 there is no class/monad binder, WF, depth/grant, account/code coherence or
 admission premise. Neither carrier adds a default, instance or public helper
-law. The remaining interfaces, including `StepResult`, child construction and
-resume, remain unimplemented; raw storage selects no producer/staticness or F11
-policy.
+law. Raw storage selects no producer/staticness or F11 policy.
+
+The exact six-constructor indexed `StepResult` and class-free `Handler` alias below
+are also **supplied** through that facade, with only ordinary generated inductive
+infrastructure and no authored default, instance or public helper-law family.
+Call/create carry exactly the two displayed strict proofs against the existing
+literal limit. The other four cases impose no such proofs. Handler returns only
+mutable frame/control data at the original ctx index; its alias forms without a
+Monad instance. Child context/frame construction, every actual handler, dispatch, step and resume
+remain unimplemented.
 
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
 
@@ -336,8 +373,8 @@ Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still
 inductive Ops | stop | add | … | selfdestruct              -- supplied, 153 source members
 def Ops.toByte : Ops → UInt8
 def Ops.ofByte? : UInt8 → Option Ops
--- Generic in the oracle monad (D5): `{m} [Monad m]` throughout, plus `[KeccakQuery m]` on the
--- handlers that hash (KECCAK, CREATE, CREATE2) and hence on `opImplementation` and `step`.
+-- Actual operations are generic in the oracle monad (D5), with `[Monad m]` and
+-- `[KeccakQuery m]` where needed. Handler alias formation itself is class-free.
 abbrev OpM (m : Type → Type) := ExceptT FrameExit (StateT Frame (VmM m))   -- internal: a throw keeps the frame and world
 inductive FrameExit | stop (output : Bytes) | revert (output : Bytes) | halt (e : ExceptionalHalt)
                     | call (req : CallRequest) | create (req : CreateRequest)
@@ -409,7 +446,7 @@ theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ �
 | Type | Representation | Model / abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
 | `Ops` (supplied) | inductive, 153 constructors; direct literal matches | byte value via `toByte` | both round trips in §7 discharged; 103 unassigned bytes decode to `none` | value | target `ofByte?` O(1) (a 256-entry table or a nibble match beside the literal reference, D25); the current literal 153-arm match compiles to a comparison chain (DEBT-OPS-DECODE); no table allocation or performance measurement claimed |
-| `StepResult ctx` | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
+| `StepResult ctx` (supplied) | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
 | `CreateRequest` (supplied) | raw seven-field record; init code uses Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.5 grants/effects | value | fixed-field record construction/projection; init bytes retained through the Base provider |
 | `CallRequest` (supplied) | raw fourteen-field record; `callData`, `code` use Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.6 grants/effects and input copying | value | fixed-field construction/projection; complete bytes retained through the Base provider |
 | `ChildOutcome` | record | — | `ChildSettled` | value | — |
@@ -450,6 +487,15 @@ is introduced. The complete `Bytes` and nominal words are retained without
 truncation, zero padding, window clamping, flag combination or code/address
 coherence checks. Grant/staticness/source correctness and child/resume effects
 belong to future producers and consumers (§2.6); construction proves none of them.
+
+**Supplied typed results and Handler.** Their public contracts are exactly the
+six constructors and class-free alias in §5. Private complete facade clients
+establish payload retention/injectivity, six-case distinction, dependent
+elimination/reconstruction, exact alias/run types and the two strict child proof
+boundaries using public provider laws. No authored public helper-law family is
+added. The fixed ctx index prevents a handler result from returning a changed
+context. Actual operation effects, preservation/progress, source refinement,
+child execution, settlement/resume and F11 remain separate obligations.
 
 **Per-opcode semantic lemmas** [R] (for evm-asm and pancaketh), one per handler, stated only with EthVmCore's stack/memory/meter laws and EthState's lookup laws, never by unfolding representations. Template (ADD):
 
@@ -492,7 +538,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthVmCore`, `EthHash`, `EthCodec`
 - **Used by:** `EthVmRunner` (calls `step`, `childCtxOf*`, `childFrame`, the resume operations and `resolveDelegatedCodeAddress`); `EthBlock` (uses `isValidDelegation`).
-- **Seams:** provides `Handler`, `step`, `StepResult`, requests and resume operations; consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. Guarantees: `.call/.create` only when `depth < STACK_DEPTH_LIMIT` and the parent stack has room for the result (`hs`), balance and nonce preflight passed, and the parent's meter already withholds the grant.
+- **Seams:** provides `Handler`, `step`, `StepResult`, requests and resume operations; consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
 
 ## 9. Open decisions
 
@@ -512,7 +558,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, `StepResult`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Actual opcode effects, dispatch/step/Step relation, source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top
@@ -525,7 +573,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **No per-opcode lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only; §3 separately owns private raw-carrier client proofs.
+- **No per-opcode lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only; §3 separately owns private raw-carrier and typed-result/signature client proofs.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
