@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-11-06.*
+*Status: current contributor guidance. Date: 2026-11-13.*
 
 Contributions of these kinds are welcome:
 
@@ -239,6 +239,16 @@ uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_defau
 uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_source.py
+lake build account-optional-native-tests --wfail
+lake exe check-decls scripts.AccountOptionalNativeTests
+lake exe account-optional-native-tests > .lake/account-optional-native.jsonl
+lake env lean --run scripts/AccountOptionalNativeTests.lean > .lake/account-optional-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_account_optional_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
@@ -328,13 +338,14 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
 
-The two pre-transaction account items' source comparisons additionally need
+The pre-transaction and current optional account items' source comparisons additionally need
 an authenticated pinned EELS clone with its frozen installed `.venv`. From the
 repository root, reproduce that item test with:
 
 ```sh
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_source.py --eels EELS --check-target .lake/pre-state-account-native.jsonl --report .lake/pre-state-account-source.json
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_source.py --eels EELS --check-target .lake/pre-state-account-default-native.jsonl --report .lake/pre-state-account-default-source.json
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_source.py --eels EELS --check-target .lake/account-optional-native.jsonl --report .lake/account-optional-source.json
 ```
 
 The driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,

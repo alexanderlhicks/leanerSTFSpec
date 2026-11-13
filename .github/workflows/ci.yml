@@ -159,6 +159,18 @@ jobs:
           uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_source.py
           uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_source.py
+      - name: Complete current optional account regressions
+        run: |
+          lake build account-optional-native-tests --wfail
+          lake exe check-decls scripts.AccountOptionalNativeTests
+          lake exe account-optional-native-tests > .lake/account-optional-native.jsonl
+          lake env lean --run scripts/AccountOptionalNativeTests.lean > .lake/account-optional-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_account_optional_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
+          uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
       - name: Complete mathematical transaction-view regressions
         run: |
           lake build transaction-view-native-tests --wfail
