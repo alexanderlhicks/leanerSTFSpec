@@ -149,6 +149,16 @@ jobs:
           uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_source.py
           uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_source.py
+          lake build pre-state-account-default-native-tests --wfail
+          lake exe check-decls scripts.PreStateAccountDefaultNativeTests
+          lake exe pre-state-account-default-native-tests > .lake/pre-state-account-default-native.jsonl
+          lake env lean --run scripts/PreStateAccountDefaultNativeTests.lean > .lake/pre-state-account-default-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_differential.py --check-target .lake/pre-state-account-default-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_differential.py --check-target .lake/pre-state-account-default-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_output_parser.py
+          uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_source.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_source.py
       - name: Complete opaque witness ancestor regressions
         run: |
           lake build witness-ancestors-native-tests --wfail
