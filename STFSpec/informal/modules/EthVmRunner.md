@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, checked control carriers and F14 VM adapter supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, raw output records, checked control carriers and F14 VM adapter supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -63,7 +63,7 @@ In this order:
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/vm/interpreter.py::TransactionOutput` | 86 | `structure TransactionOutput` | `refundCounter : Nat` after the checked conversion |
+| `forks/amsterdam/vm/interpreter.py::TransactionOutput` | 86 | `structure TransactionOutput` | Raw carrier supplied; Nat refund preserves the guided abstraction (Q66); producer conversion/range evidence remains open |
 | `forks/amsterdam/vm/interpreter.py::charge_value_transfer_to_non_alive_account` | 119 | `chargeValueTransferToNonAliveAccount` | |
 | `forks/amsterdam/vm/interpreter.py::create_evm` | 133 | `createEvm` | returns `Except ExceptionalHalt` inside `VmM`; copies supplied env.vm and env.systemAddress into immutable context (F8) |
 | `forks/amsterdam/vm/interpreter.py::process_top_level` | 235 | `processTopLevelChecked` | O11 checked form |
@@ -78,6 +78,24 @@ In this order:
 The interpreter's limits (`STACK_DEPTH_LIMIT`, `MAX_CODE_SIZE`, `MAX_INIT_CODE_SIZE`) are claimed by `EthVmCore` (`VmLimits`), and the opcode table (`instructions/__init__.py`, `Ops` with `op_implementation`) by `EthVmInstructions`; the precompile mapping (`precompiled_contracts/mapping.py`) is `EthPrecompiles`'; the runner consumes all three.
 
 **External semantics.** `ethereum_rlp.rlp.encode` of `(U256 chain_id, Address, U64 nonce)` in `recover_authority` (EthCodec: canonical integer encoding without leading zeros); `U256(...)`/`U64` range checks (`OverflowError`); Python `set` semantics for warm sets (EthVmCore `AddrSet`). `ethereum.trace.evm_trace` events (`OpStart`, `OpEnd`, `OpException`, `PrecompileStart/End`, `EvmStop`, `TransactionEnd`) are diagnostics (ARCHITECTURE §7): they must be emitted through the event interface with the same order, but have no semantic effect.
+
+### Supplied raw output records
+
+`STFSpec/Vm/Runner/Output.lean`, exported by `STFSpec.Vm.Runner`, supplies exactly
+§5's two records. They store independent complete fields without extra proof
+fields, admission predicates, defaults, instances or authored public helper laws.
+
+| Source / operation | Lean declaration and type | Domain, effects and ordered failures | Client / status |
+|---|---|---|---|
+| Project partition of `interpreter.py:395–469` at `59c1473d`; no source class | `FrameResult : Type`, constructor `Frame → Bytes → Option FrameError → FrameResult` | All complete frames, independent output bytes and optional complete errors; no effects or failures | Private exact constructor/projection, reconstruction and every isolated update client; supplied |
+| `interpreter.py:86–116` at `59c1473d` | `TransactionOutput : Type`, constructor `Nat → Nat → LogRope → AddrSet → Option FrameError → Bytes → Nat → Int → TransactionOutput` | Every independent field value; raw rope shape and extensional set retained; signed state usage includes negatives; no effects or failures | Private complete construction/projection/reconstruction and all eight isolated update clients; supplied |
+
+The source refund is U256 after the checked casts in R-TOP-2/R-TOP-3. This raw
+Nat storage performs no cast or range check; actual source correspondence needs
+the successful unsigned range and exact U256 reconstruction (Q66). Raw error
+presence implies neither empty logs/deletions nor ChildSettled. Frame output and
+frame.returnData are independent. The toChildOutcome adapter, actual producers,
+settlement, F11 and execution/fuel/resource/readiness obligations remain open.
 
 ### Supplied mathematical budget vocabulary
 
@@ -181,6 +199,15 @@ corresponding EELS function and asserts no source execution correspondence.
   These controls model only the mathematical definitions; they execute no original budget
   function and establish no runner progress or sufficiency.
 
+- **Supplied raw-output clients:** `OutputCallerProofs` imports the public Runner
+  facade and privately checks exact constructor/projection signatures, arbitrary
+  complete construction/reconstruction and all eleven isolated field updates.
+  `OutputControls` retains complete raw ropes and sets, all optional error
+  alternatives and arbitrary opcode/String payloads, independent output/frame
+  return data, nonempty logs/deletions on failure, independent gas/refund values
+  above the word range and negative state usage. Ordinary proofs and public-model
+  guards check storage only; no EELS execution or producer refinement is claimed.
+
 - **Supplied runner-environment clients:** `EnvironmentCallerProofs` imports the public
   Runner facade and privately checks the exact Monad-only type/constructor/projection
   signatures, arbitrary whole-field preservation, complete reconstruction and all three
@@ -258,7 +285,7 @@ abbrev BudgetPolicy := GasMeter → Nat
 def phiBudget : BudgetPolicy := fun m => m.phi + 1
 def constBudget (n : Nat) : BudgetPolicy := fun _ => n
 
--- Frame results (public)
+-- Frame results (raw records supplied; adapter remains unimplemented)
 structure FrameResult where frame : Frame; output : Bytes; error : Option FrameError
 def FrameResult.toChildOutcome (r : FrameResult) (h : ChildSettled r.frame r.error.isSome) : ChildOutcome
 -- Pure field-preserving adapter; apply only after processCall/processCreate settles a non-top child.
@@ -304,10 +331,17 @@ inductive Exec (env : RunnerEnv Id) (kind : ExecKind) : FrameCtx → Frame → V
 | Runner call stack | Lean recursion (D13) | list of suspended `(FrameCtx, Frame, request)` | EVM logical depth ≤ 1024, hence ≤ 1025 active EVM frames including depth 0; each suspended parent is uniquely owned | linear | host stack includes multiple helper activations per EVM frame and must be measured |
 | Transaction snapshot | `TxRevertible` value kept by `processCall`/`processCreate` | EthState model | restores only writes, clear/order metadata and transient storage; observations survive | worst-case persistent (D22) | O(1) to take; restore = select saved root |
 | `PrecompileTable` | imported from EthVmCore; `match` over the 18 addresses | partial map | `lookup_iff`, `meter_law` | read-only | lookup O(log 18) or a compiled decision tree |
-| `TransactionOutput` | record | — | `refundCounter` non-negative by construction (checked conversion) | value | — |
+| `TransactionOutput` | raw record | complete eight-field tuple | Nat refund; no word-range or field relation; producer conversion remains open (Q66) | value | fixed field storage |
 | fuel | `Nat` per frame | — | decreases by 1 per iteration | — | — |
 
 ## 7. Contract and laws
+
+**Raw output storage (supplied).** §3/§5 own exactly FrameResult and
+TransactionOutput, with ordinary generated structure support. Private facade
+clients retain every complete field, reconstruct both records and replace each
+field independently. No settlement, relation between output and frame.returnData,
+error/effect relation, refund range, hash/class premise or authored public law is
+added. Source casts, actual producers, toChildOutcome and F11 remain open.
 
 **Supplied entry-kind carrier.** `ExecKind` has exactly the three nullary
 constructors specified in §5, with exhaustive dependent elimination and pairwise
@@ -452,13 +486,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   settlement and potential proofs remain open. This adds no observer API, base-error
   reinterpretation, F11 choice or G2–G7 claim.
 
+- **Raw output records are supplied:** §3/§4/§5/§7 own the exact records and
+  private complete facade clients. Actual runFrame/processCall/processCreate/
+  processTopLevelChecked, toChildOutcome, source refund casts/range evidence,
+  settlement, F11 and every execution/fuel/resource/readiness gate remain open.
+
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
 - **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv carrier, the checked control carriers and F14 VM adapter of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv and output carriers, the checked control carriers and F14 VM adapter of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:312` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:279` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
