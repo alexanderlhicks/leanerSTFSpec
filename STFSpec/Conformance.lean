@@ -60,6 +60,7 @@ import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
 import STFSpec.Conformance.Vm.Core.WorldCallerProofs
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
 import STFSpec.Conformance.Vm.Instructions.CallRequestCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ChildOutcomeCallerProofs
 import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
