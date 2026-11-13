@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -90,6 +90,19 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 - **R-JD-1** `validJumpDestinations code` (`runtime.py:22–69`) must equal the set of `pc < |code|` such that `code[pc] = 0x5B` and `pc` is not inside PUSH1–PUSH32 immediate data, scanning from 0 and skipping `n` bytes after an opcode `0x60 + n − 1`. Bytes that are not opcodes (for example `0xFE`, `0x0C`) advance by one. It must be defined on raw bytes: `EthVmCore` cannot import the opcode enum.
 
 ## 3. EELS source map
+
+### Supplied raw VM world and VM monad
+
+| Source / contract | Lean declaration | Domain, effects and ordered failures | Ordinary checks | Status |
+|---|---|---|---|---|
+| Lean-only assembly from §5; complete State-owned TxState provider (EthState §3/§5/§7); no separate EELS function | `STFSpec.Vm.Core.VmWorld (m : Type → Type)` in `STFSpec/Vm/Core/World.lean`, exported by Core | Exactly one field `tx : STFSpec.State.TxState m`, retaining any complete supplied transaction state without a class, WF or coherence premise. No action or failure. | Private public-facade `WorldCallerProofs.lean` exact type/constructor/projection, arbitrary whole transaction retention, reconstruction, whole-world determination and replacement; contravariant non-Monad constructor. | **supplied raw carrier**; initialization and tracker/lifetime/source obligations remain open |
+| Lean-only transformer wiring from §5; no separate EELS function | `STFSpec.Vm.Core.VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)`, in the same module and facade | Complete run type `VmWorld m → m (Except VmFault (α × VmWorld m))` for arbitrary m without class premises. The alias introduces no operation or failure policy. | Same private client: exact alias/run shape, arbitrary supplied underlying action equality and contravariant run; complete Id pure/get/put-read/replacement results, arbitrary VmFault before/after put and complete nested StateError.witness payload after put. | **supplied alias**; state lift and actual error propagation remain open |
+
+All client declarations are private and imported by `STFSpec.Conformance`. No
+authored public law, default, instance or extra world field is supplied. The
+complete unchanged transaction providers retain EthState §10 X16(b); nominal
+assembly supplies no full-current-source refinement. A failed run has no world
+in its Except result; no rollback of underlying effects is implied.
 
 ### Supplied nominal non-frame fault vocabulary
 
@@ -1413,6 +1426,16 @@ uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_allo
 
 ## 4. Tests
 
+- **Supplied raw world/monad clients:** `WorldCallerProofs.lean` imports only the
+  public Core facade and checks both exact declarations and complete raw wiring
+  described in §3. Ordinary private equalities quantify arbitrary whole TxState,
+  VmWorld, result and VmFault values. The non-Monad constructor/run controls rule
+  out accidental class premises. Id sequencing compares complete successful
+  values/worlds and full error payloads, including nested witness errors after
+  put. These are Lean-only carrier/alias checks, with no EELS execution or
+  underlying-effect rollback claim. Reproduce with
+  `lake build STFSpec.Conformance.Vm.Core.WorldCallerProofs --wfail`.
+
 - **Supplied raw FrameError controls:** §3 owns ten private ordinary facade clients
   and complete deterministic guards in `FrameErrorCallerProofs.lean` and
   `FrameErrorGuards.lean`, imported by `STFSpec.Conformance`. Guards retain revert,
@@ -1687,7 +1710,8 @@ The two nominal types `OverflowSite` and `VmFault` displayed below are supplied
 exactly, in declaration-before-use order in Lean. `VmFault.state` consumes the
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
-BLOCKHASH reachability. World/monad/lifting declarations remain targets.
+BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
+also supplied; liftState remains a separate target.
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
@@ -1750,7 +1774,7 @@ structure VmWorld (m : Type → Type) where
 inductive OverflowSite | blobBaseFee | refundCounter   -- supplied nominal sites (R-EXC-2)
 inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
                   | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
-abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- target
+abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- supplied raw alias
 def liftState [Monad m] : StateM m α → VmM m α  -- run on world.tx; map every StateError to VmFault.state
 
 -- Exceptions (public)
@@ -2098,6 +2122,16 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `Evm` | supplied raw pair of FrameCtx and Frame | complete fields themselves | only existing field types; no additional coherence/WF proof | value; execution ownership remains a caller obligation | field access O(1); no new operation/cost claim |
 
 ## 7. Contract and laws
+
+**Supplied raw VM world/monad wiring.** §3/§5 own the one-field carrier and exact
+StateT-over-ExceptT alias. Complete transaction values are admitted and retained
+without class, WF, coherence or reachability premises. Private public-facade
+construction/reconstruction/replacement and exact whole-action/run equalities
+use ordinary reduction; no authored public helper law is added. Id controls
+retain complete success/world pairs and complete VmFault payloads. Failure has
+no world in its Except result and supplies no underlying-effect rollback law.
+Initialization, state lifting, tracker semantics, lifetime/observation/snapshot
+proofs and source equivalence remain separate; State X16(b) is unchanged.
 
 **Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
 and sixteen-field public records. Complete private constructor/projection/type,
@@ -3235,6 +3269,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Raw VmWorld/VmM wiring is supplied:** §3/§4/§5/§7 own exactly the complete
+  single-TxState carrier and StateT-over-ExceptT alias, with private complete
+  facade clients only. Initialization, liftState and complete StateError-to-
+  VmFault.state routing, tracker effects/errors, snapshots/restore, observation
+  lifetimes, provider/context acquisition/coherence, actual handlers/runner and
+  full-current-source refinement remain open; EthState X16(b) is unchanged.
+  No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
+  gate closes through nominal wiring.
+
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
@@ -3263,7 +3306,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
-  No VmWorld/VmM, F11 choice, G1–G7, resource or VM/guest/EEST/readiness gate follows.
+  Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
+  resource or VM/guest/EEST/readiness gate follows from this vocabulary.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
