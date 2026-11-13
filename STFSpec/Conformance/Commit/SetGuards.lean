@@ -51,6 +51,7 @@ private def wireMalformed : Malformed → List Nat
   | .cycle => [10]
   | .branchIndex i n => [11,i,n]
   | .collapseIndex i => [12,i]
+  | .securedPathLength => [13]
 private def wireError : TrieError → List Nat
   | .missingRoot h => 0 :: wireHash h
   | .malformed why => 1 :: wireMalformed why
