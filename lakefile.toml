@@ -273,3 +273,7 @@ root = "scripts.PreStateAccountDefaultNativeTests"
 [[lean_exe]]
 name = "transaction-view-native-tests"
 root = "scripts.TransactionViewNativeTests"
+
+[[lean_exe]]
+name = "account-optional-native-tests"
+root = "scripts.AccountOptionalNativeTests"

@@ -484,8 +484,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, and their bounded laws/controls
-  are supplied in §3/§4/§7.1.
+  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
+  and their bounded laws/controls are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -537,7 +537,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
   positive/negative guards are supplied (§3/§4). The contextual account law at the
-  retained BlockState record is supplied for both pre-transaction account actions (§7.1).
+  retained BlockState record is supplied for the pre-transaction and current optional
+  account actions (§7.1).
   Other contextual reads and full-model lookup
   projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
