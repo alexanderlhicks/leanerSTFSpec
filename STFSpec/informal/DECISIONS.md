@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-11-11. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-11-13. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -104,7 +104,7 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 |---|---|---|
 | Q3 | Taylor loop on adversarial `excessBlobGas` | Tracked as **DISC-002** (measured). Liveness only; no interface change. |
 | Q5 | Fork-activation check | Follow the reference, and keep the explicit exclusion (CONTRACT §5). |
-| Q6, Q20 | Deep witness chains; deep RLP nesting | Tracked under **DISC-001** (O12 host resources) and **DISC-006** (why the error surfaces as O6). **Unresolved by design:** D14 does not decide it. The guest-process recursion limit is 100,000 (py_ecc raises it). RLP nesting of 20,000 levels decodes and 40,000 raises, and the resulting `RecursionError` becomes O6 on the guest path (observed by running the pinned EELS on deterministic probe inputs, 2026-09-29). Re-measured at `59c1473d` (DISC-001, 2026-11-11): for chains of trie nodes the recursion limit no longer decides the guest output, because every guest decode is secured and Q90 bounds the depth; deep RLP nesting inside a witness node's branch value still can. |
+| Q6, Q20 | Deep witness chains; deep RLP nesting | Tracked under **DISC-001** (O12 host resources) and **DISC-006** (why a payload transaction error surfaces as O6). **Unresolved by design:** D14 does not decide it. DISC-001 owns the measured cases, guest-admission qualifications and remaining host-dependent investigations. Raw decoder probes alone do not establish a divergence of admitted serialized guest inputs. |
 | Q7 | Lean-native witness generator | Use the EELS host out of process for now; revisit when fuzzing throughput is measured. |
 | Q8 | Transition fixtures | Skip and count them in the stateful runner until a BPO2 instantiation exists. |
 | Q9 | EEST exception-name mapping | Warning-only; validity itself is decisive. |

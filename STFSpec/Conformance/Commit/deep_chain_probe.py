@@ -21,10 +21,13 @@ exception class and the first 60 characters of its message. It refuses to run wi
 whose HEAD is not reference.toml's `release.commit` or which has local changes (tracked
 or untracked) under `src/`.
 
-This is decode-level evidence from the probe's own shallow call stack on one host. In
-the guest, decoding runs lazily inside block and EVM execution, so the guest's failing
-depth is lower by the caller's frames, and it depends on the interpreter, its frame
-layout and the node shape (DISC-001).
+This is raw-decoder evidence from the probe's own shallow call stack on one host, not
+evidence of guest reachability. Each witness node must first pass the normal serialized
+guest's 1,024-byte SSZ node limit. The report gives root node_bytes, the largest DB
+node's size and whether every node meets that per-node bound. Meeting the bound alone
+is not full guest admission or validation (DISC-001). For admitted nodes, lazy decoding
+inside block and EVM execution also depends on the caller's frames, interpreter and
+node shape.
 """
 
 import argparse
@@ -109,6 +112,8 @@ def main():
         digest = hashlib.sha256(
             root + b"".join(k + v for k, v in sorted(db.items()))
         ).hexdigest()
+        max_node_bytes = max(len(raw) for raw in db.values())
+        node_byte_bound_met = max_node_bytes <= 1024
         for secured in (False, True):
             try:
                 inc.decode_witness_to_mpt(db, root, secured, b"")
@@ -116,7 +121,10 @@ def main():
             except Exception as error:  # noqa: BLE001  (the guest catch-all, stateless.py:294)
                 outcome = f"{type(error).__name__}: {str(error)[:60]}"
             mode = "secured" if secured else "plain"
-            print(f"{kind} {depth} sha256 {digest[:16]} {mode}: {outcome}")
+            print(f"{kind} {depth} node_bytes {len(node)} "
+                  f"max_node_bytes {max_node_bytes} "
+                  f"node_byte_bound_met {node_byte_bound_met} "
+                  f"sha256 {digest[:16]} {mode}: {outcome}")
 
 
 if __name__ == "__main__":
