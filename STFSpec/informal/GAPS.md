@@ -483,7 +483,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthState`](modules/EthState.md)
 
-- **Bounded component support:** Account and supplied empty-account values, internal
+- **Bounded component support:** The first tracker action,
+  getPreStateAccountOptional, and its bounded laws/controls are supplied in §3/§4/§7.1.
+  Other tracker operations and full-state integration remain open. Account and
+  supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -495,9 +498,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   BlockState.view with its exact application equation, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
-  WF/history/reachable preservation, actual provider operations/contextual
-  tracker/full-model proofs, StateError operation/adapter semantics and freezing,
-  witness diagnostic refinement, tracker effects/errors, ordered-write integration,
+  WF/history/reachable preservation, actual provider operations, other contextual
+  tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
+  witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
   reachability, snapshot, acquisition/coherence, future context preservation and
   operational source-refinement obligations remain open. Additional public
   initialization consumer laws await a named consumer and separately reviewed
@@ -507,8 +510,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   complete unchanged providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Current-pin full-state refinement remains
   blocked by X16(b); this item does not change either codeReads provider.
-  TxState.new, tracker operations, snapshot/restore, observation effects and
-  lifetimes, initialization/coherence, StateError semantics/freezing, S1/S2/W1,
+  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
+  initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
@@ -530,9 +533,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
-  positive/negative guards are supplied (§3/§4). Contextual read laws at the retained
-  BlockState record and full-model lookup projection under concrete Id coherence remain
-  open. No new provider field or local acquisition is specified.
+  positive/negative guards are supplied (§3/§4). The contextual account law at the
+  retained BlockState record is supplied for getPreStateAccountOptional (§7.1).
+  Other contextual reads and full-model lookup
+  projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.
