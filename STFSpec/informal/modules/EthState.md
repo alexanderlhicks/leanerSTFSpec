@@ -32,7 +32,8 @@ Line references are to the pinned source under `src/ethereum/` (`state.py`, and 
 
 ### 2.4 Reads and their observation side effects
 
-Every read returns the value of the **current transaction view** (§7.1) and records observations as follows [verified line by line]:
+Reads select the transaction or pre-transaction block view as listed below (§7.1)
+and record observations as follows [verified line by line]:
 
 | Operation (EELS) | Lines | Returns | Observations recorded |
 |---|---|---|---|
@@ -103,7 +104,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::BlockState` | 44–73 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
 | `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), including hash-only code observations. Initialization and tracker semantics remain open. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account_optional` | 107–137 | `getPreStateAccountOptional` | **Discharged bounded action:** Monad-only block/pre-state read, exact branch/error equations and Id framing/membership/model laws below. |
-| `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140 | `getPreStateAccount` | |
+| `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140–171 | `getPreStateAccount` | **Discharged bounded wrapper:** one optional action, absence defaulted from retained constants; five laws below. |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174 | `getAccountOptional` | |
 | `forks/amsterdam/state_tracker.py::get_account` | 200 | `getAccount` | |
 | `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
@@ -154,8 +155,25 @@ The generic laws are action equations, without interpreting an arbitrary Monad's
 effects. Success framing, membership, exact provider error and model content are
 at Id. The model theorem retains §7.1's initial MathState.WF and ModelsLookups
 premises and successful execution, using only account agreement and existing public
-block view/application/extraction laws. There is no memoization, default-account
-wrapper, backend, State-to-VM lift, rollback or full-state refinement claim.
+block view/application/extraction laws. There is no memoization, backend, State-to-VM
+lift, rollback or full-state refinement claim.
+
+### Implemented defaulted pre-transaction account read
+
+`getPreStateAccount` runs the optional action once and defaults only `none` to
+`emptyAccount t.block.consts`, using the initial retained context. Present accounts,
+the entire successful state and every typed failure are retained. The wrapper adds
+no observation insertion, provider call, hashing or acquisition of constants.
+
+| Source at the pin | Lean declaration and domain | Ordered effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:140–171` | `getPreStateAccount {m : Type → Type} [Monad m] (a : Address) : StateM m Account`; every raw supplied state, account, provider and constants | Run `getPreStateAccountOptional a` once; map successful absence to the initial context's empty account, retain present values and exact success state, propagate errors unchanged with no returned failed state | **Discharged:** `getPreStateAccount_action`, `_error`, `_frames`, `_mem`, `_model` (§7.1). Private facade clients and independent complete native/interpreted 81-case controls (§4). |
+
+The generic action equation retains its literal bind/pure structure and requires no
+LawfulMonad. The Id model law uses exactly the existing initial WF, ModelsLookups
+and success premises. Concrete source agreement additionally requires the typed
+source/dependency bridge and an F20-coherent empty-code hash. Raw constants remain
+unrestricted mathematical inputs and do not imply equality to source EMPTY_ACCOUNT.
 
 ### Implemented raw transaction state and state monad
 
@@ -203,7 +221,7 @@ There is no Python TxObs class: D22/D23 partition the original TransactionState.
 
 | Source at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/state_tracker.py:90,94,98,101` | `TxObs` with `accountReads : Std.HashSet Address`, `storageReads : Std.HashSet (Address × Bytes32)`, `codeReads : Std.HashSet Hash32`, `createdAccounts : Std.HashSet Address`, in that order | Every supplied raw set is retained exactly; canonical Base/Q84/Q51 and existing storage-pair dictionaries. Pure four-argument construction, no normalization, WF, operation, hash query or failure | **Supplied raw carrier:** private State-facade `TxObsCallerProofs.lean` checks whole construction/reconstruction, all four complete updates and six pairwise commutations on arbitrary raw sets. `TxObsGuards.lean` compares all four complete byte-content fields, reconstructed/equal/unequal hashes, duplicate hash events from distinct supplied addresses, both end bits in every hash byte, complements, unions, missing members and retained siblings. No authored public law or instance. |
+| `src/ethereum/forks/amsterdam/state_tracker.py:90,94,98,100` | `TxObs` with `accountReads : Std.HashSet Address`, `storageReads : Std.HashSet (Address × Bytes32)`, `codeReads : Std.HashSet Hash32`, `createdAccounts : Std.HashSet Address`, in that order | Every supplied raw set is retained exactly; canonical Base/Q84/Q51 and existing storage-pair dictionaries. Pure four-argument construction, no normalization, WF, operation, hash query or failure | **Supplied raw carrier:** private State-facade `TxObsCallerProofs.lean` checks whole construction/reconstruction, all four complete updates and six pairwise commutations on arbitrary raw sets. `TxObsGuards.lean` compares all four complete byte-content fields, reconstructed/equal/unequal hashes, duplicate hash events from distinct supplied addresses, both end bits in every hash byte, complements, unions, missing members and retained siblings. No authored public law or instance. |
 
 Original source copy/restore/incorporation context is `state_tracker.py:744–858`:
 observations and created accounts are shared across rollback, then read sets are
@@ -458,6 +476,23 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
+  consumes the five public wrapper laws through the State facade, including complete
+  provider/function/constants retention. `pre_state_account_default_inputs.json`
+  preserves the 66 optional-account inputs with independent constants/classification
+  fields and adds 15 raw-constant mathematical cases. The constants differ from
+  supplied present-account hashes in those cases, distinguishing absence defaulting
+  from normalization of a present account. `PreStateAccountDefaultNativeTests.lean`
+  runs the actual wrapper natively and interpreted, with the complete field, trace,
+  error and sequential-composition recipe described below. The separate strict reader
+  `pre_state_account_default_differential.py` checks all 81 complete observations
+  against independently frozen `pre_state_account_default_expected.json` values.
+  Target/source-reader regressions run normally and with -O. The authenticated
+  `pre_state_account_default_source.py --eels EELS --check-target TARGET --report REPORT`
+  calls the actual pinned wrapper on only the 66 coherent cases, normally and with -O,
+  retaining both wrapper/optional source bodies and the authentication/wait evidence
+  described below. The 15 raw-constant cases make no source-equivalence claim.
+  The separate optional-account producer still executes and checks all original 66 cases.
 - **Implemented optional-account controls:** `PreStateAccountCallerProofs.lean`
   consumes only public action/framing/membership/model laws. The input-only
   `pre_state_account_inputs.json` has 66 cases distinguishing missing entries,
@@ -643,15 +678,15 @@ thirteen-field BlockState carrier are also supplied. BlockState.new and its expl
 F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
-also supplied. The optional pre-transaction account action below is supplied; other
+also supplied. Both pre-transaction account actions below are supplied; other
 trackers and adapters remain open. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws; their nominal boundary supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
-PreState providers and all tracker operations except getPreStateAccountOptional
-remain unimplemented targets. The R8 lookup
+PreState providers and tracker operations other than getPreStateAccountOptional
+and getPreStateAccount remain unimplemented targets. The R8 lookup
 relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
@@ -785,7 +820,8 @@ def TxState.new (b : BlockState m) : TxState m
 -- reads (R10–R13)
 def getPreStateAccountOptional {m : Type → Type} [Monad m]
     (a : Address) : StateM m (Option Account) -- supplied, Monad only
-def getPreStateAccount (a : Address) : StateM m Account
+def getPreStateAccount {m : Type → Type} [Monad m]
+    (a : Address) : StateM m Account -- supplied, Monad only
 def getAccountOptional (a : Address) : StateM m (Option Account)
 def getAccount (a : Address) : StateM m Account
 def getCode (codeHash : Hash32) : StateM m ByteArray
@@ -1131,6 +1167,16 @@ The optional pre-transaction account action is discharged by these public laws:
 | `getPreStateAccountOptional_mem` | Id success: b is a post account-read member iff b=a or b was a prior member. No raw-set equality or duplicate-insert identity is asserted. |
 | `getPreStateAccountOptional_model` | On precisely the initial WF/ModelsLookups/success domain above, the answer is the account observer of the initial transaction's block view. |
 
+The defaulted pre-transaction wrapper supplies exactly these five public laws:
+
+| Law | Complete contract |
+|---|---|
+| `getPreStateAccount_action` | Arbitrary Monad: literal bind over the optional action once, mapping `.ok (o,u)` to `pure (.ok (o.getD (emptyAccount t.block.consts),u))` and `.error e` to `pure (.error e)`. No Monad algebra or generic-effect interpretation is assumed. |
+| `getPreStateAccount_error` | Id: missing block entry and exact retained provider failure imply that exact StateError.witness payload, without a returned state. |
+| `getPreStateAccount_frames` | Id success: complete block and rev plus storageReads, codeReads and createdAccounts remain equal. |
+| `getPreStateAccount_mem` | Id success: post account-read membership iff the queried address or previous membership. No raw duplicate-insert identity. |
+| `getPreStateAccount_model` | Exactly the initial WF/ModelsLookups/success domain above: `account = ((t.block.view σ₀).account? a).getD (emptyAccount t.block.consts)`. |
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Read-after-write:** `setStorage a k v; getStorage a k` returns `v`; same for accounts, code writes and transient storage.
@@ -1248,7 +1294,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Pure helpers without that context (`emptyAccount`, `MathState.code?`) retain their
   necessary data parameter and EELS-named local notation. The constructor equality is
   supplied as BlockState.new_consts, for arbitrary m and constants without a class
-  premise. The getPreStateAccountOptional framing law retains the complete block
+  premise. The two pre-transaction account framing laws retain the complete block
   context. Other operation/context preservation and caller acquisition/coherence
   remain implementation obligations.
 - **Relies on:** execution's supplied `consts` and `ps : PreState Id` satisfy `ModelsLookups consts ps σ₀` for an appropriate structurally WF σ₀. Concrete full `Models ps σ₀` supplies this lookup premise when the execution record is coherent with its concrete Id record; the provider-factory type alone does not establish F20 coherence. `EthBase` supplies checked `U256` add/sub, lawful `compare` on `Address`/`Bytes32`/`Hash32` keys (D2), the orderings for `(Address × Bytes32)` keys and `LawfulEqCmp Address` (F19), and the `HashConsts` record (R2).
@@ -1286,8 +1332,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Bounded component support:** The first tracker action,
-  getPreStateAccountOptional, and its bounded laws/controls are supplied in §3/§4/§7.1.
+- **Bounded component support:** The pre-transaction account actions,
+  getPreStateAccountOptional and getPreStateAccount, and their bounded laws/controls
+  are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -1337,7 +1384,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
   positive/negative guards are supplied (§3/§4). The contextual account law at the
-  retained BlockState record is supplied for getPreStateAccountOptional (§7.1).
+  retained BlockState record is supplied for both pre-transaction account actions (§7.1).
   Other contextual reads and full-model lookup
   projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied

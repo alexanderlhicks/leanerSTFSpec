@@ -265,3 +265,7 @@ root = "StorageDecodeNativeTests"
 [[lean_exe]]
 name = "pre-state-account-native-tests"
 root = "scripts.PreStateAccountNativeTests"
+
+[[lean_exe]]
+name = "pre-state-account-default-native-tests"
+root = "scripts.PreStateAccountDefaultNativeTests"

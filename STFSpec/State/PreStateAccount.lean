@@ -7,7 +7,7 @@ import STFSpec.State.BlockView
 import STFSpec.State.ModelsLookups
 
 /-!
-# Optional account before the transaction
+# Accounts before the transaction
 
 Library `EthState`: record an account read, then use the block write or its retained
 provider. Transaction writes are skipped and provider failures retain their payload.
@@ -128,5 +128,75 @@ theorem getPreStateAccountOptional_model (t : TxState Id) (σ₀ : MathState)
       change Except.ok (value, _) = Except.ok (account, next) at h
       have he := (Prod.mk.inj (Except.ok.inj h)).1
       exact he ▸ (hm.1 a value hp).symm
+
+/-- Read the pre-transaction account, defaulting only absence to the retained constants.
+Implements `src/ethereum/forks/amsterdam/state_tracker.py:140–171` at the pin.
+The optional action runs once; its exact state and errors are retained. -/
+def getPreStateAccount {m : Type → Type} [Monad m]
+    (a : Address) : StateM m Account := fun t ↦ ExceptT.mk do
+  match ← ((getPreStateAccountOptional a).run t).run with
+  | .ok (account, next) => pure (.ok (account.getD (emptyAccount t.block.consts), next))
+  | .error error => pure (.error error)
+
+/-- Complete literal wrapper action, with no laws assumed of the base Monad. -/
+theorem getPreStateAccount_action {m : Type → Type} [Monad m]
+    (t : TxState m) (a : Address) :
+    ((getPreStateAccount a).run t).run = (do
+      match ← ((getPreStateAccountOptional a).run t).run with
+      | .ok (account, next) => pure (.ok (account.getD (emptyAccount t.block.consts), next))
+      | .error error => pure (.error error)) := rfl
+
+/-- A missing block entry and provider failure return the exact wrapped error at Id. -/
+theorem getPreStateAccount_error (t : TxState Id) (a : Address)
+    (error : WitnessError) (hb : t.block.accountWrites[a]? = none)
+    (hp : t.block.preState.getAccount? a = .error error) :
+    ((getPreStateAccount a).run t).run = .error (.witness error) := by
+  rw [getPreStateAccount_action, getPreStateAccountOptional_error t a error hb hp]
+  rfl
+
+private theorem default_success (t : TxState Id) (a : Address) (account : Account)
+    (next : TxState Id)
+    (h : ((getPreStateAccount a).run t).run = .ok (account, next)) :
+    ∃ optional, ((getPreStateAccountOptional a).run t).run = .ok (optional, next) ∧
+      account = optional.getD (emptyAccount t.block.consts) := by
+  rw [getPreStateAccount_action] at h
+  cases ho : ((getPreStateAccountOptional a).run t).run with
+  | error error => simp [ho] at h
+  | ok pair =>
+    rcases pair with ⟨optional, state⟩
+    simp only [ho] at h
+    change Except.ok (optional.getD (emptyAccount t.block.consts), state) =
+      Except.ok (account, next) at h
+    obtain ⟨ha, hs⟩ := Prod.mk.inj (Except.ok.inj h)
+    exact ⟨optional, hs ▸ rfl, ha.symm⟩
+
+/-- Id success retains the whole block and revertible data and unrelated observations. -/
+theorem getPreStateAccount_frames (t : TxState Id) (a : Address)
+    (account : Account) (next : TxState Id)
+    (h : ((getPreStateAccount a).run t).run = .ok (account, next)) :
+    next.block = t.block ∧ next.rev = t.rev ∧
+      next.obs.storageReads = t.obs.storageReads ∧
+      next.obs.codeReads = t.obs.codeReads ∧
+      next.obs.createdAccounts = t.obs.createdAccounts := by
+  obtain ⟨optional, ho, _⟩ := default_success t a account next h
+  exact getPreStateAccountOptional_frames t a optional next ho
+
+/-- Id success adds precisely the queried semantic account-read membership. -/
+theorem getPreStateAccount_mem (t : TxState Id) (a b : Address)
+    (account : Account) (next : TxState Id)
+    (h : ((getPreStateAccount a).run t).run = .ok (account, next)) :
+    b ∈ next.obs.accountReads ↔ b = a ∨ b ∈ t.obs.accountReads := by
+  obtain ⟨optional, ho, _⟩ := default_success t a account next h
+  exact getPreStateAccountOptional_mem t a b optional next ho
+
+/-- Under the existing initial WF/lookup/success domain, default the block-view account. -/
+theorem getPreStateAccount_model (t : TxState Id) (σ₀ : MathState)
+    (hwf : MathState.WF σ₀)
+    (hm : ModelsLookups t.block.consts t.block.preState σ₀)
+    (a : Address) (account : Account) (next : TxState Id)
+    (h : ((getPreStateAccount a).run t).run = .ok (account, next)) :
+    account = ((t.block.view σ₀).account? a).getD (emptyAccount t.block.consts) := by
+  obtain ⟨optional, ho, ha⟩ := default_success t a account next h
+  rw [ha, getPreStateAccountOptional_model t σ₀ hwf hm a optional next ho]
 
 end STFSpec.State
