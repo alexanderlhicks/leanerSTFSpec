@@ -5,13 +5,14 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Instructions.Handler
 import STFSpec.Base.U256Arithmetic
 import STFSpec.Base.U256Signed
+import STFSpec.Base.U256Bitwise
 
 /-!
-# ADD, SUB, MUL, DIV, SDIV, MOD and SMOD
+# ADD, SUB, MUL, DIV, SDIV, MOD, SMOD and SIGNEXTEND
 
 Library `EthVmInstructions`. Ordered pops, execution charge, word operation,
 push and PC advance follow pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–229`.
+`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–229,331–371`.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md` §§3/5/7.
 -/
 
@@ -620,6 +621,78 @@ theorem smod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld I
     (h : ((smod ctx f).run w).run = .ok (.continue f', w'))
     (hc : 1 ≤ ctx.config.costs.opcodeSmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have hp := smod_continue_phi ctx f f' w w' h
+  omega
+
+/-- Sign-extend the next word from the top unsigned byte index after charging.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:331–371`. -/
+def signextend {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend)
+
+/-- Empty-stack underflow keeps the complete frame and supplied world. -/
+theorem signextend_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((signextend ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeSignextend U256.signextend h]
+
+/-- The first pop survives second-pop underflow, before any charge. -/
+theorem signextend_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((signextend ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeSignextend U256.signextend x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend, w)) = _
+  rw [hr]
+
+/-- Both pops survive an execution shortage; the complete meter remains unchanged. -/
+theorem signextend_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeSignextend) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((signextend ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeSignextend U256.signextend x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend, w)) = _
+  rw [hr]
+
+/-- Complete successful result, including proved push availability and whole-world retention. -/
+theorem signextend_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : ctx.config.costs.opcodeSignextend ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.signextend x y) = .ok out ∧
+      out.toList = U256.signextend x y :: xs ∧
+      ((signextend ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSignextend } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeSignextend U256.signextend x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend, w)) = _
+  rw [hr]
+
+/-- Every actual Id continuation loses exactly the selected raw opcode price. -/
+theorem signextend_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((signextend ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeSignextend = f.gasMeter.phi := by
+  change Except.ok (binary ctx f ctx.config.costs.opcodeSignextend U256.signextend, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeSignextend U256.signextend
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- Strict continuing progress requires only positivity of the selected price. -/
+theorem signextend_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((signextend ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeSignextend) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := signextend_continue_phi ctx f f' w w' h
   omega
 
 end STFSpec.Vm.Instructions

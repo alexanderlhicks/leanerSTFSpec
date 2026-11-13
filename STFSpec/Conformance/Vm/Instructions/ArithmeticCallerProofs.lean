@@ -330,4 +330,85 @@ private theorem smod_accounting (ctx : FrameCtx) (f f' : Frame)
       f'.gasMeter.phi + 1 ≤ f.gasMeter.phi :=
   ⟨smod_continue_phi ctx f f' w w' h, smod_continue_progress ctx f f' w w' h hc⟩
 
+private def signextendSignature {m : Type → Type} [Monad m] : Handler m := signextend
+
+private theorem signextend_empty_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((signextend ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) :=
+  signextend_run_empty ctx f w h
+
+private theorem signextend_singleton_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ rest : Stack, rest.toList = [] ∧
+      ((signextend ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := rest } .stackUnderflow, w)) := by
+  obtain ⟨rest, _, hm, hr⟩ := signextend_run_singleton ctx f w x h
+  exact ⟨rest, hm, hr⟩
+
+private theorem signextend_shortage_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeSignextend) :
+    ∃ rest : Stack, rest.size = xs.length ∧
+      ((signextend ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := rest } .outOfGas, w)) := by
+  obtain ⟨_, rest, _, _, hm, hr⟩ := signextend_run_oog ctx f w x y xs h hc
+  exact ⟨rest, by rw [Stack.size_eq_length_toList, hm], hr⟩
+
+private theorem signextend_success_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs) (hc : ctx.config.costs.opcodeSignextend ≤ f.gasMeter.gasLeft) :
+    ∃ out : Stack, out.toList = U256.signextend x y :: xs ∧
+      out.toList.map U256.toNat = (if 31 < x.toNat then y.toNat else
+        y.toNat % 2 ^ (8 * (x.toNat + 1)) +
+          if y.toBitVec.getLsbD (8 * (x.toNat + 1) - 1) then
+            2 ^ 256 - 2 ^ (8 * (x.toNat + 1)) else 0) :: xs.map U256.toNat ∧
+      ((signextend ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSignextend } }, w)) := by
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := signextend_run_success ctx f w x y xs h hc
+  refine ⟨out, hm, ?_, hr⟩
+  rw [hm, List.map_cons, U256.toNat_signextend]
+
+private theorem signextend_accounting (ctx : FrameCtx) (f f' : Frame)
+    (w w' : VmWorld Id)
+    (h : ((signextend ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeSignextend) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeSignextend = f.gasMeter.phi ∧
+      f'.gasMeter.phi + 1 ≤ f.gasMeter.phi :=
+  ⟨signextend_continue_phi ctx f f' w w' h, signextend_continue_progress ctx f f' w w' h hc⟩
+
+private theorem signextend_identity_large {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (k x : U256) (xs : List U256)
+    (h : f.stack.toList = k :: x :: xs) (hc : ctx.config.costs.opcodeSignextend ≤ f.gasMeter.gasLeft)
+    (hk : 31 < k.toNat) :
+    ∃ out : Stack, out.toList = x :: xs ∧
+      ((signextend ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSignextend } }, w)) := by
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := signextend_run_success ctx f w k x xs h hc
+  rw [U256.signextend_eq_self_of_lt k x hk] at hm
+  exact ⟨out, hm, hr⟩
+
+private theorem signextend_identity_last {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (k x : U256) (xs : List U256)
+    (h : f.stack.toList = k :: x :: xs) (hc : ctx.config.costs.opcodeSignextend ≤ f.gasMeter.gasLeft)
+    (hk : k.toNat = 31) :
+    ∃ out : Stack, out.toList = x :: xs ∧
+      ((signextend ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSignextend } }, w)) := by
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := signextend_run_success ctx f w k x xs h hc
+  rw [U256.signextend_eq_self_of_eq k x hk] at hm
+  exact ⟨out, hm, hr⟩
+
 end STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
