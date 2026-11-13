@@ -39,9 +39,8 @@ block initialization with its F20 law, logical account/storage read
 views and membership laws, raw block-diff extraction with seven complete field
 equations, the mathematical block view with its ordinary application equation, bounded
 structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
-ancestor selection are supplied. TxState assembles unchanged providers, retaining the
-code-read discrepancy in EthState §10 X16(b); it supplies no current-pin full-state
-refinement. The Monad-only optional pre-transaction account read and its bounded
+ancestor selection are supplied. TxState assembles the complete providers with hash-only
+code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and its bounded
 branch/error/framing/membership/model laws are supplied. Lookup providers, model
 mutation, other tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.

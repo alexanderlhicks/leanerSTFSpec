@@ -181,7 +181,7 @@ private def initial (r : Case) : TxState Trace := Id.run do
   let clears := (∅ : Std.ExtTreeSet Address).insert b
   let reads := (∅ : Std.HashSet Address).insert b
   let sr := (∅ : Std.HashSet (Address × Bytes32)).insert (b, k)
-  let cr := (∅ : Std.HashSet (Address × Hash32)).insert (b, r.providerAccount.codeHash)
+  let cr := (∅ : Std.HashSet Hash32).insert r.providerAccount.codeHash
   let block : BlockState Trace := ⟨provider r,
     ⟨r.empty.codeHash, digest 11, digest 12, digest 13⟩,
     accounts r r.blockKind r.blockAccount, index b, storage, index b, orders,
@@ -211,9 +211,8 @@ private def addressSet (s : Std.HashSet Address) : List Nat :=
 private def storageSet (s : Std.HashSet (Address × Bytes32)) : List Nat :=
   sequence <| ((s.toList.map (fun p ↦ (p.1.toNat, p.2.toNat))).mergeSort
     (fun p q ↦ p.1 < q.1 || (p.1 == q.1 && p.2 ≤ q.2))).map (fun p ↦ [p.1, p.2])
-private def codeSet (s : Std.HashSet (Address × Hash32)) : List Nat :=
-  sequence <| ((s.toList.map (fun p ↦ (p.1.toNat, hashValue p.2))).mergeSort
-    (fun p q ↦ p.1 < q.1 || (p.1 == q.1 && p.2 ≤ q.2))).map (fun p ↦ [p.1, p.2])
+private def codeSet (s : Std.HashSet Hash32) : List Nat :=
+  (s.toList.map hashValue).mergeSort (· ≤ ·)
 
 private def frame (t : TxState Trace) : List Nat :=
   let b := t.block

@@ -27,8 +27,8 @@ private def addresses (xs : List Nat) : Std.HashSet Address :=
 private def slots (xs : List (Nat × Nat)) : Std.HashSet (Address × Bytes32) :=
   xs.foldl (fun s n ↦ s.insert (a n.1, k n.2)) ∅
 
-private def codes (xs : List (Nat × Nat)) : Std.HashSet (Address × Hash32) :=
-  xs.foldl (fun s n ↦ s.insert (a n.1, h n.2)) ∅
+private def codes (xs : List (Nat × Nat)) : Std.HashSet Hash32 :=
+  xs.foldl (fun s n ↦ s.insert (h n.2)) ∅
 
 private def supplied (ar : List Nat) (sr cr : List (Nat × Nat)) (ca : List Nat) : TxObs :=
   TxObs.mk (addresses ar) (slots sr) (codes cr) (addresses ca)
@@ -38,9 +38,8 @@ private def observe (t : TxObs) :=
       (fun x ↦ x.toBytes.toList)),
     ((t.storageReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
       (fun x ↦ (x.1.toBytes.toList, x.2.toBytes.toList))),
-    ((t.codeReads.toList.mergeSort (fun x y ↦
-      (compare x.1 y.1).then (compare x.2 y.2) != .gt)).map
-      (fun x ↦ (x.1.toBytes.toList, x.2.toBytes.toList))),
+    ((t.codeReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
+      (fun x ↦ x.toBytes.toList)),
     ((t.createdAccounts.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
       (fun x ↦ x.toBytes.toList)))
 
@@ -58,9 +57,12 @@ private def expectPairs (xs : List (Nat × Nat)) : List (List UInt8 × List UInt
     (fun x y ↦ (compare x.1 y.1).then (compare x.2 y.2) != .gt)).map
       (fun x ↦ (digits 20 x.1, digits 32 x.2))
 
+private def expectHashes (events : List (Nat × Nat)) : List (List UInt8) :=
+  (((events.map (fun p ↦ p.2 % 2 ^ 256)).eraseDups).mergeSort (· ≤ ·)).map (digits 32)
+
 private def check (t : TxObs) (ar : List Nat) (sr cr : List (Nat × Nat))
     (ca : List Nat) : Bool :=
-  observe t == (expectAddresses ar, expectPairs sr, expectPairs cr, expectAddresses ca)
+  observe t == (expectAddresses ar, expectPairs sr, expectHashes cr, expectAddresses ca)
 
 private def parent : TxObs :=
   supplied [3, 2 ^ 159 + 7] [(3, 5), (3, 2 ^ 255 + 9)]
@@ -97,13 +99,13 @@ private def membershipControls : Bool :=
     parent.storageReads.contains (a 3, k 5) &&
     !parent.storageReads.contains (a 8, k 5) &&
     !parent.storageReads.contains (a 3, k 8) &&
-    parent.codeReads.contains (a 3, h 11) &&
-    !parent.codeReads.contains (a 8, h 11) &&
-    !parent.codeReads.contains (a 3, h 8) &&
+    parent.codeReads.contains (h 11) &&
+    parent.codeReads.size == 1 &&
+    !parent.codeReads.contains (h 8) &&
     (parent.accountReads.insert (a (3 + 2 ^ 160))).size == parent.accountReads.size &&
     (parent.storageReads.insert (a (3 + 2 ^ 160), k (5 + 2 ^ 256))).size ==
       parent.storageReads.size &&
-    (parent.codeReads.insert (a (3 + 2 ^ 160), h (11 + 2 ^ 256))).size ==
+    (parent.codeReads.insert (h (11 + 2 ^ 256))).size ==
       parent.codeReads.size &&
     (parent.createdAccounts.insert (a (8 + 2 ^ 160))).size == parent.createdAccounts.size
 
@@ -117,5 +119,21 @@ private def membershipControls : Bool :=
   let n := 129 * 256 ^ i + 17
   check (supplied [3] [(3, n), (8, n)] [(3, n), (8, n)] [8])
     [3] [(3, n), (8, n)] [(3, n), (8, n)] [8]
+
+-- Supplied addresses describe private events, never the code-read key.
+#guard (codes [(0, 7), (2 ^ 160 - 1, 7)]).size == 1
+#guard (codes [(0, 7), (2 ^ 160 - 1, 7)]).contains
+  (Hash32.ofBytes32 (h 7).toBytes32)
+#guard check (supplied [] [] [(0, 0), (1, 2 ^ 256 - 1), (2, 0)] [])
+  [] [] [(0, 0), (1, 2 ^ 256 - 1)] []
+#guard (List.range 32).all fun i ↦
+  let low := 256 ^ i
+  let high := 128 * 256 ^ i
+  let complement := 2 ^ 256 - 1 - low
+  let events := [(0, low), (2 ^ 160 - 1, low), (1, high), (2, complement)]
+  let t := supplied [3] [(3, 5)] events [8]
+  check t [3] [(3, 5)] events [8] && t.codeReads.size == 3 &&
+    t.codeReads.contains (h low) && t.codeReads.contains (h high) &&
+    t.codeReads.contains (h complement) && !t.codeReads.contains (h 0)
 
 end STFSpec.Conformance.State.TxObsGuards
