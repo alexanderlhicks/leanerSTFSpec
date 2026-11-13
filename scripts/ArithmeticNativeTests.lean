@@ -6,7 +6,7 @@ import STFSpec.Vm.Instructions
 import Lean
 
 /-!
-# Executed ADD, SUB, MUL and DIV observations
+# Executed ADD, SUB, MUL, DIV, SDIV, MOD and SMOD observations
 
 Complete frame observations use the public providers. The complete-world equality
 is proved by ArithmeticCallerProofs; the runtime world observations below are sentinels,
@@ -300,12 +300,43 @@ def main (args : List String) : IO Unit := do
           opcodeAdd := other + 1
           opcodeSub := other + 2
           veryLow := veryLow }
-      else { baseCtx.config.costs with
+      else if op == "div" then { baseCtx.config.costs with
           opcodeDiv := cost
           opcodeMul := other
           opcodeAdd := other + 1
           opcodeSub := other + 2
           veryLow := veryLow }
+      else if op == "sdiv" then { baseCtx.config.costs with
+          opcodeAdd := other + 0
+          opcodeSub := other + 1
+          opcodeMul := other + 2
+          opcodeDiv := other + 3
+          opcodeSdiv := cost
+          opcodeMod := other + 5
+          opcodeSmod := other + 6
+          low := veryLow
+          veryLow := veryLow }
+      else if op == "mod" then { baseCtx.config.costs with
+          opcodeAdd := other + 0
+          opcodeSub := other + 1
+          opcodeMul := other + 2
+          opcodeDiv := other + 3
+          opcodeSdiv := other + 4
+          opcodeMod := cost
+          opcodeSmod := other + 6
+          low := veryLow
+          veryLow := veryLow }
+      else if op == "smod" then { baseCtx.config.costs with
+          opcodeAdd := other + 0
+          opcodeSub := other + 1
+          opcodeMul := other + 2
+          opcodeDiv := other + 3
+          opcodeSdiv := other + 4
+          opcodeMod := other + 5
+          opcodeSmod := cost
+          low := veryLow
+          veryLow := veryLow }
+      else baseCtx.config.costs
     let context := { baseCtx with config := { baseCtx.config with costs := prices } }
     let baseFrame := frame pc s true
     let f := { baseFrame with gasMeter := { baseFrame.gasMeter with gasLeft := gas } }
@@ -313,6 +344,9 @@ def main (args : List String) : IO Unit := do
       else if op == "sub" then pure (sub context f)
       else if op == "mul" then pure (mul context f)
       else if op == "div" then pure (div context f)
+      else if op == "sdiv" then pure (sdiv context f)
+      else if op == "mod" then pure (mod context f)
+      else if op == "smod" then pure (smod context f)
       else throw (IO.userError "unknown arithmetic opcode")
     match (action.run world).run with
     | .error _ => throw (IO.userError "arithmetic returned VmFault")

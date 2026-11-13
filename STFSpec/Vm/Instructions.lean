@@ -17,7 +17,7 @@ One handler per opcode, producing a `StepResult`: a successor frame, a halt/reve
 Library `EthVmInstructions`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The raw requests, indexed `StepResult`,
 class-free `Handler` signature, opcode byte conversions, STOP and its complete
-run law, and ADD/SUB/MUL/DIV with their ordered case/accounting laws are supplied.
+run law, and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD with their ordered case/accounting laws are supplied.
 Other handlers, dispatch, step,
 child construction and resume remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
