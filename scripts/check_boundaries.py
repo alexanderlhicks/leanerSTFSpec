@@ -48,8 +48,8 @@ LEAN_ALLOWED = "Lean.Data.Json"
 _KW = r"(?<![\w.'!?«])({})(?![\w'!?»])"
 BANNED = [
     (r"\bsorry\b", "sorry"), (r"\badmit\b", "admit"), (r"\bnative_decide\b", "native_decide"),
-    (r"^\s*(private\s+|protected\s+)?axiom\b", "axiom"), (r"\bunsafe\b", "unsafe"),
-    (r"\bpartial\s+def\b", "partial def"), (r"^\s*(private\s+|protected\s+)?opaque\b", "opaque"),
+    (r"^[^\S\n]*(private\s+|protected\s+)?axiom\b", "axiom"), (r"\bunsafe\b", "unsafe"),
+    (r"\bpartial\s+def\b", "partial def"), (r"^[^\S\n]*(private\s+|protected\s+)?opaque\b", "opaque"),
     (r"implemented_by", "implemented_by"), (r"@\[\s*extern\b|\bextern\s+\"", "extern"),
     (r"set_option\s+(maxHeartbeats|maxRecDepth)\s+0\b", "unbounded maxHeartbeats/maxRecDepth"),
     # 4b. Elaboration-time metaprogram entry points (a tripwire; see the module docstring).

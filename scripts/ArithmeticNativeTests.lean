@@ -6,7 +6,7 @@ import STFSpec.Vm.Instructions
 import Lean
 
 /-!
-# Executed ADD and SUB observations
+# Executed ADD, SUB, MUL and DIV observations
 
 Complete frame observations use the public providers. The complete-world equality
 is proved by ArithmeticCallerProofs; the runtime world observations below are sentinels,
@@ -291,12 +291,28 @@ def main (args : List String) : IO Unit := do
     let baseCtx := ctx upper
     let prices := if op == "add" then
       { baseCtx.config.costs with opcodeAdd := cost, opcodeSub := other, veryLow := veryLow }
-      else { baseCtx.config.costs with opcodeSub := cost, opcodeAdd := other, veryLow := veryLow }
+      else if op == "sub" then
+      { baseCtx.config.costs with opcodeSub := cost, opcodeAdd := other, veryLow := veryLow }
+      else if op == "mul" then
+      { baseCtx.config.costs with
+          opcodeMul := cost
+          opcodeDiv := other
+          opcodeAdd := other + 1
+          opcodeSub := other + 2
+          veryLow := veryLow }
+      else { baseCtx.config.costs with
+          opcodeDiv := cost
+          opcodeMul := other
+          opcodeAdd := other + 1
+          opcodeSub := other + 2
+          veryLow := veryLow }
     let context := { baseCtx with config := { baseCtx.config with costs := prices } }
     let baseFrame := frame pc s true
     let f := { baseFrame with gasMeter := { baseFrame.gasMeter with gasLeft := gas } }
     let action ← if op == "add" then pure (add context f)
       else if op == "sub" then pure (sub context f)
+      else if op == "mul" then pure (mul context f)
+      else if op == "div" then pure (div context f)
       else throw (IO.userError "unknown arithmetic opcode")
     match (action.run world).run with
     | .error _ => throw (IO.userError "arithmetic returned VmFault")
