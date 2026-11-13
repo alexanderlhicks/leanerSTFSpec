@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 INPUT_SHA256 = "4dbbecfb0e575e655694f1aad624bde5317cf66889117d027ecc0014bfb3cd4e"
-EXPECTED_SHA256 = "0059a76ccbd648ce6ea25afad1156a976aee0641c8f97dff0e9e1b08bc25a2d7"
+EXPECTED_SHA256 = "7d92dee8ee6feebad33eb16c3c355dbd081da84a5021a7e6eb977d8345eed35a"
 
 
 class AdmissionError(ValueError):

@@ -12,7 +12,7 @@ The report retains complete original child streams, actual waits, source/import/
 identities and pinned versions plus installed RECORD integrity. It does not authenticate
 an independently downloaded wheel. Probe exceptions are fixture instrumentation, not a
 production Python-to-WitnessError adapter. Source failed reads are separate from Lean's
-absent returned failed state; paired versus hash-only codeReads limits the projection.
+absent returned failed state. Hash-only codeReads does not supply full-state refinement.
 """
 
 import argparse
@@ -334,7 +334,7 @@ def compare(eels, target, report):
     report.update(status="PASS", cases=66, source_modes_byte_equal=True,
                   projection="answers, calls, successful read states; separate source failed reads",
                   source_frame_equal=True,
-                  limits="No backend adapter, full-state codeReads projection, EEST/guest or cost claim.")
+                  limits="No backend adapter, full-state refinement, EEST/guest or cost claim.")
 
 
 def main():

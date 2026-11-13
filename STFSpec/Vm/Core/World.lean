@@ -17,8 +17,8 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/4/5/7/10.
 namespace STFSpec.Vm.Core
 
 /-- The raw world from EthVmCore §5 retains the complete supplied transaction state.
-There is no class or validity premise. The State providers retain their code-read
-discrepancy recorded in EthState §10 X16(b). -/
+There is no class or validity premise. The complete State providers use hash-only
+code observations; source refinement remains separate. -/
 structure VmWorld (m : Type → Type) where
   /-- Single supplied owner of block context, revertible writes and observations. -/
   tx : STFSpec.State.TxState m

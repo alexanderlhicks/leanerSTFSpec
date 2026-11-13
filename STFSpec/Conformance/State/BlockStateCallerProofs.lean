@@ -32,7 +32,7 @@ private def exact_constructor :
     Std.ExtTreeSet Address →
     Std.HashSet Address →
     Std.HashSet (Address × Bytes32) →
-    Std.HashSet (Address × Hash32) →
+    Std.HashSet Hash32 →
     Option Nat → BlockState m := @BlockState.mk m
 
 private def exact_preState : BlockState m → PreState m := @BlockState.preState m
@@ -72,7 +72,7 @@ private def exact_storageReads :
   @BlockState.storageReads m
 
 private def exact_codeReads :
-    BlockState m → Std.HashSet (Address × Hash32) :=
+    BlockState m → Std.HashSet Hash32 :=
   @BlockState.codeReads m
 
 private def exact_oldestAncestorOffset :
@@ -91,7 +91,7 @@ private theorem supplied_constructor
     (storageClears : Std.ExtTreeSet Address)
     (accountReads : Std.HashSet Address)
     (storageReads : Std.HashSet (Address × Bytes32))
-    (codeReads : Std.HashSet (Address × Hash32))
+    (codeReads : Std.HashSet Hash32)
     (oldestAncestorOffset : Option Nat) :
     let b := BlockState.mk preState consts accountWrites accountOrder storageWrites
       storageAddressOrder storageSlotOrder codeWrites storageClears accountReads storageReads
@@ -217,7 +217,7 @@ private theorem replace_storageReads
         b.codeReads b.oldestAncestorOffset := rfl
 
 private theorem replace_codeReads
-    (b : BlockState m) (x : Std.HashSet (Address × Hash32)) :
+    (b : BlockState m) (x : Std.HashSet Hash32) :
     ({ b with codeReads := x } : BlockState m) =
       BlockState.mk b.preState b.consts b.accountWrites b.accountOrder b.storageWrites
         b.storageAddressOrder b.storageSlotOrder b.codeWrites b.storageClears b.accountReads
@@ -292,7 +292,7 @@ private theorem commute_preState_storageReads
 
 private theorem commute_preState_codeReads
     (b : BlockState m) (x : PreState m)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with preState := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with preState := x } := rfl
 
@@ -358,7 +358,7 @@ private theorem commute_consts_storageReads
 
 private theorem commute_consts_codeReads
     (b : BlockState m) (x : HashConsts)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with consts := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with consts := x } := rfl
 
@@ -418,7 +418,7 @@ private theorem commute_accountWrites_storageReads
 
 private theorem commute_accountWrites_codeReads
     (b : BlockState m) (x : Std.ExtTreeMap Address (Option Account))
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with accountWrites := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with accountWrites := x } := rfl
 
@@ -472,7 +472,7 @@ private theorem commute_accountOrder_storageReads
 
 private theorem commute_accountOrder_codeReads
     (b : BlockState m) (x : WriteOrder Address)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with accountOrder := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with accountOrder := x } := rfl
 
@@ -520,7 +520,7 @@ private theorem commute_storageWrites_storageReads
 
 private theorem commute_storageWrites_codeReads
     (b : BlockState m) (x : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256))
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with storageWrites := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with storageWrites := x } := rfl
 
@@ -562,7 +562,7 @@ private theorem commute_storageAddressOrder_storageReads
 
 private theorem commute_storageAddressOrder_codeReads
     (b : BlockState m) (x : WriteOrder Address)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with storageAddressOrder := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with storageAddressOrder := x } := rfl
 
@@ -598,7 +598,7 @@ private theorem commute_storageSlotOrder_storageReads
 
 private theorem commute_storageSlotOrder_codeReads
     (b : BlockState m) (x : Std.ExtTreeMap Address (WriteOrder Bytes32))
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with storageSlotOrder := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with storageSlotOrder := x } := rfl
 
@@ -628,7 +628,7 @@ private theorem commute_codeWrites_storageReads
 
 private theorem commute_codeWrites_codeReads
     (b : BlockState m) (x : Std.ExtTreeMap Hash32 ByteArray)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with codeWrites := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with codeWrites := x } := rfl
 
@@ -652,7 +652,7 @@ private theorem commute_storageClears_storageReads
 
 private theorem commute_storageClears_codeReads
     (b : BlockState m) (x : Std.ExtTreeSet Address)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with storageClears := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with storageClears := x } := rfl
 
@@ -670,7 +670,7 @@ private theorem commute_accountReads_storageReads
 
 private theorem commute_accountReads_codeReads
     (b : BlockState m) (x : Std.HashSet Address)
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with accountReads := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with accountReads := x } := rfl
 
@@ -682,7 +682,7 @@ private theorem commute_accountReads_oldestAncestorOffset
 
 private theorem commute_storageReads_codeReads
     (b : BlockState m) (x : Std.HashSet (Address × Bytes32))
-    (y : Std.HashSet (Address × Hash32)) :
+    (y : Std.HashSet Hash32) :
     ({ { b with storageReads := x } with codeReads := y } : BlockState m) =
       { { b with codeReads := y } with storageReads := x } := rfl
 
@@ -693,7 +693,7 @@ private theorem commute_storageReads_oldestAncestorOffset
       { { b with oldestAncestorOffset := y } with storageReads := x } := rfl
 
 private theorem commute_codeReads_oldestAncestorOffset
-    (b : BlockState m) (x : Std.HashSet (Address × Hash32))
+    (b : BlockState m) (x : Std.HashSet Hash32)
     (y : Option Nat) :
     ({ { b with codeReads := x } with oldestAncestorOffset := y } : BlockState m) =
       { { b with oldestAncestorOffset := y } with codeReads := x } := rfl
@@ -723,8 +723,8 @@ private theorem canonical_hash (h : Hash32) : hash h = Hash32.tableHashReference
 private theorem storage_product (x : Address × Bytes32) :
     hash x = mixHash (hash x.1) (hash x.2) := rfl
 
-private theorem code_product (x : Address × Hash32) :
-    hash x = mixHash (hash x.1) (hash x.2) := rfl
+private theorem canonical_code_dictionary :
+    (inferInstance : Hashable Hash32) = Hash32.instHashable := rfl
 
 private theorem members {α : Type} [BEq α] [Hashable α] [LawfulBEq α]
     (s t : Std.HashSet α) (key query : α) :
@@ -749,8 +749,8 @@ private theorem storage_members (b : BlockState m) (s : Std.HashSet (Address × 
     (a ∈ (b.storageReads.insert k).insert k ↔ a ∈ b.storageReads.insert k) :=
   members b.storageReads s k a
 
-private theorem code_members (b : BlockState m) (s : Std.HashSet (Address × Hash32))
-    (k a : Address × Hash32) :
+private theorem code_members (b : BlockState m) (s : Std.HashSet Hash32)
+    (k a : Hash32) :
     (a ∈ b.codeReads.insert k ↔ k = a ∨ a ∈ b.codeReads) ∧
     (a ∈ b.codeReads ∪ s ↔ a ∈ b.codeReads ∨ a ∈ s) ∧
     (a ∈ (b.codeReads.insert k).insert k ↔ a ∈ b.codeReads.insert k) :=
@@ -766,9 +766,9 @@ private theorem reconstructed_storage (b : BlockState m) (a : Address) (k : Byte
   rw [Address.ofNat_toNat, FixedBytes.ofNat_toNat]
   exact Std.HashSet.mem_insert_self
 
-private theorem reconstructed_code (b : BlockState m) (a : Address) (h : Hash32) :
-    (Address.ofNat a.toNat, Hash32.ofBytes32 h.toBytes32) ∈ b.codeReads.insert (a, h) := by
-  rw [Address.ofNat_toNat, Hash32.ofBytes32_toBytes32]
+private theorem reconstructed_code (b : BlockState m) (h : Hash32) :
+    Hash32.ofBytes32 h.toBytes32 ∈ b.codeReads.insert h := by
+  rw [Hash32.ofBytes32_toBytes32]
   exact Std.HashSet.mem_insert_self
 
 end STFSpec.Conformance.State.BlockStateCallerProofs

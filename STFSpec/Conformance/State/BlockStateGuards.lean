@@ -131,7 +131,7 @@ private def supplied (r : Recipe) : BlockState Id :=
     r.clears.foldl (fun s n ↦ s.insert (address n)) ∅,
     r.accountReads.foldl (fun s n ↦ s.insert (address n)) ∅,
     r.storageReads.foldl (fun s p ↦ s.insert (address p.1, slot p.2)) ∅,
-    r.codeReads.foldl (fun s p ↦ s.insert (address p.1, digest p.2)) ∅, r.offset⟩
+    r.codeReads.foldl (fun s p ↦ s.insert (digest p.2)) ∅, r.offset⟩
 
 private def observeIndex {K : Type} [Ord K] [Std.TransOrd K]
     (key : K → List Nat) (r : WriteOrder K) : List Nat :=
@@ -193,9 +193,8 @@ private def observe (b : BlockState Id) : List Nat :=
       addressValues),
     sequence ((b.storageReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
       (fun p ↦ addressValues p.1 ++ slotValues p.2)),
-    sequence ((b.codeReads.toList.mergeSort (fun x y ↦
-      (compare x.1 y.1).then (compare x.2 y.2) != .gt)).map
-        (fun p ↦ addressValues p.1 ++ hashValues p.2)),
+    sequence ((b.codeReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
+      hashValues),
     optional (fun n ↦ [n]) b.oldestAncestorOffset]
 
 -- Independent association-list last-write and sorting model; no Std container is built here.
@@ -212,6 +211,9 @@ private def expectedAccount (v : Nat × Nat × Nat) : List Nat :=
   [v.1, v.2.1 % 2 ^ 256] ++ digits 32 v.2.2
 private def expectedAddresses (ns : List Nat) : List Nat :=
   sequence (((ns.map (fun n ↦ n % 2 ^ 160)).eraseDups).mergeSort (· ≤ ·) |>.map (digits 20))
+private def expectedHashes (events : List (Nat × Nat)) : List Nat :=
+  sequence (((events.map (fun p ↦ p.2 % 2 ^ 256)).eraseDups).mergeSort (· ≤ ·) |>.map
+    (digits 32))
 private def expectedPairs (ps : List (Nat × Nat)) : List Nat :=
   sequence (((ps.map (fun p ↦ (p.1 % 2 ^ 160, p.2 % 2 ^ 256))).eraseDups).mergeSort
     (fun p q ↦ (compare p.1 q.1).then (compare p.2 q.2) != .gt) |>.map
@@ -251,7 +253,7 @@ private def expected (r : Recipe) : List Nat :=
     sequence ((normalized (r.code.map (fun p ↦ (p.1 % 2 ^ 256, p.2)))).map
       (fun p ↦ digits 32 p.1 ++ p.2.map (· % 256))),
     expectedAddresses r.clears, expectedAddresses r.accountReads,
-    expectedPairs r.storageReads, expectedPairs r.codeReads, optional (fun n ↦ [n]) r.offset]
+    expectedPairs r.storageReads, expectedHashes r.codeReads, optional (fun n ↦ [n]) r.offset]
 
 private def rawIndex (n : Nat) : Index :=
   ⟨2 ^ 100 + n, [(9, 100), (2, 4), (9, 6), (2 ^ 159 + 3, 4)],

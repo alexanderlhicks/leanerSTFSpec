@@ -100,7 +100,7 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 
 All client declarations are private and imported by `STFSpec.Conformance`. No
 authored public law, default, instance or extra world field is supplied. The
-complete unchanged transaction providers retain EthState §10 X16(b); nominal
+complete transaction providers use EthState’s hash-only codeReads; nominal
 assembly supplies no full-current-source refinement. A failed run has no world
 in its Except result; no rollback of underlying effects is implied.
 
@@ -2131,7 +2131,7 @@ use ordinary reduction; no authored public helper law is added. Id controls
 retain complete success/world pairs and complete VmFault payloads. Failure has
 no world in its Except result and supplies no underlying-effect rollback law.
 Initialization, state lifting, tracker semantics, lifetime/observation/snapshot
-proofs and source equivalence remain separate; State X16(b) is unchanged.
+proofs and source equivalence remain separate.
 
 **Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
 and sixteen-field public records. Complete private constructor/projection/type,
@@ -3274,7 +3274,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   facade clients only. Initialization, liftState and complete StateError-to-
   VmFault.state routing, tracker effects/errors, snapshots/restore, observation
   lifetimes, provider/context acquisition/coherence, actual handlers/runner and
-  full-current-source refinement remain open; EthState X16(b) is unchanged.
+  full-current-source refinement remain open.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
   gate closes through nominal wiring.
 

@@ -40,11 +40,20 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `get_pre_state_account` | `st:140–171` | as above, `none ↦ emptyAccount` | as above |
 | `get_account_optional` | `st:174–197` | tx write, else as `get_pre_state_account_optional` | `accountReads += a` (added twice on fall-through; idempotent) |
 | `get_account` | `st:200–225` | as above, `none ↦ emptyAccount` | as above |
-| `get_code(h, a)` | `st:241–278` | `""` if `h = emptyCodeHash`; tx code write; block code write; else pre-state | `codeReads += (a, h)` **only** when the pre-state is consulted; no account read |
+| `get_code(h)` | `st:228–259` | `""` if `h = emptyCodeHash`; tx code write; block code write; else pre-state | `codeReads += h` before the pre-state call; no account read |
 | `get_storage` | `st:262–295` | precedence R11 | `storageReads += (a, k)` **always**, even when a write answers |
 | `get_storage_original` | `st:298–324` | R12 | **none** |
 | `get_transient_storage` | `st:327–349` | tx transient value, default `0` | none |
 | `account_exists`, `account_deployable`, `account_exists_and_is_empty`, `is_account_alive` | `st:352–431` | predicates over `get_account(_optional)` | `accountReads += a` |
+
+The future hash-only `getCode` action follows `state_tracker.py:252–259`: test
+emptyCodeHash, transaction code writes and block code writes, in that order.
+Each bypass skips observation insertion and the provider; a stored empty byte string
+is a write hit. Fall-through inserts the hash before one provider call, and repeated
+fall-through calls the provider again without memoization. A provider failure is
+propagated, never defaulted. Source mutation before failure is distinct from the
+absence of a returned failed Lean StateM state; generic base effects need their own
+refinement. This carrier migration implements no getCode action or lifecycle law.
 
 - R11. **Storage precedence** (`st:284–295`): transaction slot write → transaction clear (`0`) → block slot write → block clear (`0`) → pre-state. A clear suppresses only lower layers: writes made after the clear in the same layer remain visible.
 - R12. **Original value** (`st:317–324`): `0` if `a ∈ createdAccounts`; otherwise block slot write → block clear (`0`) → pre-state. Transaction writes and clears are skipped. It records no observation.
@@ -92,12 +101,12 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `state.py::PreState.get_code` | 110 | `PreState.getCode` | supplied nonoptional action (B2); carrier support below (§3/§7) |
 | `state.py::PreState.compute_state_root` | 118 | `PreState.stateRoot` | supplied action; carrier support below (§3/§7); contract `ModelsRoot` in `EthStateCommit` |
 | `forks/amsterdam/state_tracker.py::BlockState` | 44–73 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
-| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), retaining the unchanged providers' X16(b) code-read discrepancy. Initialization and tracker semantics remain open. |
+| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), including hash-only code observations. Initialization and tracker semantics remain open. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account_optional` | 107–137 | `getPreStateAccountOptional` | **Discharged bounded action:** Monad-only block/pre-state read, exact branch/error equations and Id framing/membership/model laws below. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140 | `getPreStateAccount` | |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174 | `getAccountOptional` | |
 | `forks/amsterdam/state_tracker.py::get_account` | 200 | `getAccount` | |
-| `forks/amsterdam/state_tracker.py::get_code` | 228 | `getCode` | |
+| `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
 | `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
@@ -155,10 +164,9 @@ and the existing `StateM` transformer alias. At the current pin `59c1473d`,
 `src/ethereum/forks/amsterdam/state_tracker.py:89` supplies the parent block;
 `:90–104` supplies the transaction fields partitioned by D22/D23, with B1 indexes
 in TxRevertible and F20 constants in BlockState. No Python TxObs, TxRevertible or
-StateM counterpart is asserted. The existing BlockState and TxObs codeReads still
-carry address/hash pairs, whereas current EELS uses hash-only sets (:70,98).
-That X16(b) mismatch is retained, so this is nominal raw assembly, not a
-current-EELS full-state refinement.
+StateM counterpart is asserted. BlockState and TxObs carry hash-only codeReads,
+matching the source fields (:70,98). This is nominal raw assembly; it supplies
+no current-EELS full-state refinement.
 
 | Source/support at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
 |---|---|---|---|
@@ -195,7 +203,7 @@ There is no Python TxObs class: D22/D23 partition the original TransactionState.
 
 | Source at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/state_tracker.py:103,107,111,113`; `CodeRead` at :51 | `TxObs` with `accountReads : Std.HashSet Address`, `storageReads : Std.HashSet (Address × Bytes32)`, `codeReads : Std.HashSet (Address × Hash32)`, `createdAccounts : Std.HashSet Address`, in that order | Every supplied raw set is retained exactly; canonical Base/Q84/Q51 and existing product dictionaries. Pure four-argument construction, no normalization, WF, operation, hash query or failure | **Supplied raw carrier:** private State-facade `TxObsCallerProofs.lean` checks whole construction/reconstruction, all four complete updates and six pairwise commutations on arbitrary raw sets. `TxObsGuards.lean` compares all four complete byte-content fields, reconstructed/equal/unequal keys, duplicates, unions, missing members and retained siblings. No authored public law or instance. |
+| `src/ethereum/forks/amsterdam/state_tracker.py:90,94,98,101` | `TxObs` with `accountReads : Std.HashSet Address`, `storageReads : Std.HashSet (Address × Bytes32)`, `codeReads : Std.HashSet Hash32`, `createdAccounts : Std.HashSet Address`, in that order | Every supplied raw set is retained exactly; canonical Base/Q84/Q51 and existing storage-pair dictionaries. Pure four-argument construction, no normalization, WF, operation, hash query or failure | **Supplied raw carrier:** private State-facade `TxObsCallerProofs.lean` checks whole construction/reconstruction, all four complete updates and six pairwise commutations on arbitrary raw sets. `TxObsGuards.lean` compares all four complete byte-content fields, reconstructed/equal/unequal hashes, duplicate hash events from distinct supplied addresses, both end bits in every hash byte, complements, unions, missing members and retained siblings. No authored public law or instance. |
 
 Original source copy/restore/incorporation context is `state_tracker.py:744–858`:
 observations and created accounts are shared across rollback, then read sets are
@@ -214,7 +222,7 @@ the fields as the guided overlay partition. It adds no transient/created fields.
 
 | Source/support at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
 |---|---|---|---|
-| `state_tracker.py:44–73`; F20 and B1 adaptation above | `BlockState (m : Type → Type)`, exactly the thirteen §5 fields; no class premise | Every complete supplied PreState function record, arbitrary constants, maps, sets, order metadata and optional Nat offset is retained. Pure thirteen-argument construction/projection; no operation, normalization, WF, hash query or failure | **Supplied raw carrier:** private `BlockStateCallerProofs.lean` checks exact constructor/projection types, whole construction/eta/component reconstruction, all thirteen complete updates and 78 disjoint commutations for arbitrary m. A contravariant type-constructor client needs no Monad. `BlockStateGuards.lean` checks complete independent framed observations and retained parents/siblings. No authored public law, default or instance. |
+| `state_tracker.py:44–73`; F20 and B1 adaptation above | `BlockState (m : Type → Type)`, exactly the thirteen §5 fields, including `codeReads : Std.HashSet Hash32`; no class premise | Every complete supplied PreState function record, arbitrary constants, maps, sets, order metadata and optional Nat offset is retained. Pure thirteen-argument construction/projection; no operation, normalization, WF, hash query or failure | **Supplied raw carrier:** private `BlockStateCallerProofs.lean` checks exact constructor/projection types, whole construction/eta/component reconstruction, all thirteen complete updates and 78 disjoint commutations for arbitrary m. A contravariant type-constructor client needs no Monad. `BlockStateGuards.lean` checks complete independent framed observations, hash-only deduplication and retained parents/siblings. No authored public law, default or instance. |
 
 The copy/restore/incorporation context at `state_tracker.py:744–858` binds the
 partition but supplies no implementation of those functions. The finite controls
@@ -446,7 +454,7 @@ resource or C1–C4 result.
   - `modifyState` on a non-existent account with a zero change: account change `none` and a clear;
   - `moveEther` insufficient balance and recipient overflow at `2^256 − 1` both fail;
   - `setCode` with empty code: no code write, `codeHash = emptyCodeHash`;
-  - `getCode` reads recorded only when the pre-state answers; `getCode` of `emptyCodeHash` never calls the provider (use an always-error provider);
+  - `getCode` inserts the hash before a fall-through provider call, including failure; empty-hash and present tx/block writes (including empty code) bypass the provider and insertion; repeated fall-through calls again;
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
@@ -480,8 +488,9 @@ resource or C1–C4 result.
   malformed node/code/leaf, then unresolved, with providerAccount.codeHash payloads.
   Probe exceptions are instrumentation, not a Python-to-WitnessError adapter.
   Failed Lean runs return no state; the source's mutation before failure is
-  recorded separately. X16(b)'s address/hash-pair versus hash-only codeReads prevents
-  a complete state projection claim. These controls establish no backend/root,
+  recorded separately. Code-set fixture segments are sorted complete hash numerical
+  values; the nonempty sets contain providerAccount.codeHash. No complete source-to-Lean
+  state projection is supplied. These controls establish no backend/root,
   snapshot/lifetime, EEST guest, S2, F7, B14 or cost/readiness result.
 - **Implemented mathematical block-view cases:** private
   `BlockViewCallerProofs.lean` clients use only the public view equation, seven
@@ -638,7 +647,7 @@ also supplied. The optional pre-transaction account action below is supplied; ot
 trackers and adapters remain open. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
-class premises or authored public laws; their nominal boundary retains X16(b).
+class premises or authored public laws; their nominal boundary supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
 PreState providers and all tracker operations except getPreStateAccountOptional
@@ -655,7 +664,8 @@ Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 2
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
 implemented separately (§3), as are raw BlockState, its initialization and the
 nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open; X16(b) still applies to codeReads.
+operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+alone uses the Address/Bytes32 product dictionary.
 
 ```lean
 -- public types
@@ -742,7 +752,7 @@ structure TxRevertible where  -- snapshot-reachable, worst-case persistent; no W
 structure TxObs where                 -- linear, never reverted within a transaction
   accountReads   : Std.HashSet Address
   storageReads   : Std.HashSet (Address × Bytes32)
-  codeReads      : Std.HashSet (Address × Hash32)
+  codeReads      : Std.HashSet Hash32
   createdAccounts : Std.HashSet Address
 -- Supplied raw carrier: no Monad premise; the following record itself does no sequencing.
 structure BlockState (m : Type → Type) where
@@ -757,9 +767,9 @@ structure BlockState (m : Type → Type) where
   storageClears : Std.ExtTreeSet Address
   accountReads  : Std.HashSet Address
   storageReads  : Std.HashSet (Address × Bytes32)
-  codeReads     : Std.HashSet (Address × Hash32)
+  codeReads     : Std.HashSet Hash32
   oldestAncestorOffset : Option Nat
--- Supplied raw assembly and alias, without any class premise; X16(b) remains open.
+-- Supplied raw assembly and alias, without any class premise or source-refinement claim.
 structure TxState (m : Type → Type) where
   block : BlockState m                 -- only trackAncestorAccess writes it during a transaction
   rev   : TxRevertible
@@ -778,7 +788,7 @@ def getPreStateAccountOptional {m : Type → Type} [Monad m]
 def getPreStateAccount (a : Address) : StateM m Account
 def getAccountOptional (a : Address) : StateM m (Option Account)
 def getAccount (a : Address) : StateM m Account
-def getCode (codeHash : Hash32) (a : Address) : StateM m ByteArray
+def getCode (codeHash : Hash32) : StateM m ByteArray
 def getStorage (a : Address) (k : Bytes32) : StateM m U256
 def getStorageOriginal (a : Address) (k : Bytes32) : StateM m U256
 def getTransientStorage (a : Address) (k : Bytes32) : StateM m U256
@@ -910,7 +920,7 @@ without transaction state. Sequencing requires Monad only in clients, with Id
 controls for complete pure/put/get/error results. This establishes no tracker
 rollback or interpretation of underlying effects. Initialization, lifetime,
 observation monotonicity, StateError semantics/freezing and current-pin refinement
-remain open, including the unchanged providers' X16(b) code-read mismatch.
+remain open.
 
 **Logical block read-set contract.** For every arbitrary `m : Type → Type`, raw
 block b and complete key, accountReadSet b a iff a belongs to b.accountReads;
@@ -1104,7 +1114,7 @@ that definition. Per operation, under success (`op t = .ok (x, t')`) [C]:
 - `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
 - `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
 - `getAccountOptional a`: `x = (t.view σ₀).account? a`, `accountReads += a`. `getPreStateAccountOptional a`: `x = (t.block.view σ₀).account? a`.
-- `getCode h a`: `x = c` where `(t.view σ₀).code? t.block.consts h = some c`, with `codeReads += (a,h)` iff neither write layer holds `h` and `h ≠ emptyCodeHash`.
+- `getCode h` (unimplemented target): `x = c` where `(t.view σ₀).code? t.block.consts h = some c`, with `codeReads += h` iff neither write layer holds `h` and `h ≠ emptyCodeHash`.
 - `setStorage a k v`: `t'.view σ₀ = (t.view σ₀).setStorage a k v`; `setAccount a o`: `… .setAccount a o`; `destroyStorage a`: `… .clearStorage a` and `storageReads' = storageReads ∪ {(a,k) | k ∈ dom t.rev.storageWrites[a]}`.
 - `setTransientStorage a k v`: `transient' = transient.insert (a,k) v` (erase if `v = 0`).
 - Invariant preservation of `TxRevertible`'s order-list invariant for every write.
@@ -1225,7 +1235,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw extraction supplied (Q85):** the class-free operation and seven complete equations are in §3/§7; full ordered-write integration/WF/history remains separate.
 - **Raw transaction assembly supplied:** TxState and the exact StateM alias are
   owned by §3/§5/§7. Their private complete clients supply no tracker operation or
-  rollback/lifetime proof; current-pin full-state agreement retains X16(b).
+  rollback/lifetime proof or current-pin full-state agreement.
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE
   §2); `StateM` operations with model laws for opcode proofs; the supplied raw
   `extractBlockDiff` (Q85) for `EthBlock` (state root, BAL, witness generation),
@@ -1300,9 +1310,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
 - **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
-  complete unchanged providers and the exact state/error transformer order, with
-  private ordinary wiring clients only. Current-pin full-state refinement remains
-  blocked by X16(b); this item does not change either codeReads provider.
+  complete providers and the exact state/error transformer order, with
+  private ordinary wiring clients only. Hash-only codeReads matches the pin;
+  current-pin full-state refinement remains open.
   TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
@@ -1340,7 +1350,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
   §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
-  Their nominal TxState/StateM assembly is supplied in §3, retaining X16(b).
+  Their nominal TxState/StateM assembly with hash-only codeReads is supplied in §3.
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay
@@ -1349,4 +1359,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.
 - **EEST coverage** of write→read conversion is only indirect (through BAL fixtures); no unit tests exist upstream for `state_tracker.py`.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (b) `get_code(tx_state, code_hash)` no longer takes the address, and `code_reads` in `TransactionState` and `BlockState` is a `Set[Hash32]` (PR #3656; `state_tracker.py:70, 98, 228–258`). The Lean `codeReads` carriers in `BlockState` and `TxObs`, their block initialization and their conformance guards and caller proofs (TxObs, ReadSets, BlockView) still pair the address with the hash, and the §2 row `get_code(h, a)`, §5 and the §7 law `getCode h a` describe the old shape; REFERENCE-RECORDS already shows the new one. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does. R27's EIP-2935 clause describes the old call. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so (b) and (c) change no guest output [V by reading].
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does. R27's EIP-2935 clause describes the old call. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
