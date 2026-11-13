@@ -96,10 +96,11 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 | Source / contract | Lean declaration | Domain, effects and ordered failures | Ordinary checks | Status |
 |---|---|---|---|---|
 | Lean-only assembly from §5; complete State-owned TxState provider (EthState §3/§5/§7); no separate EELS function | `STFSpec.Vm.Core.VmWorld (m : Type → Type)` in `STFSpec/Vm/Core/World.lean`, exported by Core | Exactly one field `tx : STFSpec.State.TxState m`, retaining any complete supplied transaction state without a class, WF or coherence premise. No action or failure. | Private public-facade `WorldCallerProofs.lean` exact type/constructor/projection, arbitrary whole transaction retention, reconstruction, whole-world determination and replacement; contravariant non-Monad constructor. | **supplied raw carrier**; initialization and tracker/lifetime/source obligations remain open |
-| Lean-only transformer wiring from §5; no separate EELS function | `STFSpec.Vm.Core.VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)`, in the same module and facade | Complete run type `VmWorld m → m (Except VmFault (α × VmWorld m))` for arbitrary m without class premises. The alias introduces no operation or failure policy. | Same private client: exact alias/run shape, arbitrary supplied underlying action equality and contravariant run; complete Id pure/get/put-read/replacement results, arbitrary VmFault before/after put and complete nested StateError.witness payload after put. | **supplied alias**; state lift and actual error propagation remain open |
+| Lean-only transformer wiring from §5; no separate EELS function | `STFSpec.Vm.Core.VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)`, in the same module and facade | Complete run type `VmWorld m → m (Except VmFault (α × VmWorld m))` for arbitrary m without class premises. The alias introduces no operation or failure policy. | Same private client: exact alias/run shape, arbitrary supplied underlying action equality and contravariant run; complete Id pure/get/put-read/replacement results, arbitrary VmFault before/after put and complete nested StateError.witness payload after put. | **supplied alias**; the functional state lift is supplied below; actual execution propagation remains open |
+| Lean-only action routing from §5; no separate EELS function | `liftState [Monad m] : StateM m α → VmM m α` and `liftState_run` in `STFSpec/Vm/Core/StateLift.lean`, exported by Core | Apply the action to exactly `world.tx` in one underlying bind. Retain its complete success value and updated transaction; wrap every complete StateError in `VmFault.state`. Failure returns no world. Underlying effects and failures remain in m. Only Monad is required; no WF, coherence or recovery policy. | Private public-facade `StateLiftCallerProofs.lean`: complete literal equation, local lawful simplification, arbitrary whole Id result/state/error, read/replace/read, pure and put/failure continuation skipping; complete lawful ordered-effect success/failure traces and outer Option failure. | **supplied operation and discharged literal run equation**; tracker/source/lifetime and execution propagation remain open |
 
 All client declarations are private and imported by `STFSpec.Conformance`. No
-authored public law, default, instance or extra world field is supplied. The
+authored public carrier law, default, instance or extra world field is supplied. The
 complete unchanged transaction providers retain EthState §10 X16(b); nominal
 assembly supplies no full-current-source refinement. A failed run has no world
 in its Except result; no rollback of underlying effects is implied.
@@ -1426,6 +1427,18 @@ uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_allo
 
 ## 4. Tests
 
+- **Supplied functional state lift clients:** `StateLiftCallerProofs.lean` imports
+  only Core and uses `liftState_run` for the complete plain-Monad expression.
+  A private simplification client requires LawfulMonad locally. Whole arbitrary Id
+  transactions, result values and StateError values cover direct routing, read,
+  read/replace/read, pure and put-before-failure with an arbitrary skipped continuation.
+  A concrete lawful `StateT (List Nat) Id` interpretation checks complete retained
+  ordered effects, complete success values/worlds, and both State and VM skipped
+  failure continuations. Option failure remains an outer none. These ordinary
+  Lean-only checks claim no native observation, EELS operation or effect rollback.
+  Reproduce with
+  `lake build STFSpec.Conformance.Vm.Core.StateLiftCallerProofs --wfail`.
+
 - **Supplied raw world/monad clients:** `WorldCallerProofs.lean` imports only the
   public Core facade and checks both exact declarations and complete raw wiring
   described in §3. Ordinary private equalities quantify arbitrary whole TxState,
@@ -1711,7 +1724,8 @@ exactly, in declaration-before-use order in Lean. `VmFault.state` consumes the
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
 BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
-also supplied; liftState remains a separate target.
+also supplied. The functional liftState and its complete literal run equation are
+supplied separately in StateLift.lean (§3/§7).
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
@@ -1775,7 +1789,7 @@ inductive OverflowSite | blobBaseFee | refundCounter   -- supplied nominal sites
 inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
                   | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
 abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- supplied raw alias
-def liftState [Monad m] : StateM m α → VmM m α  -- run on world.tx; map every StateError to VmFault.state
+def liftState [Monad m] : StateM m α → VmM m α  -- supplied; complete routing equation in §7
 
 -- Exceptions (public)
 inductive ExceptionalHalt
@@ -2130,8 +2144,29 @@ construction/reconstruction/replacement and exact whole-action/run equalities
 use ordinary reduction; no authored public helper law is added. Id controls
 retain complete success/world pairs and complete VmFault payloads. Failure has
 no world in its Except result and supplies no underlying-effect rollback law.
-Initialization, state lifting, tracker semantics, lifetime/observation/snapshot
+Initialization, tracker semantics, lifetime/observation/snapshot
 proofs and source equivalence remain separate; State X16(b) is unchanged.
+
+**Supplied functional state lift.** Exactly one ordinary public equation is
+discharged for the §5 operation, without LawfulMonad, WF, coherence or domain
+premises:
+
+```lean
+theorem liftState_run [Monad m] (action : StateM m α) (world : VmWorld m) :
+  ((liftState action).run world).run =
+    ((action.run world.tx).run >>= fun result ↦
+      pure (match result with
+        | .ok (value, tx) => .ok (value, { world with tx := tx })
+        | .error error => .error (.state error)))
+```
+
+This is the literal underlying bind/pure expression, with one action occurrence.
+Simplifying it for an arbitrary monad can require local monad laws; the equation
+itself does not. Every complete success transaction and value is retained, and
+every complete StateError is wrapped without recovery or a returned world.
+Underlying effects and failures remain in m. No MonadLift instance, tracker
+operation, rollback, lifetime or source-refinement theorem is supplied. Private
+facade clients and their complete observations are owned by §3/§4.
 
 **Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
 and sixteen-field public records. Complete private constructor/projection/type,
@@ -3271,8 +3306,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Raw VmWorld/VmM wiring is supplied:** §3/§4/§5/§7 own exactly the complete
   single-TxState carrier and StateT-over-ExceptT alias, with private complete
-  facade clients only. Initialization, liftState and complete StateError-to-
-  VmFault.state routing, tracker effects/errors, snapshots/restore, observation
+  facade clients. The separate functional liftState and its sole public literal
+  run equation supply complete StateError-to-VmFault.state routing under Monad
+  only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
+  Initialization, tracker effects/errors, snapshots/restore, observation
   lifetimes, provider/context acquisition/coherence, actual handlers/runner and
   full-current-source refinement remain open; EthState X16(b) is unchanged.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
@@ -3303,7 +3340,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
-  state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
+  tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,

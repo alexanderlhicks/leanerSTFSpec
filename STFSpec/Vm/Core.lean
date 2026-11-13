@@ -8,6 +8,7 @@ import STFSpec.Vm.Core.TransactionGasSettlement
 import STFSpec.Vm.Core.TransactionGasAllocation
 import STFSpec.Vm.Core.VmFault
 import STFSpec.Vm.Core.World
+import STFSpec.Vm.Core.StateLift
 import STFSpec.Vm.Core.Exceptions
 import STFSpec.Vm.Core.Limits
 import STFSpec.Vm.Core.GasMeter

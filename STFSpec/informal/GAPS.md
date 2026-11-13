@@ -706,8 +706,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw VmWorld/VmM wiring is supplied:** §3/§4/§5/§7 own exactly the complete
   single-TxState carrier and StateT-over-ExceptT alias, with private complete
-  facade clients only. Initialization, liftState and complete StateError-to-
-  VmFault.state routing, tracker effects/errors, snapshots/restore, observation
+  facade clients. The separate functional liftState and its sole public literal
+  run equation supply complete StateError-to-VmFault.state routing under Monad
+  only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
+  Initialization, tracker effects/errors, snapshots/restore, observation
   lifetimes, provider/context acquisition/coherence, actual handlers/runner and
   full-current-source refinement remain open; EthState X16(b) is unchanged.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
@@ -738,7 +740,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
-  state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
+  tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
