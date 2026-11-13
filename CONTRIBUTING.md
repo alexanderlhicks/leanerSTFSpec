@@ -149,6 +149,15 @@ Run these commands before you open a pull request. CI runs the same commands:
 
 ```sh
 lake build --wfail
+lake build arithmetic-native-tests --wfail
+lake exe check-decls ArithmeticNativeTests
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --write-input .lake/arithmetic-input.tsv
+lake exe arithmetic-native-tests .lake/arithmetic-input.tsv > .lake/arithmetic-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --check-target .lake/arithmetic-native.jsonl
+lake env lean --run scripts/ArithmeticNativeTests.lean .lake/arithmetic-input.tsv > .lake/arithmetic-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --check-target .lake/arithmetic-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_arithmetic_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_arithmetic_output_parser.py
 lake build stop-native-tests --wfail
 lake exe check-decls StopNativeTests
 lake exe stop-native-tests > .lake/stop-native.jsonl

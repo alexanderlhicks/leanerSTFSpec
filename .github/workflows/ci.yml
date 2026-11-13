@@ -60,6 +60,17 @@ jobs:
           uv run --no-project --python 3.12 python -B scripts/test_kzg_versioned_hash_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_kzg_versioned_hash_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/gen_kzg_versioned_hash_guards.py --check
+      - name: ADD and SUB native and interpreted regressions
+        run: |
+          lake build arithmetic-native-tests --wfail
+          lake exe check-decls ArithmeticNativeTests
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --write-input .lake/arithmetic-input.tsv
+          lake exe arithmetic-native-tests .lake/arithmetic-input.tsv > .lake/arithmetic-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --check-target .lake/arithmetic-native.jsonl
+          lake env lean --run scripts/ArithmeticNativeTests.lean .lake/arithmetic-input.tsv > .lake/arithmetic-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/arithmetic_differential.py --check-target .lake/arithmetic-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_arithmetic_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_arithmetic_output_parser.py
       - name: STOP native and interpreted regressions
         run: |
           lake build stop-native-tests --wfail
