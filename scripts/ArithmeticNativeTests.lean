@@ -6,7 +6,7 @@ import STFSpec.Vm.Instructions
 import Lean
 
 /-!
-# Executed ADD, SUB, MUL, DIV, SDIV, MOD and SMOD observations
+# Executed ADD, SUB, MUL, DIV, SDIV, MOD, SMOD and SIGNEXTEND observations
 
 Complete frame observations use the public providers. The complete-world equality
 is proved by ArithmeticCallerProofs; the runtime world observations below are sentinels,
@@ -336,6 +336,21 @@ def main (args : List String) : IO Unit := do
           opcodeSmod := cost
           low := veryLow
           veryLow := veryLow }
+      else if op == "signextend" then { baseCtx.config.costs with
+          opcodeAdd := other + 0
+          opcodeSub := other + 1
+          opcodeMul := other + 2
+          opcodeDiv := other + 3
+          opcodeSdiv := other + 4
+          opcodeMod := other + 5
+          opcodeSmod := other + 6
+          opcodeAddmod := other + 7
+          opcodeMulmod := other + 8
+          opcodeExpBase := other + 9
+          opcodeExpPerByte := other + 10
+          opcodeSignextend := cost
+          low := veryLow
+          veryLow := veryLow }
       else baseCtx.config.costs
     let context := { baseCtx with config := { baseCtx.config with costs := prices } }
     let baseFrame := frame pc s true
@@ -347,6 +362,7 @@ def main (args : List String) : IO Unit := do
       else if op == "sdiv" then pure (sdiv context f)
       else if op == "mod" then pure (mod context f)
       else if op == "smod" then pure (smod context f)
+      else if op == "signextend" then pure (signextend context f)
       else throw (IO.userError "unknown arithmetic opcode")
     match (action.run world).run with
     | .error _ => throw (IO.userError "arithmetic returned VmFault")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD framing and actual CLI regressions, under normal Python and -O."""
+"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND framing and actual CLI regressions, under normal Python and -O."""
 
 import copy
 import importlib.util
@@ -171,6 +171,77 @@ class ArithmeticParserTests(unittest.TestCase):
             with self.subTest(case=next(r["case"] for r, good in zip(bad, rows) if r != good)), \
                     self.assertRaises(module.FrameError):
                 module.compare_frames(wire(bad))
+
+    def test_signextend_controls(self):
+        rows = module.expected_frames()
+        modulus = 2**256
+        def result(words, tag="continue"):
+            return next(i for i, r in enumerate(rows) if r["op"] == "signextend" and
+                        r["cost"] == 5 and r["tag"] == tag and
+                        r["before"]["stack"][:len(words)] == words)
+        def reject(i, path, value):
+            bad = copy.deepcopy(rows)
+            target = bad[i]
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(case=i, path=path, value=value), self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+        # Each retained sign boundary distinguishes masking, a wrong sign bit and shift substitutes.
+        for k in range(32):
+            threshold = 2**(8*k + 7)
+            i = result([k, threshold])
+            for value in [0, threshold - 1, threshold >> (8*k),
+                          (threshold + modulus - 2**(8*(k + 1)) + 1) % modulus]:
+                if value != rows[i]["after"]["stack"][0]:
+                    reject(i, ("after", "stack", 0), value)
+            i = result([k, threshold - 1])
+            reject(i, ("after", "stack", 0), modulus - 1)
+        # Guard uses the full unsigned index, and both identity branches still charge.
+        for k, x in [(31, 128), (32, 128), (2**255, 128), (modulus - 1, 128),
+                     (modulus - 1, 0)]:
+            i = result([k, x])
+            reject(i, ("after", "stack", 0), (modulus - 128 if x else modulus - 1))
+            reject(i, ("after", "meter", 0), rows[i]["before"]["meter"][0])
+        for k, x in [(32, modulus - 1), (modulus - 1, 0)]:
+            i = result([k, x, 17], "halt")
+            reject(i, ("tag",), "continue")
+            reject(i, ("after", "stack"), [x, 17])
+        # Reversing the index/value arguments is observable, including a discarded high byte.
+        i = result([0, 128]); reject(i, ("after", "stack", 0), 0)
+        i = result([0, 384]); reject(i, ("after", "stack", 0), 384)
+        i = result([0, 0]); reject(i, ("after", "stack", 0), modulus - 1)
+        i = result([0, 128])
+        for key in rows[i]["after"]:
+            reject(i, ("after", key), None)
+        for key in rows[i]["worldAfter"]:
+            reject(i, ("worldAfter", key), None)
+        for path in [("case",), ("after", "pc"), ("after", "meter", 0),
+                     ("after", "stack", 0), ("worldAfter", "blockAccountOrder")]:
+            for value in [False, 0.0]:
+                reject(i, path, value)
+        for key in ["cost", "otherCost", "veryLow", "phiAfter"]:
+            reject(i, (key,), rows[i][key] + 1)
+        reject(i, ("after", "stack"), rows[i]["before"]["stack"][1:])
+        # Wrong tier or sibling prices give different shortage or quantitative results.
+        for amount in [rows[i]["veryLow"], rows[i]["otherCost"], 1]:
+            bad = copy.deepcopy(rows)
+            if amount > rows[i]["before"]["meter"][0]:
+                bad[i]["after"] = copy.deepcopy(rows[i]["before"])
+                bad[i]["after"]["stack"] = bad[i]["after"]["stack"][2:]
+                bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+            else:
+                bad[i]["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
+            bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
+            with self.subTest(amount=amount), self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+        valid = wire(rows)
+        for bad in [wire(rows[:400] + rows[401:]), wire(rows + [rows[-1]]),
+                    wire(rows[:400] + rows[400:][::-1]),
+                    valid.replace('"case": 400', '"case": 400, "case": 400', 1),
+                    valid.replace('"op": "signextend"', '"op": "signextend", "extra": 0', 1)]:
+            with self.assertRaises(module.FrameError):
+                module.compare_frames(bad)
 
     def test_framing(self):
         rows = module.expected_frames()
