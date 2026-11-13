@@ -4,14 +4,16 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Commit.IncrementalMPT
 import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Compact
-import Std.Data.HashSet.Lemmas
+import Std.Data.TreeSet.Lemmas
 
 /-!
 # Complete eager witness decoding
 
 Library `EthCommit`. Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:885–1065`.
 Actual query answers and original raw encodings are retained. Database keys detect
-current-path cycles; siblings remain independent occurrences. The two termination
+current-path cycles; siblings remain independent occurrences. The current path is a
+persistent ordered set: each level shares its parent's set and adds O(log d) nodes, so
+a chain of depth d holds O(d log d) set nodes rather than O(d²) (EthCommit C17). The two termination
 measures occur only in proofs, imposing no runtime bound or admission predicate.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` C13–C17; Q55.
 -/
@@ -19,7 +21,7 @@ Spec guidance: `STFSpec/informal/modules/EthCommit.md` C13–C17; Q55.
 namespace STFSpec.Commit
 open STFSpec.Base STFSpec.Hash STFSpec.Codec
 
-private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
+private theorem remaining_insert_lt (db : NodeDB) (path : Std.TreeSet Hash32 compare)
     (key : Hash32) (present : db.map.contains key = true)
     (fresh : path.contains key = false) :
     (db.map.keys.filter (fun k => !(path.insert key).contains k)).length <
@@ -28,18 +30,17 @@ private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
     rw [Std.HashMap.contains_keys]
     exact present
   obtain ⟨k, hk, hbeq⟩ := List.contains_iff_exists_mem_beq.mp hkeys
-  have hkfresh : path.contains k = false := by
-    rw [← Std.HashSet.contains_congr hbeq]
-    exact fresh
-  have hkmem : k ∈ db.map.keys.filter (fun k => !path.contains k) :=
-    List.mem_filter.mpr ⟨hk, by simp only [hkfresh, Bool.not_false]⟩
+  have hkk : key = k := by simpa using hbeq
+  subst hkk
+  have hkmem : key ∈ db.map.keys.filter (fun k => !path.contains k) :=
+    List.mem_filter.mpr ⟨hk, by simp only [fresh, Bool.not_false]⟩
   have filter_eq :
       (db.map.keys.filter (fun k => !path.contains k)).filter (fun k => !(key == k)) =
         db.map.keys.filter (fun k => !(path.insert key).contains k) := by
     rw [List.filter_filter]
     congr 1
     funext k
-    simp only [Std.HashSet.contains_insert, Bool.not_or]
+    simp only [Std.TreeSet.contains_insert, Std.compare_beq_eq_beq, Bool.not_or]
   rw [← filter_eq]
   have hle := List.length_filter_le (fun k => !(key == k))
     (db.map.keys.filter (fun k => !path.contains k))
@@ -47,18 +48,18 @@ private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
       (fun k => !(key == k))).length ≠
       (db.map.keys.filter (fun k => !path.contains k)).length := by
     intro heq
-    have hkeep := List.length_filter_eq_length_iff.mp heq k hkmem
-    simp only [hbeq, Bool.not_true, Bool.false_eq_true] at hkeep
+    have hkeep := List.length_filter_eq_length_iff.mp heq key hkmem
+    simp only [beq_self_eq_true, Bool.not_true, Bool.false_eq_true] at hkeep
   omega
 
-private theorem inserted_key_on_path (onPath : Std.HashSet Hash32) (key : Hash32) :
+private theorem inserted_key_on_path (onPath : Std.TreeSet Hash32 compare) (key : Hash32) :
     (onPath.insert key).contains key = true := by
-  simp [Std.HashSet.contains_insert]
+  simp [Std.TreeSet.contains_insert, Std.ReflOrd.compare_self]
 
-private theorem ancestor_stays_on_path (onPath : Std.HashSet Hash32)
+private theorem ancestor_stays_on_path (onPath : Std.TreeSet Hash32 compare)
     (key ancestor : Hash32) (present : onPath.contains ancestor = true) :
     (onPath.insert key).contains ancestor = true := by
-  simp [Std.HashSet.contains_insert, present]
+  simp [Std.TreeSet.contains_insert, present]
 
 /-- Continuation form preserves the exact plain-Monad bind tree. -/
 private def acquire {m : Type → Type} [Monad m] [KeccakQuery m]
@@ -171,7 +172,7 @@ decreasing_by
   omega
 
 private def decodeEntry {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (_hlookup : db.map[key]? = some raw) :
     m (Except TrieError Ref) :=
   if _hcycle : onPath.contains key then pure (.error (.malformed .cycle)) else
@@ -185,7 +186,7 @@ termination_by (db.map.keys.filter (fun k => !onPath.contains k)).length
 decreasing_by
   apply remaining_insert_lt
   · simp [Std.HashMap.contains_eq_isSome_getElem?, _hlookup]
-  · simpa using _hcycle
+  · exact Bool.eq_false_iff.mpr _hcycle
 
 private theorem acquire_short {m : Type → Type} [Monad m] [KeccakQuery m]
     (raw : ByteArray) (next : Option Hash32 → m (Except TrieError Ref))
@@ -211,7 +212,7 @@ private theorem resolveChildren_cons {m : Type → Type} [Monad m]
         pure (tail.map (child :: ·))) := rfl
 
 private theorem entry_cycle {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (lookup : db.map[key]? = some raw)
     (cycle : onPath.contains key = true) :
     decodeEntry (m := m) db onPath key raw lookup = pure (.error (.malformed .cycle)) := by
@@ -226,7 +227,7 @@ private theorem resolve_empty {m : Type → Type} [Monad m] (db : NodeDB)
     resolveRef db (.bytes ByteArray.empty) entry inline = pure (.ok none) := rfl
 
 private theorem entry_fresh {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (lookup : db.map[key]? = some raw)
     (fresh : onPath.contains key = false) :
     decodeEntry (m := m) db onPath key raw lookup =
@@ -286,7 +287,7 @@ def decodeRoot {m : Type → Type} [Monad m] [KeccakQuery m]
   if r = emptyRoot then pure (.ok none) else
     match h : db.map[r]? with
     | none => pure (.error (.missingRoot r))
-    | some raw => decodeEntry db {} r raw h
+    | some raw => decodeEntry db ∅ r raw h
 
 /-- The 64-nibble key length of a secured trie (`SECURED_TRIE_KEY_NIBBLES`).
 EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:47` at the pin. -/

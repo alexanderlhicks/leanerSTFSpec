@@ -113,6 +113,12 @@ name = "log-rope-bench"
 srcDir = "scripts"
 root = "LogRopeBench"
 
+# Build and audit the witness-decoder depth diagnostic in CI (EthCommit C17); run it manually.
+[[lean_exe]]
+name = "decoder-depth-bench"
+srcDir = "scripts"
+root = "DecoderDepthBench"
+
 # Build and audit complete packed/reference hash cost diagnostics; run timings manually.
 [[lean_exe]]
 name = "packed-keccak-bench"
