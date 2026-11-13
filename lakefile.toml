@@ -261,3 +261,7 @@ root = "HeaderCarriersNativeTests"
 name = "storage-decode-native-tests"
 srcDir = "scripts"
 root = "StorageDecodeNativeTests"
+
+[[lean_exe]]
+name = "pre-state-account-native-tests"
+root = "scripts.PreStateAccountNativeTests"

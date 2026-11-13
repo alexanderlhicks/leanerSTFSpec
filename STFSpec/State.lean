@@ -14,6 +14,7 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.TxState
+import STFSpec.State.PreStateAccount
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
@@ -40,7 +41,8 @@ equations, the mathematical block view with its ordinary application equation, b
 structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
 ancestor selection are supplied. TxState assembles unchanged providers, retaining the
 code-read discrepancy in EthState §10 X16(b); it supplies no current-pin full-state
-refinement. Lookup providers, model mutation, tracker effects and lifecycle laws remain
-scaffolding.
+refinement. The Monad-only optional pre-transaction account read and its bounded
+branch/error/framing/membership/model laws are supplied. Lookup providers, model
+mutation, other tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/

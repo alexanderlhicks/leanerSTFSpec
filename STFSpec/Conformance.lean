@@ -240,6 +240,7 @@ import STFSpec.Conformance.State.BlockDiffGuards
 import STFSpec.Conformance.State.ApplyCallerProofs
 import STFSpec.Conformance.State.ApplyGuards
 import STFSpec.Conformance.State.PreStateCallerProofs
+import STFSpec.Conformance.State.PreStateAccountCallerProofs
 import STFSpec.Conformance.State.PreStateGuards
 import STFSpec.Conformance.State.StateErrorGuards
 import STFSpec.Conformance.State.StructuralCallerProofs
