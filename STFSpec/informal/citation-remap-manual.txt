@@ -29,8 +29,8 @@ STFSpec/informal/DECISIONS.md:200	src/ethereum/forks/amsterdam/stateless.py:250,
 STFSpec/informal/DECISIONS.md:201	execution_engine/new_payload.py:112–136,147–157	execution_engine/new_payload.py	its block mentions e1a316a0	67d0d2c8742d337bb03b
 STFSpec/informal/DECISIONS.md:202	fork.py:265,309–325,498	fork.py	its block mentions e1a316a0	a9c7fba77cc9471bb1bb
 STFSpec/informal/EXCLUDED.md:12	stateless.py:89–100	stateless.py	its block mentions e1a316a0	ff1d7c0b69f71549d02e
-STFSpec/informal/REVIEW.md:640	:674	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	9f345e26b6aab617ccc9
-STFSpec/informal/REVIEW.md:646	:242	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	6a623192901fffe48a6f
+STFSpec/informal/REVIEW.md:647	:674	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	9f345e26b6aab617ccc9
+STFSpec/informal/REVIEW.md:653	:242	modules/EthVmCore.md	inherits modules/EthVmCore.md, which is not an execution-specs file	6a623192901fffe48a6f
 STFSpec/informal/modules/EthBase.md:710	forks/amsterdam/execution_engine/requests.py:123,125,133,149	forks/amsterdam/execution_engine/requests.py	forks/amsterdam/execution_engine/requests.py: 123 touches changed lines 119–197; 125 touches changed lines 119–197; 133 touches changed lines 119–197; 149 touches changed lines 119–197	84e67a60053cd74ddbae
 STFSpec/informal/modules/EthBlock.md:34	:944	-	no file named earlier in its block	acd6a2d7729b5cc449ae
 STFSpec/informal/modules/EthBlock.md:35	:883	-	its block names no file (crypto/elliptic_curve.py in its section); none defines a nearby name around it	e82b2558cb243730284b

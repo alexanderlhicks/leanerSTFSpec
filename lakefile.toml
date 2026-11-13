@@ -261,3 +261,9 @@ root = "HeaderCarriersNativeTests"
 name = "storage-decode-native-tests"
 srcDir = "scripts"
 root = "StorageDecodeNativeTests"
+
+# Complete executed STOP frames and selected runtime world sentinels.
+[[lean_exe]]
+name = "stop-native-tests"
+srcDir = "scripts"
+root = "StopNativeTests"

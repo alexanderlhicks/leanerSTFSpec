@@ -149,6 +149,14 @@ Run these commands before you open a pull request. CI runs the same commands:
 
 ```sh
 lake build --wfail
+lake build stop-native-tests --wfail
+lake exe check-decls StopNativeTests
+lake exe stop-native-tests > .lake/stop-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-native.jsonl
+lake env lean --run scripts/StopNativeTests.lean > .lake/stop-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_stop_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_stop_output_parser.py
 lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
 lake build kzg-versioned-hash-native-tests --wfail

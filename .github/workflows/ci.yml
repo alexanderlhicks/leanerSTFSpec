@@ -60,6 +60,16 @@ jobs:
           uv run --no-project --python 3.12 python -B scripts/test_kzg_versioned_hash_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_kzg_versioned_hash_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/gen_kzg_versioned_hash_guards.py --check
+      - name: STOP native and interpreted regressions
+        run: |
+          lake build stop-native-tests --wfail
+          lake exe check-decls StopNativeTests
+          lake exe stop-native-tests > .lake/stop-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-native.jsonl
+          lake env lean --run scripts/StopNativeTests.lean > .lake/stop-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_stop_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_stop_output_parser.py
       - name: Compiled first-write order regressions
         run: |
           lake build write-order-native-tests --wfail

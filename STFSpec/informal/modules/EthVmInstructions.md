@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, indexed StepResult, Handler signature and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, indexed StepResult, Handler, opcode bytes and STOP with its complete run law supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -178,7 +178,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/stack.py::*` | 29–317 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | the `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload`, `tstore` | |
-| `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | |
+| `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
@@ -189,6 +189,27 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied STOP handler
+
+| EELS source at `59c1473d` | Lean declaration / exact type | Domain | Effects / ordered failures | Law and tests | Status |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/control_flow.py:22–42` (`stop`) | `STFSpec.Vm.Instructions.stop {m : Type → Type} [Monad m] : Handler m`, in `STFSpec/Vm/Instructions/Stop.lean`, exported by the Instructions facade | Every supplied context, complete raw Frame and complete `VmWorld m`; no hash, LawfulMonad, WF, code-byte, bounds, gas, stack or settlement premise | PC becomes `f.pc + 1`; all eight other whole frame fields, including returnData, and the whole world are retained; `.stop` has empty output. The complete result is literal underlying `pure (.ok (.stop updatedFrame Bytes.empty, w))`; no handler failure branch or state/hash action | Exactly `stop_run` (§7); private generic and Id public-law clients in `StopCallerProofs.lean`; native/interpreted complete frame observations and the bounded authenticated source comparison in §4 | Supplied handler and ordinary complete run law discharged; local source agreement uses the explicit source-entry relation below; whole source-model/reachability/dispatch/trace refinement remains open |
+
+The source body writes `running := False` and then increments Uint PC by one.
+It preserves arbitrary existing source output and error. Empty result output
+therefore corresponds to a source entry with `output = b""` and `error = None`,
+with source PC/Uint successor matching exact Nat successor, reversed source stack
+matching the top-first public Stack model, aligned source memory matching the
+complete Memory byte model, and all meter, log, deletion, return-data and warm-set
+fields related through the public providers. Immutable context and source state
+must also be related to their supplied Lean values for a whole source model;
+that model and reachable-entry proof remain open. Direct body execution needs no
+code-byte or running premise. Actual interpreter dispatch additionally requires
+running execution, in-bounds PC, current byte `0x00` and the nonprecompile branch
+(`interpreter.py:432–446`). These are source/dispatch premises, not Lean guards or
+extra admission conditions. No claim about arbitrary underlying `Monad.pure`
+effects follows from the literal transformer equation.
 
 ### Supplied opcode enumeration and byte conversions
 
@@ -201,15 +222,15 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 Constructors follow lowercase EELS member spelling (`iszero`, `calldataload`,
 `slotnum`, `dupn`, and so on); reserved `RETURN` becomes `return_`, following the
 existing handler convention. Source `KECCAK` is the single member at `0x20`.
-The two laws in §7 are the only authored public laws. Private facade clients also
+The two enum laws in §7 are its only authored public laws. Private facade clients also
 derive encoder injectivity and exclusion of an absent byte through those laws,
 without unfolding provider internals. Literal controls separately check source
 identity: round trips alone would allow a consistent permutation of byte values.
 The source comparison is a static finite enum assignment comparison, qualified
 to typed-byte enum use; it executes no EELS runtime. It is out of tree: nothing for
 it is committed, so it cannot be reproduced from this repository, and the committed
-literal controls are its transcription. Dispatch, `step`, handlers
-and all execution/error/resource obligations remain open.
+literal controls are its transcription. Dispatch, `step`, the remaining handlers
+and all composed execution/error/resource obligations remain open.
 
 ### Supplied raw creation suspension carrier
 
@@ -241,8 +262,8 @@ flags, addresses, byte arrays or output windows.
 
 | Source context at `59c1473d` | Lean declaration / exact type | Domain | Effects / ordered failures | Laws and clients | Status |
 |---|---|---|---|---|---|
-| Project control abstraction of `src/ethereum/forks/amsterdam/vm/__init__.py:147–185`; execution control in `interpreter.py:438–465`; suspension splits in `I/system.py:133–185,395–462` | `STFSpec.Vm.Instructions.StepResult` in `STFSpec/Vm/Instructions/StepResult.lean`, exported by the Instructions facade | Exactly six constructors in §5 order under the original `ctx : FrameCtx`; complete Frame/Bytes/ExceptionalHalt/request payloads. Only call/create require the two existing strict literal depth and parent-stack proofs | Pure typed control carrier; no opcode, admission, state, gas, settlement or failure computation | Generated inductive infrastructure only; private `StepResultCallerProofs` checks exact signatures, complete payload retention/injectivity, all fifteen case distinctions, dependent elimination/reconstruction and both local proof boundaries | Supplied typed carrier; source-Evm/control refinement and actual producers/consumers unimplemented |
-| Project handler interface for the R-ENV-3 partition and D17 suspension split; no Python Handler alias | `STFSpec.Vm.Instructions.Handler` in `STFSpec/Vm/Instructions/Handler.lean`, exported by the Instructions facade | Exactly `(ctx : FrameCtx) → Frame → VmM m (StepResult ctx)` for arbitrary `m : Type → Type`, without a Monad or hash instance | Alias formation only; no execution or changed context returned | Private exact alias/application/run-type clients form the alias without class premises, retaining the original ctx index and Core's existing state/error transformer order | Supplied signature; every actual handler/step/dispatch remains unimplemented |
+| Project control abstraction of `src/ethereum/forks/amsterdam/vm/__init__.py:147–185`; execution control in `interpreter.py:438–465`; suspension splits in `I/system.py:133–185,395–462` | `STFSpec.Vm.Instructions.StepResult` in `STFSpec/Vm/Instructions/StepResult.lean`, exported by the Instructions facade | Exactly six constructors in §5 order under the original `ctx : FrameCtx`; complete Frame/Bytes/ExceptionalHalt/request payloads. Only call/create require the two existing strict literal depth and parent-stack proofs | Pure typed control carrier; no opcode, admission, state, gas, settlement or failure computation | Generated inductive infrastructure only; private `StepResultCallerProofs` checks exact signatures, complete payload retention/injectivity, all fifteen case distinctions, dependent elimination/reconstruction and both local proof boundaries | Supplied typed carrier; whole source-Evm/control refinement and remaining producers/consumers unimplemented |
+| Project handler interface for the R-ENV-3 partition and D17 suspension split; no Python Handler alias | `STFSpec.Vm.Instructions.Handler` in `STFSpec/Vm/Instructions/Handler.lean`, exported by the Instructions facade | Exactly `(ctx : FrameCtx) → Frame → VmM m (StepResult ctx)` for arbitrary `m : Type → Type`, without a Monad or hash instance | Alias formation only; no execution or changed context returned | Private exact alias/application/run-type clients form the alias without class premises, retaining the original ctx index and Core's existing state/error transformer order | Supplied signature; STOP is detailed above; remaining handlers/step/dispatch are unimplemented |
 
 These are the guided Lean control interfaces, not Python counterparts or opcode
 implementations. Call/create retain independent complete supplied requests and
@@ -266,8 +287,8 @@ holes). Expectations transcribe the pinned source assignments independently of t
 implementation (the source comparison itself is out of tree, see §3); no enum
 equality instance or native decision procedure is introduced. Warning-fatal
 compilation and the compiled declaration audit cover the actual leaf, facade and
-private clients. These are enum controls only; the handler, EEST and
-source-runtime differential tests below remain unimplemented.
+private clients. These are enum controls only; STOP controls are separate below.
+The remaining handler and EEST tests remain unimplemented.
 
 **Supplied raw carrier controls.**
 `STFSpec/Conformance/Vm/Instructions/CreateRequestCallerProofs.lean` imports only
@@ -313,6 +334,37 @@ All four non-child constructors remain available at both limits with complete
 payloads. No Stack/Memory/nominal storage is unfolded. Warning-fatal compilation
 and declaration auditing cover the leaf types, facade and private clients; no
 Python oracle, source execution, opcode, child/resume or admission proof is claimed.
+
+**Executed STOP controls.**
+`StopCallerProofs.lean` imports only the public Instructions facade. Private
+clients apply `stop_run` under Monad alone and at Id, deriving complete result
+and world retention through that law. `scripts/StopNativeTests.lean` executes
+the public handler and emits every frame field through its public model, the
+terminal tag and complete output, plus explicitly sampled world sentinels.
+The generic law, rather than finite sentinel samples, proves complete world
+retention. Four cases cover PC zero, `2^64` and beyond U256 width, empty/two/full
+1024-word stacks, aligned nonzero memory, asymmetric six-field raw meters with
+zero/huge execution gas, negative refund and both spills, duplicate complete
+logs, distinct deletion/warm sets, returnData, static depth-limit contexts and
+independent raw configuration/code/jumpdest values. Native and interpreted
+outputs use the independent complete catalogue in `stop_differential.py`.
+Strict parser regressions in `scripts/test_stop_output_parser.py` run under
+normal Python and `-O`, including bool-as-integer and changed-field rejection.
+The current commands are in CONTRIBUTING §6.3 and the CI core job.
+
+The source mode in `stop_differential.py` authenticates the unreplaced EELS pin,
+compiles original source bytes without cached code, validates loaded dependency
+bytes against installed RECORDs and locked versions, and authenticates the raw
+locked numeric/RLP wheels. It executes the actual Evm and original STOP directly,
+with a fail-on-access supplied PreState, retaining complete before/after source
+dataclass observations and the explicit numeric, stack-reversal, byte and set
+relations to the four Lean frame cases. Three additional source-only entries
+have nonempty output, an existing error, or both. They verify preservation of
+those values and stay outside the normal-stop agreement domain in §3. Source
+world/context retention is observed separately; this is not a complete source
+model for the raw Lean world and its additional metadata. The driver docstring
+gives the source invocation. It claims no interpreter dispatch, trace-hook,
+reachability, arbitrary-provider execution, EEST or guest result.
 
 **F8 inheritance/producer controls (unimplemented).** Check both child-context
 systemAddress equations with a nonliteral parent address, independently varying
@@ -363,8 +415,8 @@ infrastructure and no authored default, instance or public helper-law family.
 Call/create carry exactly the two displayed strict proofs against the existing
 literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
-Monad instance. Child context/frame construction, every actual handler, dispatch, step and resume
-remain unimplemented.
+Monad instance. STOP and its complete run law are supplied. Child context/frame
+construction, remaining handlers, dispatch, step and resume remain unimplemented.
 
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
 
@@ -412,7 +464,10 @@ def childCtxOfCall   (ctx : FrameCtx) (req : CallRequest)   (h : ctx.depth < STA
 def childCtxOfCreate (ctx : FrameCtx) (req : CreateRequest) (h : ctx.depth < STACK_DEPTH_LIMIT) : FrameCtx
 def childFrame (parent : Frame) (gas reservoir : Nat) : Frame   -- empty stack/memory/logs, copied warm sets
 
--- One handler per opcode (public): add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
+-- Supplied executable handler:
+def stop {m : Type → Type} [Monad m] : Handler m
+
+-- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
@@ -497,6 +552,19 @@ added. The fixed ctx index prevents a handler result from returning a changed
 context. Actual operation effects, preservation/progress, source refinement,
 child execution, settlement/resume and F11 remain separate obligations.
 
+**Supplied STOP law.** For every `{m : Type → Type} [Monad m]`, context,
+complete frame and world, `stop_run` states
+`((stop ctx f).run w).run = pure (.ok (.stop { f with pc := f.pc + 1 } Bytes.empty, w))`.
+This is one ordinary complete transformer equation, with no LawfulMonad,
+KeccakQuery, source-entry or global coherence hypothesis. All other whole fields
+are preserved, including returnData, which differs from terminal output.
+At Id the underlying pure is the literal successful result/world pair. For an
+arbitrary supplied Monad, the law adds no interpretation of pure, no generic
+effect observer and no assertion that pure emits no effects or returns a value.
+Source agreement uses §3's source/entry premises; reachable entry, trace and
+step-level refinement remain open. STOP closes no continuing-iteration gas or
+fuel gate.
+
 **Per-opcode semantic lemmas** [R] (for evm-asm and pancaketh), one per handler, stated only with EthVmCore's stack/memory/meter laws and EthState's lookup laws, never by unfolding representations. Template (ADD):
 
 ```lean
@@ -556,11 +624,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP slice remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Actual opcode effects, dispatch/step/Step relation, source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP effect and complete run law are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top
@@ -573,7 +641,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **No per-opcode lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only; §3 separately owns private raw-carrier and typed-result/signature client proofs.
+- **STOP supplied; remaining per-opcode laws open.** §3/§7 own `stop_run`. Its local source-entry boundary and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
