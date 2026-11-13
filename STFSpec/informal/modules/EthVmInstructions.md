@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw CallRequest/CreateRequest carriers and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw CallRequest/CreateRequest and settled ChildOutcome carriers and opcode byte conversions supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -237,6 +237,20 @@ producer/staticness policy or source execution/refinement follows from storage.
 The carrier neither constrains nor interprets the independently supplied grants,
 flags, addresses, byte arrays or output windows.
 
+### Supplied settled child outcome carrier
+
+| EELS ownership context at `59c1473d` | Lean declaration | Domain | Effects / ordered failures | Laws and clients | Status |
+|---|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` incorporation assertions; `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465` child error handling | `STFSpec.Vm.Instructions.ChildOutcome` in `STFSpec/Vm/Instructions/ChildOutcome.lean`, exported by `STFSpec.Vm.Instructions` | Exactly `frame : Frame`, `output : Bytes`, `error : Option FrameError` and supplied `settled : ChildSettled frame error.isSome`; complete payloads with only the existing Core predicate | Pure construction/projection with an already supplied local proof; no runtime check, settlement effect or error | Generated record infrastructure only; private `ChildOutcomeCallerProofs` facade clients check complete construction/projections, dependent reconstruction/elimination, determination and proof-aware replacements, both predicate branches, complete error/output payloads and negative elaboration controls (§4) | Supplied carrier and private controls; actual producer reachability, rollback, source-Evm refinement, incorporation, runner settlement/proof production, adapters and resume remain open |
+
+This is the Lean-side return carrier of §5, not a Python class or an implementation
+of child handling. Core owns the transparent `ChildSettled` predicate and its
+constructive decidability. The stored proof chooses neither F11 production route.
+Success requires only zero committed spill; failure also resets pending spill,
+signed refund and reservoir to baseline. Output, execution gas, successful refund
+and every unrelated frame field have no additional condition. Halt and revert
+share `error.isSome = true` while retaining their distinct complete payloads.
+
 **External semantics.** `ethereum_types` `U256` operations used by handlers: `wrapping_add/sub/mul`, `//`, `%`, `to_signed`, `from_signed` (raises for out-of-range; unreachable from these handlers because all results are in range) [V], `from_be_bytes`, `to_be_bytes32`, `bit_length`, `~`, `&`, `|`, `^`, `>>`; `Uint(...)` conversions (exact, unbounded); `U8` for immediates; Python's `pow(b, e, 2^256)`; Python negative list indexing in BLOCKHASH (IndexError beyond length) and in DUPN/SWAPN/EXCHANGE (always in range after the checks). Each must be given by an `EthBase` `U256`/`Nat` law, not by Lean `BitVec` instances (D1).
 
 ## 4. Tests
@@ -284,6 +298,26 @@ larger than code/input remain raw data. Warning-fatal compilation evaluates thes
 controls; the declaration audit covers leaf/facade/clients. These are storage
 checks, with no Python oracle execution, opcode conformance or rollback claim.
 
+**Supplied settled child outcome controls.**
+`STFSpec/Conformance/Vm/Instructions/ChildOutcomeCallerProofs.lean` imports only
+the public Instructions facade. Private ordinary clients check the exact ordered
+constructor, every projection including the supplied proof, complete-field
+determination, dependent elimination and reconstruction. Replacing the frame or
+error supplies only the corresponding local settled proof; replacing output
+retains the existing proof. Arbitrary provider values remain whole: no private
+Stack, Memory or nominal storage is unfolded, and no fork default is imported.
+
+All-frame witnesses cover success with negative/positive refund, pending spill,
+unequal reservoir/baseline and zero/huge execution gas, plus failed halt and
+revert with arbitrary gas/baseline and complete supplied output. Generic opcode
+and String reasons remain intact; halt/revert stay distinct. Complete ordered
+byte controls include duplicate/nonempty output in all three error branches.
+Each settlement clause has a negative meter control, and constructive decisions
+check both flags. Three negative elaboration controls require the missing proof,
+refuse a success proof for failure and refuse a proof about another frame; their
+diagnostics test local proof dependency, not runtime rejection or reachability.
+These controls supply no producer, Python oracle, rollback or execution claim.
+
 **F8 inheritance/producer controls (unimplemented).** Check both child-context
 systemAddress equations with a nonliteral parent address, independently varying
 the F20 topic. SELFDESTRUCT cases compare complete logs for zero/nonzero balances
@@ -325,9 +359,13 @@ also **supplied** with only
 generated record infrastructure. All fields remain complete and independent;
 there is no class/monad binder, WF, depth/grant, account/code coherence or
 admission premise. Neither carrier adds a default, instance or public helper
-law. The remaining interfaces, including `StepResult`, child construction and
-resume, remain unimplemented; raw storage selects no producer/staticness or F11
-policy.
+law. The exact four-field `ChildOutcome` below is also **supplied**, with only
+its existing Core `ChildSettled frame error.isSome` proof field and generated
+record infrastructure. Frame, output and optional halt/revert error are retained
+completely; there is no default, instance, stronger admission condition or public
+helper law. The remaining interfaces, including `StepResult`, child construction
+and resume, remain unimplemented. Storing the supplied proof selects no F11
+proof-production route; raw requests select no producer/staticness policy.
 
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
 
@@ -412,7 +450,7 @@ theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ �
 | `StepResult ctx` | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
 | `CreateRequest` (supplied) | raw seven-field record; init code uses Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.5 grants/effects | value | fixed-field record construction/projection; init bytes retained through the Base provider |
 | `CallRequest` (supplied) | raw fourteen-field record; `callData`, `code` use Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.6 grants/effects and input copying | value | fixed-field construction/projection; complete bytes retained through the Base provider |
-| `ChildOutcome` | record | — | `ChildSettled` | value | — |
+| `ChildOutcome` (supplied) | four-field record; complete Frame/Bytes/Option FrameError and local proof | complete payload fields | only `ChildSettled frame error.isSome`; no output or execution-gas condition | value | fixed-field construction/projection; no execution/resource claim |
 | handlers | functions in `VmM m` (pure at `m := Id`) | — | preserve `Frame` invariants (stack ≤ 1024, memory size % 32 = 0) | — | O(1) for word ops; O(k) for copies/hashes of k bytes, k bounded by gas |
 
 The suspended parent frame (in `.call/.create`) is linear: the runner holds the only reference while the child runs, so memory writes in `resumeAfterCall` are in place (ARCHITECTURE §7: diagnostics must not retain frames).
@@ -450,6 +488,15 @@ is introduced. The complete `Bytes` and nominal words are retained without
 truncation, zero padding, window clamping, flag combination or code/address
 coherence checks. Grant/staticness/source correctness and child/resume effects
 belong to future producers and consumers (§2.6); construction proves none of them.
+
+**Supplied settled child outcome.** Its public contract is exactly the four
+fields in §5. Ordinary generated reduction retains the complete data and supplied
+local proof. Private facade clients use only Core's existing predicate and
+constructive decidability. Frame/error replacements require the corresponding
+local proof; output replacement requires none. No authored public law, producer,
+runtime guard, stronger output/gas/refund condition or F11 route is introduced.
+Actual reachability, settlement, rollback, incorporation, source-Evm refinement,
+runner adapters and resume remain separate obligations.
 
 **Per-opcode semantic lemmas** [R] (for evm-asm and pancaketh), one per handler, stated only with EthVmCore's stack/memory/meter laws and EthState's lookup laws, never by unfolding representations. Template (ADD):
 
@@ -512,7 +559,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, `StepResult`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, `StepResult`, child context/frame and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top
