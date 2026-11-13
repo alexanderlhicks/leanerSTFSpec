@@ -267,3 +267,9 @@ root = "StorageDecodeNativeTests"
 name = "stop-native-tests"
 srcDir = "scripts"
 root = "StopNativeTests"
+
+# Executed ADD/SUB frames from a deterministic input-only catalogue.
+[[lean_exe]]
+name = "arithmetic-native-tests"
+srcDir = "scripts"
+root = "ArithmeticNativeTests"
