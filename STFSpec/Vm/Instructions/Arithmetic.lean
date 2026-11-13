@@ -8,11 +8,11 @@ import STFSpec.Base.U256Signed
 import STFSpec.Base.U256Bitwise
 
 /-!
-# ADD, SUB, MUL, DIV, SDIV, MOD, SMOD and SIGNEXTEND
+# ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, ADDMOD, MULMOD and SIGNEXTEND
 
 Library `EthVmInstructions`. Ordered pops, execution charge, word operation,
 push and PC advance follow pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–229,331–371`.
+`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–291,331–371`.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md` §§3/5/7.
 -/
 
@@ -118,6 +118,113 @@ private theorem binary_continue_phi (ctx : FrameCtx) (f f' : Frame) (c : Nat)
           simp only [binary, h₁, h₂, hg, hp, StepResult.continue.injEq] at h
           subst f'
           exact chargeGas_phi f.gasMeter c paid hg
+
+private def ternary (ctx : FrameCtx) (f : Frame) (cost : Nat)
+    (word : U256 → U256 → U256 → U256) : StepResult ctx :=
+  match f.stack.pop with
+  | .error e => .halt f e
+  | .ok (x, s₁) =>
+    match s₁.pop with
+    | .error e => .halt { f with stack := s₁ } e
+    | .ok (y, s₂) =>
+      match s₂.pop with
+      | .error e => .halt { f with stack := s₂ } e
+      | .ok (z, s₃) =>
+        match chargeGas f.gasMeter cost with
+        | .error e => .halt { f with stack := s₃ } e
+        | .ok paid =>
+          match s₃.push (word x y z) with
+          | .error e => .halt { f with stack := s₃, gasMeter := paid } e
+          | .ok out => .continue { f with pc := f.pc + 1, stack := out, gasMeter := paid }
+
+private theorem ternary_empty (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (h : f.stack.toList = []) :
+    ternary ctx f c word = .halt f .stackUnderflow := by
+  have hp := (Stack.pop_eq_error_iff f.stack .stackUnderflow).mpr ⟨h, rfl⟩
+  simp only [ternary, hp]
+
+private theorem ternary_singleton (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (x : U256) (h : f.stack.toList = [x]) :
+    ∃ s₁, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ternary ctx f c word = .halt { f with stack := s₁ } .stackUnderflow := by
+  obtain ⟨s₁, hp, hm⟩ := pop_of_model f.stack x [] h
+  have he := (Stack.pop_eq_error_iff s₁ .stackUnderflow).mpr ⟨hm, rfl⟩
+  exact ⟨s₁, hp, hm, by simp only [ternary, hp, he]⟩
+
+private theorem ternary_pair (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (x y : U256) (h : f.stack.toList = [x, y]) :
+    ∃ s₁ s₂, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧ s₂.toList = [] ∧
+      ternary ctx f c word = .halt { f with stack := s₂ } .stackUnderflow := by
+  obtain ⟨s₁, h₁, hm₁⟩ := pop_of_model f.stack x [y] h
+  obtain ⟨s₂, h₂, hm₂⟩ := pop_of_model s₁ y [] hm₁
+  have he := (Stack.pop_eq_error_iff s₂ .stackUnderflow).mpr ⟨hm₂, rfl⟩
+  exact ⟨s₁, s₂, h₁, h₂, hm₂, by simp only [ternary, h₁, h₂, he]⟩
+
+private theorem ternary_oog (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : f.gasMeter.gasLeft < c) :
+    ∃ s₁ s₂ s₃, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧
+      ternary ctx f c word = .halt { f with stack := s₃ } .outOfGas := by
+  obtain ⟨s₁, h₁, hm₁⟩ := pop_of_model f.stack x (y :: z :: xs) h
+  obtain ⟨s₂, h₂, hm₂⟩ := pop_of_model s₁ y (z :: xs) hm₁
+  obtain ⟨s₃, h₃, hm₃⟩ := pop_of_model s₂ z xs hm₂
+  have hg := (chargeGas_eq_error_iff f.gasMeter c .outOfGas).mpr ⟨hc, rfl⟩
+  exact ⟨s₁, s₂, s₃, h₁, h₂, h₃, hm₃, by simp only [ternary, h₁, h₂, h₃, hg]⟩
+
+private theorem ternary_success (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : c ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ s₃ out, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ s₃.push (word x y z) = .ok out ∧
+      out.toList = word x y z :: xs ∧
+      ternary ctx f c word = .continue { f with
+        pc := f.pc + 1
+        stack := out
+        gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - c } } := by
+  obtain ⟨s₁, h₁, hm₁⟩ := pop_of_model f.stack x (y :: z :: xs) h
+  obtain ⟨s₂, h₂, hm₂⟩ := pop_of_model s₁ y (z :: xs) hm₁
+  obtain ⟨s₃, h₃, hm₃⟩ := pop_of_model s₂ z xs hm₂
+  have hb := f.stack.size_le
+  rw [Stack.size_eq_length_toList, h] at hb
+  have hs : s₃.size < 1024 := by rw [Stack.size_eq_length_toList, hm₃]; simp at hb; omega
+  cases hp : s₃.push (word x y z) with
+  | error e =>
+    have he := (Stack.push_eq_error_iff s₃ (word x y z) e).mp hp
+    omega
+  | ok out =>
+    have hm := (Stack.push_eq_ok_iff s₃ out (word x y z)).mp hp
+    have hg := chargeGas_of_le f.gasMeter c hc
+    refine ⟨s₁, s₂, s₃, out, h₁, h₂, h₃, hm₃, hp, ?_, ?_⟩
+    · simpa only [hm₃] using hm.2
+    · simp only [ternary, h₁, h₂, h₃, hg, hp]
+
+private theorem ternary_continue_phi (ctx : FrameCtx) (f f' : Frame) (c : Nat)
+    (word : U256 → U256 → U256 → U256) (h : ternary ctx f c word = .continue f') :
+    f'.gasMeter.phi + c = f.gasMeter.phi := by
+  cases h₁ : f.stack.pop with
+  | error e => simp only [ternary, h₁] at h; contradiction
+  | ok pair =>
+    rcases pair with ⟨x, s₁⟩
+    cases h₂ : s₁.pop with
+    | error e => simp only [ternary, h₁, h₂] at h; contradiction
+    | ok pair =>
+      rcases pair with ⟨y, s₂⟩
+      cases h₃ : s₂.pop with
+      | error e => simp only [ternary, h₁, h₂, h₃] at h; contradiction
+      | ok pair =>
+        rcases pair with ⟨z, s₃⟩
+        cases hg : chargeGas f.gasMeter c with
+        | error e => simp only [ternary, h₁, h₂, h₃, hg] at h; contradiction
+        | ok paid =>
+          cases hp : s₃.push (word x y z) with
+          | error e => simp only [ternary, h₁, h₂, h₃, hg, hp] at h; contradiction
+          | ok out =>
+            simp only [ternary, h₁, h₂, h₃, hg, hp, StepResult.continue.injEq] at h
+            subst f'
+            exact chargeGas_phi f.gasMeter c paid hg
 
 /-- Add the top two words after ordered pops and the selected execution charge.
 EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–49`. -/
@@ -621,6 +728,180 @@ theorem smod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld I
     (h : ((smod ctx f).run w).run = .ok (.continue f', w'))
     (hc : 1 ≤ ctx.config.costs.opcodeSmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have hp := smod_continue_phi ctx f f' w w' h
+  omega
+
+/-- Add modulo the third word using an unbounded sum after ordered pops and charging.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:232–260`. -/
+def addmod {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod)
+
+/-- Empty-stack underflow keeps the complete frame and supplied world. -/
+theorem addmod_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((addmod ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w)) = _
+  rw [ternary_empty ctx f ctx.config.costs.opcodeAddmod U256.addmod h]
+
+/-- The first pop survives second-pop underflow, before any charge. -/
+theorem addmod_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := ternary_singleton ctx f ctx.config.costs.opcodeAddmod U256.addmod x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w)) = _
+  rw [hr]
+
+/-- The first two pops survive third-pop underflow, before any charge. -/
+theorem addmod_run_pair {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256)
+    (h : f.stack.toList = [x, y]) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = [] ∧ ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    ternary_pair ctx f ctx.config.costs.opcodeAddmod U256.addmod x y h
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w)) = _
+  rw [hr]
+
+/-- All three pops survive an execution shortage; the complete meter remains unchanged. -/
+theorem addmod_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeAddmod) :
+    ∃ s₁ s₂ s₃ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₃ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, s₃, h₁, h₂, h₃, hm, hr⟩ :=
+    ternary_oog ctx f ctx.config.costs.opcodeAddmod U256.addmod x y z xs h hc
+  refine ⟨s₁, s₂, s₃, h₁, h₂, h₃, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w)) = _
+  rw [hr]
+
+/-- Complete successful result, including proved push availability and whole-world retention. -/
+theorem addmod_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeAddmod ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ s₃ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ s₃.push (U256.addmod x y z) = .ok out ∧
+      out.toList = U256.addmod x y z :: xs ∧
+      ((addmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeAddmod } }, w)) := by
+  obtain ⟨s₁, s₂, s₃, out, h₁, h₂, h₃, hm, hp, ho, hr⟩ :=
+    ternary_success ctx f ctx.config.costs.opcodeAddmod U256.addmod x y z xs h hc
+  refine ⟨s₁, s₂, s₃, out, h₁, h₂, h₃, hm, hp, ho, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w)) = _
+  rw [hr]
+
+/-- Every actual Id continuation loses exactly the selected raw opcode price. -/
+theorem addmod_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((addmod ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeAddmod = f.gasMeter.phi := by
+  change Except.ok (ternary ctx f ctx.config.costs.opcodeAddmod U256.addmod, w) =
+    .ok (.continue f', w') at h
+  exact ternary_continue_phi ctx f f' ctx.config.costs.opcodeAddmod U256.addmod
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- Strict continuing progress requires only positivity of the selected price. -/
+theorem addmod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((addmod ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeAddmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := addmod_continue_phi ctx f f' w w' h
+  omega
+
+/-- Multiply modulo the third word using an unbounded product after ordered pops and charging.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:263–291`. -/
+def mulmod {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod)
+
+/-- Empty-stack underflow keeps the complete frame and supplied world. -/
+theorem mulmod_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((mulmod ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w)) = _
+  rw [ternary_empty ctx f ctx.config.costs.opcodeMulmod U256.mulmod h]
+
+/-- The first pop survives second-pop underflow, before any charge. -/
+theorem mulmod_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := ternary_singleton ctx f ctx.config.costs.opcodeMulmod U256.mulmod x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w)) = _
+  rw [hr]
+
+/-- The first two pops survive third-pop underflow, before any charge. -/
+theorem mulmod_run_pair {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256)
+    (h : f.stack.toList = [x, y]) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = [] ∧ ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    ternary_pair ctx f ctx.config.costs.opcodeMulmod U256.mulmod x y h
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w)) = _
+  rw [hr]
+
+/-- All three pops survive an execution shortage; the complete meter remains unchanged. -/
+theorem mulmod_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeMulmod) :
+    ∃ s₁ s₂ s₃ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₃ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, s₃, h₁, h₂, h₃, hm, hr⟩ :=
+    ternary_oog ctx f ctx.config.costs.opcodeMulmod U256.mulmod x y z xs h hc
+  refine ⟨s₁, s₂, s₃, h₁, h₂, h₃, hm, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w)) = _
+  rw [hr]
+
+/-- Complete successful result, including proved push availability and whole-world retention. -/
+theorem mulmod_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeMulmod ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ s₃ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ s₃.push (U256.mulmod x y z) = .ok out ∧
+      out.toList = U256.mulmod x y z :: xs ∧
+      ((mulmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeMulmod } }, w)) := by
+  obtain ⟨s₁, s₂, s₃, out, h₁, h₂, h₃, hm, hp, ho, hr⟩ :=
+    ternary_success ctx f ctx.config.costs.opcodeMulmod U256.mulmod x y z xs h hc
+  refine ⟨s₁, s₂, s₃, out, h₁, h₂, h₃, hm, hp, ho, ?_⟩
+  change pure (Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w)) = _
+  rw [hr]
+
+/-- Every actual Id continuation loses exactly the selected raw opcode price. -/
+theorem mulmod_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mulmod ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeMulmod = f.gasMeter.phi := by
+  change Except.ok (ternary ctx f ctx.config.costs.opcodeMulmod U256.mulmod, w) =
+    .ok (.continue f', w') at h
+  exact ternary_continue_phi ctx f f' ctx.config.costs.opcodeMulmod U256.mulmod
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- Strict continuing progress requires only positivity of the selected price. -/
+theorem mulmod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mulmod ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeMulmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := mulmod_continue_phi ctx f f' w w' h
   omega
 
 /-- Sign-extend the next word from the top unsigned byte index after charging.

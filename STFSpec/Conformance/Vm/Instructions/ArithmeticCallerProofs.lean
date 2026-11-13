@@ -411,4 +411,154 @@ private theorem signextend_identity_last {m : Type → Type} [Monad m]
   rw [U256.signextend_eq_self_of_eq k x hk] at hm
   exact ⟨out, hm, hr⟩
 
+private def addmodSignature {m : Type → Type} [Monad m] : Handler m := addmod
+
+private theorem addmod_run_empty_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((addmod ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) :=
+  addmod_run_empty ctx f w h
+
+private theorem addmod_run_singleton_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) :=
+  addmod_run_singleton ctx f w x h
+
+private theorem addmod_run_pair_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256)
+    (h : f.stack.toList = [x, y]) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = [] ∧ ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .stackUnderflow, w)) :=
+  addmod_run_pair ctx f w x y h
+
+private theorem addmod_run_oog_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeAddmod) :
+    ∃ s₁ s₂ s₃ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ ((addmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₃ } .outOfGas, w)) :=
+  addmod_run_oog ctx f w x y z xs h hc
+
+private theorem addmod_run_success_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeAddmod ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ s₃ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ s₃.push (U256.addmod x y z) = .ok out ∧
+      out.toList = U256.addmod x y z :: xs ∧
+      ((addmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeAddmod } }, w)) :=
+  addmod_run_success ctx f w x y z xs h hc
+
+private theorem addmod_continue_phi_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((addmod ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeAddmod = f.gasMeter.phi :=
+  addmod_continue_phi ctx f f' w w' h
+
+private theorem addmod_continue_progress_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((addmod ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeAddmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi :=
+  addmod_continue_progress ctx f f' w w' h hc
+
+private theorem addmod_numeric_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeAddmod ≤ f.gasMeter.gasLeft) :
+    ∃ out : Stack,
+      out.toList.map U256.toNat =
+        (if z.toNat = 0 then 0 else (x.toNat + y.toNat) % z.toNat) ::
+          xs.map U256.toNat ∧
+      ((addmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeAddmod } }, w)) := by
+  obtain ⟨_, _, _, out, _, _, _, _, _, hm, hr⟩ := addmod_run_success ctx f w x y z xs h hc
+  refine ⟨out, ?_, hr⟩
+  rw [hm, List.map_cons, U256.toNat_addmod]
+
+private def mulmodSignature {m : Type → Type} [Monad m] : Handler m := mulmod
+
+private theorem mulmod_run_empty_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((mulmod ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) :=
+  mulmod_run_empty ctx f w h
+
+private theorem mulmod_run_singleton_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) :=
+  mulmod_run_singleton ctx f w x h
+
+private theorem mulmod_run_pair_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256)
+    (h : f.stack.toList = [x, y]) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = [] ∧ ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .stackUnderflow, w)) :=
+  mulmod_run_pair ctx f w x y h
+
+private theorem mulmod_run_oog_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeMulmod) :
+    ∃ s₁ s₂ s₃ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ ((mulmod ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₃ } .outOfGas, w)) :=
+  mulmod_run_oog ctx f w x y z xs h hc
+
+private theorem mulmod_run_success_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeMulmod ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ s₃ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.pop = .ok (z, s₃) ∧ s₃.toList = xs ∧ s₃.push (U256.mulmod x y z) = .ok out ∧
+      out.toList = U256.mulmod x y z :: xs ∧
+      ((mulmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeMulmod } }, w)) :=
+  mulmod_run_success ctx f w x y z xs h hc
+
+private theorem mulmod_continue_phi_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mulmod ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeMulmod = f.gasMeter.phi :=
+  mulmod_continue_phi ctx f f' w w' h
+
+private theorem mulmod_continue_progress_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((mulmod ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeMulmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi :=
+  mulmod_continue_progress ctx f f' w w' h hc
+
+private theorem mulmod_numeric_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y z : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: z :: xs)
+    (hc : ctx.config.costs.opcodeMulmod ≤ f.gasMeter.gasLeft) :
+    ∃ out : Stack,
+      out.toList.map U256.toNat =
+        (if z.toNat = 0 then 0 else (x.toNat * y.toNat) % z.toNat) ::
+          xs.map U256.toNat ∧
+      ((mulmod ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeMulmod } }, w)) := by
+  obtain ⟨_, _, _, out, _, _, _, _, _, hm, hr⟩ := mulmod_run_success ctx f w x y z xs h hc
+  refine ⟨out, ?_, hr⟩
+  rw [hm, List.map_cons, U256.toNat_mulmod]
+
 end STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs

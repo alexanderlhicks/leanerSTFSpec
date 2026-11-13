@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND framing and actual CLI regressions, under normal Python and -O."""
+"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD framing and actual CLI regressions, under normal Python and -O."""
 
 import copy
 import importlib.util
@@ -240,6 +240,84 @@ class ArithmeticParserTests(unittest.TestCase):
                     wire(rows[:400] + rows[400:][::-1]),
                     valid.replace('"case": 400', '"case": 400, "case": 400', 1),
                     valid.replace('"op": "signextend"', '"op": "signextend", "extra": 0', 1)]:
+            with self.assertRaises(module.FrameError):
+                module.compare_frames(bad)
+
+    def test_ternary_controls(self):
+        rows = module.expected_frames()
+        modulus = 2**256
+        def reject(i, path, value):
+            bad = copy.deepcopy(rows)
+            target = bad[i]
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(case=i, path=path), self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+        for op in ["addmod", "mulmod"]:
+            selected = [(i, r) for i, r in enumerate(rows) if r["op"] == op]
+            # All three failed-pop residual stacks and charge precedence are observable.
+            for depth in range(3):
+                i, r = next((i, r) for i, r in selected if len(r["before"]["stack"]) == depth)
+                reject(i, ("error",), "outOfGas")
+                reject(i, ("after", "meter", 0), r["before"]["meter"][0] + 1)
+                if depth:
+                    reject(i, ("after", "stack"), r["before"]["stack"])
+            i, r = next((i, r) for i, r in selected if r["error"] == "outOfGas" and
+                        len(r["before"]["stack"]) >= 3 and r["before"]["stack"][2] == 0)
+            reject(i, ("tag",), "continue")
+            reject(i, ("after", "stack"), r["before"]["stack"][2:])
+            # Unbounded intermediates distinguish wrapped ADD/MUL then MOD substitutes.
+            distinguished = 0
+            for i, r in selected:
+                if r["tag"] != "continue":
+                    continue
+                x, y, z = r["before"]["stack"][:3]
+                if z == 0:
+                    reject(i, ("after", "stack", 0), 1)
+                    reject(i, ("after", "meter", 0), r["before"]["meter"][0]) if r["cost"] else None
+                    continue
+                result = r["after"]["stack"][0]
+                unbounded = x + y if op == "addmod" else x * y
+                wrong = (unbounded % modulus) % z
+                if result != wrong:
+                    reject(i, ("after", "stack", 0), wrong)
+                    distinguished += 1
+                # Moving modulus into either operand position must change discriminators.
+                for alternative in [(y + z) % x if x else 0,
+                                    (x + z) % y if y else 0] if op == "addmod" else [
+                                    (y * z) % x if x else 0, (x * z) % y if y else 0]:
+                    if alternative != result:
+                        reject(i, ("after", "stack", 0), alternative)
+            self.assertGreater(distinguished, 0)
+            i, r = next((i, r) for i, r in selected if r["tag"] == "continue" and r["cost"] == 8)
+            for key in r["after"]:
+                reject(i, ("after", key), None)
+            for key in r["worldAfter"]:
+                reject(i, ("worldAfter", key), None)
+            for path in [("case",), ("after", "pc"), ("after", "meter", 0),
+                         ("after", "stack", 0), ("worldAfter", "blockAccountOrder")]:
+                for value in [False, 0.0]:
+                    reject(i, path, value)
+            for key in ["cost", "otherCost", "veryLow", "phiAfter"]:
+                reject(i, (key,), r[key] + 1)
+            # Independent tier and sibling prices must not replace the selected field.
+            for amount in [1, r["veryLow"], r["otherCost"]]:
+                bad = copy.deepcopy(rows)
+                if amount > r["before"]["meter"][0]:
+                    bad[i]["after"] = copy.deepcopy(r["before"])
+                    bad[i]["after"]["stack"] = bad[i]["after"]["stack"][3:]
+                    bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+                else:
+                    bad[i]["after"]["meter"][0] = r["before"]["meter"][0] - amount
+                bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
+                with self.subTest(op=op, amount=amount), self.assertRaises(module.FrameError):
+                    module.compare_frames(wire(bad))
+        valid = wire(rows)
+        for bad in [wire(rows[:627] + rows[628:]), wire(rows + [rows[-1]]),
+                    wire(rows[:627] + rows[627:][::-1]),
+                    valid.replace('"case": 627', '"case": 627, "case": 627', 1),
+                    valid.replace('"op": "addmod"', '"op": "addmod", "extra": 0', 1)]:
             with self.assertRaises(module.FrameError):
                 module.compare_frames(bad)
 
