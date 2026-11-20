@@ -8,6 +8,8 @@ From the repository root, after building/capturing the native target:
 
 EELS must contain its frozen installed .venv. This driver never installs packages or
 writes to EELS. It invokes EELS/.venv/bin/python -I -B directly, normally and with -O.
+Every worker compiles filesystem source directly, bypassing bytecode caches and rejecting
+sourceless imports. Each probe returns its own source/runtime authentication.
 The report retains complete original child streams, actual waits, source/import/runtime
 identities and pinned versions plus installed RECORD integrity. It does not authenticate
 an independently downloaded wheel. Probe exceptions are fixture instrumentation, not a
@@ -18,9 +20,11 @@ absent returned failed state; paired versus hash-only codeReads limits the proje
 import argparse
 import base64
 import csv
+import contextlib
 import dataclasses
 import hashlib
 import importlib.metadata
+import importlib.machinery
 import importlib.util
 import inspect
 import io
@@ -36,13 +40,56 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location(
     "optional_account_reader", HERE / "pre_state_account_differential.py")
 READER = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(READER)
+exec(compile(Path(SPEC.origin).read_bytes(), SPEC.origin, "exec"), READER.__dict__)
 SOURCE_KEYS = {"case", "answers", "calls", "readStates", "providerObservedReads",
                "failedSourceReads", "sourceFrameBefore", "sourceFrameAfter"}
 BLOCK_FIELDS = {"account_reads", "account_writes", "storage_reads", "storage_writes",
                 "code_reads", "code_writes", "oldest_ancestor_offset", "storage_clears"}
 TX_FIELDS = {"account_writes", "storage_reads", "storage_writes", "code_reads",
              "code_writes", "created_accounts", "storage_clears", "transient_storage"}
+
+
+class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
+    """Compile the source bytes we record, without consulting any bytecode cache."""
+
+    def __init__(self, fullname, path, compiled_sources):
+        super().__init__(fullname, path)
+        self.compiled_sources = compiled_sources
+
+    def get_code(self, fullname):
+        data = self.get_data(self.path)
+        code = self.source_to_code(data, self.path)
+        self.compiled_sources[fullname] = {
+            "path": str(Path(self.path).resolve()), "size": len(data),
+            "sha256": hashlib.sha256(data).hexdigest()}
+        return code
+
+
+class SourceOnlyFinder:
+    """Use ordinary filesystem discovery, but never execute a .pyc file."""
+
+    def __init__(self):
+        self.compiled_sources = {}
+
+    def find_spec(self, fullname, path=None, target=None):
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path, target)
+        if spec is None:
+            return None  # Built-in and frozen modules retain the interpreter baseline.
+        loader = spec.loader
+        if isinstance(loader, importlib.machinery.SourceFileLoader):
+            spec.loader = SourceOnlyLoader(fullname, loader.path, self.compiled_sources)
+        elif isinstance(loader, importlib.machinery.SourcelessFileLoader):
+            raise ImportError("sourceless bytecode is not authenticated: " + fullname)
+        elif loader is not None and not isinstance(loader, importlib.machinery.ExtensionFileLoader):
+            raise ImportError("unsupported source import loader: " + fullname)
+        return spec
+
+
+def install_source_only_imports():
+    """Install before any EELS/dependency import in every actual probe worker."""
+    policy = SourceOnlyFinder()
+    sys.meta_path.insert(0, policy)
+    return policy
 
 
 def file_identity(path):
@@ -84,7 +131,7 @@ def parse_source(data):
     return rows
 
 
-def authenticate(eels):
+def authenticate(eels, policy):
     """Run inside the supplied source interpreter; report actual imported bytes."""
     import ethereum.forks.amsterdam.state_tracker as tracker
     import ethereum.state as state
@@ -132,6 +179,8 @@ def authenticate(eels):
             "imported_files": [file_identity(inspect.getfile(module)) for module in
                                [tracker, state, numeric, byte_types]],
             "uv_lock": file_identity(eels / "uv.lock"), "dependencies": dependencies,
+            "source_loading": {"policy": "compile-source-without-bytecode-cache",
+                               "compiled_sources": policy.compiled_sources},
             "limit": "Installed integrity and pinned versions; no downloaded-wheel provenance."}
 
 
@@ -297,7 +346,8 @@ def source_identity(eels, report):
 def check_authentication(before, after):
     """Keep runtime-mode checks strict and require unchanged authenticated inputs."""
     fields = {"executable", "version", "optimize", "isolated", "dont_write_bytecode",
-              "operation_source", "imported_files", "uv_lock", "dependencies", "limit"}
+              "operation_source", "imported_files", "uv_lock", "dependencies",
+              "source_loading", "limit"}
     for auth, mode in [(before, 0), (after, 1)]:
         if type(auth) is not dict or auth.keys() != fields:
             raise ValueError("wrong source authentication fields")
@@ -316,16 +366,19 @@ def compare(eels, target, report):
     report["source_before"] = source_identity(eels, report)
     executable = eels / ".venv/bin/python"
     script = Path(__file__).resolve()
-    auth_before = READER.decode(run_child([executable, "-I", "-B", script,
-                                          "--worker", "authenticate", "--eels", eels], report))
-    normal = run_child([executable, "-I", "-B", script, "--worker", "probe"], report)
-    optimized = run_child([executable, "-I", "-B", "-O", script, "--worker", "probe"], report)
+    workers = []
+    for flags in [[], ["-O"]]:
+        worker = READER.decode(run_child([executable, "-I", "-B", *flags, script,
+                                         "--worker", "probe", "--eels", eels], report))
+        if type(worker) is not dict or worker.keys() != {"authentication", "observations"}:
+            raise ValueError("wrong authenticated probe envelope")
+        workers.append(worker)
+    normal, optimized = [worker["observations"].encode() for worker in workers]
+    auth_before, auth_after = [worker["authentication"] for worker in workers]
     parse_source(normal)
     parse_source(optimized)
     if normal != optimized:
         raise ValueError("source observations differ between Python modes")
-    auth_after = READER.decode(run_child([executable, "-I", "-B", "-O", script,
-                                         "--worker", "authenticate", "--eels", eels], report))
     check_authentication(auth_before, auth_after)
     report["source_after"] = source_identity(eels, report)
     report["inputs_after"] = [file_identity(path) for path in paths]
@@ -344,13 +397,19 @@ def main():
     parser.add_argument("--report", type=Path)
     parser.add_argument("--worker", choices=["authenticate", "probe"], help=argparse.SUPPRESS)
     args = parser.parse_args()
-    if args.worker == "probe":
-        probe()
-        return
-    if args.worker == "authenticate":
+    if args.worker:
         if args.eels is None:
-            parser.error("authentication worker needs --eels")
-        print(json.dumps(authenticate(args.eels.resolve()), separators=(",", ":")))
+            parser.error("source worker needs --eels")
+        policy = install_source_only_imports()
+        if args.worker == "probe":
+            observations = io.StringIO()
+            with contextlib.redirect_stdout(observations):
+                probe()
+            result = {"authentication": authenticate(args.eels.resolve(), policy),
+                      "observations": observations.getvalue()}
+        else:
+            result = authenticate(args.eels.resolve(), policy)
+        print(json.dumps(result, separators=(",", ":")))
         return
     if args.eels is None or args.check_target is None or args.report is None:
         parser.error("--eels, --check-target and --report are required")

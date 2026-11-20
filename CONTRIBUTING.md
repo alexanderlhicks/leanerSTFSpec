@@ -319,7 +319,10 @@ uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_
 ```
 
 The driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,
-and never installs packages or writes to EELS. Its report retains the original
+and never installs packages or writes to EELS. Each worker compiles filesystem
+source directly, bypasses bytecode caches and rejects sourceless imports. Both
+actual probe workers return their own authentication, including the hashes of the
+exact source bytes compiled. Its report retains the original
 child streams, actual waits, pin/import/runtime identities and installed RECORD
 integrity. It compares complete bounded answers/calls/successful reads and source
 field retention, with failed source reads separate from Lean's absent failed state.

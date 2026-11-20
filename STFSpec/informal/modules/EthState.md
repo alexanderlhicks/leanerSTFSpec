@@ -468,7 +468,12 @@ resource or C1–C4 result.
   `pre_state_account_source.py --eels EELS --check-target TARGET --report REPORT`
   reproduces pinned source normal/-O probes on actual BlockState/TransactionState
   carriers and instrumented providers. It invokes the clone's `.venv/bin/python`
-  directly with -I/-B, adding -O for the second mode. It checks the exact clean
+  directly with -I/-B, adding -O for the second mode. Each worker compiles source
+  bytes directly without consulting bytecode caches and rejects sourceless imports;
+  each actual probe returns its own authentication and compiled-source hashes.
+  Timestamp-valid altered normal/opt1 caches are regression-tested with an
+  out-of-catalogue address, alongside sourceless-cache rejection. It checks the exact
+  clean
   pinned Git source, actual imported files/interpreter and pinned installed versions
   with every hashed distribution RECORD entry, retaining complete original child
   streams and actual waits. Installed integrity does not certify independently
