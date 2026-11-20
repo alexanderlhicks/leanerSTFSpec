@@ -17,9 +17,11 @@ branches with N branch nodes in all, at most ⌈log₁₆ N⌉ + 1 deep, as a no
 Database keys are synthetic full-width 256-bit values (a bijection of the index), and the
 query oracle answers a constant: this measures the decoder's own traversal and path
 bookkeeping, not Keccak. Construction precedes the clock. The decode result is checked
-against the expected outcome (chain plain: `ok`; chain secured with N > 63 and wide
-secured: `securedPathLength`; otherwise only reported), and a mismatch exits 1 before any
-time is printed. The program prints the outcome, the entry count and the decode time;
+against the expected outcome in every mode, and a mismatch exits 1 before any time is
+printed. Plain decoding succeeds. Secured decoding succeeds exactly when every leaf is
+below 63 branch levels: N = 63 for a chain, or N = (16^63 - 1) / 15 for the complete
+breadth-first wide tree; all other secured inputs fail `securedPathLength`. The program
+prints the outcome, the entry count and the decode time;
 inspect the generated C (`lake env lean -c`) to confirm the decode sits between the two
 clock reads, since nothing fences it.
 Measure peak memory externally from the process's maximum resident set size. This is a
@@ -95,16 +97,15 @@ def main (args : List String) : IO UInt32 := do
     let result := decodeWitnessToMpt (m := Id) (key emptyRootKey) db (key firstKey) secured
     let observed := outcome result
     let stop ← IO.monoMsNow
-    let expected : Option String := match shape, secured with
-      | "chain", false => some "ok"
-      | "chain", true => if 63 < n then some "securedPathLength" else none
-      | _, true => some "securedPathLength"
-      | _, false => none
+    -- The leaf has one path nibble, so every leaf needs exactly 63 branch ancestors.
+    -- A breadth-first full 16-way tree has equal leaf depths only at complete levels.
+    let expected := if !secured then "ok" else
+      let expectedBranches := if shape == "chain" then 63 else (16 ^ 63 - 1) / 15
+      if n == expectedBranches then "ok" else "securedPathLength"
     IO.println s!"outcome {observed}"
-    if let some e := expected then
-      if observed != e then
-        IO.eprintln s!"expected {e}"
-        return 1
+    if observed != expected then
+      IO.eprintln s!"expected {expected}"
+      return 1
     IO.println s!"decode {stop - start} ms"
     pure 0
   | _ => IO.eprintln "usage: decoder-depth-bench chain|wide N plain|secured"; pure 2
