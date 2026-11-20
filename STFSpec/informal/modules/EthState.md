@@ -537,7 +537,9 @@ resource or C1–C4 result.
   `pre_state_account_default_source.py --eels EELS --check-target TARGET --report REPORT`
   calls the actual pinned wrapper on only the 66 coherent cases, normally and with -O,
   retaining both wrapper/optional source bodies and the authentication/wait evidence
-  described below. The 15 raw-constant cases make no source-equivalence claim.
+  described below. It directly compiles the shared source-only import helper and its
+  reader; each actual probe worker returns its own compiled-source authentication.
+  Accepted altered normal/opt1 caches are exercised through this worker entry point. The 15 raw-constant cases make no source-equivalence claim.
   The separate optional-account producer still executes and checks all original 66 cases.
 - **Implemented optional-account controls:** `PreStateAccountCallerProofs.lean`
   consumes only public action/framing/membership/model laws. The input-only
@@ -557,7 +559,12 @@ resource or C1–C4 result.
   `pre_state_account_source.py --eels EELS --check-target TARGET --report REPORT`
   reproduces pinned source normal/-O probes on actual BlockState/TransactionState
   carriers and instrumented providers. It invokes the clone's `.venv/bin/python`
-  directly with -I/-B, adding -O for the second mode. It checks the exact clean
+  directly with -I/-B, adding -O for the second mode. Each worker compiles source
+  bytes directly without consulting bytecode caches and rejects sourceless imports;
+  each actual probe returns its own authentication and compiled-source hashes.
+  Timestamp-valid altered normal/opt1 caches are regression-tested with an
+  out-of-catalogue address, alongside sourceless-cache rejection. It checks the exact
+  clean
   pinned Git source, actual imported files/interpreter and pinned installed versions
   with every hashed distribution RECORD entry, retaining complete original child
   streams and actual waits. Installed integrity does not certify independently
@@ -589,7 +596,10 @@ resource or C1–C4 result.
   error constructor/payload and changing-provider repeated reads without caching.
   `account_optional_source.py` executes the original pinned get_account_optional
   and fallback on real typed carriers for the 233 coherent recipes, normally and
-  with -O. The other 15 arbitrary-constant cases are mathematical controls only.
+  with -O. It directly compiles the shared source-only import helper and reader;
+  each actual probe worker returns its own compiled-source authentication. Accepted
+  altered normal/opt1 caches are exercised through this worker entry point.
+  The other 15 arbitrary-constant cases are mathematical controls only.
   `account_optional_source_expected.json` independently freezes complete meaningful
   retained source fields, answers, provider calls and read membership; source set-add
   instrumentation also distinguishes one insertion from two. Provider-observed reads

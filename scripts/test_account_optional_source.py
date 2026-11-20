@@ -9,6 +9,10 @@ import copy
 import base64
 import importlib.util
 import json
+import os
+import py_compile
+import sys
+import tempfile
 from pathlib import Path
 import subprocess
 import unittest
@@ -33,7 +37,9 @@ def authentication(mode):
     return {"executable": {"sha256": "same interpreter"}, "version": "same version",
             "optimize": mode, "isolated": 1, "dont_write_bytecode": True,
             "operation_source": "same pinned operation", "imported_files": ["same files"],
-            "uv_lock": "same lock", "dependencies": ["same installed bytes"], "limit": "same"}
+            "uv_lock": "same lock", "dependencies": ["same installed bytes"],
+            "source_loading": {"policy": "compile-source-without-bytecode-cache",
+                               "compiled_sources": {}}, "limit": "same"}
 
 
 class SourceReaderTests(unittest.TestCase):
@@ -135,6 +141,65 @@ class AuthenticationTests(unittest.TestCase):
                          (7, "out", "error"))
         self.assertEqual(base64.b64decode(receipt["stdout_base64"]), b"out")
         self.assertEqual(base64.b64decode(receipt["stderr_base64"]), b"error")
+
+
+class SourceLoadingTests(unittest.TestCase):
+    def test_timestamp_valid_caches_never_supply_executed_code(self):
+        # Both bytecode modes contain a changed answer outside the bounded catalogue.
+        # The original filename, source size and timestamp remain valid for CPython.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            module = root / "cached_tracker.py"
+            original = "def read(address):\n    return 111 if address == 42 else 0\n"
+            altered = original.replace("111", "999")
+            module.write_text(altered)
+            stamp = module.stat()
+            caches = []
+            for optimize in [0, 1]:
+                cache = Path(py_compile.compile(
+                    str(module), doraise=True, optimize=optimize,
+                    invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP))
+                caches.append((cache, cache.read_bytes()))
+            module.write_text(original)
+            os.utime(module, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+            for optimize in [[], ["-O"]]:
+                common = [sys.executable, "-I", "-B", *optimize, "-c"]
+                setup = "import sys; sys.path.insert(0, " + repr(directory) + "); "
+                control = subprocess.run(common + [setup +
+                    "import cached_tracker; print(cached_tracker.read(42))"],
+                    check=True, capture_output=True, text=True)
+                self.assertEqual(control.stdout, "999\n")
+                # Drive the actual worker entry point; stubs isolate source loading
+                # from EELS installation and finite observation/authentication content.
+                code = ("import runpy, json; driver=runpy.run_path(" + repr(str(SPEC.origin)) +
+                        "); namespace=driver['main'].__globals__; " + setup +
+                        "namespace['probe']=lambda: print(__import__('cached_tracker').read(42)); "
+                        "namespace['authenticate']=lambda eels, policy: "
+                        "policy.compiled_sources['cached_tracker']; "
+                        "sys.argv=['source', '--worker', 'probe', '--eels', " +
+                        repr(directory) + "]; driver['main']()")
+                checked = subprocess.run(common + [code], check=True,
+                                         capture_output=True, text=True)
+                envelope = json.loads(checked.stdout)
+                self.assertEqual(envelope["observations"], "111\n")
+                self.assertEqual(envelope["authentication"], SOURCE.file_identity(module))
+            for cache, original_bytes in caches:
+                self.assertEqual(cache.read_bytes(), original_bytes)
+            self.assertEqual(module.read_text(), original)
+
+    def test_sourceless_bytecode_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            module = Path(directory) / "cached_only.py"
+            module.write_text("answer = 999\n")
+            py_compile.compile(str(module), cfile=str(module.with_suffix('.pyc')), doraise=True)
+            module.unlink()
+            code = ("import runpy, sys; driver=runpy.run_path(" + repr(str(SPEC.origin)) +
+                    "); driver['install_source_only_imports'](); sys.path.insert(0, " +
+                    repr(directory) + "); import cached_only")
+            result = subprocess.run([sys.executable, "-I", "-B", "-c", code],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("sourceless bytecode", result.stderr)
 
 
 if __name__ == "__main__":
