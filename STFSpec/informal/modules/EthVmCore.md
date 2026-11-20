@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-20. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -15,7 +15,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:245–247` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:119–142`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:298–300`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
-- **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Future handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). The supplied raw record alone does not enforce that execution discipline.
+- **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). EthVmInstructions §3/§5/§7 supplies the indexed result and read-only Handler signature; the raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:66–114`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
 
 ### 2.2 Frame exit
@@ -96,10 +96,11 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 | Source / contract | Lean declaration | Domain, effects and ordered failures | Ordinary checks | Status |
 |---|---|---|---|---|
 | Lean-only assembly from §5; complete State-owned TxState provider (EthState §3/§5/§7); no separate EELS function | `STFSpec.Vm.Core.VmWorld (m : Type → Type)` in `STFSpec/Vm/Core/World.lean`, exported by Core | Exactly one field `tx : STFSpec.State.TxState m`, retaining any complete supplied transaction state without a class, WF or coherence premise. No action or failure. | Private public-facade `WorldCallerProofs.lean` exact type/constructor/projection, arbitrary whole transaction retention, reconstruction, whole-world determination and replacement; contravariant non-Monad constructor. | **supplied raw carrier**; initialization and tracker/lifetime/source obligations remain open |
-| Lean-only transformer wiring from §5; no separate EELS function | `STFSpec.Vm.Core.VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)`, in the same module and facade | Complete run type `VmWorld m → m (Except VmFault (α × VmWorld m))` for arbitrary m without class premises. The alias introduces no operation or failure policy. | Same private client: exact alias/run shape, arbitrary supplied underlying action equality and contravariant run; complete Id pure/get/put-read/replacement results, arbitrary VmFault before/after put and complete nested StateError.witness payload after put. | **supplied alias**; state lift and actual error propagation remain open |
+| Lean-only transformer wiring from §5; no separate EELS function | `STFSpec.Vm.Core.VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m)`, in the same module and facade | Complete run type `VmWorld m → m (Except VmFault (α × VmWorld m))` for arbitrary m without class premises. The alias introduces no operation or failure policy. | Same private client: exact alias/run shape, arbitrary supplied underlying action equality and contravariant run; complete Id pure/get/put-read/replacement results, arbitrary VmFault before/after put and complete nested StateError.witness payload after put. | **supplied alias**; the functional state lift is supplied below; actual execution propagation remains open |
+| Lean-only action routing from §5; no separate EELS function | `liftState [Monad m] : StateM m α → VmM m α` and `liftState_run` in `STFSpec/Vm/Core/StateLift.lean`, exported by Core | Apply the action to exactly `world.tx` in one underlying bind. Retain its complete success value and updated transaction; wrap every complete StateError in `VmFault.state`. Failure returns no world. Underlying effects and failures remain in m. Only Monad is required; no WF, coherence or recovery policy. | Private public-facade `StateLiftCallerProofs.lean`: complete literal equation, local lawful simplification, arbitrary whole Id result/state/error, read/replace/read, pure and put/failure continuation skipping; complete lawful ordered-effect success/failure traces and outer Option failure. | **supplied operation and discharged literal run equation**; tracker/source/lifetime and execution propagation remain open |
 
 All client declarations are private and imported by `STFSpec.Conformance`. No
-authored public law, default, instance or extra world field is supplied. The
+authored public carrier law, default, instance or extra world field is supplied. The
 complete transaction providers use EthState’s hash-only codeReads; nominal
 assembly supplies no full-current-source refinement. A failed run has no world
 in its Except result; no rollback of underlying effects is implied.
@@ -292,7 +293,7 @@ VM/guest/EEST/readiness remain open.
 
 | EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:160,162,167–177`; F8 policy fields; `interpreter.py:79` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance, source coherence and read-only handler signatures remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:160,162,167–177`; F8 policy fields; `interpreter.py:79` depth bound | `STFSpec.Vm.Core.FrameCtx` in `STFSpec/Vm/Core/Context.lean`, exported by the Core facade | Exactly fifteen data fields and the sole local `depth_le : depth ≤ STACK_DEPTH_LIMIT` proof in §5 order. The imported existing literal admits 0 through 1024 inclusive, independently of raw config.limits.stackDepthLimit. All other complete supplied fields remain independent. No effects, runtime guards, errors, defaults, derived instances or global coherence/WF premise. | Private `ContextCallerProofs.lean` checks the complete constructor signature, every projection including the proof, reconstruction and all fifteen independent data replacements; only depth replacement supplies a fresh local bound. `ContextGuards.lean` owns the complete controls below. Ordinary raw-record equations reduce directly; no manually authored public law package. | **supplied raw data**; actual creation/inheritance and source coherence remain open; EthVmInstructions owns the supplied read-only result/signature types |
 | The same source `Evm:147–185`, R-ENV-3 partition | `STFSpec.Vm.Core.Evm` in the same leaf/facade | Exactly `ctx : FrameCtx` and `frame : Frame`. Every pair of supplied values is admitted; no additional coherence/WF proof, state or control field. No effects or failures. | Private complete constructor signature/projections/reconstruction and independent context/frame replacements; all three complete controls retain an arbitrary whole Frame. | **supplied raw data**; no whole source-Evm execution equivalence |
 
 The source Evm has 26 fields: thirteen fixed context fields, nine mutable Frame
@@ -308,8 +309,8 @@ particular config, systemAddress, caller/target/value/data/codeAddress/code/map 
 three flags vary independently. A raw context may contain empty code and a map
 built from different nonempty code. Intended creation must establish code/map,
 source/environment/history/config coherence and inherited policy later; the raw
-record adds none of these restrictions. The future Handler/StepResult signatures
-supply read-only context discipline; raw Evm construction does not prevent context
+record adds none of these restrictions. EthVmInstructions §3/§5/§7 supplies the Handler/StepResult signatures for
+read-only context discipline; raw Evm construction does not prevent context
 replacement by arbitrary Lean callers.
 
 Three complete ordinary boundary controls quantify arbitrary GasCosts, both whole
@@ -1426,6 +1427,18 @@ uv run --no-project --python 3.12 python -B -O scripts/test_transaction_gas_allo
 
 ## 4. Tests
 
+- **Supplied functional state lift clients:** `StateLiftCallerProofs.lean` imports
+  only Core and uses `liftState_run` for the complete plain-Monad expression.
+  A private simplification client requires LawfulMonad locally. Whole arbitrary Id
+  transactions, result values and StateError values cover direct routing, read,
+  read/replace/read, pure and put-before-failure with an arbitrary skipped continuation.
+  A concrete lawful `StateT (List Nat) Id` interpretation checks complete retained
+  ordered effects, complete success values/worlds, and both State and VM skipped
+  failure continuations. Option failure remains an outer none. These ordinary
+  Lean-only checks claim no native observation, EELS operation or effect rollback.
+  Reproduce with
+  `lake build STFSpec.Conformance.Vm.Core.StateLiftCallerProofs --wfail`.
+
 - **Supplied raw world/monad clients:** `WorldCallerProofs.lean` imports only the
   public Core facade and checks both exact declarations and complete raw wiring
   described in §3. Ordinary private equalities quantify arbitrary whole TxState,
@@ -1711,7 +1724,8 @@ exactly, in declaration-before-use order in Lean. `VmFault.state` consumes the
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
 BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
-also supplied; liftState remains a separate target.
+also supplied. The functional liftState and its complete literal run equation are
+supplied separately in StateLift.lean (§3/§7).
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
 
@@ -1727,8 +1741,8 @@ quantities and options are independent. The exact fifteen-data-field `FrameCtx`
 with its sole local depth proof, and the two-field `Evm`, are also **supplied**.
 The depth bound is independent of raw configuration limits; code/map and all other
 fields have no additional coherence premise. These carriers make no global meter-WF,
-source/context or execution claim. Actual creation and read-only handler discipline
-remain open.
+source/context or execution claim. Actual creation remains open; EthVmInstructions
+§3/§5/§7 owns the supplied read-only Handler/StepResult signatures.
 
 ```lean
 -- Environments (public)
@@ -1775,7 +1789,7 @@ inductive OverflowSite | blobBaseFee | refundCounter   -- supplied nominal sites
 inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
                   | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
 abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- supplied raw alias
-def liftState [Monad m] : StateM m α → VmM m α  -- run on world.tx; map every StateError to VmFault.state
+def liftState [Monad m] : StateM m α → VmM m α  -- supplied; complete routing equation in §7
 
 -- Exceptions (public)
 inductive ExceptionalHalt
@@ -2118,7 +2132,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `PrecompileResult`, `PrecompileTable` | supplied inductive result; record of a lookup closure, an `AddrSet` domain and two logical proof fields | itself (public carriers) | `lookup_iff` and `meter_law` as fields; no global WF | immutable value | O(1) projection; proof fields are erased; lookup cost belongs to the installed table (EthVmRunner §6) |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
-| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; handler read-only discipline remains a future signature obligation | field access O(1); no compiled sharing/resource claim |
+| `FrameCtx` | supplied raw record; existing immutable `Bytes`, environments, policy and abstract JumpdestMap | complete fields themselves | sole local `depth ≤ 1024`, independent of config limits; no code/map or source coherence restriction | immutable value; EthVmInstructions owns the supplied read-only Handler/StepResult signatures; actual execution remains open | field access O(1); no compiled sharing/resource claim |
 | `Evm` | supplied raw pair of FrameCtx and Frame | complete fields themselves | only existing field types; no additional coherence/WF proof | value; execution ownership remains a caller obligation | field access O(1); no new operation/cost claim |
 
 ## 7. Contract and laws
@@ -2130,8 +2144,29 @@ construction/reconstruction/replacement and exact whole-action/run equalities
 use ordinary reduction; no authored public helper law is added. Id controls
 retain complete success/world pairs and complete VmFault payloads. Failure has
 no world in its Except result and supplies no underlying-effect rollback law.
-Initialization, state lifting, tracker semantics, lifetime/observation/snapshot
+Initialization, tracker semantics, lifetime/observation/snapshot
 proofs and source equivalence remain separate.
+
+**Supplied functional state lift.** Exactly one ordinary public equation is
+discharged for the §5 operation, without LawfulMonad, WF, coherence or domain
+premises:
+
+```lean
+theorem liftState_run [Monad m] (action : StateM m α) (world : VmWorld m) :
+  ((liftState action).run world).run =
+    ((action.run world.tx).run >>= fun result ↦
+      pure (match result with
+        | .ok (value, tx) => .ok (value, { world with tx := tx })
+        | .error error => .error (.state error)))
+```
+
+This is the literal underlying bind/pure expression, with one action occurrence.
+Simplifying it for an arbitrary monad can require local monad laws; the equation
+itself does not. Every complete success transaction and value is retained, and
+every complete StateError is wrapped without recovery or a returned world.
+Underlying effects and failures remain in m. No MonadLift instance, tracker
+operation, rollback, lifetime or source-refinement theorem is supplied. Private
+facade clients and their complete observations are owned by §3/§4.
 
 **Raw environment carrier controls are supplied.** §3/§5 own the exact eleven-
 and sixteen-field public records. Complete private constructor/projection/type,
@@ -2214,7 +2249,8 @@ other field remains unrestricted beyond its provider type. Complete controls and
 public contains equations cover both depth boundaries and independent code/maps.
 No manually authored public context/Evm laws, global coherence predicate, defaults
 or extra instances are supplied. Actual creation, inheritance and source coherence
-remain caller obligations; handler signatures must supply read-only context use.
+remain caller obligations; EthVmInstructions §3/§5/§7 owns the supplied read-only
+Handler/StepResult signatures.
 
 **Transaction-gas contracts (Q65, Q66).**
 
@@ -3271,8 +3307,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Raw VmWorld/VmM wiring is supplied:** §3/§4/§5/§7 own exactly the complete
   single-TxState carrier and StateT-over-ExceptT alias, with private complete
-  facade clients only. Initialization, liftState and complete StateError-to-
-  VmFault.state routing, tracker effects/errors, snapshots/restore, observation
+  facade clients. The separate functional liftState and its sole public literal
+  run equation supply complete StateError-to-VmFault.state routing under Monad
+  only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
+  Initialization, tracker effects/errors, snapshots/restore, observation
   lifetimes, provider/context acquisition/coherence, actual handlers/runner and
   full-current-source refinement remain open.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
@@ -3303,7 +3341,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
-  state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
+  tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
@@ -3337,8 +3375,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
   private complete generic clients and boundary controls. Raw config limits,
   code/map choices, supplied addresses, environments, frame and flags remain
-  independent. Actual creation/inheritance, source/config/history/code coherence,
-  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  independent. EthVmInstructions §3/§5/§7 owns the supplied read-only Handler/StepResult
+  signatures. Actual creation/inheritance, source/config/history/code coherence,
+  world/control/parent execution, F20/F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
   default, instance or global coherence/WF predicate is supplied.
 
