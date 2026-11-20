@@ -9,8 +9,9 @@ import STFSpec.Vm.Core.VmFault
 # Raw VM world and VM monad
 
 Library `EthVmCore`: retain one complete supplied transaction state and the guided
-state/error transformer order. This is nominal wiring; initialization, state lifting,
-tracker operations, lifetimes and execution semantics remain separate.
+state/error transformer order. This module supplies nominal wiring; `StateLift.lean`
+supplies the state lift. Initialization, tracker operations, lifetimes and execution
+semantics remain separate.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/4/5/7/10.
 -/
 

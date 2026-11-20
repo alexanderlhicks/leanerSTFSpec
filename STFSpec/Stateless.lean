@@ -6,15 +6,16 @@ import STFSpec.Stateless.ExecutionRequests
 import STFSpec.Stateless.ExecutionRequestsSsz
 import STFSpec.Stateless.ExecutionWitness
 import STFSpec.Stateless.ExecutionWitnessSsz
-import STFSpec.Stateless.NewPayloadSsz
 import STFSpec.Stateless.Input
 import STFSpec.Stateless.InputSsz
+import STFSpec.Stateless.NewPayloadSsz
 import STFSpec.Stateless.Output
 import STFSpec.Stateless.Payload
 import STFSpec.Stateless.PayloadSsz
 import STFSpec.Stateless.ProtocolFork
 import STFSpec.Stateless.RequestItemSsz
 import STFSpec.Stateless.RequestItems
+import STFSpec.Stateless.SchemaIdentifiers
 import STFSpec.Stateless.WireLimits
 
 /-!
@@ -35,6 +36,7 @@ The raw `StatelessInput` retains the complete request, witness and Base `U64` ch
 The actual input, execution witness, execution payload and new-payload request SSZ dictionaries
 and their three Q81 certificates each are supplied
 separately from serialization/root support, decoding and guest composition.
+Selected schema identifiers use Fork-owned values and a private bounded nominal transport.
 The concrete output record, serializer and zero sentinel have complete layout, size
 and injectivity laws under the spec guidance document §§3/7. Guest execution and
 input decoding remains open.
