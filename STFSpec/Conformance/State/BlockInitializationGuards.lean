@@ -149,9 +149,8 @@ private def observe (b : BlockState Id) : List Nat :=
     sequence ((b.accountReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map addressValues),
     sequence ((b.storageReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
       (fun p ↦ addressValues p.1 ++ slotValues p.2)),
-    sequence ((b.codeReads.toList.mergeSort (fun x y ↦
-      (compare x.1 y.1).then (compare x.2 y.2) != .gt)).map
-        (fun p ↦ addressValues p.1 ++ hashValues p.2)),
+    sequence ((b.codeReads.toList.mergeSort (fun x y ↦ compare x y != .gt)).map
+      hashValues),
     optional (fun n ↦ [n]) b.oldestAncestorOffset]
 
 private def expectedProvider (seed : Nat) : List Nat :=

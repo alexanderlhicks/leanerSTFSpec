@@ -238,6 +238,7 @@ import STFSpec.Conformance.State.ReadSetsGuards
 import STFSpec.Conformance.State.BlockExtractionCallerProofs
 import STFSpec.Conformance.State.BlockExtractionGuards
 import STFSpec.Conformance.State.BlockViewCallerProofs
+import STFSpec.Conformance.State.TransactionViewCallerProofs
 import STFSpec.Conformance.State.BlockViewGuards
 import STFSpec.Conformance.State.BlockStateGuards
 
@@ -252,6 +253,9 @@ import STFSpec.Conformance.State.BlockDiffGuards
 import STFSpec.Conformance.State.ApplyCallerProofs
 import STFSpec.Conformance.State.ApplyGuards
 import STFSpec.Conformance.State.PreStateCallerProofs
+import STFSpec.Conformance.State.PreStateAccountCallerProofs
+import STFSpec.Conformance.State.PreStateAccountDefaultCallerProofs
+import STFSpec.Conformance.State.AccountOptionalCallerProofs
 import STFSpec.Conformance.State.PreStateGuards
 import STFSpec.Conformance.State.StateErrorGuards
 import STFSpec.Conformance.State.StructuralCallerProofs

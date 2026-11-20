@@ -103,7 +103,7 @@ Four items from the interface-composition prototype are open (`STFSpec/informal/
 The pin moved from `tests-zkevm@v21.0.0` (`e1a316a0`) to `tests-zkevm@v21.0.6` (`59c1473d`) in one metadata change (DECISIONS P1). That change regenerated the inventory, the reference records and the fixture index, and updated CONTRACT; it changed no Lean semantics. What remains:
 - **Citations.** CONTRACT and the generated files cite `59c1473d`. The mechanical remap (`scripts/remap_citations.py`) covers the informal documents (except CONTRACT and the generated files) and Lean comments: it moved to `59c1473d` every EELS `file:line` citation, bare `:N` and §3 line column there that it could map exactly, and citations into unchanged files needed no change. The rest are listed with their reasons in `STFSpec/informal/citation-remap-manual.txt`: they touch changed lines or lie past the end of the file, name no execution-specs file or no determinable one, have an ambiguous path, would read as another listed citation once rewritten, or sit in a block that mentions `e1a316a0`. A listed citation stays at `e1a316a0` until a manual review resolves it, even inside a marked block. The tool tracks it by its text and context, so any edit to either fails the check until the entry is resolved explicitly: `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at `e1a316a0` but was moved within its document, edited around or reformatted, or `--apply --confirm DOC:LINE` if it is already correct at `59c1473d` (recorded, and never listed again). Any other citation in that scope is at `59c1473d` unless marked. Entries whose reason ends "on a line with rewritten citations" mark lines that now mix the two commits. Resolving an entry does not recompute that flag for the entries left on its line, so a few unflagged lines also mix the two commits. A manual review has resolved the entries whose code and surrounding prose still hold at `59c1473d`, by rewriting them or recording them as correct. An entry is still listed because its code changed between the two commits, because the prose around it describes changed or removed code or a driver pinned to `e1a316a0`, or because its block or record is dated to `e1a316a0`. Most wait for the modules' re-pin items or the driver re-pin (below). A citation listed because its block or record is dated to `e1a316a0` stays listed until that block is re-verified, and the few others wait for a later manual review. CI runs the tool's `--check`, which catches a pre-remap citation only where its recorded document and surrounding context are unchanged, and a listed citation that disappears; it cannot recognise old line numbers in new or edited prose. A branch cut before the remap must therefore, after merging main, resolve conflicted lines to its own pre-remap numbers and run `--apply --since` with the merged main commit (CONTRIBUTING §6.3). Citations in Python docstrings (the conformance drivers) are not remapped and stay at `e1a316a0` until the drivers are re-pinned (below). Verified observations remain at `e1a316a0` unless marked as at `59c1473d`. Each module that cites EELS states the rule in its conventions line.
 - **Differential evidence.** Ten drivers compare the checkout's `HEAD` with a hard-coded `e1a316a0` and so refuse a `59c1473d` checkout (`STFSpec/Conformance/Vm/Core/gas_{accounting,meter,refund,rollback,transfer}_differential.py`, `Vm/Core/{stack,tx_state_gas_usage}_differential.py`, `Block/count_tokens_differential.py`, `StateCommit/{account,storage}_encoding_differential.py`). Five more assert `e1a316a0` in code: `Block/{requests_hash,deposit_data}_differential.py` require it as the `head` of a source run, and `Vm/Core/{jumpdest,buffer_read}_differential.py` and `Precompiles/kzg_versioned_hash_differential.py` require it as the pin of their frozen catalogue or controls. Further drivers and catalogues embed the old commit in their metadata (for example `Commit/{set,update,delete}_differential.py`, `Vm/Core/{memory_gas,call_init,transaction_gas_allocation,transaction_gas_settlement}_differential.py` and `Fork/amsterdam_vm_catalogue.json`). The frozen catalogues remain evidence at `e1a316a0`; re-stamping them, and regenerating those whose EELS target changed, is open. The drivers whose targets changed are listed with the owning module's re-pin gap.
-- **Semantic deltas.** Each is a re-pin item in its owning module's §10: EthState, EthCommit, EthStateWitness, EthStateless, EthBlock, EthVmCore and EthConformance. EthStateCommit §3 supplies the strict storage-leaf semantic migration; its §10 retains separate encoding-driver reauthentication and backend integration obligations.
+- **Semantic deltas.** Each is a re-pin item in its owning module's §10: EthState, EthCommit, EthStateWitness, EthStateless, EthBlock, EthVmCore and EthConformance. EthState §3/§5 supplies the two hash-only codeReads carriers and the hash-only future getCode signature; actual code lookup and tracker/lifecycle refinement remain open. EthStateCommit §3 supplies the strict storage-leaf semantic migration; its §10 retains separate encoding-driver reauthentication and backend integration obligations.
 
 **Owners:** EthConformance (drivers and corpus evidence); each module for its citations and re-pin item.
 
@@ -483,7 +483,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthState`](modules/EthState.md)
 
-- **Bounded component support:** Account and supplied empty-account values, internal
+- **Bounded component support:** The pre-transaction account actions,
+  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
+  and their bounded laws/controls are supplied in §3/§4/§7.1.
+  Other tracker operations and full-state integration remain open. Account and
+  supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -492,27 +496,29 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation, plus raw three-field
+  BlockState.view with its exact application equation, mathematical TxState.view
+  with its sole account law and private conversion, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
-  WF/history/reachable preservation, actual provider operations/contextual
-  tracker/full-model proofs, StateError operation/adapter semantics and freezing,
-  witness diagnostic refinement, tracker effects/errors, ordered-write integration,
+  WF/history/reachable preservation, actual provider operations, other contextual
+  tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
+  witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
   reachability, snapshot, acquisition/coherence, future context preservation and
   operational source-refinement obligations remain open. Additional public
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
 - **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
-  complete unchanged providers and the exact state/error transformer order, with
-  private ordinary wiring clients only. Current-pin full-state refinement remains
-  blocked by X16(b); this item does not change either codeReads provider.
-  TxState.new, tracker operations, snapshot/restore, observation effects and
-  lifetimes, initialization/coherence, StateError semantics/freezing, S1/S2/W1,
+  complete providers and the exact state/error transformer order, with
+  private ordinary wiring clients only. Hash-only codeReads matches the pin;
+  current-pin full-state refinement remains open.
+  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
+  initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
-  clients only. Actual initialization, snapshot/restore, transient lifetime, views,
-  `asDiff`, tracker operations and observations, write/clear/order coupling,
+  clients for the carrier; the separate mathematical transaction view and private
+  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
+  transient lifetime, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
@@ -530,9 +536,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Clear order** (F7, open; §7.5): no clear order in `BlockDiff`, and no proof that the witness step-3 iteration is unobservable.
 - **Generic-`m` contract:** `ModelsLookups` and the §7 laws are stated at `PreState Id`; their coupling for a generic oracle monad is open (D5).
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
-  positive/negative guards are supplied (§3/§4). Contextual read laws at the retained
-  BlockState record and full-model lookup projection under concrete Id coherence remain
-  open. No new provider field or local acquisition is specified.
+  positive/negative guards are supplied (§3/§4). The contextual account law at the
+  retained BlockState record is supplied for the pre-transaction and current optional
+  account actions (§7.1).
+  Other contextual reads and full-model lookup
+  projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.
@@ -543,7 +551,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
   §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
-  Their nominal TxState/StateM assembly is supplied in §3, retaining X16(b).
+  Their nominal TxState/StateM assembly with hash-only codeReads is supplied in §3.
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay
@@ -552,7 +560,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.
 - **EEST coverage** of write→read conversion is only indirect (through BAL fixtures); no unit tests exist upstream for `state_tracker.py`.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (b) `get_code(tx_state, code_hash)` no longer takes the address, and `code_reads` in `TransactionState` and `BlockState` is a `Set[Hash32]` (PR #3656; `state_tracker.py:70, 98, 228–258`). The Lean `codeReads` carriers in `BlockState` and `TxObs`, their block initialization and their conformance guards and caller proofs (TxObs, ReadSets, BlockView) still pair the address with the hash, and the §2 row `get_code(h, a)`, §5 and the §7 law `getCode h a` describe the old shape; REFERENCE-RECORDS already shows the new one. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does. R27's EIP-2935 clause describes the old call. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so (b) and (c) change no guest output [V by reading].
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does. R27's EIP-2935 clause describes the old call. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
 
 ### [`EthCommit`](modules/EthCommit.md)
 
@@ -711,7 +719,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
   Initialization, tracker effects/errors, snapshots/restore, observation
   lifetimes, provider/context acquisition/coherence, actual handlers/runner and
-  full-current-source refinement remain open; EthState X16(b) is unchanged.
+  full-current-source refinement remain open.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
   gate closes through nominal wiring.
 

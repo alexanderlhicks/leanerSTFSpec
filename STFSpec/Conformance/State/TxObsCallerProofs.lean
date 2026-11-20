@@ -20,7 +20,7 @@ open STFSpec.State STFSpec.Base
 
 private theorem supplied_constructor
     (accounts : Std.HashSet Address) (storage : Std.HashSet (Address × Bytes32))
-    (code : Std.HashSet (Address × Hash32)) (created : Std.HashSet Address) :
+    (code : Std.HashSet Hash32) (created : Std.HashSet Address) :
     let t := TxObs.mk accounts storage code created
     (t.accountReads, t.storageReads, t.codeReads, t.createdAccounts) =
       (accounts, storage, code, created) := rfl
@@ -48,7 +48,7 @@ private theorem replace_storageReads (t : TxObs) (replacement : Std.HashSet (Add
     ({ t with storageReads := replacement } : TxObs) =
       TxObs.mk t.accountReads replacement t.codeReads t.createdAccounts := rfl
 
-private theorem replace_codeReads (t : TxObs) (replacement : Std.HashSet (Address × Hash32)) :
+private theorem replace_codeReads (t : TxObs) (replacement : Std.HashSet Hash32) :
     ({ t with codeReads := replacement } : TxObs) =
       TxObs.mk t.accountReads t.storageReads replacement t.createdAccounts := rfl
 
@@ -62,7 +62,7 @@ private theorem commute_accountReads_storageReads (t : TxObs)
       { { t with storageReads := y } with accountReads := x } := rfl
 
 private theorem commute_accountReads_codeReads (t : TxObs)
-    (x : Std.HashSet Address) (y : Std.HashSet (Address × Hash32)) :
+    (x : Std.HashSet Address) (y : Std.HashSet Hash32) :
     ({ { t with accountReads := x } with codeReads := y } : TxObs) =
       { { t with codeReads := y } with accountReads := x } := rfl
 
@@ -72,7 +72,7 @@ private theorem commute_accountReads_createdAccounts (t : TxObs)
       { { t with createdAccounts := y } with accountReads := x } := rfl
 
 private theorem commute_storageReads_codeReads (t : TxObs)
-    (x : Std.HashSet (Address × Bytes32)) (y : Std.HashSet (Address × Hash32)) :
+    (x : Std.HashSet (Address × Bytes32)) (y : Std.HashSet Hash32) :
     ({ { t with storageReads := x } with codeReads := y } : TxObs) =
       { { t with codeReads := y } with storageReads := x } := rfl
 
@@ -82,7 +82,7 @@ private theorem commute_storageReads_createdAccounts (t : TxObs)
       { { t with createdAccounts := y } with storageReads := x } := rfl
 
 private theorem commute_codeReads_createdAccounts (t : TxObs)
-    (x : Std.HashSet (Address × Hash32)) (y : Std.HashSet Address) :
+    (x : Std.HashSet Hash32) (y : Std.HashSet Address) :
     ({ { t with codeReads := x } with createdAccounts := y } : TxObs) =
       { { t with createdAccounts := y } with codeReads := x } := rfl
 
@@ -98,8 +98,8 @@ private theorem code_dictionary (h : Hash32) :
 private theorem storage_pair_dictionary (x : Address × Bytes32) :
     hash x = mixHash (hash x.1) (hash x.2) := rfl
 
-private theorem code_pair_dictionary (x : Address × Hash32) :
-    hash x = mixHash (hash x.1) (hash x.2) := rfl
+private theorem canonical_code_dictionary :
+    (inferInstance : Hashable Hash32) = Hash32.instHashable := rfl
 
 private theorem set_members {α : Type} [BEq α] [Hashable α] [LawfulBEq α]
     (s t : Std.HashSet α) (key query : α) :
@@ -126,8 +126,8 @@ private theorem members_storageReads (t : TxObs) (s : Std.HashSet (Address × By
     (query ∈ (t.storageReads.insert key).insert key ↔ query ∈ t.storageReads.insert key) :=
   set_members t.storageReads s key query
 
-private theorem members_codeReads (t : TxObs) (s : Std.HashSet (Address × Hash32))
-    (key query : Address × Hash32) :
+private theorem members_codeReads (t : TxObs) (s : Std.HashSet Hash32)
+    (key query : Hash32) :
     (query ∈ t.codeReads.insert key ↔ key = query ∨ query ∈ t.codeReads) ∧
     (query ∈ t.codeReads ∪ s ↔ query ∈ t.codeReads ∨ query ∈ s) ∧
     (query ∈ (t.codeReads.insert key).insert key ↔ query ∈ t.codeReads.insert key) :=
@@ -157,9 +157,9 @@ private theorem reconstructed_storage (t : TxObs) (a : Address) (k : Bytes32) :
   rw [Address.ofNat_toNat, FixedBytes.ofNat_toNat]
   exact Std.HashSet.mem_insert_self
 
-private theorem reconstructed_code (t : TxObs) (a : Address) (h : Hash32) :
-    (Address.ofNat a.toNat, Hash32.ofBytes32 h.toBytes32) ∈ t.codeReads.insert (a, h) := by
-  rw [Address.ofNat_toNat, Hash32.ofBytes32_toBytes32]
+private theorem reconstructed_code (t : TxObs) (h : Hash32) :
+    Hash32.ofBytes32 h.toBytes32 ∈ t.codeReads.insert h := by
+  rw [Hash32.ofBytes32_toBytes32]
   exact Std.HashSet.mem_insert_self
 
 private theorem independent_accounts (t : TxObs) (s : Std.HashSet Address) :

@@ -46,8 +46,8 @@ structure BlockState (m : Type → Type) where
   accountReads : Std.HashSet STFSpec.Base.Address
   /-- Independent raw storage read set; EELS `state_tracker.py:66`. -/
   storageReads : Std.HashSet (STFSpec.Base.Address × STFSpec.Base.Bytes32)
-  /-- Independent raw code read set; EELS `state_tracker.py:51,83`. -/
-  codeReads : Std.HashSet (STFSpec.Base.Address × STFSpec.Base.Hash32)
+  /-- Independent raw hash-only code read set; EELS `state_tracker.py:70`. -/
+  codeReads : Std.HashSet STFSpec.Base.Hash32
   /-- Raw optional unbounded ancestor offset; EELS `state_tracker.py:72`. -/
   oldestAncestorOffset : Option Nat
 

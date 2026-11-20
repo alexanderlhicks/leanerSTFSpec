@@ -178,7 +178,7 @@ private def discardedVariants (b : BlockState Id) : List (BlockState Id) :=
         (∅ : Std.HashSet (Address × Bytes32)).insert (address 11, slot (2 ^ 255 + 7)) },
     { b with
       codeReads :=
-        (∅ : Std.HashSet (Address × Hash32)).insert (address 11, digest (2 ^ 255 + 8)) },
+        (∅ : Std.HashSet Hash32).insert (digest (2 ^ 255 + 8)) },
     { b with oldestAncestorOffset := some 0 },
     { b with oldestAncestorOffset := some (2 ^ 1024 + 17) }]
 

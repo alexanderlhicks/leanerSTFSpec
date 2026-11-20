@@ -42,7 +42,7 @@ private theorem optionalSlots {m : Type → Type} (b : BlockState m) (a : Addres
 -- This varies every discarded field by arbitrary complete values, not membership equivalence.
 private theorem discarded {m : Type → Type} (b : BlockState m) (ps : PreState m)
     (consts : HashConsts) (ar : Std.HashSet Address)
-    (sr : Std.HashSet (Address × Bytes32)) (cr : Std.HashSet (Address × Hash32))
+    (sr : Std.HashSet (Address × Bytes32)) (cr : Std.HashSet Hash32)
     (offset : Option Nat) :
     extractBlockDiff { b with
       preState := ps

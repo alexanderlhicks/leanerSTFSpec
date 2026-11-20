@@ -14,10 +14,13 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.TxState
+import STFSpec.State.PreStateAccount
+import STFSpec.State.AccountOptional
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
 import STFSpec.State.BlockView
+import STFSpec.State.TransactionView
 import STFSpec.State.ModelsLookups
 import STFSpec.State.WitnessAncestors
 
@@ -36,11 +39,13 @@ StateError carrier, the raw eight-field TxRevertible carrier, the raw TxObs,
 BlockState and three-field TxState carriers, the StateM transformer alias,
 block initialization with its F20 law, logical account/storage read
 views and membership laws, raw block-diff extraction with seven complete field
-equations, the mathematical block view with its ordinary application equation, bounded
+equations, the mathematical block view with its ordinary application equation,
+the mathematical transaction view with its sole account observer law, bounded
 structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
-ancestor selection are supplied. TxState assembles unchanged providers, retaining the
-code-read discrepancy in EthState §10 X16(b); it supplies no current-pin full-state
-refinement. Lookup providers, model mutation, tracker effects and lifecycle laws remain
-scaffolding.
+ancestor selection are supplied. TxState assembles the complete providers with hash-only
+code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and defaulted wrapper, with
+their bounded action/error/framing/membership/model laws, and the current optional
+account read with its six laws, are supplied. Lookup providers, model
+mutation, other tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/

@@ -167,13 +167,13 @@ private theorem accountIndependent_storageReads (b : BlockState m)
   accountField _ b rfl key
 
 private theorem accountIndependent_codeReads (b : BlockState m)
-    (x : Std.HashSet (Address × Hash32))
+    (x : Std.HashSet Hash32)
     (key : Address) :
     ({ b with codeReads := x } : BlockState m).accountReadSet key ↔ b.accountReadSet key :=
   accountField _ b rfl key
 
 private theorem storageIndependent_codeReads (b : BlockState m)
-    (x : Std.HashSet (Address × Hash32))
+    (x : Std.HashSet Hash32)
     (key : Address × Bytes32) :
     ({ b with codeReads := x } : BlockState m).storageReadSet key ↔ b.storageReadSet key :=
   storageField _ b rfl key

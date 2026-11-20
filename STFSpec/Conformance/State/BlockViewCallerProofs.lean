@@ -109,7 +109,7 @@ private theorem effects {m n : Type → Type} (σ : MathState)
 
 private theorem discarded {m : Type → Type} (σ : MathState) (b : BlockState m)
     (ps : PreState m) (consts : HashConsts) (ar : Std.HashSet Address)
-    (sr : Std.HashSet (Address × Bytes32)) (cr : Std.HashSet (Address × Hash32))
+    (sr : Std.HashSet (Address × Bytes32)) (cr : Std.HashSet Hash32)
     (offset : Option Nat) (ao sa : WriteOrder Address)
     (so : Std.ExtTreeMap Address (WriteOrder Bytes32)) :
     ({ b with

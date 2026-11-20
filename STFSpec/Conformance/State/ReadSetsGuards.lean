@@ -107,7 +107,7 @@ private def variants : List (String × BlockState Id) :=
     ("storageClears", { parent with storageClears :=
       (∅ : Std.ExtTreeSet Address).insert (address 7) }),
     ("codeReads", { parent with codeReads :=
-      (∅ : Std.HashSet (Address × Hash32)).insert (address 7, digest 7) }),
+      (∅ : Std.HashSet Hash32).insert (digest 7) }),
     ("offset-zero", { parent with oldestAncestorOffset := some 0 }),
     ("offset-huge", { parent with oldestAncestorOffset := some (2 ^ 1024 + 17) })]
 

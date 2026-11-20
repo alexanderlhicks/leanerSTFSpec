@@ -1,6 +1,6 @@
 # Contributing to STFspec
 
-*Status: current contributor guidance. Date: 2026-11-06.*
+*Status: current contributor guidance. Date: 2026-11-13.*
 
 Contributions of these kinds are welcome:
 
@@ -228,6 +228,44 @@ lake exe calldata-tokens-native-tests > .lake/calldata-tokens.jsonl
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Block/count_tokens_differential.py --check-target .lake/calldata-tokens.jsonl
 uv run --no-project --python 3.12 python -B scripts/test_count_tokens_output_parser.py
 uv run --no-project --python 3.12 python -B -O scripts/test_count_tokens_output_parser.py
+lake build pre-state-account-native-tests --wfail
+lake exe check-decls scripts.PreStateAccountNativeTests
+lake exe pre-state-account-native-tests > .lake/pre-state-account-native.jsonl
+lake env lean --run scripts/PreStateAccountNativeTests.lean > .lake/pre-state-account-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_differential.py --check-target .lake/pre-state-account-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_differential.py --check-target .lake/pre-state-account-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_source.py
+uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_source.py
+lake build transaction-view-native-tests --wfail
+lake exe check-decls scripts.TransactionViewNativeTests
+lake exe transaction-view-native-tests > .lake/transaction-view-native.jsonl
+lake env lean --run scripts/TransactionViewNativeTests.lean > .lake/transaction-view-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_transaction_view_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_transaction_view_output_parser.py
+lake build pre-state-account-default-native-tests --wfail
+lake exe check-decls scripts.PreStateAccountDefaultNativeTests
+lake exe pre-state-account-default-native-tests > .lake/pre-state-account-default-native.jsonl
+lake env lean --run scripts/PreStateAccountDefaultNativeTests.lean > .lake/pre-state-account-default-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_differential.py --check-target .lake/pre-state-account-default-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_differential.py --check-target .lake/pre-state-account-default-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_pre_state_account_default_source.py
+uv run --no-project --python 3.12 python -B -O scripts/test_pre_state_account_default_source.py
+lake build account-optional-native-tests --wfail
+lake exe check-decls scripts.AccountOptionalNativeTests
+lake exe account-optional-native-tests > .lake/account-optional-native.jsonl
+lake env lean --run scripts/AccountOptionalNativeTests.lean > .lake/account-optional-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_differential.py --check-target .lake/account-optional-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_account_optional_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
@@ -316,6 +354,28 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 ```
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
+
+The pre-transaction and current optional account items' source comparisons additionally need
+an authenticated pinned EELS clone with its frozen installed `.venv`. From the
+repository root, reproduce that item test with:
+
+```sh
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_source.py --eels EELS --check-target .lake/pre-state-account-native.jsonl --report .lake/pre-state-account-source.json
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_source.py --eels EELS --check-target .lake/pre-state-account-default-native.jsonl --report .lake/pre-state-account-default-source.json
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_source.py --eels EELS --check-target .lake/account-optional-native.jsonl --report .lake/account-optional-source.json
+```
+
+The driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,
+and never installs packages or writes to EELS. Each worker compiles filesystem
+source directly, bypasses bytecode caches and rejects sourceless imports. Both
+actual probe workers return their own authentication, including the hashes of the
+exact source bytes compiled. Its report retains the original
+child streams, actual waits, pin/import/runtime identities and installed RECORD
+integrity. It compares complete bounded answers/calls/successful reads and source
+field retention, with failed source reads separate from Lean's absent failed state.
+No downloaded-wheel provenance, backend adapter, full-state projection or guest
+claim follows. CI runs the source-reader/authentication regressions without EELS;
+those tests do not replace the item's actual authenticated source comparison.
 
 Changes to `STFSpecMathlib/` or `STFSpecSecurity/` also run `lake build --wfail` there, then `scripts/check_decls.sh mathlib` and `scripts/replay_kernel.sh mathlib`, or the same with `security`. Regenerate, never hand-edit, generated files: `STFSpec/informal/GAPS.md`, `REFERENCE-RECORDS.md`, `eels-inventory.json`, `citation-remap.json` and `citation-remap-manual.txt` (`scripts/remap_citations.py --apply`, no clone needed), `STFSpec/informal/eest-fixture-index.txt` (`scripts/gen_fixture_index.py`), `STFSpec/Hash/PackedKeccakPermutation.lean` (`scripts/gen_packed_keccak.py`), `STFSpec/Conformance/Precompiles/KzgVersionedHashGuards.lean` (`scripts/gen_kzg_versioned_hash_guards.py`), and the README diagram. `remap_citations.py --check` fails when a recorded pre-remap EELS citation reappears in its recorded context, or a listed one changed or no longer occurs; resolve each such entry explicitly, with `--apply --drop-resolved DOC:LINE` once it is fixed or removed, `--apply --relist DOC:LINE DOC:NEWLINE` if it is still at the old commit but was moved within its document, edited around or reformatted (for a move to another document, `--drop-resolved` it and read the new line with `--since`), or `--apply --confirm DOC:LINE` (with `--eels`) if it is already correct at the pin. The check cannot recognise old line numbers in new or edited prose. So a branch cut before the remap (GAPS-CROSSCUTTING X16) must, after merging main and resolving conflicted lines to its own pre-remap numbers, run `uv run --no-project --python 3.12 python -I scripts/remap_citations.py --apply --since <merged main commit> --eels <execution-specs clone>` and commit the result. The script's docstring states its rules.
 
