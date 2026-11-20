@@ -224,6 +224,10 @@ jobs:
         run: |
           lake build log-rope-bench --wfail
           lake exe check-decls LogRopeBench
+      - name: Decoder depth diagnostic build and declaration audit
+        run: |
+          lake build decoder-depth-bench --wfail
+          lake exe check-decls DecoderDepthBench
       - name: Packed Keccak benchmark build, declaration audit and generator freshness
         run: |
           lake build packed-keccak-bench --wfail
