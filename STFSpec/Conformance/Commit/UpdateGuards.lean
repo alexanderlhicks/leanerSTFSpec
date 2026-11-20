@@ -53,6 +53,7 @@ private def wireMalformed : Malformed → List Nat
   | .cycle => [10]
   | .branchIndex i n => [11,i,n]
   | .collapseIndex i => [12,i]
+  | .securedPathLength => [13]
 private def wireResult : Except TrieError Ref → List Nat
   | .ok n => 0 :: wireRef n
   | .error (.missingRoot h) => 1 :: wireHash h

@@ -108,7 +108,7 @@ class WireReader:
                 self.octets(32)
             elif error == 1:
                 why = self.take()
-                require(why <= 12, "bad malformed tag")
+                require(why <= 13, "bad malformed tag")
                 if why in (6, 7, 9, 12):
                     self.take()
                 elif why == 11:
@@ -232,8 +232,15 @@ def parser_tests():
                 parse_records(json.dumps(row), 1) == [row],
                 "collapse index rejected",
             )
+        row = dict(good)
+        row[field] = [0, 1, 13]
+        require(
+            parse_records(json.dumps(row), 1) == [row],
+            "secured path diagnostic rejected",
+        )
         for wire in (
-            [0, 1, 12], [0, 1, 12, 0, 0], [0, 1, 13, 0],
+            [0, 1, 12], [0, 1, 12, 0, 0], [0, 1, 13, 0], [0, 1, 14],
+            [0, 1, 13, True], [0, 1, 13, None],
             [0, 1, 12, True], [0, 1, 12, False], [0, 1, 12, 0.0],
             [0, 1, 12, -1], [0, 1, 12, None], [0, 1, 12, []],
             [0, 1, 12, float("nan")], [0, 1, 12, float("inf")],
@@ -477,6 +484,7 @@ def main():
         inc._resolve_child_ref,
         inc.compact_to_nibbles,
         inc.decode_witness_to_mpt,
+        inc._validate_secured_trie_paths,
         rlp.decode,
         crypto.keccak256,
     ]
@@ -583,6 +591,17 @@ def main():
             return [0, 1, 6, len(sites[-1][2]["decoded"])]
         if message == "BranchNode must have at least 2 occupied entries":
             return [0, 1, 9, natural(sites[-1][2]["occupied"])]
+        if message in (
+            "LeafNode path does not terminate at the secured key length",
+            "ExtensionNode path exceeds the secured key length",
+            "BranchNode exceeds the secured key length",
+        ):
+            # Q90: one diagnostic for all three secured-path assertions.
+            require(
+                sites[-1][0] is inc._validate_secured_trie_paths.__code__,
+                "unexpected secured-path assertion site",
+            )
+            return [0, 1, 13]
         require(
             not exc.args and sites[-1][0] is inc._decode_witness_node.__code__,
             "unknown assertion site",
@@ -740,6 +759,57 @@ def main():
         "diamond",
         rlp.encode(branch([shared, shared] + [b""] * 14)),
         [(2, rlp.encode(leaf(29)))],
+    )
+    # Q90 secured-path controls; every case also runs unsecured.
+    def compact(nibbles, is_leaf):
+        flag = (2 if is_leaf else 0) + len(nibbles) % 2
+        head = [flag * 16 + (nibbles[0] if len(nibbles) % 2 else 0)]
+        rest = nibbles[len(nibbles) % 2 :]
+        return bytes(head + [rest[i] * 16 + rest[i + 1] for i in range(0, len(rest), 2)])
+
+    def path_leaf(n):
+        return [compact([1] * n, True), b"z"]
+
+    def path_ext(n, child):
+        return [compact([1] * n, False), child]
+
+    pair = branch([key(2), key(3)] + [b""] * 14)
+    for n in (0, 1, 62, 63, 64, 65, 66, 128):
+        add(f"secured-root-leaf-{n}", rlp.encode(path_leaf(n)))
+    for n in (62, 63, 64):
+        add(
+            f"secured-branch-leaves-63-{n}",
+            rlp.encode(pair),
+            [(2, rlp.encode(path_leaf(63))), (3, rlp.encode(path_leaf(n)))],
+        )
+    for n in (62, 63, 64, 65):
+        add(f"secured-ext-{n}-stub", rlp.encode(path_ext(n, key(4))))
+    for leaf_nibbles in (0, 1):
+        add(
+            f"secured-ext-63-branch-leaves-{leaf_nibbles}",
+            rlp.encode(path_ext(63, key(4))),
+            [
+                (4, rlp.encode(pair)),
+                (2, rlp.encode(path_leaf(leaf_nibbles))),
+                (3, rlp.encode(path_leaf(0))),
+            ],
+        )
+    add(
+        "secured-exhausted-branch-stubs",
+        rlp.encode(path_ext(63, key(4))),
+        [(4, rlp.encode(pair)), (2, rlp.encode(branch([key(5), key(6)] + [b""] * 14)))],
+    )
+    add("secured-deep-stubs", rlp.encode(path_ext(63, key(4))), [(4, rlp.encode(pair))])
+    for n in (62, 63):
+        add(
+            f"secured-branch-ext-{n}-stub",
+            rlp.encode(branch([key(7), key(5)] + [b""] * 14)),
+            [(7, rlp.encode(path_ext(n, key(4))))],
+        )
+    add(
+        "secured-decode-error-first",
+        rlp.encode(branch([key(2), b"\x01"] + [b""] * 14)),
+        [(2, rlp.encode(path_leaf(0)))],
     )
     rng = random.Random(context.seed)
 

@@ -4,14 +4,16 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Commit.IncrementalMPT
 import STFSpec.Commit.NodeDB
 import STFSpec.Commit.Compact
-import Std.Data.HashSet.Lemmas
+import Std.Data.TreeSet.Lemmas
 
 /-!
 # Complete eager witness decoding
 
-Library `EthCommit`. Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:892–1040`.
+Library `EthCommit`. Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:885–1065`.
 Actual query answers and original raw encodings are retained. Database keys detect
-current-path cycles; siblings remain independent occurrences. The two termination
+current-path cycles; siblings remain independent occurrences. The current path is a
+persistent ordered set: each level shares its parent's set and adds O(log d) nodes, so
+a chain of depth d holds O(d log d) set nodes rather than O(d²) (EthCommit C17). The two termination
 measures occur only in proofs, imposing no runtime bound or admission predicate.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` C13–C17; Q55.
 -/
@@ -19,7 +21,7 @@ Spec guidance: `STFSpec/informal/modules/EthCommit.md` C13–C17; Q55.
 namespace STFSpec.Commit
 open STFSpec.Base STFSpec.Hash STFSpec.Codec
 
-private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
+private theorem remaining_insert_lt (db : NodeDB) (path : Std.TreeSet Hash32 compare)
     (key : Hash32) (present : db.map.contains key = true)
     (fresh : path.contains key = false) :
     (db.map.keys.filter (fun k => !(path.insert key).contains k)).length <
@@ -28,18 +30,17 @@ private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
     rw [Std.HashMap.contains_keys]
     exact present
   obtain ⟨k, hk, hbeq⟩ := List.contains_iff_exists_mem_beq.mp hkeys
-  have hkfresh : path.contains k = false := by
-    rw [← Std.HashSet.contains_congr hbeq]
-    exact fresh
-  have hkmem : k ∈ db.map.keys.filter (fun k => !path.contains k) :=
-    List.mem_filter.mpr ⟨hk, by simp only [hkfresh, Bool.not_false]⟩
+  have hkk : key = k := by simpa using hbeq
+  subst hkk
+  have hkmem : key ∈ db.map.keys.filter (fun k => !path.contains k) :=
+    List.mem_filter.mpr ⟨hk, by simp only [fresh, Bool.not_false]⟩
   have filter_eq :
       (db.map.keys.filter (fun k => !path.contains k)).filter (fun k => !(key == k)) =
         db.map.keys.filter (fun k => !(path.insert key).contains k) := by
     rw [List.filter_filter]
     congr 1
     funext k
-    simp only [Std.HashSet.contains_insert, Bool.not_or]
+    simp only [Std.TreeSet.contains_insert, Std.compare_beq_eq_beq, Bool.not_or]
   rw [← filter_eq]
   have hle := List.length_filter_le (fun k => !(key == k))
     (db.map.keys.filter (fun k => !path.contains k))
@@ -47,18 +48,18 @@ private theorem remaining_insert_lt (db : NodeDB) (path : Std.HashSet Hash32)
       (fun k => !(key == k))).length ≠
       (db.map.keys.filter (fun k => !path.contains k)).length := by
     intro heq
-    have hkeep := List.length_filter_eq_length_iff.mp heq k hkmem
-    simp only [hbeq, Bool.not_true, Bool.false_eq_true] at hkeep
+    have hkeep := List.length_filter_eq_length_iff.mp heq key hkmem
+    simp only [beq_self_eq_true, Bool.not_true, Bool.false_eq_true] at hkeep
   omega
 
-private theorem inserted_key_on_path (onPath : Std.HashSet Hash32) (key : Hash32) :
+private theorem inserted_key_on_path (onPath : Std.TreeSet Hash32 compare) (key : Hash32) :
     (onPath.insert key).contains key = true := by
-  simp [Std.HashSet.contains_insert]
+  simp [Std.TreeSet.contains_insert, Std.ReflOrd.compare_self]
 
-private theorem ancestor_stays_on_path (onPath : Std.HashSet Hash32)
+private theorem ancestor_stays_on_path (onPath : Std.TreeSet Hash32 compare)
     (key ancestor : Hash32) (present : onPath.contains ancestor = true) :
     (onPath.insert key).contains ancestor = true := by
-  simp [Std.HashSet.contains_insert, present]
+  simp [Std.TreeSet.contains_insert, present]
 
 /-- Continuation form preserves the exact plain-Monad bind tree. -/
 private def acquire {m : Type → Type} [Monad m] [KeccakQuery m]
@@ -171,7 +172,7 @@ decreasing_by
   omega
 
 private def decodeEntry {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (_hlookup : db.map[key]? = some raw) :
     m (Except TrieError Ref) :=
   if _hcycle : onPath.contains key then pure (.error (.malformed .cycle)) else
@@ -185,7 +186,7 @@ termination_by (db.map.keys.filter (fun k => !onPath.contains k)).length
 decreasing_by
   apply remaining_insert_lt
   · simp [Std.HashMap.contains_eq_isSome_getElem?, _hlookup]
-  · simpa using _hcycle
+  · exact Bool.eq_false_iff.mpr _hcycle
 
 private theorem acquire_short {m : Type → Type} [Monad m] [KeccakQuery m]
     (raw : ByteArray) (next : Option Hash32 → m (Except TrieError Ref))
@@ -211,7 +212,7 @@ private theorem resolveChildren_cons {m : Type → Type} [Monad m]
         pure (tail.map (child :: ·))) := rfl
 
 private theorem entry_cycle {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (lookup : db.map[key]? = some raw)
     (cycle : onPath.contains key = true) :
     decodeEntry (m := m) db onPath key raw lookup = pure (.error (.malformed .cycle)) := by
@@ -226,7 +227,7 @@ private theorem resolve_empty {m : Type → Type} [Monad m] (db : NodeDB)
     resolveRef db (.bytes ByteArray.empty) entry inline = pure (.ok none) := rfl
 
 private theorem entry_fresh {m : Type → Type} [Monad m] [KeccakQuery m]
-    (db : NodeDB) (onPath : Std.HashSet Hash32) (key : Hash32)
+    (db : NodeDB) (onPath : Std.TreeSet Hash32 compare) (key : Hash32)
     (raw : ByteArray) (lookup : db.map[key]? = some raw)
     (fresh : onPath.contains key = false) :
     decodeEntry (m := m) db onPath key raw lookup =
@@ -286,15 +287,57 @@ def decodeRoot {m : Type → Type} [Monad m] [KeccakQuery m]
   if r = emptyRoot then pure (.ok none) else
     match h : db.map[r]? with
     | none => pure (.error (.missingRoot r))
-    | some raw => decodeEntry db {} r raw h
+    | some raw => decodeEntry db ∅ r raw h
 
-/-- Preserve the supplied secured flag and the complete decoded partial root.
-EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:994–1040` at the pin. -/
+/-- The 64-nibble key length of a secured trie (`SECURED_TRIE_KEY_NIBBLES`).
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:47` at the pin. -/
+def securedTrieKeyNibbles : Nat := 64
+
+private theorem ext_child_smaller (path : Nibbles) (child : Node) (enc : Enc) :
+    sizeOf (some child : Ref) < sizeOf (some (.ext path child enc) : Ref) := by
+  simp only [Option.some.sizeOf_spec, Node.ext.sizeOf_spec]
+  omega
+
+private theorem branch_child_smaller (children : Array Ref) (value : ByteArray)
+    (enc : Enc) (child : Ref) (hchild : child ∈ children.toList) :
+    sizeOf child < sizeOf (some (.branch children value enc) : Ref) := by
+  have h := Array.sizeOf_lt_of_mem (show child ∈ children from by simpa using hchild)
+  simp only [Option.some.sizeOf_spec, Node.branch.sizeOf_spec]
+  omega
+
+/-- Path lengths of every decoded occurrence against the nibbles that remain of the
+secured key (Q90). Absence and hashed stubs pass; a leaf's path must use exactly the
+remaining nibbles, an extension path must be strictly shorter than them, and a
+branch needs at least one, each child receiving one fewer. Pure: no query or effect.
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:987–1013` at the pin. -/
+def securedPathsOk (root : Ref) (remaining : Nat) : Bool :=
+  match root with
+  | none => true
+  | some (.hashed _) => true
+  | some (.leaf path _ _) => path.size == remaining
+  | some (.ext path child _) =>
+    decide (path.size < remaining) && securedPathsOk (some child) (remaining - path.size)
+  | some (.branch children _ _) =>
+    decide (0 < remaining) &&
+      children.toList.attach.all (fun child => securedPathsOk child.val (remaining - 1))
+termination_by sizeOf root
+decreasing_by
+  · exact ext_child_smaller _ _ _
+  · exact branch_child_smaller _ _ _ _ child.property
+
+/-- Preserve the supplied secured flag and the complete decoded partial root. A secured
+decode then checks every decoded path length (Q90) after the whole reachable trie has
+decoded, so every node-decode diagnostic precedes `securedPathLength`; an unsecured
+decode is unchanged. EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:1016–1065`
+at the pin. -/
 def decodeWitnessToMpt {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) (secured : Bool) :
     m (Except TrieError IncrementalMPT) := do
   let result ← decodeRoot emptyRoot db r
-  pure (result.map (fun root => IncrementalMPT.mk secured root))
+  pure (result.bind (fun root =>
+    if secured && !securedPathsOk root securedTrieKeyNibbles then
+      .error (.malformed .securedPathLength)
+    else .ok (IncrementalMPT.mk secured root)))
 
 /-- The supplied empty root returns `pure (.ok none)` with no lookup or local query.
 This retains the literal plain-Monad expression, without assuming laws for `pure`. -/
@@ -318,6 +361,77 @@ theorem decodeWitnessToMpt_eq {m : Type → Type} [Monad m] [KeccakQuery m]
     (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) (secured : Bool) :
     decodeWitnessToMpt (m := m) emptyRoot db r secured = (do
       let result ← decodeRoot emptyRoot db r
-      pure (result.map (fun root => IncrementalMPT.mk secured root))) := rfl
+      pure (result.bind (fun root =>
+        if secured && !securedPathsOk root securedTrieKeyNibbles then
+          .error (.malformed .securedPathLength)
+        else .ok (IncrementalMPT.mk secured root)))) := rfl
+
+/-- An unsecured decode is the complete decoded root, as before Q90. -/
+theorem decodeWitnessToMpt_unsecured {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
+    decodeWitnessToMpt (m := m) emptyRoot db r false = (do
+      let result ← decodeRoot emptyRoot db r
+      pure (result.map (fun root => IncrementalMPT.mk false root))) := by
+  simp only [decodeWitnessToMpt, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+  congr
+
+/-- A secured decode keeps every decode error, then rejects exactly the decoded roots
+that fail the path-length check, with the one Q90 diagnostic. -/
+theorem decodeWitnessToMpt_secured {m : Type → Type} [Monad m] [KeccakQuery m]
+    (emptyRoot : Hash32) (db : NodeDB) (r : Hash32) :
+    decodeWitnessToMpt (m := m) emptyRoot db r true = (do
+      let result ← decodeRoot emptyRoot db r
+      pure (match result with
+        | .error e => .error e
+        | .ok root =>
+          if securedPathsOk root securedTrieKeyNibbles then .ok (IncrementalMPT.mk true root)
+          else .error (.malformed .securedPathLength))) := by
+  simp only [decodeWitnessToMpt, Bool.true_and]
+  congr
+  funext result
+  cases result with
+  | error e => rfl
+  | ok root =>
+    cases h : securedPathsOk root securedTrieKeyNibbles <;>
+      simp only [Except.bind, h, Bool.not_true, Bool.not_false, Bool.false_eq_true,
+        ↓reduceIte]
+
+/-- The empty trie passes the secured check. -/
+theorem securedPathsOk_none (remaining : Nat) : securedPathsOk none remaining = true := by
+  simp only [securedPathsOk]
+
+/-- Hashed stubs are skipped. -/
+theorem securedPathsOk_hashed (h : Hash32) (remaining : Nat) :
+    securedPathsOk (some (.hashed h)) remaining = true := by
+  simp only [securedPathsOk]
+
+/-- A leaf must use exactly the remaining nibbles. -/
+theorem securedPathsOk_leaf (path : Nibbles) (value : ByteArray) (enc : Enc)
+    (remaining : Nat) :
+    securedPathsOk (some (.leaf path value enc)) remaining = (path.size == remaining) := by
+  simp only [securedPathsOk]
+
+/-- An extension must be strictly shorter than the remaining nibbles, and its child
+is checked against what remains after it. -/
+theorem securedPathsOk_ext (path : Nibbles) (child : Node) (enc : Enc) (remaining : Nat) :
+    securedPathsOk (some (.ext path child enc)) remaining =
+      (decide (path.size < remaining) &&
+        securedPathsOk (some child) (remaining - path.size)) := by
+  simp only [securedPathsOk]
+
+/-- A branch needs a remaining nibble, and every child is checked against one fewer. -/
+theorem securedPathsOk_branch (children : Array Ref) (value : ByteArray) (enc : Enc)
+    (remaining : Nat) :
+    securedPathsOk (some (.branch children value enc)) remaining =
+      (decide (0 < remaining) &&
+        children.toList.all (fun child => securedPathsOk child (remaining - 1))) := by
+  have hall : ∀ l : List Ref,
+      (l.attach.all fun child => securedPathsOk child.val (remaining - 1)) =
+      l.all (fun child => securedPathsOk child (remaining - 1)) := by
+    intro l
+    rw [show (fun child : {x // x ∈ l} => securedPathsOk child.val (remaining - 1)) =
+        (fun child => securedPathsOk child (remaining - 1)) ∘ Subtype.val from rfl,
+      ← List.all_map, List.attach_map_subtype_val]
+  rw [securedPathsOk, hall]
 
 end STFSpec.Commit

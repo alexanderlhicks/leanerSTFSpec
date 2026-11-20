@@ -81,4 +81,15 @@ private theorem collapseIndex_not_occupancy (i n : Nat) :
   intro h
   cases h
 
+/- Q90 constructor client: the one secured-path diagnostic carries no payload and
+differs from every other diagnostic, including the coarse RLP one. -/
+private theorem securedPathLength_not_rlp : Malformed.securedPathLength ≠ .rlp := by
+  intro h
+  cases h
+
+private theorem securedPathLength_not_wrapped_missing (h : STFSpec.Base.Hash32) :
+    TrieError.malformed .securedPathLength ≠ .missingRoot h := by
+  intro e
+  cases e
+
 end STFSpec.Conformance.Commit.DecoderDiagnosticCallerProofs

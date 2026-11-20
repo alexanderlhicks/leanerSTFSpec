@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 import sys
-import uuid
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 READER = ROOT / "STFSpec/Conformance/Field/reference_division_differential.py"
@@ -20,8 +20,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
-    out = args.output_dir or ROOT / ".lake" / ("division-parser-" + uuid.uuid4().hex)
-    out.mkdir(parents=True, exist_ok=False)
+    if args.output_dir:
+        args.output_dir.mkdir(parents=True, exist_ok=False)
+        run(args.output_dir)
+    else:
+        with tempfile.TemporaryDirectory(prefix="division-parser-") as temp:
+            run(Path(temp))
+
+
+def run(out):
     expected = reader.expected_records()
     def encode(rows):
         return ("\n".join(json.dumps(row, separators=(",", ":")) for row in rows) + "\n").encode()

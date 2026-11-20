@@ -61,7 +61,7 @@ def diagnostics : List Malformed :=
    .branchIndex 0 0, .branchIndex 1 0, .branchIndex 0 1, .branchIndex 15 15,
    .branchIndex 1000000 2000000, .branchIndex 2000000 1000000,
    .collapseIndex 0, .collapseIndex 1, .collapseIndex 15, .collapseIndex 16,
-   .collapseIndex 255, .collapseIndex 256, .collapseIndex (10^200)]
+   .collapseIndex 255, .collapseIndex 256, .collapseIndex (10^200), .securedPathLength]
 
 /-- Ordinary equality distinguishes all diagnostic constructors and payloads. -/
 def diagnosticChecks : Bool := diagnostics.zipIdx.all fun (a, i) ↦

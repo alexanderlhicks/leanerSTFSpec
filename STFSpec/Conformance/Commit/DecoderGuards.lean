@@ -62,6 +62,7 @@ private def malformedWire : Malformed → List Nat
   | .cycle => [10]
   | .branchIndex index arity => [11, index, arity]
   | .collapseIndex index => [12, index]
+  | .securedPathLength => [13]
 
 #guard malformedWire (.branchIndex 0 0) = [11, 0, 0]
 #guard malformedWire (.branchIndex 1 0) = [11, 1, 0]
@@ -230,16 +231,110 @@ private def observeWrapper (db : NodeDB) (secured : Bool) : List Nat × List (Li
     | .ok trie => 1 :: (if trie.secured then 1 else 0) :: refWire trie.root
   (wire, traceWire trace)
 
-#guard [false, true].all fun flag =>
+#guard
   let raw := leafRaw 29
-  observeWrapper (database [(1, raw)]) flag =
-    (1 :: (if flag then 1 else 0) :: refWire
+  observeWrapper (database [(1, raw)]) false =
+    (1 :: 0 :: refWire
       (some (.leaf (Nibbles.ofList []) (bytes (List.replicate 29 0x7a)) (entered raw 1))),
       expectedTrace [raw])
+-- Q90: the same empty-path root leaf is too short for a secured key, after the same query.
+#guard
+  let raw := leafRaw 29
+  observeWrapper (database [(1, raw)]) true =
+    (0 :: errorWire (.malformed .securedPathLength), expectedTrace [raw])
 #guard [false, true].all fun flag =>
   let raw := bytes (List.replicate 32 0xff)
   observeWrapper (database [(1, raw)]) flag =
     (resultWire (.error (.malformed .rlp)), expectedTrace [raw])
+
+/-! Q90 secured-path controls. A secured decode performs exactly the unsecured
+decode's queries; it then returns the same root with the secured flag, or the one
+`securedPathLength` diagnostic; every decode diagnostic wins over it. -/
+private def compactPath (leaf : Bool) (nibbles : List (Fin 16)) : List UInt8 :=
+  let flag : Nat := (if leaf then 2 else 0) + (if nibbles.length % 2 = 1 then 1 else 0)
+  let (first, rest) := if nibbles.length % 2 = 1 then
+      (flag * 16 + (nibbles.headD 0).val, nibbles.drop 1)
+    else (flag * 16, nibbles)
+  let rec pack : List (Fin 16) → List UInt8
+    | a :: b :: tail => (a.val * 16 + b.val).toUInt8 :: pack tail
+    | _ => []
+  first.toUInt8 :: pack rest
+private def securedLeafItem (nibbles : List (Fin 16)) : RlpItem :=
+  .list [.bytes (bytes (compactPath true nibbles)), .bytes (bytes [0x7a])]
+private def securedLeafRaw (nibbles : List (Fin 16)) : ByteArray :=
+  Rlp.encode (securedLeafItem nibbles)
+private def securedExtItem (nibbles : List (Fin 16)) (child : RlpItem) : RlpItem :=
+  .list [.bytes (bytes (compactPath false nibbles)), child]
+/-- Branch with `hashItem 2` in slot 0, `hashItem 3` in slot 1, the rest empty. -/
+private def pairBranch : RlpItem :=
+  branchItem (hashItem 2 :: hashItem 3 :: List.replicate 14 emptyItem)
+private def ones (n : Nat) : List (Fin 16) := List.replicate n 1
+
+/-- Secured outcome relative to the unsecured decode of the same database. -/
+private def securedRelation (db : NodeDB) (accept : Bool) : Bool :=
+  let (plain, plainTrace) := observeWrapper db false
+  let (secured, securedTrace) := observeWrapper db true
+  securedTrace == plainTrace &&
+    match plain with
+    | 1 :: 0 :: rest =>
+      if accept then secured == 1 :: 1 :: rest
+      else secured == 0 :: errorWire (.malformed .securedPathLength)
+    | _ => false
+
+-- Root leaf: exactly 64 nibbles is accepted; 0, 1, 63, 65, 66 and 128 are rejected.
+#guard securedRelation (database [(1, securedLeafRaw (ones 64))]) true
+#guard [0, 1, 63, 65, 66, 128].all fun n =>
+  securedRelation (database [(1, securedLeafRaw (ones n))]) false
+-- Branch children use one nibble: 63-nibble leaves are accepted; 62 or 64 are rejected,
+-- including when only the second child is wrong.
+#guard securedRelation
+  (database [(1, Rlp.encode pairBranch), (2, securedLeafRaw (ones 63)),
+    (3, securedLeafRaw (ones 63))]) true
+#guard [62, 64].all fun n => securedRelation
+  (database [(1, Rlp.encode pairBranch), (2, securedLeafRaw (ones 63)),
+    (3, securedLeafRaw (ones n))]) false
+-- Extension: 63 nibbles leave one for the branch, whose children get 0 (accepted);
+-- a 64-nibble extension, or a branch below a 63-nibble one with nonempty leaves, fails.
+#guard securedRelation
+  (database [(1, Rlp.encode (securedExtItem (ones 63) (hashItem 4))),
+    (4, Rlp.encode pairBranch), (2, securedLeafRaw []), (3, securedLeafRaw [])]) true
+#guard securedRelation
+  (database [(1, Rlp.encode (securedExtItem (ones 64) (hashItem 4))),
+    (4, Rlp.encode pairBranch), (2, securedLeafRaw []), (3, securedLeafRaw [])]) false
+#guard securedRelation
+  (database [(1, Rlp.encode (securedExtItem (ones 63) (hashItem 4))),
+    (4, Rlp.encode pairBranch), (2, securedLeafRaw (ones 1)), (3, securedLeafRaw [])]) false
+-- An extension using all remaining nibbles fails on its own, even above a stub;
+-- one nibble shorter above the same stub is accepted.
+#guard securedRelation (database [(1, Rlp.encode (securedExtItem (ones 64) (hashItem 4)))]) false
+#guard securedRelation (database [(1, Rlp.encode (securedExtItem (ones 63) (hashItem 4)))]) true
+#guard securedRelation
+  (database [(1, branchRaw (hashItem 7 :: hashItem 5 :: List.replicate 14 emptyItem)),
+    (7, Rlp.encode (securedExtItem (ones 63) (hashItem 4)))]) false
+#guard securedRelation
+  (database [(1, branchRaw (hashItem 7 :: hashItem 5 :: List.replicate 14 emptyItem)),
+    (7, Rlp.encode (securedExtItem (ones 62) (hashItem 4)))]) true
+-- A branch reached with no nibble left fails even when its children are stubs.
+#guard securedRelation
+  (database [(1, Rlp.encode (securedExtItem (ones 63) (hashItem 4))),
+    (4, Rlp.encode pairBranch),
+    (2, branchRaw (hashItem 5 :: hashItem 6 :: List.replicate 14 emptyItem))]) false
+-- Hashed stubs are skipped at any depth, including where no nibble remains.
+#guard securedRelation
+  (database [(1, Rlp.encode (securedExtItem (ones 63) (hashItem 4))),
+    (4, Rlp.encode pairBranch)]) true
+-- Every decode diagnostic precedes the path check: a bad sibling still wins.
+#guard
+  let raw := branchRaw (hashItem 2 :: .bytes (bytes [1]) :: List.replicate 14 emptyItem)
+  let db := database [(1, raw), (2, securedLeafRaw [])]
+  observeWrapper db true = observeWrapper db false &&
+    (observeWrapper db true).1 == 0 :: errorWire (.malformed (.refLength 1))
+-- The supplied empty root bypasses the check.
+#guard
+  letI : KeccakQuery (StateM Trace) := ⟨traceOracle⟩
+  match (decodeWitnessToMpt (m := StateM Trace) (key 0) (database []) (key 0) true).run [] with
+  | (.ok trie, []) => trie.secured && trie.root.isNone
+  | _ => false
 
 private def failingOracle (failAt : Nat) (raw : ByteArray) : ExceptT Nat (StateM Trace) Hash32 :=
   ExceptT.mk fun trace =>
@@ -321,8 +416,12 @@ private def observeAddedState (db : NodeDB) (failAt : Nat) : List Nat × List (L
 #guard
   let raw := leafRaw 29
   observeAddedState (database [(1, raw)]) 0 =
-    (77 :: 1 :: 1 :: refWire (some (.leaf (Nibbles.ofList [])
-      (bytes (List.replicate 29 0x7a)) (entered raw 1))), expectedTrace [raw])
+    (77 :: 0 :: errorWire (.malformed .securedPathLength), expectedTrace [raw])
+#guard
+  let raw := securedLeafRaw (List.replicate 64 1)
+  observeAddedState (database [(1, raw)]) 0 =
+    (77 :: 1 :: 1 :: refWire (some (.leaf (Nibbles.ofList (List.replicate 64 1))
+      (bytes [0x7a]) (entered raw 1))), expectedTrace [raw])
 #guard
   let raw := bytes (List.replicate 32 0xff)
   observeAddedState (database [(1, raw)]) 0 =
