@@ -1749,4 +1749,127 @@ private theorem builder_exit_append_logical_size (a : ExecutionRequests) (x : Bu
   simp only [requestsSize, Array.size_push]
   omega
 
+/-! ### Private request bounds -/
+
+private def requestCounts (q : NewPayloadRequest) : List Nat :=
+  [q.versionedHashes.size, q.executionPayload.transactions.size,
+   q.executionPayload.withdrawals.size, q.executionRequests.deposits.size,
+   q.executionRequests.withdrawals.size, q.executionRequests.consolidations.size,
+   q.executionRequests.builderDeposits.size, q.executionRequests.builderExits.size]
+
+private theorem counts_le_requestSize (q : NewPayloadRequest) :
+    ∀ n ∈ requestCounts q, n ≤ requestSize q := by
+  intro n hn
+  simp only [requestCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
+  rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    dsimp only [requestSize, payloadSize, transactionSize, requestsSize] <;> omega
+
+private theorem member_size_le_sum (bs : List ByteArray) (b : ByteArray)
+    (hb : b ∈ bs) : b.size ≤ (bs.map ByteArray.size).sum := by
+  induction bs with
+  | nil => simp at hb
+  | cons c bs ih =>
+    simp only [List.mem_cons] at hb
+    simp only [List.map_cons, List.sum_cons]
+    rcases hb with rfl | hb
+    · omega
+    · have hm := ih hb
+      omega
+
+private theorem transaction_le_requestSize (q : NewPayloadRequest)
+    (b : ByteArray) (hb : b ∈ q.executionPayload.transactions.toList) :
+    b.size ≤ requestSize q := by
+  have hm := member_size_le_sum q.executionPayload.transactions.toList b hb
+  dsimp only [requestSize, payloadSize, transactionSize, requestsSize]
+  omega
+
+private theorem extraData_le_requestSize (q : NewPayloadRequest) :
+    q.executionPayload.extraData.size ≤ requestSize q := by
+  dsimp only [requestSize, payloadSize]
+  omega
+
+private theorem blockAccessList_le_requestSize (q : NewPayloadRequest) :
+    q.executionPayload.blockAccessList.size ≤ requestSize q := by
+  dsimp only [requestSize, payloadSize]
+  omega
+
+private theorem counts_le_request_encoded_size (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    ∀ n ∈ requestCounts q, n ≤ (Ssz.encode _ _ h).size := by
+  rw [request_encoded_size q h]
+  exact counts_le_requestSize q
+
+private theorem transaction_le_request_encoded_size (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q))
+    (b : ByteArray) (hb : b ∈ q.executionPayload.transactions.toList) :
+    b.size ≤ (Ssz.encode _ _ h).size := by
+  rw [request_encoded_size q h]
+  exact transaction_le_requestSize q b hb
+
+private theorem extraData_le_request_encoded_size (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    q.executionPayload.extraData.size ≤ (Ssz.encode _ _ h).size := by
+  rw [request_encoded_size q h]
+  exact extraData_le_requestSize q
+
+private theorem blockAccessList_le_request_encoded_size (q : NewPayloadRequest)
+    (h : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue q)) :
+    q.executionPayload.blockAccessList.size ≤ (Ssz.encode _ _ h).size := by
+  rw [request_encoded_size q h]
+  exact blockAccessList_le_requestSize q
+
+private theorem input_request_serializable (a : StatelessInput)
+    (h : Ssz.Serializable actual.type (actual.toValue a)) :
+    Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue a.newPayloadRequest) := by
+  have hs := ((Ssz.serializable_iff _ _).mp h).2.1
+  exact hs (NewPayloadRequest.instSszSchema.type,
+    NewPayloadRequest.instSszSchema.toValue a.newPayloadRequest) (by simp)
+
+private theorem input_request_logical_bound (a : StatelessInput)
+    (h : Ssz.Serializable actual.type (actual.toValue a)) :
+    16 + requestSize a.newPayloadRequest < 2 ^ 32 := by
+  have hf := ((Ssz.serializable_iff _ _).mp h).2.2
+  change ∀ o ∈ (([NewPayloadRequest.instSszSchema.type,
+      ExecutionWitness.instSszSchema.type, .uint 8].zip
+    [logicalSize NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue a.newPayloadRequest),
+     logicalSize ExecutionWitness.instSszSchema.type
+      (ExecutionWitness.instSszSchema.toValue a.witness), 8]).foldl
+      (fun (s : Nat × List Nat) q ↦ match q.1.fixedSize? with
+        | some _ => s
+        | none => (s.1 + q.2, s.2 ++ [s.1]))
+      (([NewPayloadRequest.instSszSchema.type, ExecutionWitness.instSszSchema.type,
+        .uint 8].map (fun f ↦ f.fixedSize?.getD 4)).sum, [])).2, o < 2 ^ 32 at hf
+  have hh : [NewPayloadRequest.instSszSchema.type, ExecutionWitness.instSszSchema.type,
+      .uint 8].map (fun f ↦ f.fixedSize?.getD 4) = [4, 4, 8] := head_slots
+  rw [hh, head_size, emitted_starts] at hf
+  rw [request_logical_size] at hf
+  exact (outer_start_bound _).mp hf
+
+private theorem input_request_encoded_bound (a : StatelessInput)
+    (h : Ssz.Serializable actual.type (actual.toValue a))
+    (hr : Ssz.Serializable NewPayloadRequest.instSszSchema.type
+      (NewPayloadRequest.instSszSchema.toValue a.newPayloadRequest)) :
+    16 + (Ssz.encode _ _ hr).size < 2 ^ 32 := by
+  rw [request_encoded_size a.newPayloadRequest hr]
+  exact input_request_logical_bound a h
+
+private theorem empty_transactions_data_size (n : Nat) :
+    ((List.replicate n (ByteArray.mk #[])).map ByteArray.size).sum = 0 := by
+  simp
+  change n * 0 = 0
+  omega
+
+private theorem empty_transactions_offset_distinction (n : Nat) :
+    logicalSize (.progressiveList .progressiveByteList)
+      (.list (List.replicate n (.bytes (ByteArray.mk #[])))) = 4 * n ∧
+    ((List.replicate n (ByteArray.mk #[])).map ByteArray.size).sum = 0 :=
+  ⟨empty_transactions_logical_size n, empty_transactions_data_size n⟩
+
+
 end STFSpec.Conformance.Stateless.InputSszCallerProofs

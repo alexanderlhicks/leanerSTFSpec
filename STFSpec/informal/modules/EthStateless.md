@@ -1,3 +1,5 @@
+| actual request models above | `requestCounts`, `counts_le_requestSize`, `transaction_le_requestSize`, `extraData_le_requestSize`, `blockAccessList_le_requestSize` and corresponding `*_le_request_encoded_size` clients | raw counts/member byte lengths ≤ R without support; actual encoded bounds require only request Serializable | complete eight-count list, membership-local Nat sum, symbolic empty transaction data/offset distinction |
+| `stateless.py:144–166`, `src/ethereum/utils/ssz.py:174–253` | `input_request_serializable`, `input_request_logical_bound`, `input_request_encoded_bound` | actual input Serializable projects request Serializable and strict 16+R<2^32; encoded form accepts any support proof for that actual request | public support equation, actual later witness start and existing strict-boundary/final-tail controls |
 # `EthStateless`: the stateless guest (bytes → bytes), payload validation and header chain
 
 *Status: informal specification, draft; protocol fork metadata, selected schema identifiers, input wire-limit aliases, raw execution witness, five request-item carriers, request aggregate, raw payload/request carriers, raw StatelessInput and actual input/witness/payload/request-item/aggregate/new-payload SSZ dictionaries with Q81 certificates, output record, serializer and zero sentinel supplied; guest unimplemented. Date: 2026-11-20. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
@@ -495,30 +497,31 @@ The domain is arbitrary raw supported type/value pairs. Zero-byte vectors,
 nonempty fixed-zero-child lists/products, empty ordinary containers and malformed
 raw progressive masks remain supported where Q80 permits them. No WF,
 CountRecoverable, Rootable, positive-width, uint256-count or final-size premise is
-added. Actual request-count bounds, decoded-input support, rootability, schema-ID
-joins, source-host agreement and guest/resource/security/readiness obligations
-remain separate (§10).
+added. Decoded-input support, rootability, schema-ID joins, source-host agreement
+and guest/resource/security/readiness obligations remain separate (§10).
 
 
 **Private actual request sizes.** The same caller module specializes that foundation
 using the public actual dictionary types and models. Section 7 owns the raw logical
 formulas, operation-local encoded-size laws, six fixed-width classifications and
-inherited child/member support. These are mathematical caller proofs, without a
-new public declaration or production operation.
+inherited child/member support. Private bounds cover all eight actual counts,
+every transaction member, extra data and BAL. Actual whole-input Serializable
+projects request support and bounds the later witness start strictly below 2^32.
+These are mathematical caller proofs, without a new public declaration or
+production operation.
 
 | Pinned source metadata | Private Lean client | Domain and result | Controls |
 |---|---|---|---|
-| `execution_engine/types.py:65`, `utils/ssz.py:258–291` | `transactionSize`, `transactions_logical_size`, `transactions_encoded_size` | raw transaction array formula; actual bytes require only its own Serializable proof | arbitrary repeated empties and arbitrary final transaction |
-| `execution_engine/types.py:39–72`, `utils/ssz.py:258–291` | `payloadSize`, `payload_logical_size`, `payload_encoded_size` | every raw payload; actual bytes require only payload Serializable | arbitrary BAL and extra-data replacement, including over-limit raw extra data |
-| `execution_engine/requests.py:99–116`, `utils/ssz.py:258–291` | `requestsSize`, `requests_logical_size`, `requests_encoded_size` | every raw aggregate; actual bytes require only aggregate Serializable | one arbitrary item appended to each of the five arrays |
-| `execution_engine/types.py:78–96`, `utils/ssz.py:258–291` | `requestSize`, `request_logical_size`, `request_encoded_size` | every raw request; actual bytes require only request Serializable | universal formula and local proof parameter |
+| `execution_engine/types.py:65`, `src/ethereum/utils/ssz.py:258–291` | `transactionSize`, `transactions_logical_size`, `transactions_encoded_size` | raw transaction array formula; actual bytes require only its own Serializable proof | arbitrary repeated empties and arbitrary final transaction |
+| `execution_engine/types.py:39–72`, `src/ethereum/utils/ssz.py:258–291` | `payloadSize`, `payload_logical_size`, `payload_encoded_size` | every raw payload; actual bytes require only payload Serializable | arbitrary BAL and extra-data replacement, including over-limit raw extra data |
+| `execution_engine/requests.py:99–116`, `src/ethereum/utils/ssz.py:258–291` | `requestsSize`, `requests_logical_size`, `requests_encoded_size` | every raw aggregate; actual bytes require only aggregate Serializable | one arbitrary item appended to each of the five arrays |
+| `execution_engine/types.py:78–96`, `src/ethereum/utils/ssz.py:258–291` | `requestSize`, `request_logical_size`, `request_encoded_size` | every raw request; actual bytes require only request Serializable | universal formula and local proof parameter |
 | `blocks.py:38–66`, `execution_engine/requests.py:42–93` | `withdrawal_fixed_size`, the five item `*_fixed_size` and corresponding `*_encoded_size` clients | actual descriptor widths; each actual item encoding uses only its own Serializable proof | public classifier equations and universal local-width consequences |
 | actual container/list models above | `request_children_serializable`, `payload_children_serializable`, `requests_children_serializable` and their member clients | enclosing actual Serializable projects only to the actual children and array members | public support equation and membership-local projections |
 
 These clients have no effects or error results. They establish neither source
-execution nor source serialization agreement. Whole-input request support, later
-outer-start and count/leaf bounds, Rootable assembly and decoded-value bridges
-remain open (§10).
+execution nor source serialization agreement. Rootable assembly and decoded-value
+bridges remain open (§10).
 
 ## 4. Tests
 
@@ -818,9 +821,12 @@ arbitrary last transaction's complete length. The BAL and extra-data replacement
 laws retain the complete replacement length, with no support premise or wire
 limit on the raw extra data. Five `*_append_logical_size` laws append one arbitrary
 item to each actual aggregate array and check its distinct fixed-width increment.
-These universal probes allocate no large list and add no second finite wire
-catalogue. The existing complete byte, malformed-mask, zero-width and final-tail
-controls remain in place.
+The private count and leaf bounds retain all eight counts and every actual member;
+transaction counts use the four-byte offset contribution independently of payload
+bytes. `empty_transactions_offset_distinction` proves logical size 4*n while the
+payload-byte sum is zero, for every n. These universal probes allocate no large
+list and add no second finite wire catalogue. The existing complete byte,
+malformed-mask, zero-width and final-tail controls remain in place.
 
 `InputSszWireControls.lean` transports all 48 independently frozen mathematical
 whole inputs through private checked Base construction. Shared complete natural
@@ -1283,9 +1289,34 @@ transaction list, Withdrawal list, extra-data leaf and BAL leaf. An aggregate
 supplies all five actual lists. The corresponding member laws retain the actual
 arrays and public item models, with support for every member of each mapped list,
 including the hash members. No empty, duplicate or reordered occurrence is removed,
-and no `.valid` hypothesis is turned into operation support. These projections
-supply no whole-input support, count/leaf bound, later outer-start bound, request
-Rootable or decoder/WF result.
+and no `.valid` hypothesis is turned into operation support.
+
+The private `requestCounts q` list contains exactly the counts of versioned
+hashes, payload transactions, payload Withdrawals, deposits, request withdrawals,
+consolidations, builder deposits and builder exits, in that order. For every
+raw request q, each listed count is ≤ R(q). Every actual member transaction b
+has b.size ≤ R(q), as do q.executionPayload.extraData.size and
+q.executionPayload.blockAccessList.size. These bounds need no support or
+validity premise. The transaction count uses 4*transactions.size, including
+empty occurrences; member lengths use their complete nonnegative Nat sum.
+The four corresponding encoded-size bounds replace R(q) by
+`(Ssz.encode NewPayloadRequest.instSszSchema.type
+  (NewPayloadRequest.instSszSchema.toValue q) h).size` and require only that
+actual request's Serializable proof h.
+
+For every actual input a, `input_request_serializable` projects support for
+a.newPayloadRequest from exactly
+`h : Ssz.Serializable StatelessInput.instSszSchema.type
+  (StatelessInput.instSszSchema.toValue a)`. Under that same h,
+`input_request_logical_bound` proves `16 + R(a.newPayloadRequest) < 2^32`.
+It identifies the public support law's later emitted witness start with
+16+R, using the actual outer head and raw request-size equation.
+`input_request_encoded_bound` replaces R by the actual request encoding size
+under any Serializable proof hr for that same actual request; hr need not
+be the projected proof. No enclosing validity, WF, Rootable or uint256
+premise is added. Schema-ID bytes remain outside the body head. There is no
+final witness-end or total-input bound. Request Rootable and decoder/WF
+bridges remain open.
 
 **Supplied raw payload/request contract.** Each §5 constructor accepts all
 nineteen/four arbitrary independent raw fields with their exact types and order,
@@ -1617,8 +1648,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
   30-case/183-byte controls, actual raw request-size formulas, operation-local
   encoded-size laws, fixed classifications and inherited child/member support are
-  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
-  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  supplied in §3/§4/§7, together with raw count/leaf bounds, their operation-local
+  encoded forms, actual input-to-request support and the strict later witness-start
+  bound. Decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding,
+  general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 

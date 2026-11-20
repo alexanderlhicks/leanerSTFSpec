@@ -85,7 +85,7 @@ The reference accepts non-canonical witness encodings (DISC-003) and lenient acc
 - The secp256k1 and P-256 behaviour is inferred from the standards and test runs, because the reference libraries are compiled.
 
 ### X13. Shared interfaces and record instances are partly compiled (implementation task, not a spec defect)
-The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). `StepResult`, `CallRequest` and the outcome projection are not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
+The spec guidance documents' Lean-like signatures are informal by design (`CONTRIBUTING.md` §5.4), so placeholders there are not defects in themselves. A compiled prototype of the interfaces covered one complete guest path, and its dispositions are folded into the spec guidance documents (DECISIONS §3). The owning modules' §3 list the compiled carriers (for example `PreState`, `BlockDiff`, `VmConfig` and `CheckedResult`). EthVmInstructions §3/§5/§7 supplies the indexed `StepResult` and class-free `Handler` signature; the outcome projection is not compiled yet. The review aligned the common types and checked errors, but some signatures still contain placeholders and inferred or undefined local types; the implementer resolves those. REFERENCE-RECORDS captures exact source fields; each schema owner must expand its records and prove both adapter inverses. **Owners:** each schema/API owner; EthStateless coordinates the complete path.
 
 ### X14. Informal premises are not yet discharged
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
@@ -704,6 +704,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmCore`](modules/EthVmCore.md)
 
+- **Raw VmWorld/VmM wiring is supplied:** §3/§4/§5/§7 own exactly the complete
+  single-TxState carrier and StateT-over-ExceptT alias, with private complete
+  facade clients. The separate functional liftState and its sole public literal
+  run equation supply complete StateError-to-VmFault.state routing under Monad
+  only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
+  Initialization, tracker effects/errors, snapshots/restore, observation
+  lifetimes, provider/context acquisition/coherence, actual handlers/runner and
+  full-current-source refinement remain open; EthState X16(b) is unchanged.
+  No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
+  gate closes through nominal wiring.
+
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
@@ -729,10 +740,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
-  state lifting, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
+  tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
-  No VmWorld/VmM, F11 choice, G1–G7, resource or VM/guest/EEST/readiness gate follows.
+  Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
+  resource or VM/guest/EEST/readiness gate follows from this vocabulary.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
@@ -762,8 +774,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   fifteen-data-field FrameCtx, sole local depth proof and raw two-field Evm,
   private complete generic clients and boundary controls. Raw config limits,
   code/map choices, supplied addresses, environments, frame and flags remain
-  independent. Actual creation/inheritance, source/config/history/code coherence,
-  read-only Handler/StepResult signatures, world/control/parent execution, F20/F11,
+  independent. EthVmInstructions §3/§5/§7 owns the supplied read-only Handler/StepResult
+  signatures. Actual creation/inheritance, source/config/history/code coherence,
+  world/control/parent execution, F20/F11,
   gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
   default, instance or global coherence/WF predicate is supplied.
 
@@ -871,9 +884,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting, every handler and per-opcode semantic/precedence law remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw creation carrier supplied; execution open:** §3 owns the exact `CreateRequest` type and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, `StepResult`, `CallRequest`, child context/frame, `ChildOutcome` and resume remain unimplemented. The raw carrier adds no admission/staticness policy and resolves neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+
+- **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top
@@ -886,7 +903,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **No per-opcode lemma is written.** The per-opcode lemmas, precedence lemmas, `step_iff` and determinism are specifications only; §3 separately owns private raw-carrier client proofs.
+- **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-two ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
@@ -960,7 +977,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. Actual propagation through callers, runVmChecked/RunM adapters, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
 - **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
   transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
@@ -969,13 +986,18 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   settlement and potential proofs remain open. This adds no observer API, base-error
   reinterpretation, F11 choice or G2–G7 claim.
 
+- **Raw output records are supplied:** §3/§4/§5/§7 own the exact records and
+  private complete facade clients. Actual runFrame/processCall/processCreate/
+  processTopLevelChecked, toChildOutcome, source refund casts/range evidence,
+  settlement, F11 and every execution/fuel/resource/readiness gate remain open.
+
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
 - **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv carrier and the checked control carriers of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv and output carriers, the checked control carriers and F14 VM adapter of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:312` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:279` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
@@ -1125,8 +1147,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   in §3/§4/§5/§7. The private generic public-law encoding-size foundation and its
   30-case/183-byte controls, actual raw request-size formulas, operation-local
   encoded-size laws, fixed classifications and inherited child/member support are
-  supplied in §3/§4/§7. Whole-input request support, later outer-start and count/leaf
-  bounds, decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding, general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
+  supplied in §3/§4/§7, together with raw count/leaf bounds, their operation-local
+  encoded forms, actual input-to-request support and the strict later witness-start
+  bound. Decoded support and input-to-Rootable bridges remain open. Q87/Q88 decoding,
+  general source serialization agreement, root/O2, caller/guest execution, errors/fuel/F20/D5/backend/S2,
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 

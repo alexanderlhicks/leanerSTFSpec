@@ -7,6 +7,9 @@ import STFSpec.Conformance.Vm.Core.FrameErrorGuards
 import STFSpec.Conformance.Vm.Runner.BudgetCallerProofs
 import STFSpec.Conformance.Vm.Runner.BudgetGuards
 import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
+import STFSpec.Conformance.Vm.Runner.RunCheckedCallerProofs
+import STFSpec.Conformance.Vm.Runner.OutputCallerProofs
+import STFSpec.Conformance.Vm.Runner.OutputControls
 import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
@@ -57,9 +60,16 @@ import STFSpec.Conformance.Stateless.ExecutionRequestsSszWireControls
 import STFSpec.Conformance.Stateless.RequestItemsCallerProofs
 import STFSpec.Conformance.Stateless.RequestItemsGuards
 import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
+import STFSpec.Conformance.Vm.Core.WorldCallerProofs
+import STFSpec.Conformance.Vm.Core.StateLiftCallerProofs
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
+import STFSpec.Conformance.Vm.Instructions.CallRequestCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ChildOutcomeCallerProofs
 import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
+import STFSpec.Conformance.Vm.Instructions.StepResultCallerProofs
+import STFSpec.Conformance.Vm.Instructions.StopCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs

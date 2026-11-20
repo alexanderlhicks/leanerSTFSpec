@@ -15,7 +15,7 @@ Library `EthVmCore`. The context and Frame partition pinned EELS
 `src/ethereum/forks/amsterdam/vm/__init__.py:147–185` (R-ENV-3).
 Configuration and systemAddress carry supplied policy, rather than extra source fields.
 Depth uses the existing literal bound from `interpreter.py:79` (F8).
-Future handler signatures enforce read-only context use; raw record construction
+Instructions owns the supplied read-only Handler/StepResult signatures; raw construction
 alone adds no code/map, environment, configuration or frame coherence invariant.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/
