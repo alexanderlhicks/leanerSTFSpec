@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-07. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58, Q84, Q85.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -92,7 +92,7 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 | `state.py::PreState.get_code` | 110 | `PreState.getCode` | supplied nonoptional action (B2); carrier support below (§3/§7) |
 | `state.py::PreState.compute_state_root` | 118 | `PreState.stateRoot` | supplied action; carrier support below (§3/§7); contract `ModelsRoot` in `EthStateCommit` |
 | `forks/amsterdam/state_tracker.py::BlockState` | 44–73 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
-| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `TxState` = `TxRevertible` + `TxObs` | Only raw `TxRevertible` and `TxObs` storage supplied below (D22/D23/B1 adaptation); combined `TxState` and tracker remain open. |
+| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), retaining the unchanged providers' X16(b) code-read discrepancy. Initialization and tracker semantics remain open. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account_optional` | 107 | `getPreStateAccountOptional` | |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140 | `getPreStateAccount` | |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174 | `getAccountOptional` | |
@@ -128,6 +128,28 @@ Every read returns the value of the **current transaction view** (§7.1) and rec
 `state.py` is claimed item by item above; no item of either file is left unclaimed.
 
 **External semantics.** `ethereum_types.numeric.U256` (add/sub raise on overflow/underflow; the tracker relies on raising, R19), `Uint` (unbounded, `Nat`), `ethereum_types.bytes.Bytes`/`Bytes20`/`Bytes32` (fixed-width constructors, owned by `EthBase`), `ethereum_types.frozen.modify` (functional update of a frozen dataclass: in Lean, record update) and `slotted_freezable` (immutability; no Lean counterpart needed). `EthBase` owns the representations; this module requires checked `U256` addition/subtraction returning `Option`/`Except`.
+
+### Implemented raw transaction state and state monad
+
+`State/TxState.lean`, exported by State, supplies exactly the three §5 fields
+and the existing `StateM` transformer alias. At the current pin `59c1473d`,
+`src/ethereum/forks/amsterdam/state_tracker.py:89` supplies the parent block;
+`:90–104` supplies the transaction fields partitioned by D22/D23, with B1 indexes
+in TxRevertible and F20 constants in BlockState. No Python TxObs, TxRevertible or
+StateM counterpart is asserted. The existing BlockState and TxObs codeReads still
+carry address/hash pairs, whereas current EELS uses hash-only sets (:70,98).
+That X16(b) mismatch is retained, so this is nominal raw assembly, not a
+current-EELS full-state refinement.
+
+| Source/support at the pin | Lean declaration and domain | Value/effects and failures | Validation and limits |
+|---|---|---|---|
+| `state_tracker.py:78–104`; D22/D23/B1/F20 partition above | `TxState (m : Type → Type)` with exactly `block : BlockState m`, `rev : TxRevertible`, `obs : TxObs`, in order | Every whole supplied field retained for arbitrary m, without class, WF or coherence premises. Pure construction/projection, no initialization, normalization, provider call, hashing or failure | Private facade `TxStateCallerProofs.lean`: exact constructor/projection types and arity, complete construction/reconstruction and three independent field replacements. No authored public law or instance. |
+| Lean transformer wiring, §5/R29; no EELS operation | `StateM (m : Type → Type) := StateT (TxState m) (ExceptT StateError m)` | Raw alias requires no class. Running has exactly `TxState m → m (Except StateError (α × TxState m))`; an error returns no transaction state. Underlying m effects have no rollback claim | Private clients check the complete alias/run type and arbitrary base action retention, including a contravariant constructor without a Monad. Id sequencing checks pure/put/get and complete successful value/state or exact supplied StateError, including a nested WitnessError after put. |
+
+These ordinary private clients establish nominal composition and transformer
+wiring only. The copy/restore/incorporation context at `state_tracker.py:744–858`
+binds the partition but remains unimplemented. Initialization, observations,
+tracker errors/lifetimes, provider/coherence and all §10 integration gates stay open.
 
 ### Implemented raw revertible transaction carrier
 
@@ -441,6 +463,17 @@ resource or C1–C4 result.
   Each field's independent empty replacement changes the complete observation.
   Observations use public Base/Std APIs and retain every raw order-map entry;
   they assert no tracker execution, source runtime, snapshot/restore or cost bound.
+- **Implemented raw TxState/StateM clients:** private
+  `Conformance/State/TxStateCallerProofs.lean` checks exact type/constructor/field
+  arities for arbitrary m, complete three-field construction/reconstruction and
+  each replacement retaining both complete siblings. A contravariant type
+  constructor exposes hidden class constraints. Complete alias/run types and
+  arbitrary underlying actions are retained without classes. Id pure/put/get
+  controls compare whole returned values and states; supplied StateError and
+  nested WitnessError controls preserve the exact error after a put, with no
+  returned state. Arbitrary provider fields admit all raw irregular metadata.
+  These are ordinary Lean wiring proofs, without protocol differential, tracker
+  rollback/lifetime, underlying-effect rollback or current-EELS refinement claims.
 - **Implemented raw application cases:** `Conformance/State/ApplyCallerProofs.lean` consumes the §7 laws on arbitrary inputs. The independent association-list model in `ApplyGuards.lean`, emitted completely by `ApplyNativeTests.lean --dump`, covers deletion without clear, orphan writes, untouched versus touched empty inners, unwritten stored zero, clear then rewrite, explicit zero erasure, raw reserved-code replacement with arbitrary observer constants, and duplicate/foreign/reversed metadata. Complete raw inputs/outputs, optional tags, indexed 20/32-byte keys, huge nonces, U256 words, full code and retained parent/sibling values are observed. Finite source application comparison retains the typed/default/nonaliasing premises above; these checks establish no WF preservation, history, root or EEST result.
 
 - **Implemented raw PreState cases:** public-only arbitrary-m clients consume all
@@ -551,7 +584,9 @@ separately below. Logical account/storage predicate views and their two iff laws
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied; no tracker or adapter is supplied. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
-(§3/§7). The bounded structural predicate and preservation laws are supplied
+(§3/§7). The raw three-field TxState and exact StateM alias are supplied without
+class premises or authored public laws; their nominal boundary retains X16(b).
+The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
 PreState providers/tracker operations remain unimplemented targets. The R8 lookup
 relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
@@ -564,8 +599,9 @@ Q51's unchanged Hash32 dictionary. Existing product support combines these with
 is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equations.
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
-implemented separately (§3), as is raw BlockState and its initialization. TxState, StateM,
-other default-empty constructors and tracker operations remain open.
+implemented separately (§3), as are raw BlockState, its initialization and the
+nominal TxState/StateM assembly. Other default-empty constructors and tracker
+operations remain open; X16(b) still applies to codeReads.
 
 ```lean
 -- public types
@@ -669,6 +705,7 @@ structure BlockState (m : Type → Type) where
   storageReads  : Std.HashSet (Address × Bytes32)
   codeReads     : Std.HashSet (Address × Hash32)
   oldestAncestorOffset : Option Nat
+-- Supplied raw assembly and alias, without any class premise; X16(b) remains open.
 structure TxState (m : Type → Type) where
   block : BlockState m                 -- only trackAncestorAccess writes it during a transaction
   rev   : TxRevertible
@@ -806,6 +843,19 @@ indexes and none offset while retaining ps and consts. Its sole public law is
 new_consts, with no premises beyond the supplied data. Private owner reduction proves
 the entire constructor result and provider retention. Further public consumer-law
 basis, context-sharing/coherence, snapshot, incorporation and tracker laws remain open.
+
+**Raw TxState/StateM contract.** Exactly the three §5 fields and transformer alias
+are supplied, without Monad, Functor, KeccakQuery, LawfulMonad, WF or coherence
+premises. Whole arbitrary BlockState, TxRevertible and TxObs values are retained;
+constructor/projection/reconstruction and independent replacements need only the
+raw public records. No authored public law or instance is added. Private facade
+clients check these properties, including a non-Monad type constructor. StateM
+runs to `m (Except StateError (α × TxState m))`; failure contains only StateError,
+without transaction state. Sequencing requires Monad only in clients, with Id
+controls for complete pure/put/get/error results. This establishes no tracker
+rollback or interpretation of underlying effects. Initialization, lifetime,
+observation monotonicity, StateError semantics/freezing and current-pin refinement
+remain open, including the unchanged providers' X16(b) code-read mismatch.
 
 **Logical block read-set contract.** For every arbitrary `m : Type → Type`, raw
 block b and complete key, accountReadSet b a iff a belongs to b.accountReads;
@@ -1107,6 +1157,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   public-law clients and finite model controls add no tracker/WF/history/replay,
   provider/progress, D5/F20 or resource/readiness guarantee.
 - **Raw extraction supplied (Q85):** the class-free operation and seven complete equations are in §3/§7; full ordered-write integration/WF/history remains separate.
+- **Raw transaction assembly supplied:** TxState and the exact StateM alias are
+  owned by §3/§5/§7. Their private complete clients supply no tracker operation or
+  rollback/lifetime proof; current-pin full-state agreement retains X16(b).
 - **Seams provided:** the `PreState` record (the block-execution seam, ARCHITECTURE
   §2); `StateM` operations with model laws for opcode proofs; the supplied raw
   `extractBlockDiff` (Q85) for `EthBlock` (state root, BAL, witness generation),
@@ -1143,7 +1196,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q57: supplied-record lookup agreement follows R8/§5/§7.1; full Models stays at the concrete Id interpretation in EthStateCommit. Generic D5/X7 coupling remains open.
 - The logical block read views in §3/§5/§7 select no new set/order policy;
   decidability, enumeration and additional consumers are outside their two-law API.
-- Q84: canonical Base observation-key dictionaries and the unchanged raw Std field handoff are in §5/§7. The raw TxObs and BlockState carriers are supplied separately (§3); TxState/StateM,
+- Q84: canonical Base observation-key dictionaries and the unchanged raw Std field handoff are in §5/§7. Raw TxObs, BlockState and TxState/StateM are supplied separately (§3);
   tracker operations, lifetimes, ownership and costs remain separate obligations.
 - F20: initialization supplies only the explicit new_consts law; a broader stable
   consumer-law basis requires a named consumer and separate contract review. Acquisition,
@@ -1165,7 +1218,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   thirteen-field BlockState carriers, plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
-  BlockState.view with its exact application equation are supplied (§3/§5/§7). The
+  BlockState.view with its exact application equation, plus raw three-field
+  TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations/contextual
   tracker/full-model proofs, StateError operation/adapter semantics and freezing,
@@ -1175,6 +1229,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
+- **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
+  complete unchanged providers and the exact state/error transformer order, with
+  private ordinary wiring clients only. Current-pin full-state refinement remains
+  blocked by X16(b); this item does not change either codeReads provider.
+  TxState.new, tracker operations, snapshot/restore, observation effects and
+  lifetimes, initialization/coherence, StateError semantics/freezing, S1/S2/W1,
+  generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients only. Actual initialization, snapshot/restore, transient lifetime, views,
   `asDiff`, tracker operations and observations, write/clear/order coupling,
@@ -1208,7 +1269,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
   §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
-  TxState and StateM remain open.
+  Their nominal TxState/StateM assembly is supplied in §3, retaining X16(b).
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
   output remains EthBlock's; the hand-off type and F7 failure/observation replay

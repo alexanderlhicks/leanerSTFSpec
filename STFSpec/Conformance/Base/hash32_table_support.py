@@ -8,14 +8,17 @@ This is a functional test, not EELS hashing or a distribution/throughput benchma
 """
 
 import argparse
-import ast
 import hashlib
 import json
 import os
 from pathlib import Path
 import random
 import subprocess
+import sys
 import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+import byte_lists
 
 
 def support(value):
@@ -103,7 +106,7 @@ def check_output(raw, vectors):
 
     def byte_list(field, width, line):
         try:
-            value = ast.literal_eval(field)
+            value = byte_lists.parse_byte_list(field)
         except (SyntaxError, ValueError) as error:
             raise AssertionError(f"Invalid byte list: {line}") from error
         require(type(value) is list and len(value) == width, f"Expected {width} bytes: {line}")
@@ -289,6 +292,7 @@ def main():
         provenance[str(file.relative_to(out))] = digest(file)
     provenance["toolchain"] = str(toolchain)
     provenance["script"] = digest(Path(__file__))
+    provenance["parser"] = digest(Path(byte_lists.__file__))
     (out / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary), flush=True)

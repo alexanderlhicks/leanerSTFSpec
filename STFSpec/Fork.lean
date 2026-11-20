@@ -4,6 +4,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Fork.Amsterdam
 import STFSpec.Fork.Amsterdam.WireLimits
+import STFSpec.Fork.Amsterdam.SchemaIdentifiers
 
 /-!
 # STFSpec.Fork
@@ -12,6 +13,6 @@ Fork composition: Amsterdam parameter records, changed-behaviour fork modules, a
 
 Library `EthFork`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Amsterdam system, block and transaction parameters,
-VM pricing and limits are supplied; remaining composition is open.
+VM pricing/limits and input schema identifier values are supplied; remaining composition is open.
 Spec guidance: `STFSpec/informal/modules/EthFork.md`.
 -/
