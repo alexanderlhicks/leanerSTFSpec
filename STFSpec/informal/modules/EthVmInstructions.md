@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD with their local laws supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP with their local laws supplied. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -203,6 +203,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:202–229` (`smod`) | `STFSpec.Vm.Instructions.smod {m : Type → Type} [Monad m] : Handler m`, in the same leaf/facade | Same raw domain; selected price is independently `ctx.config.costs.opcodeSmod` | Same ordered pops and complete failure-frame/world preservation. Signed remainder through `U256.smod x y`, with the dividend sign; zero divisor gives zero. Special values still charge and can halt for shortage | `smod_run_empty`, `smod_run_singleton`, `smod_run_oog`, `smod_run_success`, `smod_continue_phi`, `smod_continue_progress` (§7); facade numeric-model clients and complete bounded controls (§4) | Handler and six ordinary local laws discharged; same explicit refinement limits |
 | `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:232–260` (`addmod`) | `STFSpec.Vm.Instructions.addmod {m : Type → Type} [Monad m] : Handler m`, in the same leaf/facade | Every supplied context, complete raw Frame and complete `VmWorld m`; independent selected `ctx.config.costs.opcodeAddmod` admits every Nat, including zero and arbitrarily large prices, without LawfulMonad, hash, WF or schedule premises | Pop x, y, then z; charge; compute `U256.addmod x y z` using the unbounded sum before modulus z, or zero at z=0; push and PC+1. Empty/singleton/pair underflow retains exactly preceding pops and occurs before charge. OOG retains all three pops with complete unchanged meter and PC. Success changes only stack, PC and execution gas; every outcome retains the complete world under literal underlying pure | `addmod_run_empty`, `addmod_run_singleton`, `addmod_run_pair`, `addmod_run_oog`, `addmod_run_success`, `addmod_continue_phi`, `addmod_continue_progress` (§7); complete facade and public numeric-model clients, native/interpreted/parser/source controls (§4) | Handler and seven ordinary local laws discharged; selected source price 8 and explicit field relation; whole source-model/trace/reachability/dispatch/settlement and composed gates remain open |
 | `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:263–291` (`mulmod`) | `STFSpec.Vm.Instructions.mulmod {m : Type → Type} [Monad m] : Handler m`, in the same leaf/facade | Every supplied context, complete raw Frame and complete `VmWorld m`; independent selected `ctx.config.costs.opcodeMulmod` admits every Nat, including zero and arbitrarily large prices, without LawfulMonad, hash, WF or schedule premises | Pop x, y, then z; charge; compute `U256.mulmod x y z` using the unbounded product before modulus z, or zero at z=0; push and PC+1. Empty/singleton/pair underflow retains exactly preceding pops and occurs before charge. OOG retains all three pops with complete unchanged meter and PC. Success changes only stack, PC and execution gas; every outcome retains the complete world under literal underlying pure | `mulmod_run_empty`, `mulmod_run_singleton`, `mulmod_run_pair`, `mulmod_run_oog`, `mulmod_run_success`, `mulmod_continue_phi`, `mulmod_continue_progress` (§7); complete facade and public numeric-model clients, native/interpreted/parser/source controls (§4) | Handler and seven ordinary local laws discharged; selected source price 8 and explicit field relation; whole source-model/trace/reachability/dispatch/settlement and composed gates remain open |
+| `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:294–328` (`exp`) | `STFSpec.Vm.Instructions.exp {m : Type → Type} [Monad m] : Handler m`, in the same leaf/facade | Every supplied context, complete raw Frame and complete `VmWorld m`; independent `opcodeExpBase` and `opcodeExpPerByte` admit every Nat, including zero and prices above word width; no LawfulMonad, hash, WF, code-byte or schedule premise | Pop base, pop unsigned exponent, charge base plus per-byte price times `(U256.bitLength exponent + 7) / 8`, compute `U256.exp base exponent`, push and PC+1. Both underflow cases retain preceding pops before selecting gas. OOG retains both pops with complete unchanged meter and PC. Success changes only stack, PC and execution gas, including when exponent is zero. All outcomes retain the complete world under literal underlying pure | `exp_run_empty`, `exp_run_singleton`, `exp_run_oog`, `exp_run_success`, `exp_continue_phi`, `exp_continue_progress` (§7); complete facade, symbolic numeric-model and actual-input accounting clients; native/interpreted/parser/source controls (§4) | Handler and six ordinary local laws discharged; source prices 10/50 and explicit field relation; whole source-model/trace/reachability/dispatch/settlement and composed gates remain open |
 | `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:331–371` (`signextend`) | `STFSpec.Vm.Instructions.signextend {m : Type → Type} [Monad m] : Handler m`, in the same leaf/facade | Same raw domain; selected price is independently `ctx.config.costs.opcodeSignextend` | Pop unsigned byte index k, then value x, charge, compute `U256.signextend k x`, push, PC+1. Shortage retains both pops and the unchanged complete meter/PC. Guard k>31 follows charge and returns x without width arithmetic. At k≤31 retain low 8(k+1) bits and fill from bit 8k+7. Index 31 also preserves x. Both identity cases still charge and can halt for shortage | `signextend_run_empty`, `signextend_run_singleton`, `signextend_run_oog`, `signextend_run_success`, `signextend_continue_phi`, `signextend_continue_progress` (§7); facade numeric/identity clients and complete bounded controls (§4) | Handler and six ordinary local laws discharged; same explicit refinement limits |
 
 The case laws retain actual public pop/push witnesses and complete residual stack
@@ -215,11 +216,13 @@ retains literal underlying `pure`, without a universal effect interpretation.
 All six unchanged frame fields and five unchanged meter fields remain whole,
 including returnData, raw LogRope shape, signed refund and both spills.
 
-Source agreement supplies equality of the selected price to pinned 3 for ADD/SUB
-and 5 for MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND, or 8 for ADDMOD/MULMOD
-(`vm/gas.py:70–72,170–179`), exact Uint/Nat successor and gas
-correspondence, nominal U256 word correspondence, top-first Lean/reversed Python stack relation, aligned
-memory/byte and meter/log/set relations. It does not equate the raw complete Lean
+Source agreement uses the pinned prices 3 for ADD/SUB, 5 for
+MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND and 8 for ADDMOD/MULMOD
+(`vm/gas.py:70–72,170–179`). For EXP, it uses the base price 10 and per-byte
+price 50 (`vm/gas.py:243–244`). It also supplies exact Uint/Nat successor and
+gas correspondence, nominal U256 word correspondence, a top-first
+Lean/reversed Python stack relation, and aligned memory/byte and meter/log/set
+relations. It does not equate the raw complete Lean
 configuration to the source schedule or equate sampled world metadata to source
 state. The source direct body preserves running/output/error; a caught source
 underflow or OOG maps to the local `.halt` result before interpreter settlement
@@ -243,6 +246,15 @@ models. EELS observes each popped U256 as unbounded Uint before charging
 The unbounded sum/product is reduced only after the selected charge. A zero
 modulus still charges and may halt for shortage. No wrapped ADD/MUL intermediate,
 new word operation or caller push premise is introduced.
+
+EXP observes each popped word as unbounded Uint, takes the second operand's
+bit length and rounds up to bytes (`I/arithmetic.py:306–320`, at `59c1473d`).
+EthBase's public `bitLength_def` and `bitLength_le` establish the exact count and
+its at-most-32-byte bound. Both price multiplication and addition use Nat,
+without U256 wrapping. Charging precedes modular power even for exponent zero;
+`0^0 = 1`. The executable square-and-multiply `U256.exp` is used directly, and
+`toNat_exp` supplies the symbolic modular-power model. Its linear reference and
+full natural powers are never executed on large exponents.
 
 SIGNEXTEND's value model is owned by EthBase §3/§7. For k≤31 the source's
 32-byte conversion, retained slice and optional 0xff prefix are defined and the
@@ -412,9 +424,9 @@ Python oracle, source execution, opcode, child/resume or admission proof is clai
 
 **Executed arithmetic handler controls.**
 `STFSpec/Conformance/Vm/Instructions/ArithmeticCallerProofs.lean` uses only the
-public Instructions facade and provider laws. Generic clients consume all forty-two
+public Instructions facade and provider laws. Generic clients consume all forty-six
 complete case laws and retain complete result/world equations; concrete Id clients
-consume the twenty accounting/progress laws. MUL/DIV success clients also derive
+consume the twenty-two accounting/progress laws. MUL/DIV success clients also derive
 the complete natural-word stack model through `U256.toNat_mul`/`U256.toNat_div`.
 SDIV/SMOD clients derive the guarded signed stack models through `U256.toInt_sdiv`/
 `U256.toInt_smod`; MOD clients use `U256.toNat_mod`. SIGNEXTEND clients use `U256.toNat_signextend`
@@ -427,7 +439,7 @@ No private Stack/U256 representation or arbitrary-pure injectivity is used.
 TSV catalogue generated by `arithmetic_differential.py`. Both native and interpreted
 outputs expose every frame field, control/error tag, potential and explicitly
 sampled world sentinels; complete world retention follows from the ordinary laws.
-The independent Python model checks all 843 ordered complete observations.
+The independent Python model checks all 1257 ordered complete observations, preserving the accepted 843-case prefix.
 The 196 ADD/SUB/MUL/DIV cases remain an unchanged prefix; 68 cases each for
 SDIV, MOD and SMOD follow. The 227 SIGNEXTEND input-only controls in
 `arithmetic_signextend_inputs.json` extend that unchanged 400-case prefix. Cases
@@ -478,10 +490,33 @@ wrapped intermediates, either misplaced modulus, changed residual pop stacks,
 zero-modulus charge bypass, wrong selected prices, changed complete fields/world
 samples, bool/float aliases and malformed/omitted/reordered/duplicate new rows.
 
+The 414 frozen EXP inputs in `arithmetic_exp_inputs.json` append that 843-case
+prefix. Independent expected words use builtin modular `pow`; byte count uses
+integer bit length. Controls cover zero/one/255/256/257/2^255/max exponents,
+below/equal/above all 31 internal byte boundaries, c−1/c and independent raw-price
+c−1/c/c+1 boundaries, zero/one/high/full-width bases, `0^0`, zero/one/parity,
+wrap and operand order, base-independent charge pairs, ten full-stack cases and
+24 fixed-seed raw cases. Both context flags, huge PC, complete nontrivial frame,
+signed refund and both spills remain observed. The new cases comprise 27
+underflows, 143 OOG results and 244 continuations.
+
+EXP uses a separate ten-cell TSV branch with both raw price fields; the old
+nine-cell input path and output keys stay unchanged. EXP observations expose
+`expBase` and `expPerByte`, including underflow without an exponent; no derived
+`cost` field is supplied. Native and interpreted decoder regressions reject
+missing/extra cells, malformed/negative numbers, unknown opcodes, invalid flags,
+over-width words and stacks longer than 1024. Normal/-O parser controls reject
+reversed power operands, proper-shaped wrong results, base-dependent or rounded-
+down byte counts, zero-needs-one-byte counts, signed/truncated exponents, swapped
+or sibling/tier prices, wrapped gas arithmetic, omitted zero-exponent charges,
+wrong partial stacks/meter/PC, changed complete fields/world samples/phi, raw-field
+type/value/omission/addition errors and malformed/duplicate/omitted/reordered rows.
+The strict 3,000,000-byte parser bound is unchanged.
+
 The source mode authenticates the unreplaced pin, original loaded source bytes,
 installed dependency RECORDs/locked versions and raw locked numeric/RLP wheels,
 using the frozen venv interpreter with -I -B under normal Python and -O as its
-docstring specifies. It executes the original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD, pop/push, charge, signed observations/construction, get_sign, SIGNEXTEND byte conversions and numeric methods
+docstring specifies. It executes the original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, pop/push, charge, signed observations/construction, get_sign, SIGNEXTEND byte conversions and numeric methods
 on real Evm/GasMeter objects and a fail-on-access supplied PreState. The sixty
 ADD/SUB cases with selected price 3, ninety-two MUL/DIV cases with selected
 price 5 and 171 SDIV/MOD/SMOD cases with selected price 5 retain complete source
@@ -491,8 +526,14 @@ SIGNEXTEND calls at source price 5, including complete source Evm observations.
 Those 539 calls remain a prefix; 160 additional ADDMOD/MULMOD calls execute at
 source price 8 in each mode. Original Uint multiplication/remainder/equality and
 the original three-pop bodies are included in the authenticated function set.
-The remaining 144 raw price cases are
-mathematical Lean controls without source execution. Actual source exceptions
+Those 699 original calls remain in the same order, followed by 265 EXP calls
+selected only by raw price pair 10/50, including underflow and OOG. Both modes
+therefore execute 964 direct calls; the remaining 293 raw-price cases are
+mathematical Lean controls without source execution. EXP authentication retains
+the original function and Uint bit-length/floor-division/modular-power/conversion
+methods, actual `ExecutionGas`, pop/push/charge/GasCosts bindings, raw prices,
+`U256.MAX_VALUE` and modulus construction. Builtin pow is authenticated separately
+by its original binding and identity; it has no Python code object. Actual source exceptions
 are caught for comparison without running interpreter settlement; source running/output/error remain
 unchanged. This is direct handler-body evidence, not a state backend, trace-hook,
 whole source-world relation, interpreter, EEST or guest execution claim.
@@ -597,7 +638,7 @@ infrastructure and no authored default, instance or public helper-law family.
 Call/create carry exactly the two displayed strict proofs against the existing
 literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
-Monad instance. STOP, ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND, ADDMOD and MULMOD and their local laws are supplied. Child context/frame
+Monad instance. STOP, ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND, ADDMOD, MULMOD and EXP and their local laws are supplied. Child context/frame
 construction, remaining handlers, dispatch, step and resume remain unimplemented.
 
 The exact four-field `ChildOutcome` is also supplied, retaining its complete frame,
@@ -1204,8 +1245,76 @@ theorem mulmod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld
     (hc : 1 ≤ ctx.config.costs.opcodeMulmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
 ```
 
+**Supplied EXP local laws.** These six ordinary laws are **discharged**.
+The four complete equations quantify only Monad and preserve literal underlying
+pure of the complete successful result/world. Raw zero and arbitrarily large
+prices remain admitted. The two actual-Id laws require the displayed stack model
+so their exponent is the real second pop; progress adds only positivity of that
+actual complete charge. Zero charge permits continuation with unchanged phi.
+A zero base price and per-byte price one give strict progress at exponent one,
+while exponent zero has no byte charge. No public price helper, selector or
+global positive-price predicate is added.
+
+Private `ArithmeticCallerProofs` consumers apply every complete equation with
+actual pop/push witnesses under Monad alone, derive the unsigned stack model via
+`U256.toNat_exp`, and consume ordinary zero/one value laws. Actual-Id consumers
+use both accounting laws, zero cost and base-zero/per-byte-positive examples,
+derive hstack from actual public pop equations, and exclude empty/singleton
+continuation. No Stack/U256 representation or arbitrary-pure injectivity enters
+these clients. The private local worker computes price after both pops and uses
+public Stack/meter laws to prove failure order and push availability.
+
+```lean
+theorem exp_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((exp ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w))
+
+theorem exp_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base : U256)
+    (h : f.stack.toList = [base]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.toList = [] ∧
+      ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w))
+
+theorem exp_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : f.gasMeter.gasLeft < (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte *
+      ((U256.bitLength exponent + 7) / 8))) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w))
+
+theorem exp_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte *
+      ((U256.bitLength exponent + 7) / 8)) ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.exp base exponent) = .ok out ∧
+      out.toList = U256.exp base exponent :: xs ∧
+      ((exp ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte *
+      ((U256.bitLength exponent + 7) / 8)) } }, w))
+
+theorem exp_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte *
+      ((U256.bitLength exponent + 7) / 8)) = f.gasMeter.phi
+
+theorem exp_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte *
+      ((U256.bitLength exponent + 7) / 8))) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
+```
+
 **Remaining per-opcode semantic lemmas** [R] (for evm-asm and pancaketh) use the
-public Core/State contracts and never unfold their representations. ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD use
+public Core/State contracts and never unfold their representations. ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP use
 the supplied handler laws above, replacing the former literal-3 `step_add` sketch.
 Actual `step`, its code-byte premises, `step_iff` and determinism remain unimplemented.
 
@@ -1215,7 +1324,7 @@ Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
-**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD laws above require local selected-price positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
+**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
 
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
@@ -1257,11 +1366,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
@@ -1276,7 +1385,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-two ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
+- **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-eight ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).

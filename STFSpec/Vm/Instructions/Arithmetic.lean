@@ -3,16 +3,17 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Vm.Instructions.Handler
+import STFSpec.Base.U256Exp
 import STFSpec.Base.U256Arithmetic
 import STFSpec.Base.U256Signed
 import STFSpec.Base.U256Bitwise
 
 /-!
-# ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, ADDMOD, MULMOD and SIGNEXTEND
+# ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, ADDMOD, MULMOD, EXP and SIGNEXTEND
 
 Library `EthVmInstructions`. Ordered pops, execution charge, word operation,
 push and PC advance follow pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–291,331–371`.
+`src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:25–371`.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md` §§3/5/7.
 -/
 
@@ -903,6 +904,114 @@ theorem mulmod_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld
     (hc : 1 ≤ ctx.config.costs.opcodeMulmod) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have hp := mulmod_continue_phi ctx f f' w w' h
   omega
+
+section
+local notation "expCost(" ctx ", " exponent ")" =>
+  (GasCosts.opcodeExpBase (VmConfig.costs (FrameCtx.config ctx)) +
+    GasCosts.opcodeExpPerByte (VmConfig.costs (FrameCtx.config ctx)) *
+    ((U256.bitLength exponent + 7) / 8))
+
+private def expWorker (ctx : FrameCtx) (f : Frame) : StepResult ctx :=
+  match f.stack.pop with
+  | .error e => .halt f e
+  | .ok (base, s₁) =>
+    match s₁.pop with
+    | .error e => .halt { f with stack := s₁ } e
+    | .ok (exponent, s₂) =>
+      let cost := expCost(ctx, exponent)
+      match chargeGas f.gasMeter cost with
+      | .error e => .halt { f with stack := s₂ } e
+      | .ok paid =>
+        match s₂.push (U256.exp base exponent) with
+        | .error e => .halt { f with stack := s₂, gasMeter := paid } e
+        | .ok out => .continue { f with pc := f.pc + 1, stack := out, gasMeter := paid }
+
+private theorem expWorker_model (ctx : FrameCtx) (f : Frame)
+    (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) :
+    expWorker ctx f = binary ctx f expCost(ctx, exponent) U256.exp := by
+  obtain ⟨s₁, h₁, hm₁⟩ := pop_of_model f.stack base (exponent :: xs) h
+  obtain ⟨s₂, h₂, _⟩ := pop_of_model s₁ exponent xs hm₁
+  simp only [expWorker, binary, h₁, h₂]
+
+/-- Raise the first word to the unsigned second word after charging for its byte length.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:294–328`. -/
+def exp {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (expWorker ctx f)
+
+/-- Empty-stack underflow preserves the complete frame and supplied world. -/
+theorem exp_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((exp ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  have hp := (Stack.pop_eq_error_iff f.stack .stackUnderflow).mpr ⟨h, rfl⟩
+  change pure (Except.ok (expWorker ctx f, w)) = _
+  simp only [expWorker, hp]
+
+/-- The first pop survives second-pop underflow, before selecting or charging gas. -/
+theorem exp_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base : U256)
+    (h : f.stack.toList = [base]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.toList = [] ∧
+      ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm⟩ := pop_of_model f.stack base [] h
+  have he := (Stack.pop_eq_error_iff s₁ .stackUnderflow).mpr ⟨hm, rfl⟩
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (expWorker ctx f, w)) = _
+  simp only [expWorker, hp, he]
+
+/-- Both pops survive insufficient gas; the complete meter and PC remain unchanged. -/
+theorem exp_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : f.gasMeter.gasLeft < expCost(ctx, exponent)) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f expCost(ctx, exponent) U256.exp base exponent xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (expWorker ctx f, w)) = _
+  rw [expWorker_model ctx f base exponent xs h, hr]
+
+/-- Complete success after the actual exponent's charge, with proved push availability. -/
+theorem exp_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : expCost(ctx, exponent) ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.exp base exponent) = .ok out ∧
+      out.toList = U256.exp base exponent :: xs ∧
+      ((exp ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - expCost(ctx, exponent) } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f expCost(ctx, exponent) U256.exp base exponent xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (expWorker ctx f, w)) = _
+  rw [expWorker_model ctx f base exponent xs h, hr]
+
+/-- An actual Id continuation loses exactly the charge of its actual second operand. -/
+theorem exp_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + expCost(ctx, exponent) = f.gasMeter.phi := by
+  change Except.ok (expWorker ctx f, w) = .ok (.continue f', w') at hrun
+  rw [expWorker_model ctx f base exponent xs hstack] at hrun
+  exact binary_continue_phi ctx f f' expCost(ctx, exponent) U256.exp
+    (Prod.mk.inj (Except.ok.inj hrun)).1
+
+/-- Strict Id progress needs only positivity of the actual selected complete charge. -/
+theorem exp_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ expCost(ctx, exponent)) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := exp_continue_phi ctx f f' w w' base exponent xs hstack hrun
+  omega
+
+end
 
 /-- Sign-extend the next word from the top unsigned byte index after charging.
 EELS `src/ethereum/forks/amsterdam/vm/instructions/arithmetic.py:331–371`. -/
