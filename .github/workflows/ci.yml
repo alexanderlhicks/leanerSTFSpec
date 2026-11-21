@@ -192,6 +192,18 @@ jobs:
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+      - name: Complete hash-only code read regressions
+        run: |
+          lake build code-read-native-tests --wfail
+          lake exe check-decls scripts.CodeReadNativeTests
+          lake exe code-read-native-tests > .lake/code-read-native.jsonl
+          lake env lean --run scripts/CodeReadNativeTests.lean > .lake/code-read-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/code_read_differential.py --check-target .lake/code-read-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/code_read_differential.py --check-target .lake/code-read-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_code_read_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_code_read_output_parser.py
+          uv run --no-project --python 3.12 python -B scripts/test_code_read_source.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_code_read_source.py
       - name: Complete mathematical transaction-view regressions
         run: |
           lake build transaction-view-native-tests --wfail

@@ -45,7 +45,8 @@ structural preservation, supplied-record success-only `ModelsLookups` and opaque
 ancestor selection are supplied. TxState assembles the complete providers with hash-only
 code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and defaulted wrapper, with
 their bounded action/error/framing/membership/model laws, and the current optional
-account read with its six laws, are supplied. Lookup providers, model
-mutation, other tracker effects and lifecycle laws remain scaffolding.
+account read with its six laws, are supplied. Hash-only code reads supply five
+laws, including successful agreement with the initial mathematical transaction view.
+Lookup providers, model mutation, other tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
