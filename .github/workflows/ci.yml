@@ -192,6 +192,14 @@ jobs:
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+      - name: Complete transient storage read regressions
+        run: |
+          lake build transient-storage-native-tests --wfail
+          lake exe check-decls scripts.TransientStorageNativeTests
+          lake exe transient-storage-native-tests STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-native.jsonl
+          lake env lean --run scripts/TransientStorageNativeTests.lean STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-interpreted.jsonl
       - name: Complete mathematical transaction-view regressions
         run: |
           lake build transaction-view-native-tests --wfail

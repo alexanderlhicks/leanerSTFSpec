@@ -266,6 +266,12 @@ uv run --no-project --python 3.12 python -B scripts/test_account_optional_output
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+lake build transient-storage-native-tests --wfail
+lake exe check-decls scripts.TransientStorageNativeTests
+lake exe transient-storage-native-tests STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-native.jsonl
+lake env lean --run scripts/TransientStorageNativeTests.lean STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-interpreted.jsonl
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
@@ -355,14 +361,14 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
 
-The pre-transaction and current optional account items' source comparisons additionally need
-an authenticated pinned EELS clone with its frozen installed `.venv`. From the
-repository root, reproduce that item test with:
+The account read and transient storage read source comparisons require a pinned
+EELS clone with its frozen installed `.venv`. Run the commands from the repository root.
 
 ```sh
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_source.py --eels EELS --check-target .lake/pre-state-account-native.jsonl --report .lake/pre-state-account-source.json
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_source.py --eels EELS --check-target .lake/pre-state-account-default-native.jsonl --report .lake/pre-state-account-default-source.json
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_source.py --eels EELS --check-target .lake/account-optional-native.jsonl --report .lake/account-optional-source.json
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_source.py --eels EELS --check-target .lake/transient-storage-native.jsonl --check-target .lake/transient-storage-interpreted.jsonl --report .lake/transient-storage-source.json
 ```
 
 The driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,

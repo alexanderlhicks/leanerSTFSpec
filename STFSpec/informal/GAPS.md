@@ -484,8 +484,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
+  getPreStateAccountOptional and getPreStateAccount, the current getAccountOptional
+  read, and the getTransientStorage read are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -518,7 +518,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient lifetime, tracker operations and observations, write/clear/order coupling,
+  transient writes and lifetime, other tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
