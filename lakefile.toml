@@ -299,3 +299,7 @@ root = "StopNativeTests"
 name = "arithmetic-native-tests"
 srcDir = "scripts"
 root = "ArithmeticNativeTests"
+
+[[lean_exe]]
+name = "tload-native-tests"
+root = "scripts.TloadNativeTests"

@@ -177,7 +177,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
 | `forks/amsterdam/vm/instructions/stack.py::*` | 29–317 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | the `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
-| `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload`, `tstore` | |
+| `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
@@ -189,6 +189,12 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied TLOAD handler
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/storage.py:164–186` | `STFSpec.Vm.Instructions.tload` in `STFSpec/Vm/Instructions/Tload.lean`, exported by the Instructions facade | Pop one word and convert the whole key to 32 big-endian bytes. Charge `ctx.config.costs.opcodeTload`, then read transient storage at `ctx.currentTarget` through `liftState`. Push the result and advance PC. Stack underflow precedes charging. An unaffordable charge retains the pop and precedes the read. | Private local branch, framing and charge laws (§7) and complete bounded controls (§4). |
 
 ### Supplied arithmetic handlers
 
@@ -528,6 +534,33 @@ model for the raw Lean world and its additional metadata. The driver docstring
 gives the source invocation. It claims no interpreter dispatch, trace-hook,
 reachability, arbitrary-provider execution, EEST or guest result.
 
+**Executed TLOAD controls.**
+`scripts/TloadNativeTests.lean` runs the public handler on the input-only
+`tload_inputs.json` catalogue. Native and interpreted streams compare all nine
+frame fields, the six meter fields, block and transaction data, Lean write-order
+indexes and constants, four provider samples and the absence of provider calls.
+The cases cover empty and full stacks, exact and insufficient gas, a zero key,
+absence and an explicit zero over persistent writes. They include competing
+truncated and reversed keys, distinct full target addresses, static and regular
+contexts, and raw prices of zero and more than 256 bits. Return data, logs,
+memory, deletion and warm sets carry independent values.
+
+`tload_differential.py` runs the pinned TLOAD function on real Evm, GasMeter
+and State tracker carriers in isolated normal and optimized Python. It binds
+the loaded EELS source to the pinned Git objects and checks installed package
+versions and RECORD hashes. Eight cases at the pinned price of 100 compare all
+frame fields and the shared world fields against both Lean streams. The source
+worker checks preservation of its remaining context and control fields, and
+records the gas event and the original transient read's address and key. Three
+Lean-only cases cover a zero configured price and both sides of a charge above
+word width. CONTRIBUTING §6.3 gives the commands.
+
+A separate native `Id` probe builds a 1,024-word stack using a runtime-supplied
+length and passes the frame once to TLOAD. In the pinned Lean build, both pop
+and push receive an exclusive array and reuse it in this case. Stack growth,
+caller sharing and composed allocation remain cost obligations under
+EthVmCore §6 and REVIEW §7.
+
 **Supplied settled child outcome controls.**
 `STFSpec/Conformance/Vm/Instructions/ChildOutcomeCallerProofs.lean` imports only
 the public Instructions facade. Private ordinary clients check the exact ordered
@@ -662,6 +695,7 @@ def smod {m : Type → Type} [Monad m] : Handler m
 def addmod {m : Type → Type} [Monad m] : Handler m
 def mulmod {m : Type → Type} [Monad m] : Handler m
 def signextend {m : Type → Type} [Monad m] : Handler m
+def tload {m : Type → Type} [Monad m] : Handler m
 
 -- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
@@ -671,7 +705,7 @@ def signextend {m : Type → Type} [Monad m] : Handler m
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- pop, mload, mstore, mstore8, sload, sstore, jump, jumpi, pc, msize, gasLeft, jumpdest,
--- tload, tstore, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
+-- tstore, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
 -- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
@@ -690,7 +724,7 @@ theorem step_iff : step ctx f w = .ok (r, w') ↔ Step ctx f w r w'
 theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ → r₁ = r₂ ∧ w₁ = w₂
 ```
 
-**State API consumed from `EthState`** (names as in `state_tracker.py`, each `Except WitnessError`): `getAccount`, `getCode` (hash-only, EthState §5; the tracker action remains unimplemented), `getStorage`, `getStorageOriginal`, `getTransientStorage`, `setStorage`, `setTransientStorage`, `isAccountAlive`, `accountDeployable`, `incrementNonce`, `moveEther` (may raise the balance-overflow fault), `createdAccounts`, `trackAncestorAccess` (on `world.tx.block.oldestAncestorOffset`). From EthCodec: `computeContractAddressQ`, `computeCreate2ContractAddressQ` (the `KeccakQuery` forms, D5). From EthBase: `Address.ofU256Masked` (`to_address_masked`).
+**State API consumed from `EthState`** (names as in `state_tracker.py`): `getAccount`, `getCode` (hash-only, EthState §5; the tracker action remains unimplemented), `getStorage`, `getStorageOriginal`, `getTransientStorage` (the supplied `StateM m U256` action, EthState §5/§7), `setStorage`, `setTransientStorage`, `isAccountAlive`, `accountDeployable`, `incrementNonce`, `moveEther` (may raise the balance-overflow fault), `createdAccounts`, `trackAncestorAccess` (on `world.tx.block.oldestAncestorOffset`). From EthCodec: `computeContractAddressQ`, `computeCreate2ContractAddressQ` (the `KeccakQuery` forms, D5). From EthBase: `Address.ofU256Masked` (`to_address_masked`).
 
 ## 6. Data structures
 
@@ -756,6 +790,25 @@ boundaries using public provider laws. No authored public helper-law family is
 added. The fixed ctx index prevents a handler result from returning a changed
 context. Actual operation effects, preservation/progress, source refinement,
 child execution, settlement/resume and F11 remain separate obligations.
+
+**Supplied TLOAD contract.** The handler uses `Monad m` alone and charges the
+raw Nat price from the supplied context. Underflow returns the original frame
+and world. OOG returns the frame with the pop applied and the original meter, PC
+and world. These private equations retain literal underlying `pure`. At Id,
+an affordable charge and successful pop give a successful push of exactly the
+transient word, defaulting to zero. Public Stack laws establish space after the
+pop, and the State action law through `liftState` retains the supplied world.
+Success changes the stack, PC and `gasLeft`. The resulting meter potential plus
+the selected cost equals the original potential. Both static and regular
+contexts follow the same path, and both warm sets are retained. Source
+comparisons use the pinned price and the field relations in §4.
+
+The executable handler checks `Stack.size` before consuming the stack. The
+Stack laws rule out pop failure on the nonempty branch and push failure
+after a successful pop. These proofs let the compiler omit the branches
+that would keep previous stack arrays alive across pop and push. A private
+ordinary equality connects the executable handler to the source-shaped
+reference for every `Monad` instance.
 
 **Supplied STOP law.** For every `{m : Type → Type} [Monad m]`, context,
 complete frame and world, `stop_run` states
@@ -1257,11 +1310,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/TLOAD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/TLOAD effects and their local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
@@ -1277,6 +1330,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-two ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
+- **Standalone TLOAD supplied.** §3/§4/§5/§7 own the handler, its private local
+  laws and isolated direct-source tests. TSTORE, dispatch and interpreter trace
+  refinement, reachable source-world refinement and composed execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).

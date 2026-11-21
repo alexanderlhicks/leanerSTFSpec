@@ -166,6 +166,11 @@ lake env lean --run scripts/StopNativeTests.lean > .lake/stop-interpreted.jsonl
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-interpreted.jsonl
 uv run --no-project --python 3.12 python -B scripts/test_stop_output_parser.py
 uv run --no-project --python 3.12 python -B -O scripts/test_stop_output_parser.py
+lake build tload-native-tests --wfail
+lake exe check-decls scripts.TloadNativeTests
+lake exe tload-native-tests STFSpec/Conformance/Vm/Instructions/tload_inputs.json > .lake/tload-native.jsonl
+lake env lean --run scripts/TloadNativeTests.lean STFSpec/Conformance/Vm/Instructions/tload_inputs.json > .lake/tload-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/tload_differential.py --check-target .lake/tload-native.jsonl --check-target .lake/tload-interpreted.jsonl
 lake build bytes-native-tests --wfail
 lake exe check-decls BytesNativeTests && lake exe bytes-native-tests
 lake build kzg-versioned-hash-native-tests --wfail
@@ -360,6 +365,13 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 ```
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
+
+The standalone TLOAD source comparison needs the pinned EELS clone and its
+frozen installed `.venv`. Run it after capturing the two Lean streams above.
+
+```sh
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/tload_differential.py --eels EELS --check-target .lake/tload-native.jsonl --check-target .lake/tload-interpreted.jsonl --report .lake/tload-source.json
+```
 
 The account read and transient storage read source comparisons require a pinned
 EELS clone with its frozen installed `.venv`. Run the commands from the repository root.
