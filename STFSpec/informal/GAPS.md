@@ -740,11 +740,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
   exactly ChildSettled and its constructive Decidable instance. Private logical,
-  all-frame, each-clause, decision and conditional public rollback/forfeit clients
-  supply no actual non-top C=0 initialization/preservation, incorporation,
-  processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
-  FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
-  G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
+  decision and conditional rollback/forfeit clients cover all frames and each clause.
+  EthVmInstructions §7 supplies zero committed spill at child entry. Preservation
+  through execution, incorporation, processCall/processCreate settlement and
+  snapshots, proof production, the ChildOutcome/FrameResult adapter and resume
+  remain open. So do F11's production choice, generic Q83 bridges, G1/G2–G7, S2,
+  resources and VM/guest/EEST/readiness.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
@@ -894,16 +895,21 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
+  source sites and the private complete facade clients. The runner still needs
+  to assemble context and frame, prove the committed-spill clause through
+  execution, and bound the returned potential by the child's grant (G2).
 
 - **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
-  ChildSettled predicate and constructive Decidable instance only. Actual non-top
-  committed-spill-zero initialization/preservation, call/create settlement and
-  snapshots, returned proof production, incorporation and child/resume remain open.
+  ChildSettled predicate and constructive Decidable instance. Non-top
+  committed-spill-zero preservation, call/create settlement and snapshots,
+  returned proof production, incorporation and child/resume remain open.
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
@@ -979,9 +985,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthVmRunner`](modules/EthVmRunner.md)
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
-  ChildSettled predicate and constructive Decidable instance only. Actual non-top
-  committed-spill-zero initialization/preservation, call/create settlement and
-  snapshots, returned proof production, incorporation and child/resume remain open.
+  ChildSettled predicate and constructive Decidable instance. EthVmInstructions §7
+  supplies the committed-spill clause at child entry. Preservation through execution,
+  call/create settlement and snapshots, returned proof production, incorporation
+  and child/resume remain open.
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 

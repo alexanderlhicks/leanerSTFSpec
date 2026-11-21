@@ -3,6 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Vm.Instructions.CallRequest
+import STFSpec.Vm.Instructions.ChildFrame
 import STFSpec.Vm.Instructions.ChildOutcome
 import STFSpec.Vm.Instructions.CreateRequest
 import STFSpec.Vm.Instructions.Handler
@@ -20,7 +21,7 @@ Library `EthVmInstructions`. Its allowed dependencies are listed in `scripts/bou
 class-free `Handler` signature, opcode byte conversions, STOP and its complete
 run law, and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD with their ordered case/accounting laws are supplied.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
-Other handlers, dispatch, step,
-child construction and resume remain unimplemented.
+The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
+Other handlers, dispatch, step, child context construction and resume remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
 -/
