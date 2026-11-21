@@ -69,6 +69,7 @@ import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StepResultCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StopCallerProofs
+import STFSpec.Conformance.Vm.Instructions.TstoreChecks
 import STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
