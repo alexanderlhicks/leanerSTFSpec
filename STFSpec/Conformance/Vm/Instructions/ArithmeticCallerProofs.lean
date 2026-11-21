@@ -561,4 +561,173 @@ private theorem mulmod_numeric_model {m : Type → Type} [Monad m]
   refine ⟨out, ?_, hr⟩
   rw [hm, List.map_cons, U256.toNat_mulmod]
 
+section
+local notation "expCost(" ctx ", " exponent ")" =>
+  (GasCosts.opcodeExpBase (VmConfig.costs (FrameCtx.config ctx)) +
+    GasCosts.opcodeExpPerByte (VmConfig.costs (FrameCtx.config ctx)) *
+    ((U256.bitLength exponent + 7) / 8))
+
+private def expSignature {m : Type → Type} [Monad m] : Handler m := exp
+
+private theorem exp_run_empty_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((exp ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) :=
+  exp_run_empty ctx f w h
+
+private theorem exp_run_singleton_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base : U256)
+    (h : f.stack.toList = [base]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.toList = [] ∧
+      ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) :=
+  exp_run_singleton ctx f w base h
+
+private theorem exp_run_oog_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : f.gasMeter.gasLeft < expCost(ctx, exponent)) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ ((exp ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) :=
+  exp_run_oog ctx f w base exponent xs h hc
+
+private theorem exp_run_success_client {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : expCost(ctx, exponent) ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (base, s₁) ∧ s₁.pop = .ok (exponent, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.exp base exponent) = .ok out ∧
+      out.toList = U256.exp base exponent :: xs ∧
+      ((exp ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - expCost(ctx, exponent) } }, w)) :=
+  exp_run_success ctx f w base exponent xs h hc
+
+private theorem exp_continue_phi_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + expCost(ctx, exponent) = f.gasMeter.phi :=
+  exp_continue_phi ctx f f' w w' base exponent xs hstack hrun
+
+private theorem exp_continue_progress_client (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hstack : f.stack.toList = base :: exponent :: xs)
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ expCost(ctx, exponent)) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi :=
+  exp_continue_progress ctx f f' w w' base exponent xs hstack hrun hc
+
+private theorem exp_numeric_model {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base exponent : U256) (xs : List U256)
+    (h : f.stack.toList = base :: exponent :: xs) (hc : expCost(ctx, exponent) ≤ f.gasMeter.gasLeft) :
+    ∃ out : Stack, out.toList.map U256.toNat =
+      (base.toNat ^ exponent.toNat % 2^256) :: xs.map U256.toNat ∧
+      ((exp ctx f).run w).run = pure (Except.ok (.continue {f with
+        pc := f.pc + 1, stack := out, gasMeter := {f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - expCost(ctx, exponent)}}, w)) := by
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := exp_run_success ctx f w base exponent xs h hc
+  refine ⟨out, ?_, hr⟩
+  rw [hm, List.map_cons, U256.toNat_exp]
+
+private theorem exp_actual_pop_accounting (ctx : FrameCtx) (f f' : Frame)
+    (w w' : VmWorld Id) (base exponent : U256) (s₁ s₂ : Stack)
+    (h₁ : f.stack.pop = .ok (base, s₁)) (h₂ : s₁.pop = .ok (exponent, s₂))
+    (hrun : ((exp ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + expCost(ctx, exponent) = f.gasMeter.phi := by
+  have hm₁ := (Stack.pop_eq_ok_iff f.stack s₁ base).mp h₁
+  have hm₂ := (Stack.pop_eq_ok_iff s₁ s₂ exponent).mp h₂
+  have hs : f.stack.toList = base :: exponent :: s₂.toList := by rw [hm₁, hm₂]
+  exact exp_continue_phi ctx f f' w w' base exponent s₂.toList hs hrun
+
+private theorem exp_zero_cost (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base exponent : U256) (xs : List U256)
+    (hs : f.stack.toList = base :: exponent :: xs)
+    (hr : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hb : ctx.config.costs.opcodeExpBase = 0)
+    (hp : ctx.config.costs.opcodeExpPerByte = 0) : f'.gasMeter.phi = f.gasMeter.phi := by
+  have h := exp_continue_phi ctx f f' w w' base exponent xs hs hr
+  simpa only [hb, hp, Nat.zero_mul, Nat.add_zero] using h
+
+private theorem exp_per_byte_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base : U256) (xs : List U256)
+    (hs : f.stack.toList = base :: U256.one :: xs)
+    (hr : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hb : ctx.config.costs.opcodeExpBase = 0)
+    (hp : ctx.config.costs.opcodeExpPerByte = 1) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  apply exp_continue_progress ctx f f' w w' base U256.one xs hs hr
+  simp only [hb, hp, U256.bitLength_def, U256.toNat_one]
+  decide
+
+private theorem exp_zero_exponent_value {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base : U256) (xs : List U256)
+    (hs : f.stack.toList = base :: U256.zero :: xs)
+    (hc : ctx.config.costs.opcodeExpBase ≤ f.gasMeter.gasLeft) :
+    ∃ out : Stack, out.toList = U256.one :: xs ∧
+      ((exp ctx f).run w).run = pure (Except.ok (.continue {f with
+        pc := f.pc + 1, stack := out, gasMeter := {f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeExpBase}}, w)) := by
+  have hb : U256.bitLength U256.zero = 0 := by
+    simp only [U256.bitLength_def, U256.toNat_zero, ↓reduceIte]
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := exp_run_success ctx f w base U256.zero xs hs
+    (by simpa only [hb, Nat.zero_add, Nat.reduceDiv, Nat.mul_zero, Nat.add_zero] using hc)
+  refine ⟨out, ?_, ?_⟩
+  · simpa only [U256.exp_zero] using hm
+  · simpa only [hb, Nat.zero_add, Nat.reduceDiv, Nat.mul_zero, Nat.add_zero] using hr
+
+private theorem exp_one_exponent_result {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (base : U256) (xs : List U256)
+    (hs : f.stack.toList = base :: U256.one :: xs)
+    (hc : ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte ≤
+      f.gasMeter.gasLeft) :
+    ∃ out : Stack, out.toList = base :: xs ∧
+      ((exp ctx f).run w).run = pure (Except.ok (.continue {f with
+        pc := f.pc + 1, stack := out, gasMeter := {f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft -
+            (ctx.config.costs.opcodeExpBase + ctx.config.costs.opcodeExpPerByte)}}, w)) := by
+  have hb : U256.bitLength U256.one = 1 := by
+    rw [U256.bitLength_def, U256.toNat_one]
+    rfl
+  obtain ⟨_, _, out, _, _, _, _, hm, hr⟩ := exp_run_success ctx f w base U256.one xs hs
+    (by simpa only [hb, Nat.reduceAdd, Nat.reduceDiv, Nat.mul_one] using hc)
+  refine ⟨out, ?_, ?_⟩
+  · simpa only [U256.exp_one] using hm
+  · simpa only [hb, Nat.reduceAdd, Nat.reduceDiv, Nat.mul_one] using hr
+
+private theorem exp_zero_exponent_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (base : U256) (xs : List U256)
+    (hs : f.stack.toList = base :: U256.zero :: xs)
+    (hr : ((exp ctx f).run w).run = .ok (.continue f', w'))
+    (hb : ctx.config.costs.opcodeExpBase = 0) : f'.gasMeter.phi = f.gasMeter.phi := by
+  have hp := exp_continue_phi ctx f f' w w' base U256.zero xs hs hr
+  simpa only [hb, U256.bitLength_def, U256.toNat_zero, ↓reduceIte,
+    Nat.zero_add, Nat.reduceDiv, Nat.mul_zero, Nat.add_zero] using hp
+
+private theorem exp_byte_count_bound (exponent : U256) :
+    (U256.bitLength exponent + 7) / 8 ≤ 32 := by
+  have h := U256.bitLength_le exponent
+  omega
+
+private theorem exp_one_value (base : U256) : U256.exp base U256.one = base :=
+  U256.exp_one base
+
+private theorem exp_one_base (exponent : U256) : U256.exp U256.one exponent = U256.one :=
+  U256.one_exp exponent
+
+private theorem exp_zero_base (exponent : U256) (h : exponent.toNat ≠ 0) :
+    U256.exp U256.zero exponent = U256.zero := U256.zero_exp exponent h
+
+private theorem exp_short_stack_no_continue (ctx : FrameCtx) (f f' : Frame)
+    (w w' : VmWorld Id) (h : f.stack.toList = [] ∨ ∃ base, f.stack.toList = [base]) :
+    ((exp ctx f).run w).run ≠ .ok (.continue f', w') := by
+  rcases h with h | ⟨base, h⟩
+  · rw [exp_run_empty ctx f w h]
+    intro he
+    cases he
+  · obtain ⟨_, _, _, hr⟩ := exp_run_singleton ctx f w base h
+    rw [hr]
+    intro he
+    cases he
+
+end
+
 end STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs

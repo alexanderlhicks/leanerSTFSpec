@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Bounded ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD frame comparison; no dispatch, trace, reachability or guest claim.
+"""Bounded ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP frame comparison; no dispatch, trace, reachability or guest claim.
 
 Parser: canonical Python 3.12, --check-target FILE. Source mode: the frozen
 EELS/.venv/bin/python [-O] -I -B SCRIPT --source --eels EELS --wheels WHEELS
 --output FRESH_DIRECTORY --frames FILE. --preflight authenticates without calls.
-The real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD execute with a fail-on-access PreState provider;
+The real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP execute with a fail-on-access PreState provider;
 that provider is instrumentation, not a state backend or interpreter execution.
 """
 
@@ -111,16 +111,56 @@ def cases():
     extra = json.loads(Path(__file__).with_name("arithmetic_signextend_inputs.json").read_text())
     result.extend(extra)
     result.extend(json.loads(Path(__file__).with_name("arithmetic_ternary_inputs.json").read_text()))
+    result.extend(json.loads(Path(__file__).with_name("arithmetic_exp_inputs.json").read_text()))
     return result
 
 
 def write_input(path):
     rows = []
     for c in cases():
+        if c["op"] == "exp":
+            rows.append("\t".join(map(str, [c["case"], c["op"], c["expBase"],
+                c["expPerByte"], c["otherCost"], c["veryLow"], c["gas"], c["pc"],
+                int(c["upper"]), ",".join(map(str, c["words"])) or "-"])))
+            continue
         rows.append("\t".join(map(str, [c["case"], c["op"], c["cost"], c["otherCost"],
             c["veryLow"], c["gas"], c["pc"], int(c["upper"]),
             ",".join(map(str, c["words"])) or "-"])))
     path.write_text("\n".join(rows) + "\n")
+
+
+def expected_exp(c, world):
+    """Independent modular-power model; byte count uses natural integer bit length."""
+    before = {
+        "pc": c["pc"], "stack": c["words"],
+        "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
+        "meter": [c["gas"], 101, 2, -17, 5, 11],
+        "logs": [[256, [256, 1, 256], [255, 0, 128]]] * 2,
+        "deleted": [256], "returnData": [0, 255, 128, 0],
+        "warmAddresses": [1], "warmSlots": [[1, 256], [256, 1]],
+    }
+    after = copy.deepcopy(before)
+    operands = []
+    for _ in range(2):
+        if after["stack"]:
+            operands.append(after["stack"].pop(0))
+    tag, error = "halt", "stackUnderflow"
+    if len(operands) == 2:
+        base, exponent = operands
+        cost = c["expBase"] + c["expPerByte"] * ((exponent.bit_length() + 7) // 8)
+        if c["gas"] < cost:
+            error = "outOfGas"
+        else:
+            after["stack"].insert(0, pow(base, exponent, 2**256))
+            after["meter"][0] -= cost
+            after["pc"] += 1
+            tag, error = "continue", None
+    row = {key: c[key] for key in
+           ["case", "op", "expBase", "expPerByte", "otherCost", "veryLow", "upper"]}
+    row.update(schema="arithmetic-v1", before=before, after=after, tag=tag, error=error,
+               phiBefore=c["gas"] + 16, phiAfter=after["meter"][0] + 16,
+               worldBefore=world, worldAfter=world)
+    return row
 
 
 def expected_frames():
@@ -132,6 +172,9 @@ def expected_frames():
     }
     rows = []
     for c in cases():
+        if c["op"] == "exp":
+            rows.append(expected_exp(c, world))
+            continue
         before = {
             "pc": c["pc"], "stack": c["words"],
             "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
@@ -223,19 +266,19 @@ def exact(actual, expected):
 
 
 def compare_frames(data):
-    require(len(data) <= 3_000_000, "oversized ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD evidence")
+    require(len(data) <= 3_000_000, "oversized ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP evidence")
     try:
         rows = [json.loads(line, object_pairs_hook=pairs,
                            parse_constant=lambda _: (_ for _ in ()).throw(FrameError("constant")))
                 for line in data.splitlines()]
     except (ValueError, RecursionError) as error:
-        raise FrameError("malformed ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD evidence") from error
+        raise FrameError("malformed ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP evidence") from error
     exact(rows, expected_frames())
     return rows
 
 
 def source_compare(args):
-    """Authenticate the frozen source and installed imports before executing ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD."""
+    """Authenticate the frozen source and installed imports before executing ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP."""
     import builtins
     import base64
     import dataclasses
@@ -256,6 +299,7 @@ def source_compare(args):
         "original mode requires pinned venv interpreter -I -B",
     )
     require(sys.flags.optimize in (0, 1), "source requires normal Python or -O")
+    require(sys.version_info[:3] == (3, 13, 5), "frozen source interpreter version")
     eels, output, wheels = args.eels.resolve(), args.output.resolve(), args.wheels.resolve()
     require(
         Path(sys.executable).absolute() == eels / ".venv/bin/python", "wrong lexical interpreter"
@@ -556,6 +600,16 @@ def source_compare(args):
             int(gas_module.GasCosts.OPCODE_MULMOD) == 8, "pinned ternary prices")
     require(importlib.metadata.version("ethereum-types") == "0.4.1" and
             importlib.metadata.version("ethereum-rlp") == "0.1.6", "numeric/RLP pin")
+    original_pow = builtins.pow
+    original_max = U256.MAX_VALUE
+    original_int_methods = [int.__pow__, int.bit_length, int.__floordiv__, int.__int__]
+    require(control.__dict__.get("pow", control.__builtins__["pow"]) is original_pow
+            and type(original_max) is U256 and int(original_max) == 2**256 - 1
+            and control.ExecutionGas is fork.ExecutionGas
+            and control.exp.__code__.co_firstlineno == 294
+            and int(gas_module.GasCosts.OPCODE_EXP_BASE) == 10
+            and int(gas_module.GasCosts.OPCODE_EXP_PER_BYTE) == 50,
+            "original EXP bindings, modulus and raw prices")
     functions = [control.add, control.sub, control.mul, control.div,
                  control.sdiv, control.mod, control.smod, control.signextend, control.addmod, control.mulmod, vm.Evm.__init__,
                  stack_module.pop, stack_module.push,
@@ -565,7 +619,9 @@ def source_compare(args):
                  U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__,
                  U256.to_be_bytes32, U256.from_be_bytes.__func__,
                  U256.__gt__, U256.__add__, U256.__sub__, U256.__int__,
-                 Uint.__mul__, Uint.__mod__, Uint.__eq__]
+                 Uint.__mul__, Uint.__mod__, Uint.__eq__, control.exp,
+                 Uint.bit_length, Uint.__floordiv__, Uint.__pow__, Uint.__int__,
+                 Uint._in_range, U256._in_range, Uint.__lt__, Uint.__isub__, Uint.__iadd__]
     original_functions = list(functions)
     require([int(Uint(x) + Uint(1)) for x in (0, 2**64, 2**300 + 19)] ==
             [1, 2**64 + 1, 2**300 + 20], "Uint exact successor relation")
@@ -597,7 +653,9 @@ def source_compare(args):
                  U256.__init__, Uint.__init__, Uint.__add__, Uint.__sub__,
                  U256.to_be_bytes32, U256.from_be_bytes.__func__,
                  U256.__gt__, U256.__add__, U256.__sub__, U256.__int__,
-                 Uint.__mul__, Uint.__mod__, Uint.__eq__]
+                 Uint.__mul__, Uint.__mod__, Uint.__eq__, control.exp,
+                 Uint.bit_length, Uint.__floordiv__, Uint.__pow__, Uint.__int__,
+                 Uint._in_range, U256._in_range, Uint.__lt__, Uint.__isub__, Uint.__iadd__]
                 == original_functions and control.Uint is Uint and control.U256 is U256 and
             control.GasCosts is gas_module.GasCosts and
                 all(f.__globals__ is vars(control) for f in original_functions[:10]) and
@@ -612,7 +670,25 @@ def source_compare(args):
             control.get_sign is sign_module.get_sign and control.U255_CEIL_VALUE == 2**255 and control.Bytes is bytes_module.Bytes and
             control.Bytes is bytes,
                 "source binding changed")
+        require([int.__pow__, int.bit_length, int.__floordiv__, int.__int__] == original_int_methods
+                and control.exp.__globals__ is vars(control)
+                and builtins.pow is original_pow
+                and control.__dict__.get("pow", control.__builtins__["pow"]) is original_pow
+                and U256.MAX_VALUE is original_max and int(original_max) == 2**256 - 1
+                and control.ExecutionGas is fork.ExecutionGas
+                and int(gas_module.GasCosts.OPCODE_EXP_BASE) == 10
+                and int(gas_module.GasCosts.OPCODE_EXP_PER_BYTE) == 50,
+                "EXP binding changed")
         return {
+            "exp": {"pow_module": original_pow.__module__, "pow_name": original_pow.__qualname__,
+                    "pow_id": id(original_pow), "pow_type": type(original_pow).__name__,
+                    "max_value": int(original_max), "max_value_id": id(original_max), "max_value_type": type(original_max).__name__,
+                    "modulus": int(Uint(original_max) + Uint(1)),
+                    "modulus_type": type(Uint(original_max) + Uint(1)).__name__, "exp_base": 10, "exp_per_byte": 50,
+                    "execution_gas_id": id(control.ExecutionGas),
+                    "builtin_integer_methods": [{"qualname": f.__qualname__, "id": id(f),
+                                                 "type": type(f).__name__}
+                                                for f in original_int_methods]},
             "runtime": {"executable": str(Path(sys.executable).absolute()),
                         "binary": identity(Path(sys.executable).resolve()),
                         "version": sys.version, "flags": str(sys.flags),
@@ -622,7 +698,7 @@ def source_compare(args):
                            "code_sha256": sha(marshal.dumps(f.__code__, 2))} for f in functions],
             "sources": loaded_sources, "installed": installed, "records": record_files,
             "wheels": wheel_records, "trusted_startup_files": startup_inputs,
-            "adapter": "real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD; fail-on-access PreState; direct body only",
+            "adapter": "real Evm and original ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP; fail-on-access PreState; direct body only",
         }
 
     before_identity = snapshot()
@@ -640,13 +716,13 @@ def source_compare(args):
 
     class UnreadPreState:
         def get_account_optional(self, address):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state account")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP accessed pre-state account")
         def get_storage(self, address, key):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state storage")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP accessed pre-state storage")
         def get_code(self, code_hash):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state code")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP accessed pre-state code")
         def state_root(self, diff):
-            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD accessed pre-state root")
+            raise FrameError("ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP accessed pre-state root")
 
     def address(n):
         return fork.Address(n.to_bytes(20, "big"))
@@ -719,7 +795,7 @@ def source_compare(args):
     source_functions = {"add": control.add, "sub": control.sub,
                         "mul": control.mul, "div": control.div, "sdiv": control.sdiv,
                         "mod": control.mod, "smod": control.smod, "signextend": control.signextend,
-                        "addmod": control.addmod, "mulmod": control.mulmod}
+                        "addmod": control.addmod, "mulmod": control.mulmod, "exp": control.exp}
     source_prices = {"add": int(gas_module.GasCosts.OPCODE_ADD),
                      "sub": int(gas_module.GasCosts.OPCODE_SUB),
                      "mul": int(gas_module.GasCosts.OPCODE_MUL),
@@ -730,7 +806,9 @@ def source_compare(args):
                      "signextend": int(gas_module.GasCosts.OPCODE_SIGNEXTEND),
                      "addmod": int(gas_module.GasCosts.OPCODE_ADDMOD),
                      "mulmod": int(gas_module.GasCosts.OPCODE_MULMOD)}
-    related = [row for row in frames if row["cost"] == source_prices[row["op"]]]
+    related = [row for row in frames if
+               ((row["expBase"], row["expPerByte"]) == (10, 50) if row["op"] == "exp"
+                else row["cost"] == source_prices[row["op"]])]
     progress = 0
     try:
         with (output / "observations.jsonl").open("x") as observed:
@@ -772,7 +850,7 @@ def source_compare(args):
         require(before_identity == after_identity and pinned_before == pin_after,
                 "source/runtime identities changed")
     print(json.dumps({"source_calls": progress, "raw_price_lean_only": len(frames) - len(related),
-                      "actual_original_ADD_SUB_MUL_DIV_SDIV_MOD_SMOD_SIGNEXTEND_ADDMOD_MULMOD": True, "dispatch_or_guest_execution": False}))
+                      "actual_original_ADD_SUB_MUL_DIV_SDIV_MOD_SMOD_SIGNEXTEND_ADDMOD_MULMOD_EXP": True, "dispatch_or_guest_execution": False}))
 
 
 

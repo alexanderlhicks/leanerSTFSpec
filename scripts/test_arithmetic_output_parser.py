@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD framing and actual CLI regressions, under normal Python and -O."""
+"""ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP framing and actual CLI regressions, under normal Python and -O."""
 
 import copy
 import importlib.util
@@ -320,6 +320,136 @@ class ArithmeticParserTests(unittest.TestCase):
                     valid.replace('"op": "addmod"', '"op": "addmod", "extra": 0', 1)]:
             with self.assertRaises(module.FrameError):
                 module.compare_frames(bad)
+
+    def test_exp_value_and_charge_controls(self):
+        rows = module.expected_frames()
+        selected = [(i, r) for i, r in enumerate(rows) if r["op"] == "exp"]
+        def reject(i, changed):
+            bad = copy.deepcopy(rows)
+            self.assertNotEqual(changed, rows[i])
+            bad[i] = changed
+            with self.subTest(case=i), self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+        def charged(r, amount):
+            wrong = copy.deepcopy(r)
+            wrong["after"] = copy.deepcopy(r["before"])
+            base, exponent = wrong["after"]["stack"][:2]
+            wrong["after"]["stack"] = wrong["after"]["stack"][2:]
+            if r["before"]["meter"][0] < amount:
+                wrong["tag"], wrong["error"] = "halt", "outOfGas"
+            else:
+                wrong["tag"], wrong["error"] = "continue", None
+                wrong["after"]["stack"].insert(0, pow(base, exponent, 2**256))
+                wrong["after"]["meter"][0] -= amount
+                wrong["after"]["pc"] += 1
+            wrong["phiAfter"] = wrong["after"]["meter"][0] + 16
+            return wrong
+        # Each wrong charging rule must produce a proper-shaped different observation.
+        rules = {
+            "base byte count": lambda r, b, e: r["expBase"] + r["expPerByte"] * ((b.bit_length()+7)//8),
+            "zero needs one byte": lambda r, b, e: r["expBase"] + r["expPerByte"] * max(1,(e.bit_length()+7)//8),
+            "floor bytes": lambda r, b, e: r["expBase"] + r["expPerByte"] * (e.bit_length()//8),
+            "truncated exponent": lambda r, b, e: r["expBase"] + r["expPerByte"] * (((e % 2**64).bit_length()+7)//8),
+            "signed exponent": lambda r, b, e: r["expBase"] + r["expPerByte"] * ((abs(e if e < 2**255 else e-2**256).bit_length()+7)//8),
+            "swapped prices": lambda r, b, e: r["expPerByte"] + r["expBase"] * ((e.bit_length()+7)//8),
+            "sibling price": lambda r, b, e: r["otherCost"],
+            "tier price": lambda r, b, e: r["veryLow"],
+            "wrapped charge": lambda r, b, e: (r["expBase"] + r["expPerByte"]*((e.bit_length()+7)//8)) % 2**256,
+            "zero exponent free": lambda r, b, e: 0 if e == 0 else r["expBase"] + r["expPerByte"]*((e.bit_length()+7)//8),
+        }
+        for name, rule in rules.items():
+            found = False
+            for i, r in selected:
+                if len(r["before"]["stack"]) < 2:
+                    continue
+                b, e = r["before"]["stack"][:2]
+                wrong = charged(r, rule(r,b,e))
+                if wrong != r:
+                    with self.subTest(rule=name): reject(i, wrong)
+                    found = True
+                    break
+            self.assertTrue(found, name)
+        i, r = next((i,r) for i,r in selected if r["tag"] == "continue" and
+                    pow(r["before"]["stack"][1],r["before"]["stack"][0],2**256) != r["after"]["stack"][0])
+        wrong = copy.deepcopy(r)
+        wrong["after"]["stack"][0] = pow(r["before"]["stack"][1],r["before"]["stack"][0],2**256)
+        reject(i, wrong)
+        wrong = copy.deepcopy(r); wrong["after"]["stack"][0] ^= 1; reject(i, wrong)
+        for depth in (0,1):
+            i,r = next((i,r) for i,r in selected if len(r["before"]["stack"]) == depth)
+            wrong=copy.deepcopy(r); wrong["error"]="outOfGas"; reject(i,wrong)
+            wrong=copy.deepcopy(r); wrong["after"]["meter"][0]+=1; reject(i,wrong)
+            if depth:
+                wrong=copy.deepcopy(r); wrong["after"]["stack"]=r["before"]["stack"]; reject(i,wrong)
+        i,r=next((i,r) for i,r in selected if r["error"] == "outOfGas")
+        for key,value in [("stack",r["before"]["stack"][1:]),("pc",r["before"]["pc"]+1),
+                          ("meter",[r["before"]["meter"][0]+1]+r["before"]["meter"][1:])]:
+            wrong=copy.deepcopy(r); wrong["after"][key]=value; reject(i,wrong)
+
+    def test_exp_complete_fields_types_and_framing(self):
+        rows=module.expected_frames()
+        i=next(i for i,r in enumerate(rows) if r["op"] == "exp" and r["tag"] == "continue")
+        def reject(path,value):
+            bad=copy.deepcopy(rows); target=bad[i]
+            for key in path[:-1]: target=target[key]
+            target[path[-1]]=value
+            with self.subTest(path=path,value=value), self.assertRaises(module.FrameError):
+                module.compare_frames(wire(bad))
+        for section in ["before","after"]:
+            for key in rows[i][section]: reject((section,key),None)
+        for section in ["worldBefore","worldAfter"]:
+            for key in rows[i][section]: reject((section,key),None)
+        for path in [("after","pc"),("after","stack",0),("phiBefore",),("phiAfter",),
+                     ("expBase",),("expPerByte",),("otherCost",),("veryLow",)]:
+            target=rows[i]
+            for key in path: target=target[key]
+            for value in [False,float(target),target+1]: reject(path,value)
+        for j in range(6): reject(("after","meter",j),rows[i]["after"]["meter"][j]+1)
+        for path in [("after","memory",0),("after","returnData",0),
+                     ("after","logs",0,1,0),("after","warmSlots",0,1),
+                     ("worldAfter","storageProviderSample")]:
+            target=rows[i]
+            for key in path: target=target[key]
+            reject(path,target+1)
+        for key in ["expBase","expPerByte"]:
+            bad=copy.deepcopy(rows); del bad[i][key]
+            with self.assertRaises(module.FrameError): module.compare_frames(wire(bad))
+        bad=copy.deepcopy(rows); bad[i]["cost"]=10
+        with self.assertRaises(module.FrameError): module.compare_frames(wire(bad))
+        valid=wire(rows)
+        for bad in [wire(rows[:843]+rows[844:]),wire(rows+[rows[-1]]),
+                    wire(rows[:843]+rows[843:][::-1]),
+                    valid.replace('"case": 843','"case": 843, "case": 843',1),
+                    valid.replace('"op": "exp"','"op": "exp", "extra": 0',1)]:
+            with self.assertRaises(module.FrameError): module.compare_frames(bad)
+
+    def test_exp_actual_decoder_rejections(self):
+        # Both native and interpreted entry points reject the same malformed input rows.
+        row=["843","exp","10","50","1000","71","60","9","0","2,1"]
+        probes=[row[:-1],row+["extra"]]
+        for j in [0,2,3,4,5,6,7,8]:
+            bad=row.copy(); bad[j]="-1"; probes.append(bad)
+        for j in [0,2,3,4,5,6,7,8]:
+            bad=row.copy(); bad[j]="bad"; probes.append(bad)
+        for j,value in [(1,"expp"),(8,"2"),(9,str(2**256)),(9,"1,"),(9,"-1"),
+                        (9,",".join(["1"]*1025))]:
+            bad=row.copy(); bad[j]=value; probes.append(bad)
+        root=SCRIPT.parents[4]
+        commands=[[str(root/".lake/build/bin/arithmetic-native-tests")],
+                  ["lake","env","lean","--run","scripts/ArithmeticNativeTests.lean"]]
+        with tempfile.TemporaryDirectory(prefix="exp-decoder-") as temporary:
+            path=Path(temporary)/"input.tsv"
+            for command in commands:
+                path.write_text("\t".join(row)+"\n")
+                result=subprocess.run(command+[str(path)],cwd=root,capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                self.assertEqual(json.loads(result.stdout)["expPerByte"],50)
+                for probe in probes:
+                    path.write_text("\t".join(probe)+"\n")
+                    result=subprocess.run(command+[str(path)],cwd=root,capture_output=True,text=True)
+                    with self.subTest(command=command,probe=probe[:9]):
+                        self.assertNotEqual(result.returncode,0)
+                        self.assertEqual(result.stdout,"")
 
     def test_framing(self):
         rows = module.expected_frames()

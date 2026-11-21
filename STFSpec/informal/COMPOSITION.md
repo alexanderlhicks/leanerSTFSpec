@@ -66,6 +66,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | STOP | EthVmInstructions | EthVmInstructions §3/§5/§7 owns the supplied handler and complete stop_run transformer equation under Monad alone. Use that law to retain the entire frame except PC+1 and the entire world, with empty output under literal underlying pure; source-entry output/error and field relations are separate. Generic pure has no supplied effect interpretation. Dispatch, reachable-entry/trace/source-model refinement and fuel/resource/guest gates remain open. |
 | ADD, SUB, MUL, DIV, SDIV, MOD, SMOD and SIGNEXTEND | EthVmInstructions | EthVmInstructions §3/§5/§7 owns the supplied Monad-only handlers, thirty-two complete ordered case laws and sixteen actual Id accounting/progress laws. Consume actual public pop/push witnesses and complete residual failure frames/worlds; use the independent selected opcodeAdd/opcodeSub/opcodeMul/opcodeDiv/opcodeSdiv/opcodeMod/opcodeSmod/opcodeSignextend Nat price. Empty/singleton underflow precedes charge; OOG retains both pops; success changes stack/PC/execution gas only. Phi loss equals selected cost and strict progress needs only 1≤cost. Source agreement separately specializes selected cost to 3 for ADD/SUB or 5 for MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND and supplies field relations; raw zero prices remain admitted. Trace, dispatch/step, settlement, whole source-world/reachability and composed gates stay open. |
 | ADDMOD and MULMOD | EthVmInstructions | EthVmInstructions §3/§5/§7 owns the two supplied Monad-only handlers and fourteen ordinary local laws. Consume all five complete run cases per handler, including third-pop underflow, actual three-pop/residual/push witnesses and complete frame/world equations. The independent selected opcodeAddmod/opcodeMulmod Nat price admits zero and arbitrary size. OOG retains all three pops; zero modulus still charges. Use public U256.toNat_addmod/U256.toNat_mulmod models for unbounded intermediates. Actual Id potential loss equals selected price; strict progress needs only 1≤price. Source price 8 and field correspondence remain separate; no new global WF, source-world, dispatch, reachability, fuel/resource or guest claim follows. |
+| EXP | EthVmInstructions | Use the handler and exactly six ordinary laws owned by EthVmInstructions §3/§7. Complete Monad-only equations retain both ordered pops, residual failures, push availability and whole world under literal pure. Actual-Id accounting needs the real base/exponent stack model; strict progress adds positivity only of the complete charge from the independent raw base/per-byte fields. Whole source-world, reachable/trace/dispatch and G2–G7/C1–C4 obligations remain open. |
 | BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT`, RunM, `runVmChecked` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; the F14 VM adapter is supplied below; actual caller propagation, execution and guest projection remain open, as do F11 and G2–G7. |
@@ -1147,6 +1148,18 @@ owned by §4; operation support and source parser/backing/host domains stay sepa
 NewPayloadRequest/input decoding, roots/O2, validation, guest and resource/
 security/readiness obligations remain open. This handoff adds no public helper,
 decoder policy, guest outcome or completed integration gate.
+
+EthVmInstructions §3/§4/§7 also supplies EXP and exactly six ordinary local
+laws. The four complete Monad-only equations retain ordered partial failures,
+actual pop/push witnesses and the complete supplied world under literal pure.
+Actual-Id accounting binds the exponent to the actual stack model and charges
+the independent raw base plus per-byte price times its rounded-up byte count;
+strict progress requires only positivity of that complete charge. The 414
+appended native/interpreted controls retain the old 843-case prefix; authenticated
+normal/-O source comparisons append 265 raw-pair-10/50 calls to the old 699.
+These local handler results leave whole source-world, trace/reachability,
+dispatch/step/settlement, G2–G7, replacement, C1–C4, EEST/guest and readiness
+gates open. EthVmInstructions owns the exact statements and bounded controls.
 
 ## 3. Inductive state invariant
 
