@@ -110,7 +110,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
 | `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
-| `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
+| `forks/amsterdam/state_tracker.py::get_transient_storage` | 327–349 | `getTransientStorage` | **Discharged read:** transaction transient lookup with a zero default and a complete action law below. |
 | `forks/amsterdam/state_tracker.py::account_exists` | 352 | `accountExists` | |
 | `forks/amsterdam/state_tracker.py::account_deployable` | 372 | `accountDeployable` | |
 | `forks/amsterdam/state_tracker.py::account_exists_and_is_empty` | 383 | `accountExistsAndIsEmpty` | |
@@ -192,6 +192,12 @@ retains exactly the initial WF/ModelsLookups/success domain and consumes only th
 public transaction account-view law and pre-transaction contracts. The future guided
 getAccount wrapper is the next consumer. Other trackers, actual providers,
 source error adapters, lifetimes, reachable history, full-State and cost gates remain open.
+
+### Implemented transient storage read
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Law and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:327–349` | `getTransientStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) : StateM m U256` in `State/TransientStorage.lean`, for every raw transaction state | Read the whole word at `(a, k)` in the transaction transient map. Return zero when the key is absent. Return the original transaction state through the base `pure` without a provider call, observation or typed failure. | **Discharged:** the complete `getTransientStorage_action` law (§7.1), a private facade client and the ten typed cases in §4. |
 
 ### Implemented raw transaction state and state monad
 
@@ -541,6 +547,22 @@ resource or C1–C4 result.
   reader; each actual probe worker returns its own compiled-source authentication.
   Accepted altered normal/opt1 caches are exercised through this worker entry point. The 15 raw-constant cases make no source-equivalence claim.
   The separate optional-account producer still executes and checks all original 66 cases.
+- **Implemented transient storage read controls.** `TransientStorageCallerProofs.lean`
+  checks the exact public type and consumes the complete action law.
+  `transient_storage_inputs.json` gives ten input cases with twelve reads per run.
+  They cover explicit zero and absence, a maximal word, first- and last-byte
+  differences in each key component, and repeated hits and misses. Each case
+  supplies conflicting persistent storage writes and nonempty observations.
+  `scripts/TransientStorageNativeTests.lean` emits each full answer, read call trace,
+  and all initial and returned state data, including raw order indexes and constants.
+  It samples each retained provider action outside the read trace. The ordinary
+  action law gives equality of the complete supplied provider functions.
+  `transient_storage_differential.py` checks the native and interpreted streams
+  against an independent integer model. `transient_storage_source.py` compares the
+  same answers, traces and source fields with the actual pinned tracker in normal
+  and optimized Python. Each worker compiles source directly and returns its own
+  authentication. A fail-on-access provider and identity checks cover the retained
+  source context.
 - **Implemented optional-account controls:** `PreStateAccountCallerProofs.lean`
   consumes only public action/framing/membership/model laws. The input-only
   `pre_state_account_inputs.json` has 66 cases distinguishing missing entries,
@@ -937,7 +959,8 @@ def getAccount (a : Address) : StateM m Account
 def getCode (codeHash : Hash32) : StateM m ByteArray
 def getStorage (a : Address) (k : Bytes32) : StateM m U256
 def getStorageOriginal (a : Address) (k : Bytes32) : StateM m U256
-def getTransientStorage (a : Address) (k : Bytes32) : StateM m U256
+def getTransientStorage {m : Type → Type} [Monad m]
+    (a : Address) (k : Bytes32) : StateM m U256 -- supplied, Monad only
 def accountExists (a : Address) : StateM m Bool
 def accountDeployable (a : Address) : StateM m Bool
 def accountExistsAndIsEmpty (a : Address) : StateM m Bool
@@ -1308,6 +1331,13 @@ The current optional action supplies exactly these six public laws:
 | `getAccountOptional_mem` | Id success: b is a post account-read member iff b=a or b was a prior member; no raw duplicate-insert identity. |
 | `getAccountOptional_model` | Exactly the initial MathState.WF/ModelsLookups/success domain above: account equals `(t.view σ₀).account? a`, using public TxState.view_account?_eq and the pre-transaction model law. |
 
+The transient storage read supplies one complete action law for every raw
+`t : TxState m` and `[Monad m]`. The law has no initial-state or provider premise.
+
+| Law | Complete contract |
+|---|---|
+| `getTransientStorage_action` | `((getTransientStorage a k).run t).run` equals `pure (.ok ((t.rev.transient[(a, k)]?).getD U256.zero, t))`. The base action is a single `pure` and returns the entire original state. |
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
@@ -1478,8 +1508,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
+  getPreStateAccountOptional and getPreStateAccount, the current getAccountOptional
+  read, and the getTransientStorage read are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -1512,7 +1542,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient lifetime, tracker operations and observations, write/clear/order coupling,
+  transient writes and lifetime, other tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
