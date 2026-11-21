@@ -3334,10 +3334,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
   exactly ChildSettled and its constructive Decidable instance. Private logical,
   all-frame, each-clause, decision and conditional public rollback/forfeit clients
-  supply no actual non-top C=0 initialization/preservation, incorporation,
-  processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
-  FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
-  G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
+  cover the predicate boundary. Actual non-top C=0 initialization/preservation,
+  incorporation, processCall/processCreate settlement and snapshots, proof
+  production and resume remain open. EthVmRunner §3 supplies the proof-taking
+  result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
+  S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual

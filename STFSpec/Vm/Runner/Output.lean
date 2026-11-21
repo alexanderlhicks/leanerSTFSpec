@@ -4,17 +4,18 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 
 import STFSpec.Vm.Core.Frame
 import STFSpec.Vm.Core.Exceptions
+import STFSpec.Vm.Instructions.ChildOutcome
 
 /-!
-# Raw runner output carriers
+# Runner output records and child outcome conversion
 
-Library `EthVmRunner`. Store complete frame and transaction results without
-settlement, conversion or execution. Source correspondence belongs to producers.
+Library `EthVmRunner`. Store complete frame and transaction results. Convert a
+frame result to a child outcome with a caller-supplied settlement proof.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md` §§3/5/7.
 -/
 
 namespace STFSpec.Vm.Runner
-open STFSpec.Base STFSpec.Vm.Core
+open STFSpec.Base STFSpec.Vm.Core STFSpec.Vm.Instructions
 
 /-- Raw project result partition for EELS
 `src/ethereum/forks/amsterdam/vm/interpreter.py:395–469`.
@@ -26,6 +27,14 @@ structure FrameResult where
   output : Bytes
   /-- Optional complete halt or revert value, without a settlement premise. -/
   error : Option FrameError
+
+/-- Package the complete result with the supplied proof of the incorporation assertions
+in EELS `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228`.
+The caller supplies settlement evidence for the returned frame and error (F11).
+EELS child error handling is in `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465`. -/
+def FrameResult.toChildOutcome (r : FrameResult)
+    (h : ChildSettled r.frame r.error.isSome) : ChildOutcome :=
+  { frame := r.frame, output := r.output, error := r.error, settled := h }
 
 /-- Raw storage corresponding to EELS
 `src/ethereum/forks/amsterdam/vm/interpreter.py:86–116`.
