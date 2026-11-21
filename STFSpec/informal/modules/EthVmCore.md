@@ -3310,9 +3310,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   facade clients. The separate functional liftState and its sole public literal
   run equation supply complete StateError-to-VmFault.state routing under Monad
   only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
-  Initialization, tracker effects/errors, snapshots/restore, observation
-  lifetimes, provider/context acquisition/coherence, actual handlers/runner and
-  full-current-source refinement remain open.
+  Initialization, tracker effects/errors, VM integration of snapshot and restore,
+  observation lifetimes, provider/context acquisition/coherence, actual
+  handlers/runner and full-current-source refinement remain open. EthState R24
+  supplies the standalone snapshot and restore operations.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
   gate closes through nominal wiring.
 

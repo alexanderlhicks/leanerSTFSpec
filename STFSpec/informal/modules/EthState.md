@@ -128,8 +128,8 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::set_account_balance` | 673 | `setAccountBalance` | |
 | `forks/amsterdam/state_tracker.py::increment_nonce` | 696 | `incrementNonce` | |
 | `forks/amsterdam/state_tracker.py::set_code` | 715 | `setCode` | takes the hash |
-| `forks/amsterdam/state_tracker.py::copy_tx_state` | 744 | `copyTxState` (`snapshot`) | O(1) |
-| `forks/amsterdam/state_tracker.py::restore_tx_state` | 780 | `restoreTxState` (`revert`) | |
+| `forks/amsterdam/state_tracker.py::copy_tx_state` | 744–777 | `copyTxState (t : TxState m) : TxRevertible` | Supplied for arbitrary m without a class premise. Selects the entire revertible record, including B1 metadata, without traversal or provider calls. |
+| `forks/amsterdam/state_tracker.py::restore_tx_state` | 780–798 | `restoreTxState (snap : TxRevertible) : StateM m Unit` | Supplied under Monad m. One underlying pure returns unit with the saved revertible record and the current block and observations. No typed failure or provider call. |
 | `forks/amsterdam/state_tracker.py::incorporate_tx_into_block` | 804 | `incorporateTxIntoBlock` | BAL hook in `EthBlock` |
 | `forks/amsterdam/state_tracker.py::extract_block_diff` | 861–881 | `extractBlockDiff` | **Discharged raw extraction slice:** complete effects and Q85 metadata equations below; no reachable/history/WF claim. |
 | `forks/amsterdam/state_tracker.py` `get_witness_ancestors` (removed at v21.0.6) | 903 at `e1a316a0` | `getWitnessAncestors` | supplied: opaque list selection; complete equation and tests below; retirement open (§10) |
@@ -227,9 +227,9 @@ families are visible at `:744–798`. It implements no source tracker operation.
 
 Only ordinary generated structure infrastructure is public; no authored public
 law, default, instance, factory or operation is added by the carrier. The separate
-mathematical transaction view below owns a Lean-private `asDiff`. The carrier's
-presence supplies no actual snapshot, persistence-cost, tracker/source-refinement
-or S1/S2/W1 result. Observation hash support (Q84, EthBase §3), provider/cache
+mathematical transaction view below owns a Lean-private `asDiff`. The separate
+R24 operations use the whole carrier. Persistence cost, tracker/source refinement
+and S1/S2/W1 remain open. Observation hash support (Q84, EthBase §3), provider/cache
 lifetime (F6), clear replay order (F7), F11 and the remaining §10 obligations stay
 separate.
 
@@ -372,11 +372,10 @@ backend, guest or readiness result follows.
 
 ### Implemented internal order support
 
-`STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
-overlay operations in the source map above remain **unimplemented**; a dictionary
-ordering helper does not implement `setAccount`, `setStorage`, clear, snapshot,
-incorporation or ordered-write integration. Raw extraction is supplied separately
-above. The following support rows are **discharged for the stated component laws**,
+`STFSpec/State/WriteOrder.lean` supplies this bounded internal component.
+`setAccount`, `setStorage`, clear, incorporation and ordered-write integration
+remain open. R24 snapshots and raw extraction are supplied separately. The
+following support rows are **discharged for the stated component laws**,
 with no error or hashing channel. Python dictionary correspondence additionally
 requires the pinned host/dependency interpretation; finite dictionary traces do not
 establish whole-tracker refinement.
@@ -522,6 +521,14 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented R24 controls:** `TransactionSnapshotChecks.lean` checks both
+  signatures and the complete action through the State facade. Its three nested
+  snapshots compare every revertible field after each LIFO restore, including
+  tombstones, a zero write, an empty inner map, raw order metadata and transient
+  values. An erroring provider records any invocation. All four observation sets
+  and the ancestor cursor retain their latest values. The focused pinned EELS
+  comparison exercises the shared fields and the LIFO sequence. Separate Lean
+  guards cover the B1 metadata and reuse of a saved snapshot.
 - **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
   consumes the five public wrapper laws through the State facade, including complete
   provider/function/constants retention. `pre_state_account_default_inputs.json`
@@ -1044,8 +1051,9 @@ updates retaining the other three fields, six disjoint update commutations and
 account-read/created-account separation. Public Base reconstruction/equality and
 Std insert/member/union/duplicate laws are used for all three key domains; no
 membership-to-raw-equality principle, dictionary parameter or public helper law is
-added. This is nominal raw storage only: copy, restore, incorporation, default-empty
-construction, linear threading and monotonicity remain future implementation/proof work.
+added. R24 leaves the whole supplied observation record outside the snapshot.
+Incorporation, default-empty construction, linear threading and monotonicity
+remain future implementation/proof work.
 
 **Raw BlockState contract.** Exactly the thirteen §5 fields are supplied for every
 `m : Type → Type`, without Monad or KeccakQuery. Whole supplied functions/constants/
@@ -1059,7 +1067,8 @@ BlockState.new operation initializes exactly the guided empty maps/sets, WriteOr
 indexes and none offset while retaining ps and consts. Its sole public law is
 new_consts, with no premises beyond the supplied data. Private owner reduction proves
 the entire constructor result and provider retention. Further public consumer-law
-basis, context-sharing/coherence, snapshot, incorporation and tracker laws remain open.
+basis, context-sharing/coherence, snapshot integration, incorporation and other
+tracker laws remain open.
 
 **Raw TxState/StateM contract.** Exactly the three §5 fields and transformer alias
 are supplied, without Monad, Functor, KeccakQuery, LawfulMonad, WF or coherence
@@ -1250,8 +1259,9 @@ clients check complete construction, reconstruction and each independent field u
 Raw `WriteOrder.WF` and `Agrees` are not carrier premises; malformed or disagreeing
 indexes remain stored unchanged. Transient writes and clear membership are independent
 of account/storage/code writes and order metadata. The mathematical view owns the
-Lean-private conversion specified in §3/§7.1. Snapshot, restore and lifecycle
-contracts below remain unimplemented targets.
+Lean-private conversion specified in §3/§7.1. R24 supplies snapshot and restore,
+with the private equations in §7.2. Runner rollback integration and the
+transaction lifecycle contracts remain open.
 
 ### 7.1 Model and commuting equations
 
@@ -1320,7 +1330,11 @@ The current optional action supplies exactly these six public laws:
 - **Frame:** a write to `(a,k)` leaves `getStorage a' k'` unchanged for `(a',k') ≠ (a,k)`; writes never change `getStorageOriginal`.
 - **Clear suppression:** after `destroyStorage a`, `getStorage a k = 0` until `(a,k)` is written again in the same transaction; later writes are visible. At block level: a transaction clear hides all earlier block writes of `a`, and later transactions see only the post-clear writes.
 - **Storage precedence** (R11) and **original precedence** (R12) as the two separate public laws ARCHITECTURE §5.3 requires; `created ⇒ original = 0`.
-- **Snapshot/revert:** `restoreTxState (copyTxState t)` after any sequence returns `rev` to exactly `t.rev`; observations are **monotone** across it (`t.obs ⊆ t'.obs` componentwise) and `createdAccounts` is kept; `block.oldestAncestorOffset` is kept.
+- **Snapshot/revert:** R24 saves and restores the complete `rev`. Private clients
+  verify that any restore keeps the current `obs` and `block` unchanged. In
+  particular, `createdAccounts` and `block.oldestAncestorOffset` survive it.
+  Monotonicity across sequences of other tracker operations remains a separate
+  obligation.
 - **Split invisibility:** for every EELS operation, projecting (`rev`, `obs`, `block`) back to an EELS `TransactionState` gives the EELS result [R].
 - **Lifecycle:** `(incorporateTxIntoBlock t).1.view σ₀ = t.view σ₀` (the transaction view becomes the block view); transient storage and `createdAccounts` are empty in the returned transaction state; block read sets are the unions. This rests on `(σ.apply d₁).apply d₂ = σ.apply (d₁.merge d₂)`.
 - **Diff law:** `BlockState.apply_extractBlockDiff` discharges exactly
@@ -1480,8 +1494,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
   and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  R24 snapshot and restore are supplied with the private complete action and
+  bounded controls in §3/§4/§7.2. Other tracker operations and full-state
+  integration remain open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -1497,8 +1512,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   WF/history/reachable preservation, actual provider operations, other contextual
   tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
   witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
-  reachability, snapshot, acquisition/coherence, future context preservation and
-  operational source-refinement obligations remain open. Additional public
+  reachability, integration of snapshots with the runner, acquisition/coherence,
+  future context preservation and operational source refinement remain open.
+  Additional public
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
@@ -1506,21 +1522,22 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
   current-pin full-state refinement remains open.
-  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
+  TxState.new, other tracker operations, observation lifetimes and
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
-  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient lifetime, tracker operations and observations, write/clear/order coupling,
+  conversion are supplied in §3/§7.1/§7.2. Actual initialization, transient
+  lifetime, other tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
-- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all
-  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5).
+  R24 retains the saved order and value roots together. Whole clear/incorporation,
+  the coupled WF and Agrees invariants and reachable extraction remain open.
+  Reachable, AccountWritesLookedUp, S1/S2
   and composed C1/C4 remain open. Tree shape and finite retained-version correctness
   do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.

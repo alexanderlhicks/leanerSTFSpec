@@ -486,8 +486,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
   and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  R24 snapshot and restore are supplied with the private complete action and
+  bounded controls in §3/§4/§7.2. Other tracker operations and full-state
+  integration remain open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -503,8 +504,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   WF/history/reachable preservation, actual provider operations, other contextual
   tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
   witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
-  reachability, snapshot, acquisition/coherence, future context preservation and
-  operational source-refinement obligations remain open. Additional public
+  reachability, integration of snapshots with the runner, acquisition/coherence,
+  future context preservation and operational source refinement remain open.
+  Additional public
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
@@ -512,21 +514,22 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
   current-pin full-state refinement remains open.
-  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
+  TxState.new, other tracker operations, observation lifetimes and
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
-  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient lifetime, tracker operations and observations, write/clear/order coupling,
+  conversion are supplied in §3/§7.1/§7.2. Actual initialization, transient
+  lifetime, other tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
-- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all
-  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5).
+  R24 retains the saved order and value roots together. Whole clear/incorporation,
+  the coupled WF and Agrees invariants and reachable extraction remain open.
+  Reachable, AccountWritesLookedUp, S1/S2
   and composed C1/C4 remain open. Tree shape and finite retained-version correctness
   do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
@@ -717,9 +720,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   facade clients. The separate functional liftState and its sole public literal
   run equation supply complete StateError-to-VmFault.state routing under Monad
   only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
-  Initialization, tracker effects/errors, snapshots/restore, observation
-  lifetimes, provider/context acquisition/coherence, actual handlers/runner and
-  full-current-source refinement remain open.
+  Initialization, tracker effects/errors, VM integration of snapshot and restore,
+  observation lifetimes, provider/context acquisition/coherence, actual
+  handlers/runner and full-current-source refinement remain open. EthState R24
+  supplies the standalone snapshot and restore operations.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
   gate closes through nominal wiring.
 
