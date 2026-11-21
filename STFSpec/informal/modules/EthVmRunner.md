@@ -52,6 +52,10 @@ In this order:
 - **R-LOOP-2** On `.call parent req h hs`: build the child context with `childCtxOfCall ctx req h` (depth + 1) and the child frame with `childFrame parent req.gas req.stateGasReservoir` (its warm sets are the parent's); the child context inherits `ctx.systemAddress` unchanged (F8). Run `processCall`, form the `ChildOutcome` (the `ChildSettled` proof: F11, §9), and continue with `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`: likewise with `processCreate` and `resumeAfterCreate` (EELS: `I/system.py:133–185, 402–462`). The parent frame is suspended unchanged while the child runs.
 - **R-LOOP-3 Precompile table.** `PrecompileFn m` (EthVmCore) takes `(input, meter)` and returns, in `m`, either `.ok meter' output` or `.halt e`. At Id the table's `meter_law`, via Core's `satisfiesM_id_iff` (Q83), guarantees that `meter'` differs from `meter` only by a `gas_left` charge. For arbitrary m, the action-factorization witness requires a concrete bridge through the actual dispatch/lift before making that observed-result claim. The runner **installs `meter'` as the frame meter** and sets the output, without charging again; on `.halt` it applies the ordinary frame-halt settlement (R-CALL-4). This matches EELS, whose precompiles read only `evm.call_data`, write only `evm.output` and charge only execution gas on the frame's own meter [V: `grep evm\.` over `precompiled_contracts/` finds only `call_data` and `output`, plus `charge_gas`]. ecrecover and p256verify return empty output on invalid input rather than halting (O9, EthPrecompiles). The table's key set is also the warm-set seed of §2.2 step 3.
 
+EthVmInstructions §7 supplies the mutable child frame initialization used by
+R-LOOP-2. The runner must preserve the initial zero committed spill through
+execution and use the settled result at resume.
+
 ### 2.7 Termination and fuel (ARCHITECTURE §5.5; O11; REVIEW §7 G2–G7)
 
 - **R-TERM-1** The runner is a mutual recursion `processCreate`/`processCall`/`runFrame` with the lexicographic measure `(STACK_DEPTH_LIMIT − depth, stage, frameFuel)`, stage ranks `processCreate = 2 > processCall = 1 > runFrame = 0`, via `termination_by`. Depth is in `FrameCtx`, which handlers cannot modify; only `childCtxOf*` builds a deeper context, from a proof `depth < 1024`, so the first component strictly decreases without saturating subtraction.
@@ -471,9 +475,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
-  ChildSettled predicate and constructive Decidable instance only. Actual non-top
-  committed-spill-zero initialization/preservation, call/create settlement and
-  snapshots, returned proof production, incorporation and child/resume remain open.
+  ChildSettled predicate and constructive Decidable instance. EthVmInstructions §7
+  supplies the committed-spill clause at child entry. Preservation through execution,
+  call/create settlement and snapshots, returned proof production, incorporation
+  and child/resume remain open.
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 

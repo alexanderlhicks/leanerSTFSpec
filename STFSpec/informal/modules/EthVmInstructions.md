@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD with their local laws supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD with their local laws supplied. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -333,6 +333,18 @@ frames; their only local proofs are `ctx.depth < STACK_DEPTH_LIMIT` and
 `ctx.config.limits.stackDepthLimit`. Construction establishes no preflight,
 withholding, staticness, gas-progress, child settlement or F11 policy.
 
+### Supplied mutable child frame initialization
+
+| EELS source at `59c1473d` [V] | Lean declaration | Domain and result | Tests and status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:151–165`, within `generic_create`, with defaults at `src/ethereum/forks/amsterdam/vm/gas.py:295–311` | `STFSpec.Vm.Instructions.childFrame` in `STFSpec/Vm/Instructions/ChildFrame.lean`, exported by the Instructions facade | Supply `create_message_gas` as the execution grant and `create_message_state_gas_reservoir` as the reservoir. The constructor initializes the nine mutable fields as specified in §7. | Mutable initialization supplied. Private complete facade equation and controls in §4. |
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:420–434`, within `generic_call`, with the same meter defaults | Same `childFrame` | Supply `params.gas` as the execution grant and `params.state_gas_reservoir` as the reservoir. The same initialization applies to every raw frame and pair of grants. | Mutable initialization supplied. Same private facade equation and controls in §4. |
+
+EELS initializes these fields inline at both child entry sites. The rows cover
+those assignments and the three meter defaults. Context and outcome are separate
+from the mutable frame. The surrounding operations still need source refinement
+for grant computation, dispatch, execution and resume.
+
 ### Supplied settled child outcome carrier
 
 | EELS ownership context at `59c1473d` | Lean declaration | Domain | Effects / ordered failures | Laws and clients | Status |
@@ -528,6 +540,18 @@ model for the raw Lean world and its additional metadata. The driver docstring
 gives the source invocation. It claims no interpreter dispatch, trace-hook,
 reachability, arbitrary-provider execution, EEST or guest result.
 
+**Supplied mutable child frame controls.**
+`STFSpec/Conformance/Vm/Instructions/ChildFrameCallerProofs.lean` imports the
+Instructions facade. A private equation reconstructs the result with all nine
+frame fields and all six meter fields for arbitrary parent and grants. A
+separate private proof checks `ChildSettled (childFrame parent gas reservoir) false`
+at entry. Public observers check that a populated parent with nonempty stack,
+written memory, logs, return data and three separately populated sets yields the
+prescribed empty fields and inherits both warm sets. Meter controls exercise
+zero grants and two unequal grants above 2^256, including each large grant paired
+with zero. The pinned source comparison is a reading of the inline assignments
+in §3.
+
 **Supplied settled child outcome controls.**
 `STFSpec/Conformance/Vm/Instructions/ChildOutcomeCallerProofs.lean` imports only
 the public Instructions facade. Private ordinary clients check the exact ordered
@@ -648,7 +672,9 @@ def resumeAfterCall   (cfg : VmConfig) (parent : Frame) (req : CallRequest)   (c
 def resumeAfterCreate (cfg : VmConfig) (parent : Frame) (req : CreateRequest) (c : ChildOutcome) (hs : parent.stack.size < STACK_DEPTH_LIMIT) : Frame
 def childCtxOfCall   (ctx : FrameCtx) (req : CallRequest)   (h : ctx.depth < STACK_DEPTH_LIMIT) : FrameCtx   -- depth + 1
 def childCtxOfCreate (ctx : FrameCtx) (req : CreateRequest) (h : ctx.depth < STACK_DEPTH_LIMIT) : FrameCtx
-def childFrame (parent : Frame) (gas reservoir : Nat) : Frame   -- empty stack/memory/logs, copied warm sets
+
+-- Supplied mutable child frame initialization:
+def childFrame (parent : Frame) (gas reservoir : Nat) : Frame
 
 -- Supplied executable handlers:
 def stop {m : Type → Type} [Monad m] : Handler m
@@ -738,6 +764,16 @@ is introduced. The complete `Bytes` and nominal words are retained without
 truncation, zero padding, window clamping, flag combination or code/address
 coherence checks. Grant/staticness/source correctness and child/resume effects
 belong to future producers and consumers (§2.6); construction proves none of them.
+
+**Supplied mutable child frame initialization.** For every parent and both
+`Nat` grants, `childFrame` sets the program counter to zero and starts with
+empty stack, memory, logs, deletion set and return data. It retains the parent's
+warm address and storage-key sets as persistent values. The meter uses `gas`
+for execution gas and `reservoir` for both remaining and baseline state gas.
+The signed refund, pending spill and committed spill are zero. The constructor
+is pure and total. The private entry proof uses the zero committed spill.
+Execution must preserve that clause through handlers, precompiles and nested
+resume before the runner can use it at settlement (F11).
 
 **Supplied settled child outcome.** Its public contract is exactly the four
 fields in §5. Ordinary generated reduction retains the complete data and supplied
@@ -1259,16 +1295,21 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context/frame, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
+  source sites and the private complete facade clients. The runner still needs
+  to assemble context and frame, prove the committed-spill clause through
+  execution, and bound the returned potential by the child's grant (G2).
 
 - **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
-  ChildSettled predicate and constructive Decidable instance only. Actual non-top
-  committed-spill-zero initialization/preservation, call/create settlement and
-  snapshots, returned proof production, incorporation and child/resume remain open.
+  ChildSettled predicate and constructive Decidable instance. Non-top
+  committed-spill-zero preservation, call/create settlement and snapshots,
+  returned proof production, incorporation and child/resume remain open.
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
