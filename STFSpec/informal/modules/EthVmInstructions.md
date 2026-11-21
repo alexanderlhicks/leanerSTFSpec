@@ -337,7 +337,7 @@ withholding, staticness, gas-progress, child settlement or F11 policy.
 
 | EELS ownership context at `59c1473d` | Lean declaration | Domain | Effects / ordered failures | Laws and clients | Status |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` incorporation assertions; `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465` child error handling | `STFSpec.Vm.Instructions.ChildOutcome` in `STFSpec/Vm/Instructions/ChildOutcome.lean`, exported by `STFSpec.Vm.Instructions` | Exactly `frame : Frame`, `output : Bytes`, `error : Option FrameError` and supplied `settled : ChildSettled frame error.isSome`; complete payloads with only the existing Core predicate | Pure construction/projection with an already supplied local proof; no runtime check, settlement effect or error | Generated record infrastructure only; private `ChildOutcomeCallerProofs` facade clients check complete construction/projections, dependent reconstruction/elimination, determination and proof-aware replacements, both predicate branches, complete error/output payloads and negative elaboration controls (§4) | Supplied carrier and private controls; actual producer reachability, rollback, source-Evm refinement, incorporation, runner settlement/proof production, adapters and resume remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` incorporation assertions; `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465` child error handling | `STFSpec.Vm.Instructions.ChildOutcome` in `STFSpec/Vm/Instructions/ChildOutcome.lean`, exported by `STFSpec.Vm.Instructions` | Exactly `frame : Frame`, `output : Bytes`, `error : Option FrameError` and supplied `settled : ChildSettled frame error.isSome`; complete payloads with only the existing Core predicate | Pure construction/projection with an already supplied local proof; no runtime check, settlement effect or error | Generated record infrastructure only; private `ChildOutcomeCallerProofs` facade clients check complete construction/projections, dependent reconstruction/elimination, determination and proof-aware replacements, both predicate branches, complete error/output payloads and negative elaboration controls (§4) | Supplied carrier and private controls. EthVmRunner §3 owns the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, incorporation, runner settlement/proof production and resume remain open. |
 
 This is the Lean-side return carrier of §5, not a Python class or an implementation
 of child handling. Core owns the transparent `ChildSettled` predicate and its
@@ -745,8 +745,9 @@ local proof. Private facade clients use only Core's existing predicate and
 constructive decidability. Frame/error replacements require the corresponding
 local proof; output replacement requires none. No authored public law, producer,
 runtime guard, stronger output/gas/refund condition or F11 route is introduced.
-Actual reachability, settlement, rollback, incorporation, source-Evm refinement,
-runner adapters and resume remain separate obligations.
+EthVmRunner §3 owns the proof-taking result adapter. Actual reachability,
+settlement, rollback, incorporation, source-Evm refinement and resume remain
+open.
 
 **Supplied typed results and Handler.** Their public contracts are exactly the
 six constructors and class-free alias in §5. Private complete facade clients
@@ -1263,7 +1264,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
-- **Settled child outcome supplied; production open:** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. The record stores an already supplied `ChildSettled frame error.isSome` proof; actual producer reachability, rollback, source-Evm refinement, runner settlement/proof production, FrameResult adapter, incorporation and resume remain open. No F11 route, stronger admission/output/gas condition or readiness result follows.
+- **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance only. Actual non-top

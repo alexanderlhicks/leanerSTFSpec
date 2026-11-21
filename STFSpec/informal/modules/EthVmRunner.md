@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft; selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, raw output records, checked control carriers and F14 VM adapter supplied. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, output records, child outcome conversion, checked control carriers and F14 VM adapter supplied. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -94,8 +94,14 @@ The source refund is U256 after the checked casts in R-TOP-2/R-TOP-3. This raw
 Nat storage performs no cast or range check; actual source correspondence needs
 the successful unsigned range and exact U256 reconstruction (Q66). Raw error
 presence implies neither empty logs/deletions nor ChildSettled. Frame output and
-frame.returnData are independent. The toChildOutcome adapter, actual producers,
-settlement, F11 and execution/fuel/resource/readiness obligations remain open.
+frame.returnData are independent. Actual producers, settlement, F11 and
+execution/fuel/resource/readiness obligations remain open.
+
+### Supplied child outcome conversion
+
+| Source / operation | Lean declaration and type | Domain, effects and ordered failures | Client / status |
+|---|---|---|---|
+| Project adapter for the incorporation assertions at `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` and child error handling at `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465` at `59c1473d` | `FrameResult.toChildOutcome (r : FrameResult) (h : ChildSettled r.frame r.error.isSome) : ChildOutcome` in `STFSpec/Vm/Runner/Output.lean`, exported by `STFSpec.Vm.Runner` | Any result with the stated proof. Pure record construction preserves the frame, output, error and supplied proof. | Supplied definition. Private `OutputCallerProofs` and `OutputControls` clients (§4). |
 
 ### Supplied mathematical budget vocabulary
 
@@ -208,6 +214,14 @@ corresponding EELS function and asserts no source execution correspondence.
   above the word range and negative state usage. Ordinary proofs and public-model
   guards check storage only; no EELS execution or producer refinement is claimed.
 
+- **Supplied child outcome conversion clients.** The same public-facade modules
+  check the dependent signature, all three data projections, the settlement
+  projection, proof irrelevance and construction from an arbitrary settled
+  success. The controls check complete success and failure fields, including
+  arbitrary frame errors. Success, revert and invalid-opcode halt keep the
+  nonempty output and frame return data distinct. These controls use raw settled
+  frames. Clearing the output of an executed halt belongs to R-CALL-4.
+
 - **Supplied runner-environment clients:** `EnvironmentCallerProofs` imports the public
   Runner facade and privately checks the exact Monad-only type/constructor/projection
   signatures, arbitrary whole-field preservation, complete reconstruction and all three
@@ -285,7 +299,7 @@ abbrev BudgetPolicy := GasMeter → Nat
 def phiBudget : BudgetPolicy := fun m => m.phi + 1
 def constBudget (n : Nat) : BudgetPolicy := fun _ => n
 
--- Frame results (raw records supplied; adapter remains unimplemented)
+-- Frame results and proof-taking conversion (supplied)
 structure FrameResult where frame : Frame; output : Bytes; error : Option FrameError
 def FrameResult.toChildOutcome (r : FrameResult) (h : ChildSettled r.frame r.error.isSome) : ChildOutcome
 -- Pure field-preserving adapter; apply only after processCall/processCreate settles a non-top child.
@@ -341,7 +355,13 @@ TransactionOutput, with ordinary generated structure support. Private facade
 clients retain every complete field, reconstruct both records and replace each
 field independently. No settlement, relation between output and frame.returnData,
 error/effect relation, refund range, hash/class premise or authored public law is
-added. Source casts, actual producers, toChildOutcome and F11 remain open.
+added. Source casts, actual producers and F11 remain open.
+
+**Child outcome conversion (supplied).** For every `r` and supplied settlement
+proof `h`, `r.toChildOutcome h` reduces to `ChildOutcome.mk r.frame r.output r.error h`.
+The adapter uses the complete frame and retains its return data independently of
+`r.output`. For executed results, F11 governs how `processCall` and `processCreate`
+provide the proof. The child-return gas bound is a separate G2 premise.
 
 **Supplied entry-kind carrier.** `ExecKind` has exactly the three nullary
 constructors specified in §5, with exhaustive dependent elimination and pairwise
@@ -486,10 +506,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   settlement and potential proofs remain open. This adds no observer API, base-error
   reinterpretation, F11 choice or G2–G7 claim.
 
-- **Raw output records are supplied:** §3/§4/§5/§7 own the exact records and
-  private complete facade clients. Actual runFrame/processCall/processCreate/
-  processTopLevelChecked, toChildOutcome, source refund casts/range evidence,
-  settlement, F11 and every execution/fuel/resource/readiness gate remain open.
+- **Output records and child outcome conversion are supplied.** §3/§4/§5/§7 own
+  the records, proof-taking adapter and private facade clients. Actual
+  runFrame/processCall/processCreate/processTopLevelChecked, source refund
+  casts/range evidence, settlement and production of the adapter argument (F11)
+  are open, along with the execution/fuel/resource/readiness gates.
 
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
@@ -497,7 +518,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Termination is unproved.** The measure is a design; no recursive runner definition exists. Only the selectable budget declarations, the entry-kind carrier, the raw RunnerEnv and output carriers, the checked control carriers and F14 VM adapter of §3 are supplied. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
+- **Termination is unproved.** The measure is a design; no recursive runner definition exists. §3 lists the supplied declarations. G2 (whole-iteration progress), G3 (structural termination), G4–G6 (soundness, completeness/monotonicity, sufficiency) and G7 (internal-error freedom) are all "planned". The Φ argument in §7 is an inference from reading `gas.py` and the handlers.
 - **Φ + 1 per frame is only a candidate.** It relies on "every continuing opcode costs ≥ 1 execution gas" and "a child returns ≤ the potential it was granted", neither proved; the stipend accounting (2300 returned through `restore_child_gas` on preflight failure, or inside `sub_call` to the child) is covered only by the inequality `transfer cost − stipend = 9000`.
 - **Top-level refund range.** `U256(gas_meter.refund_counter)` at `interpreter.py:312` requires `0 ≤ refund_counter ∧ refund_counter < 2^256`; the range proof/fault obligation remains unresolved (EthVmCore §10). The preparation cast at `:279` still executes, but its failure is unreachable by R-TOP-2's zero-refund argument.
 - **Host resources.** Gas and fuel do not bound Lean stack depth, allocation or zkVM cycles (ARCHITECTURE §4). 1025 nested runner activations in compiled Lean have not been measured. In the guest process the Python recursion limit is 100,000 (py_ecc raises it; `import ethereum` alone gives 12,288, `src/ethereum/__init__.py:28–30`); deeper host limits are DISC-001 territory (O12).
