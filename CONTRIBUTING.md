@@ -266,6 +266,16 @@ uv run --no-project --python 3.12 python -B scripts/test_account_optional_output
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+lake build account-default-native-tests --wfail
+lake exe check-decls scripts.AccountDefaultNativeTests
+lake exe account-default-native-tests > .lake/account-default-native.jsonl
+lake env lean --run scripts/AccountDefaultNativeTests.lean > .lake/account-default-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_default_differential.py --check-target .lake/account-default-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_default_differential.py --check-target .lake/account-default-interpreted.jsonl
+uv run --no-project --python 3.12 python -B scripts/test_account_default_output_parser.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_default_output_parser.py
+uv run --no-project --python 3.12 python -B scripts/test_account_default_source.py
+uv run --no-project --python 3.12 python -B -O scripts/test_account_default_source.py
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
@@ -355,21 +365,22 @@ uv run --no-project --python 3.12 python scripts/test_fixture_archive.py
 
 These commands build and audit the fixed-endian, log-rope and packed-keccak benchmarks. They check that the output of the packed-keccak generator is fresh, and they run its regression test. Timing measurements remain manual. The commands build, audit and execute the Taylor producer, and then they check its complete captured stdout against the handwritten literals. Source coupling is separate.
 
-The pre-transaction and current optional account items' source comparisons additionally need
-an authenticated pinned EELS clone with its frozen installed `.venv`. From the
-repository root, reproduce that item test with:
+The pre-transaction and current account items' source comparisons additionally need
+an authenticated pinned EELS clone with its frozen installed `.venv`. Run the
+source comparison for the relevant item from the repository root.
 
 ```sh
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_source.py --eels EELS --check-target .lake/pre-state-account-native.jsonl --report .lake/pre-state-account-source.json
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/pre_state_account_default_source.py --eels EELS --check-target .lake/pre-state-account-default-native.jsonl --report .lake/pre-state-account-default-source.json
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_optional_source.py --eels EELS --check-target .lake/account-optional-native.jsonl --report .lake/account-optional-source.json
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_default_source.py --eels EELS --check-target .lake/account-default-native.jsonl --report .lake/account-default-source.json
 ```
 
-The driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,
+Each driver uses `EELS/.venv/bin/python -I -B` directly, normally and with `-O`,
 and never installs packages or writes to EELS. Each worker compiles filesystem
 source directly, bypasses bytecode caches and rejects sourceless imports. Both
 actual probe workers return their own authentication, including the hashes of the
-exact source bytes compiled. Its report retains the original
+exact source bytes compiled. The report retains the original
 child streams, actual waits, pin/import/runtime identities and installed RECORD
 integrity. It compares complete bounded answers/calls/successful reads and source
 field retention, with failed source reads separate from Lean's absent failed state.
