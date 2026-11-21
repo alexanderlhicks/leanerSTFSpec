@@ -1,6 +1,6 @@
 # `EthState`: state semantics, the pre-state contract, transaction and block overlays
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F7, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D2, D5, D8, D9, D14, D16, D18, D22, D23, D25 · questions: B1 (Q29/Q36), B2 (Q30), B14 (Q31), F7, Q57, Q58, Q84, Q85.*
 
 Line references are to the pinned source under `src/ethereum/` (`state.py`, and `forks/amsterdam/state_tracker.py` abbreviated `st:`). "[verified]" means read in the pinned source and, where marked, executed against the pinned `ethereum_types`/`ethereum_rlp`; "[inference]" means a conclusion from reading that no test or proof yet backs. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -47,14 +47,14 @@ and record observations as follows [verified line by line]:
 | `get_transient_storage` | `st:327–349` | tx transient value, default `0` | none |
 | `account_exists`, `account_deployable`, `account_exists_and_is_empty`, `is_account_alive` | `st:352–431` | predicates over `get_account(_optional)` | `accountReads += a` |
 
-The future hash-only `getCode` action follows `state_tracker.py:252–259`: test
+The hash-only `getCode` action follows `state_tracker.py:252–259`: test
 emptyCodeHash, transaction code writes and block code writes, in that order.
 Each bypass skips observation insertion and the provider; a stored empty byte string
 is a write hit. Fall-through inserts the hash before one provider call, and repeated
 fall-through calls the provider again without memoization. A provider failure is
 propagated, never defaulted. Source mutation before failure is distinct from the
 absence of a returned failed Lean StateM state; generic base effects need their own
-refinement. This carrier migration implements no getCode action or lifecycle law.
+refinement. The action and laws are supplied in §3 and §7.1.
 
 - R11. **Storage precedence** (`st:284–295`): transaction slot write → transaction clear (`0`) → block slot write → block clear (`0`) → pre-state. A clear suppresses only lower layers: writes made after the clear in the same layer remain visible.
 - R12. **Original value** (`st:317–324`): `0` if `a ∈ createdAccounts`; otherwise block slot write → block clear (`0`) → pre-state. Transaction writes and clears are skipped. It records no observation.
@@ -107,7 +107,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140–171 | `getPreStateAccount` | **Discharged bounded wrapper:** one optional action, absence defaulted from retained constants; five laws below. |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174–197 | `getAccountOptional` | **Discharged bounded action:** transaction entry priority, delegated pre-transaction fallback and six laws below. |
 | `forks/amsterdam/state_tracker.py::get_account` | 200 | `getAccount` | |
-| `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
+| `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | **Discharged bounded action:** hash-only priority, fall-through observation and five laws below. |
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
 | `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
@@ -507,6 +507,16 @@ Python's fresh outer-list identity, immutable element identity or allocation beh
 This supplies no witness generator, actual host-call wiring, Q7, S1/S2, guest/EEST,
 resource or C1–C4 result.
 
+### Implemented hash-only code read
+
+`State/Code.lean`, exported by State, supplies the read and its four operational
+laws. `State/TransactionView.lean` supplies the model law using its private code-map
+equation and the public block, application and lookup laws.
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:228–259` | `getCode {m : Type → Type} [Monad m] (h : Hash32) : StateM m ByteArray` on arbitrary supplied carriers and constants | Return empty bytes for the supplied reserved hash. Otherwise prefer present transaction writes, then present block writes, including empty bytes. On each miss insert the queried hash and call the supplied provider once. Wrap its exact error as `StateError.witness`, with no returned state. | **Discharged for this action:** `getCode_action`, `getCode_error`, `getCode_frames`, `getCode_mem`, `getCode_model` (§7.1). Private facade clients and the finite controls in §4 check these interfaces and observations. |
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (211 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -518,7 +528,6 @@ resource or C1–C4 result.
   - `modifyState` on a non-existent account with a zero change: account change `none` and a clear;
   - `moveEther` insufficient balance and recipient overflow at `2^256 − 1` both fail;
   - `setCode` with empty code: no code write, `codeHash = emptyCodeHash`;
-  - `getCode` inserts the hash before a fall-through provider call, including failure; empty-hash and present tx/block writes (including empty code) bypass the provider and insertion; repeated fall-through calls again;
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
@@ -614,6 +623,26 @@ resource or C1–C4 result.
   ordinary frame law; finite tracing callbacks are controls only. No full-State,
   actual backend, generic source/monad coupling, S1/S2, WF/history, F7, EEST/guest,
   fuel, cost or readiness claim follows.
+- **Implemented hash-only code read controls:** `CodeCallerProofs.lean` uses all
+  five public laws through the State facade. `CodeReadNativeTests.lean` executes
+  `getCode` natively and interpreted on the 85 frozen input-only
+  `code_read_inputs.json` recipes. The independent `code_read_differential.py`
+  reader checks every returned byte, provider call, typed error and successful
+  read set, plus all retained fields, including raw order indexes and constants.
+  Finite probes check each of the four retained provider functions. The frame law
+  supplies whole function equality. Repeated successful attempts use the returned
+  state and repeated failed attempts use the supplied initial state.
+  `code_read_source.py` runs the pinned operation on real source carriers with
+  a traced dictionary provider for 68 coherent recipes. It compares all shared
+  retained values, call arguments, successful bytes and read sets in both Python
+  modes. The provider records membership and the insertion count at the call.
+  A missing dictionary entry records the exact `KeyError` key and source read
+  membership separately from the absent failed Lean state. The correspondence
+  is limited to these fixture errors. Each actual source worker records directly
+  compiled identities, interpreter flags, pinned dependencies and installed
+  RECORD integrity. The driver retains each original stream and consumed wait.
+  The other 17 recipes cover alternate supplied constants and typed Lean errors.
+  Strict readers and their negative controls run in both Python modes.
 - **Implemented mathematical transaction-view controls:** private
   `TransactionViewCallerProofs.lean` imports only the State facade and consumes the
   sole public account law, checking arbitrary-m and non-Monad signatures, tombstones
@@ -788,7 +817,8 @@ separately below. Logical account/storage predicate views and their two iff laws
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied. TxState.view and exactly its account observer law are supplied
 separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
-account actions and the current optional action below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
+account actions, the current optional account read and the hash-only code read
+are supplied. Other trackers and adapters remain open. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
@@ -796,7 +826,7 @@ supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
 PreState providers and tracker operations other than getPreStateAccountOptional,
-getPreStateAccount and getAccountOptional remain unimplemented targets. The R8 lookup
+getPreStateAccount, getAccountOptional and getCode remain unimplemented targets. The R8 lookup
 relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
@@ -934,7 +964,7 @@ def getPreStateAccount {m : Type → Type} [Monad m]
     (a : Address) : StateM m Account -- supplied, Monad only
 def getAccountOptional (a : Address) : StateM m (Option Account)
 def getAccount (a : Address) : StateM m Account
-def getCode (codeHash : Hash32) : StateM m ByteArray
+def getCode {m : Type → Type} [Monad m] (h : Hash32) : StateM m ByteArray
 def getStorage (a : Address) (k : Bytes32) : StateM m U256
 def getStorageOriginal (a : Address) (k : Bytes32) : StateM m U256
 def getTransientStorage (a : Address) (k : Bytes32) : StateM m U256
@@ -1270,7 +1300,7 @@ Per operation, under success (`op t = .ok (x, t')`) [C]:
 - `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
 - `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
 - `getAccountOptional a`: `x = (t.view σ₀).account? a`, `accountReads += a`. `getPreStateAccountOptional a`: `x = (t.block.view σ₀).account? a`.
-- `getCode h` (unimplemented target): `x = c` where `(t.view σ₀).code? t.block.consts h = some c`, with `codeReads += h` iff neither write layer holds `h` and `h ≠ emptyCodeHash`.
+- `getCode h`: `(t.view σ₀).code? t.block.consts h = some x`. A nonreserved hash missing from both write layers adds code-read membership, retaining all prior members.
 - `setStorage a k v`: `t'.view σ₀ = (t.view σ₀).setStorage a k v`; `setAccount a o`: `… .setAccount a o`; `destroyStorage a`: `… .clearStorage a` and `storageReads' = storageReads ∪ {(a,k) | k ∈ dom t.rev.storageWrites[a]}`.
 - `setTransientStorage a k v`: `transient' = transient.insert (a,k) v` (erase if `v = 0`).
 - Invariant preservation of `TxRevertible`'s order-list invariant for every write.
@@ -1307,6 +1337,16 @@ The current optional action supplies exactly these six public laws:
 | `getAccountOptional_frames` | Id success: complete block/rev and storageReads/codeReads/createdAccounts remain equal, without WF or provider premises. |
 | `getAccountOptional_mem` | Id success: b is a post account-read member iff b=a or b was a prior member; no raw duplicate-insert identity. |
 | `getAccountOptional_model` | Exactly the initial MathState.WF/ModelsLookups/success domain above: account equals `(t.view σ₀).account? a`, using public TxState.view_account?_eq and the pre-transaction model law. |
+
+The hash-only code action supplies these five public laws.
+
+| Law | Complete contract |
+|---|---|
+| `getCode_action` | For any Monad, the whole run returns empty bytes and the initial state at the supplied reserved hash, then exact bytes and the initial state on transaction or block hits. Otherwise it inserts the hash and calls the provider once, returning its bytes and the marked state or wrapping its exact error. |
+| `getCode_error` | At Id, a nonreserved hash missing from both overlays and an exact provider error yield that error wrapped in `StateError.witness`, with no returned state. |
+| `getCode_frames` | At Id success, the complete block and revertible records and the accountReads, storageReads and createdAccounts sets equal their initial values. |
+| `getCode_mem` | At Id success, a hash is in the final codeReads iff it was already a member or it is the queried hash, which is nonreserved and missing from both write maps. |
+| `getCode_model` | Given initial `MathState.WF`, `ModelsLookups` at the initial constants and provider, and Id success with bytes `code`, `(t.view σ₀).code? t.block.consts h = some code`. |
 
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
@@ -1478,8 +1518,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
+  getPreStateAccountOptional and getPreStateAccount, the current optional
+  getAccountOptional, and the hash-only getCode are supplied with their local
+  laws and controls in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw

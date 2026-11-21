@@ -2,7 +2,8 @@
 Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
-import STFSpec.State.TxState
+import STFSpec.State.Code
+import STFSpec.State.ModelsLookups
 import STFSpec.State.BlockView
 
 /-!
@@ -105,5 +106,43 @@ private theorem view_congr_revertible (σ₀ : MathState) (t u : TxState m)
   rw [view_eq_effects, view_eq_effects, hb, ha, hs, hc, hcl]
 
 end TxState
+
+/-- Under initial WF and lookup agreement, a successful code read returns the
+initial transaction view's code at the supplied constants. -/
+theorem getCode_model (t : TxState Id) (σ₀ : MathState)
+    (_hwf : MathState.WF σ₀)
+    (hm : ModelsLookups t.block.consts t.block.preState σ₀)
+    (h : Hash32) (code : ByteArray) (next : TxState Id)
+    (hs : ((getCode h).run t).run = .ok (code, next)) :
+    (t.view σ₀).code? t.block.consts h = some code := by
+  rw [getCode_action] at hs
+  by_cases hh : h = t.block.consts.emptyCodeHash
+  · rw [ite_eq_left hh] at hs
+    rw [hh, MathState.code?_empty, (Prod.mk.inj (Except.ok.inj hs)).1]
+  · rw [ite_eq_right hh] at hs
+    rw [MathState.code?_of_ne _ _ _ hh, TxState.view_code]
+    cases ht : t.rev.codeWrites[h]? with
+    | some value =>
+      rw [ht] at hs
+      exact congrArg some (Prod.mk.inj (Except.ok.inj hs)).1
+    | none =>
+      rw [ht] at hs
+      rw [← MathState.code?_of_ne _ _ _ hh, ← BlockState.apply_extractBlockDiff,
+        MathState.apply_code?_eq, ite_eq_right hh, extractBlockDiff_codeChanges]
+      cases hb : t.block.codeWrites[h]? with
+      | some value =>
+        rw [hb] at hs
+        exact congrArg some (Prod.mk.inj (Except.ok.inj hs)).1
+      | none =>
+        rw [hb] at hs
+        rw [← MathState.code?_of_ne _ _ _ hh]
+        change (match t.block.preState.getCode h with | .ok _ => _ | .error _ => _) = _ at hs
+        cases hp : t.block.preState.getCode h with
+        | ok value =>
+          rw [hp] at hs
+          exact (hm.2.2 h value hp).trans (congrArg some (Prod.mk.inj (Except.ok.inj hs)).1)
+        | error error =>
+          rw [hp] at hs
+          contradiction
 
 end STFSpec.State
