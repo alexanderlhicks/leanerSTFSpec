@@ -233,6 +233,7 @@ import STFSpec.Conformance.State.BlockStateCallerProofs
 import STFSpec.Conformance.State.TxStateCallerProofs
 import STFSpec.Conformance.State.BlockInitializationCallerProofs
 import STFSpec.Conformance.State.BlockInitializationGuards
+import STFSpec.Conformance.State.TransactionInitializationChecks
 import STFSpec.Conformance.State.ReadSetsCallerProofs
 import STFSpec.Conformance.State.ReadSetsGuards
 import STFSpec.Conformance.State.BlockExtractionCallerProofs

@@ -102,7 +102,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `state.py::PreState.get_code` | 110 | `PreState.getCode` | supplied nonoptional action (B2); carrier support below (§3/§7) |
 | `state.py::PreState.compute_state_root` | 118 | `PreState.stateRoot` | supplied action; carrier support below (§3/§7); contract `ModelsRoot` in `EthStateCommit` |
 | `forks/amsterdam/state_tracker.py::BlockState` | 44–73 | `STFSpec.State.BlockState m` | **Supplied raw carrier:** exact thirteen §5 fields, arbitrary type constructor without Monad; nine source fields plus F20 constants and three B1 order indexes. Complete private clients/controls below; no tracker semantics; initialization is supplied separately below. |
-| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), including hash-only code observations. Initialization and tracker semantics remain open. |
+| `forks/amsterdam/state_tracker.py::TransactionState` | 78–104 | `STFSpec.State.TxState m` | Supplied raw block/revertible/observation assembly below (D22/D23/B1 adaptation), including hash-only code observations. The separate `TxState.new` supplies fresh defaults below. Tracker and caller integration remain open. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account_optional` | 107–137 | `getPreStateAccountOptional` | **Discharged bounded action:** Monad-only block/pre-state read, exact branch/error equations and Id framing/membership/model laws below. |
 | `forks/amsterdam/state_tracker.py::get_pre_state_account` | 140–171 | `getPreStateAccount` | **Discharged bounded wrapper:** one optional action, absence defaulted from retained constants; five laws below. |
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174–197 | `getAccountOptional` | **Discharged bounded action:** transaction entry priority, delegated pre-transaction fallback and six laws below. |
@@ -210,9 +210,10 @@ no current-EELS full-state refinement.
 | Lean transformer wiring, §5/R29; no EELS operation | `StateM (m : Type → Type) := StateT (TxState m) (ExceptT StateError m)` | Raw alias requires no class. Running has exactly `TxState m → m (Except StateError (α × TxState m))`; an error returns no transaction state. Underlying m effects have no rollback claim | Private clients check the complete alias/run type and arbitrary base action retention, including a contravariant constructor without a Monad. Id sequencing checks pure/put/get and complete successful value/state or exact supplied StateError, including a nested WitnessError after put. |
 
 These ordinary private clients establish nominal composition and transformer
-wiring only. The copy/restore/incorporation context at `state_tracker.py:744–858`
-binds the partition but remains unimplemented. Initialization, observations,
-tracker errors/lifetimes, provider/coherence and all §10 integration gates stay open.
+wiring. The separate `TxState.new` supplies fresh transaction defaults (§3 below).
+The copy/restore/incorporation context at `state_tracker.py:744–858` binds the
+partition. Caller initialization, observation lifetimes, tracker errors, provider
+coherence and the remaining §10 integration gates stay open.
 
 ### Implemented raw revertible transaction carrier
 
@@ -507,6 +508,12 @@ Python's fresh outer-list identity, immutable element identity or allocation beh
 This supplies no witness generator, actual host-call wiring, Q7, S1/S2, guest/EEST,
 resource or C1–C4 result.
 
+### Supplied transaction-state initialization
+
+| Source at the pin | Lean declaration | Effects | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:78–104`, used at `fork.py:540,697,748,1104` | `TxState.new (b : BlockState m) : TxState m` in `STFSpec/State/TransactionInitialization.lean`, exported by State | Class-free construction over the complete supplied block. Empty transaction maps, clear set, observations and created accounts. Both global order indexes are `WriteOrder.empty` and per-address slot order is absent. | A private complete equation verifies every default and retention of the entire supplied block. The private facade controls and direct source comparison cover the defaults (§4). |
+
 ## 4. Tests
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (211 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
@@ -713,6 +720,13 @@ resource or C1–C4 result.
   These interpreted `#guard` observations are bounded functional controls (no native
   runner is committed for this slice), with no EELS operation, generic effect
   interpretation or resource claim.
+- **Transaction-state initialization controls:** `TransactionInitializationChecks.lean`
+  verifies complete class-free construction from raw supplied parents. It checks
+  four parent cursors, retained parent tombstones and read sentinels, all nine
+  empty source collections and the B1 index defaults. Direct comparison in the
+  two isolated pinned Python modes also checks that mutating all nine fields in
+  one source transaction leaves a sibling transaction's defaults intact.
+
 - **Implemented BlockState initialization controls:** private class-free facade
   clients include a contravariant type constructor with no installed Monad and
   derive complete constant-byte retention through new_consts. Owner-private
@@ -792,7 +806,8 @@ account actions and the current optional action below are supplied; other tracke
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
-supplies no source refinement.
+supplies no source refinement. The separate class-free `TxState.new` initializes
+fresh transaction data over the whole supplied block (§3/§4).
 The bounded structural predicate and preservation laws are supplied
 (§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
 PreState providers and tracker operations other than getPreStateAccountOptional,
@@ -807,9 +822,9 @@ Q51's unchanged Hash32 dictionary. Existing product support combines these with
 is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equations.
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
-implemented separately (§3), as are raw BlockState, its initialization and the
-nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+implemented separately (§3), as are raw BlockState, the two standalone
+initialization operations, and the nominal TxState/StateM assembly.
+Remaining tracker operations and caller integration stay open. The two codeReads fields use hash-only Q51 keys; storageReads
 alone uses the Address/Bytes32 product dictionary.
 
 ```lean
@@ -925,7 +940,7 @@ abbrev StateM (m : Type → Type) := StateT (TxState m) (ExceptT StateError m)
 def BlockState.new {m : Type → Type} (ps : PreState m) (consts : HashConsts) : BlockState m
 theorem BlockState.new_consts {m : Type → Type} (ps : PreState m) (consts : HashConsts) :
   (BlockState.new ps consts).consts = consts
-def TxState.new (b : BlockState m) : TxState m
+def TxState.new (b : BlockState m) : TxState m -- supplied, class-free
 
 -- reads (R10–R13)
 def getPreStateAccountOptional {m : Type → Type} [Monad m]
@@ -1044,8 +1059,9 @@ updates retaining the other three fields, six disjoint update commutations and
 account-read/created-account separation. Public Base reconstruction/equality and
 Std insert/member/union/duplicate laws are used for all three key domains; no
 membership-to-raw-equality principle, dictionary parameter or public helper law is
-added. This is nominal raw storage only: copy, restore, incorporation, default-empty
-construction, linear threading and monotonicity remain future implementation/proof work.
+added. The standalone `TxState.new` supplies empty observations for fresh
+transactions. Copy, restore, incorporation, linear threading and monotonicity
+remain separate implementation and proof obligations.
 
 **Raw BlockState contract.** Exactly the thirteen §5 fields are supplied for every
 `m : Type → Type`, without Monad or KeccakQuery. Whole supplied functions/constants/
@@ -1070,9 +1086,10 @@ clients check these properties, including a non-Monad type constructor. StateM
 runs to `m (Except StateError (α × TxState m))`; failure contains only StateError,
 without transaction state. Sequencing requires Monad only in clients, with Id
 controls for complete pure/put/get/error results. This establishes no tracker
-rollback or interpretation of underlying effects. Initialization, lifetime,
-observation monotonicity, StateError semantics/freezing and current-pin refinement
-remain open.
+rollback or interpretation of underlying effects. The separate `TxState.new`
+supplies fresh defaults (§3). Caller initialization, context acquisition and
+coherence, observation lifetime and monotonicity, StateError semantics and
+freezing, and current-pin refinement remain open.
 
 **Logical block read-set contract.** For every arbitrary `m : Type → Type`, raw
 block b and complete key, accountReadSet b a iff a belongs to b.accountReads;
@@ -1506,12 +1523,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
   current-pin full-state refinement remains open.
-  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
-  initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
+  The separate `TxState.new` supplies fresh defaults over the entire block (§3/§4).
+  Other tracker operations, snapshot/restore, observation lifetimes and
+  runtime context acquisition and coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
-  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
+  conversion are supplied in §3/§7.1/§7.2. Standalone initialization is supplied
+  by `TxState.new` (§3). Incorporation, snapshot/restore,
   transient lifetime, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32

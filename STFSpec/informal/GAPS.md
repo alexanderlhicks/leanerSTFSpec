@@ -512,12 +512,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
   current-pin full-state refinement remains open.
-  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
-  initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
+  The separate `TxState.new` supplies fresh defaults over the entire block (§3/§4).
+  Other tracker operations, snapshot/restore, observation lifetimes and
+  runtime context acquisition and coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
-  conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
+  conversion are supplied in §3/§7.1/§7.2. Standalone initialization is supplied
+  by `TxState.new` (§3). Incorporation, snapshot/restore,
   transient lifetime, tracker operations and observations, write/clear/order coupling,
   Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32

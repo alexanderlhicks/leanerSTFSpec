@@ -17,6 +17,7 @@ import STFSpec.State.TxState
 import STFSpec.State.PreStateAccount
 import STFSpec.State.AccountOptional
 import STFSpec.State.BlockInitialization
+import STFSpec.State.TransactionInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
 import STFSpec.State.BlockView
