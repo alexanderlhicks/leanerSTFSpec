@@ -121,7 +121,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::clear_account_preserving_balance` | 504 | `clearAccountPreservingBalance` | |
 | `forks/amsterdam/state_tracker.py::destroy_storage` | 528 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | write→read conversion |
 | `forks/amsterdam/state_tracker.py::mark_account_created` | 552 | `markAccountCreated` | |
-| `forks/amsterdam/state_tracker.py::set_transient_storage` | 574 | `setTransientStorage` | |
+| `forks/amsterdam/state_tracker.py::set_transient_storage` | 574–598 | `setTransientStorage` | **Discharged write:** insert or erase one full transient key and retain all other fields. |
 | `forks/amsterdam/state_tracker.py::modify_state` | 601 | `modifyState` | `f` may fail |
 | `forks/amsterdam/state_tracker.py::move_ether` | 616 | `moveEther` | checked add |
 | `forks/amsterdam/state_tracker.py::create_ether` | 650 | `createEther` | checked add |
@@ -198,6 +198,12 @@ source error adapters, lifetimes, reachable history, full-State and cost gates r
 | Source at the pin | Lean declaration and domain | Value, effects and failures | Law and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:327–349` | `getTransientStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) : StateM m U256` in `State/TransientStorage.lean`, for every raw transaction state | Read the whole word at `(a, k)` in the transaction transient map. Return zero when the key is absent. Return the original transaction state through the base `pure` without a provider call, observation or typed failure. | **Discharged:** the complete `getTransientStorage_action` law (§7.1), a private facade client and the ten typed cases in §4. |
+
+### Implemented transient storage write
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:574–598` | `setTransientStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) (v : U256) : StateM m Unit` in `State/TransientStorageWrite.lean`, for every raw transaction state | Set the complete `(a, k)` entry in the transaction transient map. A zero word erases the entry, including an explicitly stored zero. Return unit and the updated state through a single base `pure`. All other fields are retained. | **Discharged:** private complete action, framing, lookup and Id read-after-write proofs (§7.1 and §7.2), with ten paired cases (§4). |
 
 ### Implemented raw transaction state and state monad
 
@@ -563,6 +569,16 @@ resource or C1–C4 result.
   and optimized Python. Each worker compiles source directly and returns its own
   authentication. A fail-on-access provider and identity checks cover the retained
   source context.
+- **Implemented transient storage write controls.** `TransientStorageWriteChecks.lean`
+  checks the exact public type and complete private action and framing equations
+  through the State facade. Ten interpreted cases compare the full transient map
+  and read result after each of two writes. They cover overwrites, missing and
+  explicitly zero entries, a maximal word and pairs that differ in a high or low
+  byte. The guards track provider calls and observe retained persistent writes,
+  observations and disagreeing raw order indexes. The bounded comparison at
+  `59c1473d` executes these recipes on the pinned tracker in normal and optimized
+  Python and checks both full maps and read results. It also checks the source
+  tracker fields and provider identity after each write.
 - **Implemented optional-account controls:** `PreStateAccountCallerProofs.lean`
   consumes only public action/framing/membership/model laws. The input-only
   `pre_state_account_inputs.json` has 66 cases distinguishing missing entries,
@@ -972,7 +988,8 @@ def destroyStorage (a : Address) : StateM m Unit
 def destroyAccount (a : Address) : StateM m Unit
 def clearAccountPreservingBalance (a : Address) : StateM m Unit
 def markAccountCreated (a : Address) : StateM m Unit
-def setTransientStorage (a : Address) (k : Bytes32) (v : U256) : StateM m Unit
+def setTransientStorage {m : Type → Type} [Monad m]
+    (a : Address) (k : Bytes32) (v : U256) : StateM m Unit -- supplied, Monad only
 def modifyState (a : Address) (f : Account → Except StateError Account) : StateM m Unit
 def moveEther (src dst : Address) (amount : U256) : StateM m Unit
 def createEther (a : Address) (amount : U256) : StateM m Unit
@@ -1338,6 +1355,15 @@ The transient storage read supplies one complete action law for every raw
 |---|---|
 | `getTransientStorage_action` | `((getTransientStorage a k).run t).run` equals `pure (.ok ((t.rev.transient[(a, k)]?).getD U256.zero, t))`. The base action is a single `pure` and returns the entire original state. |
 
+The transient storage write supplies the R23 action on every raw transaction
+state with Monad alone. Its private complete run equation returns unit and
+the transaction state with just the selected `rev.transient` entry updated,
+under a single `pure`. Replacing that map with the original map reconstructs
+the complete original state. Private lookup laws give absence for an erased
+key, the supplied word for an inserted key and the original lookup for every
+distinct key. These equations use the supplied key comparison and have no
+provider, well-formedness or observation premise.
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
@@ -1346,7 +1372,7 @@ The transient storage read supplies one complete action law for every raw
   input and arbitrary m, without any class or validity premise. This is the only
   public transaction-view law, for the `getAccountOptional_model` consumer.
   Whole construction/application, metadata, other observers and support stay private.
-- **Read-after-write:** `setStorage a k v; getStorage a k` returns `v`; same for accounts, code writes and transient storage.
+- **Read-after-write:** `setStorage a k v; getStorage a k` returns `v`; same for accounts and code writes. The transient instance is supplied privately at Id on every raw state: a read after `setTransientStorage a k v` returns `v` and the complete written state. The proof uses the existing action equation for `getTransientStorage`.
 - **Frame:** a write to `(a,k)` leaves `getStorage a' k'` unchanged for `(a',k') ≠ (a,k)`; writes never change `getStorageOriginal`.
 - **Clear suppression:** after `destroyStorage a`, `getStorage a k = 0` until `(a,k)` is written again in the same transaction; later writes are visible. At block level: a transaction clear hides all earlier block writes of `a`, and later transactions see only the post-clear writes.
 - **Storage precedence** (R11) and **original precedence** (R12) as the two separate public laws ARCHITECTURE §5.3 requires; `created ⇒ original = 0`.
@@ -1509,8 +1535,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, the current getAccountOptional
-  read, and the getTransientStorage read are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
+  read, and the transient storage read and write are supplied in §3/§4/§7.1.
+  Transient reset and rollback, other tracker operations and full-state
+  integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
@@ -1542,8 +1569,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient writes and lifetime, other tracker operations and observations, write/clear/order coupling,
-  Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
+  transient storage lifetime (including the transaction-end reset), other tracker
+  operations and observations, write/clear/order coupling, Reachable,
+  AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite

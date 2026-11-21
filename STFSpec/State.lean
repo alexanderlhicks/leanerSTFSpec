@@ -17,6 +17,7 @@ import STFSpec.State.TxState
 import STFSpec.State.PreStateAccount
 import STFSpec.State.AccountOptional
 import STFSpec.State.TransientStorage
+import STFSpec.State.TransientStorageWrite
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
@@ -47,7 +48,8 @@ ancestor selection are supplied. TxState assembles the complete providers with h
 code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and defaulted wrapper, with
 their bounded action/error/framing/membership/model laws, and the current optional
 account read with its six laws, are supplied. The transient storage read has a
-literal action law that returns the whole original state. Lookup providers, model
-mutation, other tracker effects and lifecycle laws remain scaffolding.
+literal action law that returns the whole original state. The transient write
+updates one full key and retains every other state field. Lookup providers,
+model mutation, other tracker effects and lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
