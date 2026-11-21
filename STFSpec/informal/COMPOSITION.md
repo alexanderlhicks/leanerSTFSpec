@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-20.*
+*Status: conditional proof plan. Date: 2026-11-21.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -27,6 +27,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | Trie, TrieValue, KeyBytes | EthCommit | Q53 supplies generic storage/safety, the byte-key contract, pure unsecured preparation and typed root composition; remaining concrete consumer contracts require lawful arbitrary-default equality, stored-value `PrepareSafe` distinct from `NoDefault`, injective byte keys with byte-lex order and caller-supplied coherent F20 empty root; initial preparation/root calls prove unsecured. |
 | TrieError, Malformed | EthCommit | Keep Q52 path-list/leaf-value-list diagnostics in C14 order, raw compactEmpty distinct from later pathEmpty. Q59 supplies a bare selected-slot diagnostic and pure lookup equations; Q60 supplies collapseIndex, local reached mkBranch diagnostics and update/delete emission (EthCommit §3); frontend emission remains future; witness/guest adapters and reachable outcome projection remain separate, owned by CONTRACT O4/O13. |
 | NodeDB, `NodeDB.Authentic` | EthCommit | Share the constructed raw table read-only. Concrete root-binding/agreement consumers require `Authentic keccak256`; Q55 decoder admission accepts arbitrary tables and caches actual occurrence answers. A generic oracle table alone supplies no concrete authenticity; equality of a decoded cache to a reference also needs eligible raw length. |
+| CodeDB, `CodeDB.Authentic` | EthStateWitness | Share the constructed table read-only and establish concrete authenticity at backend construction. See [the raw code database premise](#raw-code-database-premise). |
 | Account, MathState, `PreState m`, BlockDiff, TxRevertible | EthState | EthState §3/§7 owns supplied Account, raw MathState, raw BlockDiff, raw mathematical apply, raw PreState/TxRevertible carriers and supplied-record ModelsLookups contracts. Raw TxRevertible retains exactly its eight supplied fields, including malformed/disagreeing order indexes; private complete facade clients add no authored public law, tracker/snapshot operation or persistence-cost result. Its §10 owns the remaining lifetime, order coupling and execution obligations. The PreState carrier retains complete supplied functions without a Monad premise; equality adds no action-effect interpretation. Coarse WitnessItem/WitnessError and nominal StateError values retain supplied tags/payloads through construction/elimination; they add no diagnostic or outcome adapter. StateError operations and freezing remain open (EthState §5/R29/§10). Actual providers and context coherence, progress, code/root agreement and error refinement remain open. Raw diff callers preserve whole optional payloads and every metadata occurrence. Apply uses all four effect fields and ignores order metadata; it preserves untouched raw entries and requires no WF. Concrete source correspondence requires typed finite nonaliasing account/storage dictionaries with defaults None/zero and coherent F20 constants for code observations. Diff WF, reachable preservation, first-write history and F7 replay policy remain separate obligations. Callers use observers and ordered writes; they never inspect backend trie representation. |
 | TxObs | EthState | EthState §3/§5/§7 supplies exactly four raw Std sets in accountReads/storageReads/codeReads/createdAccounts order, using canonical Base dictionaries, hash-only codeReads and existing storage-pair mixHash. Arbitrary supplied whole sets are preserved; private complete reconstruction/update/commutation and full-byte/key membership controls add no public law, default or instance. D23 linear ownership, monotonicity and exclusion from snapshots remain caller/integration obligations. No tracker, copy/restore/incorporation, F7 replay or C1–C4 result follows; raw BlockState and nominal TxState/StateM are supplied separately. |
 | TxState, StateM | EthState | EthState §3/§5/§7 owns the supplied class-free three-field raw assembly and exact StateT-over-ExceptT alias. Consume complete existing BlockState/TxRevertible/TxObs values; private facade clients verify whole retention, independent replacements and exact run wiring, with Id sequencing controls. Failure returns StateError without transaction state; underlying effects have no rollback interpretation here. The provider codeReads fields match the hash-only source shape; this supplies nominal assembly only. Initialization, tracker/lifetimes, StateError semantics/freezing, provider/coherence, D5/S1/S2/W1, F6/F7/F11 and C1–C4 remain open. |
@@ -1046,6 +1047,15 @@ Transformer and failure equations require explicit LawfulMonad where stated.
 Reconstructed keys and actual Std lookups use only public Base/map laws.
 Generic concrete-authentication coupling remains D5/X7; no decoder, root,
 witness agreement, host-resource or C1–C4/R4 completion follows from this slice.
+
+### Raw code database premise
+
+[EthStateWitness §§3–7](modules/EthStateWitness.md#3-eels-source-map) supplies the
+W1 `CodeDB`, its separate authenticity predicate and ordered query builder.
+The owner proves concrete Id authenticity and complete raw lookup privately.
+Backend construction will need to establish that authenticity premise for its
+stored code table. The code access adapter owns the empty-code sentinel and the
+missing-code error (W5).
 
 ### Hash constants and oracle premises
 

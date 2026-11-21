@@ -1,6 +1,6 @@
 # `EthStateWitness`: the witness-state backend
 
-*Status: informal specification, draft; unimplemented. Date: 2026-11-11. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: draft. The code database is implemented. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F4, F6, F7, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D8, D18, D19 · questions: B1 (Q29/Q36), B4 (Q37), B15 (Q35), F6, F7, Q55, Q57, Q90; DISC-001, DISC-004.*
 
 `ws:` = `forks/amsterdam/witness_state.py`. "[executed]" = run against the pinned EELS; "[inference]" = argued only. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -32,7 +32,7 @@
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `forks/amsterdam/witness_state.py::build_code_db` | 33 | `CodeDB.build` | |
+| `forks/amsterdam/witness_state.py::build_code_db` | 33–35 at `59c1473d` | `STFSpec.StateWitness.CodeDB`, `CodeDB.map`, `CodeDB.Authentic`, `CodeDB.build` | Implemented. The array fold queries each complete byte string in input order and inserts it under the returned key. A later equal answer replaces the earlier value. Empty input produces an empty table. |
 | `forks/amsterdam/witness_state.py::WitnessState` | 67 | `WitnessBackend` | caches replaced (W10, W11) |
 | `forks/amsterdam/witness_state.py::WitnessState._get_decoded_secure_trie` | 83 at `59c1473d` | `WitnessBackend.accountTrie`; per-query storage decoding | trigger W2; storage memo open (F6) |
 | `forks/amsterdam/witness_state.py::WitnessState.get_account_optional` | 96 | `….getAccount?` | |
@@ -48,6 +48,7 @@
 
 - **EEST fixture area:** `amsterdam/eip8025_optional_proofs` (96 files): `test_witness_validation_state.py` (missing storage proof node, missing absent-slot proof leaf, missing delete auxiliary node, missing sender, absent-account and failed-call-target account nodes, extra unused node, unsorted but complete), `test_witness_validation_codes.py` (missing codes incl. 7702 markers and system contracts; extra and unsorted codes), `test_witness_state_{reads,writes,deletes,replay_order}.py`, `test_witness_headers.py`. Every other `blockchain_tests` area runs through this backend when executed as zkevm stateless fixtures.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` (`TestBuildNodeDb`, `TestBuildCodeDb`, `TestGetAccountOptional`, `TestGetStorage`, `TestGetCode`, `TestComputeStateRoot`, `TestCanonicalSecureTrieValidation`).
+- **Code database.** `STFSpec/Conformance/StateWitness/CodeDBCallerProofs.lean` checks complete map construction, reconstruction and replacement, the separate predicate and the bare `Monad`/`KeccakQuery` builder through the library facade. `CodeDBGuards.lean` checks six complete tables from the pinned EELS builder [executed at `59c1473d`]. The inputs include empty input, empty code, duplicate code and byte lengths of 136 and 137. A stateful oracle checks the complete query trace and the final table when distinct byte strings receive equal keys.
 - **`core` `#guard` cases:** a malformed storage trie never accessed (accepted); a malformed account-trie node off every path (rejected, even for a block that reads no account before root computation); a storage read of an account without storage (no decode); account-trie delete whose collapse needs a stub sibling, with the insertion ordered before and after it (W8 step 4); a pure storage clear of an untouched-account address (step 3); `getAccount?` failure surfacing first in `getStorage`; missing code; history condition: a root computation whose `accountChanges` address was never looked up (EELS uses `EMPTY_TRIE_ROOT`; documents why W7's precondition matters).
 - **Differential:** against `EthStateFull` on complete witnesses (identical roots); against EELS `WitnessState` on random pruned witnesses (bug-finding).
 
@@ -138,6 +139,7 @@ Per-query storage decoding repeats work that EELS caches by root (`ws:87–94`).
 
 ## 7. Contract and laws
 
+- [C] **Code database (W1).** `build_eq_reference` proves equality to the ordered list fold for every `Monad` and `KeccakQuery`. At `Id`, `authentic_build_id` proves `CodeDB.Authentic keccak256` for every input array. `lookup_build_id` proves that any raw table lookup returns the last input whose digest equals the key, or `none` when no digest matches. The proofs are private and reuse the pure `NodeDB` model and its map laws. The executable fold uses `CodeDB` and its own query and insertion step.
 - [C] **Agreement up to collision:** `WitnessBackend.models` — from `EthCommit.decode_agreement` on the account trie and on each storage trie, plus `EthStateCommit`'s leaf round trips; `WitnessBackend.WF` supplies node/code authentication, coherent constants and the Id-run decoder/thunk agreement through the existing error adapter; `ModelsCode` follows from its code-DB clause. Q57's stored-record lookup conjunct follows by the §5 coherence rewrite on the Models branch. These premises apply to arbitrary backend records, not only to records returned by `build`.
 - [C] **Progress / data availability:** `LookupAvailable w a` requires successful eager account-root decoding (including off-path nodes), a resolved lookup path and successful account-leaf decoding. Storage lookup additionally requires successful eager decoding of its triggered storage root, a resolved slot path and successful storage-leaf decoding. `UpdatesAvailable w d` requires `BlockDiff.WF`, read-before-write, successful eager decoding at each W2 root trigger, every insertion/deletion path and every collapsing branch's remaining sibling resolved, and successful leaf decoding for every value inspected, **in the W6 replay order**. A resolved path alone is insufficient when malformed off-path nodes are eagerly decoded. Authenticated absence is success (ARCHITECTURE §5.3).
 - [R] **Concrete Id refinement to EELS:** under concrete Id, coherent constants and pinned-host premises, for any sequence of provider calls made by `EthBlock` execution satisfying `AccountWritesLookedUp`, each call's result (value, or failure) equals EELS's; hence the guest's boolean is the same (W9, W11).
@@ -176,6 +178,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
+- **Backend construction and code access** (W1, W5). Compose the authenticated databases, parent state root and caller's constants into a backend. Implement the empty-code sentinel and missing-code error at the code access boundary.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved; step-4 order dependence is verified by executing a minimal example, but no fixture tests it on the account trie.

@@ -224,6 +224,8 @@ import STFSpec.Conformance.Commit.TypedRootCallerProofs
 import STFSpec.Conformance.Commit.PreparationCallerProofs
 import STFSpec.Conformance.State.WitnessAncestorsCallerProofs
 import STFSpec.Conformance.State.WitnessAncestorsGuards
+import STFSpec.Conformance.StateWitness.CodeDBCallerProofs
+import STFSpec.Conformance.StateWitness.CodeDBGuards
 import STFSpec.Conformance.State.AccountCallerProofs
 import STFSpec.Conformance.State.AccountGuards
 import STFSpec.Conformance.State.TxRevertibleCallerProofs

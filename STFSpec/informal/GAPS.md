@@ -699,6 +699,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateWitness`](modules/EthStateWitness.md)
 
+- **Backend construction and code access** (W1, W5). Compose the authenticated databases, parent state root and caller's constants into a backend. Implement the empty-code sentinel and missing-code error at the code access boundary.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved; step-4 order dependence is verified by executing a minimal example, but no fixture tests it on the account trie.
