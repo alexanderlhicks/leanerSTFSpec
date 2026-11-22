@@ -13,7 +13,8 @@ import re
 import subprocess
 import sys
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
+FUNCTION_FIRSTLINENO = 799
 SCHEMA = "calldata-tokens-v1"
 CATALOG_SHA256 = "356620fcec4a2a6ed80b77c0e2bac0f02f523fc077486255ec57ab6cf028ee2c"
 CATALOG = Path(__file__).with_name("count_tokens_cases.json")
@@ -109,7 +110,7 @@ def parse_source(data):
     natural(meta["optimize"])
     require(meta["optimize"] in (0, 1), "source optimization")
     natural(meta["function_firstlineno"])
-    require(meta["function_firstlineno"] == 804, "source function line")
+    require(meta["function_firstlineno"] == FUNCTION_FIRSTLINENO, "source function line")
     for key in ("python", "executable", "openssl", "function_file"):
         require(type(meta[key]) is str and bool(meta[key]), "source provenance string")
     require(type(meta["files"]) is list and len(meta["files"]) > 0, "source file provenance")
@@ -139,7 +140,8 @@ def source_worker(root):
     fn = transactions.count_tokens_in_data
     source_file = Path(inspect.getsourcefile(fn)).resolve()
     require(source_file == root / "src/ethereum/forks/amsterdam/transactions.py", "function path")
-    require(fn.__globals__["Uint"] is Uint and fn.__code__.co_firstlineno == 804, "function binding")
+    require(fn.__globals__["Uint"] is Uint and fn.__code__.co_firstlineno == FUNCTION_FIRSTLINENO,
+            "function binding")
     require(importlib.metadata.version("ethereum-types") == "0.4.1", "locked types")
     rows = []
     for case in catalog():
