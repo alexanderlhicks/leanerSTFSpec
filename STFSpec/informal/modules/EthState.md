@@ -787,17 +787,16 @@ F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied. TxState.view and exactly its account observer law are supplied
-separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
-account actions and the current optional action below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
+separately (§3/§7.2); its raw conversion remains Lean-private. The tracker source
+map in §3 records which operations are supplied. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
 supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
-(§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
-PreState providers and tracker operations other than getPreStateAccountOptional,
-getPreStateAccount and getAccountOptional remain unimplemented targets. The R8 lookup
-relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
+(§3/§7.4). MathState mutation, diff WF/history/reachable preservation and actual
+PreState providers remain unimplemented targets. The R8 lookup relation is
+supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
 **Observation-key provider (Q84).** The supplied TxObs and BlockState raw Std fields use
@@ -808,8 +807,8 @@ is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equa
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
 implemented separately (§3), as are raw BlockState, its initialization and the
-nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+nominal TxState/StateM assembly. Other default-empty constructors remain open.
+The two codeReads fields use hash-only Q51 keys; storageReads
 alone uses the Address/Bytes32 product dictionary.
 
 ```lean
