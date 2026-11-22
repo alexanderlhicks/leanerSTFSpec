@@ -485,10 +485,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
-  WriteOrder support, raw MathState with its pure observers and structural WF, raw
+  and their bounded laws/controls are supplied in §3/§4/§7.1. Those sections
+  also supply the standalone `getStorageOriginal` action and its private proofs.
+  `TxState.originalAt`, `getStorage`, `preTxStorage` and SSTORE composition
+  remain open, along with other tracker operations and full-state integration.
+  Account and supplied empty-account values, internal WriteOrder support, raw
+  MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record

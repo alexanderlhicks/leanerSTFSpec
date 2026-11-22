@@ -109,7 +109,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::get_account` | 200 | `getAccount` | |
 | `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
-| `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
+| `forks/amsterdam/state_tracker.py::get_storage_original` | 298–324 | `getStorageOriginal` | **Supplied standalone action:** created-account membership, block slot write, block clear, then the retained storage provider. Private equations and controls appear below. |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
 | `forks/amsterdam/state_tracker.py::account_exists` | 352 | `accountExists` | |
 | `forks/amsterdam/state_tracker.py::account_deployable` | 372 | `accountDeployable` | |
@@ -138,6 +138,12 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 `state.py` is claimed item by item above; no item of either file is left unclaimed.
 
 **External semantics.** `ethereum_types.numeric.U256` (add/sub raise on overflow/underflow; the tracker relies on raising, R19), `Uint` (unbounded, `Nat`), `ethereum_types.bytes.Bytes`/`Bytes20`/`Bytes32` (fixed-width constructors, owned by `EthBase`), `ethereum_types.frozen.modify` (functional update of a frozen dataclass: in Lean, record update) and `slotted_freezable` (immutability; no Lean counterpart needed). `EthBase` owns the representations; this module requires checked `U256` addition/subtraction returning `Option`/`Except`.
+
+### Implemented original storage read
+
+| Source at the pin | Lean declaration and domain | Ordered effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:298–324` | `getStorageOriginal : Address → Bytes32 → StateM m U256` in `State/StorageOriginal.lean`. Requires only `Monad m` and accepts raw transactions. | Created membership returns zero first. Otherwise a block slot entry returns its value, including zero. A missed entry at a cleared address returns zero. The remaining branch calls `t.block.preState.getStorage a k` once. Success returns the whole input transaction. A provider error returns the complete `StateError.witness` payload without a transaction. | Private complete branch equations and the guided conditional `Id` model equation (§7.1). Finite effect, frame and source controls appear in §4. |
 
 ### Implemented optional pre-transaction account read
 
@@ -508,6 +514,18 @@ This supplies no witness generator, actual host-call wiring, Q7, S1/S2, guest/EE
 resource or C1–C4 result.
 
 ## 4. Tests
+
+- **Original storage read:** `Conformance/State/StorageOriginalGuards.lean` runs
+  eleven cases with distinct full-width addresses and slots, including pairs that
+  differ only at the high bit. Cases cover created-account priority, block writes
+  including explicit zero, block clears, absent and empty maps, and wrong addresses
+  and slots. The provider records exact arguments and call counts. Success checks
+  all retained data fields and samples each retained provider action. Failure
+  checks the full typed witness error and absence of a returned transaction.
+  Focused native and interpreted runs compare values and provider calls against
+  the pinned EELS function in isolated normal and optimized Python. The Python
+  failure case checks propagation of the thrown object and unchanged source
+  fields. The Lean case separately checks the typed error representation.
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (211 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
 - **EELS unit tests:** none target `state_tracker.py` at the pin. `tests/json_loader/test_optimized_state.py` (`test_storage_key`, `test_resurrection`) concerns an older optimized state and is not normative here.
@@ -936,7 +954,8 @@ def getAccountOptional (a : Address) : StateM m (Option Account)
 def getAccount (a : Address) : StateM m Account
 def getCode (codeHash : Hash32) : StateM m ByteArray
 def getStorage (a : Address) (k : Bytes32) : StateM m U256
-def getStorageOriginal (a : Address) (k : Bytes32) : StateM m U256
+def getStorageOriginal {m : Type → Type} [Monad m]
+    (a : Address) (k : Bytes32) : StateM m U256 -- supplied, Monad only
 def getTransientStorage (a : Address) (k : Bytes32) : StateM m U256
 def accountExists (a : Address) : StateM m Bool
 def accountDeployable (a : Address) : StateM m Bool
@@ -1268,13 +1287,19 @@ R11 as an operational storage-precedence law remains a future tracker obligation
 Per operation, under success (`op t = .ok (x, t')`) [C]:
 
 - `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
-- `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
+- `getStorageOriginal a k` (proved privately): `x = if a ∈ t.obs.createdAccounts then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`. The proof uses the block-view application and extraction laws and the storage clause of `ModelsLookups`. Its domain retains the initial `MathState.WF` premise.
 - `getAccountOptional a`: `x = (t.view σ₀).account? a`, `accountReads += a`. `getPreStateAccountOptional a`: `x = (t.block.view σ₀).account? a`.
 - `getCode h` (unimplemented target): `x = c` where `(t.view σ₀).code? t.block.consts h = some c`, with `codeReads += h` iff neither write layer holds `h` and `h ≠ emptyCodeHash`.
 - `setStorage a k v`: `t'.view σ₀ = (t.view σ₀).setStorage a k v`; `setAccount a o`: `… .setAccount a o`; `destroyStorage a`: `… .clearStorage a` and `storageReads' = storageReads ∪ {(a,k) | k ∈ dom t.rev.storageWrites[a]}`.
 - `setTransientStorage a k v`: `transient' = transient.insert (a,k) v` (erase if `v = 0`).
 - Invariant preservation of `TxRevertible`'s order-list invariant for every write.
 - **Progress** [T]: every operation terminates; a read fails only if the provider call it makes fails, or by R15/R19.
+
+The original storage read has four private complete run equations for arbitrary
+`Monad m`. The first three return one `pure` with the selected value and the
+original transaction. The final equation sequences the retained storage action,
+then returns the value and input transaction or the wrapped error. The two public
+storage precedence laws required by §7.2 for SSTORE composition remain open.
 
 The optional pre-transaction account action is discharged by these public laws:
 
@@ -1479,10 +1504,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
-  WriteOrder support, raw MathState with its pure observers and structural WF, raw
+  and their bounded laws/controls are supplied in §3/§4/§7.1. Those sections
+  also supply the standalone `getStorageOriginal` action and its private proofs.
+  `TxState.originalAt`, `getStorage`, `preTxStorage` and SSTORE composition
+  remain open, along with other tracker operations and full-state integration.
+  Account and supplied empty-account values, internal WriteOrder support, raw
+  MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
