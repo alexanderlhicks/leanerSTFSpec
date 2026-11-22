@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Strict complete ancestor output reader; no EELS loader or suffix oracle.
+"""Strict complete defaulted-current-account output reader; no source loader or lookup oracle.
 
-The literal catalog was independently frozen before Lean construction. This
-reader validates finite target values only; source/runtime authentication is a
-separate gate, and the source packet is never imported by this module.
+The input-only catalogue and independent integer/list expectations are frozen beside
+this file. Source execution/authentication remains separate: instrumented exceptions
+are not a selected production WitnessError adapter. Every failed target state is null.
+The companion `account_default_source.py` reproduces the separately authenticated
+normal/-O source comparison from a supplied pinned clone.
 """
 
 import argparse
@@ -11,11 +13,12 @@ import hashlib
 import json
 from pathlib import Path
 
-CATALOG_SHA256 = "b150be91f95506119cb221a908dc7b090f73f50d96be3bd79346a8e90acc0a1b"
+INPUT_SHA256 = "7b88bbfc867d7018bed8cbaca19c8c4f21fa916eddce0ff5090a52232baefeeb"
+EXPECTED_SHA256 = "f6da4f2d9271723353ab74365d806e87c00d800a6bd058870dcaf739318968d1"
 
 
 class AdmissionError(ValueError):
-    """The complete observation is outside the frozen wire contract."""
+    """The complete stream differs from its frozen finite contract."""
 
 
 def unique_object(pairs):
@@ -40,7 +43,6 @@ def decode(data):
 
 
 def strict_equal(actual, expected, path="frame"):
-    # Exact types are essential: False == 0 and True == 1 in Python.
     if type(actual) is not type(expected):
         raise AdmissionError(path + ": wrong type")
     if type(expected) is dict:
@@ -58,21 +60,22 @@ def strict_equal(actual, expected, path="frame"):
 
 
 def expected_frames():
-    data = Path(__file__).with_name("witness_ancestors_cases.json").read_bytes()
-    if hashlib.sha256(data).hexdigest() != CATALOG_SHA256:
-        raise AdmissionError("frozen catalog identity mismatch")
-    rows = decode(data)
-    if type(rows) is not list or len(rows) != 48:
-        raise AdmissionError("frozen catalog count mismatch")
-    return [{"id": row["id"], "headers": row["headers"], "offset": row["offset"],
-             "result": row["expected"]} for row in rows]
+    root = Path(__file__).parent
+    for name, digest in [("account_default_inputs.json", INPUT_SHA256),
+                         ("account_default_expected.json", EXPECTED_SHA256)]:
+        if hashlib.sha256((root / name).read_bytes()).hexdigest() != digest:
+            raise AdmissionError("frozen catalogue identity mismatch: " + name)
+    rows = decode((root / "account_default_expected.json").read_bytes())
+    if type(rows) is not list or len(rows) != 248:
+        raise AdmissionError("frozen catalogue count mismatch")
+    return rows
 
 
 def parse_target(data):
-    if type(data) is not bytes or len(data) > 1048576:
+    if type(data) is not bytes or len(data) > 4194304:
         raise AdmissionError("invalid or oversized byte stream")
     lines = data.splitlines()
-    if len(lines) != 48:
+    if len(lines) != 248:
         raise AdmissionError("missing, duplicate or extra observations")
     frames = [decode(line) for line in lines]
     strict_equal(frames, expected_frames())
@@ -84,7 +87,7 @@ def main():
     parser.add_argument("--check-target", required=True, type=Path)
     args = parser.parse_args()
     frames = parse_target(args.check_target.read_bytes())
-    print(f"PASS ancestors: {len(frames)} complete target observations; source imports/calls 0")
+    print(f"PASS defaulted current accounts: {len(frames)} complete observations; source imports/calls 0")
 
 
 if __name__ == "__main__":

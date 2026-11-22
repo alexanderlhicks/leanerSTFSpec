@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 import re
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 SCHEMA = "deposit-data-v1"
 COUNT = 142
 CATALOG = Path(__file__).with_name("deposit_cases.json")

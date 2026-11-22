@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
-"""Fresh complete-value observations of original pinned witness_state._trie_lookup.
+"""Complete observations of the bare walk in pinned incremental_mpt.mpt_get.
 
 Use frozen EELS/.venv/bin/python -I -B, --eels, --output EXTERNAL.lean and
---rlp-wheel/--types-wheel original authenticated wheels. Source values/stubs are
-compared on actual Hash32 keys and represented finite acyclic classes. Missing
-selected slots test Q59's typed adaptation separately, not Python payload/guest
-output equivalence. Complete original input/cache fields and errors are retained.
+--rlp-wheel/--types-wheel original authenticated wheels. An unsecured carrier
+uses actual prehashed Hash32 keys. Dirty nodes retain their supplied cache fields
+and let the walk call the recorder without computing or adding witness entries.
+Missing selected slots test Q59's typed adaptation. Separate source controls
+exercise clean cached witness recording and secured key hashing.
 Interpreter, frozen startup/installation and host remain trust inputs. --self-test
 runs strict full-value/input grammar controls with ordinary Python, also -O.
 """
@@ -283,18 +284,42 @@ def main():
             )
         )
     from ethereum.forks.amsterdam import witness_state as ws, incremental_mpt as inc
-    from ethereum.crypto.hash import Hash32
+    from ethereum.crypto.hash import Hash32, keccak256
 
     context.check_source(ws, "ethereum/forks/amsterdam/witness_state.py")
     context.check_source(inc, "ethereum/forks/amsterdam/incremental_mpt.py")
-    fn = ws._trie_lookup
-    classes = [
-        inc.MutableLeafNode,
-        inc.MutableExtensionNode,
-        inc.MutableBranchNode,
-        inc.HashedNode,
-    ]
-    identity = [(id(x), id(getattr(x, "__code__", None))) for x in [fn, *classes]]
+    fn = inc.mpt_get
+    recorder = inc._record_witness
+    compute_cache = inc._compute_node_hash_and_rlp
+    require(ws.mpt_get is fn, "guest lookup does not import original mpt_get")
+
+    def source_identities():
+        return [
+            (id(obj), id(getattr(obj, "__code__", None)))
+            for obj in (
+                inc.mpt_get,
+                ws.mpt_get,
+                inc._record_witness,
+                inc._compute_node_hash_and_rlp,
+                inc.keccak256,
+                inc.IncrementalMPT,
+                inc.Witness,
+                inc.MutableLeafNode,
+                inc.MutableExtensionNode,
+                inc.MutableBranchNode,
+                inc.HashedNode,
+            )
+        ]
+
+    identity = source_identities()
+
+    def source_function(fn):
+        return dict(
+            module=fn.__module__,
+            name=fn.__qualname__,
+            filename=fn.__code__.co_filename,
+            first_line=fn.__code__.co_firstlineno,
+        )
 
     def snapshot():
         for wheel in wheel_rows:
@@ -307,22 +332,7 @@ def main():
         context.check_clean()
         context.check_dependency()
         auth.check()
-        require(
-            ws._trie_lookup is fn
-            and [
-                inc.MutableLeafNode,
-                inc.MutableExtensionNode,
-                inc.MutableBranchNode,
-                inc.HashedNode,
-            ]
-            == classes,
-            "original callable/class changed",
-        )
-        require(
-            identity
-            == [(id(x), id(getattr(x, "__code__", None))) for x in [fn, *classes]],
-            "original function code changed",
-        )
+        require(identity == source_identities(), "original callable/class changed")
         return dict(
             pin=context.head,
             dependencies=wheel_rows,
@@ -333,13 +343,9 @@ def main():
                 )
                 for p, b in context.oracle_blobs.items()
             },
-            function=dict(
-                module=fn.__module__,
-                name=fn.__qualname__,
-                filename=fn.__code__.co_filename,
-                first_line=fn.__code__.co_firstlineno,
-                identity=identity,
-            ),
+            function=dict(source_function(fn), identity=identity),
+            witness_recorder=source_function(recorder),
+            witness_cache=source_function(compute_cache),
         )
 
     before_identity = snapshot()
@@ -359,7 +365,7 @@ def main():
         return dict(
             _rlp=bytes([0, 255, n % 256]),
             _hash=None if n % 2 == 0 else h(n),
-            _dirty=False,
+            _dirty=True,
         )
 
     def leaf(p, v, n=1):
@@ -434,10 +440,8 @@ def main():
             dirty=node._dirty,
         )
         require(
-            type(node._dirty) is bool
-            and node._dirty is False
-            and type(node._rlp) is bytes,
-            "represented completed-cache premise failed",
+            type(node._dirty) is bool and type(node._rlp) is bytes,
+            "represented raw/cache fields required",
         )
         if type(node) is inc.MutableLeafNode:
             require(
@@ -551,29 +555,51 @@ def main():
             + enc
         )
 
-    observations, expected, declarations = [], [], []
-    for i, (name, root, key) in enumerate(cases):
+    def observe(case, name, root, key, secured=False):
         require(type(key) is Hash32 and len(key) == 32, "actual Hash32 key required")
+        mpt = inc.IncrementalMPT(secured=secured, default=b"unused", root_node=root)
+        require(mpt.witness.accessed_nodes == {}, "fresh witness required")
         before = view(root)
         effects = []
+        keccak_inputs = []
+        witness_calls = []
+        cache_calls = []
         thrown = []
         frame_locals = {}
         record(
-            dict(phase="before", case=i, name=name, input=before, key=bytes(key).hex())
+            dict(
+                phase="before",
+                case=case,
+                name=name,
+                secured=secured,
+                input=before,
+                key=key.hex(),
+            )
         )
 
         def trace(frame, event, arg):
-            filename = frame.f_code.co_filename
+            code = frame.f_code
+            filename = code.co_filename
             protocol_effect = (
                 filename.endswith("/ethereum/crypto/hash.py")
-                and frame.f_code.co_name == "keccak256"
+                and code.co_name == "keccak256"
                 or filename.endswith("/ethereum_rlp/rlp.py")
-                and frame.f_code.co_name in ("encode", "decode")
+                and code.co_name in ("encode", "decode")
                 or filename.endswith("/src/ethereum/state.py")
             )
             if event == "call" and protocol_effect:
-                effects.append((frame.f_code.co_filename, frame.f_code.co_name))
-            if frame.f_code is fn.__code__ and event == "exception":
+                effects.append((filename, code.co_name))
+            if event == "call" and code is keccak256.__code__:
+                keccak_inputs.append(frame.f_locals["buffer"].hex())
+            if event == "call" and code is recorder.__code__:
+                node = frame.f_locals["node"]
+                require(frame.f_locals["witness"] is mpt.witness, "wrong witness")
+                witness_calls.append(
+                    dict(node_type=type(node).__qualname__, dirty=node._dirty)
+                )
+            if event == "call" and code is compute_cache.__code__:
+                cache_calls.append(type(frame.f_locals["node"]).__qualname__)
+            if code is fn.__code__ and event == "exception":
                 frame_locals.update(frame.f_locals)
                 thrown.append(
                     dict(
@@ -587,13 +613,7 @@ def main():
         prior_trace = sys.gettrace()
         try:
             sys.settrace(trace)
-            value = fn(root, key)
-            require(
-                value is None or type(value) is bytes,
-                "unexpected original optional byte class",
-            )
-            outcome = dict(kind="value", value=None if value is None else value.hex())
-            result = [1, 0] if value is None else [1, 1, *byte_wire(value)]
+            value = fn(mpt, key)
         except (AssertionError, IndexError) as error:
             tb = traceback.extract_tb(error.__traceback__)
             outcome = dict(
@@ -606,53 +626,108 @@ def main():
                     dict(file=x.filename, line=x.lineno, name=x.name) for x in tb
                 ],
             )
-            record(dict(phase="exception", case=i, outcome=outcome, thrown=thrown))
+            record(dict(phase="exception", case=case, outcome=outcome, thrown=thrown))
+            node = frame_locals.get("node")
+            pos = frame_locals.get("pos")
+            nibble_key = frame_locals.get("nibble_key")
+            require(
+                len(thrown) == 1
+                and thrown[0]["class_name"] == outcome["class_name"]
+                and tb[-1].filename == fn.__code__.co_filename
+                and tb[-1].name == fn.__name__
+                and tb[-1].lineno == thrown[0]["line"]
+                and type(pos) is int
+                and not secured
+                and type(nibble_key) is bytes
+                and nibble_key == digits(key)
+                and 0 <= pos <= len(nibble_key),
+                "unexpected lookup exception frame",
+            )
+            outcome["throw_frame"] = dict(
+                pos=pos, nibble_key=nibble_key.hex(), node=view(node)
+            )
             if type(error) is AssertionError:
                 require(
-                    type(frame_locals.get("node")) is inc.HashedNode
-                    and thrown[-1]["line"] == 73,
+                    type(node) is inc.HashedNode and thrown[0]["line"] == 375,
                     "unexpected assertion source",
                 )
-                result = [0, 2, *bytes(frame_locals["node"]._hash)]
+                result = [0, 2, *bytes(node._hash)]
             else:
-                node = frame_locals.get("node")
-                idx = frame_locals.get("idx")
                 require(
-                    type(node) is inc.MutableBranchNode
-                    and type(idx) is int
-                    and idx >= len(node.children)
-                    and thrown[-1]["line"] == 98,
+                    type(error) is IndexError
+                    and type(node) is inc.MutableBranchNode
+                    and pos < len(nibble_key)
+                    and thrown[0]["line"] == 399,
                     "unexpected IndexError source",
                 )
-                result = [0, 1, 11, idx, len(node.children)]
-                outcome["typed_adaptation_only"] = dict(
-                    index=idx, arity=len(node.children)
-                )
+                idx = nibble_key[pos]
+                arity = len(node.children)
+                require(arity <= idx < 16, "IndexError did not select a missing slot")
+                result = [0, 1, 11, idx, arity]
+                outcome["typed_adaptation_only"] = dict(index=idx, arity=arity)
+        else:
+            require(
+                value is None or type(value) is bytes,
+                "unexpected original optional byte class",
+            )
+            outcome = dict(kind="value", value=None if value is None else value.hex())
+            result = [1, 0] if value is None else [1, 1, *byte_wire(value)]
         finally:
             sys.settrace(prior_trace)
         after = view(root)
+        witness = [
+            (digest.hex(), raw.hex())
+            for digest, raw in mpt.witness.accessed_nodes.items()
+        ]
         record(
             dict(
-                phase="post-call", case=i, input=after, outcome=outcome, effects=effects
+                phase="post-call",
+                case=case,
+                name=name,
+                input=after,
+                outcome=outcome,
+                effects=effects,
+                witness_calls=witness_calls,
+                witness_cache_calls=cache_calls,
+                witness=witness,
+                keccak_inputs=keccak_inputs,
             )
         )
         require(
-            before == after and effects == [],
-            "pure lookup changed fields or used local codec/hash/state",
+            mpt.root_node is root and before == after,
+            "lookup changed supplied node fields",
         )
         observation = dict(
-            case=i,
+            case=case,
             name=name,
+            secured=secured,
             key_class=type(key).__qualname__,
-            key=bytes(key).hex(),
+            key=key.hex(),
             before=before,
             after=after,
             outcome=outcome,
             exceptions=thrown,
             local_effect_calls=effects,
+            witness_calls=witness_calls,
+            witness_cache_calls=cache_calls,
+            witness=witness,
+            keccak_inputs=keccak_inputs,
+        )
+        record(dict(phase="after", **observation))
+        return observation, result
+
+    observations, expected, declarations = [], [], []
+    for i, (name, root, key) in enumerate(cases):
+        observation, result = observe(i, name, root, key)
+        require(
+            not observation["local_effect_calls"]
+            and not observation["witness_cache_calls"]
+            and not observation["witness"]
+            and all(call["dirty"] is True for call in observation["witness_calls"]),
+            "bare lookup used a clean node, witness cache, codec, hash or state",
         )
         observations.append(observation)
-        record(dict(phase="after", **observation))
+        before = observation["before"]
         expected.append(
             dict(
                 case=i,
@@ -666,6 +741,36 @@ def main():
             f"private def key{i} : Nibbles := bytesToNibbleList ({lean_bytes(key)})",
             f"#eval emit {i} root{i} key{i}",
         ]
+
+    key = h(23)
+    digest = h(24)
+    cached = bytes(range(48))
+    clean_leaf = inc.MutableLeafNode(digits(key), b"\x01", _hash=digest, _rlp=cached)
+    clean, result = observe(None, "clean-cached-witness", clean_leaf, key)
+    require(
+        result == [1, 1, 1, 1]
+        and clean["witness_calls"] == [dict(node_type="MutableLeafNode", dirty=False)]
+        and clean["witness_cache_calls"] == ["MutableLeafNode"]
+        and clean["witness"] == [(digest.hex(), cached.hex())]
+        and not clean["local_effect_calls"],
+        "clean cached lookup did not record the supplied witness entry",
+    )
+
+    secured_key = keccak256(key)
+    require(secured_key != key, "secured control must distinguish the two keys")
+    secured_leaf = leaf(digits(secured_key), b"\x07")
+    secured, result = observe(None, "secured-key-query", secured_leaf, key, secured=True)
+    require(
+        result == [1, 1, 1, 7]
+        and secured["witness_calls"] == [dict(node_type="MutableLeafNode", dirty=True)]
+        and not secured["witness_cache_calls"]
+        and not secured["witness"]
+        and secured["keccak_inputs"] == [key.hex()]
+        and secured["local_effect_calls"]
+        == [(keccak256.__code__.co_filename, "keccak256")],
+        "secured lookup did not query exactly the supplied key",
+    )
+    source_controls = [clean, secured]
     after_identity = snapshot()
     require(before_identity == after_identity, "source identities changed")
     prefix = (ROOT / "STFSpec/Conformance/Commit/DecoderGuards.lean").read_text()
@@ -703,6 +808,7 @@ private def emit (i : Nat) (root : Ref) (key : Nibbles) : IO Unit :=
                 after_identity=after_identity,
                 cases=observations,
                 expected=expected,
+                source_controls=source_controls,
             ),
             indent=2,
         )
@@ -727,7 +833,9 @@ private def emit (i : Nat) (root : Ref) (key : Nibbles) : IO Unit :=
                     x["outcome"].get("class_name") == "IndexError" for x in observations
                 ),
                 whole_records_compared=len(actual),
-                local_effect_calls=0,
+                local_effect_calls=sum(len(x["local_effect_calls"]) for x in observations),
+                witness_calls=sum(len(x["witness_calls"]) for x in observations),
+                source_controls=len(source_controls),
                 pin=context.head,
                 generated=str(args.output),
                 observations=str(meta),

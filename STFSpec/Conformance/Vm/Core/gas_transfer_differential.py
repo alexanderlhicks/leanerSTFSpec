@@ -601,7 +601,7 @@ def emit_lean():
         )
 
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 
 
 def source_compare(args):
@@ -952,7 +952,7 @@ def source_compare(args):
         "source aliases differ",
     )
     require(
-        [f.__code__.co_firstlineno for f in functions()[:5]] == [662, 678, 701, 725, 861],
+        [f.__code__.co_firstlineno for f in functions()[:5]] == [650, 666, 689, 713, 846],
         "wrong original helper/callee locations",
     )
     require(all(f.__globals__ is vars(gas) for f in functions()[:5]), "wrong helper globals")
@@ -1180,7 +1180,7 @@ def source_compare(args):
                         location
                         == {
                             "file": str(eels / "src/ethereum/forks/amsterdam/vm/gas.py"),
-                            "line": 674,
+                            "line": 662,
                             "name": "forfeit_remaining_gas",
                         },
                         "wrong assertion location",

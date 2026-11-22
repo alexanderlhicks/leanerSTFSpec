@@ -8,7 +8,9 @@ import STFSpec.Commit.TrieError
 /-!
 # Pure partial-trie lookup
 
-Library `EthCommit`. EELS `src/ethereum/forks/amsterdam/witness_state.py:53–100`.
+Library `EthCommit`. The bare walk in EELS
+`src/ethereum/forks/amsterdam/incremental_mpt.py:371–402` supplies the comparison.
+The source recorder skips dirty nodes in this comparison (C20).
 The selected-slot diagnostic is the Q59 typed adaptation of Python IndexError.
 Traversal ignores caches and admits every finite bare node. An offset scan avoids
 copying the remaining key at branches; private structural reference equality
@@ -177,9 +179,8 @@ decreasing_by
   · exact branch_smaller _ _ _ _ _
 
 
-/-- Total pure bare-tree lookup. Pinned EELS
-`src/ethereum/forks/amsterdam/witness_state.py:53–100`; Q59
-adapts a reached missing selected slot to its exact typed index/arity diagnostic. -/
+/-- Total pure bare-tree lookup (C20). Q59 adapts a missing slot selected at
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:399` to a typed index and arity. -/
 def lookup (root : Ref) (key : Nibbles) : Except TrieError (Option ByteArray) := cursor root key 0
 
 private theorem lookup_reference (root : Ref) (key : Nibbles) :

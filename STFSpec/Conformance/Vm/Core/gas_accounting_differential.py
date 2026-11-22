@@ -3,7 +3,7 @@
 """Complete signed refund/scalar controls and authenticated pinned numeric comparison.
 
 Status: bounded local conformance. Date: 2026-10-17.
-Source mode projects exactly original vm/__init__.py:242 on distinct typed meters;
+Source mode projects exactly original vm/__init__.py:236 on distinct typed meters;
 it does not execute incorporate_child or storage handlers. The scalar maximum is
 called directly. Source imports/execution require separately authorized inputs.
 """
@@ -526,7 +526,7 @@ def emit_lean():
         )
 
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 
 
 def source_compare(args):
@@ -828,7 +828,7 @@ def source_compare(args):
         n for n in syntax.body if isinstance(n, ast.FunctionDef) and n.name == "incorporate_child"
     )
     selected = [
-        n for n in ast.walk(original_function) if isinstance(n, ast.AugAssign) and n.lineno == 242
+        n for n in ast.walk(original_function) if isinstance(n, ast.AugAssign) and n.lineno == 236
     ]
     require(len(selected) == 1, "original statement location")
     statement = selected[0]
@@ -839,7 +839,7 @@ def source_compare(args):
         "fund_counter', ctx=Load()))"
     )
     require(
-        ast.dump(statement) == expected_ast and statement.end_lineno == 242,
+        ast.dump(statement) == expected_ast and statement.end_lineno == 236,
         "original statement shape",
     )
     require(
@@ -852,7 +852,7 @@ def source_compare(args):
     )
     projection = {
         "source": str(statement_path),
-        "line": 242,
+        "line": 236,
         "source_sha256": sha(source_text.encode()),
         "ast": ast.dump(statement, include_attributes=True),
         "segment": ast.get_source_segment(source_text, statement),
@@ -911,7 +911,7 @@ def source_compare(args):
         "source aliases differ",
     )
     require(
-        gas.max_message_call_gas.__code__.co_firstlineno == 861
+        gas.max_message_call_gas.__code__.co_firstlineno == 846
         and gas.max_message_call_gas.__globals__ is vars(gas),
         "original maximum location/globals",
     )

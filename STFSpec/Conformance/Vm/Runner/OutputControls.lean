@@ -5,16 +5,16 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Runner
 
 /-!
-# Complete raw runner output controls
+# Runner output controls
 
 Library `EthConformance`. Complete supplied records retain independent gas fields,
-negative state usage, nonempty effects and every error alternative. These controls
-claim raw storage only, without executing an EELS producer or a Lean runner.
+negative state usage, nonempty effects and every error alternative. Child outcome
+controls use explicit settlement proofs and preserve independent byte payloads.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md` §§3/4/5/7.
 -/
 
 namespace STFSpec.Conformance.Vm.Runner.OutputControls
-open STFSpec.Base STFSpec.Vm.Core STFSpec.Vm.Runner
+open STFSpec.Base STFSpec.Vm.Core STFSpec.Vm.Instructions STFSpec.Vm.Runner
 
 private def deleted : AddrSet := (∅ : AddrSet).insert (Address.ofNat 257)
 private def entry : Log :=
@@ -81,5 +81,43 @@ private theorem arbitrary_error_payloads (opcode : UInt8) (reason : String) :
 #guard (transactionOutput none).stateGasUsed == (-37 : Int)
 #guard ((transactionOutput none).gasLeft, (transactionOutput none).refundCounter,
   (transactionOutput none).stateGasLeft) == (2 ^ 300 + 23, 2 ^ 301 + 29, 2 ^ 302 + 31)
+
+private def successfulFrame : Frame :=
+  { frame with gasMeter := { meter with stateGasCommittedSpill := 0 } }
+
+private def failedFrame : Frame :=
+  { frame with
+    gasMeter := { meter with
+      stateGasLeft := meter.stateGasBaseline
+      refundCounter := 0
+      stateGasSpilled := 0
+      stateGasCommittedSpill := 0 } }
+
+private def successfulChild : ChildOutcome :=
+  (FrameResult.mk successfulFrame returned none).toChildOutcome ⟨rfl, True.intro⟩
+
+private def failedChild (error : FrameError) : ChildOutcome :=
+  (FrameResult.mk failedFrame returned (some error)).toChildOutcome ⟨rfl, rfl, rfl, rfl⟩
+
+private theorem successful_child_fields :
+    (successfulChild.frame, successfulChild.output, successfulChild.error) =
+      (successfulFrame, returned, none) := by
+  rfl
+
+private theorem failed_child_fields (error : FrameError) :
+    ((failedChild error).frame, (failedChild error).output, (failedChild error).error) =
+      (failedFrame, returned, some error) := by
+  rfl
+
+#guard (successfulChild.output.toList, successfulChild.frame.returnData.toList) ==
+  ([255, 128, 0, 255], [0, 128, 255])
+#guard ((failedChild .revert).output.toList, (failedChild .revert).frame.returnData.toList) ==
+  ([255, 128, 0, 255], [0, 128, 255])
+#guard ((failedChild (.halt (.invalidOpcode 239))).output.toList,
+  (failedChild (.halt (.invalidOpcode 239))).frame.returnData.toList) ==
+    ([255, 128, 0, 255], [0, 128, 255])
+#guard match (failedChild .revert).error, (failedChild (.halt (.invalidOpcode 239))).error with
+  | some .revert, some (.halt (.invalidOpcode opcode)) => opcode == 239
+  | _, _ => false
 
 end STFSpec.Conformance.Vm.Runner.OutputControls

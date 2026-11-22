@@ -5,8 +5,10 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import tomllib
 
-PATH = Path(__file__).resolve().parents[1] / "STFSpec/Conformance/Block/deposit_data_differential.py"
+ROOT = Path(__file__).resolve().parents[1]
+PATH = ROOT / "STFSpec/Conformance/Block/deposit_data_differential.py"
 spec = importlib.util.spec_from_file_location("deposit_reader", PATH)
 reader = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reader)
@@ -30,7 +32,9 @@ def main():
                             "exception_type": None if success else "ethereum.exceptions.InvalidBlock",
                             "exception_args": None if success else [row["expected"]["message"]],
                             **({"return_bytes": 192} if success else {})})
-    source = {"head": reader.PIN, "status": "all 142 source cases passed",
+    with (ROOT / "reference.toml").open("rb") as reference:
+        pin = tomllib.load(reference)["release"]["commit"]
+    source = {"head": pin, "status": "all 142 source cases passed",
               "case_file_before_sha256": reader.CATALOG_SHA256,
               "case_file_after_sha256": reader.CATALOG_SHA256,
               "runtime": {"isolated": 1, "dont_write_bytecode": True, "optimize": 0,
@@ -123,6 +127,7 @@ def main():
             check(mode, "blank-line", encode(base) + b"\n", raw=True)
             check(mode, "nested-duplicate", encode(base).replace(b'"ok":', b'"ok":"", "ok":', 1), raw=True)
         else:
+            mutate("historical-source-pin", ["head"], "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36")
             for path, bad in ((["head"], "bad"), (["case_file_after_sha256"], "bad"),
                               (["runtime", "isolated"], True), (["runtime", "dont_write_bytecode"], 1),
                               (["runtime", "optimize"], False), (["runtime", "optimize"], 0.0),

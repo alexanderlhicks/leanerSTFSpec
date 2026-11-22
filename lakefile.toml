@@ -214,13 +214,6 @@ srcDir = "scripts"
 root = "CalldataTokensNativeTests"
 
 
-# Complete opaque ancestor selection observations, outside the state API.
-[[lean_exe]]
-name = "witness-ancestors-native-tests"
-srcDir = "scripts"
-root = "WitnessAncestorsNativeTests"
-
-
 # Complete concrete stateless output observations; source comparison is separate.
 [[lean_exe]]
 name = "stateless-output-native-tests"
@@ -284,6 +277,22 @@ root = "scripts.TransactionViewNativeTests"
 name = "account-optional-native-tests"
 root = "scripts.AccountOptionalNativeTests"
 
+[[lean_exe]]
+name = "account-default-native-tests"
+root = "scripts.AccountDefaultNativeTests"
+
+[[lean_exe]]
+name = "code-read-native-tests"
+root = "scripts.CodeReadNativeTests"
+
+[[lean_exe]]
+name = "transient-storage-native-tests"
+root = "scripts.TransientStorageNativeTests"
+
+[[lean_exe]]
+name = "set-account-native-tests"
+root = "scripts.SetAccountNativeTests"
+
 # Complete executed STOP frames and selected runtime world sentinels.
 [[lean_exe]]
 name = "stop-native-tests"
@@ -295,3 +304,7 @@ root = "StopNativeTests"
 name = "arithmetic-native-tests"
 srcDir = "scripts"
 root = "ArithmeticNativeTests"
+
+[[lean_exe]]
+name = "tload-native-tests"
+root = "scripts.TloadNativeTests"

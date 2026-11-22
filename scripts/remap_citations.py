@@ -467,7 +467,10 @@ def scan_doc(root: pathlib.Path, rel: str, marks: tuple[str, str], text: str = N
 
 def documents(root: pathlib.Path) -> list[str]:
     docs = list((root / "STFSpec/informal").rglob("*.md"))
-    docs += [p for d in ("STFSpec", "scripts") for p in (root / d).rglob("*.lean") if ".lake" not in p.parts]
+    docs += [
+        p for d in ("STFSpec", "scripts") for p in (root / d).rglob("*.lean")
+        if ".lake" not in p.relative_to(root).parts
+    ]
     return sorted(r for r in (p.relative_to(root).as_posix() for p in docs) if r not in SKIP)
 
 
