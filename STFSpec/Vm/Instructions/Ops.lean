@@ -329,9 +329,7 @@ def toByte : Ops → UInt8
   | .revert => 0xFD
   | .selfdestruct => 0xFF
 
-/-- Decode every byte, returning `none` at the 103 bytes absent from pinned EELS
-`src/ethereum/forks/amsterdam/vm/instructions/__init__.py:32–220`. -/
-def ofByte? (b : UInt8) : Option Ops :=
+private def ofByteReference (b : UInt8) : Option Ops :=
   match b.toNat with
   | 0x01 => some .add
   | 0x02 => some .mul
@@ -488,14 +486,33 @@ def ofByte? (b : UInt8) : Option Ops :=
   | 0xFF => some .selfdestruct
   | _ => none
 
+private def decodeTable : Vector (Vector (Option Ops) 16) 16 :=
+  Vector.ofFn fun hi ↦ Vector.ofFn fun lo ↦
+    ofByteReference (UInt8.ofNat (16 * hi.val + lo.val))
+
+/-- Decode every byte, returning `none` at the 103 bytes absent from pinned EELS
+`src/ethereum/forks/amsterdam/vm/instructions/__init__.py:32–220`.
+The high and low nibbles index the rows and columns of the decoding table. -/
+def ofByte? (b : UInt8) : Option Ops :=
+  let hi := b.toNat / 16
+  let lo := b.toNat % 16
+  have bound := b.toNat_lt
+  (decodeTable[hi]'(by omega))[lo]'(Nat.mod_lt _ (by decide))
+
+private theorem ofByte_eq_reference (b : UInt8) : ofByte? b = ofByteReference b := by
+  simp only [ofByte?, decodeTable, Vector.getElem_ofFn]
+  rw [Nat.div_add_mod, UInt8.ofNat_toNat]
+
 /-- Decoding an opcode's assigned byte returns that opcode. -/
 theorem ofByte_toByte (o : Ops) : ofByte? (toByte o) = some o := by
+  rw [ofByte_eq_reference]
   cases o <;> rfl
 
 /-- Successful decoding preserves the complete input byte. -/
 theorem toByte_ofByte (b : UInt8) (o : Ops) (h : ofByte? b = some o) :
     toByte o = b := by
-  unfold ofByte? at h
+  rw [ofByte_eq_reference] at h
+  unfold ofByteReference at h
   split at h <;> simp only [Option.some.injEq, reduceCtorEq] at h
   all_goals
     subst o

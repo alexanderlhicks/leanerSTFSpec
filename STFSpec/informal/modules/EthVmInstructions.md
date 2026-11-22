@@ -276,22 +276,17 @@ effects follows from the literal transformer equation.
 
 | EELS source | Lean declaration / exact type | Domain | Effects / ordered failures | Laws and clients | Status |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/instructions/__init__.py:32–220` (`Ops`) | `STFSpec.Vm.Instructions.Ops` in `STFSpec/Vm/Instructions/Ops.lean`, exported by `STFSpec.Vm.Instructions` | Exactly 153 nullary constructors, one per source member | Pure finite vocabulary; no defaults or instances | Generated inductive infrastructure; private exhaustive constructor coverage in `OpsCallerProofs` | Supplied; source member/byte identities checked statically at the pin (out of tree: nothing for that comparison is committed, so it cannot be reproduced from this repository; the committed literals are its transcription) |
+| `src/ethereum/forks/amsterdam/vm/instructions/__init__.py:32–220` (`Ops`) | `STFSpec.Vm.Instructions.Ops` in `STFSpec/Vm/Instructions/Ops.lean`, exported by `STFSpec.Vm.Instructions` | Exactly 153 nullary constructors, one per source member | Pure finite vocabulary; no defaults or instances | Generated inductive infrastructure; private exhaustive constructor coverage in `OpsCallerProofs` | Supplied. Complete source member and byte checks in §4 |
 | Same source member assignments | `Ops.toByte : Ops → UInt8` | Every opcode, without a frame, gas, hash, monad or admission premise | Pure total literal match; no failure | `Ops.ofByte_toByte`; all 153 source-bound literal encoder pairs in private facade controls | Supplied; ordinary round trip discharged |
-| Same source member assignments, and their complement in 0–255 | `Ops.ofByte? : UInt8 → Option Ops` | Every byte | Pure total literal match; `some` for the 153 assigned bytes, `none` for exactly 103 holes, including `0xFE`; no error conversion or charge | `Ops.toByte_ofByte`; all 256 literal decode equations, including every positive and every hole | Supplied; ordinary successful-decode round trip discharged |
+| Same source member assignments, and their complement in 0–255 | `Ops.ofByte? : UInt8 → Option Ops` | Every byte | Pure total lookup. Returns `some` for the 153 assigned bytes and `none` for the 103 holes, including `0xFE`. No error conversion or charge | `Ops.toByte_ofByte` and all 256 literal decode equations | Supplied. A private theorem proves equality with the literal reference definition (§7) |
 
 Constructors follow lowercase EELS member spelling (`iszero`, `calldataload`,
 `slotnum`, `dupn`, and so on); reserved `RETURN` becomes `return_`, following the
 existing handler convention. Source `KECCAK` is the single member at `0x20`.
-The two enum laws in §7 are its only authored public laws. Private facade clients also
-derive encoder injectivity and exclusion of an absent byte through those laws,
-without unfolding provider internals. Literal controls separately check source
-identity: round trips alone would allow a consistent permutation of byte values.
-The source comparison is a static finite enum assignment comparison, qualified
-to typed-byte enum use; it executes no EELS runtime. It is out of tree: nothing for
-it is committed, so it cannot be reproduced from this repository, and the committed
-literal controls are its transcription. Dispatch, `step`, the remaining handlers
-and all composed execution/error/resource obligations remain open.
+The two enum laws in §7 are its only authored public laws. The source checks in §4
+bind each constructor to its assigned byte, since both round trips would also hold
+for a consistent permutation. Dispatch, `step`, the remaining handlers and all
+composed execution, error and resource obligations remain open.
 
 ### Supplied raw creation suspension carrier
 
@@ -353,17 +348,17 @@ share `error.isSome = true` while retaining their distinct complete payloads.
 
 **Supplied opcode controls.**
 `STFSpec/Conformance/Vm/Instructions/OpsCallerProofs.lean` imports only the public
-Instructions facade. Exact encoder/decoder signatures and both generic laws are
-used without frame/context/hash/monad premises. Private clients derive injectivity
-and missing-byte exclusion using only those laws. An exhaustive constructor match
-checks all 153 literal encoder pairs; 256 ordinary kernel equations bind every
-decoded byte to its literal expected constructor or `none` (153 positives and 103
-holes). Expectations transcribe the pinned source assignments independently of the
-implementation (the source comparison itself is out of tree, see §3); no enum
-equality instance or native decision procedure is introduced. Warning-fatal
-compilation and the compiled declaration audit cover the actual leaf, facade and
-private clients. These are enum controls only; STOP controls are separate below.
-The remaining handler and EEST tests remain unimplemented.
+Instructions facade. Private clients derive injectivity and exclusion of unassigned
+bytes from the two public laws. An exhaustive constructor match checks all 153
+literal encoder pairs. At default Lean settings, 256 `rfl` equations check every
+decoder result against the pinned source assignments. Warning-fatal compilation,
+the declaration audit and kernel replay cover the leaf, facade and clients.
+
+An out-of-tree comparison imports the pinned EELS `Ops` enum under Python in normal
+mode and with `-O`. It checks all 256 native Lean results against the source enum,
+including member names, assigned bytes and holes. The committed literal controls
+record the same assignments. The remaining handler and EEST tests remain
+unimplemented.
 
 **Supplied raw carrier controls.**
 `STFSpec/Conformance/Vm/Instructions/CreateRequestCallerProofs.lean` imports only
@@ -696,7 +691,7 @@ theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ �
 
 | Type | Representation | Model / abstraction | Invariant | Persistence | Cost |
 |---|---|---|---|---|---|
-| `Ops` (supplied) | inductive, 153 constructors; direct literal matches | byte value via `toByte` | both round trips in §7 discharged; 103 unassigned bytes decode to `none` | value | target `ofByte?` O(1) (a 256-entry table or a nibble match beside the literal reference, D25); the current literal 153-arm match compiles to a comparison chain (DEBT-OPS-DECODE); no table allocation or performance measurement claimed |
+| `Ops` (supplied) | 153 constructors, literal encoder and private 16 by 16 decoder table | literal reference definition (§7) | 103 unassigned bytes decode to `none` | immutable table shared across calls | One initialization builds 16 rows with 256 total entries. Each decode is O(1) with two indexed reads (DEBT-OPS-DECODE). |
 | `StepResult ctx` (supplied) | inductive | — | `.call/.create` carry `ctx.depth < STACK_DEPTH_LIMIT` and `parent.stack.size < STACK_DEPTH_LIMIT` | value | — |
 | `CreateRequest` (supplied) | raw seven-field record; init code uses Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.5 grants/effects | value | fixed-field record construction/projection; init bytes retained through the Base provider |
 | `CallRequest` (supplied) | raw fourteen-field record; `callData`, `code` use Base `Bytes` | complete independent fields | none added by the raw carrier; future producers establish §2.6 grants/effects and input copying | value | fixed-field construction/projection; complete bytes retained through the Base provider |
@@ -716,11 +711,12 @@ theorem Ops.toByte_ofByte (b : UInt8) (o : Ops) (h : Ops.ofByte? b = some o) :
   Ops.toByte o = b
 ```
 
-Constructor cases prove the first; decoder cases and UInt8 numeric injectivity
-prove the second. The latter has only its displayed successful-decode equality,
-with no additional well-formedness, execution or oracle hypothesis. Both are
-discharged for the supplied enum. This does not implement `opImplementation`,
-`step`, invalid-opcode halting or any opcode effect.
+The private table applies the literal reference definition to every byte. Dividing
+by 16 gives the row and taking the remainder gives the column. Both indices are
+below 16. Recombining them recovers the input byte, so a private ordinary theorem
+equates both decoders for every `UInt8`. After rewriting with that equality,
+constructor cases prove the first law. Cases on the literal decoder and UInt8
+numeric injectivity prove the second.
 
 **Supplied raw creation request.** Its public contract is exactly the seven fields
 in §5, with ordinary generated constructor/projection/reconstruction reduction.

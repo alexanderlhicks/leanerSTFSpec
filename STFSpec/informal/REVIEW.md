@@ -333,17 +333,11 @@ preparation/literal-order limitations recorded by that owner. Actual producers,
 context/transport/value assembly, F20, F11, D5 coupling, fuel and cost gates remain
 open.
 
-EthVmInstructions §3/§5/§7 supplies the exact 153-member `Ops` vocabulary, total
-`Ops.toByte`/`Ops.ofByte?` and exactly two ordinary round-trip laws (the second
-conditioned only on a successful decode). Private facade clients use the laws for
-generic consequences; exhaustive constructor coverage, 153 literal encoder pairs
-and all 256 literal decoder equations bind the 153 positives and 103 holes to a
-transcription of the pinned static source table; the comparison against the source
-itself is out of tree: nothing for it is committed, so it cannot be reproduced
-from this repository. The actual compiled leaf/facade/clients are warning-fatal
-and declaration-audited. There is no instance/default/alias or new policy.
-Dispatch, `step`, invalid-opcode halting, handlers and all
-source-runtime/execution/fuel/resource/guest obligations remain open.
+EthVmInstructions §§3–7 owns the `Ops` interface, round-trip laws and opcode
+assignment checks. Its §4 records the complete literal controls, pinned EELS
+enum checks and native decoder comparison. DEBT-OPS-DECODE records the compiled
+decoder replacement. Dispatch, `step`, invalid-opcode halting, remaining handlers
+and composed execution, fuel, resource and guest obligations remain open.
 
 EthVmInstructions §3/§4/§5/§7 owns the supplied STOP handler, its complete
 ordinary transformer equation under Monad alone, private generic/Id law clients,
