@@ -563,12 +563,15 @@ with a preflight binding-catalog digest. Those artifacts and their authenticated
 producing step are external, rather than supplied by this comparator. The dated
 [external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/167#issuecomment-6268899065)
 records the finite interpreted/native and retained-source comparisons separately.
-They retain actual typed Bytes/Ops/Uint bindings and successful host premises;
-those historical results are not a fresh repository source execution. Logical
-bitmap output is reconstructed through public membership; private physical shape
-and padding are established by the ordinary proofs. Actual code/map provenance,
-cache consistency, handler ordering, compiled cost/ownership and guest obligations
-remain open (§10).
+The original comparison records the typed Bytes, Ops and Uint bindings and the
+successful host premises. A separate run called the original scanner at both
+`e1a316a0` and `59c1473d` on the 32 handwritten inputs. Both sets of observations
+matched the complete destination sets and cardinalities from a fresh interpreted
+Lean run. That run checked the bitmap bytes and held-map snapshots through public
+membership. The ordinary proofs establish the private shape and padding.
+The 940-input comparison retains its original date and source commit.
+Code/map provenance, cache consistency, handler ordering, compiled cost and
+ownership, and guest obligations remain open (§10).
 
 ### Supplied raw GasCosts data
 
@@ -899,12 +902,14 @@ Equal successful Python execution additionally requires actual pinned builtin
 bytes/U256 arguments and dependencies, representable requested width in the runtime's
 Py_ssize_t domain, and successful allocation. These are correspondence premises,
 not restrictions on Lean's mathematical domain or new guest outcomes (O12,
-DISC-001, DISC-006). The committed public comparator checks all 32 frozen complete
-byte observations and strict framing without importing a source or dependency oracle;
-it has no source mode. The separate historical authenticated source comparison is
-recorded in [PR153 review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/153#issuecomment-6242238102),
-rather than implemented by this comparator. Neither finite comparison replaces the
-all-domain ordinary laws or closes host-resource gates.
+DISC-001, DISC-006). The committed public comparator checks all 32 complete byte
+observations and strict framing against its historical controls. Separate source
+runs at `e1a316a0` and `59c1473d` matched the complete interpreted Lean results
+on those inputs. They checked the builtin bytes, typed U256 operands, result
+byte strings and exact widths. The earlier source comparison remains recorded
+at its original commit. The ordinary laws address the full Lean domain and
+the host-resource gates remain open.
+[Original source review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/153#issuecomment-6242238102)
 
 Reproduce the committed controls with fresh output paths; the emitter defines main:
 
