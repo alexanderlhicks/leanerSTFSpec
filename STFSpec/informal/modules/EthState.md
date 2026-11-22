@@ -45,7 +45,8 @@ and record observations as follows [verified line by line]:
 | `get_storage` | `st:262–295` | precedence R11 | `storageReads += (a, k)` **always**, even when a write answers |
 | `get_storage_original` | `st:298–324` | R12 | **none** |
 | `get_transient_storage` | `st:327–349` | tx transient value, default `0` | none |
-| `account_exists`, `account_deployable`, `account_exists_and_is_empty`, `is_account_alive` | `st:352–431` | predicates over `get_account(_optional)` | `accountReads += a` |
+| `account_exists` | `st:352–369` | presence from one `get_account_optional` call | observations of that call |
+| `account_deployable`, `account_exists_and_is_empty`, `is_account_alive` | `st:372–431` | predicates over `get_account(_optional)` | `accountReads += a` |
 
 The future hash-only `getCode` action follows `state_tracker.py:252–259`: test
 emptyCodeHash, transaction code writes and block code writes, in that order.
@@ -111,7 +112,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
 | `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
-| `forks/amsterdam/state_tracker.py::account_exists` | 352 | `accountExists` | |
+| `forks/amsterdam/state_tracker.py::account_exists` | 352–369 | `accountExists` | Supplied wrapper over `getAccountOptional` (§7.1). |
 | `forks/amsterdam/state_tracker.py::account_deployable` | 372 | `accountDeployable` | |
 | `forks/amsterdam/state_tracker.py::account_exists_and_is_empty` | 383 | `accountExistsAndIsEmpty` | |
 | `forks/amsterdam/state_tracker.py::is_account_alive` | 413 | `isAccountAlive` | |
@@ -189,9 +190,15 @@ no LawfulMonad, generic success inversion or raw duplicate-insert identity is us
 Id frames retain the entire block and revertible record, including arbitrary
 providers, constants and metadata, plus unrelated observations. The model law
 retains exactly the initial WF/ModelsLookups/success domain and consumes only the
-public transaction account-view law and pre-transaction contracts. The future guided
-getAccount wrapper is the next consumer. Other trackers, actual providers,
+public transaction account-view law and pre-transaction contracts. The account
+existence check below uses this action. Other trackers, actual providers,
 source error adapters, lifetimes, reachable history, full-State and cost gates remain open.
+
+### Implemented account existence check
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:352–369` | `accountExists {m : Type → Type} [Monad m] (a : Address) : StateM m Bool` | Run the current optional read once. A present account, including an empty one, yields true. Absence yields false. The read supplies the complete success state or error. | Private action and model proofs (§7.1). Paired Lean controls and pinned source cases (§4). |
 
 ### Implemented raw transaction state and state monad
 
@@ -522,6 +529,13 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Account existence controls** in `STFSpec/Conformance/State/AccountExistsGuards.lean`
+  check ten cases, each run twice. The cases cover transaction and block entries,
+  tombstones, present empty accounts, absence at the provider and exact typed
+  provider failure. The guards check provider call addresses and counts, success
+  read membership and retained fixture fields. The same ten cases execute
+  pinned EELS in normal and optimized Python. The source checks also observe
+  the optional call, read order and full transaction and block snapshots.
 - **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
   consumes the five public wrapper laws through the State facade, including complete
   provider/function/constants retention. `pre_state_account_default_inputs.json`
@@ -787,17 +801,16 @@ F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied. TxState.view and exactly its account observer law are supplied
-separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
-account actions and the current optional action below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
+separately (§3/§7.2); its raw conversion remains Lean-private. The tracker source
+map in §3 records which operations are supplied. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
 supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
-(§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
-PreState providers and tracker operations other than getPreStateAccountOptional,
-getPreStateAccount and getAccountOptional remain unimplemented targets. The R8 lookup
-relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
+(§3/§7.4). MathState mutation, diff WF/history/reachable preservation and actual
+PreState providers remain unimplemented targets. The R8 lookup relation is
+supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
 **Observation-key provider (Q84).** The supplied TxObs and BlockState raw Std fields use
@@ -808,8 +821,8 @@ is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equa
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
 implemented separately (§3), as are raw BlockState, its initialization and the
-nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+nominal TxState/StateM assembly. Other default-empty constructors remain open.
+The two codeReads fields use hash-only Q51 keys; storageReads
 alone uses the Address/Bytes32 product dictionary.
 
 ```lean
@@ -1308,6 +1321,12 @@ The current optional action supplies exactly these six public laws:
 | `getAccountOptional_mem` | Id success: b is a post account-read member iff b=a or b was a prior member; no raw duplicate-insert identity. |
 | `getAccountOptional_model` | Exactly the initial MathState.WF/ModelsLookups/success domain above: account equals `(t.view σ₀).account? a`, using public TxState.view_account?_eq and the pre-transaction model law. |
 
+The private `accountExists` action equation uses only Monad. It binds the optional
+action once and tests presence in the successful pair. At Id the exact result
+equation maps only the value and preserves the complete state or error. Under
+the same initial WF, ModelsLookups and optional-success premises, the Boolean
+equals `((t.view σ₀).account? a).isSome`.
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
@@ -1478,7 +1497,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
+  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional and accountExists,
   and their bounded laws/controls are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal

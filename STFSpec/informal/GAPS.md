@@ -484,7 +484,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** The pre-transaction account actions,
-  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
+  getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional and accountExists,
   and their bounded laws/controls are supplied in §3/§4/§7.1.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal

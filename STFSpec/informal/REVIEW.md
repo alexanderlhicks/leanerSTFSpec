@@ -931,9 +931,15 @@ clients and complete native/interpreted controls compare 248 independently froze
 recipes; 233 coherent cases additionally execute authenticated original source
 normally and with -O, comparing complete meaningful retained fields, answers, calls
 and reads. Separate source failed-read observations supply no production error adapter.
-The other 15 constant variants are mathematical controls. The future getAccount wrapper
-is the next consumer; full-State, actual providers, generic source effects, S1/S2,
-WF/history/F7, guest/EEST, fuel and C1–C4 remain open.
+The other 15 constant variants are mathematical controls. Full-State, actual
+providers, generic source effects, S1/S2, WF/history/F7, guest/EEST, fuel
+and C1–C4 remain open.
+
+EthState §3/§7.1 supplies `accountExists` over the current optional action.
+The private Id result proof maps presence while retaining the complete
+state or error. The conditional model proof composes the optional account
+law. Ten paired controls exercise repeated reads and compare outcomes
+and provider calls with the pinned source in both Python modes (EthState §4).
 
 The mathematical transaction view is supplied by EthState §3/§7.1/§7.2 on every
 raw input and arbitrary m, with no class premises. Exactly one public ordinary
