@@ -571,7 +571,7 @@ implementation obligations under that selected guidance.
 
 | EELS operation/domain | Lean definition | Ordinary laws | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` admits exact full bytes and tags; optional original-source packet coupling checks the exact eleven `InvalidBlock` messages/class/args. `scripts/test_deposit_data_output_parser.py` checks malformed framing/keys/types, every successful output byte position and wrong error identities/messages in normal and optimized Python. The catalog includes pinned `test_modified_contract.py`'s default 576-byte log, independently matched to the pinned fixture's literal emitter, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
+| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` checks complete bytes and tags. Its optional source mode checks the original `InvalidBlock` class, arguments and eleven messages at `59c1473d`. `scripts/test_deposit_data_output_parser.py` checks malformed framing, keys and types, every successful output byte position, wrong error identities and messages, and source pin admission in normal and optimized Python. The catalogue includes the default 576-byte EELS log described below, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
 
 The standalone helper supplies the existing R-RQ extraction only. Its constants
 are local literals, not a new `DepositLayout` public API. The readable definition
@@ -587,18 +587,22 @@ The frozen catalog identity is SHA-256
 Its `pinned_test_default_log` is the complete default log in EELS
 `tests/prague/eip6110_deposits/test_modified_contract.py:48–75`, emitted at
 `:142–155`. Independent literal PUSH/MSTORE/LOG inspection matched every byte to
-fixture member
+the `tests-zkevm@v21.0.0` fixture archive member
 `fixtures/blockchain_tests/for_amsterdam/prague/eip6110_deposits/modified_contract/extra_logs.json`
 (SHA-256 `eb0633cedf46233f7e577721f85f18b676fbcd29a1a000aa145cace5ca0d57a8`),
 test `test_extra_logs` with `include_deposit_event_True` and
 `extra_event_type_no_topics`. The original helper was called on that exact payload;
 the inspection did not execute the fixture transaction or EVM.
 
+At `59c1473d`, the original helper used `ethereum-types` 0.4.1 for `Uint`
+and `ulen`. Its observations matched all 142 complete Lean rows in normal
+and optimized Python on the original frozen catalogue [V].
+
 ### Implemented ordered execution-request commitment
 
 | EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/requests.py:307–328`, every finite ordered list of finite bytes | `STFSpec/Block/RequestsHash.lean`: `computeRequestsHash : List ByteArray → Hash32`; pure value, no failure channel/consumer; **discharged for provider composition** | `computeRequestsHash_eq` identifies every ordered inner SHA digest byte, the exact concatenated outer preimage, outer SHA and `Hash32.ofBytes32`; private packed/List equality | `RequestsHashCallerProofs.lean` privately checks the whole facade law and derives full output bytes, empty/singleton/pair equations and exact model preimage size via public providers. `RequestsHashGuards.lean` checks complete empty/one-empty/two-empty/three-empty/abc anchor digests. `scripts/RequestsHashNativeTests.lean` emits all ordered request byte strings and all 32 actual output bytes for 298 independently frozen cases. `requests_hash_differential.py` checks complete rows and optionally both original-source modes; `scripts/test_requests_hash_output_parser.py` rejects altered digest bytes, request bytes/order/length, omitted/extra/duplicate rows, malformed framing/keys/hex and wrong types including bool-as-int counts, in normal and optimized Python. Source/environment/seal authentication is separate from observation admission. |
+| `src/ethereum/forks/amsterdam/requests.py:307–328`, every finite ordered list of finite bytes | `STFSpec/Block/RequestsHash.lean`: `computeRequestsHash : List ByteArray → Hash32`; pure value, no failure channel/consumer; **discharged for provider composition** | `computeRequestsHash_eq` identifies every ordered inner SHA digest byte, the exact concatenated outer preimage, outer SHA and `Hash32.ofBytes32`; private packed/List equality | `RequestsHashCallerProofs.lean` privately checks the whole facade law and derives full output bytes, empty/singleton/pair equations and exact model preimage size via public providers. `RequestsHashGuards.lean` checks complete empty/one-empty/two-empty/three-empty/abc anchor digests. `scripts/RequestsHashNativeTests.lean` emits all ordered request byte strings and all 32 actual output bytes for 298 independently frozen cases. `requests_hash_differential.py` checks complete rows and optionally couples both original-source modes at `59c1473d`. `scripts/test_requests_hash_output_parser.py` checks for altered digest bytes, request bytes/order/length, omitted/extra/duplicate rows, malformed framing/keys/hex, wrong types including bool-as-int counts, and source pin admission, in normal and optimized Python. Source/environment/seal authentication is separate from observation admission. |
 
 The catalog `STFSpec/Conformance/Block/requests-hash-cases.json` has SHA-256
 `98796c0f42b6672d35b706372f4af409e0197ea98f1fa35bda8660ac23e43be2`.
@@ -607,6 +611,11 @@ OpenSSL CLI inner/outer composition and fixed empty/abc anchors. The CLI and
 Python hashlib share OpenSSL; this supplies no independent cryptographic
 implementation claim. Both exact original-source observation projections are
 checked separately from their packet/interpreter/native-library authentication.
+
+At `59c1473d`, the original helper used OpenSSL-backed `hashlib.sha256` in
+the observed interpreter. Its observations matched all 298 complete Lean rows
+in normal and optimized Python on the original frozen catalogue [V].
+
 Cases retain empty and repeated requests, reverse order, every singleton prefix,
 unknown prefixes, split-boundary contrasts, inner lengths at the 55/56 and 64 SHA-256
 padding boundaries and outer count 256. These are finite observations, not a universal
