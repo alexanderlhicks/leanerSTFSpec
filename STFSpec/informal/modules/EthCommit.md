@@ -426,6 +426,9 @@ are explicit boundary rows, without restricting the total nominal API.
 The exact recursive reply grammar retains all diagnostic Nat payloads and complete
 query/answer bytes; normal/-O controls reject Bool-as-Nat, floats, negative/nonfinite,
 unknown/missing/duplicate/extra/truncated fields and absent extension children.
+Catalogue preflight compares the complete decoded JSON values and their scalar
+types. It rejects Boolean or floating-point replacements for the integer case
+index. Both parser modes test this admission rule.
 Per-row journals retain the original and Lean phases for an uninterrupted fresh run.
 Resumption is unsupported; each invocation requires a fresh evidence destination. Reproduce with a fresh evidence destination outside both
 repositories and the pinned raw dependency wheels:
@@ -579,6 +582,10 @@ eligible descendants. Full retained-cache comparison additionally requires prese
 matching raw/hash. Dirty survivor witness-skip, missing/stale/hashless-long retained
 embedding, extension-None and aliases are recorded separate boundaries. Source
 witness tables, partial mutable heaps and generic histories are not nominal fields.
+
+Catalogue preflight compares the complete decoded JSON values and their scalar
+types. Both parser modes verify that Boolean and floating-point values cannot
+replace the integer case index.
 
 Reproduce with fresh destinations, the pinned EELS environment and locked wheels:
 
