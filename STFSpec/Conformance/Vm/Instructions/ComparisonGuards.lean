@@ -6,7 +6,7 @@ import STFSpec.Vm.Instructions
 import STFSpec.Fork.Amsterdam
 
 /-!
-# ISZERO controls
+# Comparison controls
 
 Library `EthConformance`. These guards observe all frame fields, the exception
 or continuation and selected world values. See
@@ -121,5 +121,57 @@ private def runCase (price gas pc : Nat) (input expected : List Nat)
 #guard runCase (2 ^ 300 + 3) (2 ^ 300 + 2) 0 [0] [] (some .outOfGas)
 #guard runCase 3 5 0
   (0 :: List.replicate 1023 (2 ^ 256 - 1)) (1 :: List.replicate 1023 (2 ^ 256 - 1)) none
+
+private def binaryContext : FrameCtx :=
+  let ctx := context 23
+  let costs := { ctx.config.costs with
+    veryLow := 19
+    opcodeLt := 0
+    opcodeGt := 1
+    opcodeSlt := 7
+    opcodeSgt := 2 ^ 300 + 3
+    opcodeEq := 13 }
+  { ctx with config := { ctx.config with costs } }
+
+private def runBinaryCase (handler : Handler Id) (price gas pc : Nat)
+    (input expected : List Nat) (expectedHalt : Option ExceptionalHalt) : Bool := Id.run do
+  let some inputStack := stackOf input | return false
+  let some expectedStack := stackOf expected | return false
+  let incoming := frame pc gas inputStack
+  let desired := match expectedHalt with
+    | some _ => frame pc gas expectedStack
+    | none => frame (pc + 1) (gas - price) expectedStack
+  let result := ((handler binaryContext incoming).run world).run
+  match result, expectedHalt with
+  | .ok (.halt after .stackUnderflow, retained), some .stackUnderflow
+  | .ok (.halt after .outOfGas, retained), some .outOfGas
+  | .ok (.continue after, retained), none =>
+    return frameModel after == frameModel desired && worldModel retained == worldModel world
+  | _, _ => return false
+
+#guard [lessThan, greaterThan, signedLessThan, signedGreaterThan, equal].all fun handler ↦
+  runBinaryCase handler 0 0 11 [] [] (some .stackUnderflow) &&
+  runBinaryCase handler 0 0 11 [2 ^ 255] [] (some .stackUnderflow)
+
+#guard runBinaryCase greaterThan 1 0 11 [1, 0, 43, 13] [43, 13] (some .outOfGas)
+#guard runBinaryCase signedLessThan 7 6 11 [2 ^ 255, 0, 43, 13] [43, 13] (some .outOfGas)
+#guard runBinaryCase signedGreaterThan (2 ^ 300 + 3) (2 ^ 300 + 2) 11
+  [0, 2 ^ 255, 43, 13] [43, 13] (some .outOfGas)
+#guard runBinaryCase equal 13 12 11 [1, 1, 43, 13] [43, 13] (some .outOfGas)
+
+#guard runBinaryCase lessThan 0 0 11 [1, 2 ^ 255, 43, 13] [1, 43, 13] none
+#guard runBinaryCase lessThan 0 5 11 [2 ^ 255, 1, 43, 13] [0, 43, 13] none
+#guard runBinaryCase greaterThan 1 1 11 [2 ^ 256 - 1, 1, 43, 13] [1, 43, 13] none
+#guard runBinaryCase greaterThan 1 11 11 [1, 2 ^ 256 - 1, 43, 13] [0, 43, 13] none
+#guard runBinaryCase signedLessThan 7 7 11 [2 ^ 255, 2 ^ 256 - 1, 43, 13] [1, 43, 13] none
+#guard runBinaryCase signedLessThan 7 11 11 [2 ^ 255 - 1, 2 ^ 255, 43, 13] [0, 43, 13] none
+#guard runBinaryCase signedGreaterThan (2 ^ 300 + 3) (2 ^ 300 + 3) (2 ^ 300 + 17)
+  [2 ^ 255 - 1, 2 ^ 255, 43, 13] [1, 43, 13] none
+#guard runBinaryCase signedGreaterThan (2 ^ 300 + 3) (2 ^ 300 + 19) 11
+  [2 ^ 255, 2 ^ 256 - 1, 43, 13] [0, 43, 13] none
+#guard runBinaryCase equal 13 13 11 [2 ^ 256 - 1, 2 ^ 256 - 1, 43, 13] [1, 43, 13] none
+#guard runBinaryCase equal 13 15 11 [2 ^ 256 - 1, 2 ^ 255 - 1, 43, 13] [0, 43, 13] none
+#guard runBinaryCase signedLessThan 7 7 11
+  (2 ^ 255 :: 0 :: List.replicate 1022 43) (1 :: List.replicate 1022 43) none
 
 end STFSpec.Conformance.Vm.Instructions.ComparisonGuards
