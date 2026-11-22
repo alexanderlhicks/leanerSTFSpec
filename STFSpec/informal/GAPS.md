@@ -486,8 +486,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
   and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  The standalone R22 marker is supplied under its own item below. Other tracker
+  operations and full-state integration remain open. Account and supplied
+  empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -512,18 +513,22 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
   current-pin full-state refinement remains open.
-  TxState.new, other tracker operations, snapshot/restore, observation lifetimes and
+  TxState.new, remaining tracker operations, snapshot/restore, observation lifetimes and
   initialization/coherence, other StateError semantics/freezing, S1/S2/W1,
   generic D5, F6/F7/F11 and C1–C4 remain open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Actual initialization, snapshot/restore,
-  transient lifetime, tracker operations and observations, write/clear/order coupling,
-  Reachable, AccountWritesLookedUp, errors/adapters and provider progress remain open.
+  transient lifetime, remaining tracker operations and observations, write/clear/order
+  coupling, Reachable, AccountWritesLookedUp, errors/adapters and provider progress
+  remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
+- **Account creation marker (R22):** §3/§4/§5/§7 supplies the standalone
+  insertion. Snapshot retention, reset at transaction incorporation, original
+  storage reads, call execution and composed linear ownership remain open.
 - **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
   whole clear/restore/incorporation and reachable extraction must still preserve all
   coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
@@ -549,8 +554,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
-  support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
-  §3 without tracker/lifecycle code; raw BlockState is supplied separately there.
+  support is supplied (EthBase §3). EthState §3 supplies the raw TxObs and
+  BlockState carriers and the standalone R22 marker as separate declarations.
   Their nominal TxState/StateM assembly with hash-only codeReads is supplied in §3.
   Actual key distributions, construction/duplicates/resizing/allocation, linear
   ownership, retention and C1–C4 remain unmeasured (ARCHITECTURE §5.0). Sorted BAL
