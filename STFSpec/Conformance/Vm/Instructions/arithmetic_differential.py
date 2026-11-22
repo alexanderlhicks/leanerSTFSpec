@@ -31,7 +31,8 @@ def require(condition, message):
 def pairs(items):
     result = {}
     for key, value in items:
-        require(key not in result, "duplicate JSON key")
+        if key in result:
+            raise FrameError("duplicate JSON key")
         result[key] = value
     return result
 
@@ -249,17 +250,20 @@ def expected_frames():
 
 
 def exact(actual, expected):
-    require(type(actual) is type(expected), "JSON observation type mismatch")
+    if type(actual) is not type(expected):
+        raise FrameError("JSON observation type mismatch")
     if isinstance(expected, dict):
-        require(actual.keys() == expected.keys(), "JSON observation keys")
+        if not (actual.keys() == expected.keys()):
+            raise FrameError("JSON observation keys")
         for key in expected:
             exact(actual[key], expected[key])
     elif isinstance(expected, list):
-        require(len(actual) == len(expected), "JSON observation length")
+        if len(actual) != len(expected):
+            raise FrameError("JSON observation length")
         for a, e in zip(actual, expected):
             exact(a, e)
-    else:
-        require(actual == expected, "JSON observation value mismatch")
+    elif not actual == expected:
+        raise FrameError("JSON observation value mismatch")
 
 
 def compare_frames(data):
