@@ -1001,11 +1001,12 @@ are built through public pushes. Strict normal/-O frame controls reject malforme
 schema, boolean/float integer aliases, out-of-range words and wrong whole streams.
 The source schedule is limited to original pop/push on fresh typed bounded lists;
 peek is explicitly a builtin List-index adapter, not an original standalone helper.
-Authenticated original comparison passed eight unchanged pop and fourteen push
-calls on fresh typed bounded lists, retaining exact U256/None return classes or
-exception classes/args and entire before/after models. Nineteen separately labelled
-List-index adapter observations also passed. All forty-one complete Lean frames
-matched; source/runtime identities remained unchanged before/after each phase.
+At `59c1473d`, the authenticated comparison ran with Python assertions enabled.
+Eight original pop calls and fourteen original push calls on fresh typed bounded
+lists matched, including exact U256/None return classes or exception classes and
+arguments, and complete before and after models. Nineteen separately labelled
+List-index adapter observations also matched. All forty-one complete Lean output
+frames matched. Source and runtime identities agreed before and after each phase.
 The original pop/push/peek schedule supplies no swap/handler, gas ordering, frame
 reachability, allocation benchmark, replacement, G1/G2–G7 or guest/EEST gate.
 
