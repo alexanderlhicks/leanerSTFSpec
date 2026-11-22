@@ -323,7 +323,7 @@ remains open (EthVmRunner §2.4). EELS
 
 | EELS source at `59c1473d` | Lean declaration | Domain | Effects and ordered failures | Laws and tests | Status |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:154–177` (`is_zero`) | `STFSpec.Vm.Instructions.isZero {m : Type → Type} [Monad m] : Handler m` in `STFSpec/Vm/Instructions/Comparison.lean`, exported by the Instructions facade | Every supplied context, frame and `VmWorld m`. The selected price is the raw Nat field `ctx.config.costs.opcodeIsZero`. | Pop one word, charge, push the word zero test and advance the PC. Empty underflow retains the entire frame. Gas denial retains the pop. Success changes stack, execution gas and PC. The three run equations retain the complete supplied world under literal underlying `pure`. | Five ordinary laws (§7), facade clients and eight complete frame controls (§4). | Local handler and laws supplied. The bounded comparison is described in §4. Dispatch, reachable-entry and trace refinement remain open. |
+| `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:154–177` (`is_zero`) | `STFSpec.Vm.Instructions.isZero {m : Type → Type} [Monad m] : Handler m` in `STFSpec/Vm/Instructions/Comparison.lean`, exported by the Instructions facade | Every supplied context, frame and `VmWorld m`. The selected price is the raw Nat field `ctx.config.costs.opcodeIsZero`. | Pop one word, charge, push the word zero test and advance the PC. Empty underflow retains the entire frame. Gas denial retains the pop. Success changes stack, execution gas and PC. The three run equations retain the complete supplied world under literal underlying `pure`. | Five ordinary laws (§7), facade clients and eight complete frame controls (§4). | Local handler and laws supplied. The private stack worker agrees with the source-shaped reference definition (§7). Dispatch, reachable-entry and trace refinement remain open. |
 
 Source agreement specializes the selected price to `GasCosts.OPCODE_ISZERO`
 (3) and relates the source stack in reverse to `Stack.toList`. Core owns the
@@ -699,8 +699,14 @@ A private comparison uses 18 direct calls to the pinned original EELS handler
 and to the Lean facade at price 3. It checks the complete mutable frame before
 and after each call, including the exact result categories. The source records
 also check the original helper order and agree in normal and optimized Python.
-The general handler differential, composed `step` and guest fixture execution
-remain open.
+
+Private native controls check all nine fields of the result frame and every
+frame retained by the caller. They cover exclusive and retained entry at
+stack depths 0, 1, 8, 256 and 1024, with execution budgets of 2 and 3. The
+nonempty exclusive cases reuse the stack through the pop and, after payment,
+the push. The nonempty retained cases copy at the pop and reuse that copy for
+the push when the charge succeeds. The general handler differential, composed
+`step` and guest fixture execution remain open.
 
 **Supplied settled child outcome controls.**
 `STFSpec/Conformance/Vm/Instructions/ChildOutcomeCallerProofs.lean` imports only
@@ -1671,6 +1677,12 @@ theorem equal_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld 
 stack and gas premises and the supplied Monad instance. The accounting and
 progress laws consume an actual continuing Id run. A zero price leaves Φ
 unchanged. The positive-price premise appears only in the progress law.
+
+The executable worker checks stack size before popping. For a nonempty bounded
+stack, a pop succeeds and leaves room for the push. The private equality with
+the source-shaped reference definition uses these facts and the original
+charge order. The run and accounting proofs use that equality on the complete
+step result.
 
 ```lean
 theorem isZero_run_empty {m : Type → Type} [Monad m]

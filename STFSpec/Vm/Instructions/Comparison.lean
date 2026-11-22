@@ -17,6 +17,27 @@ namespace STFSpec.Vm.Instructions
 
 open STFSpec.Base STFSpec.Vm.Core
 
+private theorem pop_empty (s : Stack) (empty : s.size = 0) :
+    s.pop = .error .stackUnderflow := by
+  rw [Stack.size_eq_length_toList] at empty
+  exact (Stack.pop_eq_error_iff s .stackUnderflow).mpr
+    ⟨List.length_eq_zero_iff.mp empty, rfl⟩
+
+private theorem pop_not_error (s : Stack) (e : ExceptionalHalt)
+    (nonempty : s.size ≠ 0) (hp : s.pop = .error e) : False := by
+  have empty := ((Stack.pop_eq_error_iff s e).mp hp).1
+  apply nonempty
+  simp [Stack.size_eq_length_toList, empty]
+
+private theorem push_not_error (s t : Stack) (x v : U256) (e : ExceptionalHalt)
+    (hp : s.pop = .ok (x, t)) (he : t.push v = .error e) : False := by
+  have bound := s.size_le
+  have popped := (Stack.pop_eq_ok_iff s t x).mp hp
+  have full := ((Stack.push_eq_error_iff t v e).mp he).1
+  rw [Stack.size_eq_length_toList, popped, List.length_cons] at bound
+  rw [Stack.size_eq_length_toList] at full
+  omega
+
 private def evalIsZero (ctx : FrameCtx) (f : Frame) : StepResult ctx :=
   match f.stack.pop with
   | .error e => .halt f e
@@ -28,10 +49,45 @@ private def evalIsZero (ctx : FrameCtx) (f : Frame) : StepResult ctx :=
       | .error e => .halt { f with stack, gasMeter := paid } e
       | .ok out => .continue { f with pc := f.pc + 1, stack := out, gasMeter := paid }
 
+private def evalIsZeroLinear (ctx : FrameCtx) (f : Frame) : StepResult ctx :=
+  if empty : f.stack.size = 0 then
+    .halt f .stackUnderflow
+  else
+    match pop : f.stack.pop with
+    | .error e => False.elim (pop_not_error f.stack e empty pop)
+    | .ok (x, stack) =>
+      match chargeGas f.gasMeter ctx.config.costs.opcodeIsZero with
+      | .error e => .halt { f with stack } e
+      | .ok paid =>
+        let result := U256.iszero x
+        match push : stack.push result with
+        | .error e => False.elim (push_not_error f.stack stack x result e pop push)
+        | .ok out => .continue { f with pc := f.pc + 1, stack := out, gasMeter := paid }
+
+private theorem evalIsZeroLinear_eq_evalIsZero (ctx : FrameCtx) (f : Frame) :
+    evalIsZeroLinear ctx f = evalIsZero ctx f := by
+  unfold evalIsZeroLinear evalIsZero
+  split
+  · rename_i empty
+    rw [pop_empty f.stack empty]
+  · rename_i nonempty
+    split
+    · rename_i e pop
+      exact False.elim (pop_not_error f.stack e nonempty pop)
+    · rename_i x stack pop
+      simp only [pop]
+      split
+      · rfl
+      · split
+        · rename_i e push
+          exact False.elim (push_not_error f.stack stack x (U256.iszero x) e pop push)
+        · rename_i out push
+          simp only [push]
+
 /-- Pop one word, charge the selected execution price, push the zero test and advance the PC.
 EELS `src/ethereum/forks/amsterdam/vm/instructions/comparison.py:154–177`. -/
 def isZero {m : Type → Type} [Monad m] : Handler m :=
-  fun ctx f ↦ pure (evalIsZero ctx f)
+  fun ctx f ↦ pure (evalIsZeroLinear ctx f)
 
 private theorem pop_of_model (s : Stack) (x : U256) (xs : List U256)
     (h : s.toList = x :: xs) : ∃ t, s.pop = .ok (x, t) ∧ t.toList = xs := by
@@ -52,8 +108,8 @@ theorem isZero_run_empty {m : Type → Type} [Monad m]
     (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
     ((isZero ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
   have hp := (Stack.pop_eq_error_iff f.stack .stackUnderflow).mpr ⟨h, rfl⟩
-  change pure (Except.ok (evalIsZero ctx f, w)) = _
-  simp only [evalIsZero, hp]
+  change pure (Except.ok (evalIsZeroLinear ctx f, w)) = _
+  simp only [evalIsZeroLinear_eq_evalIsZero, evalIsZero, hp]
 
 /-- An unaffordable charge halts after one pop and retains every other frame field and the world. -/
 theorem isZero_run_oog {m : Type → Type} [Monad m]
@@ -67,8 +123,8 @@ theorem isZero_run_oog {m : Type → Type} [Monad m]
   have hg := (chargeGas_eq_error_iff f.gasMeter ctx.config.costs.opcodeIsZero .outOfGas).mpr
     ⟨hc, rfl⟩
   refine ⟨stack, hp, model, ?_⟩
-  change pure (Except.ok (evalIsZero ctx f, w)) = _
-  simp only [evalIsZero, hp, hg]
+  change pure (Except.ok (evalIsZeroLinear ctx f, w)) = _
+  simp only [evalIsZeroLinear_eq_evalIsZero, evalIsZero, hp, hg]
 
 /-- An affordable charge replaces the top word and changes only the PC and execution gas.
 The bounded stack guarantees space for the push after the pop. -/
@@ -100,14 +156,15 @@ theorem isZero_run_success {m : Type → Type} [Monad m]
     have hg := chargeGas_of_le f.gasMeter ctx.config.costs.opcodeIsZero hc
     refine ⟨stack, out, hp, model, next, ?_, ?_⟩
     · simpa only [model] using hm.2
-    · change pure (Except.ok (evalIsZero ctx f, w)) = _
-      simp only [evalIsZero, hp, hg, next]
+    · change pure (Except.ok (evalIsZeroLinear ctx f, w)) = _
+      simp only [evalIsZeroLinear_eq_evalIsZero, evalIsZero, hp, hg, next]
 
 /-- A continuing Id run spends exactly the selected execution price in meter potential. -/
 theorem isZero_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
     (h : ((isZero ctx f).run w).run = .ok (.continue f', w')) :
     f'.gasMeter.phi + ctx.config.costs.opcodeIsZero = f.gasMeter.phi := by
-  change Except.ok (evalIsZero ctx f, w) = .ok (.continue f', w') at h
+  change Except.ok (evalIsZeroLinear ctx f, w) = .ok (.continue f', w') at h
+  rw [evalIsZeroLinear_eq_evalIsZero] at h
   have step := (Prod.mk.inj (Except.ok.inj h)).1
   cases hp : f.stack.pop with
   | error e =>
@@ -151,27 +208,6 @@ private def binary (ctx : FrameCtx) (f : Frame) (cost : Nat)
         match s₂.push (word x y) with
         | .error e => .halt { f with stack := s₂, gasMeter := paid } e
         | .ok out => .continue { f with pc := f.pc + 1, stack := out, gasMeter := paid }
-
-private theorem pop_empty (s : Stack) (empty : s.size = 0) :
-    s.pop = .error .stackUnderflow := by
-  rw [Stack.size_eq_length_toList] at empty
-  exact (Stack.pop_eq_error_iff s .stackUnderflow).mpr
-    ⟨List.length_eq_zero_iff.mp empty, rfl⟩
-
-private theorem pop_not_error (s : Stack) (e : ExceptionalHalt)
-    (nonempty : s.size ≠ 0) (hp : s.pop = .error e) : False := by
-  have empty := ((Stack.pop_eq_error_iff s e).mp hp).1
-  apply nonempty
-  simp [Stack.size_eq_length_toList, empty]
-
-private theorem push_not_error (s t : Stack) (x v : U256) (e : ExceptionalHalt)
-    (hp : s.pop = .ok (x, t)) (he : t.push v = .error e) : False := by
-  have bound := s.size_le
-  have popped := (Stack.pop_eq_ok_iff s t x).mp hp
-  have full := ((Stack.push_eq_error_iff t v e).mp he).1
-  rw [Stack.size_eq_length_toList, popped, List.length_cons] at bound
-  rw [Stack.size_eq_length_toList] at full
-  omega
 
 /-- Release each stack once its remaining operations can no longer return it. -/
 private def binaryLinear (ctx : FrameCtx) (f : Frame) (cost : Nat)
