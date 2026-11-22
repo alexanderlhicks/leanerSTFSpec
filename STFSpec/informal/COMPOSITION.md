@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-20.*
+*Status: conditional proof plan. Date: 2026-11-21.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -480,6 +480,14 @@ presence suffices for structural apply preservation, including empty patches and
 writes with arbitrary metadata/code/account fields. This local implication supplies
 neither full optional-map WF policy nor replay history, reachable extraction,
 AccountWritesLookedUp or F7; those obligations remain with their existing producers.
+
+### Account deployability handoff
+
+Use `accountDeployable` for the R13 check on the transaction's current
+defaulted account. The wrapper returns the state of the underlying read on
+success and propagates its error. Concrete source comparison uses caller-supplied
+F20 coherence. The private model proof inherits the successful current-account
+read premises. [EthState §§3–7](modules/EthState.md#3-eels-source-map)
 
 ### Typed-trie storage, preparation and root premise (Q53)
 
