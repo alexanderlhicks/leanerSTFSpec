@@ -14,6 +14,7 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.TxState
+import STFSpec.State.AncestorAccess
 import STFSpec.State.PreStateAccount
 import STFSpec.State.AccountOptional
 import STFSpec.State.BlockInitialization

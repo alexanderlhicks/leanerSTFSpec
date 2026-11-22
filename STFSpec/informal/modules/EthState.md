@@ -78,7 +78,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 - R24. `copy_tx_state` (`st:744–777`) snapshots **exactly** `account_writes`, `storage_writes` (one level deep), `code_writes`, `storage_clears` and `transient_storage`; it **shares** `created_accounts`, `storage_reads`, `account_reads`, `code_reads` and the parent. `restore_tx_state` (`st:780–798`) reinstates exactly those five fields. EELS assigns the snapshot's dicts directly, so a snapshot is used at most once (LIFO); the persistent Lean representation removes that restriction.
 - R25. `incorporate_tx_into_block` (`st:804–858`), in this order: (1) the BAL builder is updated from the unmerged transaction and block states (`st:828`, owned by `EthBlock`); (2) the three read sets are unioned into the block's (`st:831–833`); (3) account writes overwrite block writes, keeping first-write order (`st:836–837`); (4) for each transaction clear, the address is added to the block clears **and its block storage writes are dropped** (`st:839–841`); (5) transaction storage writes are merged slot-wise (`st:843–846`); (6) code writes are merged (`st:848`); (7) the transaction state is reset: writes, clears, transient storage and `createdAccounts` emptied, fresh read sets (`st:850–858`).
 - R26. `extract_block_diff` (`st:861–881`) copies the four complete effect fields. Q85 supplies the raw B1 adaptation: both global orders use `WriteOrder.toList`, and the slot-index map is mapped through that observer with its domain unchanged. No filtering, repair, WF or history premise is imposed. EELS aliases the source dicts/clear set; pure Lean preserves their values under the typed finite nonaliasing source bridge, without modeling later mutable alias effects.
-- R27. `track_ancestor_access b o` (`st:925–946`) sets `oldestAncestorOffset := max`. It writes the **block** state during transaction execution (BLOCKHASH, `vm/instructions/block.py:61`; EIP-2935 at `fork.py:868`), so it is a persistent observation that survives reverts. `get_witness_ancestors` (`st:903–922`) is host-side witness construction; with offset `0` it would return every header (`[-0:]`), but callers only pass offsets ≥ 1 [inference from `block.py:48–62`, `fork.py:868–871`].
+- R27. `track_ancestor_access b o` (`st:884–905`) stores `some o` for an absent cursor and keeps the greater offset when one is present. The standalone action accepts every nonnegative offset, including zero. Pinned BLOCKHASH calls it after successful history lookup (`vm/instructions/block.py:47–63`). The cursor is in the block state held by the current transaction, outside its revertible fields (D23).
 - R28. A throwaway transaction state is used for the system-contract code pre-check (`fork.py:691–702`): its observations are discarded, but its pre-state calls still happen, so a witness failure there still rejects the block. The Lean API must allow a transaction state that is never incorporated.
 
 ### 2.7 Failure behaviour
@@ -133,7 +133,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::incorporate_tx_into_block` | 804 | `incorporateTxIntoBlock` | BAL hook in `EthBlock` |
 | `forks/amsterdam/state_tracker.py::extract_block_diff` | 861–881 | `extractBlockDiff` | **Discharged raw extraction slice:** complete effects and Q85 metadata equations below; no reachable/history/WF claim. |
 | `forks/amsterdam/state_tracker.py` `get_witness_ancestors` (removed at v21.0.6) | 903 at `e1a316a0` | `getWitnessAncestors` | supplied: opaque list selection; complete equation and tests below; retirement open (§10) |
-| `forks/amsterdam/state_tracker.py::track_ancestor_access` | 884 | `trackAncestorAccess` | |
+| `forks/amsterdam/state_tracker.py::track_ancestor_access` | 884–905 | `STFSpec.State.trackAncestorAccess` in `STFSpec/State/AncestorAccess.lean`, exported by State | **Supplied:** private complete Monad-only action, maximum cursor and retained-field equations. The action returns unit through one underlying `pure`. Five whole-offset histories and retained-state/provider controls in §4. |
 
 `state.py` is claimed item by item above; no item of either file is left unclaimed.
 
@@ -508,6 +508,13 @@ This supplies no witness generator, actual host-call wiring, Q7, S1/S2, guest/EE
 resource or C1–C4 result.
 
 ## 4. Tests
+
+- **Standalone R27 controls:** `AncestorAccessChecks.lean` checks five
+  histories and 20 updates, including absence, explicit zero, equal/decreasing
+  offsets and offsets above 256. It checks the cursor and transaction
+  sentinels through the public action with zero provider calls. The same
+  histories are paired with the pinned tracker in isolated normal and
+  optimized Python. BLOCKHASH admission and composed rollback remain open.
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (211 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
 - **EELS unit tests:** none target `state_tracker.py` at the pin. `tests/json_loader/test_optimized_state.py` (`test_storage_key`, `test_resurrection`) concerns an older optimized state and is not normative here.
@@ -961,7 +968,7 @@ def copyTxState (t : TxState m) : TxRevertible                         -- snapsh
 def restoreTxState (snap : TxRevertible) : StateM m Unit               -- revert
 def incorporateTxIntoBlock (t : TxState m) : BlockState m × TxState m      -- BAL hook runs before, in EthBlock
 def extractBlockDiff {m : Type → Type} (b : BlockState m) : BlockDiff -- Q85, no class premise
-def trackAncestorAccess (offset : Nat) : StateM m Unit
+def trackAncestorAccess {m : Type → Type} [Monad m] (offset : Nat) : StateM m Unit
 def getWitnessAncestors (headers : List ByteArray) (offset : Option Nat) : List ByteArray
 
 -- model views (public, for laws)
@@ -1308,6 +1315,13 @@ The current optional action supplies exactly these six public laws:
 | `getAccountOptional_mem` | Id success: b is a post account-read member iff b=a or b was a prior member; no raw duplicate-insert identity. |
 | `getAccountOptional_model` | Exactly the initial MathState.WF/ModelsLookups/success domain above: account equals `(t.view σ₀).account? a`, using public TxState.view_account?_eq and the pre-transaction model law. |
 
+The standalone R27 action sets the block cursor to the supplied offset
+when absent and to the greater of the old and new offsets otherwise. The
+private run equation has one underlying `pure` of the complete successful
+result. A second private equation recovers the original transaction by
+substituting its old cursor into that result. Caller history bounds and
+actual runner rollback compose separately.
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
@@ -1479,7 +1493,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
+  and their bounded laws/controls are supplied in §3/§4/§7.1. Standalone R27
+  ancestor recording is supplied with the complete private action, cursor and
+  framing equations. BLOCKHASH and runner callers remain open.
   Other tracker operations and full-state integration remain open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -1554,4 +1570,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.
 - **EEST coverage** of write→read conversion is only indirect (through BAL fixtures); no unit tests exist upstream for `state_tracker.py`.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does. R27's EIP-2935 clause describes the old call. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does, as reflected in R27. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
