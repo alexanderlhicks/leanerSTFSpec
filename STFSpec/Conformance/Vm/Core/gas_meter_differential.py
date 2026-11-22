@@ -633,7 +633,7 @@ def lean_observers():
     return text.split(start, 1)[1].split(end, 1)[0]
 
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 
 
 def source_compare(args):

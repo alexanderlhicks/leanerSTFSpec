@@ -418,7 +418,7 @@ def emit_lean():
         )
 
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 
 
 def source_compare(args):
@@ -763,7 +763,7 @@ def source_compare(args):
         "source aliases differ",
     )
     require(
-        [f.__code__.co_firstlineno for f in functions()[:2]] == [606, 631],
+        [f.__code__.co_firstlineno for f in functions()[:2]] == [594, 619],
         "wrong original helper locations",
     )
     fields = [

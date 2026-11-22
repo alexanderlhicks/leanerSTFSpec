@@ -11,6 +11,7 @@ import importlib.util
 import json
 import os
 import py_compile
+import runpy
 import sys
 import tempfile
 from pathlib import Path
@@ -137,6 +138,58 @@ class AuthenticationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 SOURCE.source_identity(Path("unused-clone"), report)
             self.assertEqual(child.call_count, 1)
+
+    def test_source_status_preserves_index_and_refuses_dirty_checkout(self):
+        git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        git_env.update(GIT_OPTIONAL_LOCKS="1", GIT_CONFIG_GLOBAL=os.devnull,
+                       GIT_CONFIG_SYSTEM=os.devnull)
+        for name in ["pre_state_account_source", "pre_state_account_default_source",
+                     "account_optional_source"]:
+            with self.subTest(driver=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                eels = root / "eels"
+                eels.mkdir()
+
+                def git(*args):
+                    return subprocess.run(["git", *args], cwd=eels, check=True,
+                                          capture_output=True, text=True, timeout=10).stdout
+
+                with patch.dict(os.environ, git_env, clear=True):
+                    git("init", "--quiet", "--template=")
+                    tracker = eels / "src/ethereum/forks/amsterdam/state_tracker.py"
+                    state = eels / "src/ethereum/state.py"
+                    tracker.parent.mkdir(parents=True)
+                    for path in [tracker, state, eels / "uv.lock"]:
+                        path.write_text("\n")
+                    git("add", ".")
+                    git("-c", "user.name=Source test", "-c", "user.email=source@example.invalid",
+                        "commit", "--quiet", "-m", "Add source fixture")
+                    head = git("rev-parse", "HEAD").strip()
+                    (root / "reference.toml").write_text(f'[release]\ncommit = "{head}"\n')
+                    index = eels / ".git/index"
+                    before = index.read_bytes()
+                    stamp = tracker.stat()
+                    os.utime(tracker, ns=(stamp.st_atime_ns, stamp.st_mtime_ns - 2_000_000_000))
+
+                    driver = runpy.run_path(str(Path(SPEC.origin).with_name(name + ".py")))
+                    source_identity = driver["source_identity"]
+                    clean = {"executions": []}
+                    dirty = {"executions": []}
+                    with patch.dict(source_identity.__globals__, {"ROOT": root}):
+                        self.assertEqual(source_identity(eels, clean)["head"], head)
+                        self.assertEqual(index.read_bytes(), before)
+                        tracker.write_text("dirty\n")
+                        with self.assertRaisesRegex(ValueError, "clean checkout of the exact pin"):
+                            source_identity(eels, dirty)
+                        self.assertEqual(index.read_bytes(), before)
+
+                    status_argv = ["git", "--no-replace-objects", "-C", str(eels),
+                                   "--no-optional-locks", "status", "--porcelain"]
+                    self.assertEqual(clean["executions"][1]["argv"], status_argv)
+                    self.assertEqual(clean["executions"][1]["stdout"], "")
+                    self.assertEqual(dirty["executions"][1]["argv"], status_argv)
+                    self.assertEqual(dirty["executions"][1]["stdout"],
+                                     f" M {tracker.relative_to(eels).as_posix()}\n")
 
     def test_failed_child_retains_original_wait_and_streams(self):
         report = {"executions": []}

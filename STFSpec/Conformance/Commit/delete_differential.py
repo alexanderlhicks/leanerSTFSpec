@@ -194,6 +194,19 @@ def resume_cli_tests():
 
 
 def parser_tests():
+    check_catalog(load_json(json.dumps(catalog(), sort_keys=True)))
+    for wrong_case in (False, 0.0):
+        changed = catalog()
+        changed["cases"][0]["case"] = wrong_case
+        try:
+            check_catalog(changed)
+        except ValueError as error:
+            require(
+                str(error) == "catalog must equal the complete frozen generator",
+                "wrong catalog error",
+            )
+        else:
+            raise RuntimeError("non-integer catalog case accepted")
     h = list(range(32))
     leaf = [2, 1, 15, 2, 0, 255, 2, 193, 128, 1, *h]
     tree = [3, 0, 4, 3, 0, 1, *h, *leaf, 2, 0, 255, 0, 0, 0, 0]
@@ -744,6 +757,13 @@ def premise_map(descriptors):
     )
 
 
+def check_catalog(frozen):
+    require(
+        json.dumps(frozen, sort_keys=True) == json.dumps(catalog(), sort_keys=True),
+        "catalog must equal the complete frozen generator",
+    )
+
+
 def main():
     reject_resume(sys.argv[1:])
     if sys.argv[1:] == ["--self-test"]:
@@ -1118,7 +1138,7 @@ def main():
 
     payload = own.catalog.read_bytes()
     frozen = load_json(payload)
-    require(frozen == catalog(), "catalog must equal the complete frozen generator")
+    check_catalog(frozen)
     catalog_sha = hashlib.sha256(payload).hexdigest()
 
     def file_identity(path):

@@ -65,8 +65,10 @@ equation and existing instance/nonempty/injectivity contracts without exposing t
 encoder's implementation. `StorageEncodingGuards.lean` checks complete boundary
 and patterned wires and emits JSONL frames. The committed
 `storage_encoding_differential.py` compares those complete frames with unchanged
-pinned `encode_node(U256)` and locked integer RLP dispatch. Its strict parser controls
-run normally and with `-O`; source snapshots bind live functions/classes/aliases,
+pinned `encode_node(U256)` and locked integer RLP dispatch. At `59c1473d`,
+the driver matched all 804 frames in normal and optimized Python. Fresh runs at
+`e1a316a0` on the same frames produced identical observations. Strict parser controls
+run in both modes. Source snapshots bind live functions/classes/aliases,
 source bytes and locked raw wheels before and after each finite comparison.
 Code-content digests use explicit marshal format 2 within that authenticated runtime.
 These comparisons retain actual U256 construction/dispatch and finite-host premises;
@@ -124,11 +126,14 @@ equation; `AccountEncodingGuards.lean` checks independent assembled framing, bal
 widths 1–32, selected nonce/RLP boundaries, complete asymmetric hashes and an
 8,193-bit nonce.
 The committed `account_encoding_differential.py` compares complete frames with both
-unchanged pinned account encoders and independent unsigned/RLP framing, with live
-function/class/alias, loaded source and raw locked-wheel snapshots before and after.
-Strict parser controls run normally and with `-O`; code-content digests use explicit
-marshal format 2 within the authenticated runtime. Source agreement retains actual
-typed field construction, complete standard assembly and finite-host premises.
+unchanged pinned account encoders and independent unsigned/RLP framing. At
+`59c1473d`, both encoders matched all 195 frames in normal and optimized Python.
+Fresh runs at `e1a316a0` on the same frames produced identical observations.
+The driver captures live functions, classes, aliases, loaded source and locked raw
+wheels before and after the comparison. Strict parser controls run in both modes.
+Code-content digests use explicit marshal format 2 within the authenticated runtime.
+Source agreement retains actual typed field construction, complete standard
+assembly and finite-host premises.
 The existing unconditional nonempty, complete-domain binding and conditional
 account SC10 laws remain supplied. This pure operation acquires no defaults or
 storage root and supplies no callback, secured-root or whole-backend bridge.
@@ -434,4 +439,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`StateCollision`** is not yet defined: which pairs (DB entries, inline subterms, canonical encodings of both trie levels) and in which order; its computability and its connection to VCV-io's collision games are open.
 - **`storageRoot = emptyTrieRoot ⇒ empty`** needs a collision disjunct; proof strategy follows the trie theorem but is not written.
 - **Blockchain-test pre-states** (`EthStateFull`) must satisfy `MathState.WF` (no orphan storage); this is argued from `state_mpt.set_storage`'s assertion (`state_mpt.py:198`) and genesis loading, not checked on the corpus.
-- **Re-pin evidence (GAPS-CROSSCUTTING X16):** the strict storage semantic migration is supplied in §3 at `59c1473d`; SC5 remains lenient. The earlier description of `storage_encoding_differential.py` as a frozen decoder catalogue was incorrect: that driver covers encoding only, remains at `e1a316a0` and still needs its separate SC2 source reauthentication. Its old evidence does not validate strict decoding. Backend/trie re-pin work, account encoding evidence and other X16 items remain open.
+- **Re-pin evidence (GAPS-CROSSCUTTING X16)**. Section 3 supplies SC1 and SC2 encoder observations and the strict storage decoder migration at `59c1473d`. SC5 remains lenient. Backend and trie re-pin work remains open.

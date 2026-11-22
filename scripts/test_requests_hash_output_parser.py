@@ -8,8 +8,10 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import tomllib
 
-PATH = Path(__file__).resolve().parents[1] / "STFSpec/Conformance/Block/requests_hash_differential.py"
+ROOT = Path(__file__).resolve().parents[1]
+PATH = ROOT / "STFSpec/Conformance/Block/requests_hash_differential.py"
 spec = importlib.util.spec_from_file_location("requests_hash_reader", PATH)
 reader = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reader)
@@ -29,7 +31,9 @@ def main():
                     "request_types": ["builtins.bytes"] * len(x["requests_hex"]),
                     "request_bytes": [len(text) // 2 for text in x["requests_hex"]],
                     "return_type": "builtins.bytes", "return_bytes": 32} for x in cases]
-    source = {"head": reader.PIN, "status": "all 298 source cases passed",
+    with (ROOT / "reference.toml").open("rb") as reference:
+        pin = tomllib.load(reference)["release"]["commit"]
+    source = {"head": pin, "status": "all 298 source cases passed",
               "case_file_before_sha256": reader.CATALOG_SHA256,
               "case_file_after_sha256": reader.CATALOG_SHA256,
               "runtime": {"isolated": 1, "dont_write_bytecode": True, "optimize": 0,
@@ -132,6 +136,7 @@ def main():
                          encode(target) + b"garbage\n"):
                 check(mode, "extra-frame-lines", data, raw=True)
         else:
+            mutate("historical-source-pin", ["head"], "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36")
             for field in ("head", "status", "case_file_before_sha256", "case_file_after_sha256"):
                 mutate("wrong-" + field, [field], "wrong")
             for field in ("runtime", "function", "rows"):

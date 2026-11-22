@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import sys
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 # Independent complete literals frozen before any target/source execution.
 CATALOG = [
     {
@@ -237,7 +237,7 @@ INVALID = [
         "input": [0, 0, 1, 0, 0, 0],
         "grant": 0,
         "exception": "builtins.AssertionError",
-        "line": 597,
+        "line": 585,
         "meter": [0, 0, 1, 0, 0, 0],
     },
     {
@@ -246,7 +246,7 @@ INVALID = [
         "input": [13, 29, 11, -31, 7, 19],
         "grant": 10,
         "exception": "builtins.AssertionError",
-        "line": 597,
+        "line": 585,
         "meter": [13, 29, 11, -31, 7, 19],
     },
     {
@@ -255,7 +255,7 @@ INVALID = [
         "input": [19, 3, 18446744073709551617, 17, 11, 23],
         "grant": 18446744073709551616,
         "exception": "builtins.AssertionError",
-        "line": 597,
+        "line": 585,
         "meter": [19, 3, 18446744073709551617, 17, 11, 23],
     },
 ]
@@ -760,9 +760,9 @@ def source_compare(args):
     node = next(
         n for n in syntax.body if isinstance(n, ast.FunctionDef) and n.name == "tx_state_gas_used"
     )
-    require(node.lineno == 570 and node.end_lineno == 603, "original helper source span")
+    require(node.lineno == 558 and node.end_lineno == 591, "original helper source span")
     require(
-        original.__code__.co_firstlineno == 570
+        original.__code__.co_firstlineno == 558
         and original.__code__.co_filename == str(helper_path)
         and original.__globals__ is vars(gas),
         "original helper code binding",
@@ -788,9 +788,9 @@ def source_compare(args):
     )
     helper_source = {
         "path": str(helper_path),
-        "start": 570,
-        "end": 603,
-        "assertion_line": 597,
+        "start": 558,
+        "end": 591,
+        "assertion_line": 585,
         "source_sha256": sha(helper_path.read_bytes()),
         "segment": ast.get_source_segment(helper_path.read_text(), node),
     }

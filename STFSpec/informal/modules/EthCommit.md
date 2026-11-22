@@ -1,6 +1,6 @@
 # `EthCommit`: Merkle Patricia tries over bytes — mathematical root, witness decoding, partial trie, incremental root
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-13. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-22. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F4, F5, F16, F19, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D4, D5, D16, D18, D19, D20, D25 · questions: B3 (Q32/Q34), B15 (Q33/Q35), Q48, Q49, Q50, Q51, Q52, Q53, Q54, Q55, Q59, Q60, Q90; DISC-001, DISC-003, DISC-004.*
 
 Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/incremental_mpt.py`, `ws:` = `forks/amsterdam/witness_state.py`. "[verified]" = read in the pinned source; "[executed]" = additionally run against the pinned EELS with `ethereum_rlp`/`ethereum_types` from the pinned environment; "[inference]" = argued, not tested. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -65,19 +65,23 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.4 Lookup (guest path)
 
-- C20. `_trie_lookup root keyHash` (`ws:53–100`) is pure tree lookup; guest callers (`ws:148–205`) supply a Hash32 split into 64 nibbles and own hashing, root decoding/caching and later leaf decoding/defaults. Q59 preserves a total `lookup` on every finite bare Ref/Nibbles input: none → absence; stub → `.unresolved h` before key exhaustion; leaf → its complete value, including empty as present, iff its complete path equals the remaining key; extension → compare its complete path to the clipped remaining prefix and descend/drop path length only on match, including empty paths and ext-to-leaf/ext; terminal branch → nonempty value or absence before child bounds; nonterminal in-bounds branch → exactly the selected child/drop1. Only a reached out-of-range selected slot returns `.malformed (.branchIndex i children.size)`, where `i < 16` and `children.size ≤ i`. No size16/occupancy/cache/WF check, out-of-range-slot absence, off-path scan or normalization enters lookup. Raw/cache fields are ignored and unconstrained. The source invalid list access has a defined IndexError; the typed adaptation is Q59's disposition, not a demonstrated guest outcome. Source value/stub correspondence uses valid selected accesses and explicit actual Hash32-to-64-nibble/source-class/host premises; odd generalized Nibbles are governed by Lean equations, not direct byte-entry observations. Structural proper-child Node-size descent handles matched empty extensions without requiring key consumption; the local operation/proofs are supplied in §3.
-- C21. `mpt_get` (`inc:349–378`) answers from the flat `_data` map and only *records* the traversal; `_data` is empty for decoded tries. It is host-side witness construction (`stateless_host_exec_witness.py:83`, `:120`), not the guest lookup.
+- C20. Q59 supplies a total `lookup` on every finite bare Ref/Nibbles input. An absent node returns absence. A reached stub returns `.unresolved h` before key exhaustion. A leaf returns its complete value, including empty as present, if its path equals the remaining key. An extension compares its path with the clipped key prefix and descends only on a match, including for empty paths and ext-to-leaf/ext. A terminal branch returns its nonempty value or absence before checking children. A nonterminal branch follows the selected child and drops one nibble. Only a reached out-of-range selected slot returns `.malformed (.branchIndex i children.size)`, where `i < 16` and `children.size ≤ i`. The walk ignores raw/cache fields. It checks only the selected slot and imposes no occupancy, arity, cache or WF invariant. Structural proper-child descent handles matched empty extensions (§3).
+
+  The source comparison at `59c1473d` uses the bare walk in `mpt_get` (`inc:371–402`). It supplies an actual prehashed Hash32 to an unsecured carrier, which splits it into 64 nibbles. The source recorder skips dirty nodes (`inc:252–253`), so the driver can observe the bare walk on supplied raw/cache fields. Value and stub correspondence uses valid selected accesses and the source-class and host premises in §3. The Python `IndexError` at the selected list access (`inc:399`) tests the Q59 adaptation separately. Generalized odd and empty Nibbles keys are Lean equation cases.
+- C21. The pinned `mpt_get` walks the carrier's tree and returns its encoded value or absence (`inc:352–402` at `59c1473d`). The carrier has fields for `secured`, `default`, `root_node` and `witness` (`inc:114–127`). On a secured carrier it hashes the key before the walk. It calls `_record_witness` at each reached ordinary node and asserts on a reached stub first. The recorder can compute cache fields and add a witness entry for a clean node (`inc:243–257,316–349`).
+
+  The guest's `WitnessState` decodes and caches secured tries and handles leaf decoding and defaults (`ws:83–127`). The host also uses the wrapper to collect accessed nodes (`stateless_host_exec_witness.py:83,115`). The supplied Lean `lookup` covers the bare walk. Secured queries and witness/cache effects of the source wrapper require separate correspondence (§10).
 
 ### 2.5 Update, delete, root (guest path)
 
-- C22. `mpt_set m key value` (`inc:417–470`) updates the flat `_data`, then hashes the key iff
-  secured, then selects default/encoding dispatch. Default becomes empty encoding; any encoded
-  empty Bytes deletes, including a nondefault empty value; only nonempty encoding inserts. The
-  generic already-encoded API maps both `none` and `some ByteArray.empty` to deletion, after the
-  same secure key query, and `some nonempty` to update. Direct C23 insertion of empty bytes
-  remains distinct. The dropped host `_data` can differ between default and nondefault empty
-  values; the prospective emptyEncoding action equation concerns only the nominal secured/root
-  projection (§7.0.10), not complete mutable source/witness state.
+- C22. `mpt_set m key value storage_root` (`inc:405–442` at `59c1473d`) hashes the whole key if
+  secured and converts the result, or the unsecured key, to nibbles before comparing the value
+  with the default. Equality selects an empty encoding. Otherwise an Account requires the supplied
+  storage root (`inc:427–429`), nondefault `None` raises `AssertionError` (`inc:430–431`), and
+  other values use `encode_node` (C10). An empty encoding deletes and a nonempty encoding inserts.
+  The already-encoded Lean API maps `none` and `some ByteArray.empty` to deletion after the same
+  secured key query. Direct C23 insertion accepts empty bytes and inserts them. The
+  `mptSet_emptyEncoding` action equation covers the nominal secured/root carrier (§7.0.10).
 - C23. **Insert** (`inc:466–670`; Q60): empty → a leaf with the exact remaining path/value, even
   empty value; reached stub → `.unresolved h` at invalidation before exhaustion; equal leaf path →
   replace exact value; otherwise split into the source branch and optional common-prefix
@@ -129,7 +133,7 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.6 Host-side items
 
-- C28. `build_mpt`/`_build_mutable_tree` (`inc:130–231`) build a mutable tree from a full map exactly as `patricialize`; `Witness`, `_record_witness`, `_compute_node_hash_and_rlp`, `_mpt_traverse_for_witness` (`inc:106–111`, `:243–349`, `:381–414`) record accessed node preimages for witness generation (`stateless_host_exec_witness.py`). They do not affect guest outputs **except** the stub `assert` of `_record_witness` inside collapse (C25). They are specified here as reference definitions for host tooling and tests: `buildMpt m` must satisfy `represents (buildMpt m) m` with no stubs, and the recorded witness of a lookup is the set of path-node preimages.
+- C28. `build_mpt`/`_build_mutable_tree` (`inc:130–231`) build a mutable tree from a full map exactly as `patricialize`. `buildMpt m` must satisfy `represents (buildMpt m) m` with no stubs. The source uses `Witness` and `_record_witness` to collect node preimages for the host (`inc:106–111,243–257`). The recorder skips dirty nodes. A clean node contributes an entry when its computed hash is present and the witness has no entry for that hash. The guest shares the recorder through lookup (C21) and collapse (C25). Correspondence of these effects remains open.
 
 ### Clean-entry mutation realization (C19/C24/C25; Q60)
 
@@ -219,8 +223,10 @@ optimized-source behavior or change the approved typed bare diagnostics.
 | `merkle_patricia_trie.py::_prepare_trie` | 451 | `prepareTrie` | pure safe/unsecured seam discharged below |
 | `merkle_patricia_trie.py::root` | 478 | `root`, `mathRoot` | |
 | `merkle_patricia_trie.py::patricialize` | 507 | `patricialize` | |
-| `forks/amsterdam/incremental_mpt.py::*` | 50–1040 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, host-side `buildMpt`/`mptGet`/`Witness` | whole file; per-item mapping in §5 |
-| `forks/amsterdam/witness_state.py` `_trie_lookup` (removed at v21.0.6; guest lookups use `incremental_mpt.py` `mpt_get`, claimed above) | 53–100 at `e1a316a0` | `lookup` | supplied pure Q59 bare walk/seven equations; source value/stub bridge restricted to valid selected accesses and actual Hash32 keys; typed out-of-range-slot adaptation separate; re-targeting to `mpt_get` open (§10) |
+| `forks/amsterdam/incremental_mpt.py::*` | 50–1065 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `lookup`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, proposed host helpers `buildMpt`/`Witness` | per-item mapping in §5 |
+| `forks/amsterdam/incremental_mpt.py` `mpt_get` | 352–402 at `59c1473d` | `lookup` (bare walk, C20) | source comparison uses prehashed Hash32 keys, unsecured carriers and dirty ordinary nodes. C21 owns the source wrapper and open effects |
+| `forks/amsterdam/incremental_mpt.py` `mpt_set` | 405–442 at `59c1473d` | `mptSet` (encoded setter, C22) | source frontend capture and conditional nominal comparison below |
+| `forks/amsterdam/witness_state.py` `_trie_lookup` | 53–100 at `e1a316a0` | `lookup` (historical pure comparison) | removed at `tests-zkevm@v21.0.6` |
 | `forks/amsterdam/witness_state.py::build_node_db` | 28 | `NodeDB.build` | |
 
 ### Supplied nominal partial-node carriers
@@ -238,7 +244,7 @@ none of that gate. Outstanding operation and admission obligations are owned by 
 |---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/incremental_mpt.py:53–86,290–349,925–961,978–981` | `Enc`, `Enc.mk`, `Enc.rlp`, `Enc.hash?`; **supplied carrier** for every finite ByteArray and optional Hash32 | Retain complete raw/cached values; no query/effect | No error or admission API; completed caches do not model every intermediate mutable Python cache state | Private arbitrary full-field projections and both cache-presence choices at widths 31/32/33; no threshold/provenance/hash theorem |
 | `src/ethereum/forks/amsterdam/incremental_mpt.py:53–103` | `Node.leaf/ext/branch/hashed`; **supplied recursive carrier** | Exact §5 fields, recursive Node child and Array (Option Node) children; no effect | Arbitrary arity/cache/path/child shape is expressible; constructors supply no decoder acceptance or Node.WF | Private variant discrimination, arbitrary complete-field matches, arities 0/15/16/17 and two-level recursive-array consumers |
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:97–103,885–907`; `src/ethereum/forks/amsterdam/witness_state.py:53–100` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | The alias itself supplies no operation/admission/error behavior; lookup and childRef are supplied separately | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:97–103,371–378,885–907` | `Ref := Option Node`; **supplied alias** | Absence, unresolved stub and present resolved node are distinct; ext child excludes absence | The alias itself supplies no operation/admission/error behavior; lookup and childRef are supplied separately | Private Ref consumers distinguish absence/stub/present empty-value leaf; ext-to-leaf/ext controls establish bare expressibility only |
 
 `STFSpec/Conformance/Commit/NodeCallerProofs.lean` imports the public owning module;
 all its hand-written support is private. Ordinary kernel proofs check full retention
@@ -306,13 +312,21 @@ a dirty stored hash separately needs current commitment compatibility, even for
 value agreement. Hashless long descendants can change source embedding to a digest,
 outside arbitrary bare inline projection. No public admission predicate is added.
 
-Source uses `_encode_mutable_node_to_extended`, not `_compute_node_hash_and_rlp`.
-Top-short wrapper and top-long materialization are distinct single-query sites;
-the committed driver asserts descendant queries precede top and short wrapper
-answers are not installed in _hash. Dirty is not cleared: dirty-long calls can
-query repeatedly, clean-long newly cached calls can shortcut. Complete before/after
-optional raw/hash/dirty/call/query/exception fields remain recorded; equal values
-imply neither mutable after-cache nor generic action equivalence. Remaining whole
+For the pinned `IncrementalMPT` carrier (`inc:106–127`), the driver records the
+supplied empty default and the witness entry count. The original `mpt_root` calls
+`_encode_mutable_node_to_extended` (`inc:824–849,290–316`). The short root wrapper
+and long root materialization each have a single query site. The driver checks
+that descendant queries precede the top query and that the short wrapper leaves
+`_hash` unchanged. The source keeps the dirty flag. A long dirty root can query on
+repeated calls, while a long clean root can return the newly cached hash.
+
+At `59c1473d`, 201 of the 205 complete comparisons returned equal root bytes. The
+four expected differences cover stale dirty root hashes and long child embedding.
+The driver recorded 165 source queries during root calls and four fixture setup
+queries. Lean queried once in 155 cases and zero times in 50. The source records
+include the complete before and after raw bytes, cached hashes and dirty flags,
+along with call and exception stages and query preimages and answers. Value
+agreement establishes equality of the returned root bytes only. Remaining whole
 WF/map/mathRoot/W1/S2/R2/security/resource/guest obligations are owned by §10.
 
 ### Supplied completed immediate-extension construction
@@ -363,16 +377,16 @@ validation, hashing, normalization or a default constructor. This is the existin
 B3/NEW-COMMIT-1/DISC-003 provenance, failure and observation sufficiency; field
 retention establishes none of that obligation.
 
-The source's omitted flat `_data` follows C21. Omitted `default` follows C22's
+The pinned source carrier fields are listed in C21. Omitted `default` follows C22's
 caller-owned default comparison and already-encoded Option policy
-(`inc:441/452`). Omitted `witness` follows C28/C25: recorded contents are host
+(`inc:425–433` at `59c1473d`). Omitted `witness` follows C28/C25: recorded contents are host
 support, but collapse calls `_record_witness` (`inc:790`) and its stub assertion
 (`inc:248`) remains a required future guest failure. This carrier implements no
 such update, recording or collapse operation.
 
 | Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:114–127,1046–1065`; `_data` C21, default C22 (`:441/452`), witness C28/C25 (`:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default/witness/flat-data fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:114–127,1046–1065` at `59c1473d`; default C22 (`inc:425–433`), witness C21/C28/C25 (`:378/:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default and witness fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
 
 `STFSpec/Conformance/Commit/IncrementalMPTCallerProofs.lean` supplies ordinary
 private full-field clients through the public owner. Only the structure's generated
@@ -426,6 +440,9 @@ are explicit boundary rows, without restricting the total nominal API.
 The exact recursive reply grammar retains all diagnostic Nat payloads and complete
 query/answer bytes; normal/-O controls reject Bool-as-Nat, floats, negative/nonfinite,
 unknown/missing/duplicate/extra/truncated fields and absent extension children.
+Catalogue preflight compares the complete decoded JSON values and their scalar
+types. It rejects Boolean or floating-point replacements for the integer case
+index. Both parser modes test this admission rule.
 Per-row journals retain the original and Lean phases for an uninterrupted fresh run.
 Resumption is unsupported; each invocation requires a fresh evidence destination. Reproduce with a fresh evidence destination outside both
 repositories and the pinned raw dependency wheels:
@@ -580,6 +597,10 @@ matching raw/hash. Dirty survivor witness-skip, missing/stale/hashless-long reta
 embedding, extension-None and aliases are recorded separate boundaries. Source
 witness tables, partial mutable heaps and generic histories are not nominal fields.
 
+Catalogue preflight compares the complete decoded JSON values and their scalar
+types. Both parser modes verify that Boolean and floating-point values cannot
+replace the integer case index.
+
 Reproduce with fresh destinations, the pinned EELS environment and locked wheels:
 
 ```sh
@@ -606,12 +627,12 @@ encoded setter is supplied separately below; full frontend/default/history agree
 `STFSpec/Commit/Set.lean`, reexported by `STFSpec.Commit`, supplies only `mptSet`
 and `mptSet_emptyEncoding`. The input is an already-encoded optional value and the
 complete nominal secured/root carrier, under plain Monad/KeccakQuery. No source
-value/default instance, contextual Account callback or source admission predicate
+value/default instance, contextual Account encoding or source admission predicate
 is added.
 
 | Exact pinned EELS source | Public declaration/domain and status | Complete action and failures | Ordinary proof and controls |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:412–442`, C22/Q60 | `mptSet : IncrementalMPT → ByteArray → Option ByteArray → m (Except TrieError IncrementalMPT)`; **supplied**, every finite nominal input | If secured, query the entire original key once before dispatch and expand all 32 answer bytes to 64 high-before-low nibbles; otherwise expand every supplied key byte. None/some-empty selects public delete, nonempty selects public update. Preserve the literal provider-result bind/pure/Except.map, complete returned root and original flag. Oracle failure prevents dispatch; provider errors are mapped without handlers | Private copying List-byte/path reference and ordinary all-input equality for arbitrary opaque provider actions, preserving bind syntax under plain Monad. Seven private byte/path/reference laws; private opaque-provider controls and public-only SetGuards observe whole recursive fields, actual arities, every diagnostic payload, complete preimages/answers, seeded state, both transformer failure orders and a private nonlawful Count structure |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:405–442` at `59c1473d`, C22/Q60 | `mptSet : IncrementalMPT → ByteArray → Option ByteArray → m (Except TrieError IncrementalMPT)`; **supplied**, every finite nominal input | If secured, query the entire original key once before dispatch and expand all 32 answer bytes to 64 high-before-low nibbles; otherwise expand every supplied key byte. None/some-empty selects public delete, nonempty selects public update. Preserve the literal provider-result bind/pure/Except.map, complete returned root and original flag. Oracle failure prevents dispatch; provider errors are mapped without handlers | Private copying List-byte/path reference and ordinary all-input equality for arbitrary opaque provider actions, preserving bind syntax under plain Monad. Seven private byte/path/reference laws; private opaque-provider controls and public-only SetGuards observe whole recursive fields, actual arities, every diagnostic payload, complete preimages/answers, seeded state, both transformer failure orders and a private nonlawful Count structure |
 | Same source/C22; §7.0.10 | `mptSet_emptyEncoding`; **supplied** | Complete equality of some-empty and None actions, including secure key query, deletion and final result map | Ordinary plain-Monad theorem; SetCallerProofs uses only public imports for arbitrary roots/both flags and public byte/path/full 32 interpretation laws |
 
 The frozen finite controls contain 156 opaque-provider cases and 376 public
@@ -620,31 +641,45 @@ answers, all 256 singleton unsecured bytes, leading zeros/long keys, all error
 variants with unrestricted Nat payloads, empty dispatch, direct-empty-update
 contrast, bounds/stub/witness-first collapse order and each reached query failure.
 These focused guards and public callers pass warning-fatal compilation; their
-scoped declaration audit reports zero findings. The strict ten-field setter parser passes
-normal and optimized Python (17 positive/2019 negative frames each) with complete
-success/error/input/recording/query/answer frames; no checksum or reduced structural observer is used.
+scoped declaration audit reports zero findings. The strict ten-field setter parser
+checks the complete success, error, input, recording, query and answer fields in
+normal and optimized Python (17 accepted and 2,019 rejected frames in each mode).
+Catalogue validation also rejects changing the first case index from `0` to `false`.
 
-`STFSpec/Conformance/Commit/set_differential.py` supplies a 54-case frontend
-catalog separating original map/default, key hashing/path, preencoding/Account
-callback, mutation, captured-return own completion and nominal comparison stages.
-The catalog passes: 26 successful complete secured/root projections, eight
-source-only nondefault None/unsupported encoding/missing or invalid Account callback
-boundaries, and 20 explicit diagnostic boundaries. All 46 nominal cases retain
-complete Id/recording results. Source-only boundaries have no nominal projection
-assertion. The 21 original key queries and 11 separate own-completion queries are
-retained separately; 16 captured-return own-completion actions are observed.
-Successful completed-root comparisons require accepted update/delete clean-entry,
-consulted embedding/retained-cache, complete Encodable/class/Id/finite-host premises.
-The prepared selected source entries are clean/cacheless; this is a corpus premise,
-not a global runtime check or nominal theorem premise. Source `_data`, defaults,
-witnesses, dirty/origin/cache writes, partial failure state and query histories
-remain observations separate from the encoded nominal carrier/action equality.
-No whole mutation/map/root/backend/security or readiness gate closes.
+`STFSpec/Conformance/Commit/set_differential.py` replays the 54 historical raw
+inputs at `59c1473d`, with assertions enabled and the storage root passed directly.
+The run compares 28 completed secured/root projections and 20 Q60 diagnostics.
+All 48 nominal cases retain complete Id and recording results. The six source
+frontend errors capture nondefault None, missing Account storage root and
+unsupported encoding before any mutation. The two one-byte Account keys that
+failed the earlier callback's Address conversion both encode with the supplied
+storage root at this pin. These cases exercise the raw setter API.
+
+The evidence records the 21 original full secured key preimages, answers and
+paths, along with the source default, immediate root, witness, dirty flags,
+origin, cache fields and partial failure states. Captured-return completions
+have their own trace (18 completions and 13 queries). Completed-root agreement uses the clean supplied entries
+and the update/delete consulted-embedding, retained-cache, Encodable, source-class,
+concrete Id and finite-host premises. The Q60 controls retain source paths with
+survivors at 16 and 255, source byte-construction failure at 256 and the earlier
+stub witness failure. The two additional typed source controls exercise an
+equal Account default without a root and encoding nondefault `U256(0)` as `80`.
+
+A separate call to `mpt_set_storage_slots` (`inc:445–463` at `59c1473d`)
+observes writes to slots 6, 3, 9 and 2 from input order 9, 6, 2 and 3.
+It checks one full secured key query per write and encoded readback in input
+order: absence, `18`, absence, `07`.
+
+The historical catalogue at `e1a316a0` retains the flat `_data` and callback
+inputs and the earlier 26 projections, eight frontend boundaries and 20
+diagnostic controls. That run retained 21 original key queries, 11
+own-completion queries and 16 captured-return completions.
 
 The source driver uses fresh destinations and the pinned environment/locked wheels:
 
 ```sh
 uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --write-catalog CATALOG.json
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --write-historical-catalog HISTORICAL.json
 EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
   --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
@@ -1470,22 +1505,30 @@ no whole remaining suffix at a branch and never scans off-path children.
 
 | Pinned source | Lean declaration/type and domain | Complete value/effects | Ordered failures and consumer boundary | Laws and controls |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/witness_state.py:53–100`; nominal classes `incremental_mpt.py:53–103` | `lookup : Ref → Nibbles → Except TrieError (Option ByteArray)` on every finite bare tree/key with arbitrary Enc/arity | Pure; exact complete optional bytes, including present empty leaf values; no query, codec, DB/default or mutation | Reached stub before exhaustion; mismatched extension stops before child; terminal branch value before bounds; only a reached out-of-range selected slot gives exact Q59 `(index, actual arity)`. Guest reachability/adapters remain open under CONTRACT O4/O13 | **Discharged local constructor equations:** `lookup_none`, `lookup_hashed`, `lookup_leaf`, `lookup_ext`, `lookup_branch_emptyKey`, `lookup_branch_index`, `lookup_branch_oob`; private public-import `LookupCallerProofs.lean`, complete-result `LookupGuards.lean`, fresh original `lookup_differential.py` |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:371–402` at `59c1473d`; classes at `:53–103` and recorder at `:243–257` | `lookup : Ref → Nibbles → Except TrieError (Option ByteArray)` on every finite bare tree/key with arbitrary Enc/arity | Pure; exact complete optional bytes, including present empty leaf values; no query, codec, DB/default or mutation | Reached stub before exhaustion; mismatched extension stops before child; terminal branch value before bounds; only a reached out-of-range selected slot gives exact Q59 `(index, actual arity)`. Guest reachability/adapters remain open under CONTRACT O4/O13 | **Discharged local constructor equations:** `lookup_none`, `lookup_hashed`, `lookup_leaf`, `lookup_ext`, `lookup_branch_emptyKey`, `lookup_branch_index`, `lookup_branch_oob`; private public-import `LookupCallerProofs.lean`, complete-result `LookupGuards.lean`, pinned `lookup_differential.py` |
 
-The source driver authenticates original pin/physical source and existing types/RLP
-wheel/installed-source inputs before and after execution, retaining original function identities,
-complete dataclass fields and actual Hash32 keys, full optional values, exception
-class/message/args/throw site, and absence of local hash/codec/state calls. Value/stub comparisons
-use valid selected accesses and explicit source-class/host premises. Missing-slot Python
-IndexError is recorded separately; its exact selected index/arity tests the approved typed
-adaptation, never source exception-payload or guest-output equivalence. Odd generalized paths
-remain ordinary Lean controls. No whole Python theorem, authentication, WF/cache admission,
-mutation/root, security/witness agreement, generic coupling/lifetime, resource or readiness result
-follows. Interpreter/startup/frozen installation and host remain trusted inputs.
+The source driver authenticates the pinned source and original types and RLP wheels
+and checks the installed source before and after execution. Interpreter, startup,
+frozen installation and host remain trusted inputs. The driver retains the original
+function identities, complete tree and cache fields, actual Hash32 keys and full
+optional values. It records calls to the witness recorder on dirty nodes. It
+checks that the bare walk leaves the fields and empty witness intact and makes
+no cache computation or hash/codec/state calls.
+
+The driver checks the reached-stub assertion at `inc:375` and extracts the selected
+index and actual arity from the Python frame at `inc:399`. It retains each
+exception's class, message, arguments and throw site. Values and stubs are compared
+under C20's premises. The missing-slot case tests the Q59 typed adaptation.
+Separate source controls check one clean cached witness insertion and one secured
+key query. Whole-source and guest agreement, including witness and cache effects,
+remain open.
+
+Use an existing output directory outside both repositories. Run the source driver
+with assertions enabled. The parser tests also run with `-O`.
 
 ```sh
 EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/lookup_differential.py \
-  --eels EELS --output EXTERNAL.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
+  --eels EELS --output EXTERNAL_DIR/Lookup.lean --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
 uv run --no-project --python 3.12 python -B STFSpec/Conformance/Commit/lookup_differential.py --self-test
 uv run --no-project --python 3.12 python -B -O STFSpec/Conformance/Commit/lookup_differential.py --self-test
 ```
@@ -1605,11 +1648,10 @@ branch; full suffix equality/mismatch; clipped/overlong/mismatched extensions st
 before a stub; matched empty-extension chains and ext-to-ext/leaf; every nibble index;
 arities 0/1/15/16/17 with valid selected slots and extra ignored children; terminal short
 branches before bounds; exact index/actual-arity fields only for out-of-range selected slots;
-selected versus off-path stubs and arbitrary complete Enc/cache fields. Fresh original source
-comparisons cover valid selected accesses with actual Hash32/source-class/host premises;
-assert the adopted bounds diagnostic separately. Empty/odd generalized Nibbles are Lean
-law cases, not direct original Hash32 byte-entry observations. The scoped controls
-are supplied in §3; no whole source agreement theorem or benchmark is claimed.
+selected versus off-path stubs and arbitrary complete Enc/cache fields. The source
+comparison uses the actual Hash32 key and the premises in C20. It compares the
+typed bounds diagnostic separately. Generalized empty and odd Nibbles keys are Lean
+law cases. See §3 for the source commands and the two wrapper controls.
 
 C11 storage/safety and generic unsecured preparation validation are supplied in §3.
 Concrete consumer/root seams still require cases distinguishing
@@ -1841,7 +1883,7 @@ def mptSet (t : IncrementalMPT) (key : ByteArray) (encoded : Option ByteArray) :
     m (Except TrieError IncrementalMPT)
 def mptRoot (emptyRoot : Hash32) (trie : IncrementalMPT) : m Hash32  -- supplied (§3/§7.0.9)
 
--- host-side (public, not on the guest path; C28)
+-- Proposed host-side helpers (C28)
 def buildMpt (t : Std.ExtTreeMap Nibbles ByteArray) : m Ref
 structure Witness where accessedNodes : Std.HashMap Hash32 ByteArray
 def mptGetRecording (t : Ref) (key : Nibbles) (w : Witness) : Except TrieError Witness
@@ -1855,9 +1897,9 @@ def collisionWitness (db : NodeDB) (m) : Option (ByteArray × ByteArray)  -- com
 
 Mapping of `incremental_mpt.py` items:
 `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` →
-`Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (guest projection omits flat `_data` under C21,
-caller `default` under C22 (`inc:441/452`), and recorded `witness` under C28/C25; the future
-collapse stub failure at `inc:790/:248` is retained); `_encode_mutable_node`,
+`Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (guest projection omits caller
+`default` under C22 (`inc:425–433` at `59c1473d`) and recorded `witness` under C21/C28/C25).
+Collapse stub failure at `inc:790/:248` remains a guest obligation. `_encode_mutable_node`,
 `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc`
 construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`,
 `_create_branch_from_two_leaves`, `_insert_into_extension`, `_split_extension`,
@@ -1865,8 +1907,9 @@ construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`,
 `_delete_from_branch`, `_collapse_branch` → `delete`/`mkBranch`/`mkExt`; `mpt_root` → `mptRoot`;
 `compact_to_nibbles` → `compactToNibbles`; `_resolve_child_ref`, `_decode_witness_node`,
 `decode_witness_to_mpt` → `decodeRoot`/`decodeWitnessToMpt`; `_build_mutable_tree`, `build_mpt` →
-`buildMpt`; `Witness`, `_record_witness`, `_mpt_traverse_for_witness`, `mpt_get` →
-`Witness`/`mptGetRecording`.
+`buildMpt`. The bare walk of `mpt_get` → `lookup` (C20). `Witness` and
+`_record_witness` correspond to the proposed `Witness` and `mptGetRecording`
+helpers. The secured key query and recording effects of `mpt_get` remain open (C21).
 
 For a consumer choosing existing Base `Bytes`, §3/§5 owns the supplied adapter
 and named exact-export equation. Generic preparation/storage contracts do not
@@ -2346,8 +2389,8 @@ theorem mptSet_emptyEncoding (t : IncrementalMPT) (key : ByteArray) :
 
 The first three stop at the root with no local query/materialization before the
 error. They do not erase an ancestor action or the secure key query in mptSet.
-The fourth equates actions on the nominal secured/root carrier, not source `_data`,
-witness/default or partially mutated input. No unconditional `pure collapseIndex`
+The fourth equates actions on the nominal secured/root carrier. The driver records source
+witness/default fields and partially mutated input separately (§3). No unconditional `pure collapseIndex`
 law is valid before applicable witnessing: the stub/underlying query may fail first.
 A generic reference equation must name the chosen private realization and complete
 preimages/answers/state/error order; use LawfulMonad only for actual bind rewrites.
@@ -2660,4 +2703,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Secured-path validation** (execution-specs PR #3193; CONTRACT O4(b)). `decode_witness_to_mpt` now runs `_validate_secured_trie_paths` (`incremental_mpt.py:987–1013`) on every secured decode, after the whole reachable trie has decoded, so every node-decode failure precedes it. Against the 64-nibble key (`SECURED_TRIE_KEY_NIBBLES`), a leaf's remaining path must equal the remaining nibble count exactly (short leaves fail too), an extension segment must be strictly shorter than the remaining count, and a branch needs at least one remaining nibble; `HashedNode` stubs are skipped. `decodeWitnessToMpt` now performs this check (§3, Q90). The new fixture area `eip8025_optional_proofs/witness_state_overlength` (a leaf segment and a cumulative path exceeding the key length) exercises it. Every accepted secured trie therefore has at most 65 decoded nodes on a path (64 branches and a leaf) [I, by reading]. A deeper chain or a cycle still decodes recursively first, and now fails either the validation or the recursion limit with the same inner-handler output; host memory and C-stack limits, the DAG blow-up (DISC-004) and DISC-001 stay as they are. C17 and the EthStateWitness deep-chain item are restated against this bound (measurements in DISC-001); it does not bound RLP nesting inside one node. The validation, like the new lookup stub check at `incremental_mpt.py:375` (`_trie_lookup` raised `AssertionError` explicitly), is an `assert`, so Python `-O` removes it. The spec follows the source with assertions enabled, as for the other source asserts (§2); an `-O` host would accept over-length paths, a host-configuration difference that CONTRACT §6 would route to DISCREPANCIES with a reproducer (none recorded; O12). Under `-O` a lookup that reaches a stub still fails at the next attribute access (`node._dirty` in `_record_witness`) [I, by reading]. Q90 selects the diagnostic, `Malformed.securedPathLength`. §3 supplies the constructor, the secured `decodeWitnessToMpt` check (C13), its laws, guards and caller proofs, and source comparisons at `59c1473d` of `decoder_differential.py` (with over-length, short-leaf, extension, branch and stub cases) and `decoder_diagnostic_differential.py`. The EthStateWitness use of secured decodes remains open until that library is implemented (EthStateWitness §10). DISC-003 (padding-nibble acceptance) is unchanged. (b) **Lookup owner.** `witness_state._trie_lookup` was deleted (PR #3659); guest lookups use `mpt_get` (`incremental_mpt.py:352–402`), the same walk [V by reading both], which also records visited nodes in the trie's witness. `lookup` keeps its semantics, but its docstrings (`STFSpec/Commit/Lookup.lean`, `STFSpec/Commit/Node.lean`), C20 and the §3 row name the removed function, and `STFSpec/Conformance/Commit/lookup_differential.py` imports `_trie_lookup`, so its oracle must be re-targeted to `mpt_get` before it can run at this pin. C21 ("`mpt_get` answers from `_data` … not the guest lookup"), the §3 wildcard row's "host-side … `mptGet`" and the §5 host-side `mptGetRecording` describe `e1a316a0`: at `59c1473d` `mpt_get` is the guest lookup, walks the decoded nodes and returns the value, and `_data` is gone. (c) **Mutation entry points.** `mpt_set` takes the storage root directly instead of a callback, `IncrementalMPT._data` is gone, and `mpt_set_storage_slots` (non-zero writes, then deletions, `incremental_mpt.py:445–463`) replaces the inline storage loop (PR #3659). `mptSet` already takes a caller-encoded value and the write order is unchanged [V by reading]; the frozen `set_differential.py` catalogue records the old signature and must be regenerated.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Secured-path validation** (execution-specs PR #3193; CONTRACT O4(b)). `decode_witness_to_mpt` now runs `_validate_secured_trie_paths` (`incremental_mpt.py:987–1013`) on every secured decode, after the whole reachable trie has decoded, so every node-decode failure precedes it. Against the 64-nibble key (`SECURED_TRIE_KEY_NIBBLES`), a leaf's remaining path must equal the remaining nibble count exactly (short leaves fail too), an extension segment must be strictly shorter than the remaining count, and a branch needs at least one remaining nibble; `HashedNode` stubs are skipped. `decodeWitnessToMpt` now performs this check (§3, Q90). The new fixture area `eip8025_optional_proofs/witness_state_overlength` (a leaf segment and a cumulative path exceeding the key length) exercises it. Every accepted secured trie therefore has at most 65 decoded nodes on a path (64 branches and a leaf) [I, by reading]. A deeper chain or a cycle still decodes recursively first, and now fails either the validation or the recursion limit with the same inner-handler output; host memory and C-stack limits, the DAG blow-up (DISC-004) and DISC-001 stay as they are. C17 and the EthStateWitness deep-chain item are restated against this bound (measurements in DISC-001); it does not bound RLP nesting inside one node. The validation, like the new lookup stub check at `incremental_mpt.py:375` (`_trie_lookup` raised `AssertionError` explicitly), is an `assert`, so Python `-O` removes it. The spec follows the source with assertions enabled, as for the other source asserts (§2); an `-O` host would accept over-length paths, a host-configuration difference that CONTRACT §6 would route to DISCREPANCIES with a reproducer (none recorded; O12). Under `-O` a lookup that reaches a stub still fails at the next attribute access (`node._dirty` in `_record_witness`) [I, by reading]. Q90 selects the diagnostic, `Malformed.securedPathLength`. §3 supplies the constructor, the secured `decodeWitnessToMpt` check (C13), its laws, guards and caller proofs, and source comparisons at `59c1473d` of `decoder_differential.py` (with over-length, short-leaf, extension, branch and stub cases) and `decoder_diagnostic_differential.py`. The EthStateWitness use of secured decodes remains open until that library is implemented (EthStateWitness §10). DISC-003 (padding-nibble acceptance) is unchanged. (b) **Lookup owner.** The pinned source comparison in §3 now exercises the bare walk of `mpt_get` (C20). The earlier pure `_trie_lookup` comparison used `e1a316a0`. PR #3659 removed that function. Secured-key and witness/cache correspondence for the source wrapper, guest call-site adaptation and whole-source agreement remain open (C21, CONTRACT O4/O13). (c) **Mutation entry points.** The C22 driver now tests the direct-storage-root setter and the two-pass storage helper at `59c1473d` (§3). The nominal comparison covers the encoded setter under the Q60 premises above. Agreement for whole witness-state mutation, cache history and guest outcomes remains open.

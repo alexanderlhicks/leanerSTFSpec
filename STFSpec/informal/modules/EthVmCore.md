@@ -563,12 +563,15 @@ with a preflight binding-catalog digest. Those artifacts and their authenticated
 producing step are external, rather than supplied by this comparator. The dated
 [external review of the original head](https://github.com/alexanderlhicks/leanerSTFSpec/pull/167#issuecomment-6268899065)
 records the finite interpreted/native and retained-source comparisons separately.
-They retain actual typed Bytes/Ops/Uint bindings and successful host premises;
-those historical results are not a fresh repository source execution. Logical
-bitmap output is reconstructed through public membership; private physical shape
-and padding are established by the ordinary proofs. Actual code/map provenance,
-cache consistency, handler ordering, compiled cost/ownership and guest obligations
-remain open (§10).
+The original comparison records the typed Bytes, Ops and Uint bindings and the
+successful host premises. A separate run called the original scanner at both
+`e1a316a0` and `59c1473d` on the 32 handwritten inputs. Both sets of observations
+matched the complete destination sets and cardinalities from a fresh interpreted
+Lean run. That run checked the bitmap bytes and held-map snapshots through public
+membership. The ordinary proofs establish the private shape and padding.
+The 940-input comparison retains its original date and source commit.
+Code/map provenance, cache consistency, handler ordering, compiled cost and
+ownership, and guest obligations remain open (§10).
 
 ### Supplied raw GasCosts data
 
@@ -899,12 +902,14 @@ Equal successful Python execution additionally requires actual pinned builtin
 bytes/U256 arguments and dependencies, representable requested width in the runtime's
 Py_ssize_t domain, and successful allocation. These are correspondence premises,
 not restrictions on Lean's mathematical domain or new guest outcomes (O12,
-DISC-001, DISC-006). The committed public comparator checks all 32 frozen complete
-byte observations and strict framing without importing a source or dependency oracle;
-it has no source mode. The separate historical authenticated source comparison is
-recorded in [PR153 review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/153#issuecomment-6242238102),
-rather than implemented by this comparator. Neither finite comparison replaces the
-all-domain ordinary laws or closes host-resource gates.
+DISC-001, DISC-006). The committed public comparator checks all 32 complete byte
+observations and strict framing against its historical controls. Separate source
+runs at `e1a316a0` and `59c1473d` matched the complete interpreted Lean results
+on those inputs. They checked the builtin bytes, typed U256 operands, result
+byte strings and exact widths. The earlier source comparison remains recorded
+at its original commit. The ordinary laws address the full Lean domain and
+the host-resource gates remain open.
+[Original source review](https://github.com/alexanderlhicks/leanerSTFSpec/pull/153#issuecomment-6242238102)
 
 Reproduce the committed controls with fresh output paths; the emitter defines main:
 
@@ -1001,11 +1006,12 @@ are built through public pushes. Strict normal/-O frame controls reject malforme
 schema, boolean/float integer aliases, out-of-range words and wrong whole streams.
 The source schedule is limited to original pop/push on fresh typed bounded lists;
 peek is explicitly a builtin List-index adapter, not an original standalone helper.
-Authenticated original comparison passed eight unchanged pop and fourteen push
-calls on fresh typed bounded lists, retaining exact U256/None return classes or
-exception classes/args and entire before/after models. Nineteen separately labelled
-List-index adapter observations also passed. All forty-one complete Lean frames
-matched; source/runtime identities remained unchanged before/after each phase.
+At `59c1473d`, the authenticated comparison ran with Python assertions enabled.
+Eight original pop calls and fourteen original push calls on fresh typed bounded
+lists matched, including exact U256/None return classes or exception classes and
+arguments, and complete before and after models. Nineteen separately labelled
+List-index adapter observations also matched. All forty-one complete Lean output
+frames matched. Source and runtime identities agreed before and after each phase.
 The original pop/push/peek schedule supplies no swap/handler, gas ordering, frame
 reachability, allocation benchmark, replacement, G1/G2–G7 or guest/EEST gate.
 
@@ -1144,7 +1150,8 @@ The catalog retains 31 numeric source-helper cases and 304 complete nominal
 frames. The 256 opcode payloads are nominal constructor/serializer controls,
 not exception-producer executions. Preflight executes no numeric helper;
 source comparison preserves original return/error classes and all six fields.
-New runtime/candidate checks and their results must be recorded for each actual run.
+At `59c1473d`, all 31 original observations matched the corresponding Lean
+rows. All 304 complete frames passed both parser modes [V].
 
 `GasRollbackCallerProofs.lean` consumes all eight additional ordinary public laws,
 including complete-record congruence, baseline lowering, ordinary restore idempotence,
@@ -1155,9 +1162,15 @@ Lean charge/commit/charge/restore/entry sequence checks every intermediate meter
 `gas_rollback_differential.py` strictly compares 18 public-import complete frames
 normally and under `-O`; its separately authenticated original schedule adds four
 source-only assertion probes with exact locations and unchanged inputs. It executes
-only these three original helpers. The authenticated comparison passed all 18 valid
-complete meters and four source-only assertion probes, including both-false entry
-assertion priority and unchanged failed inputs. No invalid Lean call is fabricated.
+only these three original helpers.
+
+At `e1a316a0`, the authenticated comparison passed all 18 valid complete meters
+and four source-only assertion probes, including both-false entry assertion priority
+and unchanged failed inputs. No invalid Lean call is fabricated.
+
+At `59c1473d`, all 18 complete meters matched the Lean frames. The four source-only
+probes confirmed the exact assertion sites at `vm/gas.py:487`, `:543` and
+`:546`, including entry assertion priority and unchanged inputs [V].
 
 Reproduce this rollback slice with fresh external output paths. The emitter uses
 `#eval`, so execute it with plain Lean. Keep source assertions enabled in the
@@ -1198,9 +1211,14 @@ Lean charge/refund/repay compositions. `gas_refund_differential.py` compares twe
 complete public-import frames normally and under `-O`, with authenticated fresh typed
 original credit/repay calls and enabled repayment assertions. Source composition rows
 are standalone new-helper inputs; no original charge/rollback replay is needed.
-The authenticated original comparison passed all twenty complete meters: eleven credit
-and nine repayment calls, every return `None`, with enabled assertions and all nine
-repayment postconditions. Actual source/runtime identities remained unchanged.
+
+At `e1a316a0`, the authenticated original comparison passed all twenty complete
+meters across eleven credit calls and nine repayments. Each returned `None`.
+All repayment postconditions held with assertions enabled. Actual source/runtime
+identities remained unchanged.
+
+At `59c1473d`, all twenty original calls matched the complete Lean meters,
+returned `None` and preserved the repayment postconditions with assertions enabled [V].
 Neither helper has a typed-domain failure. Negative Uint construction precedes helper
 invocation; incorporation's child assertions precede parent absorption and repayment
 occurs only on success (`__init__.py:219–244`). These caller boundaries remain outside
@@ -1254,11 +1272,16 @@ The three source-only S>0 probes require enabled AssertionError at `vm/gas.py:66
 before mutation and retain all six unchanged fields, including when E=0; they have no
 invalid Lean invocation. Valid saved returns have exact Uint class, other returns None.
 The other three helpers have no typed-domain error or assertion premise.
-The authenticated original comparison passed all thirty complete return/meter cases
-(seven forfeits, ten withholds, six drains, seven restorations) and all three
-source-only invalid forfeits. Each assertion occurred at :674 before mutation, with
-every field unchanged. Runtime/source/input identities remained unchanged within
-each stage; no old original helper was replayed. These are finite local controls.
+
+At `e1a316a0`, the authenticated original comparison passed all thirty complete
+return/meter cases (seven forfeits, ten withholds, six drains, seven restorations)
+and all three source-only invalid forfeits. Each assertion occurred at
+`vm/gas.py:674` before mutation, with every field unchanged. Runtime, source and
+input identities remained unchanged within each stage. These are finite local controls.
+
+At `59c1473d`, all thirty original cases matched the complete Lean frames.
+The three source-only forfeits raised `AssertionError` at `vm/gas.py:662`
+before any meter mutation [V].
 
 Reproduce this transfer slice with fresh external output paths. Its emitter uses
 `#eval` and plain Lean; source modes require the pinned clone's isolated,
@@ -1306,10 +1329,17 @@ AugAssign AST at `vm/__init__.py:236` on distinct original typed meters and pres
 the complete child. This is not a named source function or whole incorporation replay.
 The scalar schedule calls the unchanged original maximum directly. Host/compiler/runtime
 and startup trust remain explicit; no old helper or transaction lifecycle is replayed.
-The authenticated original comparison passed all twenty-six complete observations:
-twelve signed statement projections with unchanged full children and execution returning
-None, plus fourteen direct maximum calls returning the exact original Uint class.
+
+At `e1a316a0`, the authenticated original comparison passed all twenty-six
+complete observations. The twelve signed statement projections at
+`vm/__init__.py:242` preserved the full children and returned `None`.
+The fourteen direct maximum calls returned
+the exact original Uint class.
 Source/runtime identities remained unchanged before and after each separate phase.
+
+At `59c1473d`, twelve exact statement projections at `vm/__init__.py:236`
+and fourteen direct calls at `vm/gas.py:846` matched all twenty-six Lean
+frames [V].
 
 Reproduce this accounting slice with fresh external output paths. The emitter
 uses `#eval` and plain Lean. Source mode uses the pinned clone's isolated,
@@ -1612,13 +1642,16 @@ Reproduce with `lake build STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs 
 `TxStateGasUsageCallerProofs.lean` consumes the single ordinary observer equation
 through the public Core import. `TxStateGasUsageGuards.lean` retains twenty complete
 literal meter/grant/signed-result cases; `tx_state_gas_usage_differential.py` strictly
-compares the whole public-import stream normally and under `-O`. Authenticated original
-comparison passed twenty direct unchanged `tx_state_gas_used` calls on fresh actual
+compares the whole public-import stream normally and under `-O`. At `59c1473d`,
+authenticated comparison passed twenty direct `tx_state_gas_used` calls on fresh actual
 GasMeter/Uint fields and StateGas grants, with exact builtin `int` results and every
 meter field unchanged. Three source-only invalid baseline-to-grant cases preserve the
-original assertion at `gas.py:585` and unchanged full inputs; no invalid Lean proof is
-fabricated. Source/runtime identities remained unchanged. No original charge, rollback,
+original assertion at `gas.py:585` and unchanged full inputs [V]. Source/runtime
+identities remained unchanged. No invalid Lean proof is fabricated. No original charge, rollback,
 refund, transfer, settlement or transaction lifecycle is replayed.
+
+The `e1a316a0` packet records the same finite results and the assertion
+at its historical location `gas.py:597`.
 
 Reproduce the transaction-usage observer with fresh external output paths:
 
@@ -1651,7 +1684,7 @@ actual complete records and source/runtime identities beside each fresh run.
 
 - **Supplied accounting controls:** Twelve complete signed-refund cases and fourteen scalar maxima retain all fields and exact returns, including negative/cross-zero/cancellation/beyond-U256 refunds, both spills, R>B and 63/64 rounding. Public-only clients consume all four laws and derive signed composition/inverse, actual rollback/reset order and complementary grant shares. Strict normal/`-O` frames reject boolean/float aliases and malformed or wrong complete streams. Authenticated original comparison passed exact statement projection on twelve distinct typed parent/child pairs with unchanged full children, plus fourteen direct scalar helper calls. No source caller assertions or whole incorporation are replayed.
 
-- **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve assertion :674 and unchanged full meter; no invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
+- **Supplied transfer controls:** Thirty complete return/six-field guards and strict normal/`-O` frames cover forfeit with S=0 and arbitrary signed q/positive C; withholding 0/1/63/64/65/127/128/129 and beyond-word execution gas; empty/positive/beyond-word reservoir with R>B; restoration with independently zero/nonzero amounts and unbounded addition. Public-only callers use all eight laws to derive field retention, E/64 retention, idempotence, zero identity and complete saved-amount inversion. Actual Lean withhold/drain/repeated-drain/restore and reviewed rollback/forfeit compositions retain every intermediate. Source-only invalid forfeits preserve the assertion location (§3) and the complete unchanged meter. No invalid proof is synthesized in Lean. Authenticated source comparison observes original returns/classes and full fields, using only the four new original helpers and the real max callee.
 - **Supplied refund controls:** `GasRefundGuards.lean` and the strict normal/`-O` complete-frame parser retain twenty full outputs and actual Lean charge/refund/repay intermediates. Public clients use all seven laws and prove the conditional inverse with local initial pending spill zero; a complete-field counterexample excludes unconditional inversion. Min boundaries, R>B, signed refund, both spills, zero execution and unbounded amounts are covered. Source calls use only the two unchanged original helpers on fresh typed meters, with expected `None`, complete fields and enabled repayment postcondition.
 - **Supplied rollback controls:** the three helpers have complete-field zero/equality, signed-refund, both-spill, above-baseline (where admitted) and beyond-word cases; guards retain every intermediate meter of the two-boundary composition. Public callers consume all eight laws, without unfolding provider internals. The strict normal/`-O` parser rejects malformed/duplicate/missing/extra fields, Bool-as-Nat, bad arities, reordered/incomplete streams and wrong whole results. Original assertions are checked only in Python, with location/order and unchanged input retained; they are proof arguments in Lean.
 - **Supplied CALL preflight composition controls:** `CallPreflightGasControls.lean` observes every six-field intermediate and complete calculator/saved-reservoir result for thirteen successes. Nonspill/spill, old pending and committed spill, signed refunds, zero/nonzero effective stipend, zero/capped requests, exact overhead/state affordability and two one-over shortages, t+1=E and t=E boundaries and no strict progress at zero overhead are covered. Full credit with existing pending spill deliberately differs from raw rollback. Literal calculator zeros remain independent of raw cfg.zero. These numeric controls establish no actual handler/source-effect/child/loop result.
