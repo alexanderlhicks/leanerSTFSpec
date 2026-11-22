@@ -306,13 +306,21 @@ a dirty stored hash separately needs current commitment compatibility, even for
 value agreement. Hashless long descendants can change source embedding to a digest,
 outside arbitrary bare inline projection. No public admission predicate is added.
 
-Source uses `_encode_mutable_node_to_extended`, not `_compute_node_hash_and_rlp`.
-Top-short wrapper and top-long materialization are distinct single-query sites;
-the committed driver asserts descendant queries precede top and short wrapper
-answers are not installed in _hash. Dirty is not cleared: dirty-long calls can
-query repeatedly, clean-long newly cached calls can shortcut. Complete before/after
-optional raw/hash/dirty/call/query/exception fields remain recorded; equal values
-imply neither mutable after-cache nor generic action equivalence. Remaining whole
+For the pinned `IncrementalMPT` carrier (`inc:106–127`), the driver records the
+supplied empty default and the witness entry count. The original `mpt_root` calls
+`_encode_mutable_node_to_extended` (`inc:824–849,290–316`). The short root wrapper
+and long root materialization each have a single query site. The driver checks
+that descendant queries precede the top query and that the short wrapper leaves
+`_hash` unchanged. The source keeps the dirty flag. A long dirty root can query on
+repeated calls, while a long clean root can return the newly cached hash.
+
+At `59c1473d`, 201 of the 205 complete comparisons returned equal root bytes. The
+four expected differences cover stale dirty root hashes and long child embedding.
+The driver recorded 165 source queries during root calls and four fixture setup
+queries. Lean queried once in 155 cases and zero times in 50. The source records
+include the complete before and after raw bytes, cached hashes and dirty flags,
+along with call and exception stages and query preimages and answers. Value
+agreement establishes equality of the returned root bytes only. Remaining whole
 WF/map/mathRoot/W1/S2/R2/security/resource/guest obligations are owned by §10.
 
 ### Supplied completed immediate-extension construction
