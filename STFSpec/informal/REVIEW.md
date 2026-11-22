@@ -279,6 +279,11 @@ is compared normally and with -O on 66 coherent inputs; 15 unrestricted raw-cons
 cases have no source-equivalence claim. The original optional producer/checks remain
 separate. This bounded wrapper changes no whole-State readiness gate.
 
+The current account emptiness and liveness wrappers use the existing optional
+lookup and its retained F20 constants. EthState §3/§4/§7.1 owns the private
+action, error, frame and transaction-view controls. The whole-State gates
+remain open.
+
 EthVmRunner §3/§5/§7 owns the supplied source-free checked control carriers:
 exactly InternalError.fuelExhausted with full Nat depth, CheckedResult and CheckedT
 with Type-level domains and no Monad/hash/lawful premise. Private facade clients
@@ -931,9 +936,10 @@ clients and complete native/interpreted controls compare 248 independently froze
 recipes; 233 coherent cases additionally execute authenticated original source
 normally and with -O, comparing complete meaningful retained fields, answers, calls
 and reads. Separate source failed-read observations supply no production error adapter.
-The other 15 constant variants are mathematical controls. The future getAccount wrapper
-is the next consumer; full-State, actual providers, generic source effects, S1/S2,
-WF/history/F7, guest/EEST, fuel and C1–C4 remain open.
+The other 15 constant variants are mathematical controls. The supplied emptiness
+and liveness wrappers consume this action (EthState §3/§4/§7.1). Full-State, actual
+providers, generic source effects, S1/S2, WF/history/F7, guest/EEST, fuel and C1–C4
+remain open.
 
 The mathematical transaction view is supplied by EthState §3/§7.1/§7.2 on every
 raw input and arbitrary m, with no class premises. Exactly one public ordinary

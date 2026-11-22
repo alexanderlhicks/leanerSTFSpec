@@ -256,6 +256,7 @@ import STFSpec.Conformance.State.PreStateCallerProofs
 import STFSpec.Conformance.State.PreStateAccountCallerProofs
 import STFSpec.Conformance.State.PreStateAccountDefaultCallerProofs
 import STFSpec.Conformance.State.AccountOptionalCallerProofs
+import STFSpec.Conformance.State.AccountEmptinessControls
 import STFSpec.Conformance.State.PreStateGuards
 import STFSpec.Conformance.State.StateErrorGuards
 import STFSpec.Conformance.State.StructuralCallerProofs
