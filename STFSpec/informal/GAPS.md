@@ -485,9 +485,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  and their bounded laws/controls are supplied in §3/§4/§7.1. These sections
+  also supply the standalone R11 getStorage action with private proofs and
+  bounded controls. The public current and original precedence laws for
+  SSTORE, getStorageOriginal, other tracker operations and full-state
+  integration remain open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -538,9 +540,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
   positive/negative guards are supplied (§3/§4). The contextual account law at the
   retained BlockState record is supplied for the pre-transaction and current optional
-  account actions (§7.1).
-  Other contextual reads and full-model lookup
-  projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
+  account actions (§7.1). The standalone current storage read uses the storage
+  clause in its private transaction-view proof. Other contextual reads and
+  full-model lookup projection under concrete Id coherence remain open.
+  The provider and constants still come from the supplied block context.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.

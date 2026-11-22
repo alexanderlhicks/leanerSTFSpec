@@ -108,7 +108,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::get_account_optional` | 174–197 | `getAccountOptional` | **Discharged bounded action:** transaction entry priority, delegated pre-transaction fallback and six laws below. |
 | `forks/amsterdam/state_tracker.py::get_account` | 200 | `getAccount` | |
 | `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | Hash-only guided signature and observations; the action and its tracker laws remain unimplemented. |
-| `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | |
+| `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | Standalone action supplied (§3/§7.1, R11) |
 | `forks/amsterdam/state_tracker.py::get_storage_original` | 298 | `getStorageOriginal` | |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327 | `getTransientStorage` | |
 | `forks/amsterdam/state_tracker.py::account_exists` | 352 | `accountExists` | |
@@ -192,6 +192,12 @@ retains exactly the initial WF/ModelsLookups/success domain and consumes only th
 public transaction account-view law and pre-transaction contracts. The future guided
 getAccount wrapper is the next consumer. Other trackers, actual providers,
 source error adapters, lifetimes, reachable history, full-State and cost gates remain open.
+
+### Implemented current storage read
+
+| EELS source | Lean operation and domain | Ordered result and effects | Proof and test evidence |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:262–295` | `getStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) : StateM m U256` on arbitrary raw states and supplied providers | Mark `(a,k)`. Select the transaction slot, transaction clear, block slot, block clear or retained provider in R11 order. Present writes include zero. Repeat the provider call on every fall-through. Wrap its complete error as `StateError.witness` (R29/R30). | Private five-branch equations under `Monad`. Private `Id` whole-state, read-membership, exact error and conditional transaction-view proofs (§7.1). Facade guards and bounded native/interpreted comparisons with pinned source are in §4. |
 
 ### Implemented raw transaction state and state monad
 
@@ -522,6 +528,22 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented current storage controls:** `CurrentStorageGuards.lean` uses the
+  State facade with a tracing provider. It checks both clears, zero writes,
+  absent addresses, empty inner maps, wrong keys and repeated fall-through.
+  It also checks the complete wrapped error and compares every non-read field
+  in successful states, probing the retained provider callbacks at fixed
+  inputs. Additional guards compare an `Id` provider built from a small
+  `MathState` and the transaction-view observer in all five branches.
+  Bounded native and interpreted comparisons cover 400 histories of two
+  reads each against the authenticated pinned source, normally and with
+  `-O`. The comparisons check both created-account membership choices,
+  full-width common-suffix addresses and keys, complete shared state fields,
+  exact provider arguments and changing answers on repeated successful calls.
+  The Python provider checks that the inserted read is already present,
+  including on failure. Lean returns the complete typed failure without a
+  transaction. The finite comparison uses a supplied synthetic provider in
+  both implementations with a corresponding error payload.
 - **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
   consumes the five public wrapper laws through the State facade, including complete
   provider/function/constants retention. `pre_state_account_default_inputs.json`
@@ -787,17 +809,16 @@ F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied. TxState.view and exactly its account observer law are supplied
-separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
-account actions and the current optional action below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
+separately (§3/§7.2); its raw conversion remains Lean-private. The tracker source
+map in §3 records which operations are supplied. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
 supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
-(§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
-PreState providers and tracker operations other than getPreStateAccountOptional,
-getPreStateAccount and getAccountOptional remain unimplemented targets. The R8 lookup
-relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
+(§3/§7.4). MathState mutation, diff WF/history/reachable preservation and actual
+PreState providers remain unimplemented targets. The R8 lookup relation is
+supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
 **Observation-key provider (Q84).** The supplied TxObs and BlockState raw Std fields use
@@ -808,8 +829,8 @@ is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equa
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
 implemented separately (§3), as are raw BlockState, its initialization and the
-nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+nominal TxState/StateM assembly. Other default-empty constructors remain open.
+The two codeReads fields use hash-only Q51 keys; storageReads
 alone uses the Address/Bytes32 product dictionary.
 
 ```lean
@@ -935,7 +956,8 @@ def getPreStateAccount {m : Type → Type} [Monad m]
 def getAccountOptional (a : Address) : StateM m (Option Account)
 def getAccount (a : Address) : StateM m Account
 def getCode (codeHash : Hash32) : StateM m ByteArray
-def getStorage (a : Address) (k : Bytes32) : StateM m U256
+def getStorage {m : Type → Type} [Monad m]
+    (a : Address) (k : Bytes32) : StateM m U256 -- supplied, Monad only
 def getStorageOriginal (a : Address) (k : Bytes32) : StateM m U256
 def getTransientStorage (a : Address) (k : Bytes32) : StateM m U256
 def accountExists (a : Address) : StateM m Bool
@@ -1263,11 +1285,20 @@ constructor/context preservation remains F20. The model of `t` is the triple
 The supplied Lean-private `TxRevertible.asDiff` copies the four effect fields whole
 and uses the exact direct ordered observers/domain-preserving map in §3. Both layers
 use the same `apply`; their mathematical composition requires no premises. The
-tracker equations below retain the initial WF, ModelsLookups and success premises;
-R11 as an operational storage-precedence law remains a future tracker obligation.
+tracker model equations below use the initial WF, ModelsLookups and success
+premises. The standalone R11 action is supplied. The separate public
+storage-precedence laws for SSTORE remain open (§7.2).
 Per operation, under success (`op t = .ok (x, t')`) [C]:
 
-- `getStorage a k`: `x = (t.view σ₀).storageAt a k`, `t'.rev = t.rev`, `t'.obs.storageReads = t.obs.storageReads ∪ {(a,k)}`.
+- `getStorage a k` (supplied, private laws): `x = (t.view σ₀).storageAt a k`.
+  Independently of the model premises, success returns the full input with the
+  single raw `storageReads.insert (a,k)` update. A pair is a member afterwards
+  iff it equals `(a,k)` or was a member before. The five branch equations
+  assume only `Monad`. The fall-through equation binds the retained provider
+  action and passes the mapped result to `pure`. A typed provider error maps to
+  `StateError.witness`. At `Id`, failure returns that exact error without a
+  transaction. The mathematical proof uses the two view applications and
+  the storage clause of `ModelsLookups`.
 - `getStorageOriginal a k`: `x = if a ∈ created then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`.
 - `getAccountOptional a`: `x = (t.view σ₀).account? a`, `accountReads += a`. `getPreStateAccountOptional a`: `x = (t.block.view σ₀).account? a`.
 - `getCode h` (unimplemented target): `x = c` where `(t.view σ₀).code? t.block.consts h = some c`, with `codeReads += h` iff neither write layer holds `h` and `h ≠ emptyCodeHash`.
@@ -1479,9 +1510,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  and their bounded laws/controls are supplied in §3/§4/§7.1. These sections
+  also supply the standalone R11 getStorage action with private proofs and
+  bounded controls. The public current and original precedence laws for
+  SSTORE, getStorageOriginal, other tracker operations and full-state
+  integration remain open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -1532,9 +1565,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Supplied-record lookup support (Q57):** the R8/§5 definition and ordinary private
   positive/negative guards are supplied (§3/§4). The contextual account law at the
   retained BlockState record is supplied for the pre-transaction and current optional
-  account actions (§7.1).
-  Other contextual reads and full-model lookup
-  projection under concrete Id coherence remain open. No new provider field or local acquisition is specified.
+  account actions (§7.1). The standalone current storage read uses the storage
+  clause in its private transaction-view proof. Other contextual reads and
+  full-model lookup projection under concrete Id coherence remain open.
+  The provider and constants still come from the supplied block context.
 - **Bounded structural support (Q58):** StructuralPremises and its §7.4 laws are supplied
   (§3). Full BlockDiff.WF optional slot-order-map missing/extra-entry policy, replay
   history/reachability, AccountWritesLookedUp and F7 remain open.
