@@ -19,7 +19,13 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 - **R-GEN-4 Words.** Arithmetic is modulo 2^256 through the `U256` API (EthBase, D1): signed operations use two's complement; `x / 0 = 0`, `x % 0 = 0`; ADDMOD/MULMOD compute over unbounded integers before reducing.
 - **R-GEN-5 PC.** Handlers advance `pc` by 1, except PUSHn (`1 + n`, `I/stack.py:79`), DUPN/SWAPN/EXCHANGE (2, `:242, 278, 314`), JUMP/JUMPI (target or `pc+1`). Terminal handlers' `pc` updates are irrelevant. Immediate bytes beyond the end of code read as zero (`buffer_read`).
 - **R-GEN-6 Invalid opcodes.** A byte that is not in `Ops` (103 of 256 values, including `0xFE`) causes `InvalidOpcode(byte)` before any charge (`interpreter.py:439–442`). Running off the end of code (`pc ≥ |code|`) is a normal stop with empty output (`interpreter.py:438`).
-- **R-GEN-7 Non-EVM faults.** State-access failures (`WitnessError`, O4), BLOCKHASH beyond the available headers, and the BLOBBASEFEE `U256` conversion overflow propagate as `VmFault` (EthVmCore R-EXC-2), never as exceptional halts. The last two are CONTRACT O13 members. NUMBER, GASLIMIT and BASEFEE cannot overflow their `U256` cast: the SSZ payload fields are `uint64`, `uint64` and `uint256`.
+- **R-GEN-7 Non-EVM faults.** The VM routes `StateError` from State actions
+  through `VmFault.state` (EthVmCore R-EXC-2). EthState R29 owns the failure
+  classification, including O4 for wrapped witness errors. BLOCKHASH beyond
+  the available headers and the BLOBBASEFEE `U256` conversion overflow also
+  propagate as `VmFault` and fall under O13. These faults are distinct from
+  exceptional halts. The SSZ widths `uint64`, `uint64` and `uint256` rule out
+  overflow in the `U256` casts for NUMBER, GASLIMIT and BASEFEE respectively.
 
 ### 2.2 Opcode table
 
@@ -690,7 +696,19 @@ theorem step_iff : step ctx f w = .ok (r, w') ↔ Step ctx f w r w'
 theorem Step.deterministic : Step ctx f w r₁ w₁ → Step ctx f w r₂ w₂ → r₁ = r₂ ∧ w₁ = w₂
 ```
 
-**State API consumed from `EthState`** (names as in `state_tracker.py`, each `Except WitnessError`): `getAccount`, `getCode` (hash-only, EthState §5; the tracker action remains unimplemented), `getStorage`, `getStorageOriginal`, `getTransientStorage`, `setStorage`, `setTransientStorage`, `isAccountAlive`, `accountDeployable`, `incrementNonce`, `moveEther` (may raise the balance-overflow fault), `createdAccounts`, `trackAncestorAccess` (on `world.tx.block.oldestAncestorOffset`). From EthCodec: `computeContractAddressQ`, `computeCreate2ContractAddressQ` (the `KeccakQuery` forms, D5). From EthBase: `Address.ofU256Masked` (`to_address_masked`).
+**State API consumed from `EthState`.** Use `liftState` (EthVmCore §5) to run
+`StateM m` actions on `world.tx`. It wraps the complete `StateError` in
+`VmFault.state` on failure. The action list is `getAccount`, `getCode`
+(hash-only, EthState §5; the tracker action remains unimplemented),
+`getStorage`, `getStorageOriginal`, `getTransientStorage`, `setStorage`,
+`setTransientStorage`, `isAccountAlive`, `accountDeployable`, `incrementNonce`,
+`moveEther` (which can return `StateError.balanceOverflow`) and
+`trackAncestorAccess` (which updates `world.tx.block.oldestAncestorOffset`).
+Read `createdAccounts` from `world.tx.obs`.
+
+EthCodec supplies `computeContractAddressQ` and `computeCreate2ContractAddressQ`
+(the `KeccakQuery` forms, D5). EthBase supplies `Address.ofU256Masked`
+(`to_address_masked`).
 
 ## 6. Data structures
 
