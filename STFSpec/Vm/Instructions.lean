@@ -8,6 +8,7 @@ import STFSpec.Vm.Instructions.CreateRequest
 import STFSpec.Vm.Instructions.Handler
 import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
+import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Ops
 
@@ -20,8 +21,8 @@ Library `EthVmInstructions`. Its allowed dependencies are listed in `scripts/bou
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The raw requests, indexed `StepResult`,
 class-free `Handler` signature, opcode byte conversions, STOP and its complete
 run law are supplied. The arithmetic handlers ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/
-ADDMOD/MULMOD/EXP and the comparison handlers LT/GT/SLT/SGT/EQ/ISZERO are supplied
-with their ordered case and accounting laws.
+ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
+handlers AND/OR/XOR/NOT have ordered run and accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 Other handlers, dispatch, step,
 child construction and resume remain unimplemented.
