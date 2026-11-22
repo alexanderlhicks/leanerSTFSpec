@@ -714,13 +714,13 @@ withhold removes only its returned execution grant, drain preserves Φ, and rest
 adds its execution amount. Public clients derive retained E/64 and complete saved-amount
 withhold/drain/restore inversion; actual rollback post laws supply the forfeit premise.
 Thirty complete return/meter controls and three source-only invalid-forfeit probes
-retain assertion :674 before mutation. No actual CREATE return or child settlement
+retain the original assertion before mutation (EthVmCore §3). No actual CREATE return or child settlement
 claim follows. Signed refund addition and the standalone scalar maximum supply four
 additional unconditional ordinary laws. Public-only clients derive complete Nat-field
 retention, signed zero/composition/inverse and actual rollback/reset order, plus both
 complementary-share equations. Twelve complete signed cases and fourteen scalar cases
 include R>B, both spills, cancellation, rounding boundaries and beyond-U256 values.
-The source adapter projects only the exact original refund AugAssign at :242 on distinct
+The source adapter projects only the exact original refund AugAssign (EthVmCore §3) on distinct
 typed parent/child meters with unchanged child; it does not replay whole incorporation.
 The unchanged scalar helper is called directly. Normal/-O complete-frame parsing rejects
 boolean/float substitutes and malformed streams. No top-level refund sign, storage

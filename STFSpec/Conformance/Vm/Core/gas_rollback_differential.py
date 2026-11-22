@@ -211,28 +211,28 @@ CATALOG = {
             "op": "commit",
             "input": [7, 10, 9, -4, 5, 3],
             "grant": None,
-            "line": 499,
+            "line": 487,
         },
         {
             "label": "invalid-entry-baseline",
             "op": "entry",
             "input": [7, 2, 9, 0, 5, 3],
             "grant": 8,
-            "line": 555,
+            "line": 543,
         },
         {
             "label": "invalid-entry-refund",
             "op": "entry",
             "input": [7, 2, 9, -1, 5, 3],
             "grant": 9,
-            "line": 558,
+            "line": 546,
         },
         {
             "label": "invalid-entry-both",
             "op": "entry",
             "input": [7, 2, 9, -1, 5, 3],
             "grant": 8,
-            "line": 555,
+            "line": 543,
         },
     ],
     "composition": [
@@ -444,7 +444,7 @@ def emit_lean():
         )
 
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 
 
 def source_compare(args):
@@ -768,7 +768,7 @@ def source_compare(args):
         "source aliases differ",
     )
     require(
-        [f.__code__.co_firstlineno for f in functions()[:3]] == [471, 505, 532],
+        [f.__code__.co_firstlineno for f in functions()[:3]] == [459, 493, 520],
         "wrong original helper locations",
     )
     fields = [
