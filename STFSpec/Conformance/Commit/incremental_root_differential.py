@@ -1069,7 +1069,6 @@ def main():
                 wrapper=dict(
                     default=[],
                     witness_entries=len(trie.witness.accessed_nodes),
-                    data_entries=len(trie._data),
                 ),
             )
             observations.append(observation)

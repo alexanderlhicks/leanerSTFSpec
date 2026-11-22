@@ -277,6 +277,21 @@ class RemapCitations(unittest.TestCase):
             'def c : String := s!"{"--"} `fork.py:10`"',
             "def «d -- `fork.py:10`» : Nat := 1"])
 
+    def test_lean_discovery_under_external_lake_directory(self):
+        relocated_root = self.root.parent / ".lake" / self.root.name
+        relocated_root.parent.mkdir()
+        self.root.rename(relocated_root)
+        self.root = relocated_root
+
+        old = f"/-- Source `{FORK}:10`. -/\n"
+        new = f"/-- Source `{FORK}:13`. -/\n"
+        sources = [self.doc(old, path) for path in ("STFSpec/Source.lean", "scripts/Source.lean")]
+        build_products = [self.doc(old, path) for path in
+                          ("STFSpec/.lake/Generated.lean", "scripts/nested/.lake/Generated.lean")]
+        self.tool("--apply", "--initial")
+        self.assertEqual([file.read_text() for file in sources], [new, new])
+        self.assertEqual([file.read_text() for file in build_products], [old, old])
+
     def test_text_identity_guard(self):
         # A wrong diff (here: hunks that miss a change) must be caught by comparing the text.
         eels = R.Eels.__new__(R.Eels)
