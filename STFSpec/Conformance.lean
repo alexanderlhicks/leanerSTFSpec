@@ -70,6 +70,8 @@ import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StepResultCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StopCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ComparisonCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ComparisonGuards
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
