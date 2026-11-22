@@ -21,6 +21,29 @@ def wire(rows):
     return "".join(json.dumps(row) + "\n" for row in rows)
 
 
+class FrameFixture:
+    def __init__(self, rows):
+        self.rows = rows
+        self.lines = [json.dumps(row) + "\n" for row in rows]
+
+    def replace(self, index, row):
+        lines = self.lines.copy()
+        lines[index] = json.dumps(row) + "\n"
+        return "".join(lines)
+
+    def with_value(self, index, path, value):
+        row = self.rows[index].copy()
+        if len(path) > 1:
+            # The expected rows share a world dictionary between both world fields.
+            branch = path[0]
+            row[branch] = copy.deepcopy(row[branch])
+        target = row
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        return self.replace(index, row)
+
+
 class ArithmeticParserTests(unittest.TestCase):
     def test_complete_catalogue(self):
         rows = module.expected_frames()
@@ -28,88 +51,83 @@ class ArithmeticParserTests(unittest.TestCase):
 
     def test_reject_changed_complete_fields(self):
         rows = module.expected_frames()
+        fixture = FrameFixture(rows)
         for key in rows[0]["before"]:
-            bad = copy.deepcopy(rows)
-            bad[0]["before"][key] = None
             with self.subTest(key=key), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.with_value(0, ("before", key), None))
         for path in [("case",), ("after", "pc"), ("after", "meter"),
                      ("error",), ("tag",), ("cost",), ("otherCost",), ("phiAfter",), ("worldAfter", "storageProviderSample")]:
-            bad = copy.deepcopy(rows)
-            target = bad[0]
-            for key in path[:-1]:
-                target = target[key]
-            target[path[-1]] = None
             with self.subTest(path=path), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.with_value(0, path, None))
 
     def test_reject_bool_as_integer_and_float(self):
+        fixture = FrameFixture(module.expected_frames())
         for path in [("case",), ("before", "pc"), ("after", "pc"),
                      ("worldBefore", "blockAccountOrder")]:
             for value in [False, 0.0]:
-                bad = module.expected_frames()
-                target = bad[0]
-                for key in path[:-1]:
-                    target = target[key]
-                target[path[-1]] = value
                 with self.subTest(path=path, value=value), self.assertRaises(module.FrameError):
-                    module.compare_frames(wire(bad))
-        bad = module.expected_frames()
-        bad[0]["after"]["meter"][0] = False
+                    module.compare_frames(fixture.with_value(0, path, value))
         with self.assertRaises(module.FrameError):
-            module.compare_frames(wire(bad))
+            module.compare_frames(fixture.with_value(0, ("after", "meter", 0), False))
 
     def test_reject_wrong_results_with_valid_shapes(self):
         rows = module.expected_frames()
-        probes = []
+        fixture = FrameFixture(rows)
+
+        def reject(index, changed):
+            with self.subTest(case=index), self.assertRaises(module.FrameError):
+                module.compare_frames(fixture.replace(index, changed))
+
         for error in ["stackUnderflow", "outOfGas"]:
             i = next(i for i, r in enumerate(rows) if r["error"] == error and r["before"]["stack"])
-            bad = copy.deepcopy(rows)
-            bad[i]["after"]["stack"] = bad[i]["before"]["stack"]
-            probes.append(bad)
+            bad = copy.deepcopy(rows[i])
+            bad["after"]["stack"] = bad["before"]["stack"]
+            reject(i, bad)
         i = next(i for i, r in enumerate(rows) if r["op"] == "sub" and
                  r["tag"] == "continue" and r["before"]["stack"][:2] == [9, 2])
-        bad = copy.deepcopy(rows)
-        bad[i]["after"]["stack"][0] = (2 - 9) % 2**256
-        probes.append(bad)
+        bad = copy.deepcopy(rows[i])
+        bad["after"]["stack"][0] = (2 - 9) % 2**256
+        reject(i, bad)
         i = next(i for i, r in enumerate(rows) if r["cost"] == 0 and r["tag"] == "continue")
-        bad = copy.deepcopy(rows)
-        bad[i]["phiAfter"] += 1
-        probes.append(bad)
+        bad = copy.deepcopy(rows[i])
+        bad["phiAfter"] += 1
+        reject(i, bad)
         i = next(i for i, r in enumerate(rows) if r["op"] == "mul" and
                  r["tag"] == "continue" and r["before"]["stack"][:2] == [2**255, 2])
-        bad = copy.deepcopy(rows)
-        bad[i]["after"]["stack"][0] = 1
-        probes.append(bad)
+        bad = copy.deepcopy(rows[i])
+        bad["after"]["stack"][0] = 1
+        reject(i, bad)
         i = next(i for i, r in enumerate(rows) if r["op"] == "div" and
                  r["tag"] == "continue" and r["before"]["stack"][:2] == [9, 2])
-        bad = copy.deepcopy(rows)
-        bad[i]["after"]["stack"][0] = 2 // 9
-        probes.append(bad)
+        bad = copy.deepcopy(rows[i])
+        bad["after"]["stack"][0] = 2 // 9
+        reject(i, bad)
         i = next(i for i, r in enumerate(rows) if r["op"] == "div" and
                  r["error"] == "outOfGas" and r["before"]["stack"][1] == 0)
-        bad = copy.deepcopy(rows)
-        bad[i]["tag"], bad[i]["error"] = "continue", None
-        bad[i]["after"]["stack"].insert(0, 0)
-        bad[i]["after"]["pc"] += 1
-        probes.append(bad)
+        bad = copy.deepcopy(rows[i])
+        bad["tag"], bad["error"] = "continue", None
+        bad["after"]["stack"].insert(0, 0)
+        bad["after"]["pc"] += 1
+        reject(i, bad)
         for op in ["mul", "div"]:
             i = next(i for i, r in enumerate(rows) if r["op"] == op and
                      r["cost"] == 5 and r["tag"] == "continue")
-            bad = copy.deepcopy(rows)
-            bad[i]["after"]["meter"][0] -= 1
-            bad[i]["phiAfter"] -= 1
-            probes.append(bad)
-            bad = copy.deepcopy(rows)
-            bad[i]["otherCost"] += 1
-            probes.append(bad)
-        for bad in probes:
-            with self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+            bad = copy.deepcopy(rows[i])
+            bad["after"]["meter"][0] -= 1
+            bad["phiAfter"] -= 1
+            reject(i, bad)
+            bad = copy.deepcopy(rows[i])
+            bad["otherCost"] += 1
+            reject(i, bad)
 
     def test_signed_and_unsigned_controls(self):
         rows = module.expected_frames()
-        probes = []
+        fixture = FrameFixture(rows)
+
+        def reject(index, data):
+            with self.subTest(case=index), self.assertRaises(module.FrameError):
+                module.compare_frames(data)
+
         def result(op, words, tag="continue"):
             return next(i for i, r in enumerate(rows) if r["op"] == op and
                         r["tag"] == tag and r["before"]["stack"][:len(words)] == words)
@@ -121,9 +139,7 @@ class ArithmeticParserTests(unittest.TestCase):
                                     ([2**255, modulus - 1], [2**255 - 1, 0])]:
             i = result("sdiv", words)
             for value in alternatives:
-                bad = copy.deepcopy(rows)
-                bad[i]["after"]["stack"][0] = value % modulus
-                probes.append(bad)
+                reject(i, fixture.with_value(i, ("after", "stack", 0), value % modulus))
         # Remainder follows the dividend sign, independently of the divisor sign.
         for words, alternatives in [([modulus - 7, 2], [1]),
                                     ([7, modulus - 2], [-1, 7]),
@@ -131,62 +147,46 @@ class ArithmeticParserTests(unittest.TestCase):
                                     ([2**255, 3], [1, 2])]:
             i = result("smod", words)
             for value in alternatives:
-                bad = copy.deepcopy(rows)
-                bad[i]["after"]["stack"][0] = value % modulus
-                probes.append(bad)
+                reject(i, fixture.with_value(i, ("after", "stack", 0), value % modulus))
         for words, value in [([modulus - 1, 0], modulus - 1),
                              ([modulus - 1, 2**255], modulus - 1),
                              ([2, 7], 1), ([2**255, 3], 1)]:
             i = result("mod", words)
-            bad = copy.deepcopy(rows)
-            bad[i]["after"]["stack"][0] = value
-            probes.append(bad)
+            reject(i, fixture.with_value(i, ("after", "stack", 0), value))
         for op in ["sdiv", "mod", "smod"]:
             i = result(op, [2**255, 0, 17], "halt")
-            bad = copy.deepcopy(rows)
-            bad[i]["tag"], bad[i]["error"] = "continue", None
-            bad[i]["after"]["stack"].insert(0, 0)
-            bad[i]["after"]["pc"] += 1
-            probes.append(bad)
+            bad = copy.deepcopy(rows[i])
+            bad["tag"], bad["error"] = "continue", None
+            bad["after"]["stack"].insert(0, 0)
+            bad["after"]["pc"] += 1
+            reject(i, fixture.replace(i, bad))
             i = result(op, [7, 2])
             for amount in [1, rows[i]["veryLow"], rows[i]["otherCost"]]:
-                bad = copy.deepcopy(rows)
+                bad = copy.deepcopy(rows[i])
                 if amount > rows[i]["before"]["meter"][0]:
-                    bad[i]["after"] = copy.deepcopy(rows[i]["before"])
-                    bad[i]["after"]["stack"] = bad[i]["after"]["stack"][2:]
-                    bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+                    bad["after"] = copy.deepcopy(rows[i]["before"])
+                    bad["after"]["stack"] = bad["after"]["stack"][2:]
+                    bad["tag"], bad["error"] = "halt", "outOfGas"
                 else:
-                    bad[i]["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
-                bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
-                probes.append(bad)
+                    bad["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
+                bad["phiAfter"] = bad["after"]["meter"][0] + 16
+                reject(i, fixture.replace(i, bad))
             for key in rows[i]["after"]:
-                bad = copy.deepcopy(rows)
-                bad[i]["after"][key] = None
-                probes.append(bad)
+                reject(i, fixture.with_value(i, ("after", key), None))
             for key in rows[i]["worldAfter"]:
-                bad = copy.deepcopy(rows)
-                bad[i]["worldAfter"][key] = None
-                probes.append(bad)
-        for bad in probes:
-            with self.subTest(case=next(r["case"] for r, good in zip(bad, rows) if r != good)), \
-                    self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                reject(i, fixture.with_value(i, ("worldAfter", key), None))
 
     def test_signextend_controls(self):
         rows = module.expected_frames()
+        fixture = FrameFixture(rows)
         modulus = 2**256
         def result(words, tag="continue"):
             return next(i for i, r in enumerate(rows) if r["op"] == "signextend" and
                         r["cost"] == 5 and r["tag"] == tag and
                         r["before"]["stack"][:len(words)] == words)
         def reject(i, path, value):
-            bad = copy.deepcopy(rows)
-            target = bad[i]
-            for key in path[:-1]:
-                target = target[key]
-            target[path[-1]] = value
             with self.subTest(case=i, path=path, value=value), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.with_value(i, path, value))
         # Each retained sign boundary distinguishes masking, a wrong sign bit and shift substitutes.
         for k in range(32):
             threshold = 2**(8*k + 7)
@@ -220,21 +220,23 @@ class ArithmeticParserTests(unittest.TestCase):
                      ("after", "stack", 0), ("worldAfter", "blockAccountOrder")]:
             for value in [False, 0.0]:
                 reject(i, path, value)
+        # Python's value equality treats an integer 1 as equal to True.
+        reject(404, ("worldAfter", "created199"), 1)
         for key in ["cost", "otherCost", "veryLow", "phiAfter"]:
             reject(i, (key,), rows[i][key] + 1)
         reject(i, ("after", "stack"), rows[i]["before"]["stack"][1:])
         # Wrong tier or sibling prices give different shortage or quantitative results.
         for amount in [rows[i]["veryLow"], rows[i]["otherCost"], 1]:
-            bad = copy.deepcopy(rows)
+            bad = copy.deepcopy(rows[i])
             if amount > rows[i]["before"]["meter"][0]:
-                bad[i]["after"] = copy.deepcopy(rows[i]["before"])
-                bad[i]["after"]["stack"] = bad[i]["after"]["stack"][2:]
-                bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+                bad["after"] = copy.deepcopy(rows[i]["before"])
+                bad["after"]["stack"] = bad["after"]["stack"][2:]
+                bad["tag"], bad["error"] = "halt", "outOfGas"
             else:
-                bad[i]["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
-            bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
+                bad["after"]["meter"][0] = rows[i]["before"]["meter"][0] - amount
+            bad["phiAfter"] = bad["after"]["meter"][0] + 16
             with self.subTest(amount=amount), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.replace(i, bad))
         valid = wire(rows)
         for bad in [wire(rows[:400] + rows[401:]), wire(rows + [rows[-1]]),
                     wire(rows[:400] + rows[400:][::-1]),
@@ -245,15 +247,11 @@ class ArithmeticParserTests(unittest.TestCase):
 
     def test_ternary_controls(self):
         rows = module.expected_frames()
+        fixture = FrameFixture(rows)
         modulus = 2**256
         def reject(i, path, value):
-            bad = copy.deepcopy(rows)
-            target = bad[i]
-            for key in path[:-1]:
-                target = target[key]
-            target[path[-1]] = value
             with self.subTest(case=i, path=path), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.with_value(i, path, value))
         for op in ["addmod", "mulmod"]:
             selected = [(i, r) for i, r in enumerate(rows) if r["op"] == op]
             # All three failed-pop residual stacks and charge precedence are observable.
@@ -303,16 +301,16 @@ class ArithmeticParserTests(unittest.TestCase):
                 reject(i, (key,), r[key] + 1)
             # Independent tier and sibling prices must not replace the selected field.
             for amount in [1, r["veryLow"], r["otherCost"]]:
-                bad = copy.deepcopy(rows)
+                bad = copy.deepcopy(r)
                 if amount > r["before"]["meter"][0]:
-                    bad[i]["after"] = copy.deepcopy(r["before"])
-                    bad[i]["after"]["stack"] = bad[i]["after"]["stack"][3:]
-                    bad[i]["tag"], bad[i]["error"] = "halt", "outOfGas"
+                    bad["after"] = copy.deepcopy(r["before"])
+                    bad["after"]["stack"] = bad["after"]["stack"][3:]
+                    bad["tag"], bad["error"] = "halt", "outOfGas"
                 else:
-                    bad[i]["after"]["meter"][0] = r["before"]["meter"][0] - amount
-                bad[i]["phiAfter"] = bad[i]["after"]["meter"][0] + 16
+                    bad["after"]["meter"][0] = r["before"]["meter"][0] - amount
+                bad["phiAfter"] = bad["after"]["meter"][0] + 16
                 with self.subTest(op=op, amount=amount), self.assertRaises(module.FrameError):
-                    module.compare_frames(wire(bad))
+                    module.compare_frames(fixture.replace(i, bad))
         valid = wire(rows)
         for bad in [wire(rows[:627] + rows[628:]), wire(rows + [rows[-1]]),
                     wire(rows[:627] + rows[627:][::-1]),
@@ -323,13 +321,12 @@ class ArithmeticParserTests(unittest.TestCase):
 
     def test_exp_value_and_charge_controls(self):
         rows = module.expected_frames()
+        fixture = FrameFixture(rows)
         selected = [(i, r) for i, r in enumerate(rows) if r["op"] == "exp"]
         def reject(i, changed):
-            bad = copy.deepcopy(rows)
             self.assertNotEqual(changed, rows[i])
-            bad[i] = changed
             with self.subTest(case=i), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.replace(i, changed))
         def charged(r, amount):
             wrong = copy.deepcopy(r)
             wrong["after"] = copy.deepcopy(r["before"])
@@ -388,13 +385,11 @@ class ArithmeticParserTests(unittest.TestCase):
 
     def test_exp_complete_fields_types_and_framing(self):
         rows=module.expected_frames()
+        fixture = FrameFixture(rows)
         i=next(i for i,r in enumerate(rows) if r["op"] == "exp" and r["tag"] == "continue")
         def reject(path,value):
-            bad=copy.deepcopy(rows); target=bad[i]
-            for key in path[:-1]: target=target[key]
-            target[path[-1]]=value
             with self.subTest(path=path,value=value), self.assertRaises(module.FrameError):
-                module.compare_frames(wire(bad))
+                module.compare_frames(fixture.with_value(i, path, value))
         for section in ["before","after"]:
             for key in rows[i][section]: reject((section,key),None)
         for section in ["worldBefore","worldAfter"]:
@@ -412,10 +407,12 @@ class ArithmeticParserTests(unittest.TestCase):
             for key in path: target=target[key]
             reject(path,target+1)
         for key in ["expBase","expPerByte"]:
-            bad=copy.deepcopy(rows); del bad[i][key]
-            with self.assertRaises(module.FrameError): module.compare_frames(wire(bad))
-        bad=copy.deepcopy(rows); bad[i]["cost"]=10
-        with self.assertRaises(module.FrameError): module.compare_frames(wire(bad))
+            bad = rows[i].copy()
+            del bad[key]
+            with self.assertRaises(module.FrameError):
+                module.compare_frames(fixture.replace(i, bad))
+        with self.assertRaises(module.FrameError):
+            module.compare_frames(fixture.with_value(i, ("cost",), 10))
         valid=wire(rows)
         for bad in [wire(rows[:843]+rows[844:]),wire(rows+[rows[-1]]),
                     wire(rows[:843]+rows[843:][::-1]),
