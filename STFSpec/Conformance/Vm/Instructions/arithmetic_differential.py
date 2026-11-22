@@ -129,17 +129,21 @@ def write_input(path):
     path.write_text("\n".join(rows) + "\n")
 
 
-def expected_exp(c, world):
-    """Independent modular-power model; byte count uses natural integer bit length."""
-    before = {
-        "pc": c["pc"], "stack": c["words"],
+def _arithmetic_frame(pc, words, gas):
+    return {
+        "pc": pc, "stack": words,
         "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
-        "meter": [c["gas"], 101, 2, -17, 5, 11],
+        "meter": [gas, 101, 2, -17, 5, 11],
         "logs": [[256, [256, 1, 256], [255, 0, 128]]] * 2,
         "deleted": [256], "returnData": [0, 255, 128, 0],
         "warmAddresses": [1], "warmSlots": [[1, 256], [256, 1]],
     }
-    after = copy.deepcopy(before)
+
+
+def expected_exp(c, world):
+    """Independent modular-power model; byte count uses natural integer bit length."""
+    before = _arithmetic_frame(c["pc"], c["words"], c["gas"])
+    after = _arithmetic_frame(c["pc"], c["words"].copy(), c["gas"])
     operands = []
     for _ in range(2):
         if after["stack"]:
@@ -175,15 +179,8 @@ def expected_frames():
         if c["op"] == "exp":
             rows.append(expected_exp(c, world))
             continue
-        before = {
-            "pc": c["pc"], "stack": c["words"],
-            "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
-            "meter": [c["gas"], 101, 2, -17, 5, 11],
-            "logs": [[256, [256, 1, 256], [255, 0, 128]]] * 2,
-            "deleted": [256], "returnData": [0, 255, 128, 0],
-            "warmAddresses": [1], "warmSlots": [[1, 256], [256, 1]],
-        }
-        after = copy.deepcopy(before)
+        before = _arithmetic_frame(c["pc"], c["words"], c["gas"])
+        after = _arithmetic_frame(c["pc"], c["words"].copy(), c["gas"])
         tag, error = "halt", "stackUnderflow"
         if c["op"] in {"addmod", "mulmod"}:
             operands = []
