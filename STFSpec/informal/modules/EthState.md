@@ -119,7 +119,7 @@ refinement. This carrier migration implements no getCode action or lifecycle law
 | `forks/amsterdam/state_tracker.py::set_storage` | 457 | `setStorage` | |
 | `forks/amsterdam/state_tracker.py::destroy_account` | 484 | `destroyAccount` | |
 | `forks/amsterdam/state_tracker.py::clear_account_preserving_balance` | 504 | `clearAccountPreservingBalance` | |
-| `forks/amsterdam/state_tracker.py::destroy_storage` | 528 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | write→read conversion |
+| `forks/amsterdam/state_tracker.py::destroy_storage` | 528–549 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | **Discharged standalone action:** pending slot keys become reads. The action erases the target patch and slot index, applies `WriteOrder.erase` to the address index, and records the clear. Private laws and typed controls below. |
 | `forks/amsterdam/state_tracker.py::mark_account_created` | 552 | `markAccountCreated` | |
 | `forks/amsterdam/state_tracker.py::set_transient_storage` | 574 | `setTransientStorage` | |
 | `forks/amsterdam/state_tracker.py::modify_state` | 601 | `modifyState` | `f` may fail |
@@ -192,6 +192,16 @@ retains exactly the initial WF/ModelsLookups/success domain and consumes only th
 public transaction account-view law and pre-transaction contracts. The future guided
 getAccount wrapper is the next consumer. Other trackers, actual providers,
 source error adapters, lifetimes, reachable history, full-State and cost gates remain open.
+
+### Implemented standalone transaction storage clear
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:528–549` with `ethereum-types 0.4.1` | `STFSpec.State.destroyStorage {m : Type → Type} [Monad m] (a : Address) : StateM m Unit`, exported by State from `STFSpec/State/DestroyStorage.lean` | Every raw transaction is accepted. The action visits only the target's pending slot map and adds its keys, including explicit zero writes, to the reads. It erases the target patch and slot index, applies `WriteOrder.erase` to the address index, and inserts the clear. It returns success through one underlying `pure` and calls no provider. | **Discharged for the standalone action.** Private action, branch, membership, frame and local address-order laws in §7.5. Complete guards and authenticated typed source comparisons in §4. |
+
+The source comparison matches ordered dictionaries and read membership. Lean
+also admits independent raw order indexes. The action uses the actual patch to
+select keys and the existing raw erasure policy to update metadata.
 
 ### Implemented raw transaction state and state monad
 
@@ -372,14 +382,12 @@ backend, guest or readiness result follows.
 
 ### Implemented internal order support
 
-`STFSpec/State/WriteOrder.lean` supplies this bounded internal component. Tracker
-overlay operations in the source map above remain **unimplemented**; a dictionary
-ordering helper does not implement `setAccount`, `setStorage`, clear, snapshot,
-incorporation or ordered-write integration. Raw extraction is supplied separately
-above. The following support rows are **discharged for the stated component laws**,
-with no error or hashing channel. Python dictionary correspondence additionally
-requires the pinned host/dependency interpretation; finite dictionary traces do not
-establish whole-tracker refinement.
+`STFSpec/State/WriteOrder.lean` supplies this bounded internal component.
+The source map records tracker operation status. Standalone storage clear and raw
+extraction are supplied separately above. The following support rows are
+**discharged for the stated component laws**, with no error or hashing channel.
+Python dictionary correspondence requires the pinned host and dependency
+interpretation. Whole-tracker refinement remains open.
 
 | Source constraint at the pin | Lean declaration / type | Domain and effects | Public laws | Regression evidence |
 |---|---|---|---|---|
@@ -522,6 +530,19 @@ resource or C1–C4 result.
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented standalone storage clear controls.** `STFSpec/Conformance/State/DestroyStorageGuards.lean`
+  checks the action through the State facade. Sixteen cases cross absent, empty,
+  zero-only and nonlexical three-slot patches with an existing clear and an
+  existing read. Each case clears twice, checking the whole block and transaction,
+  complete raw indexes, read membership and the single underlying `pure` trace.
+  The providers return distinct errors if called. Two additional Lean guards
+  cover a mismatched reverse address entry with a ghost slot and an absent patch
+  with orphan metadata. Both authenticated isolated Python modes (normal and
+  `-O`) execute 32 standalone calls. Their complete finite state projections,
+  including dictionary order, agree with the native and interpreted Lean runs.
+  The source comparison uses typed, nonaliasing patches and canonical numeric
+  observations of fixed-width keys and words. The raw Lean index cases have no
+  independent source representation.
 - **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
   consumes the five public wrapper laws through the State facade, including complete
   provider/function/constants retention. `pre_state_account_default_inputs.json`
@@ -787,17 +808,16 @@ F20 new_consts law and raw extraction with its seven Q85 laws are supplied
 separately below. Logical account/storage predicate views and their two iff laws,
 and the mathematical BlockState.view with its application equation (§3/§7.2), are
 also supplied. TxState.view and exactly its account observer law are supplied
-separately (§3/§7.2); its raw conversion remains Lean-private. Both pre-transaction
-account actions and the current optional action below are supplied; other trackers and adapters remain open. The raw eight-field TxRevertible
+separately (§3/§7.2); its raw conversion remains Lean-private. The tracker source
+map in §3 records which operations are supplied. The raw eight-field TxRevertible
 carrier is supplied without operations, defaults, instances or authored public laws
 (§3/§7). The raw three-field TxState and exact StateM alias are supplied without
 class premises or authored public laws in the carrier module; their nominal boundary
 supplies no source refinement.
 The bounded structural predicate and preservation laws are supplied
-(§3/§7.4). MathState mutation, diff WF/history/reachable preservation, actual
-PreState providers and tracker operations other than getPreStateAccountOptional,
-getPreStateAccount and getAccountOptional remain unimplemented targets. The R8 lookup
-relation is supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
+(§3/§7.4). MathState mutation, diff WF/history/reachable preservation and actual
+PreState providers remain unimplemented targets. The R8 lookup relation is
+supplied as ModelsLookups (§3/§5). The EELS default-empty BlockDiff
 convenience constructor remains deferred (§10).
 
 **Observation-key provider (Q84).** The supplied TxObs and BlockState raw Std fields use
@@ -808,8 +828,8 @@ is added. EthBase §3/§5 owns the complete 20/32-digit models and ordinary equa
 Bytes32 includes FixedBytes 32 aliases; nominal Address supplies no FixedBytes 20
 support. Base support alone supplies no State carrier; the bounded TxObs carrier is
 implemented separately (§3), as are raw BlockState, its initialization and the
-nominal TxState/StateM assembly. Other default-empty constructors and tracker
-operations remain open. The two codeReads fields use hash-only Q51 keys; storageReads
+nominal TxState/StateM assembly. Other default-empty constructors remain open.
+The two codeReads fields use hash-only Q51 keys; storageReads
 alone uses the Address/Bytes32 product dictionary.
 
 ```lean
@@ -945,7 +965,8 @@ def isAccountAlive (a : Address) : StateM m Bool
 -- writes (R14–R23)
 def setAccount (a : Address) (acc : Option Account) : StateM m Unit
 def setStorage (a : Address) (k : Bytes32) (v : U256) : StateM m Unit
-def destroyStorage (a : Address) : StateM m Unit
+def destroyStorage {m : Type → Type} [Monad m]
+    (a : Address) : StateM m Unit -- supplied, Monad only
 def destroyAccount (a : Address) : StateM m Unit
 def clearAccountPreservingBalance (a : Address) : StateM m Unit
 def markAccountCreated (a : Address) : StateM m Unit
@@ -1388,9 +1409,27 @@ behavior, without repair or a universal lawful list claim.
 `WF` and `Agrees` are separate: a tombstone None and a zero payload remain
 present writes. The two maps and next must be saved with the associated write
 root; selecting a saved version can lower next relative to a discarded child.
-Whole inner clear discards that inner index; later recreation starts empty.
-Those implementation integration laws remain open; finite retained-root tests
-supply component examples only.
+Whole inner clear discards that inner index. Later recreation starts empty.
+The standalone clear supplies the private equations below. The remaining
+integration laws cover slot recreation, snapshots and incorporation.
+
+For `destroyStorage a` (R16), the private run equation returns the updated
+transaction and unit with one underlying `pure`. If the target patch is absent,
+the original read set is returned. If it is present, the action folds over that
+patch to insert every key. The executable takes the read set from the transaction
+before the fold so the fold can reuse exclusive buckets. A private ordinary
+equality identifies the whole result with the record-update reference (D25).
+For any `(b, k)`, membership in the resulting reads
+holds exactly when it was already present or `b = a` and `k` occurs in the
+original patch. These facts use no order premise.
+
+The other private equations give the whole erased patch and slot maps, the
+address index after `WriteOrder.erase`, and the clear set after insertion.
+They give absence of the two target entries and membership in the clear set.
+The complete block, account and code writes, account index, transient writes
+and other observations are retained. For the address index alone, its prior
+`WF` and `Agrees` with the prior storage map imply `WF` and `Agrees` with
+the resulting storage map.
 
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
@@ -1479,9 +1518,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  and their bounded laws and controls are supplied in §3/§4/§7.1.
+  Standalone destroyStorage and its private laws and controls are supplied in
+  §3/§4/§7.5. The remaining tracker operations and full-state integration stay
+  open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -1518,9 +1558,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
-- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all
-  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+- **Order-index integration.** The `WriteOrder` component laws and standalone
+  storage clear's local address-order preservation are supplied (§7.5).
+  Restore, incorporation and reachable extraction still need preservation of all
+  coupled order and value roots, WF and Agrees. Clear suppression, observation
+  retention across restore and composed clear behavior still need their operational
+  proofs. Reachable, AccountWritesLookedUp, S1/S2
   and composed C1/C4 remain open. Tree shape and finite retained-version correctness
   do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.

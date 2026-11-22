@@ -423,8 +423,10 @@ persistent `WriteOrder` support; its component laws are owned by EthState §7.5.
 exact inverse/bound consistency; Agrees separately equates optional forward
 presence with an arbitrary associated write map, including tombstones and zero.
 Lawful key equality and both predicates enable later coupled ordered folds.
-Full clear/restore/incorporation/extraction, caller reachability and account-read
-history remain open, together with S1/S2 and composed C1/C4. Paired-root finite
+EthState §7.5 proves local preservation for the address index of a standalone
+storage clear. Clear composition with other actions, restore, incorporation,
+reachable extraction and account-read history remain open, together with S1/S2
+and composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
 
 ### Supplied mathematical transaction view

@@ -485,9 +485,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Bounded component support:** The pre-transaction account actions,
   getPreStateAccountOptional and getPreStateAccount, plus getAccountOptional,
-  and their bounded laws/controls are supplied in §3/§4/§7.1.
-  Other tracker operations and full-state integration remain open. Account and
-  supplied empty-account values, internal
+  and their bounded laws and controls are supplied in §3/§4/§7.1.
+  Standalone destroyStorage and its private laws and controls are supplied in
+  §3/§4/§7.5. The remaining tracker operations and full-state integration stay
+  open. Account and supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
@@ -524,9 +525,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   dictionaries (EthBase §3); no replacement dictionary is chosen.
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
-- **Order-index integration:** the `WriteOrder` component laws are supplied (§7.5);
-  whole clear/restore/incorporation and reachable extraction must still preserve all
-  coupled order/value roots, WF and Agrees. Reachable, AccountWritesLookedUp, S1/S2
+- **Order-index integration.** The `WriteOrder` component laws and standalone
+  storage clear's local address-order preservation are supplied (§7.5).
+  Restore, incorporation and reachable extraction still need preservation of all
+  coupled order and value roots, WF and Agrees. Clear suppression, observation
+  retention across restore and composed clear behavior still need their operational
+  proofs. Reachable, AccountWritesLookedUp, S1/S2
   and composed C1/C4 remain open. Tree shape and finite retained-version correctness
   do not discharge persistence throughput, host-memory or zkVM resource gates.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
