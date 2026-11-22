@@ -494,8 +494,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
-  ModelsLookups, opaque witness ancestor selection and the raw four-field TxObs and
-  thirteen-field BlockState carriers, plus block initialization and its explicit F20
+  ModelsLookups, the raw four-field TxObs and thirteen-field BlockState carriers,
+  plus block initialization and its explicit F20
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
   BlockState.view with its exact application equation, mathematical TxState.view
@@ -548,7 +548,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability claims** (R15 assert; caller positivity for `get_witness_ancestors`) are inferences. The supplied helper admits zero and preserves its all-headers behavior; actual witness-generator use remains Q7.
+- **Unreachability of the assertion in R15** is inferred.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3); the separate raw TxObs carrier is supplied in
@@ -562,7 +562,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Frame accumulators** (warm sets, logs, refunds, `accounts_to_delete`) are *not* in `state_tracker.py` and are specified by `EthVmCore`; the §6 lifetime table's rows for them are not re-checked here.
 - **Proof strategy** for the split-invisibility law (§7.2) needs a formal EELS-shaped reference state to compare against; none is planned yet.
 - **EEST coverage** of write→read conversion is only indirect (through BAL fixtures); no unit tests exist upstream for `state_tracker.py`.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `state_tracker.get_witness_ancestors` was deleted upstream (execution-specs PR #3653; it was dead code in the guest). The supplied `getWitnessAncestors` (`STFSpec/State/WitnessAncestors.lean`) therefore implements a removed source item, together with its guards and caller proofs (`STFSpec/Conformance/State/WitnessAncestors{Guards,CallerProofs}.lean`), the frozen differential catalogue (`witness_ancestors_{differential.py,cases.json}`), `scripts/WitnessAncestorsNativeTests.lean`, `scripts/test_witness_ancestors_output_parser.py`, the `witness-ancestors-native-tests` target and its CI step. Retire them together, with the §3 row (kept as a non-claim row for the old mapping) and the §5/§7 text. (c) `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does, as reflected in R27. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657); BLOCKHASH still does, as reflected in R27. `code_reads` and `oldest_ancestor_offset` are read only by the excluded host witness builder (`stateless_host_exec_witness.py`), so the source carrier-shape and ancestor-tracking deltas change no guest output [V by reading].
 
 ### [`EthCommit`](modules/EthCommit.md)
 
@@ -1061,7 +1061,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Negative refund counter.** `U256(gas_meter.refund_counter)` (`vm/interpreter.py`, G4) raises if the counter is negative: the cast at `:279` is proved unreachable; the one at `:312` is unresolved. `negativeRefund` is reserved for it.
 - **EEST exception labels.** Mapping `blockchain_tests` `expectException` strings to constructors (for example the legacy `gasPrice < baseFee`, which EELS raises as `InvalidBlock`, and `txDecode`) is warning-only; validity is decisive (DECISIONS Q9).
 - **`TransactionTypeContractCreationError`** is believed unreachable after RLP decoding [I]. It needs an EthCodec lemma (`Address` cannot decode from the empty string).
-- **Lazy decode order** (R-AB 4) matters only for which error is reported. The guest output is the same; `blockchain_tests` may observe it.
+- **Lazy decode order** (R-AB step 3) matters only for which error is reported. The guest output is the same; `blockchain_tests` may observe it.
 - **`create_ether` of 0 to the coinbase and origin**: the BAL and state effects of a zero-amount touch depend on `EthState`'s `modify_state` and account-deletion rules, which were not re-read here.
 - **The `SYSTEM_ADDRESS` in the BAL**: whether the system caller is recorded as touched depends on G4's `process_top_level` reads. It is not pinned down here and needs a fixture check (`test_block_access_lists_system_call_reads.py` is the likely generator).
 - **Reference evidence:** rerun load-bearing historical codec experiments against locked 0.1.6; the review environment now matches the lock, but has not exhaustively validated transaction codecs.

@@ -202,14 +202,6 @@ jobs:
           uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-interpreted.jsonl
           uv run --no-project --python 3.12 python -B scripts/test_transaction_view_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_transaction_view_output_parser.py
-      - name: Complete opaque witness ancestor regressions
-        run: |
-          lake build witness-ancestors-native-tests --wfail
-          lake exe check-decls WitnessAncestorsNativeTests
-          lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
-          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
-          uv run --no-project --python 3.12 python -B scripts/test_witness_ancestors_output_parser.py
-          uv run --no-project --python 3.12 python -B -O scripts/test_witness_ancestors_output_parser.py
       - name: Complete stateless output serialization regressions
         run: |
           lake build stateless-output-native-tests --wfail

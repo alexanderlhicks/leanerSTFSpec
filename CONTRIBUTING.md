@@ -266,12 +266,6 @@ uv run --no-project --python 3.12 python -B scripts/test_account_optional_output
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
-lake build witness-ancestors-native-tests --wfail
-lake exe check-decls WitnessAncestorsNativeTests
-lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
-uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
-uv run --no-project --python 3.12 python -B scripts/test_witness_ancestors_output_parser.py
-uv run --no-project --python 3.12 python -B -O scripts/test_witness_ancestors_output_parser.py
 lake build stateless-output-native-tests --wfail
 lake exe check-decls StatelessOutputNativeTests
 lake exe stateless-output-native-tests > .lake/stateless-output.txt
