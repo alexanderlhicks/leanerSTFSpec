@@ -422,9 +422,11 @@ caller facts nor compiled costs, C1–C4 or whole VM/guest readiness.
 persistent `WriteOrder` support; its component laws are owned by EthState §7.5. WF is
 exact inverse/bound consistency; Agrees separately equates optional forward
 presence with an arbitrary associated write map, including tombstones and zero.
-Lawful key equality and both predicates enable later coupled ordered folds.
-Full clear/restore/incorporation/extraction, caller reachability and account-read
-history remain open, together with S1/S2 and composed C1/C4. Paired-root finite
+The standalone R14 action couples account writes to this index as specified in
+EthState §§3/7.1/7.5. Its local preservation proofs are private. Consumers must
+establish the read-before-write history at callers. Full integration through
+clears, restore, incorporation and reachable extraction remains open, together
+with S1/S2 and composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
 
 ### Supplied mathematical transaction view

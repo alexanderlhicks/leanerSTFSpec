@@ -284,6 +284,10 @@ root = "scripts.TransactionViewNativeTests"
 name = "account-optional-native-tests"
 root = "scripts.AccountOptionalNativeTests"
 
+[[lean_exe]]
+name = "set-account-native-tests"
+root = "scripts.SetAccountNativeTests"
+
 # Complete executed STOP frames and selected runtime world sentinels.
 [[lean_exe]]
 name = "stop-native-tests"

@@ -266,6 +266,12 @@ uv run --no-project --python 3.12 python -B scripts/test_account_optional_output
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
 uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
 uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+lake build set-account-native-tests --wfail
+lake exe check-decls scripts.SetAccountNativeTests
+lake exe set-account-native-tests STFSpec/Conformance/State/set_account_inputs.json > .lake/set-account-native.jsonl
+lake env lean -DautoImplicit=false -DrelaxedAutoImplicit=false --run scripts/SetAccountNativeTests.lean STFSpec/Conformance/State/set_account_inputs.json > .lake/set-account-interpreted.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/set_account_differential.py --check-target .lake/set-account-native.jsonl
+uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/set_account_differential.py --check-target .lake/set-account-interpreted.jsonl
 lake build witness-ancestors-native-tests --wfail
 lake exe check-decls WitnessAncestorsNativeTests
 lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl

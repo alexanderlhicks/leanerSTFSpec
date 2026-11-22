@@ -16,6 +16,7 @@ import STFSpec.State.BlockState
 import STFSpec.State.TxState
 import STFSpec.State.PreStateAccount
 import STFSpec.State.AccountOptional
+import STFSpec.State.SetAccount
 import STFSpec.State.BlockInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
@@ -45,7 +46,8 @@ structural preservation, supplied-record success-only `ModelsLookups` and opaque
 ancestor selection are supplied. TxState assembles the complete providers with hash-only
 code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and defaulted wrapper, with
 their bounded action/error/framing/membership/model laws, and the current optional
-account read with its six laws, are supplied. Lookup providers, model
-mutation, other tracker effects and lifecycle laws remain scaffolding.
+account read with its six laws, are supplied. The standalone ordered account write
+is also supplied. Lookup providers, other model mutation, tracker effects and
+lifecycle laws remain scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
