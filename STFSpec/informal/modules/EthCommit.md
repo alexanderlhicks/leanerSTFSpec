@@ -74,14 +74,14 @@ Abbreviations: `mpt:` = `merkle_patricia_trie.py`, `inc:` = `forks/amsterdam/inc
 
 ### 2.5 Update, delete, root (guest path)
 
-- C22. `mpt_set m key value` (`inc:417–470`) updates the flat `_data`, then hashes the key iff
-  secured, then selects default/encoding dispatch. Default becomes empty encoding; any encoded
-  empty Bytes deletes, including a nondefault empty value; only nonempty encoding inserts. The
-  generic already-encoded API maps both `none` and `some ByteArray.empty` to deletion, after the
-  same secure key query, and `some nonempty` to update. Direct C23 insertion of empty bytes
-  remains distinct. The dropped host `_data` can differ between default and nondefault empty
-  values; the prospective emptyEncoding action equation concerns only the nominal secured/root
-  projection (§7.0.10), not complete mutable source/witness state.
+- C22. `mpt_set m key value storage_root` (`inc:405–442` at `59c1473d`) hashes the whole key if
+  secured and converts the result, or the unsecured key, to nibbles before comparing the value
+  with the default. Equality selects an empty encoding. Otherwise an Account requires the supplied
+  storage root (`inc:427–429`), nondefault `None` raises `AssertionError` (`inc:430–431`), and
+  other values use `encode_node` (C10). An empty encoding deletes and a nonempty encoding inserts.
+  The already-encoded Lean API maps `none` and `some ByteArray.empty` to deletion after the same
+  secured key query. Direct C23 insertion accepts empty bytes and inserts them. The
+  `mptSet_emptyEncoding` action equation covers the nominal secured/root carrier (§7.0.10).
 - C23. **Insert** (`inc:466–670`; Q60): empty → a leaf with the exact remaining path/value, even
   empty value; reached stub → `.unresolved h` at invalidation before exhaustion; equal leaf path →
   replace exact value; otherwise split into the source branch and optional common-prefix
@@ -225,6 +225,7 @@ optimized-source behavior or change the approved typed bare diagnostics.
 | `merkle_patricia_trie.py::patricialize` | 507 | `patricialize` | |
 | `forks/amsterdam/incremental_mpt.py::*` | 50–1065 | `Node`, `Ref`, `IncrementalMPT`, `decodeWitnessToMpt`, `lookup`, `update`/`delete`/`mptSet`, `mptRoot`, `compactToNibbles`, proposed host helpers `buildMpt`/`Witness` | per-item mapping in §5 |
 | `forks/amsterdam/incremental_mpt.py` `mpt_get` | 352–402 at `59c1473d` | `lookup` (bare walk, C20) | source comparison uses prehashed Hash32 keys, unsecured carriers and dirty ordinary nodes. C21 owns the source wrapper and open effects |
+| `forks/amsterdam/incremental_mpt.py` `mpt_set` | 405–442 at `59c1473d` | `mptSet` (encoded setter, C22) | source frontend capture and conditional nominal comparison below |
 | `forks/amsterdam/witness_state.py` `_trie_lookup` | 53–100 at `e1a316a0` | `lookup` (historical pure comparison) | removed at `tests-zkevm@v21.0.6` |
 | `forks/amsterdam/witness_state.py::build_node_db` | 28 | `NodeDB.build` | |
 
@@ -370,14 +371,14 @@ retention establishes none of that obligation.
 
 The pinned source carrier fields are listed in C21. Omitted `default` follows C22's
 caller-owned default comparison and already-encoded Option policy
-(`inc:441/452`). Omitted `witness` follows C28/C25: recorded contents are host
+(`inc:425–433` at `59c1473d`). Omitted `witness` follows C28/C25: recorded contents are host
 support, but collapse calls `_record_witness` (`inc:790`) and its stub assertion
 (`inc:248`) remains a required future guest failure. This carrier implements no
 such update, recording or collapse operation.
 
 | Exact pinned EELS source | Declaration/domain and status | Fields/effects | Errors/admission boundary | Law/client evidence |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:114–127,1046–1065`; default C22 (`:441/452`), witness C21/C28/C25 (`:378/:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default and witness fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:114–127,1046–1065` at `59c1473d`; default C22 (`inc:425–433`), witness C21/C28/C25 (`:378/:790/:248`) | `IncrementalMPT`, `IncrementalMPT.mk`, `.secured`, `.root`; **supplied nominal carrier** | Exact supplied Bool and Ref; no query/effect | No operation/error/admission API; source default and witness fields are outside this guest projection | Private public-import signature and exact-field retention clients: constructor/projections/reconstruction, both flags, absence/stubs and all Node variants; arbitrary arity/raw/cache/ext-child and nested fields |
 
 `STFSpec/Conformance/Commit/IncrementalMPTCallerProofs.lean` supplies ordinary
 private full-field clients through the public owner. Only the structure's generated
@@ -611,12 +612,12 @@ encoded setter is supplied separately below; full frontend/default/history agree
 `STFSpec/Commit/Set.lean`, reexported by `STFSpec.Commit`, supplies only `mptSet`
 and `mptSet_emptyEncoding`. The input is an already-encoded optional value and the
 complete nominal secured/root carrier, under plain Monad/KeccakQuery. No source
-value/default instance, contextual Account callback or source admission predicate
+value/default instance, contextual Account encoding or source admission predicate
 is added.
 
 | Exact pinned EELS source | Public declaration/domain and status | Complete action and failures | Ordinary proof and controls |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/incremental_mpt.py:412–442`, C22/Q60 | `mptSet : IncrementalMPT → ByteArray → Option ByteArray → m (Except TrieError IncrementalMPT)`; **supplied**, every finite nominal input | If secured, query the entire original key once before dispatch and expand all 32 answer bytes to 64 high-before-low nibbles; otherwise expand every supplied key byte. None/some-empty selects public delete, nonempty selects public update. Preserve the literal provider-result bind/pure/Except.map, complete returned root and original flag. Oracle failure prevents dispatch; provider errors are mapped without handlers | Private copying List-byte/path reference and ordinary all-input equality for arbitrary opaque provider actions, preserving bind syntax under plain Monad. Seven private byte/path/reference laws; private opaque-provider controls and public-only SetGuards observe whole recursive fields, actual arities, every diagnostic payload, complete preimages/answers, seeded state, both transformer failure orders and a private nonlawful Count structure |
+| `src/ethereum/forks/amsterdam/incremental_mpt.py:405–442` at `59c1473d`, C22/Q60 | `mptSet : IncrementalMPT → ByteArray → Option ByteArray → m (Except TrieError IncrementalMPT)`; **supplied**, every finite nominal input | If secured, query the entire original key once before dispatch and expand all 32 answer bytes to 64 high-before-low nibbles; otherwise expand every supplied key byte. None/some-empty selects public delete, nonempty selects public update. Preserve the literal provider-result bind/pure/Except.map, complete returned root and original flag. Oracle failure prevents dispatch; provider errors are mapped without handlers | Private copying List-byte/path reference and ordinary all-input equality for arbitrary opaque provider actions, preserving bind syntax under plain Monad. Seven private byte/path/reference laws; private opaque-provider controls and public-only SetGuards observe whole recursive fields, actual arities, every diagnostic payload, complete preimages/answers, seeded state, both transformer failure orders and a private nonlawful Count structure |
 | Same source/C22; §7.0.10 | `mptSet_emptyEncoding`; **supplied** | Complete equality of some-empty and None actions, including secure key query, deletion and final result map | Ordinary plain-Monad theorem; SetCallerProofs uses only public imports for arbitrary roots/both flags and public byte/path/full 32 interpretation laws |
 
 The frozen finite controls contain 156 opaque-provider cases and 376 public
@@ -625,31 +626,45 @@ answers, all 256 singleton unsecured bytes, leading zeros/long keys, all error
 variants with unrestricted Nat payloads, empty dispatch, direct-empty-update
 contrast, bounds/stub/witness-first collapse order and each reached query failure.
 These focused guards and public callers pass warning-fatal compilation; their
-scoped declaration audit reports zero findings. The strict ten-field setter parser passes
-normal and optimized Python (17 positive/2019 negative frames each) with complete
-success/error/input/recording/query/answer frames; no checksum or reduced structural observer is used.
+scoped declaration audit reports zero findings. The strict ten-field setter parser
+checks the complete success, error, input, recording, query and answer fields in
+normal and optimized Python (17 accepted and 2,019 rejected frames in each mode).
+Catalogue validation also rejects changing the first case index from `0` to `false`.
 
-`STFSpec/Conformance/Commit/set_differential.py` supplies a 54-case frontend
-catalog separating original map/default, key hashing/path, preencoding/Account
-callback, mutation, captured-return own completion and nominal comparison stages.
-The catalog passes: 26 successful complete secured/root projections, eight
-source-only nondefault None/unsupported encoding/missing or invalid Account callback
-boundaries, and 20 explicit diagnostic boundaries. All 46 nominal cases retain
-complete Id/recording results. Source-only boundaries have no nominal projection
-assertion. The 21 original key queries and 11 separate own-completion queries are
-retained separately; 16 captured-return own-completion actions are observed.
-Successful completed-root comparisons require accepted update/delete clean-entry,
-consulted embedding/retained-cache, complete Encodable/class/Id/finite-host premises.
-The prepared selected source entries are clean/cacheless; this is a corpus premise,
-not a global runtime check or nominal theorem premise. Source `_data`, defaults,
-witnesses, dirty/origin/cache writes, partial failure state and query histories
-remain observations separate from the encoded nominal carrier/action equality.
-No whole mutation/map/root/backend/security or readiness gate closes.
+`STFSpec/Conformance/Commit/set_differential.py` replays the 54 historical raw
+inputs at `59c1473d`, with assertions enabled and the storage root passed directly.
+The run compares 28 completed secured/root projections and 20 Q60 diagnostics.
+All 48 nominal cases retain complete Id and recording results. The six source
+frontend errors capture nondefault None, missing Account storage root and
+unsupported encoding before any mutation. The two one-byte Account keys that
+failed the earlier callback's Address conversion both encode with the supplied
+storage root at this pin. These cases exercise the raw setter API.
+
+The evidence records the 21 original full secured key preimages, answers and
+paths, along with the source default, immediate root, witness, dirty flags,
+origin, cache fields and partial failure states. Captured-return completions
+have their own trace (18 completions and 13 queries). Completed-root agreement uses the clean supplied entries
+and the update/delete consulted-embedding, retained-cache, Encodable, source-class,
+concrete Id and finite-host premises. The Q60 controls retain source paths with
+survivors at 16 and 255, source byte-construction failure at 256 and the earlier
+stub witness failure. The two additional typed source controls exercise an
+equal Account default without a root and encoding nondefault `U256(0)` as `80`.
+
+A separate call to `mpt_set_storage_slots` (`inc:445–463` at `59c1473d`)
+observes writes to slots 6, 3, 9 and 2 from input order 9, 6, 2 and 3.
+It checks one full secured key query per write and encoded readback in input
+order: absence, `18`, absence, `07`.
+
+The historical catalogue at `e1a316a0` retains the flat `_data` and callback
+inputs and the earlier 26 projections, eight frontend boundaries and 20
+diagnostic controls. That run retained 21 original key queries, 11
+own-completion queries and 16 captured-return completions.
 
 The source driver uses fresh destinations and the pinned environment/locked wheels:
 
 ```sh
 uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --write-catalog CATALOG.json
+uv run --no-project --python 3.12 python -I -B STFSpec/Conformance/Commit/set_differential.py --write-historical-catalog HISTORICAL.json
 EELS/.venv/bin/python -I -B STFSpec/Conformance/Commit/set_differential.py \
   --preflight --catalog CATALOG.json --eels EELS --output PREFLIGHT.lean \
   --rlp-wheel RLP_WHEEL --types-wheel TYPES_WHEEL
@@ -1868,7 +1883,7 @@ def collisionWitness (db : NodeDB) (m) : Option (ByteArray × ByteArray)  -- com
 Mapping of `incremental_mpt.py` items:
 `MutableLeafNode`/`MutableExtensionNode`/`MutableBranchNode`/`HashedNode`/`MutableNode` →
 `Node`/`Ref`; `IncrementalMPT` → `IncrementalMPT` (guest projection omits caller
-`default` under C22 (`inc:441/452`) and recorded `witness` under C21/C28/C25).
+`default` under C22 (`inc:425–433` at `59c1473d`) and recorded `witness` under C21/C28/C25).
 Collapse stub failure at `inc:790/:248` remains a guest obligation. `_encode_mutable_node`,
 `_encode_mutable_node_to_extended`, `_compute_node_hash_and_rlp`, `_invalidate_hash` → `Enc`
 construction and `childRef`; `mpt_set`, `_mpt_insert_node`, `_insert_into_leaf`,
@@ -2359,8 +2374,8 @@ theorem mptSet_emptyEncoding (t : IncrementalMPT) (key : ByteArray) :
 
 The first three stop at the root with no local query/materialization before the
 error. They do not erase an ancestor action or the secure key query in mptSet.
-The fourth equates actions on the nominal secured/root carrier, not source `_data`,
-witness/default or partially mutated input. No unconditional `pure collapseIndex`
+The fourth equates actions on the nominal secured/root carrier. The driver records source
+witness/default fields and partially mutated input separately (§3). No unconditional `pure collapseIndex`
 law is valid before applicable witnessing: the stub/underlying query may fail first.
 A generic reference equation must name the chosen private realization and complete
 preimages/answers/state/error order; use LawfulMonad only for actual bind rewrites.
@@ -2673,4 +2688,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Secured-path validation** (execution-specs PR #3193; CONTRACT O4(b)). `decode_witness_to_mpt` now runs `_validate_secured_trie_paths` (`incremental_mpt.py:987–1013`) on every secured decode, after the whole reachable trie has decoded, so every node-decode failure precedes it. Against the 64-nibble key (`SECURED_TRIE_KEY_NIBBLES`), a leaf's remaining path must equal the remaining nibble count exactly (short leaves fail too), an extension segment must be strictly shorter than the remaining count, and a branch needs at least one remaining nibble; `HashedNode` stubs are skipped. `decodeWitnessToMpt` now performs this check (§3, Q90). The new fixture area `eip8025_optional_proofs/witness_state_overlength` (a leaf segment and a cumulative path exceeding the key length) exercises it. Every accepted secured trie therefore has at most 65 decoded nodes on a path (64 branches and a leaf) [I, by reading]. A deeper chain or a cycle still decodes recursively first, and now fails either the validation or the recursion limit with the same inner-handler output; host memory and C-stack limits, the DAG blow-up (DISC-004) and DISC-001 stay as they are. C17 and the EthStateWitness deep-chain item are restated against this bound (measurements in DISC-001); it does not bound RLP nesting inside one node. The validation, like the new lookup stub check at `incremental_mpt.py:375` (`_trie_lookup` raised `AssertionError` explicitly), is an `assert`, so Python `-O` removes it. The spec follows the source with assertions enabled, as for the other source asserts (§2); an `-O` host would accept over-length paths, a host-configuration difference that CONTRACT §6 would route to DISCREPANCIES with a reproducer (none recorded; O12). Under `-O` a lookup that reaches a stub still fails at the next attribute access (`node._dirty` in `_record_witness`) [I, by reading]. Q90 selects the diagnostic, `Malformed.securedPathLength`. §3 supplies the constructor, the secured `decodeWitnessToMpt` check (C13), its laws, guards and caller proofs, and source comparisons at `59c1473d` of `decoder_differential.py` (with over-length, short-leaf, extension, branch and stub cases) and `decoder_diagnostic_differential.py`. The EthStateWitness use of secured decodes remains open until that library is implemented (EthStateWitness §10). DISC-003 (padding-nibble acceptance) is unchanged. (b) **Lookup owner.** The pinned source comparison in §3 now exercises the bare walk of `mpt_get` (C20). The earlier pure `_trie_lookup` comparison used `e1a316a0`. PR #3659 removed that function. Secured-key and witness/cache correspondence for the source wrapper, guest call-site adaptation and whole-source agreement remain open (C21, CONTRACT O4/O13). (c) **Mutation entry points.** `mpt_set` takes the storage root directly instead of a callback, `IncrementalMPT._data` is gone, and `mpt_set_storage_slots` (non-zero writes, then deletions, `incremental_mpt.py:445–463`) replaces the inline storage loop (PR #3659). `mptSet` already takes a caller-encoded value and the write order is unchanged [V by reading]; the frozen `set_differential.py` catalogue records the old signature and must be regenerated.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Secured-path validation** (execution-specs PR #3193; CONTRACT O4(b)). `decode_witness_to_mpt` now runs `_validate_secured_trie_paths` (`incremental_mpt.py:987–1013`) on every secured decode, after the whole reachable trie has decoded, so every node-decode failure precedes it. Against the 64-nibble key (`SECURED_TRIE_KEY_NIBBLES`), a leaf's remaining path must equal the remaining nibble count exactly (short leaves fail too), an extension segment must be strictly shorter than the remaining count, and a branch needs at least one remaining nibble; `HashedNode` stubs are skipped. `decodeWitnessToMpt` now performs this check (§3, Q90). The new fixture area `eip8025_optional_proofs/witness_state_overlength` (a leaf segment and a cumulative path exceeding the key length) exercises it. Every accepted secured trie therefore has at most 65 decoded nodes on a path (64 branches and a leaf) [I, by reading]. A deeper chain or a cycle still decodes recursively first, and now fails either the validation or the recursion limit with the same inner-handler output; host memory and C-stack limits, the DAG blow-up (DISC-004) and DISC-001 stay as they are. C17 and the EthStateWitness deep-chain item are restated against this bound (measurements in DISC-001); it does not bound RLP nesting inside one node. The validation, like the new lookup stub check at `incremental_mpt.py:375` (`_trie_lookup` raised `AssertionError` explicitly), is an `assert`, so Python `-O` removes it. The spec follows the source with assertions enabled, as for the other source asserts (§2); an `-O` host would accept over-length paths, a host-configuration difference that CONTRACT §6 would route to DISCREPANCIES with a reproducer (none recorded; O12). Under `-O` a lookup that reaches a stub still fails at the next attribute access (`node._dirty` in `_record_witness`) [I, by reading]. Q90 selects the diagnostic, `Malformed.securedPathLength`. §3 supplies the constructor, the secured `decodeWitnessToMpt` check (C13), its laws, guards and caller proofs, and source comparisons at `59c1473d` of `decoder_differential.py` (with over-length, short-leaf, extension, branch and stub cases) and `decoder_diagnostic_differential.py`. The EthStateWitness use of secured decodes remains open until that library is implemented (EthStateWitness §10). DISC-003 (padding-nibble acceptance) is unchanged. (b) **Lookup owner.** The pinned source comparison in §3 now exercises the bare walk of `mpt_get` (C20). The earlier pure `_trie_lookup` comparison used `e1a316a0`. PR #3659 removed that function. Secured-key and witness/cache correspondence for the source wrapper, guest call-site adaptation and whole-source agreement remain open (C21, CONTRACT O4/O13). (c) **Mutation entry points.** The C22 driver now tests the direct-storage-root setter and the two-pass storage helper at `59c1473d` (§3). The nominal comparison covers the encoded setter under the Q60 premises above. Agreement for whole witness-state mutation, cache history and guest outcomes remains open.

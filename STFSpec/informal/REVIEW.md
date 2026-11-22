@@ -125,18 +125,13 @@ bare root equations are supplied above. The encoded frontend worker and its secu
 supplied separately below. Whole mutation change/cache/source
 realization remains open. No broader gate or readiness closes.
 
-The Q60 encoded setter slice is supplied locally: exactly mptSet and
-mptSet_emptyEncoding under plain Monad/KeccakQuery, with private arbitrary-provider
-copying List/full-action equality retaining the actual bind/pure/map syntax.
-[EthCommit C22/§3/§7.0.10/§10](modules/EthCommit.md#3-eels-source-map) owns its
-156 opaque-provider and 376 public-composition frozen full-field/query/error/state/
-failure/nonlawful controls, public-law clients and strict normal/-O parser.
-Focused warning-fatal controls/callers and declaration audit pass. The bounded
-frontend catalog passes with 26 successful completed projections, eight source-only
-encoding/default boundaries and 20 explicit diagnostics under the premises there.
-Source value/default/map/Account callback/dirty/witness/partial-state histories
-remain separate from the already-encoded nominal secured/root projection. No new
-public helper, source/WF predicate, policy, dependency or broader readiness is supplied.
+The Q60 encoded setter supplies `mptSet` and `mptSet_emptyEncoding` under
+plain Monad/KeccakQuery. Private proofs compare the whole action with a copying
+List reference for arbitrary provider actions and retain its bind/pure/map syntax.
+[EthCommit §3](modules/EthCommit.md#3-eels-source-map) records the complete controls,
+strict parser, current pinned comparison and its premises. The driver records the
+source frontend, cache, witness and partial mutation details alongside the nominal
+secured/root comparison. Whole mutation and source composition remain open.
 
 Q64's local call/init-code pricing slice is supplied by
 [EthVmCore §3/§5/§7](modules/EthVmCore.md#3-eels-source-map): two VmConfig-first

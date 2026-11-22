@@ -2,9 +2,10 @@
 # Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 """Encoded setter frontend observations and completed nominal projection.
 
-The original _data/default/encoding/key/mutation/completion stages stay distinct.
-Use --write-catalog, then authenticated --preflight before separately authorized
-original execution. --self-test uses no reference import and supports Python -O.
+The pinned setter's key conversion, encoding, mutation and separate completion
+stages are captured with assertions enabled. Use --write-catalog for the pinned
+inputs and --write-historical-catalog for the earlier source evidence.
+--self-test uses no reference import and supports Python -O.
 """
 
 import argparse
@@ -19,12 +20,23 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import tomllib
 import traceback
 import types
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SEED = 195
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
+HISTORICAL_CATALOG_SHA = "89b64aac00f0afef83e461d51fbc8f79be5de1f2bd3e86cf6c5238b21eab28bf"
+FRONTEND_ERRORS = {
+    "nondefault-none": ("builtins", "AssertionError", "cannot encode `None`", "mpt_set", 431),
+    "missing-storage-root": ("builtins", "AssertionError", "", "mpt_set", 428),
+    "unsupported-encoding": (
+        "ethereum_rlp.exceptions", "EncodingError",
+        "RLP Encoding of type <class 'object'> is not supported", "encode", 87,
+    ),
+}
 
 
 def require(condition, message):
@@ -51,6 +63,15 @@ def reject_constant(value):
 
 def load_json(text):
     return json.loads(text, object_pairs_hook=object_pairs, parse_constant=reject_constant)
+
+
+def validate_catalog(payload):
+    frozen = load_json(payload)
+    require(
+        json.dumps(frozen, sort_keys=True) == json.dumps(catalog(), sort_keys=True),
+        "catalog must equal the complete frozen generator",
+    )
+    return frozen
 
 
 class Reader:
@@ -311,13 +332,29 @@ def parser_tests():
         except (ValueError, TypeError, json.JSONDecodeError):
             continue
         raise RuntimeError("invalid setter frame accepted: " + text)
+    frozen = catalog()
+    valid = json.dumps(frozen, indent=2)
+    changed = valid.replace('"case": 0', '"case": false', 1)
+    require(load_json(changed) == frozen, "catalogue control must differ only by numeric type")
+    require(type(validate_catalog(valid)["cases"][0]["case"]) is int, "valid complete catalogue")
+    try:
+        validate_catalog(changed)
+    except ValueError as error:
+        require(str(error) == "catalog must equal the complete frozen generator", "catalogue test")
+    else:
+        raise RuntimeError("setter catalogue accepted case 0 changed to JSON false")
     resume_cli_tests()
     print(
-        json.dumps(dict(accepted=len(positive), rejected=len(bad), optimized=sys.flags.optimize))
+        json.dumps(
+            dict(
+                accepted=len(positive), rejected=len(bad), optimized=sys.flags.optimize,
+                catalog_case_false_rejected=True,
+            )
+        )
     )
 
 
-def catalog():
+def historical_catalog():
     return {
         "schema": 1,
         "pin": "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36",
@@ -3677,21 +3714,88 @@ def catalog():
     }
 
 
-def stage_plan():
+def catalog():
+    historical = historical_catalog()
+    cases = []
+    for old in historical["cases"]:
+        boundary = old["boundary"]
+        encoded = old.get("encoded")
+        family = old["family"]
+        if boundary == "invalid-address":
+            # The following historical case encodes the same account with the
+            # same storage root. The pinned setter accepts the short raw key.
+            encoded = historical["cases"][old["case"] + 1]["encoded"]
+            boundary = None
+            family = "O09-short-account-key"
+        elif boundary == "missing-callback":
+            boundary = "missing-storage-root"
+            family = "O09-missing-storage-root"
+        elif family == "O09-contextual":
+            family = "O09-supplied-storage-root"
+        case = {
+            name: old[name] for name in ("case", "secured", "key", "default", "value", "root")
+        }
+        case.update(
+            family=family,
+            storage_root=[0, 255] * 16 if old["callback"] == "fixed-root" else None,
+            boundary=boundary,
+            encoded=encoded,
+        )
+        cases.append(case)
+
+    account = cases[19]["value"]
+    control_root = {
+        "tag": "leaf",
+        "path": [int(digit, 16) for digit in "6db025fbfccb3ff94f8425d7a893ea703ae9c341acf2d13f24142bfdbdc3fe99"],
+        "value": [9, 128],
+        "enc": {"raw": [], "hash": None},
+    }
     return {
-        "status": "PREPARED; REAL SOURCE HOLD",
-        "catalog_sha256": "89b64aac00f0afef83e461d51fbc8f79be5de1f2bd3e86cf6c5238b21eab28bf",
-        "cases": 54,
+        "schema": 2,
+        "pin": PIN,
+        "historical_pin": historical["pin"],
+        "historical_catalog_sha256": HISTORICAL_CATALOG_SHA,
+        "cases": cases,
+        "frontend_controls": [
+            dict(
+                case=54, family="equal-account-default", secured=True, key=[171, 0, 205, 94],
+                default=account, value=account, root=control_root, storage_root=None,
+                boundary=None, encoded=None,
+            ),
+            dict(
+                case=55, family="nondefault-u256-zero", secured=True, key=[171, 0, 205, 94],
+                default={"kind": "u256", "number": 5}, value={"kind": "u256", "number": 0},
+                root=control_root, storage_root=None, boundary=None, encoded=[128],
+            ),
+        ],
+        "storage_control": {
+            "writes": [[9, 0], [6, 24], [2, 0], [3, 7]],
+            "initial": [[9, 123], [6, 123], [2, 123]],
+            "order": [6, 3, 9, 2],
+            "readback": [None, [24], None, [7]],
+        },
+        "excluded": historical["excluded"],
+        "qualification": (
+            "The 54 historical raw inputs are replayed through the pinned assertion-enabled "
+            "setter. The comparison uses successfully preencoded nominal inputs under "
+            "the clean-entry and provider premises. The source frontend and storage-slot "
+            "controls are kept with their observed carrier and effects."
+        ),
+    }
+
+
+def stage_plan(catalog_sha):
+    return {
+        "pin": PIN,
+        "catalog_sha256": catalog_sha,
         "stages": [
-            "A full carrier/root/default/value/data/witness before frontend",
-            "B actual map membership/write/removal snapshots at original key conversion call",
-            "C full original key hash query/answer and converted key",
-            "D default/encoder/Account callback/Address failure and exact encoded bytes",
-            "E actual selected insertion/deletion entry/return/exception, "
-            "origin/dirty/cache/witness writes",
-            "F captured returns and separate bottom-up provider completion actions",
-            "G complete nominal Id/recording result and successful secured/root comparison under "
-            "named premises",
+            "A complete carrier, input value and optional storage root",
+            "C original full key query, answer and converted key",
+            "D default or encoder route and exact encoding or frontend exception",
+            "E mutation, including witness access, consulted cache and immediate state",
+            "F separate captured-return completions for successful projections",
+            "G complete nominal Id/recording results and Q60 diagnostic adaptations",
+            "S original storage-slot traversal and separate encoded readback",
         ],
         "comparison_premises": [
             "Finite acyclic nonaliasing exact original classes and typed supported "
@@ -3702,13 +3806,6 @@ def stage_plan():
             "origin/dirty/guard/cache/consulted-embedding/Encodable/Id/host premises",
             "Own materialization stages separate from original frontend/mutation query histories",
         ],
-        "source_execution": "HOLD",
-        (
-            'replay'
-        ): (
-            'No previous direct deletion/insertion operation replay; fres'
-            'h frontend calls only after ROOT release'
-        ),
     }
 
 
@@ -3717,16 +3814,19 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         parser_tests()
         return 0
-    if len(sys.argv) == 3 and sys.argv[1] == "--write-catalog":
+    if len(sys.argv) == 3 and sys.argv[1] in ("--write-catalog", "--write-historical-catalog"):
         destination = Path(sys.argv[2])
-        require(not destination.exists(), "fresh catalog path")
-        destination.write_text(json.dumps(catalog(), indent=2) + "\n")
+        historical = sys.argv[1] == "--write-historical-catalog"
+        data = historical_catalog() if historical else catalog()
+        payload = (json.dumps(data, indent=2) + "\n").encode()
+        digest = hashlib.sha256(payload).hexdigest()
+        if historical:
+            require(digest == HISTORICAL_CATALOG_SHA, "historical catalogue bytes changed")
+        with destination.open("xb") as stream:
+            stream.write(payload)
         print(
             json.dumps(
-                dict(
-                    cases=len(catalog()["cases"]),
-                    sha256=hashlib.sha256(destination.read_bytes()).hexdigest(),
-                )
+                dict(cases=len(data["cases"]), sha256=digest)
             )
         )
         return 0
@@ -3740,11 +3840,20 @@ def main():
     extra.add_argument("--catalog", type=Path, required=True)
     extra.add_argument("--preflight", action="store_true")
     own, remainder = extra.parse_known_args()
+    payload = own.catalog.read_bytes()
+    frozen = validate_catalog(payload)
+    catalog_sha = hashlib.sha256(payload).hexdigest()
     sys.argv = [sys.argv[0]] + remainder
     dst = argparse.ArgumentParser(add_help=False)
     dst.add_argument("--output", type=Path, required=True)
+    dst.add_argument("--eels", type=Path, required=True)
     args, _ = dst.parse_known_args(remainder)
     out = args.output.resolve()
+    require(
+        not out.is_relative_to(ROOT) and not out.is_relative_to(args.eels.resolve()),
+        "generated evidence must be outside both repositories",
+    )
+    require(not out.exists(), "fresh output path")
     log = out.parent / (out.stem + "-commands")
     log.mkdir(exist_ok=False)
     counter = 0
@@ -3796,23 +3905,35 @@ def main():
             return p.stdout.decode() if text else p.stdout
 
     context = CapturedDriver(__doc__, Path(__file__), DEFAULT_SEED)
+    require(context.head == frozen["pin"], "catalogue source pin")
     auth = RlpSourceAuth(context)
     sys.meta_path.insert(0, RlpFreshFinder(auth))
+    lock = tomllib.loads((context.eels / "uv.lock").read_text())
+
+    def locked_package(distribution):
+        name = distribution.metadata["Name"].lower().replace("_", "-")
+        versions = tomllib.loads((ROOT / "reference.toml").read_text())["release"]["python_dependencies"]
+        require(distribution.version == versions[name], "reference dependency version")
+        locked = [
+            row for row in lock["package"]
+            if row["name"] == name and row["version"] == distribution.version
+        ]
+        require(len(locked) == 1, "dependency version absent from pinned lock")
+        return locked[0]
+
     dependency = []
-    for pkg, wheel, digest in [
-        (
-            "ethereum_rlp",
-            own.rlp_wheel,
-            "f4144caa96b975720c62b967bbfd6c98601e95ee3c36457ece11ef4ce0cffa04",
-        ),
-        (
-            "ethereum_types",
-            own.types_wheel,
-            "33de3e2a0c0e57ea1b67802485de556b92d557aae7c8c640070800f2b4f639e3",
-        ),
+    for pkg, wheel in [
+        ("ethereum_rlp", own.rlp_wheel.resolve()),
+        ("ethereum_types", own.types_wheel.resolve()),
     ]:
-        require(hashlib.sha256(wheel.read_bytes()).hexdigest() == digest, "raw wheel identity")
         dist = importlib.metadata.distribution(pkg.replace("_", "-"))
+        wheel_bytes = wheel.read_bytes()
+        digest = hashlib.sha256(wheel_bytes).hexdigest()
+        locked_wheels = [
+            row for row in locked_package(dist)["wheels"]
+            if row["hash"] == "sha256:" + digest and row["size"] == len(wheel_bytes)
+        ]
+        require(len(locked_wheels) == 1, "raw dependency wheel differs from pinned lock")
         with zipfile.ZipFile(wheel) as z:
             raw = {
                 n: z.read(n) for n in z.namelist() if n.startswith(pkg + "/") and n.endswith(".py")
@@ -3827,8 +3948,10 @@ def main():
         dependency.append(
             dict(
                 package=pkg,
+                version=dist.version,
                 wheel=str(wheel),
                 sha256=digest,
+                lock=locked_wheels[0],
                 installed={
                     n: dict(
                         path=str(dist.locate_file(n)),
@@ -3864,8 +3987,8 @@ def main():
     context.check_source(state_module, "ethereum/state.py")
     retained_classes = classes + (
         inc.IncrementalMPT,
+        inc.Witness,
         inc.Account,
-        inc.Address,
         Uint,
         U256,
         Bytes32,
@@ -3874,6 +3997,8 @@ def main():
         (inc, n)
         for n in (
             "mpt_set",
+            "mpt_set_storage_slots",
+            "mpt_get",
             "_mpt_insert_node",
             "_insert_into_leaf",
             "_create_branch_from_two_leaves",
@@ -3897,6 +4022,7 @@ def main():
         (mpt, "encode_account"),
         (hash_module, "keccak256"),
         (rlp, "encode"),
+        (rlp, "decode"),
     ]
     functions = tuple(getattr(mod, name) for mod, name in function_paths)
     held = [(id(f), id(f.__code__)) for f in functions]
@@ -3951,7 +4077,7 @@ def main():
         )
         require(
             retained_classes
-            == classes + (inc.IncrementalMPT, inc.Account, inc.Address, Uint, U256, Bytes32),
+            == classes + (inc.IncrementalMPT, inc.Witness, inc.Account, Uint, U256, Bytes32),
             "carrier/value class replaced",
         )
         require(held == [(id(f), id(f.__code__)) for f in functions], "held code replaced")
@@ -4096,11 +4222,6 @@ def main():
         (dest / "manifest.json").write_text(json.dumps(rows, indent=2) + "\n")
         return rows
 
-    payload = own.catalog.read_bytes()
-    frozen = load_json(payload)
-    require(frozen == catalog(), "catalog must equal the complete frozen generator")
-    catalog_sha = hashlib.sha256(payload).hexdigest()
-
     def file_identity(path):
         p = Path(path)
         data = p.read_bytes()
@@ -4114,7 +4235,7 @@ def main():
 
     def runtime_identity():
         crypto = importlib.metadata.distribution("pycryptodome")
-        require(crypto.version == "3.23.0", "pinned crypto distribution")
+        crypto_lock = locked_package(crypto)
         crypto_entries = {}
         records = []
         for entry in crypto.files or []:
@@ -4189,6 +4310,7 @@ def main():
             sys_path=list(sys.path),
             loaded=loaded,
             crypto_version=crypto.version,
+            crypto_lock=crypto_lock,
             crypto_RECORD=records,
             crypto_files=crypto_entries,
             mapped_crypto=mapped,
@@ -4226,11 +4348,11 @@ def main():
         out.with_suffix(".preflight.json").write_text(
             json.dumps(
                 dict(
-                    schema=1,
+                    schema=2,
                     catalog_sha256=catalog_sha,
                     cases=len(frozen["cases"]),
                     scope=frozen["qualification"],
-                    stages=stage_plan(),
+                    stages=stage_plan(catalog_sha),
                     candidate_inputs=before["candidate_inputs"],
                     before=before,
                     after=after,
@@ -4256,10 +4378,7 @@ def main():
     origin_labels = {}
 
     def label(node):
-        if node is None:
-            return None
-        origin_labels.setdefault(id(node), len(origin_labels))
-        return origin_labels[id(node)]
+        return origin_labels.setdefault(id(node), (node, len(origin_labels)))[1]
 
     def view(node):
         if node is None:
@@ -4309,6 +4428,8 @@ def main():
             return None
         if value["kind"] == "bytes":
             return Bytes(value["bytes"])
+        if value["kind"] == "u256":
+            return U256(value["number"])
         if value["kind"] == "account":
             return inc.Account(
                 nonce=Uint(value["nonce"]),
@@ -4323,6 +4444,8 @@ def main():
             return dict(kind="none", type="builtins.NoneType")
         if type(value) is bytes:
             return dict(kind="bytes", bytes=list(value), type="builtins.bytes")
+        if type(value) is U256:
+            return dict(kind="u256", number=int(value), type="ethereum_types.numeric.U256")
         if type(value) is inc.Account:
             return dict(
                 kind="account",
@@ -4342,7 +4465,6 @@ def main():
             secured=state.secured,
             root=view(state.root_node),
             default=value_view(state.default),
-            data=[dict(key=list(k), value=value_view(v)) for k, v in state._data.items()],
             witness=[
                 dict(hash=list(h), raw=list(raw))
                 for h, raw in state.witness.accessed_nodes.items()
@@ -4414,11 +4536,32 @@ def main():
     driver_sha = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
     def record(row):
-        row = dict(row, catalog_sha256=catalog_sha, driver_sha256=driver_sha)
+        row = dict(row, pin=context.head, catalog_sha256=catalog_sha, driver_sha256=driver_sha)
         with journal.open("a") as stream:
             stream.write(json.dumps(row) + "\n")
             stream.flush()
             os.fsync(stream.fileno())
+
+    def exception_view(exception):
+        return dict(
+            module=type(exception).__module__,
+            name=type(exception).__qualname__,
+            message=str(exception),
+            args=[dict(type=type(value).__name__, repr=repr(value)) for value in exception.args],
+        )
+
+    def assert_exception(error, expected):
+        module, name, message, function, line = expected
+        require(
+            error is not None
+            and (error["module"], error["name"], error["message"], error["function"], error["line"])
+            == expected
+            and error["args"] == ([dict(type="str", repr=repr(message))] if message else []),
+            f"original exception at {module}.{function}:{line} ({name})",
+        )
+
+    def nibble_path(raw):
+        return [digit for byte in raw for digit in (byte // 16, byte % 16)]
 
     guards = (ROOT / "STFSpec/Conformance/Commit/SetGuards.lean").read_text()
     observers = guards.split("-- BEGIN complete structural observers\n", 1)[1].split(
@@ -4465,41 +4608,31 @@ def main():
     }
     return_codes = {inc._mpt_insert_node.__code__, inc._mpt_delete_node.__code__}
     codes = {f.__code__: f.__module__ + "." + f.__qualname__ for f in functions}
-    source_only = {
-        "nondefault-none",
-        "missing-callback",
-        "invalid-address",
-        "unsupported-encoding",
-    }
-    for descriptor in frozen["cases"]:
+    frontend_controls = []
+    for descriptor in frozen["cases"] + frozen["frontend_controls"]:
         index = descriptor["case"]
+        boundary = descriptor["boundary"]
+        frontend_control = index >= len(frozen["cases"])
         origin_labels.clear()
         root = build(descriptor["root"])
         key = Bytes(descriptor["key"])
         default, value = build_value(descriptor["default"]), build_value(descriptor["value"])
         state = inc.IncrementalMPT(secured=descriptor["secured"], default=default, root_node=root)
-        for entry in descriptor["data_before"]:
-            state._data[Bytes(entry["key"])] = build_value(entry["value"])
+        storage_root = (
+            None if descriptor["storage_root"] is None else Bytes32(bytes(descriptor["storage_root"]))
+        )
         initial_carrier = carrier_view(state)
         initial_value = value_view(value)
         source_input = view(root)
-        events, calls, visited, completions, callback_calls = [], [], [], [], []
-        actual_path, actual_encoding, error, immediate = None, None, None, None
-        stage = "frontend"
+        events, calls, visited, completions = [], [], [], []
+        actual_path, actual_encoding, error, completion_error = None, None, None, None
+        stage = "original"
 
-        def contextual_root(address):
-            require(type(address) is inc.Address, "actual callback Address")
-            returned = Bytes32(bytes([0, 255] * 16))
-            callback_calls.append(dict(address=list(address), root=list(returned)))
-            return returned
-
-        callback_identity = dict(
-            function_id=id(contextual_root),
-            code_id=id(contextual_root.__code__),
-            code_sha256=hashlib.sha256(marshal.dumps(contextual_root.__code__, 2)).hexdigest(),
-            role="explicit caller argument; original functions/providers unchanged",
-        )
-        callback = contextual_root if descriptor["callback"] == "fixed-root" else None
+        def root_argument(root):
+            if root is None:
+                return None
+            require(type(root) is Bytes32, "actual storage root class")
+            return dict(type="ethereum_types.bytes.Bytes32", bytes=list(root))
 
         def phase(frame):
             if stage.startswith("F-"):
@@ -4514,11 +4647,11 @@ def main():
                 ):
                     return "D-encoding"
                 if current.f_code is inc.mpt_set.__code__:
-                    if current.f_lineno >= 463:
+                    if current.f_lineno >= 435:
                         return "E-mutation"
-                    if current.f_lineno >= 452:
+                    if current.f_lineno >= 425:
                         return "D-encoding"
-                    if current.f_lineno >= 447:
+                    if current.f_lineno >= 420:
                         return "C-key"
                     return "A-entry"
                 current = current.f_back
@@ -4541,21 +4674,43 @@ def main():
             if (
                 frame.f_code is inc.mpt_set.__code__
                 and event == "line"
-                and frame.f_lineno in (447, 452, 463)
+                and frame.f_lineno in (425, 426, 428, 429, 431, 433, 435)
             ):
+                stages = {
+                    425: "C-converted",
+                    426: "D-default",
+                    428: "D-account-root-check",
+                    429: "D-account-encode",
+                    431: "D-nondefault-none",
+                    433: "D-value-encode",
+                    435: "D-encoded",
+                }
                 item = dict(
-                    stage={447: "B-map", 452: "C-converted", 463: "D-encoded"}[frame.f_lineno],
+                    stage=stages[frame.f_lineno],
                     file=frame.f_code.co_filename,
                     line=frame.f_lineno,
                     carrier=carrier_view(state),
                 )
-                if frame.f_lineno == 452:
+                if frame.f_lineno == 425:
                     actual_path = list(frame.f_locals["nibble_key"])
                     item["path"] = actual_path
-                if frame.f_lineno == 463:
+                if frame.f_lineno == 435:
                     actual_encoding = list(frame.f_locals["encoded_value"])
                     item["encoded"] = actual_encoding
                 events.append(item)
+            if (
+                frame.f_code is inc._collapse_branch.__code__
+                and event == "line"
+                and frame.f_lineno in (790, 791)
+            ):
+                events.append(
+                    dict(
+                        stage=phase(frame), function=codes[frame.f_code], event=event,
+                        file=frame.f_code.co_filename, line=frame.f_lineno,
+                        index=frame.f_locals["idx"], child=view(frame.f_locals["child"]),
+                        carrier=carrier_view(state),
+                    )
+                )
             if frame.f_code in codes and event in ("call", "return", "exception"):
                 item = dict(
                     stage=phase(frame),
@@ -4571,22 +4726,32 @@ def main():
                         item["node"] = view(node_value)
                     elif frame.f_code is mpt.encode_node.__code__:
                         item["encoder_value"] = value_view(node_value)
+                        item["storage_root"] = root_argument(frame.f_locals["storage_root"])
+                if frame.f_code is inc.mpt_set.__code__:
+                    item["storage_root"] = root_argument(frame.f_locals["storage_root"])
                 if frame.f_code in mutation_codes and "key" in frame.f_locals:
                     item["key"] = list(frame.f_locals["key"])
                     item["level"] = int(frame.f_locals.get("level", 0))
+                    if "value" in frame.f_locals:
+                        item["value"] = list(frame.f_locals["value"])
                 if event == "return" and frame.f_code in return_codes:
                     item["returned"] = view(arg)
                     if arg is not None:
                         visited.append(arg)
                 if event == "exception":
-                    item["exception"] = dict(
-                        module=arg[0].__module__,
-                        name=arg[0].__qualname__,
-                        message=str(arg[1]),
-                        args=[dict(type=type(x).__name__, repr=repr(x)) for x in arg[1].args],
-                    )
+                    item["exception"] = exception_view(arg[1])
                 events.append(item)
             return trace
+
+        def captured_error(exception):
+            deepest = traceback.extract_tb(exception.__traceback__)[-1]
+            return dict(
+                exception_view(exception),
+                function=deepest.name,
+                file=deepest.filename,
+                line=deepest.lineno,
+                traceback=traceback.format_exc(),
+            )
 
         record(
             dict(
@@ -4594,49 +4759,40 @@ def main():
                 case=index,
                 descriptor=descriptor,
                 carrier=initial_carrier,
-                value=value_view(value),
-                callback_identity=callback_identity,
+                value=initial_value,
+                storage_root=root_argument(storage_root),
             )
         )
         previous_trace = sys.gettrace()
         sys.settrace(trace)
         try:
             try:
-                inc.mpt_set(state, key, value, callback)
-                immediate = carrier_view(state)
-                for ordinal, node in enumerate(visited):
-                    stage = "F-separate-own-completion-" + str(ordinal)
-                    item = dict(
-                        stage=stage,
-                        origin=label(node),
-                        before=view(node),
-                        carrier_before=carrier_view(state),
-                    )
-                    returned_hash, returned_raw = inc._compute_node_hash_and_rlp(node)
-                    item.update(
-                        after=view(node),
-                        carrier_after=carrier_view(state),
-                        raw=list(returned_raw),
-                        hash=None if returned_hash is None else list(returned_hash),
-                    )
-                    completions.append(item)
+                returned = inc.mpt_set(state, key, value, storage_root)
             except Exception as exception:
-                sites = [
-                    e
-                    for e in events
-                    if e.get("exception", {}).get("name") == type(exception).__qualname__
-                ]
-                error_stage = (
-                    stage if stage.startswith("F-") else (sites[-1]["stage"] if sites else stage)
-                )
-                error = dict(
-                    stage=error_stage,
-                    module=type(exception).__module__,
-                    name=type(exception).__qualname__,
-                    message=str(exception),
-                    args=[dict(type=type(x).__name__, repr=repr(x)) for x in exception.args],
-                    traceback=traceback.format_exc(),
-                )
+                error = captured_error(exception)
+            else:
+                require(returned is None, "original setter returns None")
+            immediate = carrier_view(state)
+            if error is None and boundary is None and not frontend_control:
+                try:
+                    for ordinal, node in enumerate(visited):
+                        stage = "F-separate-own-completion-" + str(ordinal)
+                        item = dict(
+                            stage=stage,
+                            origin=label(node),
+                            before=view(node),
+                            carrier_before=carrier_view(state),
+                        )
+                        returned_hash, returned_raw = inc._compute_node_hash_and_rlp(node)
+                        item.update(
+                            after=view(node),
+                            carrier_after=carrier_view(state),
+                            raw=list(returned_raw),
+                            hash=None if returned_hash is None else list(returned_hash),
+                        )
+                        completions.append(item)
+                except Exception as exception:
+                    completion_error = dict(captured_error(exception), stage=stage)
         finally:
             sys.settrace(previous_trace)
         row = dict(
@@ -4646,6 +4802,7 @@ def main():
             input=source_input,
             before=initial_carrier,
             before_value=initial_value,
+            storage_root=root_argument(storage_root),
             immediate=immediate,
             after=carrier_view(state),
             actual_path=actual_path,
@@ -4653,9 +4810,8 @@ def main():
             events=events,
             queries=calls,
             materializations=completions,
-            callback_calls=callback_calls,
-            callback_identity=callback_identity,
             error=error,
+            completion_error=completion_error,
         )
         record(row)
         key_calls = [q for q in row["queries"] if q["stage"] == "C-key"]
@@ -4665,61 +4821,46 @@ def main():
         if key_calls:
             require(
                 key_calls[0]["preimage"] == descriptor["key"]
-                and key_calls[0]["answer"] is not None,
+                and len(key_calls[0]["answer"] or []) == 32,
                 "actual complete original key preimage/answer before encoding/dispatch",
             )
-        map_stages = [e for e in row["events"] if e.get("stage") == "B-map"]
-        require(len(map_stages) == 1, "actual post-map/pre-key stage")
-        expected_data = [dict(e) for e in row["before"]["data"]]
-        old_position = next(
-            (i for i, e in enumerate(expected_data) if e["key"] == descriptor["key"]), None
-        )
-        if descriptor["value"] == descriptor["default"]:
-            if old_position is not None:
-                expected_data.pop(old_position)
-        else:
-            source_value = next(
-                e["value"]
-                for e in map_stages[0]["carrier"]["data"]
-                if e["key"] == descriptor["key"]
-            )
-            expected_value = row["before_value"]
-            require(source_value == expected_value, "full original stored value/class fields")
-            entry = dict(key=descriptor["key"], value=expected_value)
-            if old_position is None:
-                expected_data.append(entry)
-            else:
-                expected_data[old_position] = entry
+        expected_path = nibble_path(key_calls[0]["answer"] if key_calls else descriptor["key"])
+        require(row["actual_path"] == expected_path, "complete original high-before-low key")
         require(
-            map_stages[0]["carrier"]["data"] == expected_data, "complete original ordered map step"
+            immediate["secured"] is descriptor["secured"]
+            and immediate["default"] == initial_carrier["default"],
+            "original secured/default fields retained",
         )
-        if descriptor["callback"] == "fixed-root" and descriptor["boundary"] is None:
-            require(
-                row["callback_calls"] == [dict(address=descriptor["key"], root=[0, 255] * 16)],
-                "complete contextual Address/callback root",
-            )
-        elif descriptor["boundary"] in ("missing-callback", "invalid-address"):
-            require(
-                not row["callback_calls"], "callback must not run before admission/address failure"
-            )
 
-        # These are genuinely different source values/default/encoding inputs.
-        # They are observed, never coerced into the nominal preencoded None case.
-        if descriptor["boundary"] in source_only:
+        frontend_lines = [event["line"] for event in events if "function" not in event]
+        default_route = descriptor["default"] == descriptor["value"]
+        if default_route:
+            expected_lines = [425, 426, 435]
+        elif boundary == "missing-storage-root":
+            expected_lines = [425, 428]
+        elif boundary == "nondefault-none":
+            expected_lines = [425, 431]
+        elif boundary == "unsupported-encoding":
+            expected_lines = [425, 433]
+        elif type(value) is inc.Account:
+            expected_lines = [425, 428, 429, 435]
+        else:
+            expected_lines = [425, 433, 435]
+        require(frontend_lines == expected_lines, "original key/default/encoding route")
+
+        if boundary in FRONTEND_ERRORS:
+            assert_exception(error, FRONTEND_ERRORS[boundary])
             require(
-                row["error"] is not None
-                and not any(e.get("stage") == "E-mutation" for e in row["events"]),
-                "source-only encoding boundary must precede mutation",
+                actual_encoding is None and immediate == initial_carrier
+                and not any(event["stage"] == "E-mutation" for event in events),
+                "frontend exception before mutation with all carrier fields retained",
             )
             row = dict(
                 row,
                 phase="complete",
                 comparison=False,
                 actual=None,
-                qualification=(
-                    'source-only value/default/encoder boundary; no nominal proje'
-                    'ction asserted'
-                ),
+                qualification="Original source frontend exception.",
             )
             record(row)
             observations.append(row)
@@ -4728,35 +4869,85 @@ def main():
             row["actual_encoding"] == (descriptor["encoded"] or []),
             "exact frozen preencoding bytes",
         )
-        key_calls = [q for q in row["queries"] if q["stage"] == "C-key"]
+        if storage_root is not None:
+            fields = rlp.decode(bytes(actual_encoding))
+            require(
+                fields == [value.nonce.to_be_bytes(), value.balance.to_be_bytes(), storage_root,
+                           value.code_hash],
+                "all four original encoded account fields",
+            )
+            row["decoded_account"] = [list(field) for field in fields]
+
+        dispatch = inc._mpt_insert_node if actual_encoding else inc._mpt_delete_node
+        selected = next(event for event in events if event["stage"] == "E-mutation"
+                        and event["event"] == "call")
         require(
-            len(key_calls) == int(descriptor["secured"]), "one original full key query iff secured"
+            selected["function"] == codes[dispatch.__code__]
+            and selected["key"] == expected_path
+            and selected["level"] == 0
+            and selected["node"] == source_input
+            and selected.get("value") == (actual_encoding or None),
+            "original mutation entry with full input path, value and carrier root",
         )
-        if key_calls:
-            require(
-                key_calls[0]["preimage"] == descriptor["key"]
-                and key_calls[0]["answer"] is not None,
-                "actual complete original key preimage/answer",
-            )
-        expected_path = [
-            d
-            for b in (key_calls[0]["answer"] if key_calls else descriptor["key"])
-            for d in (b // 16, b % 16)
-        ]
-        require(row["actual_path"] == expected_path, "complete original high-before-low key")
-        boundary = descriptor["boundary"]
         if boundary is None:
-            require(row["error"] is None, "unexpected frontend/provider/materialization failure")
-        elif boundary in ("stub", "stub-before-index", "zero-collapse"):
             require(
-                row["error"] is not None and row["error"]["name"] == "AssertionError",
-                "first original assertion",
+                error is None and completion_error is None,
+                "unexpected frontend/provider/materialization failure",
             )
+        elif boundary == "stub":
+            assert_exception(error, (
+                "builtins", "AssertionError", "HashedNode cannot be invalidated", "_invalidate_hash", 236,
+            ))
+        elif boundary == "stub-before-index":
+            assert_exception(error, (
+                "builtins", "AssertionError", "HashedNode cannot be witnessed", "_record_witness", 248,
+            ))
+        elif boundary == "zero-collapse":
+            assert_exception(error, ("builtins", "AssertionError", "", "_collapse_branch", 786))
         elif boundary == "selected-index":
-            require(
-                row["error"] is not None and row["error"]["name"] == "IndexError",
-                "first original selected access",
+            function, line = (
+                ("_insert_into_branch", 664) if actual_encoding else ("_delete_from_branch", 761)
             )
+            assert_exception(error, ("builtins", "IndexError", "list index out of range", function, line))
+        elif boundary == "high-survivor-256":
+            assert_exception(
+                error, ("builtins", "ValueError", "bytes must be in range(0, 256)", "_collapse_branch", 791)
+            )
+        else:
+            require(boundary in ("high-survivor-16", "high-survivor-255"), "known Q60 boundary")
+            survivor_index = int(boundary.rsplit("-", 1)[1])
+            survivor = source_input["children"][survivor_index]
+            result = immediate["root"]
+            require(
+                error is None and result["tag"] == survivor["tag"] == 2
+                and result["path"] == [survivor_index, *survivor["path"]]
+                and result["value"] == survivor["value"],
+                "exact out-of-nibble original survivor result",
+            )
+        if boundary == "stub-before-index" or (boundary or "").startswith("high-survivor-"):
+            collapse = [event["line"] for event in events
+                        if event.get("function") == codes[inc._collapse_branch.__code__]
+                        and event.get("event") == "line"]
+            require(
+                collapse == ([790] if boundary == "stub-before-index" else [790, 791]),
+                "source witnesses the survivor before accessing its byte index",
+            )
+
+        if frontend_control:
+            original_root = immediate["root"]
+            require(
+                original_root == {"tag": 0} if default_route else
+                original_root["tag"] == 2 and original_root["path"] == expected_path
+                and original_root["value"] == actual_encoding
+                and original_root["dirty"] and original_root["raw"] is None
+                and original_root["hash"] is None,
+                "typed frontend immediate root",
+            )
+            row = dict(row, phase="complete", qualification="Original typed frontend control.")
+            record(row)
+            frontend_controls.append(row)
+            continue
+
         key_expr = "(bytes [" + ",".join(map(str, descriptor["key"])) + "])"
         value_expr = (
             "none"
@@ -4788,6 +4979,12 @@ def main():
             "complete nominal inputs retained",
         )
         require(actual["result"] == actual["recorded"], "concrete Id/recording complete result")
+        if key_calls:
+            require(
+                actual["queries"][:1] == [arr(key_calls[0]["preimage"])]
+                and actual["answers"][:1] == [key_calls[0]["answer"]],
+                "Lean recording starts with the same complete secured key query and answer",
+            )
         if boundary is None:
             expected = [0, int(descriptor["secured"]), *wire(row["after"]["root"])]
             require(
@@ -4822,13 +5019,87 @@ def main():
             comparison=(boundary is None),
             actual=actual,
             generated_module=file_identity(case_module),
-            qualification=(
-                'Completed nominal projection only; source map/default/dirty/'
-                'witness/query histories remain separate'
-            ),
+            qualification="Completed nominal projection or Q60 diagnostic with original source trace.",
         )
         record(row)
         observations.append(row)
+
+    storage_descriptor = frozen["storage_control"]
+    origin_labels.clear()
+    storage = inc.IncrementalMPT(True, U256(0))
+
+    def slot_key(number):
+        return Bytes32(number.to_bytes(32, "big"))
+
+    slots = {slot_key(number): U256(value) for number, value in storage_descriptor["writes"]}
+    for number, value in storage_descriptor["initial"]:
+        inc.mpt_set(storage, slot_key(number), U256(value))
+    storage_before = carrier_view(storage)
+    writes = []
+    setter_code = inc.mpt_set.__code__
+    key_code = hash_module.keccak256.__code__
+
+    def trace_storage(frame, event, arg):
+        if frame.f_code is setter_code:
+            if event == "call":
+                require(
+                    frame.f_back.f_code is inc.mpt_set_storage_slots.__code__
+                    and frame.f_locals["mpt"] is storage
+                    and frame.f_locals["storage_root"] is None,
+                    "actual storage helper dispatch",
+                )
+                writes.append(
+                    dict(
+                        key=list(frame.f_locals["key"]), value=value_view(frame.f_locals["value"]),
+                        line=frame.f_back.f_lineno, before=carrier_view(storage), queries=[],
+                    )
+                )
+            elif event == "line" and frame.f_lineno == 435:
+                writes[-1].update(
+                    path=list(frame.f_locals["nibble_key"]),
+                    encoded=list(frame.f_locals["encoded_value"]),
+                )
+            elif event == "return":
+                writes[-1]["immediate"] = carrier_view(storage)
+            elif event == "exception":
+                writes[-1]["exception"] = exception_view(arg[1])
+        elif frame.f_code is key_code and frame.f_back.f_code is setter_code:
+            queries = writes[-1]["queries"]
+            if event == "call":
+                queries.append(dict(preimage=list(frame.f_locals["buffer"])))
+            elif event == "return":
+                queries[-1]["answer"] = None if arg is None else list(arg)
+        return trace_storage
+
+    previous_trace = sys.gettrace()
+    sys.settrace(trace_storage)
+    try:
+        inc.mpt_set_storage_slots(storage, slots)
+    finally:
+        sys.settrace(previous_trace)
+    storage_immediate = carrier_view(storage)
+    reads = [inc.mpt_get(storage, key) for key in slots]
+    readback = [None if value is None else list(value) for value in reads]
+    storage_control = dict(
+        phase="storage-slots", descriptor=storage_descriptor, before=storage_before,
+        writes=writes, immediate=storage_immediate, readback=readback, after=carrier_view(storage),
+    )
+    record(storage_control)
+    require(len(writes) == len(storage_descriptor["order"]), "complete storage setter calls")
+    for write, number in zip(writes, storage_descriptor["order"], strict=True):
+        key = slot_key(number)
+        value = slots[key]
+        queries = write["queries"]
+        require(
+            write["key"] == list(key) and write["value"] == value_view(value)
+            and write["line"] == (460 if value else 463) and "exception" not in write
+            and len(queries) == 1 and queries[0]["preimage"] == list(key)
+            and len(queries[0]["answer"] or []) == 32
+            and write["path"] == nibble_path(queries[0]["answer"])
+            and write["encoded"] == (list(rlp.encode(value)) if value else []),
+            "original two-pass storage setter call and complete secured key path",
+        )
+    require(readback == storage_descriptor["readback"], "complete original encoded storage readback")
 
     after = identity()
     after["runtime"] = runtime_identity()
@@ -4854,7 +5125,11 @@ def main():
     out.with_suffix(".after-identity.json").write_text(json.dumps(after, indent=2) + "\n")
     out.with_suffix(".observations.json").write_text(
         json.dumps(
-            dict(schema=1, cases=observations, before_identity=before, after_identity=after),
+            dict(
+                schema=2, pin=context.head, catalog_sha256=catalog_sha, driver_sha256=driver_sha,
+                cases=observations, frontend_controls=frontend_controls,
+                storage_control=storage_control, before_identity=before, after_identity=after,
+            ),
             indent=2,
         )
         + "\n"
@@ -4865,8 +5140,20 @@ def main():
             dict(
                 cases=len(observations),
                 successful_completed_projections=sum(r["comparison"] for r in observations),
-                queries=sum(len(r["queries"]) for r in observations),
+                nominal_cases=sum(r["actual"] is not None for r in observations),
+                source_frontend_errors=sum(r["actual"] is None for r in observations),
+                q60_controls=sum(r["actual"] is not None and not r["comparison"] for r in observations),
+                original_key_queries=sum(
+                    query["stage"] == "C-key" for row in observations for query in row["queries"]
+                ),
+                completion_queries=sum(
+                    query["stage"].startswith("F-") for row in observations for query in row["queries"]
+                ),
+                materializations=sum(len(row["materializations"]) for row in observations),
+                frontend_controls=len(frontend_controls),
+                storage_writes=len(writes),
                 pin=context.head,
+                catalog_sha256=catalog_sha,
             )
         )
     )

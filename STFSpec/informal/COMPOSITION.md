@@ -745,16 +745,15 @@ a reached parent actually inspects dirty, with separate consulted embedding, ful
 retained-cache, Encodable/class/host premises owned by EthCommit §3. It introduces no
 public metadata or a broad WF/initial-clean requirement.
 
-The encoded setter preserves literal provider-result bind/pure/Except.map syntax under
-plain Monad, with private arbitrary-provider/List action equality and complete controls
-owned by EthCommit §3. Focused validation and the bounded frontend catalog pass:
-26 successful completed projections, eight source-only encoding/default boundaries
-and 20 explicit diagnostics. The complete premises and history limits remain there.
-Callers preserve actual key/value/secured/root fields and operation order: direct
-empty update inserts, while frontend none/some empty deletes after secure key
-acquisition. This action equality concerns only the nominal root/secured carrier;
-source `_data`, default/witness records and mutable partial state are not equated.
-No bare Account instance or contextual root callback is supplied.
+The encoded setter preserves provider-result bind/pure/Except.map syntax under
+plain Monad. Private proofs give whole-action equality to a List reference for
+arbitrary providers. [EthCommit §3](modules/EthCommit.md#3-eels-source-map) owns
+the controls and the current source comparison's premises. Callers supply the
+original key, the optional encoded value and the nominal secured/root carrier.
+After secured key acquisition, an absent or empty encoding selects deletion.
+Direct update accepts and inserts an empty value. The caller owns Account
+encoding and storage-root acquisition. The source test records the default,
+witness/cache fields and partial mutations alongside the nominal comparison.
 
 C19/C24/C25 own the clean-entry private change/cache rule and exact reached-site
 failures. Callers preserve actual positions and action order, including a sole stub
@@ -769,9 +768,8 @@ premises, not new runtime/public WF predicates. Consumers use public operation/m
 laws; private worker/structural/reference proofs may change internally under B15/Q33.
 An Id value equation does not license stateful/failing generic action reordering,
 cache/witness/lifetime equivalence or arbitrary initially dirty source shape.
-Remaining frontend diagnostics/law and catalog, mptSet, map-level mutation laws,
-root/map/backend/security/witness, W1/S2/R2/O12/resources/costs and guest readiness
-remain open.
+Complete frontend and map-level mutation laws remain open, along with whole
+root/map/backend/security/witness, W1/S2/R2/O12, resources, costs and guest readiness.
 
 ### Pure lookup premise (Q59; supplied local operation)
 
