@@ -6,7 +6,7 @@ import STFSpec.Vm.Instructions.Handler
 import STFSpec.Base.U256Bitwise
 
 /-!
-# AND, OR, XOR and NOT
+# Bitwise instructions
 
 Library `EthVmInstructions`. The handlers use the word model from EthBase and
 the stack and meter operations from EthVmCore.
@@ -253,6 +253,65 @@ private theorem binary_continue_phi (ctx : FrameCtx) (f f' : Frame) (c : Nat)
           subst f'
           exact chargeGas_phi f.gasMeter c paid hg
 
+private theorem unary_empty (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256) (h : f.stack.toList = []) :
+    unaryLinear ctx f c word = .halt f .stackUnderflow := by
+  have hp := (Stack.pop_eq_error_iff f.stack .stackUnderflow).mpr ⟨h, rfl⟩
+  simp only [unaryLinear_eq_unary, unary, hp]
+
+private theorem unary_oog (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256) (x : U256) (xs : List U256)
+    (h : f.stack.toList = x :: xs) (hc : f.gasMeter.gasLeft < c) :
+    ∃ stack, f.stack.pop = .ok (x, stack) ∧ stack.toList = xs ∧
+      unaryLinear ctx f c word = .halt { f with stack } .outOfGas := by
+  obtain ⟨stack, hp, model⟩ := pop_of_model f.stack x xs h
+  have hg := (chargeGas_eq_error_iff f.gasMeter c .outOfGas).mpr ⟨hc, rfl⟩
+  exact ⟨stack, hp, model, by simp only [unaryLinear_eq_unary, unary, hp, hg]⟩
+
+private theorem unary_success (ctx : FrameCtx) (f : Frame) (c : Nat)
+    (word : U256 → U256) (x : U256) (xs : List U256)
+    (h : f.stack.toList = x :: xs) (hc : c ≤ f.gasMeter.gasLeft) :
+    ∃ stack out, f.stack.pop = .ok (x, stack) ∧ stack.toList = xs ∧
+      stack.push (word x) = .ok out ∧ out.toList = word x :: xs ∧
+      unaryLinear ctx f c word = .continue { f with
+        pc := f.pc + 1
+        stack := out
+        gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - c } } := by
+  obtain ⟨stack, hp, model⟩ := pop_of_model f.stack x xs h
+  cases next : stack.push (word x) with
+  | error e =>
+    exact False.elim (push_not_error f.stack stack x (word x) e hp next)
+  | ok out =>
+    have hm := (Stack.push_eq_ok_iff stack out (word x)).mp next
+    have hg := chargeGas_of_le f.gasMeter c hc
+    refine ⟨stack, out, hp, model, next, ?_, ?_⟩
+    · simpa only [model] using hm.2
+    · simp only [unaryLinear_eq_unary, unary, hp, hg, next]
+
+private theorem unary_continue_phi (ctx : FrameCtx) (f f' : Frame) (c : Nat)
+    (word : U256 → U256) (h : unaryLinear ctx f c word = .continue f') :
+    f'.gasMeter.phi + c = f.gasMeter.phi := by
+  rw [unaryLinear_eq_unary] at h
+  cases hp : f.stack.pop with
+  | error e =>
+    simp only [unary, hp] at h
+    contradiction
+  | ok pair =>
+    rcases pair with ⟨x, stack⟩
+    cases hg : chargeGas f.gasMeter c with
+    | error e =>
+      simp only [unary, hp, hg] at h
+      contradiction
+    | ok paid =>
+      cases next : stack.push (word x) with
+      | error e =>
+        simp only [unary, hp, hg, next] at h
+        contradiction
+      | ok out =>
+        simp only [unary, hp, hg, next, StepResult.continue.injEq] at h
+        subst f'
+        exact chargeGas_phi f.gasMeter c paid hg
+
 /-- Push the bitwise AND of the two popped words after charging and advance the PC.
 EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:21–43`. -/
 def bitwiseAnd {m : Type → Type} [Monad m] : Handler m :=
@@ -484,9 +543,8 @@ def bitwiseNot {m : Type → Type} [Monad m] : Handler m :=
 theorem bitwiseNot_run_empty {m : Type → Type} [Monad m]
     (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
     ((bitwiseNot ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
-  have hp := (Stack.pop_eq_error_iff f.stack .stackUnderflow).mpr ⟨h, rfl⟩
   change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeNot U256.not, w)) = _
-  simp only [unaryLinear_eq_unary, unary, hp]
+  rw [unary_empty ctx f ctx.config.costs.opcodeNot U256.not h]
 
 /-- An unaffordable charge halts after one pop and retains every other frame field and the world. -/
 theorem bitwiseNot_run_oog {m : Type → Type} [Monad m]
@@ -496,12 +554,10 @@ theorem bitwiseNot_run_oog {m : Type → Type} [Monad m]
     ∃ stack : Stack, f.stack.pop = .ok (x, stack) ∧ stack.toList = xs ∧
       ((bitwiseNot ctx f).run w).run =
         pure (Except.ok (.halt { f with stack } .outOfGas, w)) := by
-  obtain ⟨stack, hp, model⟩ := pop_of_model f.stack x xs h
-  have hg := (chargeGas_eq_error_iff f.gasMeter ctx.config.costs.opcodeNot .outOfGas).mpr
-    ⟨hc, rfl⟩
+  obtain ⟨stack, hp, model, hr⟩ := unary_oog ctx f ctx.config.costs.opcodeNot U256.not x xs h hc
   refine ⟨stack, hp, model, ?_⟩
   change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeNot U256.not, w)) = _
-  simp only [unaryLinear_eq_unary, unary, hp, hg]
+  rw [hr]
 
 /-- An affordable charge replaces the top word and changes only the PC and execution gas.
 The bounded stack guarantees space for the push after the pop. -/
@@ -517,24 +573,11 @@ theorem bitwiseNot_run_success {m : Type → Type} [Monad m]
           stack := out
           gasMeter := { f.gasMeter with
             gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeNot } }, w)) := by
-  obtain ⟨stack, hp, model⟩ := pop_of_model f.stack x xs h
-  have oldBound := f.stack.size_le
-  rw [Stack.size_eq_length_toList, h] at oldBound
-  have available : stack.size < 1024 := by
-    rw [Stack.size_eq_length_toList, model]
-    simp only [List.length_cons] at oldBound
-    omega
-  cases next : stack.push (U256.not x) with
-  | error e =>
-    have he := (Stack.push_eq_error_iff stack (U256.not x) e).mp next
-    omega
-  | ok out =>
-    have hm := (Stack.push_eq_ok_iff stack out (U256.not x)).mp next
-    have hg := chargeGas_of_le f.gasMeter ctx.config.costs.opcodeNot hc
-    refine ⟨stack, out, hp, model, next, ?_, ?_⟩
-    · simpa only [model] using hm.2
-    · change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeNot U256.not, w)) = _
-      simp only [unaryLinear_eq_unary, unary, hp, hg, next]
+  obtain ⟨stack, out, hp, model, push, result, hr⟩ :=
+    unary_success ctx f ctx.config.costs.opcodeNot U256.not x xs h hc
+  refine ⟨stack, out, hp, model, push, result, ?_⟩
+  change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeNot U256.not, w)) = _
+  rw [hr]
 
 /-- A continuing Id run spends exactly the selected execution price in meter potential. -/
 theorem bitwiseNot_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
@@ -542,26 +585,8 @@ theorem bitwiseNot_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld 
     f'.gasMeter.phi + ctx.config.costs.opcodeNot = f.gasMeter.phi := by
   change Except.ok (unaryLinear ctx f ctx.config.costs.opcodeNot U256.not, w) =
     .ok (.continue f', w') at h
-  have step := (Prod.mk.inj (Except.ok.inj h)).1
-  cases hp : f.stack.pop with
-  | error e =>
-    simp only [unaryLinear_eq_unary, unary, hp] at step
-    contradiction
-  | ok pair =>
-    rcases pair with ⟨x, stack⟩
-    cases hg : chargeGas f.gasMeter ctx.config.costs.opcodeNot with
-    | error e =>
-      simp only [unaryLinear_eq_unary, unary, hp, hg] at step
-      contradiction
-    | ok paid =>
-      cases next : stack.push (U256.not x) with
-      | error e =>
-        simp only [unaryLinear_eq_unary, unary, hp, hg, next] at step
-        contradiction
-      | ok out =>
-        simp only [unaryLinear_eq_unary, unary, hp, hg, next, StepResult.continue.injEq] at step
-        subst f'
-        exact chargeGas_phi f.gasMeter ctx.config.costs.opcodeNot paid hg
+  exact unary_continue_phi ctx f f' ctx.config.costs.opcodeNot U256.not
+    (Prod.mk.inj (Except.ok.inj h)).1
 
 /-- A positive selected execution price implies strict potential decrease on a continuing Id run. -/
 theorem bitwiseNot_continue_progress (ctx : FrameCtx) (f f' : Frame)
@@ -569,6 +594,368 @@ theorem bitwiseNot_continue_progress (ctx : FrameCtx) (f f' : Frame)
     (positive : 1 ≤ ctx.config.costs.opcodeNot) :
     f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have accounting := bitwiseNot_continue_phi ctx f f' w w' h
+  omega
+
+/-- Push the byte selected by the first popped word as a big-endian index into the second.
+Charge after both pops and advance the PC after the push.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:120–153`. -/
+def getByte {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte)
+
+/-- First-pop underflow retains the complete frame and world. -/
+theorem getByte_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((getByte ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeByte U256.byte h]
+
+/-- Second-pop underflow retains the first pop and precedes the charge. -/
+theorem getByte_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((getByte ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeByte U256.byte x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte, w)) = _
+  rw [hr]
+
+/-- A denied charge retains both pops and the complete entry meter. -/
+theorem getByte_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeByte) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((getByte ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeByte U256.byte x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte, w)) = _
+  rw [hr]
+
+/-- An affordable charge permits the push and retains every other frame field and the world. -/
+theorem getByte_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : ctx.config.costs.opcodeByte ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.byte x y) = .ok out ∧
+      out.toList = U256.byte x y :: xs ∧
+      ((getByte ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeByte } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeByte U256.byte x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte, w)) = _
+  rw [hr]
+
+/-- A continuing Id run spends exactly the selected price in meter potential. -/
+theorem getByte_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((getByte ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeByte = f.gasMeter.phi := by
+  change Except.ok (binaryLinear ctx f ctx.config.costs.opcodeByte U256.byte, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeByte U256.byte
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- A positive selected price gives strict potential decrease on a continuing Id run. -/
+theorem getByte_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((getByte ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeByte) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := getByte_continue_phi ctx f f' w w' h
+  omega
+
+/-- Push the second popped word shifted left by the first.
+Charge after both pops and advance the PC after the push.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:156–183`. -/
+def bitwiseShl {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl)
+
+/-- First-pop underflow retains the complete frame and world. -/
+theorem bitwiseShl_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((bitwiseShl ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeShl U256.shl h]
+
+/-- Second-pop underflow retains the first pop and precedes the charge. -/
+theorem bitwiseShl_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((bitwiseShl ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeShl U256.shl x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl, w)) = _
+  rw [hr]
+
+/-- A denied charge retains both pops and the complete entry meter. -/
+theorem bitwiseShl_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeShl) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((bitwiseShl ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeShl U256.shl x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl, w)) = _
+  rw [hr]
+
+/-- An affordable charge permits the push and retains every other frame field and the world. -/
+theorem bitwiseShl_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : ctx.config.costs.opcodeShl ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.shl x y) = .ok out ∧
+      out.toList = U256.shl x y :: xs ∧
+      ((bitwiseShl ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeShl } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeShl U256.shl x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl, w)) = _
+  rw [hr]
+
+/-- A continuing Id run spends exactly the selected price in meter potential. -/
+theorem bitwiseShl_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseShl ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeShl = f.gasMeter.phi := by
+  change Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShl U256.shl, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeShl U256.shl
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- A positive selected price gives strict potential decrease on a continuing Id run. -/
+theorem bitwiseShl_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseShl ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeShl) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := bitwiseShl_continue_phi ctx f f' w w' h
+  omega
+
+/-- Push the second popped word shifted logically right by the first.
+Charge after both pops and advance the PC after the push.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:186–213`. -/
+def bitwiseShr {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr)
+
+/-- First-pop underflow retains the complete frame and world. -/
+theorem bitwiseShr_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((bitwiseShr ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeShr U256.shr h]
+
+/-- Second-pop underflow retains the first pop and precedes the charge. -/
+theorem bitwiseShr_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((bitwiseShr ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeShr U256.shr x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr, w)) = _
+  rw [hr]
+
+/-- A denied charge retains both pops and the complete entry meter. -/
+theorem bitwiseShr_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeShr) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((bitwiseShr ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeShr U256.shr x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr, w)) = _
+  rw [hr]
+
+/-- An affordable charge permits the push and retains every other frame field and the world. -/
+theorem bitwiseShr_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : ctx.config.costs.opcodeShr ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.shr x y) = .ok out ∧
+      out.toList = U256.shr x y :: xs ∧
+      ((bitwiseShr ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeShr } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeShr U256.shr x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr, w)) = _
+  rw [hr]
+
+/-- A continuing Id run spends exactly the selected price in meter potential. -/
+theorem bitwiseShr_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseShr ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeShr = f.gasMeter.phi := by
+  change Except.ok (binaryLinear ctx f ctx.config.costs.opcodeShr U256.shr, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeShr U256.shr
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- A positive selected price gives strict potential decrease on a continuing Id run. -/
+theorem bitwiseShr_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseShr ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeShr) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := bitwiseShr_continue_phi ctx f f' w w' h
+  omega
+
+/-- Push the second popped word shifted arithmetically right by the first.
+Charge after both pops and advance the PC after the push.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:216–245`. -/
+def bitwiseSar {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar)
+
+/-- First-pop underflow retains the complete frame and world. -/
+theorem bitwiseSar_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((bitwiseSar ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar, w)) = _
+  rw [binary_empty ctx f ctx.config.costs.opcodeSar U256.sar h]
+
+/-- Second-pop underflow retains the first pop and precedes the charge. -/
+theorem bitwiseSar_run_singleton {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256)
+    (h : f.stack.toList = [x]) :
+    ∃ s₁ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.toList = [] ∧
+      ((bitwiseSar ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w)) := by
+  obtain ⟨s₁, hp, hm, hr⟩ := binary_singleton ctx f ctx.config.costs.opcodeSar U256.sar x h
+  refine ⟨s₁, hp, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar, w)) = _
+  rw [hr]
+
+/-- A denied charge retains both pops and the complete entry meter. -/
+theorem bitwiseSar_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeSar) :
+    ∃ s₁ s₂ : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ ((bitwiseSar ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w)) := by
+  obtain ⟨s₁, s₂, h₁, h₂, hm, hr⟩ :=
+    binary_oog ctx f ctx.config.costs.opcodeSar U256.sar x y xs h hc
+  refine ⟨s₁, s₂, h₁, h₂, hm, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar, w)) = _
+  rw [hr]
+
+/-- An affordable charge permits the push and retains every other frame field and the world. -/
+theorem bitwiseSar_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x y : U256) (xs : List U256)
+    (h : f.stack.toList = x :: y :: xs)
+    (hc : ctx.config.costs.opcodeSar ≤ f.gasMeter.gasLeft) :
+    ∃ s₁ s₂ out : Stack, f.stack.pop = .ok (x, s₁) ∧ s₁.pop = .ok (y, s₂) ∧
+      s₂.toList = xs ∧ s₂.push (U256.sar x y) = .ok out ∧
+      out.toList = U256.sar x y :: xs ∧
+      ((bitwiseSar ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSar } }, w)) := by
+  obtain ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, hr⟩ :=
+    binary_success ctx f ctx.config.costs.opcodeSar U256.sar x y xs h hc
+  refine ⟨s₁, s₂, out, h₁, h₂, hm, hp, ho, ?_⟩
+  change pure (Except.ok (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar, w)) = _
+  rw [hr]
+
+/-- A continuing Id run spends exactly the selected price in meter potential. -/
+theorem bitwiseSar_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseSar ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeSar = f.gasMeter.phi := by
+  change Except.ok (binaryLinear ctx f ctx.config.costs.opcodeSar U256.sar, w) =
+    .ok (.continue f', w') at h
+  exact binary_continue_phi ctx f f' ctx.config.costs.opcodeSar U256.sar
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- A positive selected price gives strict potential decrease on a continuing Id run. -/
+theorem bitwiseSar_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((bitwiseSar ctx f).run w).run = .ok (.continue f', w'))
+    (hc : 1 ≤ ctx.config.costs.opcodeSar) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have hp := bitwiseSar_continue_phi ctx f f' w w' h
+  omega
+
+/-- Push the number of leading zero bits in the popped word after charging and advance the PC.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/bitwise.py:248–274`. -/
+def countLeadingZeros {m : Type → Type} [Monad m] : Handler m :=
+  fun ctx f ↦ pure (unaryLinear ctx f ctx.config.costs.opcodeClz U256.clz)
+
+/-- An empty stack halts before charging and retains the complete frame and world. -/
+theorem countLeadingZeros_run_empty {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (h : f.stack.toList = []) :
+    ((countLeadingZeros ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w)) := by
+  change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeClz U256.clz, w)) = _
+  rw [unary_empty ctx f ctx.config.costs.opcodeClz U256.clz h]
+
+/-- An unaffordable charge halts after one pop and retains every other frame field and the world. -/
+theorem countLeadingZeros_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256) (xs : List U256)
+    (h : f.stack.toList = x :: xs)
+    (hc : f.gasMeter.gasLeft < ctx.config.costs.opcodeClz) :
+    ∃ stack : Stack, f.stack.pop = .ok (x, stack) ∧ stack.toList = xs ∧
+      ((countLeadingZeros ctx f).run w).run =
+        pure (Except.ok (.halt { f with stack } .outOfGas, w)) := by
+  obtain ⟨stack, hp, model, hr⟩ := unary_oog ctx f ctx.config.costs.opcodeClz U256.clz x xs h hc
+  refine ⟨stack, hp, model, ?_⟩
+  change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeClz U256.clz, w)) = _
+  rw [hr]
+
+/-- An affordable charge replaces the top word and changes only the PC and execution gas.
+The bounded stack guarantees space for the push after the pop. -/
+theorem countLeadingZeros_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (x : U256) (xs : List U256)
+    (h : f.stack.toList = x :: xs)
+    (hc : ctx.config.costs.opcodeClz ≤ f.gasMeter.gasLeft) :
+    ∃ stack out : Stack, f.stack.pop = .ok (x, stack) ∧ stack.toList = xs ∧
+      stack.push (U256.clz x) = .ok out ∧ out.toList = U256.clz x :: xs ∧
+      ((countLeadingZeros ctx f).run w).run = pure (Except.ok
+        (.continue { f with
+          pc := f.pc + 1
+          stack := out
+          gasMeter := { f.gasMeter with
+            gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeClz } }, w)) := by
+  obtain ⟨stack, out, hp, model, push, result, hr⟩ :=
+    unary_success ctx f ctx.config.costs.opcodeClz U256.clz x xs h hc
+  refine ⟨stack, out, hp, model, push, result, ?_⟩
+  change pure (Except.ok (unaryLinear ctx f ctx.config.costs.opcodeClz U256.clz, w)) = _
+  rw [hr]
+
+/-- A continuing Id run spends exactly the selected execution price in meter potential. -/
+theorem countLeadingZeros_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (h : ((countLeadingZeros ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeClz = f.gasMeter.phi := by
+  change Except.ok (unaryLinear ctx f ctx.config.costs.opcodeClz U256.clz, w) =
+    .ok (.continue f', w') at h
+  exact unary_continue_phi ctx f f' ctx.config.costs.opcodeClz U256.clz
+    (Prod.mk.inj (Except.ok.inj h)).1
+
+/-- A positive selected execution price implies strict potential decrease on a continuing Id run. -/
+theorem countLeadingZeros_continue_progress (ctx : FrameCtx) (f f' : Frame)
+    (w w' : VmWorld Id) (h : ((countLeadingZeros ctx f).run w).run = .ok (.continue f', w'))
+    (positive : 1 ≤ ctx.config.costs.opcodeClz) :
+    f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
+  have accounting := countLeadingZeros_continue_phi ctx f f' w w' h
   omega
 
 end STFSpec.Vm.Instructions

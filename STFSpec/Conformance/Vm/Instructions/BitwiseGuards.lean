@@ -33,7 +33,13 @@ private def context : FrameCtx :=
     opcodeAnd := 0
     opcodeOr := 1
     opcodeXor := 7
-    opcodeNot := 2 ^ 300 + 3 }
+    opcodeNot := 2 ^ 300 + 3
+    low := 23
+    opcodeByte := 11
+    opcodeShl := 13
+    opcodeShr := 17
+    opcodeSar := 29
+    opcodeClz := 2 ^ 300 + 5 }
   ⟨⟨costs, ⟨0, 7, 2 ^ 300 + 11, 13⟩, ⟨7, 0, 2 ^ 301 + 17⟩⟩,
     blockEnv, txEnv, addr 101, addr 103, U256.max, Bytes.ofList [255, 0, 128],
     some (addr 0), Bytes.ofList [96, 91, 255],
@@ -132,5 +138,32 @@ private def runCase (handler : Handler Id) (price gas pc : Nat)
   [2 ^ 256 - 1, 17] [0, 17] none
 #guard runCase bitwiseNot (2 ^ 300 + 3) (2 ^ 300 + 2) (2 ^ 290 + 11)
   [2 ^ 256 - 1, 17] [17] (some .outOfGas)
+
+#guard [getByte, bitwiseShl, bitwiseShr, bitwiseSar, countLeadingZeros].all fun handler ↦
+  runCase handler 0 0 11 [] [] (some .stackUnderflow)
+
+#guard [getByte, bitwiseShl, bitwiseShr, bitwiseSar].all fun handler ↦
+  runCase handler 0 0 11 [2 ^ 255] [] (some .stackUnderflow)
+
+#guard runCase getByte 11 11 11 [0, 128 * 2 ^ 248 + 255, 17] [128, 17] none
+#guard runCase getByte 11 11 11 [31, 128 * 2 ^ 248 + 255, 17] [255, 17] none
+#guard runCase getByte 11 11 11 [32, 128 * 2 ^ 248 + 255, 17] [0, 17] none
+#guard runCase getByte 11 11 11 [2 ^ 256 - 1, 2 ^ 256 - 1, 17] [0, 17] none
+#guard runCase getByte 11 10 11 [31, 128 * 2 ^ 248 + 255, 17] [17] (some .outOfGas)
+#guard runCase bitwiseShl 13 13 11 [255, 1, 17] [2 ^ 255, 17] none
+#guard runCase bitwiseShl 13 13 11 [256, 1, 17] [0, 17] none
+#guard runCase bitwiseShl 13 12 11 [255, 1, 17] [17] (some .outOfGas)
+#guard runCase bitwiseShr 17 17 11 [255, 2 ^ 255, 17] [1, 17] none
+#guard runCase bitwiseShr 17 17 11 [256, 2 ^ 255, 17] [0, 17] none
+#guard runCase bitwiseShr 17 16 11 [255, 2 ^ 255, 17] [17] (some .outOfGas)
+#guard runCase bitwiseSar 29 29 11 [255, 2 ^ 255, 17] [2 ^ 256 - 1, 17] none
+#guard runCase bitwiseSar 29 29 11 [256, 2 ^ 255, 17] [2 ^ 256 - 1, 17] none
+#guard runCase bitwiseSar 29 29 11 [2 ^ 256 - 1, 2 ^ 255 - 1, 17] [0, 17] none
+#guard runCase bitwiseSar 29 29 11 [2 ^ 256 - 1, 2 ^ 255, 17] [2 ^ 256 - 1, 17] none
+#guard runCase bitwiseSar 29 28 11 [255, 2 ^ 255, 17] [17] (some .outOfGas)
+#guard runCase countLeadingZeros (2 ^ 300 + 5) (2 ^ 300 + 5) (2 ^ 290 + 11)
+  [0, 17] [256, 17] none
+#guard runCase countLeadingZeros (2 ^ 300 + 5) (2 ^ 300 + 5) 11 [2 ^ 256 - 1, 17] [0, 17] none
+#guard runCase countLeadingZeros (2 ^ 300 + 5) (2 ^ 300 + 4) 11 [0, 17] [17] (some .outOfGas)
 
 end STFSpec.Conformance.Vm.Instructions.BitwiseGuards
