@@ -454,8 +454,15 @@ tests do not establish the whole State invariant or select F7 clear traversal.
 EthState §§3/5/7.5 supplies R18 `modifyState` for future callers. It brings
 the defaulted account and its returned transaction into the callback and write,
 then performs the current emptiness read before conditional R17. Both typed
-failure branches use the existing StateM result. R19 and the provider/source
-models remain separate.
+failure branches use the existing StateM result. Provider and source models
+remain separate.
+
+EthState §§3/4/5/7.5 supplies R19 `moveEther` and `createEther`. The
+transfer feeds the completed sender transaction to the recipient's R18
+action, including for a shared address. Credit uses one R18 action.
+Use the exact checked arithmetic and typed StateM errors at this seam.
+Caller reachability, provider and world agreement, and error projection
+remain open.
 
 ### Supplied mathematical transaction view
 

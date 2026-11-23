@@ -124,8 +124,8 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::mark_account_created` | 552–571 | `markAccountCreated` | **Supplied standalone action:** insert the complete address into the transaction's created-account set. Private run and retention equations (§7), facade guards and bounded source comparisons (§4). |
 | `forks/amsterdam/state_tracker.py::set_transient_storage` | 574–598 | `setTransientStorage` | **Discharged write:** insert or erase one full transient key and retain all other fields. |
 | `forks/amsterdam/state_tracker.py::modify_state` | 601–613 | `modifyState` | **Supplied standalone action:** defaulted lookup, fallible callback, account write and second read before conditional R17 destruction (§7.5). |
-| `forks/amsterdam/state_tracker.py::move_ether` | 616 | `moveEther` | checked add |
-| `forks/amsterdam/state_tracker.py::create_ether` | 650 | `createEther` | checked add |
+| `forks/amsterdam/state_tracker.py::move_ether` | 616–647 | `moveEther` | **Supplied standalone action:** checked sender debit followed by checked recipient credit through R18. |
+| `forks/amsterdam/state_tracker.py::create_ether` | 650–670 | `createEther` | **Supplied standalone action:** checked credit through R18. |
 | `forks/amsterdam/state_tracker.py::set_account_balance` | 673 | `setAccountBalance` | |
 | `forks/amsterdam/state_tracker.py::increment_nonce` | 696 | `incrementNonce` | |
 | `forks/amsterdam/state_tracker.py::set_code` | 715 | `setCode` | takes the hash |
@@ -299,6 +299,19 @@ select keys and the existing raw erasure policy to update metadata.
 | Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:601–613` | `STFSpec.State.modifyState {m : Type → Type} [Monad m] (a : Address) (f : Account → Except StateError Account) : StateM m Unit`, exported by State from `STFSpec/State/ModifyState.lean` | Read through `getAccount`, then call the supplied update. Either failure returns the complete nominal error through StateM. Success writes the account, runs the actual `accountExistsAndIsEmpty` read and conditionally runs R17. | Private literal Monad action, exact Id branches, second-read and snapshot equations in §7.5. Facade controls and pinned comparisons in §4. |
+
+### Implemented Ether transfers and credits
+
+| Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:616–647` | `STFSpec.State.moveEther {m : Type → Type} [Monad m] (sender recipient : Address) (amount : U256) : StateM m Unit` | Run R18 for checked subtraction at the sender, then run R18 for checked addition at the recipient on the returned transaction. An insufficient sender balance returns `balanceUnderflow` before any recipient action. An out-of-range sum returns `balanceOverflow` on the credit. | Private arithmetic and action equations in §7.5. State facade controls and pinned comparisons in §4. |
+| `src/ethereum/forks/amsterdam/state_tracker.py:650–670` | `STFSpec.State.createEther {m : Type → Type} [Monad m] (recipient : Address) (amount : U256) : StateM m Unit` | Use the same checked addition callback through one R18 update. An out-of-range sum returns `balanceOverflow`. | Private arithmetic and action equations in §7.5. State facade controls and pinned comparisons in §4. |
+
+Both operations are exported by State from `STFSpec/State/EtherUpdates.lean`.
+Each callback changes only the balance. The enclosing R18 action owns the
+defaulted read, ordered write, emptiness read and conditional destruction.
+A transfer reaches both actions when the first succeeds, even for the same
+address or zero amount.
 
 ### Implemented current account emptiness and liveness
 
@@ -591,6 +604,16 @@ positive cases, error-only vacuity and wrong-success rejection; they provide no
 production provider, progress, root/authentication, resource or release result.
 
 ## 4. Tests
+
+- **R19 Ether transfer and credit controls.** `EtherUpdateControls.lean`
+  checks the complete transaction overlay, both order indexes for storage,
+  account order and recorded reads through the State facade. It covers
+  defaulted credit, exact maximum and one over, self-transfer after an
+  intermediate clear, and zero touches. An observed provider records the
+  reached reads on sender underflow and recipient overflow. Pinned normal and
+  optimized Python compare against interpreted and compiled State actions.
+  Source failures retain their reached in-place observations. The StateM
+  error supplies its exact tag without a returned transaction.
 
 - **Standalone R27 controls:** `AncestorAccessChecks.lean` checks five
   histories and 20 updates, including absence, explicit zero, equal/decreasing
@@ -1260,8 +1283,10 @@ def setTransientStorage {m : Type → Type} [Monad m]
     (a : Address) (k : Bytes32) (v : U256) : StateM m Unit -- supplied, Monad only
 def modifyState {m : Type → Type} [Monad m]
     (a : Address) (f : Account → Except StateError Account) : StateM m Unit -- supplied
-def moveEther (src dst : Address) (amount : U256) : StateM m Unit
-def createEther (a : Address) (amount : U256) : StateM m Unit
+def moveEther {m : Type → Type} [Monad m]
+    (sender recipient : Address) (amount : U256) : StateM m Unit -- supplied
+def createEther {m : Type → Type} [Monad m]
+    (recipient : Address) (amount : U256) : StateM m Unit -- supplied
 def setAccountBalance (a : Address) (amount : U256) : StateM m Unit
 def incrementNonce (a : Address) : StateM m Unit
 def setCode (a : Address) (code : ByteArray) (codeHash : Hash32) : StateM m Unit   -- caller: codeHash = keccak256 code
@@ -1821,6 +1846,18 @@ reinstates the saved revertible record and retains the observations.
 The source records the first account read before a callback exception.
 The existing Lean StateM error result carries only the nominal error.
 
+For R19 the private equations give the exact debit and credit balance at
+every admitted U256 bound. A debit below zero and a credit at or above
+`2^256` return the corresponding StateError. The literal transfer action
+runs the recipient R18 update only with the completed sender transaction.
+At Id, sender failure is returned directly and sender success exposes the
+complete recipient result. The one-action credit uses the same callback.
+A same-address credit therefore reads through any tombstone produced by
+the debit. Its new balance can coexist with the intervening storage clear
+and the dropped-slot observations. Zero amounts still run the selected
+R18 actions. In-place source mutations before a failure are observed under
+§4. The R29 fault projection and whole-provider agreement remain open.
+
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
 ### Informal correctness argument
@@ -1960,6 +1997,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory
   and zkVM resource gates open.
+- **Standalone R19 transfers and credits supplied.** §§3/4/5/7.5 own
+  checked arithmetic and the actual ordered R18 actions. Caller reachability,
+  provider and world effects, StateError projection under R29 and composed
+  state obligations remain open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:199–200`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
