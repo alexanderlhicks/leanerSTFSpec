@@ -11,6 +11,7 @@ import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Stop
+import STFSpec.Vm.Instructions.ReturnRevert
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
