@@ -123,7 +123,7 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::destroy_storage` | 528–549 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | **Discharged standalone action:** pending slot keys become reads. The action erases the target patch and slot index, applies `WriteOrder.erase` to the address index, and records the clear. Private laws and typed controls below. |
 | `forks/amsterdam/state_tracker.py::mark_account_created` | 552–571 | `markAccountCreated` | **Supplied standalone action:** insert the complete address into the transaction's created-account set. Private run and retention equations (§7), facade guards and bounded source comparisons (§4). |
 | `forks/amsterdam/state_tracker.py::set_transient_storage` | 574–598 | `setTransientStorage` | **Discharged write:** insert or erase one full transient key and retain all other fields. |
-| `forks/amsterdam/state_tracker.py::modify_state` | 601 | `modifyState` | `f` may fail |
+| `forks/amsterdam/state_tracker.py::modify_state` | 601–613 | `modifyState` | **Supplied standalone action:** defaulted lookup, fallible callback, account write and second read before conditional R17 destruction (§7.5). |
 | `forks/amsterdam/state_tracker.py::move_ether` | 616 | `moveEther` | checked add |
 | `forks/amsterdam/state_tracker.py::create_ether` | 650 | `createEther` | checked add |
 | `forks/amsterdam/state_tracker.py::set_account_balance` | 673 | `setAccountBalance` | |
@@ -293,6 +293,12 @@ select keys and the existing raw erasure policy to update metadata.
 | Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:484–501` | `STFSpec.State.destroyAccount {m : Type → Type} [Monad m] (a : Address) : StateM m Unit`, exported by State from `STFSpec/State/DestroyAccount.lean` | On every raw transaction, sequence `destroyStorage a` and `setAccount a none`. The first action clears storage and records pending slot keys as reads. The second records the account tombstone in first-write order. Neither action consults the provider. | Private literal run, complete Id, read membership, order, retained-field and snapshot clauses in §7.5. Facade guards and pinned comparisons in §4. |
+
+### Implemented standalone account modification
+
+| Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:601–613` | `STFSpec.State.modifyState {m : Type → Type} [Monad m] (a : Address) (f : Account → Except StateError Account) : StateM m Unit`, exported by State from `STFSpec/State/ModifyState.lean` | Read through `getAccount`, then call the supplied update. Either failure returns the complete nominal error through StateM. Success writes the account, runs the actual `accountExistsAndIsEmpty` read and conditionally runs R17. | Private literal Monad action, exact Id branches, second-read and snapshot equations in §7.5. Facade controls and pinned comparisons in §4. |
 
 ### Implemented current account emptiness and liveness
 
@@ -671,6 +677,15 @@ production provider, progress, root/authentication, resource or release result.
   reads in both authenticated pinned Python modes and both interpreted and
   compiled Lean. The private source observer records the two EELS calls and
   the complete transaction before and after destruction.
+- **Standalone account modification controls.** `ModifyStateControls.lean`
+  uses the State facade to test provider failure, callback failure,
+  absent-account defaulting, modification to empty and nonempty updates.
+  The complete reversible fields and observation controls cover first-write
+  order, distinct supplied empty-code constants, explicit zero slot reads
+  and snapshot restoration. The original pinned source observations record
+  the defaulted read, callback, account write, second read and conditional
+  R17 operations. Both pinned modes supply five complete successful frame
+  pairs and one callback failure for the interpreted and compiled facade.
 - **Implemented defaulted-account controls:** `PreStateAccountDefaultCallerProofs.lean`
   consumes the five public wrapper laws through the State facade, including complete
   provider/function/constants retention. `pre_state_account_default_inputs.json`
@@ -1243,7 +1258,8 @@ def clearAccountPreservingBalance (a : Address) : StateM m Unit
 def markAccountCreated {m : Type → Type} [Monad m] (a : Address) : StateM m Unit
 def setTransientStorage {m : Type → Type} [Monad m]
     (a : Address) (k : Bytes32) (v : U256) : StateM m Unit -- supplied, Monad only
-def modifyState (a : Address) (f : Account → Except StateError Account) : StateM m Unit
+def modifyState {m : Type → Type} [Monad m]
+    (a : Address) (f : Account → Except StateError Account) : StateM m Unit -- supplied
 def moveEther (src dst : Address) (amount : U256) : StateM m Unit
 def createEther (a : Address) (amount : U256) : StateM m Unit
 def setAccountBalance (a : Address) (amount : U256) : StateM m Unit
@@ -1792,6 +1808,19 @@ Account and storage-address indexes preserve their prior `WF` and `Agrees`
 under the corresponding local premises. Restoring the entry snapshot
 restores all revertible fields and keeps the reads recorded by destruction.
 
+For `modifyState a f` (R18), the literal Monad action runs the
+defaulted lookup before applying the callback. At Id, a failed
+provider read or callback returns the exact StateM error. After a
+successful callback, the complete transaction from the lookup is passed
+to the write. The second, current emptiness read observes the just-written
+account through the transaction overlay and needs no additional provider
+call. It uses the supplied block constants. The nonempty branch keeps that
+transaction. The empty branch passes it to R17, which records the tombstone
+and observes the dropped pending slots. The existing R24 restore then
+reinstates the saved revertible record and retains the observations.
+The source records the first account read before a callback exception.
+The existing Lean StateM error result carries only the nominal error.
+
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
 ### Informal correctness argument
@@ -1924,8 +1953,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes, R16 storage clear and R17 account
-  destruction. R24 retains saved order and value roots together. Incorporation,
+  and the local laws for R14 account writes, R16 storage clear, R17 account
+  destruction and R18 modification. R24 retains saved order and value roots
+  together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory

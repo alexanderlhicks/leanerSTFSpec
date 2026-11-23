@@ -451,6 +451,12 @@ extraction and account-read history remain open, together with S1/S2 and
 composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
 
+EthState §§3/5/7.5 supplies R18 `modifyState` for future callers. It brings
+the defaulted account and its returned transaction into the callback and write,
+then performs the current emptiness read before conditional R17. Both typed
+failure branches use the existing StateM result. R19 and the provider/source
+models remain separate.
+
 ### Supplied mathematical transaction view
 
 EthState §3/§5/§7.1/§7.2 owns class-free `TxState.view`, exactly block view followed

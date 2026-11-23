@@ -529,8 +529,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes, R16 storage clear and R17 account
-  destruction. R24 retains saved order and value roots together. Incorporation,
+  and the local laws for R14 account writes, R16 storage clear, R17 account
+  destruction and R18 modification. R24 retains saved order and value roots
+  together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory

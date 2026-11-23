@@ -269,6 +269,7 @@ import STFSpec.Conformance.State.AccountOptionalCallerProofs
 import STFSpec.Conformance.State.AccountEmptinessControls
 import STFSpec.Conformance.State.DestroyStorageGuards
 import STFSpec.Conformance.State.DestroyAccountControls
+import STFSpec.Conformance.State.ModifyStateControls
 import STFSpec.Conformance.State.AccountExistsGuards
 import STFSpec.Conformance.State.CurrentStorageGuards
 import STFSpec.Conformance.State.StorageOriginalGuards
