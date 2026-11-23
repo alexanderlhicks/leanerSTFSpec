@@ -417,6 +417,12 @@ overflow and success. Each retains the complete supplied world. The Id laws
 give exact selected-price accounting and strict progress at a positive price.
 EthVmInstructions §10 records the remaining Q91 source and composition obligations.
 
+EthVmInstructions §§3/4/5/7 supplies fixed DUP and DUPN and thirteen
+local laws. Paid failure retains the debit and the entry stack. The
+success laws expose the actual peek, push and PC advance. The Id laws
+account for the independent selected prices. Q91's source fetch premise,
+whole trace, dispatch, settlement and composed G2 remain open.
+
 EthVmInstructions §3/§5/§7 supplies the raw seven-field `CreateRequest` at the
 creation suspension split of EELS
 `src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185`.
