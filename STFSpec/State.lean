@@ -22,6 +22,7 @@ import STFSpec.State.AccountOptional
 import STFSpec.State.AccountEmptiness
 import STFSpec.State.DestroyStorage
 import STFSpec.State.SetAccount
+import STFSpec.State.DestroyAccount
 import STFSpec.State.AccountExists
 import STFSpec.State.CurrentStorage
 import STFSpec.State.StorageOriginal
@@ -46,7 +47,7 @@ independent of trie commitments.
 
 The supplied operations include initialization, snapshot and restore, account
 and storage reads, hash-only code lookup, ancestor access recording, ordered
-account writes, storage clear, transient storage operations and marking a
+account writes, storage clear, account destruction, transient storage operations and marking a
 created account. The source map records the scope and laws of each operation.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/

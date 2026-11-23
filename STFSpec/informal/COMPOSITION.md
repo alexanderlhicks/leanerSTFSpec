@@ -444,8 +444,9 @@ exact inverse/bound consistency; Agrees separately equates optional forward
 presence with an arbitrary associated write map, including tombstones and zero.
 The standalone R14 action couples account writes to the account index.
 The standalone R16 action preserves the storage address index under local
-premises. EthState §7.5 owns the private proofs. R24 retains the saved
-order and value roots together. Clear composition, incorporation, reachable
+premises. R17 sequences the R16 clear and the R14 tombstone write. EthState
+§7.5 owns their private proofs, including the reads retained across R24
+snapshot restoration. Incorporation, reachable
 extraction and account-read history remain open, together with S1/S2 and
 composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
