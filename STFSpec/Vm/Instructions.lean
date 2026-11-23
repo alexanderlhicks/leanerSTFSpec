@@ -11,6 +11,7 @@ import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Pop
+import STFSpec.Vm.Instructions.ControlFlow
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
@@ -29,6 +30,7 @@ ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
 handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
 The standalone stack handler POP has ordered run laws, exact Id accounting and
 strict progress at positive prices.
+JUMPDEST has complete run equations and local Id accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
