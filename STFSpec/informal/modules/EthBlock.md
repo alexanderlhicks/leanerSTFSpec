@@ -109,17 +109,16 @@ It returns `IntrinsicGasCost`.
 9. Compare, in this order: `max(blockGasUsed, blockStateGasUsed) ≠ gasUsed` (EIP-7778/8037); `transactionsRoot`; `stateRoot`; `receiptRoot`; `bloom`; `withdrawalsRoot`; `blobGasUsed`; `requestsHash`; `blockAccessListHash`. Each has its own `…Mismatch` constructor.
 10. Return `diff`.
 
-### 2.8 Body (R-AB, `apply_body`, `:825–898`), in order
+### 2.8 Body (R-AB, `apply_body`, `fork.py:783–852`), in order
 
 1. `processUncheckedSystemTransaction beaconRoots parentBeaconBlockRoot` (EIP-4788), at BAL index 0.
 2. `processUncheckedSystemTransaction historyStorage blockHashes.last` (EIP-2935). An empty `blockHashes` is `IndexError` in EELS; the spec names it `missingParentHash`. It is unreachable on the guest path, where O3a precedes it.
-3. `trackAncestorAccess state 1` (`state_tracker.py:884`).
-4. For each `i`, **decode transaction `i` lazily and then process it**. EELS uses `map`, so a decode failure of transaction `i` occurs after transactions `< i` have executed.
-5. Set the BAL index to `n + 1`.
-6. `processWithdrawals`.
-7. `processGeneralPurposeRequests`.
-8. `bal := buildBlockAccessList builder blockState`.
-9. `validateBlockAccessListGasLimit bal header.gasLimit`.
+3. For each `i`, **decode transaction `i` lazily and then process it**. EELS uses `map`, so a decode failure of transaction `i` occurs after transactions `< i` have executed.
+4. Set the BAL index to `n + 1`.
+5. `processWithdrawals`.
+6. `processGeneralPurposeRequests`.
+7. `bal := buildBlockAccessList builder blockState`.
+8. `validateBlockAccessListGasLimit bal header.gasLimit`.
 
 **System calls** (`:665–780`). An unchecked call runs `process_top_level` with `origin = cfg.system.systemAddress` (source `SYSTEM_ADDRESS`, F8), value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It invokes `processTopLevelChecked cfg.runnerEnv`, supplying the same configured address to the emitter context for system and user calls (F8). It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:689–701`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
 
@@ -507,7 +506,7 @@ obligations remain open.
 
 | EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/transactions.py:799–809`, every finite bytes value; result unbounded `Uint` | `STFSpec/Block/CalldataTokens.lean`: `countTokensInData : ByteArray → Nat` | `countTokensInData_eq`: zeros + 4·(size − zeros); private packed-fold/reference equality | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty, concatenation and size bounds; `CalldataTokensGuards.lean` supplies small complete results; `scripts/CalldataTokensNativeTests.lean` emits all 266 complete input/result rows from the preimplementation catalog, including all 256 singletons and 10 KiB cases; `count_tokens_differential.py` checks whole rows and optionally compares actual pinned source observations; `scripts/test_count_tokens_output_parser.py` rejects malformed/duplicate/missing/extra rows and keys, malformed hex, wrong results and bool/float-as-int in normal and optimized Python. Finite source coupling retains locked-interpreter, used-module/runtime and host-resource limits; no universal runtime authentication, cost, full R-IG or guest result is supplied. |
+| `src/ethereum/forks/amsterdam/transactions.py:799–808` at `59c1473d`, every finite bytes value with an unbounded `Uint` result | `STFSpec/Block/CalldataTokens.lean`, `countTokensInData : ByteArray → Nat` | `countTokensInData_eq` gives zeros + 4·(size − zeros). A private equality relates the packed fold to the reference definition. | `STFSpec/Conformance/Block/CalldataTokensCallerProofs.lean` uses the public law for empty input, concatenation and size bounds. `CalldataTokensGuards.lean` checks small complete results. `scripts/CalldataTokensNativeTests.lean` emits 266 complete input/result rows from the preimplementation catalogue, including all 256 singletons and 10 KiB cases. The optional source mode of `count_tokens_differential.py` matched all 266 Lean rows against EELS at `59c1473d` in normal and optimized Python. `scripts/test_count_tokens_output_parser.py` checks both modes for malformed, duplicate, missing or extra rows and keys, malformed hex, wrong results, booleans and floats in integer fields, the old pin and the old function line. The source comparison covers the recorded inputs, interpreter and imported modules. Universal runtime authentication, host-resource limits, cost, composed intrinsic gas (R-IG) and guest agreement remain open. |
 
 ### Supplied raw block parameters
 
@@ -571,7 +570,7 @@ implementation obligations under that selected guidance.
 
 | EELS operation/domain | Lean definition | Ordinary laws | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` admits exact full bytes and tags; optional original-source packet coupling checks the exact eleven `InvalidBlock` messages/class/args. `scripts/test_deposit_data_output_parser.py` checks malformed framing/keys/types, every successful output byte position and wrong error identities/messages in normal and optimized Python. The catalog includes pinned `test_modified_contract.py`'s default 576-byte log, independently matched to the pinned fixture's literal emitter, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
+| `src/ethereum/forks/amsterdam/requests.py:170–271`, every finite bytes value | `STFSpec/Block/DepositData.lean`: existing eleven-tag `DepositError`; `extractDepositData : ByteArray → Except DepositError ByteArray` | `extractDepositData_eq`: complete length/offset/size priority and all successful bytes through public Base Bytes and Uint models; `size_extractDepositData`: success implies size 192 | `DepositDataCallerProofs.lean` privately checks the exact full public-law type, length-first and offset-before-size consequences and size; `DepositDataGuards.lean` checks all eleven constructor identities and complete zero-field output. `scripts/DepositDataNativeTests.lean` emits complete inputs and results for the independently frozen 142-case `deposit_cases.json`. `deposit_data_differential.py` checks complete bytes and tags. Its optional source mode checks the original `InvalidBlock` class, arguments and eleven messages at `59c1473d`. `scripts/test_deposit_data_output_parser.py` checks malformed framing, keys and types, every successful output byte position, wrong error identities and messages, and source pin admission in normal and optimized Python. The catalogue includes the default 576-byte EELS log described below, eleven single corruptions, empty/575/577 lengths, high word bits, simultaneous failure priority and ignored nonzero padding. No EVM/fixture/guest execution pass, source allocation/resource equivalence or runtime authentication follows. |
 
 The standalone helper supplies the existing R-RQ extraction only. Its constants
 are local literals, not a new `DepositLayout` public API. The readable definition
@@ -587,18 +586,22 @@ The frozen catalog identity is SHA-256
 Its `pinned_test_default_log` is the complete default log in EELS
 `tests/prague/eip6110_deposits/test_modified_contract.py:48–75`, emitted at
 `:142–155`. Independent literal PUSH/MSTORE/LOG inspection matched every byte to
-fixture member
+the `tests-zkevm@v21.0.0` fixture archive member
 `fixtures/blockchain_tests/for_amsterdam/prague/eip6110_deposits/modified_contract/extra_logs.json`
 (SHA-256 `eb0633cedf46233f7e577721f85f18b676fbcd29a1a000aa145cace5ca0d57a8`),
 test `test_extra_logs` with `include_deposit_event_True` and
 `extra_event_type_no_topics`. The original helper was called on that exact payload;
 the inspection did not execute the fixture transaction or EVM.
 
+At `59c1473d`, the original helper used `ethereum-types` 0.4.1 for `Uint`
+and `ulen`. Its observations matched all 142 complete Lean rows in normal
+and optimized Python on the original frozen catalogue [V].
+
 ### Implemented ordered execution-request commitment
 
 | EELS operation/domain | Lean definition | Ordinary law | Tests / limits |
 |---|---|---|---|
-| `src/ethereum/forks/amsterdam/requests.py:307–328`, every finite ordered list of finite bytes | `STFSpec/Block/RequestsHash.lean`: `computeRequestsHash : List ByteArray → Hash32`; pure value, no failure channel/consumer; **discharged for provider composition** | `computeRequestsHash_eq` identifies every ordered inner SHA digest byte, the exact concatenated outer preimage, outer SHA and `Hash32.ofBytes32`; private packed/List equality | `RequestsHashCallerProofs.lean` privately checks the whole facade law and derives full output bytes, empty/singleton/pair equations and exact model preimage size via public providers. `RequestsHashGuards.lean` checks complete empty/one-empty/two-empty/three-empty/abc anchor digests. `scripts/RequestsHashNativeTests.lean` emits all ordered request byte strings and all 32 actual output bytes for 298 independently frozen cases. `requests_hash_differential.py` checks complete rows and optionally both original-source modes; `scripts/test_requests_hash_output_parser.py` rejects altered digest bytes, request bytes/order/length, omitted/extra/duplicate rows, malformed framing/keys/hex and wrong types including bool-as-int counts, in normal and optimized Python. Source/environment/seal authentication is separate from observation admission. |
+| `src/ethereum/forks/amsterdam/requests.py:307–328`, every finite ordered list of finite bytes | `STFSpec/Block/RequestsHash.lean`: `computeRequestsHash : List ByteArray → Hash32`; pure value, no failure channel/consumer; **discharged for provider composition** | `computeRequestsHash_eq` identifies every ordered inner SHA digest byte, the exact concatenated outer preimage, outer SHA and `Hash32.ofBytes32`; private packed/List equality | `RequestsHashCallerProofs.lean` privately checks the whole facade law and derives full output bytes, empty/singleton/pair equations and exact model preimage size via public providers. `RequestsHashGuards.lean` checks complete empty/one-empty/two-empty/three-empty/abc anchor digests. `scripts/RequestsHashNativeTests.lean` emits all ordered request byte strings and all 32 actual output bytes for 298 independently frozen cases. `requests_hash_differential.py` checks complete rows and optionally couples both original-source modes at `59c1473d`. `scripts/test_requests_hash_output_parser.py` checks for altered digest bytes, request bytes/order/length, omitted/extra/duplicate rows, malformed framing/keys/hex, wrong types including bool-as-int counts, and source pin admission, in normal and optimized Python. Source/environment/seal authentication is separate from observation admission. |
 
 The catalog `STFSpec/Conformance/Block/requests-hash-cases.json` has SHA-256
 `98796c0f42b6672d35b706372f4af409e0197ea98f1fa35bda8660ac23e43be2`.
@@ -607,6 +610,11 @@ OpenSSL CLI inner/outer composition and fixed empty/abc anchors. The CLI and
 Python hashlib share OpenSSL; this supplies no independent cryptographic
 implementation claim. Both exact original-source observation projections are
 checked separately from their packet/interpreter/native-library authentication.
+
+At `59c1473d`, the original helper used OpenSSL-backed `hashlib.sha256` in
+the observed interpreter. Its observations matched all 298 complete Lean rows
+in normal and optimized Python on the original frozen catalogue [V].
+
 Cases retain empty and repeated requests, reverse order, every singleton prefix,
 unknown prefixes, split-boundary contrasts, inner lengths at the 55/56 and 64 SHA-256
 padding boundaries and outer count 256. These are finite observations, not a universal
@@ -1264,7 +1272,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   - `PreState m` and `ModelsLookups` (EthState, D9; stated at `PreState Id`), assumed and not checked: every `PreState` passed in satisfies `Models` for the property statements, while execution works for any `PreState m`.
   - `HashConsts` (EthBase) and `HashConsts.query`, `KeccakQuery` with its `ExceptT`/`StateT` lifts (EthHash).
   - `CheckedT`, `runVmChecked` (EthVmRunner, F14).
-  - `BlockState`/`TxState` operations and observers from `EthState`: `getAccount`, `getCode`, `incrementNonce`, `setAccountBalance`, `createEther`, `clearAccountPreservingBalance`, `incorporateTxIntoBlock`, `extractBlockDiff`, `trackAncestorAccess`.
+  - `BlockState`/`TxState` operations and observers from `EthState`: `getAccount`, `getCode`, `incrementNonce`, `setAccountBalance`, `createEther`, `clearAccountPreservingBalance`, `incorporateTxIntoBlock`, `extractBlockDiff`.
   - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `BlockOutput`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions.
   - `secp256k1Recover` through `EthVmRunner`'s transitive closure (`EthCurve`).
   - EthCommit's existing `root`/`mathRoot` over the safe typed/prepared dense maps (§5, Q53), with caller context empty root and lawful byte keys; EthBlock supplies its concrete validity/encoding bridges. RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
@@ -1335,7 +1343,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Negative refund counter.** `U256(gas_meter.refund_counter)` (`vm/interpreter.py`, G4) raises if the counter is negative: the cast at `:279` is proved unreachable; the one at `:312` is unresolved. `negativeRefund` is reserved for it.
 - **EEST exception labels.** Mapping `blockchain_tests` `expectException` strings to constructors (for example the legacy `gasPrice < baseFee`, which EELS raises as `InvalidBlock`, and `txDecode`) is warning-only; validity is decisive (DECISIONS Q9).
 - **`TransactionTypeContractCreationError`** is believed unreachable after RLP decoding [I]. It needs an EthCodec lemma (`Address` cannot decode from the empty string).
-- **Lazy decode order** (R-AB 4) matters only for which error is reported. The guest output is the same; `blockchain_tests` may observe it.
+- **Lazy decode order** (R-AB step 3) matters only for which error is reported. The guest output is the same; `blockchain_tests` may observe it.
 - **`create_ether` of 0 to the coinbase and origin**: the BAL and state effects of a zero-amount touch depend on `EthState`'s `modify_state` and account-deletion rules, which were not re-read here.
 - **The `SYSTEM_ADDRESS` in the BAL**: whether the system caller is recorded as touched depends on G4's `process_top_level` reads. It is not pinned down here and needs a fixture check (`test_block_access_lists_system_call_reads.py` is the likely generator).
 - **Reference evidence:** rerun load-bearing historical codec experiments against locked 0.1.6; the review environment now matches the lock, but has not exhaustively validated transaction codecs.
@@ -1344,4 +1352,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Conservation law** (§7): no proof strategy yet; it depends on G4's frame-level value-transfer and SELFDESTRUCT (EIP-8246) contracts.
 - **Complexity**: the BAL build cost with `ExtTreeMap` is expected to be O(N log N), but no `Std` cost theorem exists (ARCHITECTURE §5.0). Trie roots are built from scratch per block (EthCommit's cost) and not measured.
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10); the apply-body sequence here still lists it.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.

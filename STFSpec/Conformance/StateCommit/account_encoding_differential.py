@@ -23,7 +23,7 @@ import sys
 import tomllib
 import zipfile
 
-PIN = "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36"
+PIN = "59c1473ddfba341babaeca1c97a50e996f639a0b"
 _git_log_dir = None
 _git_serial = 0
 

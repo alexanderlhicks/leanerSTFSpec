@@ -22,7 +22,7 @@ def main():
     source = {"schema": reader.SCHEMA, "metadata": {
         "head": reader.PIN, "python": "fixture", "executable": "/fixture/python", "isolated": True,
         "dont_write_bytecode": True, "optimize": 0, "openssl": "fixture", "ethereum_types": "0.4.1",
-        "function_file": "/fixture/transactions.py", "function_firstlineno": 804,
+        "function_file": "/fixture/transactions.py", "function_firstlineno": 799,
         "files": [{"path": "/fixture/transactions.py", "sha256": "0" * 64}]}, "rows": rows}
     fixtures = []
 
@@ -90,9 +90,11 @@ def main():
         else:
             for field, bad in (("head", "bad"), ("ethereum_types", "0"), ("isolated", 1),
                                ("dont_write_bytecode", 1), ("optimize", False), ("optimize", 0.0),
-                               ("optimize", 2), ("function_firstlineno", 804.0), ("files", []),
+                               ("optimize", 2), ("function_firstlineno", 799.0), ("files", []),
                                ("python", None)):
                 mutate("metadata-" + field + repr(bad), ["metadata", field], bad)
+            mutate("old-source-pin", ["metadata", "head"], "e1a316a06fc3d3e0a5da36fdc78580811e9d8a36")
+            mutate("old-source-function-line", ["metadata", "function_firstlineno"], 804)
             mutate("source-extra", ["extra"], 0)
             mutate("source-missing", ["metadata"], delete=True)
             mutate("file-hash", ["metadata", "files", 0, "sha256"], "bad")

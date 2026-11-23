@@ -1,6 +1,6 @@
 # Technical-debt register (D18)
 
-**Status (2026-11-13):** current register under D18. The P3 move to Lean v4.35.0 (2026-11-05) triggered the toolchain-update reviews below. After normalizing variable numbering, the generated C of each cited function is identical on v4.35.0 and v4.34.0, so the static code-shape evidence still holds. Outside the cited functions, v4.35.0 drops one dead bounds test (`n ≤ n`) from the private `FixedBytes` `decodeFast`. The timing, peak-memory and allocation measurements below were made on Lean 4.34.0 and were not repeated. v4.35.0 changes the runtime allocator and scalar-array copying, and bundles clang 23.1.0 in place of 22.1.4. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6). The witness decoder's on-path set, a candidate from 2026-11-11 whose copies made memory grow with the square of chain depth, became a persistent set on 2026-11-13 (EthCommit C17, DISC-001).
+**Status (2026-11-13):** current register under D18. The P3 move to Lean v4.35.0 (2026-11-05) triggered the toolchain-update reviews below. After normalizing variable numbering, the generated C of each cited function at the P3 review was identical on v4.35.0 and v4.34.0, so the static code-shape evidence still held. Outside the cited functions, v4.35.0 drops one dead bounds test (`n ≤ n`) from the private `FixedBytes` `decodeFast`. The P3 review did not repeat the timing, peak-memory or allocation measurements from Lean 4.34.0. v4.35.0 changes the runtime allocator and scalar-array copying, and bundles clang 23.1.0 in place of 22.1.4. The outstanding entries below record local performance exceptions. Known candidate: per-query storage-trie decoding in the witness backend, pending the memo design (DECISIONS F6). The witness decoder's on-path set, a candidate from 2026-11-11 whose copies made memory grow with the square of chain depth, became a persistent set on 2026-11-13 (EthCommit C17, DISC-001).
 
 Use one entry per local, correct and complete implementation whose data structure or algorithm is **not** performance-appropriate, justified on grounds of legibility or drastic proof-friendliness (D18). Missing semantics, proof holes required for release, unproved fuel sufficiency and protocol deviations are not performance debt. Protocol discrepancies belong in [`STFSpec/informal/DISCREPANCIES.md`](DISCREPANCIES.md).
 
@@ -444,27 +444,26 @@ No input restriction or host-error policy is authorized.
 
 ## DEBT-OPS-DECODE — linear opcode decoder
 
-**Status:** open, 2026-10-31; amended 2026-11-05 (P3). **Owner:** EthVmInstructions maintainers. **Authority:** D18.
+**Status (2026-11-22):** closed. **Owner:** EthVmInstructions maintainers. **Authority:** D18.
 
-`Ops.ofByte? : UInt8 → Option Ops` in `STFSpec/Vm/Instructions/Ops.lean` preserves its
-complete public contract: `Ops.ofByte_toByte`, `Ops.toByte_ofByte`, and the 256 literal
-decoder equations in `OpsCallerProofs` (153 assigned bytes, 103 holes). It is a direct
-153-arm literal match on `b.toNat`, mirroring the pinned source table, so every equation
-closes by `rfl`. On Lean 4.34.0 and v4.35.0 the compiler turns it into a nested
-chain of up to 153 natural equality tests in source order. Every unassigned byte, including
-INVALID `0xFE`, takes all 153 tests; `toByte` is a constant-time tag switch. Reproduce with
-`lake build STFSpec.Vm.Instructions.Ops --wfail` and inspect `Ops.ofByte?` in
-`.lake/build/ir/STFSpec/Vm/Instructions/Ops.c`. This is static code-shape evidence, not a
-throughput measurement.
+The original decoder followed the pinned source with a 153-arm literal match.
+Lean v4.34.0 and v4.35.0 generated C with a chain of up to 153 natural number
+comparisons. In that C, an unassigned byte such as `0xFE` took all 153
+comparisons. Fuzzed EVM code can hit unassigned bytes often.
 
-No consumer decodes opcodes yet; `step` dispatch is the expected hot-path caller, and
-fuzzed code hits holes often. The literal match keeps the reference legible and its
-proofs trivial until then.
+The replacement keeps the literal decoder private as the reference definition
+and proves that the indexed decoder gives the same result for every `UInt8`
+(D25). The two public round trips and all 256 literal caller equations still hold.
+See [EthVmInstructions §4](modules/EthVmInstructions.md#4-tests) and
+[§7](modules/EthVmInstructions.md#7-contract-and-laws).
 
-Replace before `step` dispatch integrates the decoder. The P3 move to Lean v4.35.0 left
-this decoder in place. Its code shape is unchanged on v4.35.0. The replacement
-keeps the literal match as the legible reference and adds a constant-time decoder beside it
-(D25): a 256-entry `Vector (Option Ops) 256` indexed under `b.toNat < 256`, or a
-high-/low-nibble match. It proves an ordinary equality with the reference by a 256-case
-split, preserves both public laws and all 256 literal equations, and records the compiled
-code shape. Close this entry with that evidence.
+Run `lake build STFSpec.Vm.Instructions.Ops --wfail` and inspect `Ops.ofByte?` in
+`.lake/build/ir/STFSpec/Vm/Instructions/Ops.c`. On v4.35.0, module initialization
+builds and retains the table with 16 rows of 16 entries. The decoder computes
+the two nibble indices and performs two borrowed array reads. The generated
+decoder has no comparison chain or per-call table construction.
+
+In the optimized native build on x86-64, the C compiler emits jump tables for the
+retained literal decoder. A local benchmark cycled through all 256 byte values
+and included construction of the output array. Its median times were 9.90 ns per
+byte for the indexed decoder and 9.82 ns per byte for the literal decoder.

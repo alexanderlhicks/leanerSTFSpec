@@ -10,9 +10,8 @@ import STFSpec.Base.FixedBytes
 
 Library `EthCommit`. Type-only support for recursive partial nodes and unresolved
 hashed stubs, distinct from nonrecursive `InternalNode` and generic `Trie`.
-Pinned EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:53–103,290–349,885–984`
-and `src/ethereum/forks/amsterdam/witness_state.py:53–100` supply field correspondence,
-not a whole mutable-runtime refinement. Constructors certify no admission invariant.
+EELS `src/ethereum/forks/amsterdam/incremental_mpt.py:53–103,290–349,885–984`
+supplies the source fields for these carriers. Constructors certify no admission invariant.
 Spec guidance: `STFSpec/informal/modules/EthCommit.md` §§2.3/5/6/7.6; F5/F17/Q55.
 -/
 

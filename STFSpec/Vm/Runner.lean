@@ -15,8 +15,8 @@ import STFSpec.Vm.Runner.Output
 The recursive call executor: the frame loop, child execution, named resume operations, and termination.
 
 Library `EthVmRunner`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). Budget and entry-kind vocabulary and the raw
-`RunnerEnv`, raw output records, checked control carriers and the F14 VM adapter are supplied; recursive
-execution and fuel guarantees remain open.
+(see `STFSpec/informal/ARCHITECTURE.md` §3). The facade exports budget and entry-kind
+vocabulary, raw `RunnerEnv`, output records, child outcome conversion, checked control
+carriers and the F14 VM adapter. Recursive execution and fuel guarantees remain open.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md`.
 -/

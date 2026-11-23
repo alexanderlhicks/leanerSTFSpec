@@ -350,17 +350,20 @@ integration, security and the rest of this module remain open.
 
 **Supplied KZG controls.** The single canonical catalog
 `STFSpec/Conformance/Precompiles/kzg-versioned-hash-cases.json` retains every byte of
-917 preimplementation frozen inputs and mathematical outputs. Actual pinned-source
-normal/optimized observations agree on all 917 results, retaining the raw/typed
-constructor distinction and complete traces separately. Expected host hashlib and source
-may share OpenSSL; this is not an independent SHA algorithm. Nine independently chosen
-ordering/padding-boundary inputs add lengths 55/56/63/64/65/119/120/127/128. All 926
-complete inputs/results are emitted by both interpreted and compiled execution of
-`scripts/KzgVersionedHashNativeTests.lean`. The strict comparator checks framing, types
-(integer booleans rejected), exact record sets/IDs/order, input bytes and all 32 output
-bytes against the catalog. Optional paired-source mode additionally binds the exact
-adopted full observation-row hash and supplied sidecar bytes; runtime/environment
-authentication is a separate source gate. The adopted source observations and sidecar
+917 preimplementation frozen inputs and mathematical outputs. The original source
+records retain their `e1a316a0` provenance, raw and typed constructor results and
+complete traces. Fresh normal and optimized runs at both `e1a316a0` and `59c1473d`
+matched all 917 results. A separate campaign at both commits also matched the
+nine supplementary raw inputs of lengths 55/56/63/64/65/119/120/127/128.
+Each supplementary input produced a versioned hash and failed the separate
+width-48 commitment constructor. The host expectations and EELS can share
+OpenSSL through hashlib. Interpreted and compiled runs of
+`scripts/KzgVersionedHashNativeTests.lean` each emit all 926 complete inputs and
+results. The strict comparator checks framing, field types, record sets, IDs,
+order, input bytes and all 32 output bytes against the catalog. It rejects
+Booleans in integer fields. Optional paired-source mode binds the exact adopted
+historical row hash and supplied sidecar bytes. The source gate authenticates
+the runtime and environment separately. The adopted source observations and sidecar
 are out of tree, so paired-source mode cannot be exercised from this repository; the
 in-tree checks compare interpreted and compiled output with the catalog. Generated
 guards supply 41 literal anchors, including searched zero-suffix cases; generator

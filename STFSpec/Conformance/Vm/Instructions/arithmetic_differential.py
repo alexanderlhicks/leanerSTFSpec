@@ -31,7 +31,8 @@ def require(condition, message):
 def pairs(items):
     result = {}
     for key, value in items:
-        require(key not in result, "duplicate JSON key")
+        if key in result:
+            raise FrameError("duplicate JSON key")
         result[key] = value
     return result
 
@@ -129,17 +130,21 @@ def write_input(path):
     path.write_text("\n".join(rows) + "\n")
 
 
-def expected_exp(c, world):
-    """Independent modular-power model; byte count uses natural integer bit length."""
-    before = {
-        "pc": c["pc"], "stack": c["words"],
+def _arithmetic_frame(pc, words, gas):
+    return {
+        "pc": pc, "stack": words,
         "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
-        "meter": [c["gas"], 101, 2, -17, 5, 11],
+        "meter": [gas, 101, 2, -17, 5, 11],
         "logs": [[256, [256, 1, 256], [255, 0, 128]]] * 2,
         "deleted": [256], "returnData": [0, 255, 128, 0],
         "warmAddresses": [1], "warmSlots": [[1, 256], [256, 1]],
     }
-    after = copy.deepcopy(before)
+
+
+def expected_exp(c, world):
+    """Independent modular-power model; byte count uses natural integer bit length."""
+    before = _arithmetic_frame(c["pc"], c["words"], c["gas"])
+    after = _arithmetic_frame(c["pc"], c["words"].copy(), c["gas"])
     operands = []
     for _ in range(2):
         if after["stack"]:
@@ -175,15 +180,8 @@ def expected_frames():
         if c["op"] == "exp":
             rows.append(expected_exp(c, world))
             continue
-        before = {
-            "pc": c["pc"], "stack": c["words"],
-            "memory": [0, 0, 0, 128, 255, 1] + [0] * 26,
-            "meter": [c["gas"], 101, 2, -17, 5, 11],
-            "logs": [[256, [256, 1, 256], [255, 0, 128]]] * 2,
-            "deleted": [256], "returnData": [0, 255, 128, 0],
-            "warmAddresses": [1], "warmSlots": [[1, 256], [256, 1]],
-        }
-        after = copy.deepcopy(before)
+        before = _arithmetic_frame(c["pc"], c["words"], c["gas"])
+        after = _arithmetic_frame(c["pc"], c["words"].copy(), c["gas"])
         tag, error = "halt", "stackUnderflow"
         if c["op"] in {"addmod", "mulmod"}:
             operands = []
@@ -252,17 +250,20 @@ def expected_frames():
 
 
 def exact(actual, expected):
-    require(type(actual) is type(expected), "JSON observation type mismatch")
+    if type(actual) is not type(expected):
+        raise FrameError("JSON observation type mismatch")
     if isinstance(expected, dict):
-        require(actual.keys() == expected.keys(), "JSON observation keys")
+        if not (actual.keys() == expected.keys()):
+            raise FrameError("JSON observation keys")
         for key in expected:
             exact(actual[key], expected[key])
     elif isinstance(expected, list):
-        require(len(actual) == len(expected), "JSON observation length")
+        if len(actual) != len(expected):
+            raise FrameError("JSON observation length")
         for a, e in zip(actual, expected):
             exact(a, e)
-    else:
-        require(actual == expected, "JSON observation value mismatch")
+    elif not actual == expected:
+        raise FrameError("JSON observation value mismatch")
 
 
 def compare_frames(data):

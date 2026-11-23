@@ -131,7 +131,7 @@ def parse_source(data):
     return rows
 
 
-def authenticate(eels, policy):
+def authenticate(eels, policy, *, operation_name="get_pre_state_account_optional"):
     """Run inside the supplied source interpreter; report actual imported bytes."""
     import ethereum.forks.amsterdam.state_tracker as tracker
     import ethereum.state as state
@@ -175,7 +175,7 @@ def authenticate(eels, policy):
     return {"executable": file_identity(sys.executable), "version": sys.version,
             "optimize": sys.flags.optimize, "isolated": sys.flags.isolated,
             "dont_write_bytecode": sys.dont_write_bytecode,
-            "operation_source": inspect.getsource(tracker.get_pre_state_account_optional),
+            "operation_source": inspect.getsource(getattr(tracker, operation_name)),
             "imported_files": [file_identity(inspect.getfile(module)) for module in
                                [tracker, state, numeric, byte_types]],
             "uv_lock": file_identity(eels / "uv.lock"), "dependencies": dependencies,
@@ -332,7 +332,7 @@ def source_identity(eels, report):
         return run_child(["git", "--no-replace-objects", "-C", str(eels), *args], report).decode()
     pin = tomllib.loads((ROOT / "reference.toml").read_text())
     head = git("rev-parse", "HEAD").strip()
-    if head != pin["release"]["commit"] or git("status", "--porcelain"):
+    if head != pin["release"]["commit"] or git("--no-optional-locks", "status", "--porcelain"):
         raise ValueError("source must be a clean checkout of the exact pin")
     files = ["src/ethereum/forks/amsterdam/state_tracker.py", "src/ethereum/state.py", "uv.lock"]
     for relative in files:

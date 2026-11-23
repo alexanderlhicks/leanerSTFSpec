@@ -300,7 +300,7 @@ def source_identity(eels, report):
         return run_child(["git", "--no-replace-objects", "-C", str(eels), *args], report).decode()
     pin = tomllib.loads((ROOT / "reference.toml").read_text())
     head = git("rev-parse", "HEAD").strip()
-    if head != pin["release"]["commit"] or git("status", "--porcelain"):
+    if head != pin["release"]["commit"] or git("--no-optional-locks", "status", "--porcelain"):
         raise ValueError("source must be a clean checkout of the exact pin")
     files = ["src/ethereum/forks/amsterdam/state_tracker.py", "src/ethereum/state.py", "uv.lock"]
     for relative in files:

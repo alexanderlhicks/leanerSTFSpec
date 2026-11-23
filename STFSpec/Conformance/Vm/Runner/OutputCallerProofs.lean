@@ -5,15 +5,15 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Runner
 
 /-!
-# Complete raw runner output clients
+# Runner output clients
 
 Library `EthConformance`. Private public-facade clients check exact field types,
-construction, reconstruction and isolated updates. No provider storage is unfolded.
+construction, reconstruction, isolated updates and the settlement-proof adapter.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md` §§3/4/5/7.
 -/
 
 namespace STFSpec.Conformance.Vm.Runner.OutputCallerProofs
-open STFSpec.Base STFSpec.Vm.Core STFSpec.Vm.Runner
+open STFSpec.Base STFSpec.Vm.Core STFSpec.Vm.Instructions STFSpec.Vm.Runner
 
 private def frameResultType : Type := FrameResult
 private def transactionOutputType : Type := TransactionOutput
@@ -54,6 +54,32 @@ private theorem frame_result_replace_output (r : FrameResult) (replacement : Byt
 private theorem frame_result_replace_error (r : FrameResult) (replacement : Option FrameError) :
     ({ r with error := replacement } : FrameResult) =
       FrameResult.mk r.frame r.output replacement := by
+  rfl
+
+private def to_child_outcome_type :
+    (r : FrameResult) → ChildSettled r.frame r.error.isSome → ChildOutcome :=
+  FrameResult.toChildOutcome
+
+private theorem to_child_outcome_fields (r : FrameResult)
+    (h : ChildSettled r.frame r.error.isSome) :
+    let c := r.toChildOutcome h
+    (c.frame, c.output, c.error) = (r.frame, r.output, r.error) := by
+  rfl
+
+private theorem to_child_outcome_settled (r : FrameResult)
+    (h : ChildSettled r.frame r.error.isSome) :
+    (r.toChildOutcome h).settled = h := by
+  rfl
+
+private theorem to_child_outcome_proof_irrelevance (r : FrameResult)
+    (h₁ h₂ : ChildSettled r.frame r.error.isSome) :
+    r.toChildOutcome h₁ = r.toChildOutcome h₂ := by
+  rfl
+
+private theorem to_child_outcome_success (frame : Frame) (output : Bytes)
+    (h : ChildSettled frame false) :
+    (FrameResult.mk frame output none).toChildOutcome h =
+      ChildOutcome.mk frame output none h := by
   rfl
 
 private def transaction_output_constructor_type :
