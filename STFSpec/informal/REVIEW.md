@@ -423,6 +423,13 @@ success laws expose the actual peek, push and PC advance. The Id laws
 account for the independent selected prices. Q91's source fetch premise,
 whole trace, dispatch, settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies SWAPN and EXCHANGE and twelve local
+laws. Paid failures retain the entry stack and PC. Each success exposes
+the actual Core swap and both entry words. The Id laws account for the
+independent prices, with a positive selected price for strict progress.
+EthVmInstructions §10 records the remaining Q91 source and composition
+obligations.
+
 EthVmInstructions §3/§5/§7 supplies the raw seven-field `CreateRequest` at the
 creation suspension split of EELS
 `src/ethereum/forks/amsterdam/vm/instructions/system.py:59–185`.

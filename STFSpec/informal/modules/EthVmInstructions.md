@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, SWAPN and EXCHANGE have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11, Q91.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -126,8 +126,8 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 80–8F | DUP1…DUP16 | `:82` (`dup_n`) | → copy of i-th | 3 | charge, then `i > size` → underflow, then push (overflow) |
 | 90–9F | SWAP1…SWAP16 | `:110` (`swap_n`) | swap top, (i+1)-th | 3 | charge, then `i ≥ size` → underflow |
 | E6 | DUPN | `:213` | → copy of n-th | 3 | EIP-8024; charge; `n = decode_single(imm)` (`InvalidParameter` for imm 91…127); `n > size` → underflow; `pc += 2` |
-| E7 | SWAPN | `:245` | swap 1st, (n+1)-th | 3 | as DUPN; `n + 1 > size` → underflow |
-| E8 | EXCHANGE | `:281` | swap (n+1)-th, (m+1)-th | 3 | `(n,m) = decode_pair(imm)` (invalid 82…127); `max(n,m)+1 > size` → underflow |
+| E7 | SWAPN | `:245` | swap 1st, (n+1)-th | 3 | Charge, read the padded byte and decode as for DUPN. Underflow if `n + 1 > size`. Success advances the PC by two. |
+| E8 | EXCHANGE | `:281` | swap (n+1)-th, (m+1)-th | 3 | Charge and read the padded byte. `decode_pair(imm)` rejects 82…127. Underflow if `max(n,m) + 1 > size`. Success advances the PC by two. |
 
 **Logs and system**
 
@@ -201,7 +201,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
 | `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
-| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. The PUSH, fixed DUP and DUPN handlers are supplied below. |
+| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. The PUSH, fixed DUP, DUPN, SWAPN and EXCHANGE handlers are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
@@ -468,6 +468,23 @@ including values beyond the word range. EELS
 `src/ethereum/forks/amsterdam/vm/gas.py:70,225–227`,
 `src/ethereum/forks/amsterdam/vm/memory.py:63–83` and
 `src/ethereum/forks/amsterdam/vm/stack.py:25–53,115–131` at `59c1473d`.
+
+### Supplied standalone SWAPN and EXCHANGE handlers
+
+The Instructions facade exports both handlers from
+`STFSpec/Vm/Instructions/DynamicSwap.lean`. Each retains the complete
+supplied world under literal `pure`.
+
+| EELS source at `59c1473d` | Lean declaration and type | Domain | Effects and ordered failures | Laws and tests |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/stack.py:245–278` (`swapn`) | `STFSpec.Vm.Instructions.swapn {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. Paid source agreement uses the fitting Q91 start (§7). | Charge `opcodeSwapn`. Denial retains the entry frame. Read the padded byte at `pc + 1`, then call `decodeSingle`. Invalid decode precedes the depth check. Success swaps top-relative indices `0` and `n` and adds two to the PC. Paid failures retain the debit, entry stack and PC. | Six ordinary run and accounting laws (§7) and complete facade controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/instructions/stack.py:281–314` (`exchange`) | `STFSpec.Vm.Instructions.exchange {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. Paid source agreement uses the fitting Q91 start (§7). | Charge `opcodeExchange`. Denial retains the entry frame. Read the padded byte at `pc + 1`, then call `decodePair`. Invalid decode precedes the depth check. Success swaps the decoded top-relative indices and adds two to the PC. Paid failures retain the debit, entry stack and PC. | Six ordinary run and accounting laws (§7) and complete facade controls (§4). |
+
+The raw prices are independent. Both pinned prices are 3. The read uses
+the exact Nat offset on every raw frame. A private ordinary equality
+relates each executable worker to the direct Core swap model.
+EELS `gas.py:70,228–229`, `memory.py:63–83` and
+`stack.py:25–91` at `59c1473d`.
 
 ### Supplied STOP handler
 
@@ -1044,10 +1061,20 @@ The exclusive facade reuses the backing in 14 cases with spare
 capacity and grows it in six cases. The retained facade copies the
 backing when it pushes.
 
-**Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
-one-byte immediate passes zero to the decoder and that decoding precedes
-stack checks. Exercise both payment outcomes at the last fitting start
-and beyond it.
+**Supplied SWAPN and EXCHANGE controls.**
+`STFSpec/Conformance/Vm/Instructions/DynamicSwapControls.lean` checks the
+twelve local laws through the facade. Twenty guards compare every frame
+field and sample the world. They cover distinct prices, gas shortage
+before an invalid immediate, invalid decoding on empty and full stacks,
+the exact minimum depth, underflow by one, success at capacity, a missing
+immediate, zero price and gas or PC beyond the word range.
+
+The facade matches 475 paid SWAPN and 466 paid EXCHANGE source frames in
+both pinned Python modes. Each table covers all 256 immediate bytes.
+Additional controls exercise both payment outcomes outside the fitting
+read range and compare the paid raw Nat extension with an independent
+stack model. The compiled controls check complete result frames and
+world identity, exclusive backing reuse and retained stack preservation.
 
 ## 5. Interface
 
@@ -1161,6 +1188,8 @@ def bitwiseSar {m : Type → Type} [Monad m] : Handler m
 def countLeadingZeros {m : Type → Type} [Monad m] : Handler m
 def dupN (ordinal : Fin 16) {m : Type → Type} [Monad m] : Handler m
 def dupn {m : Type → Type} [Monad m] : Handler m
+def swapn {m : Type → Type} [Monad m] : Handler m
+def exchange {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1173,7 +1202,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- pop, mload, mstore, mstore8, sload, sstore, jump, jumpi, pc, msize,
 -- gasLeft, jumpdest, mcopy, swapN (n : Fin 16),
--- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
+-- logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
@@ -2167,7 +2196,7 @@ Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
-**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ and PUSH/DUP/DUPN laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
+**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ and PUSH/DUP/DUPN/SWAPN/EXCHANGE laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
 
 **Supplied PUSH laws.** The three run equations describe the complete
 results under literal underlying `pure`. The success equation exposes the
@@ -2320,6 +2349,114 @@ theorem dupn_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld I
     f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
 ```
 
+**Supplied SWAPN and EXCHANGE laws.** Both success laws expose the
+actual Core swap, the two entry words, the complete top-first stack
+model and the paid successor. An in-range swap succeeds at any
+capacity. Core's `decodePair_bounds` puts the two decoded indices in
+strict order, so the right index determines EXCHANGE's minimum depth.
+The Id laws account for each selected price and give strict progress
+at positive prices.
+
+```lean
+theorem swapn_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (short : f.gasMeter.gasLeft < ctx.config.costs.opcodeSwapn) :
+    ((swapn ctx f).run w).run = pure (Except.ok (.halt f .outOfGas, w))
+
+theorem swapn_run_invalid {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (enough : ctx.config.costs.opcodeSwapn ≤ f.gasMeter.gasLeft)
+    (decoded : decodeSingle ((ctx.code[f.pc + 1]?).getD 0) = .error .invalidParameter) :
+    ((swapn ctx f).run w).run =
+      pure (Except.ok (.halt { f with
+        gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSwapn } }
+        .invalidParameter, w))
+
+theorem swapn_run_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (depth : Nat)
+    (enough : ctx.config.costs.opcodeSwapn ≤ f.gasMeter.gasLeft)
+    (decoded : decodeSingle ((ctx.code[f.pc + 1]?).getD 0) = .ok depth)
+    (short : f.stack.size ≤ depth) :
+    ((swapn ctx f).run w).run =
+      pure (Except.ok (.halt { f with
+        gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSwapn } }
+        .stackUnderflow, w))
+
+theorem swapn_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (depth : Nat)
+    (enough : ctx.config.costs.opcodeSwapn ≤ f.gasMeter.gasLeft)
+    (decoded : decodeSingle ((ctx.code[f.pc + 1]?).getD 0) = .ok depth)
+    (within : depth < f.stack.size) :
+    ∃ (stack : Stack) (a b : U256), f.stack.swap? 0 depth = some stack ∧
+      f.stack.toList[0]? = some a ∧ f.stack.toList[depth]? = some b ∧
+      stack.toList = (f.stack.toList.set 0 b).set depth a ∧
+      ((swapn ctx f).run w).run =
+        pure (Except.ok (.continue { f with
+          gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeSwapn }
+          pc := f.pc + 2, stack }, w))
+
+theorem swapn_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (ran : ((swapn ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeSwapn = f.gasMeter.phi
+
+theorem swapn_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (ran : ((swapn ctx f).run w).run = .ok (.continue f', w'))
+    (positive : 1 ≤ ctx.config.costs.opcodeSwapn) :
+    f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
+
+theorem exchange_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (short : f.gasMeter.gasLeft < ctx.config.costs.opcodeExchange) :
+    ((exchange ctx f).run w).run = pure (Except.ok (.halt f .outOfGas, w))
+
+theorem exchange_run_invalid {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (enough : ctx.config.costs.opcodeExchange ≤ f.gasMeter.gasLeft)
+    (decoded : decodePair ((ctx.code[f.pc + 1]?).getD 0) = .error .invalidParameter) :
+    ((exchange ctx f).run w).run =
+      pure (Except.ok (.halt { f with
+        gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeExchange } }
+        .invalidParameter, w))
+
+theorem exchange_run_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (i j : Nat)
+    (enough : ctx.config.costs.opcodeExchange ≤ f.gasMeter.gasLeft)
+    (decoded : decodePair ((ctx.code[f.pc + 1]?).getD 0) = .ok (i, j))
+    (short : f.stack.size ≤ j) :
+    ((exchange ctx f).run w).run =
+      pure (Except.ok (.halt { f with
+        gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeExchange } }
+        .stackUnderflow, w))
+
+theorem exchange_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (i j : Nat)
+    (enough : ctx.config.costs.opcodeExchange ≤ f.gasMeter.gasLeft)
+    (decoded : decodePair ((ctx.code[f.pc + 1]?).getD 0) = .ok (i, j))
+    (within : j < f.stack.size) :
+    ∃ (stack : Stack) (a b : U256), f.stack.swap? i j = some stack ∧
+      f.stack.toList[i]? = some a ∧ f.stack.toList[j]? = some b ∧
+      stack.toList = (f.stack.toList.set i b).set j a ∧
+      ((exchange ctx f).run w).run =
+        pure (Except.ok (.continue { f with
+          gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - ctx.config.costs.opcodeExchange }
+          pc := f.pc + 2, stack }, w))
+
+theorem exchange_continue_phi (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (ran : ((exchange ctx f).run w).run = .ok (.continue f', w')) :
+    f'.gasMeter.phi + ctx.config.costs.opcodeExchange = f.gasMeter.phi
+
+theorem exchange_continue_progress (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (ran : ((exchange ctx f).run w).run = .ok (.continue f', w'))
+    (positive : 1 ≤ ctx.config.costs.opcodeExchange) :
+    f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
+```
+
 **Stack-immediate source agreement (Q91)** [C], planned. Prove the two
 charge cases for related source and Lean frames. In the denied case, the
 source raises the gas exception before evaluating the offset cast, so the
@@ -2378,15 +2515,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16
-  and DUPN have local run and accounting laws (§7) and the §4 facade
-  controls. SWAPN and EXCHANGE still need handlers, local laws and
-  controls. The full paid source correspondence
-  and its fetch premise (§7) still need proofs.
+- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16,
+  DUPN, SWAPN and EXCHANGE have local run and accounting laws (§7)
+  and the §4 facade controls. Fixed SWAP1–SWAP16 and its interface
+  choice remain open. The full paid source correspondence and its
+  fetch premise (§7) still need proofs.
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH/DUP/DUPN/SWAPN/EXCHANGE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2395,7 +2532,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH/DUP/DUPN/SWAPN/EXCHANGE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
