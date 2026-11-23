@@ -76,6 +76,7 @@ import STFSpec.Conformance.Vm.Instructions.ComparisonCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ComparisonGuards
 import STFSpec.Conformance.Vm.Instructions.BitwiseCallerProofs
 import STFSpec.Conformance.Vm.Instructions.BitwiseGuards
+import STFSpec.Conformance.Vm.Instructions.SelfBalanceControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs

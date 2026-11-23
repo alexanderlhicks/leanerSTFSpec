@@ -405,6 +405,12 @@ and the local G2 progress cases at positive prices. Use the source rows for
 the frame boundary and the handoff to `process_call` under O8. Dispatch,
 settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies SELFBALANCE with private run equations
+for denial, paid lookup, nominal State failure, paid overflow and success.
+The overflow frame retains the paid meter and the read transaction.
+The local Id continuation equation gives the selected-price potential debit.
+Dispatch, interpreter traces and broader State and fuel obligations remain open.
+
 EthVmInstructions §3/§4/§5/§7 supplies standalone TLOAD. Its private proofs cover
 ordered failure frames, successful push, whole-world retention at Id and the
 configured execution-gas charge. Native, interpreted and authenticated direct
