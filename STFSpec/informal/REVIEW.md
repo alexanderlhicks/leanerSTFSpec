@@ -405,6 +405,14 @@ and the local G2 progress cases at positive prices. Use the source rows for
 the frame boundary and the handoff to `process_call` under O8. Dispatch,
 settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies BALANCE and nine local laws. A cold
+denial retains the warmth insertion and both denial paths bypass State.
+The paid path uses the actual defaulted account lookup and preserves the
+nominal provider fault. The continuation laws state the exact State
+observation and reuse its existing model hypotheses. The source and native
+controls bound that evidence to the standalone handler. Dispatch, trace,
+reachable State and composed resource and guest gates remain open.
+
 EthVmInstructions §3/§4/§5/§7 supplies standalone TLOAD. Its private proofs cover
 ordered failure frames, successful push, whole-world retention at Id and the
 configured execution-gas charge. Native, interpreted and authenticated direct
