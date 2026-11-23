@@ -451,6 +451,12 @@ complete frame and meter, independent grants and zero committed spill at entry.
 Runner integration, preservation to settlement (F11) and the cross-frame
 potential bound (G2) remain open.
 
+EthVmCore §§3/4/5/7 supplies local child incorporation. L-INC proves
+the exact sum of parent and child potential. The two L-WARM-MONO
+laws identify the successful warm unions under the caller's subset
+premises. Use the actual `ChildSettled` proof. F11 proof production,
+the returned-child potential bound, resumption and composed G2 remain open.
+
 EthVmCore §3/§5/§7 supplies the raw ChildSettled assertion boundary and its
 constructive Decidable instance. Private facade clients cover all raw Frames and
 both flags, each clause and conditional whole-frame rollback/forfeit consequences;

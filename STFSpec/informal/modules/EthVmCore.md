@@ -20,7 +20,14 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.2 Frame exit
 
-- **R-INC-1** `incorporateChild parent child` (`__init__.py:188–244`) must add the child's `gas_left`, `state_gas_left`, `state_gas_spilled` and `refund_counter` to the parent's **unconditionally**, then, only if the child succeeded, call `repay_state_gas_spill` on the parent meter, append the child's logs, and union `accounts_to_delete`, `accessed_addresses` and `accessed_storage_keys`. It must be total: the four EELS `assert`s (`:221`, `:226–228`) become preconditions discharged by the runner's settlement lemmas (§7, `L-SETTLE`), never runtime checks. Because a child starts with a copy of the parent's access sets (`instructions/system.py:164–165, 433–434`) and only adds to them, the union equals the child's sets [I]; the implementation may use that (`L-WARM-MONO`).
+- **R-INC-1** `incorporateChild` (`__init__.py:188–244`) adds the child's
+  execution gas, state gas, pending spill and signed refund to the parent in
+  both outcomes. Only success repays pending spill, appends the child's
+  chronological logs and unions the deletion and warm sets. The total
+  operation takes the four source assertions as a `ChildSettled` proof
+  (§7, L-SETTLE). A related child initially copies the parent's warm sets
+  (`instructions/system.py:164–165,433–434`). L-WARM-MONO gives equality
+  with the child's sets when a caller proves the two subset premises.
 - **R-LOG-1** `emitTransferLog` (`__init__.py:247–283`, EIP-7708) takes a supplied `systemAddress : Address` immediately after Frame. For every supplied address and topic, amount 0 is an exact frame no-op; otherwise append exactly `Log(systemAddress, [topic, pad32 sender, pad32 recipient], be32 amount)` chronologically and preserve every other frame field. The helper does not suppress sender = recipient; its two producers own that guard. F8 assigns the pinned `SYSTEM_ADDRESS` literal (`__init__.py:36–38`) to Fork's `systemAddrs.systemAddress`, carried through `RunnerEnv` and immutable `FrameCtx`; Core declares no closed address constant. Pinned-source agreement instantiates the supplied address with the twenty bytes `ff` repeated nineteen times followed by `fe`. `TRANSFER_TOPIC = keccak256("Transfer(address,address,uint256)")` (`:35`) is a keccak-derived constant, so under D5 it is not a literal here: it is the `transferTopic` field of `HashConsts` (EthBase), acquired at the caller-owned F20 boundary through `HashConsts.query` (EthHash) and read from `world.tx.block.consts`. The caller projects that existing context field, with local notation `TRANSFER_TOPIC`, and passes the topic to the pure `emitTransferLog` helper. World-consuming operations read the record from that context. At `m := Id` its value is `0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef` [V: computed with the pinned EELS `keccak256`]; the check that `HashConsts.query` at `Id` equals this literal belongs to a module that can see `EthHash`.
 
 ### 2.3 Stack
@@ -126,7 +133,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 66 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 119–142 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
 | `forks/amsterdam/vm/__init__.py::Evm` | 147–185 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
-| `forks/amsterdam/vm/__init__.py::incorporate_child` | 188 | `incorporateChild` | total; asserts → preconditions |
+| `forks/amsterdam/vm/__init__.py::incorporate_child` | 188–244 | `incorporateChild` | Supplied local merge with a `ChildSettled` proof. |
 | `forks/amsterdam/vm/__init__.py::emit_transfer_log` | 247–283 | `emitTransferLog` | EIP-7708; supplied, row below |
 | `forks/amsterdam/vm/exceptions.py::*` | 17–139 | `inductive ExceptionalHalt`, `inductive FrameError` | all 15 items (classes and `InvalidOpcode.__init__`) |
 | `forks/amsterdam/vm/gas.py::*` | 48–1243 | `GasCosts`, `StateGasCosts`, `GasMeter` and one function per EELS function (§5) | all 43 items; blob/capacity/settlement functions take plain numbers instead of `Header`/`Transaction`/`BlockOutput` |
@@ -352,9 +359,21 @@ with or without forfeiture, using an explicit input committed-spill-zero premise
 and retaining all Frame fields. The complete `(3,10,1,-2,4,7)` meter restores to
 `(7,1,1,0,0,7)` and forfeits to `(0,1,1,0,0,7)`; both still fail C=0.
 EthVmInstructions §7 supplies the committed-spill clause at child entry.
-Preservation through execution, incorporation, processCall/processCreate
+Preservation through execution and actual incorporation, processCall/processCreate
 settlement and snapshots, returned proof production, child/resume, F11, Q83
 bridges, G1/G2–G7, S2, resources and guest/readiness remain open.
+
+### Supplied incorporation of a settled child
+
+| Pinned EELS source | Lean declaration and domain | Effects | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:188–244` | `incorporateChild (parent child : Frame) (childFailed : Bool) (h : ChildSettled child childFailed) : Frame` in `STFSpec/Vm/Core/IncorporateChild.lean`, exported by the Core facade | Each branch adds execution gas, state gas, pending spill and signed refund to the parent. The parent's baseline and committed spill are retained. Success repays pending spill, appends logs in parent-then-child order and takes the complete union of the deletion and two warm sets. Failure retains every parent nonmeter field. The parent's PC, stack, memory and return data are retained in both branches. | L-INC and both L-WARM-MONO equations (§7). Private whole-frame, signed-refund and chronology clients plus complete facade comparisons (§4). |
+
+The success branch uses the supplied repayment operation
+(`gas.py:619–647` at `59c1473d`). Its repayment is the minimum of the
+combined reservoir and pending spill. A failed child's signed refund and
+pending spill are zero by the supplied proof. The operation needs no warm
+subset premise. L-WARM-MONO applies when a caller has established it.
 
 ### Supplied transaction allocation and settlement (Q65, Q66)
 
@@ -1520,6 +1539,20 @@ private true/false controls. No source runtime or parser framework is needed for
 this logical assertion boundary; these controls prove no execution reachability.
 Reproduce with `lake build STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs --wfail`.
 
+**Supplied child incorporation controls.**
+`STFSpec/Conformance/Vm/Core/IncorporateChildControls.lean` checks the
+three public laws and compares all parent frame fields. Eight guards
+cover full and partial repayment, zero repayment at both boundaries,
+negative and cross-zero refunds, chronological logs, and overlapping,
+copied and disjoint sets. The failed cases exercise both returned
+execution gas and a forfeited execution balance.
+
+Eight admitted original EELS cases in each pinned Python mode compare
+the complete frame projection through the interpreted and compiled Core
+facade. The original controls also check the unchanged child and whether
+the repayment provider ran. The failed source cases supply settled revert
+and halt outcomes.
+
 - **Supplied nominal fault controls:** private public-facade clients in
   `VmFaultCallerProofs.lean` compare 350 complete values: all 340 StateError cases
   (every StateError/WitnessError/WitnessItem tag, zero/max/mixed and every-position
@@ -2112,7 +2145,9 @@ instance instDecidableChildSettled (child : Frame) (failed : Bool) :
 -- Includes the exact unconditional and failed-child side conditions of __init__.py:221,226–228 (L-SETTLE).
 -- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
 -- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
-def incorporateChild (parent : Frame) (child : Frame) (childFailed : Bool) (h : ChildSettled child childFailed) : Frame
+-- Supplied pure merge of a settled child.
+def incorporateChild (parent child : Frame) (childFailed : Bool)
+    (h : ChildSettled child childFailed) : Frame
 -- Supplied pure helper; zero guard precedes every encoding/construction.
 def emitTransferLog (f : Frame) (systemAddress : Address) (topic : Hash32)
     (sender recipient : Address) (amount : U256) : Frame
@@ -2162,7 +2197,7 @@ Gas-policy-dependent helpers take `VmConfig` or the relevant cost record explici
 | `GasMeter` | record of `Nat`/`Int` | itself (public record) | no global invariant; supplied charge/refund/repay, withhold/drain/child restoration and ordinary restore admit every raw record; other operations use only their local premises (§7) | value | O(1) per operation on `Nat`s of size < 2^64 in practice; bignum only for memory costs of huge windows |
 | `LogRope` | supplied strict immutable public empty/leaf/concat tree | chronological `List Log` via `toList` | all raw shapes admitted; concat observes left before right; no mutable cache | immutable nodes; production frame ownership remains a caller obligation | append allocates one concat, O(1); workstack flatten O(expanded nodes + emitted logs), including empty/shared occurrences; finite native C3 evidence is scoped in §4 |
 | `JumpdestMap` | supplied private LSB-first `ByteArray` bitmap of exactly `⌈\|code\|/8⌉` bytes | finite Nat set (= EELS `Set[Uint]` observation); private structural Boolean membership with proved finite support | only indices `< \|code\|`; padding bits false | immutable/shareable semantically; cache keyed by code hash remains outside semantic state (ARCHITECTURE §7) | target: build O(\|code\|), bounded-width lookup O(1); actual Nat magnitude, compiled allocation/ownership/costs unmeasured |
-| `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); merge on success O(1) by `L-WARM-MONO` |
+| `AddrSet`, `SlotSet` (warm sets) | exact `Std.ExtTreeSet Address` / `Std.ExtTreeSet (Address × Bytes32)` aliases | finite set | ordered | **worst-case persistent**: the parent's version is retained across a child and reused if the child fails (ARCHITECTURE §5.0) | insert/member O(log n); success takes the full union. L-WARM-MONO gives equality with the child sets under the corresponding subset premises |
 | `PrecompileResult`, `PrecompileTable` | supplied inductive result; record of a lookup closure, an `AddrSet` domain and two logical proof fields | itself (public carriers) | `lookup_iff` and `meter_law` as fields; no global WF | immutable value | O(1) projection; proof fields are erased; lookup cost belongs to the installed table (EthVmRunner §6) |
 | `accountsToDelete` | `AddrSet` (`Std.ExtTreeSet Address`) | finite set | — | persistent (retained parent) | union O(m log(n+m)) |
 | `BlockEnvironment`, `TransactionEnvironment` | supplied raw records of existing provider types | complete fields themselves; ordered arrays/options remain significant | existing nominal widths only; no extra global or history constraint | immutable values; persistent access sets | field access O(1); no new operation/cost claim |
@@ -3226,8 +3261,16 @@ above. The following list retains the remaining G1 and composition obligations:
   `ChildSettled child false`, and incorporation's proof premises are discharged.
   Halt-only execution-gas/output conditions remain separate; F11 proof production
   is unchanged. No extra public law is supplied by this predicate slice.
-- **`L-INC`** [C]: `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi` (the repay step preserves Φ). Together with G2's "child returns potential ≤ potential granted" this gives the cross-frame bound.
-- **`L-WARM-MONO`** [C]: if `p.accessedAddresses ⊆ c.accessedAddresses` then the union is `c.accessedAddresses` (same for slots). [F] the implementation may assign.
+- **`L-INC`** [discharged]. `incorporateChild_phi` states
+  `(incorporateChild p c failed h).gasMeter.phi = p.gasMeter.phi + c.gasMeter.phi`.
+  The child has zero committed spill and repayment preserves Φ. The parent
+  retains its own committed spill. The bound on returned potential still
+  belongs to composed G2.
+- **`L-WARM-MONO`** [discharged]. On success,
+  `incorporateChild_accessedAddresses_of_subset` proves equality with
+  `c.accessedAddresses` when `p.accessedAddresses ⊆ c.accessedAddresses`.
+  `incorporateChild_accessedStorageKeys_of_subset` gives the corresponding
+  equality under the slot-set premise. Raw inputs use the complete union.
 - Settlement [C]: Q66's supplied API and five discharged laws above use exactly the three returned/state/floor bounds and a validated U256 refund. Their actual caller derivation, including the earlier checked signed-counter conversion and unchanged Runner Nat observation bridge (§3), remains unimplemented; R-EXC-2/O13 keep their existing owners.
 - Transaction-level conservation [C, statement to be found]: an equation relating `txGas`, the returned `gasLeft + stateGasLeft`, `txStateGasUsed` and the gas charged; needed by `EthBlock` accounting proofs.
 
@@ -3507,6 +3550,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
+- **Local child incorporation is supplied.** §§3/4/5/7 own the total
+  merge, the exact potential equation and both conditional warm equalities.
+  Actual caller proof production (F11), warm-set preservation from child
+  initialization, dispatch, resumption and composed G2 remain open.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:279,312`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; §3/§7 supply its private conditional gas composition, while actual preparation assertion derivation remains open. This implements no actual caller and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
