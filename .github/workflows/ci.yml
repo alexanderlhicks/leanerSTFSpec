@@ -81,6 +81,13 @@ jobs:
           uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/stop_differential.py --check-target .lake/stop-interpreted.jsonl
           uv run --no-project --python 3.12 python -B scripts/test_stop_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_stop_output_parser.py
+      - name: TLOAD native and interpreted regressions
+        run: |
+          lake build tload-native-tests --wfail
+          lake exe check-decls scripts.TloadNativeTests
+          lake exe tload-native-tests STFSpec/Conformance/Vm/Instructions/tload_inputs.json > .lake/tload-native.jsonl
+          lake env lean --run scripts/TloadNativeTests.lean STFSpec/Conformance/Vm/Instructions/tload_inputs.json > .lake/tload-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/Vm/Instructions/tload_differential.py --check-target .lake/tload-native.jsonl --check-target .lake/tload-interpreted.jsonl
       - name: Compiled first-write order regressions
         run: |
           lake build write-order-native-tests --wfail
@@ -192,6 +199,46 @@ jobs:
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_output_parser.py
           uv run --no-project --python 3.12 python -B scripts/test_account_optional_source.py
           uv run --no-project --python 3.12 python -B -O scripts/test_account_optional_source.py
+      - name: Complete defaulted current account regressions
+        run: |
+          lake build account-default-native-tests --wfail
+          lake exe check-decls scripts.AccountDefaultNativeTests
+          lake exe account-default-native-tests > .lake/account-default-native.jsonl
+          lake env lean --run scripts/AccountDefaultNativeTests.lean > .lake/account-default-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_default_differential.py --check-target .lake/account-default-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/account_default_differential.py --check-target .lake/account-default-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_account_default_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_account_default_output_parser.py
+          uv run --no-project --python 3.12 python -B scripts/test_account_default_source.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_account_default_source.py
+      - name: Complete hash-only code read regressions
+        run: |
+          lake build code-read-native-tests --wfail
+          lake exe check-decls scripts.CodeReadNativeTests
+          lake exe code-read-native-tests > .lake/code-read-native.jsonl
+          lake env lean --run scripts/CodeReadNativeTests.lean > .lake/code-read-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/code_read_differential.py --check-target .lake/code-read-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/code_read_differential.py --check-target .lake/code-read-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B scripts/test_code_read_output_parser.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_code_read_output_parser.py
+          uv run --no-project --python 3.12 python -B scripts/test_code_read_source.py
+          uv run --no-project --python 3.12 python -B -O scripts/test_code_read_source.py
+      - name: Complete transient storage read regressions
+        run: |
+          lake build transient-storage-native-tests --wfail
+          lake exe check-decls scripts.TransientStorageNativeTests
+          lake exe transient-storage-native-tests STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-native.jsonl
+          lake env lean --run scripts/TransientStorageNativeTests.lean STFSpec/Conformance/State/transient_storage_inputs.json > .lake/transient-storage-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transient_storage_differential.py --check-target .lake/transient-storage-interpreted.jsonl
+      - name: Complete standalone account write regressions
+        run: |
+          lake build set-account-native-tests --wfail
+          lake exe check-decls scripts.SetAccountNativeTests
+          lake exe set-account-native-tests STFSpec/Conformance/State/set_account_inputs.json > .lake/set-account-native.jsonl
+          lake env lean -DautoImplicit=false -DrelaxedAutoImplicit=false --run scripts/SetAccountNativeTests.lean STFSpec/Conformance/State/set_account_inputs.json > .lake/set-account-interpreted.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/set_account_differential.py --check-target .lake/set-account-native.jsonl
+          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/set_account_differential.py --check-target .lake/set-account-interpreted.jsonl
       - name: Complete mathematical transaction-view regressions
         run: |
           lake build transaction-view-native-tests --wfail
@@ -202,14 +249,6 @@ jobs:
           uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/transaction_view_model.py --check-target .lake/transaction-view-interpreted.jsonl
           uv run --no-project --python 3.12 python -B scripts/test_transaction_view_output_parser.py
           uv run --no-project --python 3.12 python -B -O scripts/test_transaction_view_output_parser.py
-      - name: Complete opaque witness ancestor regressions
-        run: |
-          lake build witness-ancestors-native-tests --wfail
-          lake exe check-decls WitnessAncestorsNativeTests
-          lake exe witness-ancestors-native-tests > .lake/witness-ancestors.jsonl
-          uv run --no-project --python 3.12 python -B STFSpec/Conformance/State/witness_ancestors_differential.py --check-target .lake/witness-ancestors.jsonl
-          uv run --no-project --python 3.12 python -B scripts/test_witness_ancestors_output_parser.py
-          uv run --no-project --python 3.12 python -B -O scripts/test_witness_ancestors_output_parser.py
       - name: Complete stateless output serialization regressions
         run: |
           lake build stateless-output-native-tests --wfail

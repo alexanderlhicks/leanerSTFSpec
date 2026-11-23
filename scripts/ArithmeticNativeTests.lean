@@ -267,6 +267,57 @@ private def inputStack (text : String) : IO Stack := do
   | .ok s => pure s
   | .error _ => throw (IO.userError "stack outside typed domain")
 
+private def expInput (values : Array String) (out : IO.FS.Stream) : IO Unit := do
+  if values.size != 10 then throw (IO.userError "EXP input arity")
+  let i ← natural (← item values 0)
+  let expBase ← natural (← item values 2)
+  let expPerByte ← natural (← item values 3)
+  let other ← natural (← item values 4)
+  let veryLow ← natural (← item values 5)
+  let gas ← natural (← item values 6)
+  let pc ← natural (← item values 7)
+  let flag ← natural (← item values 8)
+  if flag > 1 then throw (IO.userError "invalid context flag")
+  let upper := flag == 1
+  let s ← inputStack (← item values 9)
+  let baseCtx := ctx upper
+  let prices := { baseCtx.config.costs with
+    opcodeExpBase := expBase
+    opcodeExpPerByte := expPerByte
+    opcodeAdd := other
+    opcodeSub := other + 1
+    opcodeMul := other + 2
+    opcodeDiv := other + 3
+    opcodeSdiv := other + 4
+    opcodeMod := other + 5
+    opcodeSmod := other + 6
+    opcodeAddmod := other + 7
+    opcodeMulmod := other + 8
+    opcodeSignextend := other + 9
+    veryLow := veryLow
+    low := other + 10
+    mid := other + 11
+    high := other + 12 }
+  let context := { baseCtx with config := { baseCtx.config with costs := prices } }
+  let baseFrame := frame pc s true
+  let f := { baseFrame with gasMeter := { baseFrame.gasMeter with gasLeft := gas } }
+  match ((exp context f).run world).run with
+  | .error _ => throw (IO.userError "EXP returned VmFault")
+  | .ok (r, w) =>
+    let (after, tag, error) ← match r with
+      | .continue after => pure (after, "continue", Json.null)
+      | .halt after .stackUnderflow => pure (after, "halt", toJson "stackUnderflow")
+      | .halt after .outOfGas => pure (after, "halt", toJson "outOfGas")
+      | _ => throw (IO.userError "unexpected EXP control")
+    out.putStrLn <| (Json.mkObj [
+      ("schema", toJson "arithmetic-v1"), ("case", toJson i), ("op", toJson "exp"),
+      ("expBase", toJson expBase), ("expPerByte", toJson expPerByte),
+      ("otherCost", toJson other), ("veryLow", toJson veryLow),
+      ("upper", toJson upper), ("before", frameJson f), ("after", frameJson after),
+      ("tag", toJson tag), ("error", error),
+      ("phiBefore", toJson f.gasMeter.phi), ("phiAfter", toJson after.gasMeter.phi),
+      ("worldBefore", worldJson world), ("worldAfter", worldJson w)]).compress
+
 /-- Execute the actual public arithmetic handlers on the supplied input-only catalogue. -/
 def main (args : List String) : IO Unit := do
   let path ← match args with
@@ -276,6 +327,9 @@ def main (args : List String) : IO Unit := do
   for line in (← IO.FS.readFile path).splitOn "\n" do
     if line.isEmpty then continue
     let values := (line.splitOn "\t").toArray
+    if (← item values 1) == "exp" then
+      expInput values out
+      continue
     if values.size != 9 then throw (IO.userError "arithmetic input arity")
     let i ← natural (← item values 0)
     let op ← item values 1

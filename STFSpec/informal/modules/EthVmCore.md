@@ -285,9 +285,10 @@ lake build STFSpec.Conformance.Vm.Core.FrameCallerProofs STFSpec.Conformance.Vm.
 
 This supplies R-ENV-3's mutable data partition only. Raw `FrameCtx` and `Evm` are
 supplied separately below. Running/output/error control outcomes and parent recursion
-remain with their existing owners. Actual frame creation, code/context consistency, F8
-transport and actual producer emission, handler effects, gas/fuel/resource bounds and
-VM/guest/EEST/readiness remain open.
+remain with their existing owners. EthVmInstructions §3 supplies mutable child frame
+initialization. Runner assembly, code/context consistency, F8 transport and actual
+producer emission, handler effects, gas/fuel/resource bounds and VM/guest/EEST/readiness
+remain open.
 
 ### Supplied raw immutable context and assembled Evm data
 
@@ -350,8 +351,8 @@ Private public-law clients obtain the failed clauses after ordinary rollback,
 with or without forfeiture, using an explicit input committed-spill-zero premise
 and retaining all Frame fields. The complete `(3,10,1,-2,4,7)` meter restores to
 `(7,1,1,0,0,7)` and forfeits to `(0,1,1,0,0,7)`; both still fail C=0.
-These are raw logical controls, not reachability or execution proofs. Actual
-non-top initialization/preservation, incorporation, processCall/processCreate
+EthVmInstructions §7 supplies the committed-spill clause at child entry.
+Preservation through execution, incorporation, processCall/processCreate
 settlement and snapshots, returned proof production, child/resume, F11, Q83
 bridges, G1/G2–G7, S2, resources and guest/readiness remain open.
 
@@ -3216,10 +3217,11 @@ above. The following list retains the remaining G1 and composition obligations:
   `ChildSettled` and constructive instance record exactly the four source clauses.
   Ordinary `restoreStateGas`, optionally followed by `forfeitRemainingGas` for a
   halt, gives the three failed reset clauses and preserves committed spill. The
-  private conditional clients additionally require input committed spill = 0;
-  neither operation establishes that premise. Prove actual non-top entry and
-  preservation of committed spill = 0 (only `createEvm` commits), and connect the
-  returned frame/error to the real call/create settlement and snapshots. Then
+  private conditional clients additionally require input committed spill = 0.
+  EthVmInstructions §7 establishes this clause for `childFrame`. Use that
+  constructor at each non-top entry and prove preservation of committed spill = 0
+  through execution (only `createEvm` commits). Connect the returned frame/error
+  to the real call/create settlement and snapshots. Then
   failed children satisfy `ChildSettled child true`, successful children satisfy
   `ChildSettled child false`, and incorporation's proof premises are discharged.
   Halt-only execution-gas/output conditions remain separate; F11 proof production
@@ -3343,9 +3345,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   facade clients. The separate functional liftState and its sole public literal
   run equation supply complete StateError-to-VmFault.state routing under Monad
   only, with complete Id/lawful-trace/outer-failure clients (§3/§4/§7).
-  Initialization, tracker effects/errors, snapshots/restore, observation
-  lifetimes, provider/context acquisition/coherence, actual handlers/runner and
-  full-current-source refinement remain open.
+  Initialization, tracker effects/errors, VM integration of snapshot and restore,
+  observation lifetimes, provider/context acquisition/coherence, actual
+  handlers/runner and full-current-source refinement remain open. EthState R24
+  supplies the standalone snapshot and restore operations.
   No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
   gate closes through nominal wiring.
 
@@ -3367,10 +3370,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
   exactly ChildSettled and its constructive Decidable instance. Private logical,
   all-frame, each-clause, decision and conditional public rollback/forfeit clients
-  supply no actual non-top C=0 initialization/preservation, incorporation,
-  processCall/processCreate settlement/snapshots, proof production, ChildOutcome/
-  FrameResult adapter or resume. F11's two production options, generic Q83 bridges,
-  G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
+  cover the predicate boundary. EthVmInstructions §7 supplies zero committed spill at child entry.
+  Preservation through execution, incorporation, processCall/processCreate settlement and snapshots, proof
+  production and resume remain open. EthVmRunner §3 supplies the proof-taking
+  result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
+  S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual

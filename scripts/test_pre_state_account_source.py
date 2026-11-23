@@ -144,7 +144,7 @@ class AuthenticationTests(unittest.TestCase):
         git_env.update(GIT_OPTIONAL_LOCKS="1", GIT_CONFIG_GLOBAL=os.devnull,
                        GIT_CONFIG_SYSTEM=os.devnull)
         for name in ["pre_state_account_source", "pre_state_account_default_source",
-                     "account_optional_source"]:
+                     "account_optional_source", "account_default_source"]:
             with self.subTest(driver=name), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 eels = root / "eels"

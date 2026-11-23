@@ -14,38 +14,39 @@ import STFSpec.State.Structural
 import STFSpec.State.TxObs
 import STFSpec.State.BlockState
 import STFSpec.State.TxState
+import STFSpec.State.MarkAccountCreated
+import STFSpec.State.TransactionSnapshot
+import STFSpec.State.AncestorAccess
 import STFSpec.State.PreStateAccount
 import STFSpec.State.AccountOptional
+import STFSpec.State.AccountEmptiness
+import STFSpec.State.DestroyStorage
+import STFSpec.State.SetAccount
+import STFSpec.State.AccountExists
+import STFSpec.State.CurrentStorage
+import STFSpec.State.StorageOriginal
+import STFSpec.State.TransientStorage
+import STFSpec.State.TransientStorageWrite
+import STFSpec.State.AccountDefault
+import STFSpec.State.AccountDeployable
 import STFSpec.State.BlockInitialization
+import STFSpec.State.TransactionInitialization
 import STFSpec.State.ReadSets
 import STFSpec.State.BlockExtraction
 import STFSpec.State.BlockView
 import STFSpec.State.TransactionView
 import STFSpec.State.ModelsLookups
-import STFSpec.State.WitnessAncestors
 
 /-!
 # STFSpec.State
 
-State semantics: `Account`, the `PreState` record and its lookup contract
-`ModelsLookups` (the full `Models` is defined in `EthStateCommit`), transaction/block
-overlays, lifetimes, `BlockDiff`, and their laws. Independent of commitments.
+State semantics: accounts, the pre-state lookup contract, transaction and block
+overlays, observations, mathematical views and block diffs. This library is
+independent of trie commitments.
 
-Library `EthState`. Its allowed dependencies are listed in `scripts/boundaries.toml`
-(see `STFSpec/informal/ARCHITECTURE.md` §3). Account values, internal WriteOrder
-support, raw MathState observers, raw BlockDiff values, raw mathematical diff
-application, the raw PreState carrier with coarse witness-error values, the nominal
-StateError carrier, the raw eight-field TxRevertible carrier, the raw TxObs,
-BlockState and three-field TxState carriers, the StateM transformer alias,
-block initialization with its F20 law, logical account/storage read
-views and membership laws, raw block-diff extraction with seven complete field
-equations, the mathematical block view with its ordinary application equation,
-the mathematical transaction view with its sole account observer law, bounded
-structural preservation, supplied-record success-only `ModelsLookups` and opaque witness
-ancestor selection are supplied. TxState assembles the complete providers with hash-only
-code observations; it supplies no current-pin full-state refinement. The Monad-only optional pre-transaction account read and defaulted wrapper, with
-their bounded action/error/framing/membership/model laws, and the current optional
-account read with its six laws, are supplied. Lookup providers, model
-mutation, other tracker effects and lifecycle laws remain scaffolding.
+The supplied operations include initialization, snapshot and restore, account
+and storage reads, hash-only code lookup, ancestor access recording, ordered
+account writes, storage clear, transient storage operations and marking a
+created account. The source map records the scope and laws of each operation.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
