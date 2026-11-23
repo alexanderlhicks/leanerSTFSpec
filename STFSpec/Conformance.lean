@@ -10,6 +10,7 @@ import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.RunCheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputControls
+import STFSpec.Conformance.Vm.Runner.RunPrecompileControls
 import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards

@@ -1014,12 +1014,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
-- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
-  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
-  table action stays in base m; actual lifting through VmM/RunM and their
-  transformer/error order requires an explicit local bridge. Dispatch, separate halt
-  settlement and potential proofs remain open. This adds no observer API, base-error
-  reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
+  the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
+  and local frame-halt meter settlement (§3/§4/§7). The installed table, routing,
+  checked lift and its effect bridge, value transfer, world snapshot restoration
+  and composed settlement and potential proofs remain open.
 
 - **Output records and child outcome conversion are supplied.** §3/§4/§5/§7 own
   the records, proof-taking adapter and private facade clients. Actual
