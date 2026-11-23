@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q92, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -15,7 +15,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 - **R-GEN-1 Step order.** Each handler must perform its sub-steps in the EELS order: (1) static-context check, where EELS does it first; (2) pops (`StackUnderflowError`); (3) gas computation and `check_gas`/`charge_gas`; (4) state reads and writes; (5) memory expansion; (6) pushes; (7) `pc` update. The order matters beyond the exception name: **state reads are persistent observations** that survive a later exceptional halt or revert (ARCHITECTURE §6; they feed the BAL and the witness access record), so a read must happen exactly when EELS performs it, and not before a gas check that precedes it in EELS. EIP-8038's "STATE ACCESS after state-independent gas check" structure (`I/system.py:487–536`, `I/storage.py:85–116`) exists for this reason [V: comments].
 - **R-GEN-2 Precedence among exceptional halts.** Where two halt conditions hold, the first in EELS order wins. All exceptional halts have the same guest-visible effect (O8), so precedence is observable only through traces and through which reads happened before the halt; both must match. Specific orders: most arithmetic/stack-consuming ops pop before charging (underflow beats OOG); DUP*/SWAP*/DUPN/SWAPN/EXCHANGE charge before the depth check (OOG beats underflow) (`I/stack.py:100–102, 132–134, 229–237`); push-producing ops charge before pushing (OOG beats overflow); CREATE/CREATE2/SSTORE/TSTORE/SELFDESTRUCT check the static flag **before** popping; CALL checks it after popping and only for non-zero value; LOG checks it after charging and expanding memory (`I/log.py:67–69`).
-- **R-GEN-3 Memory.** Every memory-touching handler computes `calculate_gas_extend_memory` for its windows, charges `base + per-word + expansion` in one `charge_gas`, then expands, then reads/writes. Windows with size 0 never expand memory and never fail, whatever their offset. Offsets and sizes are full 256-bit values; conversion to `Nat` must be exact (never truncated to 64 bits before the gas check).
+- **R-GEN-3 Memory.** Every memory-touching handler computes `calculate_gas_extend_memory` for its windows, charges `base + per-word + expansion` in one `charge_gas`, then expands, then reads/writes. A window with size 0 adds no expansion and is admitted at every offset. The selected charge still requires affordability. RETURN and REVERT follow Q92. Offsets and sizes are full 256-bit values; conversion to `Nat` must be exact (never truncated to 64 bits before the gas check).
 - **R-GEN-4 Words.** Arithmetic is modulo 2^256 through the `U256` API (EthBase, D1): signed operations use two's complement; `x / 0 = 0`, `x % 0 = 0`; ADDMOD/MULMOD compute over unbounded integers before reducing.
 - **R-GEN-5 PC.** Handlers advance `pc` by 1, except PUSHn (`1 + n`, `I/stack.py:79`), DUPN/SWAPN/EXCHANGE (2, `:242, 278, 314`), JUMP/JUMPI (target or `pc+1`). Terminal handlers' `pc` updates are irrelevant. Immediate bytes beyond the end of code read as zero (`buffer_read`).
 - **R-GEN-6 Invalid opcodes.** A byte that is not in `Ops` (103 of 256 values, including `0xFE`) causes `InvalidOpcode(byte)` before any charge (`interpreter.py:439–442`). Running off the end of code (`pc ≥ |code|`) is a normal stop with empty output (`interpreter.py:438`).
@@ -124,11 +124,11 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | F0 | CREATE | `I/system.py:188` | e off sz → addr/0 | 12000 + mem + 2·w(sz); state gas via `generic_create` | §2.5 |
 | F1 | CALL | `:465` | g a v io is oo os → 0/1 | §2.6 | §2.6 |
 | F2 | CALLCODE | `:592` | g a v io is oo os → 0/1 | §2.6 | no static check |
-| F3 | RETURN | `:307` | off sz → | mem | `.stop` with output = window |
+| F3 | RETURN | `:307` | off sz → | §2.9 | `.stop` with the window as output |
 | F4 | DELEGATECALL | `:781` | g a io is oo os → 0/1 | §2.6 | |
 | F5 | CREATE2 | `:242` | e off sz salt → addr/0 | 12000 + 6·w(sz) + mem + 2·w(sz) | §2.5 |
 | FA | STATICCALL | `:884` | g a io is oo os → 0/1 | §2.6 | |
-| FD | REVERT | `:987` | off sz → | mem | `.revert` with output = window (gas not forfeited) |
+| FD | REVERT | `:987` | off sz → | §2.9 | `.revert` with the window as output |
 | FF | SELFDESTRUCT | `:706` | b → | §2.7 | static first |
 
 ### 2.3 Dispatch
@@ -176,6 +176,39 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 - **R-DEL-2** `calculate_delegation_cost f a` (`:155–188`) reads `a`'s account and code and returns `(false, a, 0)` or `(true, d, warm(d) ? 100 : 3000)` **without** warming `d` (the caller warms after the second check).
 - **R-DEL-3** `resolve_delegated_code_address` (`:84–109`, used by the runner's `create_evm`) reads the code, and for a designator charges warm/cold via `charge_gas_from_meter`, warms `d` and returns `(d, true)`.
 - **R-DEL-4** Resolution is one level only: if `d`'s code is itself a designator, those 23 bytes execute as code and the first byte `0xEF` is an invalid opcode [I: follows from `get_code(code_address)` with no loop]. When `disable_precompiles` is set and `d` is a precompile address, **no code runs** and the call succeeds with empty output (runner, `interpreter.py:432–433`).
+
+### 2.9 RETURN and REVERT (Q92)
+
+Pop the U256 offset, then pop the U256 length from the first residual
+stack. First underflow retains the entry frame. Second underflow
+retains the first residual stack. Once both pops succeed, calculate
+`e = calculateGasExtendMemory ctx.config f.memory [(off, len)]`.
+Charge `ctx.config.costs.zero + e.cost` for RETURN and `e.cost`
+for REVERT. In each handler, apply the execution affordability guard
+before changing memory. Denial leaves both pops in effect and retains
+the entry execution and state gas, memory and other frame fields.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/system.py:307–337,987–1016`
+and `src/ethereum/forks/amsterdam/vm/gas.py:379–410` at the pin.
+
+The Q63 helper reads the ZERO seed before considering any window.
+RETURN requests that helper and separately reads ZERO at the charge
+site. REVERT uses the seeded helper cost. If `Δ` is the growth
+delta and `z = ctx.config.costs.zero`, the raw charges are
+`2*z + Δ` and `z + Δ`. The seed and the memory-word coefficient
+are independently supplied natural numbers. At the pinned Amsterdam
+prices, ZERO is zero and both charges equal `Δ`.
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:761–798` at the pin.
+
+On payment, debit just execution gas, keep the second residual stack,
+and expand memory by `e.expandBy` zero bytes. Read the admitted
+window at the exact Nat values of the U256 offset and length. Return
+`.stop` for RETURN and `.revert` for REVERT, with that byte sequence
+as the terminal output. Keep `pc`, `returnData` and all other frame
+fields. The output carries a snapshot of the expanded memory window
+and belongs to the terminal result. A zero-length window admits an
+empty read at every offset, adds no growth and pays its selected raw
+charge. The Runner owns exceptional-halt and revert settlement.
+EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 
 ## 3. EELS source map
 
@@ -532,6 +565,31 @@ share `error.isSome = true` while retaining their distinct complete payloads.
 | `src/ethereum/forks/amsterdam/vm/instructions/storage.py:189–216` | `STFSpec.Vm.Instructions.tstore` in `STFSpec/Vm/Instructions/Tstore.lean`, exported by Instructions | Static context halts before either pop. Pop the full slot key and then the value. Charge the configured execution price before the State write at the current target. Advance PC by one on success. | Private complete action equations and equality with the ordinary reference in §7. Deterministic full-stack, meter, frame and transient-map controls in §4. |
 
 ## 4. Tests
+
+**Prospective RETURN and REVERT controls (Q92).**
+
+- For each opcode, compare the complete frame and supplied world at first
+  underflow, second underflow and denial after both pops. Use asymmetric
+  offset and length, nonempty residual stack, distinct nonzero meter
+  fields and existing `returnData`. Repeat a failing case with too
+  little gas to establish which guard runs first.
+- At the pinned ZERO 0, exercise zero length at maximum offset, a
+  nonempty in-bounds window, and a window crossing a word boundary.
+  Check payment exactly at the required gas, excess gas for a paid
+  result, and one unit below a positive charge. Check the appended
+  zeros, byte order, full execution debit, nominal terminal constructor,
+  unchanged PC and independent `returnData`. Compare direct handlers
+  against the authenticated pinned source in normal and optimized
+  Python. The source's outer halt or revert settlement has its own
+  Runner comparison.
+- Exercise raw ZERO 7 with the pinned memory-word price. A zero-length
+  window at maximum offset requires 14 gas for RETURN and 7 for REVERT.
+  With one word of initial memory, offset 30 and length 4 require 17
+  and 10 gas. Test exact payment and denial one unit below each
+  threshold. Vary ZERO and the memory-word coefficient independently
+  in raw Lean controls. Isolated counterfactual source closures provide
+  evidence for the arithmetic at nonzero ZERO. The pinned comparison
+  continues to use the original Amsterdam constants.
 
 **Supplied opcode controls.**
 `STFSpec/Conformance/Vm/Instructions/OpsCallerProofs.lean` imports only the public
@@ -1074,8 +1132,12 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- pop, mload, mstore, mstore8, sload, sstore, tload, tstore, jump, jumpi, pc, msize,
 -- gasLeft, jumpdest, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
--- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
--- create2, staticcall, revert, selfdestruct : Handler m
+-- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, delegatecall,
+-- create2, staticcall, selfdestruct : Handler m
+
+-- Prospective Q92 handlers
+def return_ {m : Type → Type} [Monad m] : Handler m
+def revert {m : Type → Type} [Monad m] : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
 -- EIP-7702 (public)
@@ -2068,6 +2130,85 @@ Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
+### Prospective RETURN and REVERT local laws (Q92)
+
+For the signatures below, let `e` denote
+`calculateGasExtendMemory ctx.config f.memory [(off, len)]`,
+`returnPrice` denote `ctx.config.costs.zero + e.cost`, and
+`revertPrice` denote `e.cost`. Let `expanded` denote
+`f.memory.expand e.expandBy hExpand` and `output` denote
+`expanded.readBytes off.toNat len.toNat hRead`. These are local
+expressions determined by the arguments. The signatures introduce
+no extra declarations for them.
+
+MP7 supplies `hExpand : e.expandBy % 32 = 0`. By M2 and M4 the
+expanded size is `f.memory.size + e.expandBy`. MP8 for the sole
+listed window then supplies
+`hRead : len.toNat = 0 ∨ off.toNat + len.toNat ≤ expanded.size`.
+Q62 supplies the empty and nonempty read behaviour. The caller
+supplies neither memory proof. The local laws quantify any existing
+`FrameCtx`, `Frame` and `VmWorld m` under `Monad m` alone and
+return the literal underlying `pure`.
+
+```lean
+theorem return_run_first_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (first : f.stack.pop = .error .stackUnderflow) :
+    ((return_ ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w))
+theorem return_run_second_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off : U256) (s₁ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .error .stackUnderflow) :
+    ((return_ ctx f).run w).run =
+      pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w))
+theorem return_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off len : U256) (s₁ s₂ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .ok (len, s₂))
+    (short : f.gasMeter.gasLeft < returnPrice) :
+    ((return_ ctx f).run w).run =
+      pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w))
+theorem return_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off len : U256) (s₁ s₂ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .ok (len, s₂))
+    (enough : returnPrice ≤ f.gasMeter.gasLeft) :
+    ((return_ ctx f).run w).run =
+      pure (Except.ok (.stop { f with
+        stack := s₂
+        memory := expanded
+        gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - returnPrice } } output, w))
+
+theorem revert_run_first_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (first : f.stack.pop = .error .stackUnderflow) :
+    ((revert ctx f).run w).run = pure (Except.ok (.halt f .stackUnderflow, w))
+theorem revert_run_second_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off : U256) (s₁ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .error .stackUnderflow) :
+    ((revert ctx f).run w).run =
+      pure (Except.ok (.halt { f with stack := s₁ } .stackUnderflow, w))
+theorem revert_run_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off len : U256) (s₁ s₂ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .ok (len, s₂))
+    (short : f.gasMeter.gasLeft < revertPrice) :
+    ((revert ctx f).run w).run =
+      pure (Except.ok (.halt { f with stack := s₂ } .outOfGas, w))
+theorem revert_run_success {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (off len : U256) (s₁ s₂ : Stack)
+    (first : f.stack.pop = .ok (off, s₁)) (second : s₁.pop = .ok (len, s₂))
+    (enough : revertPrice ≤ f.gasMeter.gasLeft) :
+    ((revert ctx f).run w).run =
+      pure (Except.ok (.revert { f with
+        stack := s₂
+        memory := expanded
+        gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - revertPrice } } output, w))
+```
+
+The paid laws describe the terminal handler result before the Runner
+settles it. The existing `Handler` and indexed `StepResult` carry
+these results, including the same immutable context. F8 owns the
+context's fields and F11 owns child settlement proof production.
+The handler implementations, ordinary proofs and target checks
+are prospective.
+
 **Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
 
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
@@ -2106,9 +2247,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D18**: an unoptimised handler (for example MCOPY via intermediate copy) is correct and complete; performance debt only.
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
+- **Q92** owns the selected raw RETURN and REVERT charge rule (§§2.9/7).
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
+
+- **RETURN and REVERT guidance supplied.** Implement the two Q92
+  handlers, prove the eight ordinary laws in §7, and run the complete
+  raw and pinned-source controls in §4. Runner settlement, dispatch,
+  trace and composed execution remain separate.
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 

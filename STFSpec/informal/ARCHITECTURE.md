@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-04). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-23). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -734,6 +734,22 @@ Overall target/frame/config coherence and correctness of each target's arithmeti
 interpretation remain separate obligations. No target implementation's runtime representation or
 source code is asserted here.
 
+
+**RETURN and REVERT charge options (Q92).** DECISIONS Q92 owns the
+disposition. Let `z` be the raw ZERO price and `Δ` the memory growth
+cost. The Q63 extension helper returns `z + Δ`. Option A follows
+both written policy reads and charges `2*z + Δ` for RETURN and
+`z + Δ` for REVERT. Option B treats the separate RETURN ZERO as
+an identity and charges `z + Δ` for both. Option C removes the
+helper's ZERO seed from both charges and uses `Δ` alone.
+
+For a zero-length window at maximum offset with raw ZERO 7, A gives
+affordability thresholds of 14 and 7. B gives 7 and 7, and C gives
+0 and 0. All three charge the growth cost at the pinned ZERO 0.
+A expresses the source call-site reads over arbitrary raw policy
+values. B makes both raw charges the same. C makes raw empty
+windows free. EthVmInstructions §§2/4/7 owns the call-site, proof
+and validation contracts.
 
 **Call/init-code policy and stipend options (Q64).** DECISIONS Q64 owns the
 approved disposition; EthVmCore §5/§7 own the exact prospective signatures and
