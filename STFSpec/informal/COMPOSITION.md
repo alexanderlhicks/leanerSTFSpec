@@ -457,6 +457,12 @@ then performs the current emptiness read before conditional R17. Both typed
 failure branches use the existing StateM result. R19 and the provider/source
 models remain separate.
 
+EthState §§3/4/5/7.5 supplies the R20 balance and nonce actions through
+R18. Use the exact U256 replacement or unbounded Nat successor. The
+resulting account determines R17 clearing, and R24 restores the
+revertible record after success. Caller bounds, composed provider and
+world effects and fault projection remain open.
+
 ### Supplied mathematical transaction view
 
 EthState §3/§5/§7.1/§7.2 owns class-free `TxState.view`, exactly block view followed
