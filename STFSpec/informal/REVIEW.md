@@ -405,6 +405,13 @@ and the local G2 progress cases at positive prices. Use the source rows for
 the frame boundary and the handoff to `process_call` under O8. Dispatch,
 settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies MLOAD, MSTORE and MSTORE8 and seventeen
+ordinary local laws. Run equations retain all reached pops and the complete
+world, with paid memory witnesses and the exact PC. The Id equations give the
+local G2 accounting and strict progress at a positive selected charge. The
+standalone controls exercise the Q62 and Q63 window handoff through the
+public facade. See EthVmInstructions §10 for the remaining composition gates.
+
 EthVmInstructions §3/§4/§5/§7 supplies standalone TLOAD. Its private proofs cover
 ordered failure frames, successful push, whole-world retention at Id and the
 configured execution-gas charge. Native, interpreted and authenticated direct
