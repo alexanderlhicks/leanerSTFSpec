@@ -30,7 +30,7 @@ ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
 handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
 The standalone stack handler POP has ordered run laws, exact Id accounting and
 strict progress at positive prices.
-JUMPDEST has complete run equations and local Id accounting laws.
+JUMP, JUMPI and JUMPDEST have complete run equations and local Id accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
