@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11, Q91.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -17,7 +17,7 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 - **R-GEN-2 Precedence among exceptional halts.** Where two halt conditions hold, the first in EELS order wins. All exceptional halts have the same guest-visible effect (O8), so precedence is observable only through traces and through which reads happened before the halt; both must match. Specific orders: most arithmetic/stack-consuming ops pop before charging (underflow beats OOG); DUP*/SWAP*/DUPN/SWAPN/EXCHANGE charge before the depth check (OOG beats underflow) (`I/stack.py:100–102, 132–134, 229–237`); push-producing ops charge before pushing (OOG beats overflow); CREATE/CREATE2/SSTORE/TSTORE/SELFDESTRUCT check the static flag **before** popping; CALL checks it after popping and only for non-zero value; LOG checks it after charging and expanding memory (`I/log.py:67–69`).
 - **R-GEN-3 Memory.** Every memory-touching handler computes `calculate_gas_extend_memory` for its windows, charges `base + per-word + expansion` in one `charge_gas`, then expands, then reads/writes. Windows with size 0 never expand memory and never fail, whatever their offset. Offsets and sizes are full 256-bit values; conversion to `Nat` must be exact (never truncated to 64 bits before the gas check).
 - **R-GEN-4 Words.** Arithmetic is modulo 2^256 through the `U256` API (EthBase, D1): signed operations use two's complement; `x / 0 = 0`, `x % 0 = 0`; ADDMOD/MULMOD compute over unbounded integers before reducing.
-- **R-GEN-5 PC.** Handlers advance `pc` by 1, except PUSHn (`1 + n`, `I/stack.py:79`), DUPN/SWAPN/EXCHANGE (2, `:242, 278, 314`), JUMP/JUMPI (target or `pc+1`). Terminal handlers' `pc` updates are irrelevant. Immediate bytes beyond the end of code read as zero (`buffer_read`).
+- **R-GEN-5 PC.** Handlers advance `pc` by 1, except PUSHn (`1 + n`, `I/stack.py:79`), DUPN/SWAPN/EXCHANGE (2, `:242, 278, 314` at `59c1473d`), JUMP/JUMPI (target or `pc+1`). Terminal handlers' `pc` updates are irrelevant. Stack-immediate reads follow Q91 below.
 - **R-GEN-6 Invalid opcodes.** A byte that is not in `Ops` (103 of 256 values, including `0xFE`) causes `InvalidOpcode(byte)` before any charge (`interpreter.py:439–442`). Running off the end of code (`pc ≥ |code|`) is a normal stop with empty output (`interpreter.py:438`).
 - **R-GEN-7 Non-EVM faults.** The VM routes `StateError` from State actions
   through `VmFault.state` (EthVmCore R-EXC-2). EthState R29 owns the failure
@@ -26,6 +26,19 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
   propagate as `VmFault` and fall under O13. These faults are distinct from
   exceptional halts. The SSZ widths `uint64`, `uint64` and `uint256` rule out
   overflow in the `U256` casts for NUMBER, GASLIMIT and BASEFEE respectively.
+
+**Stack-immediate reads (Q91).** Charge the selected execution price before
+reading the code. If the charge fails, halt with the entry frame and
+`.outOfGas`. After payment, read the padded window at the exact Nat offset
+`f.pc + 1` in `ctx.code`. Missing bytes contribute zero. This read rule also
+defines raw calls whose start exceeds the U256 range.
+
+PUSH0 uses the empty window and pushes zero. PUSH1–PUSH32 read their
+declared widths and push the big-endian word. DUPN and SWAPN pass one padded
+byte to Core's `decodeSingle`. EXCHANGE passes one padded byte to
+`decodePair`. Decode before checking stack depth or pushing. Advance the PC
+only after the stack operation succeeds. EELS `I/stack.py:49–79,213–314`
+at `59c1473d`.
 
 ### 2.2 Opcode table
 
@@ -188,7 +201,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
 | `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
-| `forks/amsterdam/vm/instructions/stack.py::*` | 29–317 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | the `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances |
+| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the planned immediate reads in §2 and the source boundary in §7. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
@@ -952,6 +965,15 @@ under REVIEW §7. The fixture areas below cover this opcode family.
 - **`core` `#guard` cases** (per handler, via `step` on a synthetic frame; a `#guard` evaluates only once every leaf it reaches is implemented, F16): every arithmetic op at `0`, `1`, `2^255`, `2^256−1` (SDIV `−2^255 ÷ −1`, SMOD sign, SAR of negatives by 255/256, SIGNEXTEND k = 30, 31, 32, BYTE 31/32, EXP gas for exponents of 0/1/256/2^255, CLZ 0); `Ops.ofByte?` for all 256 bytes (153 some, 103 none; supplied by kernel `rfl` equations in `OpsCallerProofs`, §4); DUPN/SWAPN/EXCHANGE on every immediate including 91 and 127, the immediate past the end of code, and underflow by one; PUSH32 truncated at end of code; JUMPI with cond 0 to an invalid target; RETURNDATACOPY `(0, 1, 0)` with empty return data (halts); CALLDATALOAD at `2^256−1`; MCOPY overlapping both directions; LOG in a static frame (charges first); SSTORE all 27 `(original, current, new) ∈ {0, x, y}³` combinations with expected execution cost, refund delta and state gas, plus the gas-left = 2300 sentry; CALL with value to a dead account then failing child (state gas refilled); CREATE collision (grant consumed, nonce incremented); BLOCKHASH offsets 0, 1, 256, 257 and one beyond `|block_hashes|`.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
+
+**Planned stack-immediate controls (Q91).** Use direct handler calls for the
+raw offset boundary. Exercise both payment outcomes at the last fitting
+start and beyond it, including PUSH0. For example, a paid PUSH1 at
+`pc = 2^256` with code `[0x60, 0xab]` reads zero. A modular offset would
+read `0xab`, while the pinned direct call raises `OverflowError`. At a
+fitting start, compare the padded window with EELS, including PUSH32 whose
+window end exceeds the U256 range. Check that an absent one-byte immediate
+passes zero to the decoder and that decoding precedes stack checks.
 
 ## 5. Interface
 
@@ -2070,6 +2092,23 @@ Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v
 
 **Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
 
+**Stack-immediate source agreement (Q91)** [C], planned. Prove the two
+charge cases for related source and Lean frames. In the denied case, the
+source raises the gas exception before evaluating the offset cast, so the
+case applies at every related PC. After payment, including for PUSH0, the
+source constructs `U256(evm.pc + Uint(1))`. Relate the paid branches under
+the local premise `f.pc + 1 < 2^256`. EELS adds the read width in `Uint`, so
+the fitting-start premise suffices for the padded window. For the one-byte
+operations, carry the read equality into the existing Core decoder laws.
+EELS `I/stack.py:49–79,213–314`, `memory.py:63–83` at `59c1473d` and
+locked `ethereum-types` 0.4.1 `ethereum_types/numeric.py:44–48,605–612`.
+
+At source dispatch the running fetch guard gives `pc < |code|`. With
+related code whose length is less than `2^256`, this gives
+`pc + 1 ≤ |code| < 2^256`. EthVmRunner R-LOOP-1 owns the obligation to
+supply these local facts. The raw frame and handler accept arbitrary Nat PCs.
+EELS `interpreter.py:438–445` at `59c1473d`.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
@@ -2106,9 +2145,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D18**: an unoptimised handler (for example MCOPY via intermediate copy) is correct and complete; performance debt only.
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
+- **Q91** covers stack-immediate reads and their source correspondence (§§2 and 7).
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
+
+- **Stack-immediate handlers.** Q91 selects the offset contract. PUSH0–PUSH32,
+  DUPN, SWAPN and EXCHANGE still need handlers, local laws and the §4 controls.
+  The paid source correspondence and its fetch premise (§7) still need proofs.
+  PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
+  O13 classification and guest composition retain their own obligations.
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
