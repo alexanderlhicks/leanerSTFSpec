@@ -25,7 +25,7 @@ Library `EthVmInstructions`. Its allowed dependencies are listed in `scripts/bou
 class-free `Handler` signature, opcode byte conversions, STOP and its complete
 run law are supplied. The arithmetic handlers ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/
 ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
-handlers AND/OR/XOR/NOT have ordered run and accounting laws.
+handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
