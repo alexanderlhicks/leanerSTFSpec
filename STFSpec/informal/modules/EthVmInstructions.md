@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32 and their local laws are supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, F11, Q91.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -201,7 +201,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
 | `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
-| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the planned immediate reads in §2 and the source boundary in §7. |
+| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. The PUSH handler is supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
@@ -432,6 +432,22 @@ settles the meter and restores the transaction snapshot (CONTRACT O8).
 The creation route also uses this consumer. The corresponding Lean handoff
 remains open (EthVmRunner §2.4). EELS
 `src/ethereum/forks/amsterdam/vm/interpreter.py:360,438–469` at `59c1473d`.
+
+### Supplied standalone PUSH handler
+
+| EELS source at `59c1473d` | Lean declaration / exact type | Domain | Effects and ordered failures | Laws and tests |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/stack.py:49–79` (`push_n`) | `STFSpec.Vm.Instructions.pushN (n : Fin 33) {m : Type → Type} [Monad m] : Handler m`, in `STFSpec/Vm/Instructions/Push.lean` and exported by the Instructions facade | Every supplied frame, context and world with width `n`. Use the raw Nat price from `opcodePush0` at width zero and `opcodePush` at every other width. | Gas denial retains the entry frame. A full stack after payment retains the debit and the rest of the entry frame. Success pushes the exact padded immediate and adds `1 + n.val` to PC. Each outcome retains the supplied world. | Five ordinary run and accounting laws (§7). Facade guards, raw offset and pinned-source frame comparisons, and native ownership controls (§4). |
+
+The private reference decodes the padded Nat window through
+`U256.ofBeBytes?`. The width bound proves that the window fits and gives
+the exact unsigned value using `Uint.ofBeBytes`. The executable checks
+capacity after payment and uses that exact value on the nonfull path.
+An ordinary private equality covers both branches for every raw PC.
+Section 7 states the remaining source correspondence.
+
+The pinned prices are 2 for PUSH0 and 3 for PUSH1–PUSH32. EELS
+`gas.py:69–70,223–224` at `59c1473d`.
 
 ### Supplied STOP handler
 
@@ -966,14 +982,33 @@ under REVIEW §7. The fixture areas below cover this opcode family.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
 
-**Planned stack-immediate controls (Q91).** Use direct handler calls for the
-raw offset boundary. Exercise both payment outcomes at the last fitting
-start and beyond it, including PUSH0. For example, a paid PUSH1 at
-`pc = 2^256` with code `[0x60, 0xab]` reads zero. A modular offset would
-read `0xab`, while the pinned direct call raises `OverflowError`. At a
-fitting start, compare the padded window with EELS, including PUSH32 whose
-window end exceeds the U256 range. Check that an absent one-byte immediate
-passes zero to the decoder and that decoding precedes stack checks.
+**Supplied PUSH controls.** `STFSpec/Conformance/Vm/Instructions/PushControls.lean`
+uses the facade to apply the five public laws. Its ten guards compare the
+result tag, projected values of all frame fields and sampled world values.
+They cover PUSH0, truncated PUSH2, full-width PUSH32, both selected prices,
+a zero price, and exact, surplus and short budgets. At `pc = 2^256` with
+code `[0x60, 0xab]`, a paid PUSH1 reads zero. A modular offset would read
+`0xab`. The pinned direct source raises `OverflowError` for that input.
+The full-stack guards distinguish denial from stack overflow after payment.
+
+The interpreted and native private facade probes compare the projected
+values of all nine frame fields before and after the call. They match the
+pinned reference on 24 gas denials and twelve paid cases with fitting read
+starts, including PUSH32 whose window end exceeds the U256 range. Twelve
+paid cases with unfitting starts match an independent model of the Q91 Nat
+extension. The source records agree in normal and optimized Python.
+
+The private native ownership probe checks 120 complete projected result
+frames, the original retained frames and the supplied world identity.
+Zero, short, exact and surplus budgets are tested at widths 0, 1 and 32 and
+depths 0, 1, 3, 1,023 and 1,024. Nonfull paid calls perform one push. The
+exclusive stack reuses its array when it has spare capacity. The retained
+stack copies on a successful push.
+
+**Planned one-byte stack-immediate controls (Q91).** Check that an absent
+one-byte immediate passes zero to the decoder and that decoding precedes
+stack checks. Exercise both payment outcomes at the last fitting start
+and beyond it.
 
 ## 5. Interface
 
@@ -1059,6 +1094,7 @@ def childFrame (parent : Frame) (gas reservoir : Nat) : Frame
 
 -- Selected supplied handler signatures. Section 3 lists all supplied handlers.
 def stop {m : Type → Type} [Monad m] : Handler m
+def pushN (n : Fin 33) {m : Type → Type} [Monad m] : Handler m
 def add {m : Type → Type} [Monad m] : Handler m
 def sub {m : Type → Type} [Monad m] : Handler m
 def mul {m : Type → Type} [Monad m] : Handler m
@@ -1094,8 +1130,8 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
--- pop, mload, mstore, mstore8, sload, sstore, tload, tstore, jump, jumpi, pc, msize,
--- gasLeft, jumpdest, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
+-- pop, mload, mstore, mstore8, sload, sstore, jump, jumpi, pc, msize,
+-- gasLeft, jumpdest, mcopy, dupN (n : Fin 16), swapN (n : Fin 16),
 -- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
@@ -2090,7 +2126,51 @@ Memory ops: `step_mstore` states `α mem' = α (write (expand mem e) off (be32 v
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
-**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
+**Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ and PUSH laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
+
+**Supplied PUSH laws.** The three run equations describe the complete
+results under literal underlying `pure`. The success equation exposes the
+actual `Stack.push` result and its list model. The Id laws account for the
+selected price and give strict progress at a positive price.
+
+```lean
+theorem pushN_run_oog (n : Fin 33) {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) :
+    let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
+    f.gasMeter.gasLeft < price →
+      ((pushN n ctx f).run w).run = pure (Except.ok (.halt f .outOfGas, w))
+
+theorem pushN_run_overflow (n : Fin 33) {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (full : f.stack.size = 1024) :
+    let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
+    price ≤ f.gasMeter.gasLeft →
+      ((pushN n ctx f).run w).run = pure (Except.ok
+        (.halt { f with gasMeter := { f.gasMeter with
+          gasLeft := f.gasMeter.gasLeft - price } } .stackOverflow, w))
+
+theorem pushN_run_success (n : Fin 33) {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (space : f.stack.size < 1024) :
+    let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
+    let word := U256.ofNat (Uint.ofBeBytes (ctx.code.extractPadded (f.pc + 1) n.val))
+    price ≤ f.gasMeter.gasLeft →
+      ∃ stack : Stack, f.stack.push word = .ok stack ∧ stack.toList = word :: f.stack.toList ∧
+        ((pushN n ctx f).run w).run = pure (Except.ok
+          (.continue { f with
+            pc := f.pc + 1 + n.val
+            stack
+            gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - price } }, w))
+
+theorem pushN_continue_phi (n : Fin 33) (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (run : ((pushN n ctx f).run w).run = .ok (.continue f', w')) :
+    let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
+    f'.gasMeter.phi + price = f.gasMeter.phi
+
+theorem pushN_continue_progress
+    (n : Fin 33) (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
+    (run : ((pushN n ctx f).run w).run = .ok (.continue f', w')) :
+    let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
+    1 ≤ price → f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
+```
 
 **Stack-immediate source agreement (Q91)** [C], planned. Prove the two
 charge cases for related source and Lean frames. In the denied case, the
@@ -2150,13 +2230,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Stack-immediate handlers.** Q91 selects the offset contract. PUSH0–PUSH32,
-  DUPN, SWAPN and EXCHANGE still need handlers, local laws and the §4 controls.
-  The paid source correspondence and its fetch premise (§7) still need proofs.
+- **Stack-immediate handlers.** PUSH0–PUSH32 have local run and accounting
+  laws (§7) and the §4 facade controls. DUPN, SWAPN and EXCHANGE still need
+  handlers, local laws and controls. The full paid source correspondence
+  and its fetch premise (§7) still need proofs.
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2165,7 +2246,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE and PUSH effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
