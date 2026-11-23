@@ -457,6 +457,11 @@ then performs the current emptiness read before conditional R17. Both typed
 failure branches use the existing StateM result. R19 and the provider/source
 models remain separate.
 
+EthState §§3/5/7.5 supplies R21 `setCode`. The caller supplies the code hash
+under D5. The action stages the bytes at a nonempty hash before applying R18
+to the account. The existing R24 snapshot restores the staged bytes together
+with the other revertible fields. EthStateCommit owns hash agreement.
+
 ### Supplied mathematical transaction view
 
 EthState §3/§5/§7.1/§7.2 owns class-free `TxState.view`, exactly block view followed

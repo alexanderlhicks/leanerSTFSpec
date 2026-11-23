@@ -128,7 +128,7 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::create_ether` | 650 | `createEther` | checked add |
 | `forks/amsterdam/state_tracker.py::set_account_balance` | 673 | `setAccountBalance` | |
 | `forks/amsterdam/state_tracker.py::increment_nonce` | 696 | `incrementNonce` | |
-| `forks/amsterdam/state_tracker.py::set_code` | 715 | `setCode` | takes the hash |
+| `forks/amsterdam/state_tracker.py::set_code` | 715–738 | `setCode` | **Supplied standalone action:** stages code under the supplied nonempty hash before modifying the complete account (§7.5). |
 | `forks/amsterdam/state_tracker.py::copy_tx_state` | 744–777 | `copyTxState (t : TxState m) : TxRevertible` | Supplied for arbitrary m without a class premise. Selects the entire revertible record, including B1 metadata, without traversal or provider calls. |
 | `forks/amsterdam/state_tracker.py::restore_tx_state` | 780–798 | `restoreTxState (snap : TxRevertible) : StateM m Unit` | Supplied under Monad m. One underlying pure returns unit with the saved revertible record and the current block and observations. No typed failure or provider call. |
 | `forks/amsterdam/state_tracker.py::incorporate_tx_into_block` | 804 | `incorporateTxIntoBlock` | BAL hook in `EthBlock` |
@@ -299,6 +299,12 @@ select keys and the existing raw erasure policy to update metadata.
 | Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:601–613` | `STFSpec.State.modifyState {m : Type → Type} [Monad m] (a : Address) (f : Account → Except StateError Account) : StateM m Unit`, exported by State from `STFSpec/State/ModifyState.lean` | Read through `getAccount`, then call the supplied update. Either failure returns the complete nominal error through StateM. Success writes the account, runs the actual `accountExistsAndIsEmpty` read and conditionally runs R17. | Private literal Monad action, exact Id branches, second-read and snapshot equations in §7.5. Facade controls and pinned comparisons in §4. |
+
+### Implemented standalone code installation
+
+| Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:715–738` | `STFSpec.State.setCode {m : Type → Type} [Monad m] (a : Address) (code : ByteArray) (codeHash : Hash32) : StateM m Unit`, exported by State from `STFSpec/State/SetCode.lean` | Compare the supplied hash with the block's empty-code hash. A distinct hash stages the complete byte sequence at that key. R18 then updates the account's code-hash field and returns its complete StateM result. | Private literal action, raw code-table lookup and frame, and R24 snapshot equations in §7.5. Facade controls and pinned comparisons in §4. |
 
 ### Implemented current account emptiness and liveness
 
@@ -619,10 +625,17 @@ production provider, progress, root/authentication, resource or release result.
   - `destroyStorage` after two writes: both keys appear in `storageReads`; after revert, the writes return but the reads stay;
   - `modifyState` on a non-existent account with a zero change: account change `none` and a clear;
   - `moveEther` insufficient balance and recipient overflow at `2^256 − 1` both fail;
-  - `setCode` with empty code: no code write, `codeHash = emptyCodeHash`;
   - snapshot/revert nested three deep, with observations monotone;
   - `incorporateTxIntoBlock` of a transaction that cleared an address with block writes: the block writes vanish, post-clear writes survive; first-write order of `accountOrder` preserved when a later transaction rewrites an early address;
   - an always-error provider: every fall-through read fails and no read defaults (R30).
+- **Implemented R21 controls:** `SetCodeControls.lean` checks both supplied
+  hash branches through the State facade. The cases preserve a prior raw entry
+  at the empty hash, replace an existing code entry at a distinct hash, install
+  on funded and absent accounts, and cover destruction with pending zero and
+  nonzero slots. They also compare rollback and the complete typed provider
+  error. Focused pinned comparisons track the order of the code write and
+  account effects and compare whole finite results with the interpreted and
+  compiled facade. Source agreement uses the actual hash of the supplied code.
 - **Implemented R24 controls:** `TransactionSnapshotChecks.lean` checks both
   signatures and the complete action through the State facade. Its three nested
   snapshots compare every revertible field after each LIFO restore, including
@@ -1264,7 +1277,8 @@ def moveEther (src dst : Address) (amount : U256) : StateM m Unit
 def createEther (a : Address) (amount : U256) : StateM m Unit
 def setAccountBalance (a : Address) (amount : U256) : StateM m Unit
 def incrementNonce (a : Address) : StateM m Unit
-def setCode (a : Address) (code : ByteArray) (codeHash : Hash32) : StateM m Unit   -- caller: codeHash = keccak256 code
+def setCode {m : Type → Type} [Monad m]
+    (a : Address) (code : ByteArray) (codeHash : Hash32) : StateM m Unit -- supplied (R21)
 -- snapshots and lifecycle (R24–R28)
 def copyTxState (t : TxState m) : TxRevertible                         -- snapshot
 def restoreTxState (snap : TxRevertible) : StateM m Unit               -- revert
@@ -1821,6 +1835,17 @@ reinstates the saved revertible record and retains the observations.
 The source records the first account read before a callback exception.
 The existing Lean StateM error result carries only the nominal error.
 
+For `setCode a code hash` (R21), the private literal Monad action runs R18 on
+the complete entry transaction if the supplied hash equals its block's empty
+hash. Otherwise, it inserts the code at the supplied hash before running R18.
+The staged transaction retains the block, observations and all other
+revertible fields. The callback preserves every account field except the code
+hash. A provider failure yields the exact typed error without a transaction.
+In the source, a provider exception can observe the earlier code write and
+the account read already recorded by `get_account_optional`. On success,
+R24 restores the saved full revertible record and retains the observations.
+The caller supplies the hash of the code through D5 for source agreement.
+
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
 ### Informal correctness argument
@@ -1908,9 +1933,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read, storage reads, account write, storage clear, transient
-  read and write, snapshot and restore, fresh initialization, creation marker and
-  ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
+  and predicates, code read and installation, storage reads, account write,
+  storage clear, transient read and write, snapshot and restore, fresh
+  initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -1954,7 +1979,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
   and the local laws for R14 account writes, R16 storage clear, R17 account
-  destruction and R18 modification. R24 retains saved order and value roots
+  destruction, R18 modification and R21 code installation. R24 retains saved
+  order and value roots
   together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.

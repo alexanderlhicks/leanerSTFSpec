@@ -484,9 +484,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read, storage reads, account write, storage clear, transient
-  read and write, snapshot and restore, fresh initialization, creation marker and
-  ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
+  and predicates, code read and installation, storage reads, account write,
+  storage clear, transient read and write, snapshot and restore, fresh
+  initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -530,7 +530,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
   and the local laws for R14 account writes, R16 storage clear, R17 account
-  destruction and R18 modification. R24 retains saved order and value roots
+  destruction, R18 modification and R21 code installation. R24 retains saved
+  order and value roots
   together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.

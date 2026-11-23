@@ -24,6 +24,7 @@ import STFSpec.State.DestroyStorage
 import STFSpec.State.SetAccount
 import STFSpec.State.DestroyAccount
 import STFSpec.State.ModifyState
+import STFSpec.State.SetCode
 import STFSpec.State.AccountExists
 import STFSpec.State.CurrentStorage
 import STFSpec.State.StorageOriginal
