@@ -193,7 +193,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/memory.py::mstore8` | 57–86 | `mstore8` (supplied) | Two pops, paid low-byte write, PC + 1 |
 | `forks/amsterdam/vm/instructions/memory.py::mload` | 89–116 | `mload` (supplied) | Offset pop, paid 32-byte big-endian read and push, PC + 1 |
 | `forks/amsterdam/vm/instructions/memory.py::msize` | 119 | `msize` | Unimplemented |
-| `forks/amsterdam/vm/instructions/memory.py::mcopy` | 142 | `mcopy` | Unimplemented |
+| `forks/amsterdam/vm/instructions/memory.py::mcopy` | 142 | `mcopy` | Standalone two-window snapshot copy with local action and accounting laws (§§3–5 and §7). |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
@@ -549,6 +549,12 @@ and raw ZERO seed are the existing `VmConfig` fields. On a paid run the
 Memory laws supply expansion alignment and the local write proof.
 `bufferRead` takes the full U256 source offset and length. EELS
 `vm/gas.py:761–798` and `vm/memory.py:20–36,63–83`.
+
+### Supplied MCOPY handler
+
+| EELS source at `59c1473d` | Lean declaration | Complete local effect |
+|---|---|---|
+| `vm/instructions/memory.py:142–177`, `vm/memory.py:20–60` | `mcopy` in `LocalCopy.lean` | Pop destination, source and length. Quote source before destination and charge before expanding. Read the entire source slice from that expansion and write its snapshot to the destination. |
 
 ## 4. Tests
 
@@ -1006,6 +1012,24 @@ actual pops, destination quote, charge, expansion, padded read and write.
 Exclusive and retained inputs have matching values, and retained frames
 preserve their original memory.
 
+**Supplied MCOPY controls.** `MemoryCopyControls.lean` checks all three
+underflow prefixes and compares every frame field and sampled world
+observations. It covers both overlap directions, identical windows,
+either window requiring expansion, and source bytes from the new zero
+region. Maximum offsets succeed at zero length and leave memory intact.
+Positive oversized windows exercise denial. The controls also cover a
+full stack, wide prices, and a one-unit boundary between exact payment
+and denial.
+
+The private facade compares 24 complete frame pairs in both Lean modes
+and both pinned Python modes. Compiled tests observe the two-window quote
+in order, its full charge, one expansion, complete snapshot bytes and
+the exact destination write. The same tests check retained and exclusive
+frames for within-memory overlap, growth, zero length and denial.
+The covered write reuses its exclusive memory buffer in the paired
+ownership control. A retained entry keeps its original bytes. Zero-length
+writes preserve the original buffer in both ownership cases.
+
 ## 5. Interface
 
 The opcode enumeration and byte conversions below are **supplied** through
@@ -1120,6 +1144,7 @@ def mstore {m : Type → Type} [Monad m] : Handler m
 def mstore8 {m : Type → Type} [Monad m] : Handler m
 def calldatacopy {m : Type → Type} [Monad m] : Handler m
 def codecopy {m : Type → Type} [Monad m] : Handler m
+def mcopy {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1131,7 +1156,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- pop, sload, sstore, tload, tstore, jump, jumpi, pc, msize,
--- gasLeft, jumpdest, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
+-- gasLeft, jumpdest, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
 -- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
@@ -2189,6 +2214,23 @@ the total charge is positive.
 
 **Relational view** [R]: `step_iff` and `Step.deterministic`; a small-step relation `Steps` for straight-line code with additive gas (`GasSteps`-style) for consumers.
 
+**MCOPY local laws** [C], supplied privately in `LocalCopy.lean`. Each
+underflow law retains the completed pop prefix without charging. On a
+complete prefix, the memory quote lists source then destination. The
+charge is the configured base plus the per-word price times the rounded
+copy word count, plus the entire quote including its ZERO seed. Denial
+retains the popped frame and the supplied world.
+
+Payment expands memory once. The whole memory model is the expanded
+prefix before the destination, the complete source slice from the same
+expansion, then the expanded suffix after the destination window. This
+preserves the snapshot interpretation for overlaps and identical windows.
+At zero length both windows are erased from the pricing calculation,
+even at maximum offsets. The charge retains the base and seed and the
+memory remains identical. Success retains the residual stack and paid
+meter and advances Nat PC once. The Id potential law accounts for the
+complete charge, and a positive charge gives strict decrease.
+
 ### Informal correctness argument
 
 **Claim.** Each opcode's one executable handler refines the pinned instruction, including the order of guards, charges, observations, faults and child requests.
@@ -2222,6 +2264,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
+
+- **MCOPY integration.** The local snapshot handler and action, byte and
+  accounting laws are supplied (§§3–5 and §7). Prove the source relation,
+  dispatch and composed progress and resource bounds. O12 remains open.
 
 - **Local copies supplied.** CALLDATACOPY and CODECOPY have complete local
   run, memory and accounting laws (§7) and both source and facade controls

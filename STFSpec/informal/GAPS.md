@@ -902,6 +902,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
+- **MCOPY integration.** The local snapshot handler and action, byte and
+  accounting laws are supplied (§§3–5 and §7). Prove the source relation,
+  dispatch and composed progress and resource bounds. O12 remains open.
+
 - **Local copies supplied.** CALLDATACOPY and CODECOPY have complete local
   run, memory and accounting laws (§7) and both source and facade controls
   (§4). Dispatch, trace refinement, composed progress and the resource
