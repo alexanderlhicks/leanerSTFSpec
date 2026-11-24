@@ -927,11 +927,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
-- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16
-  and DUPN have local run and accounting laws (§7) and the §4 facade
-  controls. SWAPN and EXCHANGE still need handlers, local laws and
-  controls. The full paid source correspondence
-  and its fetch premise (§7) still need proofs.
+- **Bounded context words.** §§3/4/7 own the nine standalone handlers and
+  their local laws and controls. The wider scalar casts for PC, GAS,
+  MSIZE, NUMBER, GASLIMIT, BASEFEE and GASPRICE have separate obligations.
+  Source context assembly, dispatch, trace, settlement, composed gas
+  progress and guest execution remain open.
+
+- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16,
+  DUPN, SWAPN and EXCHANGE have local run and accounting laws (§7)
+  and the §4 facade controls. Fixed SWAP1–SWAP16 and its interface
+  choice remain open. The full paid source correspondence and its
+  fetch premise (§7) still need proofs.
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
@@ -940,7 +946,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   frame controls. Runner settlement, trace, dispatch, composed
   ownership, gas and resource gates remain open.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN/RETURN/REVERT slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -949,7 +955,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN/RETURN/REVERT effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Section 3 records the supplied standalone handlers and their local laws. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
@@ -961,6 +967,18 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+
+- **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
+  action and accounting laws, and bounded direct-source controls. Dispatch,
+  reachable source-world refinement and composed execution remain open.
+
+- **Standalone BLOBHASH supplied.** §3/§4/§5/§7 own the handler, local
+  laws and bounded direct-source and ownership controls. Dispatch,
+  reachable source-world refinement and composed execution remain open.
+
+- **Standalone CALLDATALOAD supplied.** §3/§4/§5/§7 own the handler, its
+  private ordinary laws and local controls. Dispatch, composed source
+  refinement and guest replay remain open.
 
 - **Standalone TLOAD supplied.** §3/§4/§5/§7 own the handler, its private local
   laws and isolated direct-source tests. Dispatch, interpreter traces, reachable
@@ -982,18 +1000,30 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **LT/GT/SLT/SGT/EQ and ISZERO local handlers supplied.** §§3/4/7 own the thirty binary comparison laws, five ISZERO laws and their complete frame controls. The general handler differential, source-model, trace and reachability refinement, dispatch and settlement remain open.
 - **AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ standalone handlers supplied.** §§3/4/7 own the 52 local laws and complete frame controls. The source entry relation, trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
 
-- **POP standalone handler supplied.** §§3/4/7 own the five local laws and complete frame controls. The other stack handlers, source entry relation and trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
+- **POP standalone handler supplied.** §§3/4/7 own the five local laws and complete frame controls. The source entry relation and trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
 
 - **JUMPDEST standalone handler supplied.** §§3/4/7 own its four local laws and complete frame controls. Source trace, dispatch, settlement, composed G2 and guest execution remain open.
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
-- **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
+- **Standalone BLOCKHASH supplied.** §3/§4/§5/§7 own the availability
+  check, exact fault offset and R27 action. CONTRACT O13 classifies the
+  missing-header case and records its pinned witness fixture.
+  Dispatch, guest fault propagation, composed source refinement and
+  constructor freezing (DECISIONS B14) remain open.
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
 - **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
   standalone handlers in §5 and compare denial, paid stack overflow,
   paid raw conversion fault and successful push at the selected fee
   and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
-- **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
+- **Standalone SELFBALANCE supplied.** §§3/4/5/7 own the handler,
+  complete private run equations and bounded direct controls. Interpreter
+  traces, dispatch, composed State, fuel and resource gates remain open.
+- **Read-order fidelity** (R-GEN-1). §§3/4/5/7 supply BALANCE and
+  EXTCODEHASH with their local laws and direct source and ownership
+  controls. Section 4 supplies the SELFBALANCE leaf controls. Interpreter
+  traces, dispatch, reachable State and composed fuel, ownership and guest
+  gates remain open. EEST `eip7928_block_level_access_lists`
+  (211 fixtures) indirectly exercises the wider BAL and witness read order.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.

@@ -84,6 +84,15 @@ import STFSpec.Conformance.Vm.Instructions.JumpControls
 import STFSpec.Conformance.Vm.Instructions.PushControls
 import STFSpec.Conformance.Vm.Instructions.DupControls
 import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
+import STFSpec.Conformance.Vm.Instructions.ContextWordControls
+import STFSpec.Conformance.Vm.Instructions.DynamicSwapControls
+import STFSpec.Conformance.Vm.Instructions.BalanceControls
+import STFSpec.Conformance.Vm.Instructions.SelfBalanceControls
+import STFSpec.Conformance.Vm.Instructions.SloadControls
+import STFSpec.Conformance.Vm.Instructions.ExtCodeHashControls
+import STFSpec.Conformance.Vm.Instructions.BlobHashControls
+import STFSpec.Conformance.Vm.Instructions.BlockHashControls
+import STFSpec.Conformance.Vm.Instructions.CallDataLoadControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
