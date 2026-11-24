@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, GASPRICE and BASEFEE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, GASPRICE, BASEFEE, CALLDATASIZE, CODESIZE and RETURNDATASIZE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93, Q94.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -244,7 +244,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
 
-### Planned standalone byte-size handlers (Q94)
+### Supplied standalone byte-size handlers (Q94)
 
 | EELS source at `59c1473d` | Lean declaration | Contract |
 |---|---|---|
@@ -252,8 +252,11 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `src/ethereum/forks/amsterdam/vm/instructions/environment.py:246–266` | `codesize` | Push the executing code size word. |
 | `src/ethereum/forks/amsterdam/vm/instructions/environment.py:411–431` | `returndatasize` | Push the current return-data size word. |
 
-Section 2 specifies the charge and push order. Section 5 gives the
-unimplemented interfaces, §7 the planned laws and §4 the required controls.
+The three entries use the Monad-only `Handler` type and are exported from
+`STFSpec/Vm/Instructions/SizeWords.lean`. Section 2 specifies the charge and
+push order, §5 gives the signatures, §7 the private laws and §4 the controls.
+The executable capacity check retains the paid full frame. An ordinary
+equality relates it to the direct `Stack.push` match on every word.
 
 ### Supplied TLOAD handler
 
@@ -1222,14 +1225,16 @@ retained frames. Successful pushes reuse an exclusive stack array with spare
 capacity and copy a retained array. Full-stack halt, conversion fault and
 gas denial perform no push in the compiled worker.
 
-**Planned byte-size controls (Q94).** Give each handler distinct byte
-fields and configured tariffs. Compare the complete entry frame on
-denial, the complete paid frame on a full stack, and the exact pushed
-word, charged meter and incremented PC on success. Check ordinary source
-bytes and an empty selected field. In RETURNDATASIZE, vary the current
-frame's buffer independently of the call input and executing code.
-Use a symbolic word law for size `2^256` without constructing an
-oversized buffer.
+**Supplied byte-size controls (Q94).**
+`STFSpec/Conformance/Vm/Instructions/SizeWordControls.lean` covers
+distinct byte fields and tariffs, the complete denied and paid full
+frames, and the pushed word, charged meter and Nat PC on success.
+The return-data controls vary the current buffer under a single context.
+Both facade modes match 27 complete direct cases in normal and optimized
+pinned Python, including empty and 65,539-byte selected fields.
+The native controls check charge before conversion, and conversion before
+the push on success, with exclusive and retained stacks. The symbolic law
+at size `2^256` uses the Base word model.
 
 **Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
 one-byte immediate passes zero to the decoder and that decoding precedes
@@ -1363,7 +1368,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
--- Planned standalone byte-size handlers (Q94).
+-- Supplied standalone byte-size handlers (Q94).
 def calldatasize {m : Type → Type} [Monad m] : Handler m
 def codesize {m : Type → Type} [Monad m] : Handler m
 def returndatasize {m : Type → Type} [Monad m] : Handler m
@@ -2712,11 +2717,14 @@ The private Id accounting equation says that successor potential plus the
 selected price equals entry potential. A positive selected price then gives
 strict decrease. The caller and dispatch obligations remain in §10.
 
-**Byte-size local laws (Q94)** [C], planned. The complete denial and
-paid full-stack equations hold for every raw byte size. The successful
-result contains `U256.ofNat size`. Its whole-size law uses only the
-local premise `size < 2^256` for the selected field when the paid result
-observes that value. At the pin, successful `len` on the authenticated
+**Byte-size local laws (Q94)** [C], supplied. The private run equations
+preserve the world and give the complete entry frame on denial and the
+complete paid frame on a full stack for every raw byte size. On success
+the returned frame has the exact debit, `U256.ofNat size` pushed onto the
+original stack and the Nat PC incremented by one. The whole-size law
+uses only `size < 2^256` for that field, and the symbolic equation gives
+zero at `2^256`. The Id continuation spends exactly the selected price
+in potential, and a positive price gives strict progress. At the pin, successful `len` on the authenticated
 64-bit CPython runtime returns at most `2^63 - 1`, so source bytes
 satisfy the premise. A symbolic Python length proxy with a larger
 advertised length can raise inside `len` before the U256 constructor.
@@ -2823,8 +2831,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
-- **Byte-size handlers (Q94).** Implement the three standalone handlers,
-  their local laws and controls in §§2–5 and §7. Actual caller field
+- **Byte-size handlers supplied (Q94).** §§2–5 and §7 cover the three
+  standalone entries, local laws and controls. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].

@@ -963,8 +963,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
-- **Byte-size handlers (Q94).** Implement the three standalone handlers,
-  their local laws and controls in §§2–5 and §7. Actual caller field
+- **Byte-size handlers supplied (Q94).** §§2–5 and §7 cover the three
+  standalone entries, local laws and controls. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
