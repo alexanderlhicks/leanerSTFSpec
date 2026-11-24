@@ -10,6 +10,7 @@ import STFSpec.Vm.Instructions.Handler
 import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
+import STFSpec.Vm.Instructions.BlobHash
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
@@ -26,7 +27,8 @@ class-free `Handler` signature, opcode byte conversions, STOP and its complete
 run law are supplied. The arithmetic handlers ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/
 ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
 handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
-Standalone TLOAD and TSTORE have private local action equations.
+Standalone BLOBHASH supplies ordered indexing and accounting laws. TLOAD
+and TSTORE have private local action equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
 Other handlers, dispatch, step, child context construction and resume remain unimplemented.

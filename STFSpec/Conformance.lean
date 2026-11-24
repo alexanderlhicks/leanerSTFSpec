@@ -63,6 +63,7 @@ import STFSpec.Conformance.Vm.Core.VmFaultCallerProofs
 import STFSpec.Conformance.Vm.Core.WorldCallerProofs
 import STFSpec.Conformance.Vm.Core.StateLiftCallerProofs
 import STFSpec.Conformance.Vm.Runner.EnvironmentCallerProofs
+import STFSpec.Conformance.Vm.Instructions.BlobHashControls
 import STFSpec.Conformance.Vm.Instructions.CallRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ChildFrameCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ChildOutcomeCallerProofs
