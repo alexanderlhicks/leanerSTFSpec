@@ -79,6 +79,8 @@ import STFSpec.Conformance.Vm.Instructions.BitwiseGuards
 import STFSpec.Conformance.Vm.Instructions.PopControls
 import STFSpec.Conformance.Vm.Instructions.JumpdestControls
 import STFSpec.Conformance.Vm.Instructions.JumpControls
+import STFSpec.Conformance.Vm.Instructions.PushControls
+import STFSpec.Conformance.Vm.Instructions.DupControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
