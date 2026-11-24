@@ -244,7 +244,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP and DUPN are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
-| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | STOP, JUMP, JUMPI and JUMPDEST are supplied below. Q95 fixes the planned PC and GAS contracts. |
+| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | The supplied standalone handlers and local contracts are recorded below. |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
@@ -256,7 +256,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
 
-### Planned standalone PC and GAS handlers (Q95)
+### Supplied standalone PC and GAS handlers (Q95)
 
 | EELS source at `59c1473d` | Lean declaration | Contract |
 |---|---|---|
@@ -1244,12 +1244,20 @@ retained frames. Successful pushes reuse an exclusive stack array with spare
 capacity and copy a retained array. Full-stack halt, conversion fault and
 gas denial perform no push in the compiled worker.
 
-**Planned PC and GAS controls (Q95).** Check denial, paid cast failure,
-a fitting paid full stack and a fitting success with independent prices.
-At a selected value of `2^256`, test both a full stack and one with room.
-Check the paid Python prefix separately from the nominal Lean fault.
-For GAS, an entry balance of `2^256 + 1` and price 2 leaves a fitting
-paid balance of `2^256 - 1`. Vary the other meter fields independently.
+**PC and GAS controls (Q95).** `PcGasWordControls.lean` checks denial,
+paid cast failure, a fitting paid full stack and a fitting success with
+independent prices and meter fields. The controls include the last fitting
+value and the first excluded value on both spare and full stacks. GAS
+observes the paid balance, even when the entry balance lies outside U256.
+PC can advance past the word bound after pushing the last fitting value.
+
+The private facade comparison matches 26 direct cases in both Lean modes
+and both pinned Python modes. It checks the complete paid Python prefix
+separately from each Lean nominal fault. Compiled traces check the exact
+operand passed to conversion after payment, the two nominal sites, and
+retention of memory and world when a frame is returned. Eight exclusive
+and retained frame pairs cover denial, paid conversion fault, fitting
+full stack and success for each opcode.
 
 **Planned byte-size controls (Q94).** Give each handler distinct byte
 fields and configured tariffs. Compare the complete entry frame on
@@ -1392,7 +1400,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
--- Planned standalone PC and GAS handlers (Q95).
+-- Supplied standalone PC and GAS handlers (Q95).
 def pc {m : Type → Type} [Monad m] : Handler m
 def gasLeft {m : Type → Type} [Monad m] : Handler m
 
@@ -2745,14 +2753,17 @@ The private Id accounting equation says that successor potential plus the
 selected price equals entry potential. A positive selected price then gives
 strict decrease. The caller and dispatch obligations remain in §10.
 
-**PC and GAS local laws (Q95)** [C], planned. Denial gives the complete
+**PC and GAS local laws (Q95)** [C], supplied by private ordinary laws in
+`PcGasWords.lean`. Denial gives the complete
 entry frame and world regardless of the selected word's range. Payment with
 a value outside U256 gives the exact nominal site and carries no paid frame
 or world. With a fitting word, a paid full stack retains the complete paid
 frame and world. Success returns that meter and world, the exact pushed
-value and Nat PC increment. Local accounting uses the selected price.
-The fitting GAS premise is on the paid execution balance. The corresponding
-source and caller proofs remain open.
+value and Nat PC increment. The private stack worker equals its
+source-shaped reference. The successful Id continuation spends exactly
+the selected price from meter potential, so a positive price gives strict
+decrease. The fitting GAS premise is on the paid execution balance. The
+source relation and caller bounds remain open.
 
 **Byte-size local laws (Q94)** [C], planned. The complete denial and
 paid full-stack equations hold for every raw byte size. The successful
@@ -2866,9 +2877,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
-- **PC and GAS handlers (Q95).** Implement the two planned handlers, their
-  complete local equations and controls. The supplied runner and source
-  contracts still need the actual bounds at these calls.
+- **PC and GAS integration (Q95).** The standalone handlers, local laws
+  and controls are supplied (§§3–5 and §7). Prove the pinned source relation,
+  the actual caller bounds in EthVmCore R-EXC-2, dispatch, runner fault
+  propagation and composed progress.
 - **Byte-size handlers (Q94).** Implement the three standalone handlers,
   their local laws and controls in §§2–5 and §7. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.

@@ -25,6 +25,10 @@ inductive OverflowSite where
   | gasPrice
   /-- The current block base-fee conversion in BASEFEE. -/
   | baseFee
+  /-- The entry program-counter conversion in PC after payment. -/
+  | pc
+  /-- The paid execution-balance conversion in GAS. -/
+  | gasLeft
 
 /-- Nominal non-frame faults, distinct from exceptional halts and internal failures. -/
 inductive VmFault where

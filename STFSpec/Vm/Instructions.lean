@@ -13,6 +13,7 @@ import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Pop
 import STFSpec.Vm.Instructions.ControlFlow
 import STFSpec.Vm.Instructions.FeeWords
+import STFSpec.Vm.Instructions.PcGasWords
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Push
 import STFSpec.Vm.Instructions.Dup
@@ -40,5 +41,6 @@ PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
 Other handlers, dispatch, step, child context construction and resume remain unimplemented.
+PC and GAS have complete local checked conversion, push and accounting laws.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
 -/

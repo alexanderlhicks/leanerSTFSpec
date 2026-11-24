@@ -769,10 +769,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   admitted user fee bounds in R-EXC-2 through the corresponding Lean
   environment producers to their actual handler calls.
 
-- **Q95 PC and GAS sites.** Add the two prospective constructors and
-  exhaustive clients. The raw producers, paid action proofs and controls
-  remain in EthVmInstructions. Actual handler calls need their local
-  exclusion proofs before a runner can rule out the faults.
+- **Q95 PC and GAS caller bounds.** The two constructors and exhaustive
+  clients are supplied (§§3–5 and §7). Actual handler calls need their
+  local exclusion proofs before a runner can rule out the faults
+  (R-EXC-2).
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
@@ -968,9 +968,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
-- **PC and GAS handlers (Q95).** Implement the two planned handlers, their
-  complete local equations and controls. The supplied runner and source
-  contracts still need the actual bounds at these calls.
+- **PC and GAS integration (Q95).** The standalone handlers, local laws
+  and controls are supplied (§§3–5 and §7). Prove the pinned source relation,
+  the actual caller bounds in EthVmCore R-EXC-2, dispatch, runner fault
+  propagation and composed progress.
 - **Byte-size handlers (Q94).** Implement the three standalone handlers,
   their local laws and controls in §§2–5 and §7. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.

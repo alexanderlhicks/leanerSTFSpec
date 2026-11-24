@@ -93,7 +93,7 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
   conversion exception. EthVmInstructions §2 owns the raw action order.
   These are raw diagnostics outside the CONTRACT O13 enumeration.
 
-  Q95 reserves separate sites `OverflowSite.pc` and `OverflowSite.gasLeft`
+  Q95 supplies separate sites `OverflowSite.pc` and `OverflowSite.gasLeft`
   for the paid PC and GAS casts. The result is
   `.error (.u256Overflow site)` with only that site. The EELS frame
   exposes the charged prefix at the exception. For a paid call, the
@@ -149,7 +149,7 @@ in its Except result; no rollback of underlying effects is implied.
 |---|---|---|---|---|
 | R-EXC-2/§5; `instructions/environment.py:606–607`, `interpreter.py:279,312` identify future conversion sites | `OverflowSite.blobBaseFee`, `OverflowSite.refundCounter : OverflowSite` | Pure nominal construction/elimination only | Private `Conformance/Vm/Core/VmFaultCallerProofs.lean` exact types, exhaustive dependent eliminator and distinct-site proof | Carrier supplied; actual checked casts unimplemented |
 | Q93; `instructions/environment.py:307–327,539–559` at the pin | `OverflowSite.gasPrice`, `OverflowSite.baseFee : OverflowSite` | Nominal sites for paid raw fee conversion faults | Private `VmFaultCallerProofs.lean` exact types, exhaustive elimination, distinct-site proof and complete observations | Sites supplied. EthVmInstructions owns both raw producers and §10 retains the caller obligations. |
-| Q95; `instructions/control_flow.py:101–122,125–146` at the pin | Prospective `OverflowSite.pc`, `OverflowSite.gasLeft : OverflowSite` | Separate sites for paid entry PC and paid execution balance | Planned exhaustive clients and distinct-site controls (§§4–5) | Constructors and raw producers remain unimplemented. |
+| Q95; `instructions/control_flow.py:101–122,125–146` at the pin | `OverflowSite.pc`, `OverflowSite.gasLeft : OverflowSite` | Separate sites for paid entry PC and paid execution balance | Private `VmFaultCallerProofs.lean` exact types, exhaustive elimination, distinct-site proof and complete observations | Sites and standalone producers are supplied. Actual caller bounds remain open. |
 | R-EXC-2/§5; State R29, `instructions/block.py:58–62` and the above conversion sites | `VmFault.state : STFSpec.State.StateError → VmFault`; `ancestorHashUnavailable : Nat → VmFault`; `u256Overflow : OverflowSite → VmFault` | Retains the complete supplied state error, raw unbounded offset or conversion site; no action or output projection | Private public-Core-facade exact constructors, exhaustive dependent eliminator, whole-value reconstruction, three injectivity proofs, all pairwise outer-tag disjointness and complete controls (§4) | Carrier supplied; producers, propagation, classification proofs and B14 freezing remain open |
 
 `Core/VmFault.lean` imports the actual State-owned `StateError`, which already wraps
@@ -1561,9 +1561,9 @@ this logical assertion boundary; these controls prove no execution reachability.
 Reproduce with `lake build STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs --wfail`.
 
 - **Supplied nominal fault controls:** private public-facade clients in
-  `VmFaultCallerProofs.lean` compare 352 complete values: all 340 StateError cases
-  (every StateError/WitnessError/WitnessItem tag, zero/max/mixed and every-position
-  high/low 32-byte payloads), the four overflow sites and eight raw Nat offsets
+  `VmFaultCallerProofs.lean` compares 354 complete values. These include all
+  340 StateError cases (every StateError/WitnessError/WitnessItem tag, zero/max/mixed
+  and every-position high/low 32-byte payloads), all six overflow sites and eight raw Nat offsets
   `0, 1, 255, 256, 257, 2^64, 2^256, 2^4096`. Expectations retain complete nested
   tags and every hash byte, or the entire Nat, without projection checksums.
   Generic eliminators/reconstruction/injectivity/disjointness supplement finite
@@ -1793,14 +1793,12 @@ Reproduce with `lake build STFSpec.Conformance.Vm.Core.PrecompileCallerProofs --
 
 ## 5. Interface
 
-The four supplied `OverflowSite` constructors and the supplied `VmFault`
+The six supplied `OverflowSite` constructors and the supplied `VmFault`
 constructors are shown below in declaration-before-use order. `VmFault.state` consumes the
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
 BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
-also supplied. Q95 specifies the prospective `OverflowSite.pc` and
-`OverflowSite.gasLeft` additions. The supplied declaration below lists
-the four existing sites. The functional liftState and its complete literal run equation are
+also supplied. The functional liftState and its complete literal run equation are
 supplied separately in StateLift.lean (§3/§7).
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
@@ -1861,7 +1859,7 @@ structure VmConfig where
 -- the hash-query class of EthHash; handlers that hash (EthVmInstructions) add it.
 structure VmWorld (m : Type → Type) where
   tx : TxState m             -- single owner of block, revertible writes, and observations
-inductive OverflowSite | blobBaseFee | refundCounter | gasPrice | baseFee   -- R-EXC-2, Q93
+inductive OverflowSite | blobBaseFee | refundCounter | gasPrice | baseFee | pc | gasLeft   -- R-EXC-2, Q93, Q95
 inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
                   | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
 abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- supplied raw alias
@@ -2260,8 +2258,9 @@ reconstruction, payload injectivity and constructor disjointness; no custom publ
 law or instance is added. EthVmInstructions §7 owns Q93's raw fee checks,
 including the precedence and effects of those fault producers. State lifting,
 error adaptation, classification and reachability have their own contracts.
-Q95's planned vocabulary needs exhaustive clients and a distinct-site
-observation. Its actual caller bounds remain in R-EXC-2.
+The same clients cover the two Q95 sites and distinguish their complete
+observations. EthVmInstructions §7 owns their raw action laws. R-EXC-2
+owns the actual caller bounds.
 The raw offset domain carries no admissibility claim. D14/O4/O11/O13 and B14 retain
 their existing owners; failure-ledger closure and freezing remain open.
 
@@ -3434,10 +3433,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   admitted user fee bounds in R-EXC-2 through the corresponding Lean
   environment producers to their actual handler calls.
 
-- **Q95 PC and GAS sites.** Add the two prospective constructors and
-  exhaustive clients. The raw producers, paid action proofs and controls
-  remain in EthVmInstructions. Actual handler calls need their local
-  exclusion proofs before a runner can rule out the faults.
+- **Q95 PC and GAS caller bounds.** The two constructors and exhaustive
+  clients are supplied (§§3–5 and §7). Actual handler calls need their
+  local exclusion proofs before a runner can rule out the faults
+  (R-EXC-2).
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
