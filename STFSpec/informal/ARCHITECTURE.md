@@ -1080,6 +1080,18 @@ The decoded system route and admitted user route supply the fitting
 source domain under each option. Their Lean caller obligations are in
 EthVmCore R-EXC-2.
 
+**Raw byte-size conversion options (Q94).** DECISIONS Q94 owns the selection.
+EthVmInstructions §§2 and 7 own the handler and source correspondence.
+On the authenticated reference host, successful Python `len` fits the U256
+constructor. The choices below govern arbitrary Nat sizes in the raw Lean
+model.
+
+| Option | Consequence for raw calls |
+|---|---|
+| A. Total modular word | Keep the ordinary `Handler` and convert with `U256.ofNat` after payment. A paid frame with room at size 2^256 pushes zero. Denial and the paid full-stack contract apply at all sizes. A local fitting premise supplies the exact size law on success. |
+| B. Checked conversion with an opcode site | Keep the ordinary `Handler` and add three nominal conversion sites and their exhaustive clients. An out-of-range size faults before the paid stack check. The same local fitting premise identifies the exact size result. |
+| C. Proof-scoped conversion | Require a proof that the selected size fits when payment succeeds. Dispatch needs to supply the premise, including the current frame's return-data bound. The ordinary raw `Handler` would need a separate completion or a new input contract. |
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, GASPRICE and BASEFEE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93, Q94.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -80,14 +80,14 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 33 | CALLER | `:113` | → caller | 2 | |
 | 34 | CALLVALUE | `:136` | → value | 2 | |
 | 35 | CALLDATALOAD | `:159` | i → word | 3 | zero-padded read of 32 bytes at any i |
-| 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | |
+| 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | Push the call-data size word after its own charge (Q94). |
 | 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
-| 38 | CODESIZE | `:246` | → \|code\| | 2 | executing frame's code (init code in a create frame) |
+| 38 | CODESIZE | `:246` | → \|code\| | 2 | Push the executing code size word after its own charge (Q94). A create frame uses its init code. |
 | 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem | zero-padded |
 | 3A | GASPRICE | `:307` | → price | 2 | Check and push `effective_gas_price` after its own charge (Q93 below). |
 | 3B | EXTCODESIZE | `:330` | a → n | warm/cold + 100 | EIP-8038 code-read surcharge; reads account and code after the charge; size of the **raw** code (23 for a delegation designator) |
 | 3C | EXTCODECOPY | `:364` | a mo co sz → | warm/cold + 100 + 3·w(sz) + mem | warm-set add before charge; raw code, zero-padded |
-| 3D | RETURNDATASIZE | `:411` | → \|rd\| | 2 | |
+| 3D | RETURNDATASIZE | `:411` | → \|rd\| | 2 | Push the current return-data size word after its own charge (Q94). |
 | 3E | RETURNDATACOPY | `:434` | mo ro sz → | 3 + 3·w(sz) + mem | after the charge, **`ro + sz > \|rd\|` → `OutOfBoundsRead`, even when `sz = 0`** (`:463`); then expand and copy |
 | 3F | EXTCODEHASH | `:476` | a → h | warm/cold | account `== EMPTY_ACCOUNT` (absent or empty) → 0, else its `code_hash`; **no code read, no surcharge** |
 | 40 | BLOCKHASH | `I/block.py:22` | n → h | 20 | 0 unless `n < number ≤ n + 256`; else `block_hashes[−(number − n)]` and `track_ancestor_access(number − n)` (a block-level observation, never reverted). If `number − n > \|block_hashes\|` EELS raises `IndexError` (`I/block.py:58`) → `VmFault.ancestorHashUnavailable` (O13) [V: `stateless.py:246` supplies only the witness headers; fixture `validation_headers_missing_oldest_blockhash_ancestor`] |
@@ -102,6 +102,19 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 49 | BLOBHASH | `:562` | i → h | 3 | `i < \|hashes\|` → hash, else 0 |
 | 4A | BLOBBASEFEE | `:589` | → price | 2 | `U256(calculate_blob_gas_price(excess_blob_gas))` (`:607`); overflow → `VmFault.u256Overflow .blobBaseFee` (O13, argued reachable) |
 | 4B | SLOTNUM | `I/block.py:268` | → slot | 2 | EIP-7843: `block_env.slot_number` |
+
+**Raw byte-size words (Q94).** Each handler charges its selected
+execution tariff before converting the selected byte count. CALLDATASIZE
+uses `ctx.config.costs.opcodeCallDataSize` and `ctx.callData.size`.
+CODESIZE uses `ctx.config.costs.opcodeCodeSize` and `ctx.code.size`.
+RETURNDATASIZE uses `ctx.config.costs.opcodeReturnDataSize` and the
+current `frame.returnData.size`. A charge denial halts with out-of-gas
+and the complete entry frame. After payment, convert the full Nat size
+with `U256.ofNat`, then attempt the push. A full stack halts with the
+complete charged frame. Success pushes the word and increments the
+Nat PC by one. Every result retains the supplied world. At mathematical
+size `2^256`, a paid frame with room pushes zero. EELS
+`I/environment.py:185–205,246–266,411–431` at `59c1473d`.
 
 **Raw GASPRICE and BASEFEE (Q93).** GASPRICE uses
 `ctx.txEnv.effectiveGasPrice` and `ctx.config.costs.opcodeGasPrice`.
@@ -230,6 +243,17 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Planned standalone byte-size handlers (Q94)
+
+| EELS source at `59c1473d` | Lean declaration | Contract |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:185–205` | `calldatasize` | Push the call-data size word. |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:246–266` | `codesize` | Push the executing code size word. |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:411–431` | `returndatasize` | Push the current return-data size word. |
+
+Section 2 specifies the charge and push order. Section 5 gives the
+unimplemented interfaces, §7 the planned laws and §4 the required controls.
 
 ### Supplied TLOAD handler
 
@@ -1198,6 +1222,15 @@ retained frames. Successful pushes reuse an exclusive stack array with spare
 capacity and copy a retained array. Full-stack halt, conversion fault and
 gas denial perform no push in the compiled worker.
 
+**Planned byte-size controls (Q94).** Give each handler distinct byte
+fields and configured tariffs. Compare the complete entry frame on
+denial, the complete paid frame on a full stack, and the exact pushed
+word, charged meter and incremented PC on success. Check ordinary source
+bytes and an empty selected field. In RETURNDATASIZE, vary the current
+frame's buffer independently of the call input and executing code.
+Use a symbolic word law for size `2^256` without constructing an
+oversized buffer.
+
 **Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
 one-byte immediate passes zero to the decoder and that decoding precedes
 stack checks. Exercise both payment outcomes at the last fitting start
@@ -1330,12 +1363,17 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
+-- Planned standalone byte-size handlers (Q94).
+def calldatasize {m : Type → Type} [Monad m] : Handler m
+def codesize {m : Type → Type} [Monad m] : Handler m
+def returndatasize {m : Type → Type} [Monad m] : Handler m
+
 -- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
--- calldatasize, calldatacopy, codesize, codecopy, extcodesize, extcodecopy,
--- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
+-- calldatacopy, codecopy, extcodesize, extcodecopy,
+-- returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, blobHash, blobBaseFee, slotNumber,
 -- mload, mstore, mstore8, sload, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
 -- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
@@ -2674,6 +2712,17 @@ The private Id accounting equation says that successor potential plus the
 selected price equals entry potential. A positive selected price then gives
 strict decrease. The caller and dispatch obligations remain in §10.
 
+**Byte-size local laws (Q94)** [C], planned. The complete denial and
+paid full-stack equations hold for every raw byte size. The successful
+result contains `U256.ofNat size`. Its whole-size law uses only the
+local premise `size < 2^256` for the selected field when the paid result
+observes that value. At the pin, successful `len` on the authenticated
+64-bit CPython runtime returns at most `2^63 - 1`, so source bytes
+satisfy the premise. A symbolic Python length proxy with a larger
+advertised length can raise inside `len` before the U256 constructor.
+That proxy lies outside the source byte-field type. Practical host
+resource behavior belongs to CONTRACT O12.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
@@ -2713,6 +2762,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
 - **Q91** covers stack-immediate reads and their source correspondence (§§2 and 7).
+- **Q94** settles the raw byte-size word rule (§§2 and 7).
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
@@ -2773,6 +2823,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
+- **Byte-size handlers (Q94).** Implement the three standalone handlers,
+  their local laws and controls in §§2–5 and §7. Actual caller field
+  relations, dispatch and proof of the pinned source relation remain open.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
