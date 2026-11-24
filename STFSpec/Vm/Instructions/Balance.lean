@@ -343,4 +343,205 @@ theorem balance_run_model (ctx : FrameCtx) (f f' : Frame) (w w' : VmWorld Id)
     paid_continuation_lookup ctx f f' w w' word tail popped enough ran
   rw [top, getAccount_model w.tx σ₀ hwf lookups _ account next read]
 
+private def accountCodeHashWord (consts : HashConsts) (account : Account) : U256 :=
+  if account = emptyAccount consts then U256.zero
+  else U256.ofBeBytes32 account.codeHash.toBytes32
+
+private theorem empty_code_hash_word (consts : HashConsts) :
+    accountCodeHashWord consts (emptyAccount consts) = U256.zero := by
+  simp [accountCodeHashWord]
+
+private theorem nonempty_code_hash_bytes (consts : HashConsts) (account : Account)
+    (nonempty : account ≠ emptyAccount consts) :
+    (accountCodeHashWord consts account).toBeBytes32 = account.codeHash.toBytes32 := by
+  simp [accountCodeHashWord, nonempty, U256.toBeBytes32_ofBeBytes32]
+
+private def extcodehashAfterPop {m : Type → Type} [Monad m] (ctx : FrameCtx) (f : Frame)
+    (word : U256) (room : f.stack.size < 1024) : VmM m (StepResult ctx) :=
+  let address := Address.ofU256Masked word
+  let (addresses, price) := warmAndPrice ctx.config f.accessedAddresses address
+  match chargeGas f.gasMeter price with
+  | .error error => pure (.halt { f with accessedAddresses := addresses } error)
+  | .ok meter => fun w ↦
+    let consts := w.tx.block.consts
+    (do
+      let account ← liftState (getAccount address)
+      pure (paidResult ctx f room addresses meter (accountCodeHashWord consts account))
+      : VmM m (StepResult ctx)).run w
+
+/-- Charge for the masked address, read the account, and push its code hash
+as a word. An account equal to the supplied empty account yields zero.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/environment.py:476–510`. -/
+def extcodehash {m : Type → Type} [Monad m] : Handler m := fun ctx f ↦
+  match popped : popFrame f with
+  | .error (residual, error) => pure (.halt residual error)
+  | .ok (word, residual) => extcodehashAfterPop ctx residual word (poppedFrame_room f residual word popped)
+
+private theorem extcodehash_of_pop {m : Type → Type} [Monad m] (ctx : FrameCtx) (f : Frame)
+    (word : U256) (tail : Stack) (popped : f.stack.pop = .ok (word, tail)) :
+    (extcodehash ctx f : VmM m (StepResult ctx)) =
+      extcodehashAfterPop ctx { f with stack := tail } word (room_after_pop f.stack tail word popped) := by
+  have framePop : popFrame f = .ok (word, { f with stack := tail }) := by
+    simp [popFrame_eq, popFrameReference, popped]
+  unfold extcodehash
+  split
+  · rename_i residual error observed
+    rw [framePop] at observed
+    contradiction
+  · rename_i actual residual observed
+    have same := Except.ok.inj (framePop.symm.trans observed)
+    cases same
+    rfl
+
+private theorem extcodehash_run_underflow {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m)
+    (missing : f.stack.pop = .error .stackUnderflow) :
+    ((extcodehash ctx f).run w).run = pure (.ok (.halt f .stackUnderflow, w)) := by
+  have popped : popFrame f = .error (f, .stackUnderflow) := by
+    simp [popFrame_eq, popFrameReference, missing]
+  unfold extcodehash
+  split
+  · rename_i residual actual observed
+    have same := Except.error.inj (popped.symm.trans observed)
+    cases same
+    rfl
+  · rename_i word residual observed
+    rw [popped] at observed
+    contradiction
+
+private theorem extcodehash_run_warm_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (word : U256) (tail : Stack)
+    (popped : f.stack.pop = .ok (word, tail))
+    (warm : Address.ofU256Masked word ∈ f.accessedAddresses)
+    (short : f.gasMeter.gasLeft < ctx.config.costs.warmAccess) :
+    ((extcodehash ctx f).run w).run = pure (.ok (.halt { f with stack := tail } .outOfGas, w)) := by
+  have denied := (chargeGas_eq_error_iff f.gasMeter ctx.config.costs.warmAccess .outOfGas).mpr
+    ⟨short, rfl⟩
+  rw [extcodehash_of_pop _ _ _ _ popped]
+  simp only [extcodehashAfterPop, warmAndPrice, warm, ite_true, denied]
+  rfl
+
+private theorem extcodehash_run_cold_oog {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (word : U256) (tail : Stack)
+    (popped : f.stack.pop = .ok (word, tail))
+    (cold : Address.ofU256Masked word ∉ f.accessedAddresses)
+    (short : f.gasMeter.gasLeft < ctx.config.costs.coldAccountAccess) :
+    ((extcodehash ctx f).run w).run = pure (.ok (.halt { f with
+      stack := tail
+      accessedAddresses := f.accessedAddresses.insert (Address.ofU256Masked word) } .outOfGas, w)) := by
+  have denied := (chargeGas_eq_error_iff f.gasMeter ctx.config.costs.coldAccountAccess .outOfGas).mpr
+    ⟨short, rfl⟩
+  rw [extcodehash_of_pop _ _ _ _ popped]
+  simp only [extcodehashAfterPop, warmAndPrice, cold, ite_false, denied]
+  rfl
+
+private theorem extcodehash_run_paid {m : Type → Type} [Monad m]
+    (ctx : FrameCtx) (f : Frame) (w : VmWorld m) (word : U256) (tail : Stack)
+    (popped : f.stack.pop = .ok (word, tail))
+    (enough : (if Address.ofU256Masked word ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess) ≤ f.gasMeter.gasLeft) :
+    let address := Address.ofU256Masked word
+    let addresses := if address ∈ f.accessedAddresses then f.accessedAddresses
+      else f.accessedAddresses.insert address
+    let price := if address ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess
+    ∃ push : U256 → Stack, (∀ value, tail.push value = .ok (push value)) ∧
+      ((extcodehash ctx f).run w).run =
+        (((do
+          let account ← liftState (getAccount address)
+          pure (.continue { f with
+            pc := f.pc + 1
+            stack := push (accountCodeHashWord w.tx.block.consts account)
+            accessedAddresses := addresses
+            gasMeter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - price } })) :
+          VmM m (StepResult ctx)).run w).run := by
+  intro address addresses price
+  let room := room_after_pop f.stack tail word popped
+  refine ⟨fun value ↦ pushBalance tail value room, fun value ↦ pushBalance_actual tail value room, ?_⟩
+  have selected : warmAndPrice ctx.config f.accessedAddresses address = (addresses, price) := by
+    by_cases warm : address ∈ f.accessedAddresses <;>
+      simp [warmAndPrice, addresses, price, warm]
+  have paid := chargeGas_of_le f.gasMeter price enough
+  rw [extcodehash_of_pop _ _ _ _ popped]
+  simp only [extcodehashAfterPop]
+  change (((match chargeGas f.gasMeter (warmAndPrice ctx.config f.accessedAddresses address).2 with
+    | .error error => pure (.halt { f with
+      stack := tail
+      accessedAddresses := (warmAndPrice ctx.config f.accessedAddresses address).1 } error)
+    | .ok meter => fun source ↦
+      (do
+        let account ← liftState (getAccount address)
+        pure (paidResult ctx { f with stack := tail } room
+          (warmAndPrice ctx.config f.accessedAddresses address).1 meter
+          (accountCodeHashWord source.tx.block.consts account)) : VmM m (StepResult ctx)).run source
+        ) : VmM m (StepResult ctx)).run w).run = _
+  rw [selected]
+  simp only [paid, paidResult_eq, StateT.run]
+
+private theorem extcodehash_run_state_fault (ctx : FrameCtx) (f : Frame) (w : VmWorld Id)
+    (word : U256) (tail : Stack) (popped : f.stack.pop = .ok (word, tail))
+    (enough : (if Address.ofU256Masked word ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess) ≤ f.gasMeter.gasLeft)
+    (error : StateError)
+    (failed : ((getAccount (Address.ofU256Masked word)).run w.tx).run = .error error) :
+    ((extcodehash ctx f).run w).run = .error (.state error) := by
+  obtain ⟨_, _, ran⟩ := extcodehash_run_paid ctx f w word tail popped enough
+  rw [ran]
+  simp only [StateT.run_bind, ExceptT.run_bind, liftState_run, failed]
+  rfl
+
+private theorem extcodehash_run_success (ctx : FrameCtx) (f : Frame) (w : VmWorld Id)
+    (word : U256) (tail : Stack) (popped : f.stack.pop = .ok (word, tail))
+    (enough : (if Address.ofU256Masked word ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess) ≤ f.gasMeter.gasLeft)
+    (account : Account) (next : TxState Id)
+    (read : ((getAccount (Address.ofU256Masked word)).run w.tx).run = .ok (account, next)) :
+    let address := Address.ofU256Masked word
+    let addresses := if address ∈ f.accessedAddresses then f.accessedAddresses
+      else f.accessedAddresses.insert address
+    let price := if address ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess
+    let meter := { f.gasMeter with gasLeft := f.gasMeter.gasLeft - price }
+    let value := accountCodeHashWord w.tx.block.consts account
+    ∃ stack, tail.push value = .ok stack ∧ stack.toList = value :: tail.toList ∧
+      ((extcodehash ctx f).run w).run = .ok (.continue { f with
+        pc := f.pc + 1
+        stack := stack
+        accessedAddresses := addresses
+        gasMeter := meter }, { w with tx := next }) ∧
+      meter.phi + price = f.gasMeter.phi := by
+  intro address addresses price meter value
+  obtain ⟨push, pushed, ran⟩ := extcodehash_run_paid ctx f w word tail popped enough
+  have pushedValue := pushed value
+  refine ⟨push value, pushedValue, ((Stack.push_eq_ok_iff tail _ _).mp pushedValue).2, ?_,
+    chargeGas_phi _ _ _ (chargeGas_of_le f.gasMeter price enough)⟩
+  rw [ran]
+  simp only [StateT.run_bind, ExceptT.run_bind, liftState_run, read]
+  rfl
+
+private theorem extcodehash_run_observations (ctx : FrameCtx) (f f' : Frame)
+    (w w' : VmWorld Id) (word : U256) (tail : Stack)
+    (popped : f.stack.pop = .ok (word, tail))
+    (enough : (if Address.ofU256Masked word ∈ f.accessedAddresses then ctx.config.costs.warmAccess
+      else ctx.config.costs.coldAccountAccess) ≤ f.gasMeter.gasLeft)
+    (ran : ((extcodehash ctx f).run w).run = .ok (.continue f', w')) :
+    w'.tx.block = w.tx.block ∧ w'.tx.rev = w.tx.rev ∧
+      w'.tx.obs.storageReads = w.tx.obs.storageReads ∧
+      w'.tx.obs.codeReads = w.tx.obs.codeReads ∧
+      w'.tx.obs.createdAccounts = w.tx.obs.createdAccounts ∧
+      ∀ a : Address, a ∈ w'.tx.obs.accountReads ↔
+        a = Address.ofU256Masked word ∨ a ∈ w.tx.obs.accountReads := by
+  cases read : ((getAccount (Address.ofU256Masked word)).run w.tx).run with
+  | error error =>
+    rw [extcodehash_run_state_fault ctx f w word tail popped enough error read] at ran
+    contradiction
+  | ok result =>
+    rcases result with ⟨account, next⟩
+    obtain ⟨_, _, _, action, _⟩ := extcodehash_run_success ctx f w word tail popped enough account next read
+    rw [action] at ran
+    have world := (Prod.mk.inj (Except.ok.inj ran)).2
+    rw [← world]
+    obtain ⟨block, rev, storage, code, created⟩ := getAccount_frames w.tx _ account next read
+    exact ⟨block, rev, storage, code, created, fun a ↦ getAccount_mem w.tx _ a account next read⟩
+
 end STFSpec.Vm.Instructions

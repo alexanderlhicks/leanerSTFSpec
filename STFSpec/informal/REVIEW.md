@@ -405,6 +405,13 @@ and the local G2 progress cases at positive prices. Use the source rows for
 the frame boundary and the handoff to `process_call` under O8. Dispatch,
 settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies EXTCODEHASH with private exact
+run and observation laws. The paid account lookup uses the retained
+F20 constants for the empty-account comparison. The result takes
+the stored hash directly when the comparison fails. The whole
+State result retains existing code observations. Dispatch, source
+trace and composed State and fuel gates remain open.
+
 EthVmInstructions §§3/4/5/7 supplies BALANCE and nine local laws. A cold
 denial retains the warmth insertion and both denial paths bypass State.
 The paid path uses the actual defaulted account lookup and preserves the
