@@ -15,6 +15,7 @@ import STFSpec.Vm.Instructions.ControlFlow
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Push
 import STFSpec.Vm.Instructions.Dup
+import STFSpec.Vm.Instructions.Swap
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -33,7 +34,7 @@ handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting law
 The standalone stack handler POP has ordered run laws, exact Id accounting and
 strict progress at positive prices.
 JUMP, JUMPI and JUMPDEST have complete run equations and local Id accounting laws.
-Fixed DUP and DUPN have ordered run laws and local Id accounting laws.
+Fixed DUP, DUPN and fixed SWAP have ordered run laws and local Id accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
