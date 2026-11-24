@@ -257,7 +257,7 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/instructions/memory.py::mcopy` | 142 | `mcopy` | Unimplemented |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload` (supplied below), `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | STOP, JUMP, JUMPI and JUMPDEST are supplied below. PC and GAS remain open. |
-| `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
+| `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | The standalone handler and local laws cover all five aliases (§§3–5 and §7). |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
 | `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATION_MARKER` | 36 | `EOA_DELEGATION_MARKER` | `0xEF0100` |
@@ -774,6 +774,12 @@ and memory-word prices. See §2.9 for their source order and §7 for the
 local Memory admission. The private executable pop worker consumes the
 nonempty stack with a size witness. An ordinary equality identifies
 it with the pop reference on every frame, including empty ones (D25).
+
+### Supplied LOG0 through LOG4 handlers
+
+| EELS source at `59c1473d` | Lean declaration | Complete local effect |
+|---|---|---|
+| `vm/instructions/log.py:28–86` | `logN (n : Fin 5)` in `LogOpcode.lean` | Pop the window and exactly `n` topics. Charge the full configured cost. Expand before checking static mode. A successful call appends the whole log in pop order and advances PC. |
 
 ## 4. Tests
 
@@ -1423,6 +1429,28 @@ under REVIEW §7. The fixture areas below cover this opcode family.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
 
+**Supplied LOG controls.** `LogOpcodeControls.lean` compares complete
+frame results and sampled world observations. It checks all five counts,
+every short stack prefix, denial before a required expansion, and paid
+static failure after that expansion. Success preserves old log order and
+appends the current target, the ordered complete topic words, and the
+selected bytes. An additional case reads an empty window at the largest
+U256 offset with zero prices. A paid full-stack case retains every
+unconsumed word.
+
+The private facade compares 55 complete before/after frame cases in both
+Lean modes and both pinned Python modes. Native traces check the successful
+pops, the complete topic conversion values, the single quote and charge,
+expansion and the full read. They observe the supplied world identity in
+every result. With exclusive entry, the compiled pops reuse the stack array.
+A retained frame requires one copy on the first pop. Later pops reuse that
+array. For LOG0 and LOG4, paid static and ordinary calls grow exclusive
+64-byte memory to 96 bytes in the original backing with capacity 126.
+Retained frames keep their original stack and memory while the paid
+result uses a new backing. Growth from 32 to 64 bytes with capacity
+62 allocates a larger backing. Empty-stack and gas-denied controls retain
+the original memory and perform no expansion or read.
+
 **Supplied PUSH controls.** `STFSpec/Conformance/Vm/Instructions/PushControls.lean`
 uses the facade to apply the five public laws. Its ten guards compare the
 result tag, projected values of all frame fields and sampled world values.
@@ -1637,6 +1665,7 @@ def blockHash {m : Type → Type} [Monad m] : Handler m
 def calldataload {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
+def logN {m : Type → Type} [Monad m] (n : Fin 5) : Handler m
 
 -- Supplied Q92 handlers
 def return_ {m : Type → Type} [Monad m] : Handler m
@@ -1649,7 +1678,7 @@ def baseFee {m : Type → Type} [Monad m] : Handler m
 -- Remaining handlers (public): keccak, calldatasize, calldatacopy, codesize,
 -- codecopy, extcodesize, extcodecopy, returndatasize, returndatacopy, number,
 -- gasLimit, blobBaseFee, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
--- logN (n : Fin 5), create, call, callcode, delegatecall, create2, staticcall,
+-- create, call, callcode, delegatecall, create2, staticcall,
 -- selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
@@ -3369,6 +3398,27 @@ EELS `interpreter.py:438–445` at `59c1473d`.
 
 **Relational view** [R]: `step_iff` and `Step.deterministic`; a small-step relation `Steps` for straight-line code with additive gas (`GasSteps`-style) for consumers.
 
+**LOG local laws** [C], supplied privately in `LogOpcode.lean`. The stack
+model identifies the offset, width and exact topic prefix in that order.
+Each returned topic retains all 32 big-endian bytes. The checked stack
+worker equals the reference pop, including the original empty residual.
+A short stack halts with that residual and retains the other entry fields
+and the world. With a complete prefix, the charge is the configured base,
+data price times the full byte count, topic price times the count, plus
+the singleton window quote from EthVmCore §7. The quote carries its
+`ZERO` seed even for an empty window.
+
+Denial retains the popped frame and world. The paid worker consumes the
+frame's memory and applies the quoted zero expansion before the static
+check. Its private ordinary equality gives the complete result of the
+source-shaped reference. A static failure retains the
+expanded memory, paid meter, popped stack and original logs and PC.
+Success reads the admitted slice of that expanded memory, appends exactly
+one log for `ctx.currentTarget`, and advances PC by one. The existing
+coverage proof accepts an empty read at every offset. The complete Id
+potential equation accounts for the selected charge, and any positive
+charge gives strict decrease.
+
 ### Informal correctness argument
 
 **Claim.** Each opcode's one executable handler refines the pinned instruction, including the order of guards, charges, observations, faults and child requests.
@@ -3507,6 +3557,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.
-- **Static LOG precedence** (charge and expand before the static check) is observable only in traces; traces are diagnostics (§7 of ARCHITECTURE), so the Lean trace schema must decide whether it records it.
+- **LOG integration.** The local action returns the paid expanded frame on
+  static failure (§§3–5 and §7). Prove the pinned source relation, dispatch,
+  runner rollback and receipt incorporation. Composed progress and resource
+  bounds remain open.
 - **`Ops` enum line numbers**: the constant block spans `I/__init__.py:32–220`; the `partial` aliases (push1…) are not inventory items and are covered by `pushN`/`dupN`/`swapN`/`logN`.
 - **Precompile-addressed code under delegation** (R-DEL-4) is inferred from the runner branch; no dedicated fixture located.

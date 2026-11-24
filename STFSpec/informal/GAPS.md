@@ -1027,7 +1027,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.
-- **Static LOG precedence** (charge and expand before the static check) is observable only in traces; traces are diagnostics (§7 of ARCHITECTURE), so the Lean trace schema must decide whether it records it.
+- **LOG integration.** The local action returns the paid expanded frame on
+  static failure (§§3–5 and §7). Prove the pinned source relation, dispatch,
+  runner rollback and receipt incorporation. Composed progress and resource
+  bounds remain open.
 - **`Ops` enum line numbers**: the constant block spans `I/__init__.py:32–220`; the `partial` aliases (push1…) are not inventory items and are covered by `pushN`/`dupN`/`swapN`/`logN`.
 - **Precompile-addressed code under delegation** (R-DEL-4) is inferred from the runner branch; no dedicated fixture located.
 

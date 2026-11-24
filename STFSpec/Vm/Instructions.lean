@@ -27,6 +27,7 @@ import STFSpec.Vm.Instructions.BlockHash
 import STFSpec.Vm.Instructions.CallDataLoad
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
+import STFSpec.Vm.Instructions.LogOpcode
 import STFSpec.Vm.Instructions.Ops
 
 /-!
@@ -53,6 +54,7 @@ CALLDATALOAD supplies exact frame and padded-word equations.
 MLOAD, MSTORE and MSTORE8 have local run, memory and accounting laws.
 RETURN and REVERT have ordered terminal run laws.
 Standalone TLOAD and TSTORE have private local action equations.
+LOG0 through LOG4 supply ordered action and local Id accounting laws.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
