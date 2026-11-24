@@ -11,6 +11,7 @@ import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Stop
+import STFSpec.Vm.Instructions.Sload
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -27,6 +28,7 @@ run law are supplied. The arithmetic handlers ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGN
 ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
 handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
+Standalone SLOAD supplies the local payment and current-storage equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
 Other handlers, dispatch, step, child context construction and resume remain unimplemented.

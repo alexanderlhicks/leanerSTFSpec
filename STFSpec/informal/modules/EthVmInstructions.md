@@ -190,7 +190,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
 | `forks/amsterdam/vm/instructions/stack.py::*` | 29–317 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | the `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
-| `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
+| `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload` (supplied below), `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
 | `forks/amsterdam/vm/instructions/control_flow.py::*` | 25–174 | `stop` (supplied, exact row below), `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | Remaining control-flow handlers unimplemented |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
@@ -202,6 +202,12 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied SLOAD handler
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/storage.py:37–65` | `STFSpec.Vm.Instructions.sload` in `STFSpec/Vm/Instructions/Sload.lean`, exported by the Instructions facade | Pop the slot word and convert it to exactly 32 big-endian bytes. Look up warmth for the current target and key in the entry slot set. Insert a cold slot before charging the selected execution price. After payment, lift the current storage read (EthState R11), push its result and advance PC. Underflow retains the frame and world. Denied payment retains the pop and slot warmth, with the original PC, meter and world. | Private action, framing and charge laws (§7); standalone controls (§4). |
 
 ### Supplied TLOAD handler
 
@@ -864,6 +870,18 @@ zero grants and two unequal grants above 2^256, including each large grant paire
 with zero. The pinned source comparison is a reading of the inline assignments
 in §3.
 
+**Standalone SLOAD controls.**
+`STFSpec/Conformance/Vm/Instructions/SloadControls.lean` exercises the public
+handler in a static frame. The cases distinguish address and slot warmth,
+check the leading-zero slot bytes and cover a full entry stack. A recording
+provider distinguishes denied reads from a paid lookup and retains the
+complete witness fault on failure. The cases cover a transaction slot
+holding zero over a clear, a transaction clear over a block slot, a
+maximum block slot over a block clear, and a block clear over the provider.
+Independent raw prices include zero on either warmth branch. The source
+comparison uses the pinned selected price and compares the related frame
+and State fields at the call boundary.
+
 **Executed TLOAD controls.**
 `scripts/TloadNativeTests.lean` runs the public handler on the input-only
 `tload_inputs.json` catalogue. Native and interpreted streams compare all nine
@@ -979,7 +997,7 @@ literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
 Monad instance. STOP, ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND, ADDMOD,
 MULMOD, EXP, LT, GT, SLT, SGT, EQ, ISZERO, AND, OR, XOR, NOT, BYTE, SHL, SHR, SAR,
-CLZ, TLOAD and TSTORE are supplied with their local laws. The mutable child
+CLZ, SLOAD, TLOAD and TSTORE are supplied with their local laws. The mutable child
 frame constructor is supplied separately.
 Child context construction, remaining handlers, dispatch, step and resume remain open.
 
@@ -1062,6 +1080,7 @@ def bitwiseShl {m : Type → Type} [Monad m] : Handler m
 def bitwiseShr {m : Type → Type} [Monad m] : Handler m
 def bitwiseSar {m : Type → Type} [Monad m] : Handler m
 def countLeadingZeros {m : Type → Type} [Monad m] : Handler m
+def sload {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1072,7 +1091,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
--- pop, mload, mstore, mstore8, sload, sstore, tload, tstore, jump, jumpi, pc, msize,
+-- pop, mload, mstore, mstore8, sstore, tload, tstore, jump, jumpi, pc, msize,
 -- gasLeft, jumpdest, mcopy, pushN (n : Fin 33), dupN (n : Fin 16), swapN (n : Fin 16),
 -- dupn, swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
@@ -1204,6 +1223,27 @@ boundaries using public provider laws. No authored public helper-law family is
 added. The fixed ctx index prevents a handler result from returning a changed
 context. Actual operation effects, preservation/progress, source refinement,
 child execution, settlement/resume and F11 remain separate obligations.
+
+**Supplied SLOAD contract.** The handler uses `Monad m` alone. It selects the
+supplied `warmAccess` or `coldStorageAccess` from slot membership before any
+insertion. Both prices admit every Nat. The private action equations give
+literal underlying `pure` for stack underflow and for denied payment after
+either warmth branch. Both skip the lifted State action. Denial keeps
+the residual stack and adds a cold slot with the rest of the frame and
+world intact.
+
+On payment, the private action equation runs one actual
+`liftState (getStorage ctx.currentTarget key)`. At Id a fault keeps the
+supplied State error under `VmFault.state`. A successful State action
+supplies the returned complete world and the word pushed into the space
+proved by the pop. Success advances the original Nat PC by one and
+updates only the stack, execution gas and slot warmth. The resulting
+meter potential plus the selected price equals the entry potential,
+so it decreases strictly when that price is positive. The actual Core
+pop consumes the nonempty stack and the paid push consumes its residual;
+a private ordinary equality relates the pop path to its readable reference.
+R11 owns the current-storage lookup and observations. Dispatch and
+composed resource and fuel claims remain open.
 
 **Supplied TLOAD contract.** The handler uses `Monad m` alone and charges the
 raw Nat price from the supplied context. Underflow returns the original frame
@@ -2110,7 +2150,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/SLOAD/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2119,7 +2159,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/SLOAD/TLOAD/TSTORE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
@@ -2131,6 +2171,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+
+- **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
+  action and accounting laws, and bounded direct-source controls. Dispatch,
+  reachable source-world refinement and composed execution remain open.
 
 - **Standalone TLOAD supplied.** §3/§4/§5/§7 own the handler, its private local
   laws and isolated direct-source tests. Dispatch, interpreter traces, reachable
