@@ -10,6 +10,7 @@ import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.RunCheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputControls
+import STFSpec.Conformance.Vm.Runner.RunPrecompileControls
 import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
@@ -70,6 +71,7 @@ import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StepResultCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StopCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ReturnRevertControls
 import STFSpec.Conformance.Vm.Instructions.TstoreChecks
 import STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ComparisonCallerProofs
@@ -81,6 +83,7 @@ import STFSpec.Conformance.Vm.Instructions.JumpdestControls
 import STFSpec.Conformance.Vm.Instructions.JumpControls
 import STFSpec.Conformance.Vm.Instructions.PushControls
 import STFSpec.Conformance.Vm.Instructions.DupControls
+import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
@@ -325,6 +328,7 @@ import STFSpec.Conformance.Vm.Core.LogsCallerProofs
 import STFSpec.Conformance.Vm.Core.LogsGuards
 import STFSpec.Conformance.Vm.Core.FrameCallerProofs
 import STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs
+import STFSpec.Conformance.Vm.Core.IncorporateChildControls
 import STFSpec.Conformance.Vm.Core.FrameGuards
 import STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs
 import STFSpec.Conformance.Vm.Core.EnvironmentsGuards
@@ -415,6 +419,7 @@ import STFSpec.Conformance.Fork.AmsterdamSystemAddrsGuards
 
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
 import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
+import STFSpec.Conformance.Precompiles.IdentityControls
 
 import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 import STFSpec.Conformance.Vm.Core.TransferLogGuards
