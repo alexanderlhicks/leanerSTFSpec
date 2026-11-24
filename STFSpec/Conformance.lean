@@ -87,6 +87,7 @@ import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
 import STFSpec.Conformance.Vm.Instructions.ContextWordControls
 import STFSpec.Conformance.Vm.Instructions.DynamicSwapControls
 import STFSpec.Conformance.Vm.Instructions.BalanceControls
+import STFSpec.Conformance.Vm.Instructions.ExtCodeCopyControls
 import STFSpec.Conformance.Vm.Instructions.SelfBalanceControls
 import STFSpec.Conformance.Vm.Instructions.SloadControls
 import STFSpec.Conformance.Vm.Instructions.ExtCodeHashControls

@@ -994,6 +994,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
 
+- **Standalone EXTCODECOPY supplied.** §§3/4/5/7 own the ordered local
+  run and State equations, exact bytes, Id accounting and bounded controls.
+  Related source traces, dispatcher integration, composed resources and
+  guest execution remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-eight ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.

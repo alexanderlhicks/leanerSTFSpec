@@ -247,7 +247,7 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/instructions/bitwise.py::*` | 21–274 | `bitwiseAnd` … `countLeadingZeros` (supplied below) | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/comparison.py::*` | 21–177 | `lessThan`, `greaterThan`, `signedLessThan`, `signedGreaterThan`, `equal`, `isZero` (supplied below) | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
-| `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | The bounded frame and transaction queries, BALANCE, CALLDATALOAD, EXTCODEHASH, SELFBALANCE and BLOBHASH have standalone handlers below. |
+| `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | The bounded frame and transaction queries, BALANCE, CALLDATALOAD, EXTCODEHASH, EXTCODECOPY, SELFBALANCE and BLOBHASH have standalone handlers below. |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–298 | `blockHash` … `slotNumber` | BLOCKHASH and the bounded block queries have standalone handlers below. |
 | `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP, DUPN, SWAPN and EXCHANGE are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::mstore` | 26–54 | `mstore` (supplied) | Two pops, paid 32-byte big-endian write, PC + 1 |
@@ -267,6 +267,12 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied EXTCODECOPY handler
+
+| EELS source at `59c1473d` | Lean declaration | Domain and ordered effects | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:364–405` | `STFSpec.Vm.Instructions.extcodecopy` in `STFSpec/Vm/Instructions/ExtCodeCopy.lean`, exported by the Instructions facade | Every raw frame, context and world. Mask the address word, retain the reached pop prefix, quote the destination and insert cold warmth before payment. Payment expands memory, reads the defaulted account and then its raw code, writes the padded source slice and advances PC. The static flag has no effect. | Private ordered run, observation, byte and Id accounting laws (§7), and complete facade controls (§4). |
 
 ### Supplied SLOAD handler
 
@@ -1160,6 +1166,18 @@ from retained frames copy it. In-bounds loads and denied charges keep the
 memory backing in both cases. Exclusive growth reuses sufficient capacity
 and otherwise expands to the required extent.
 
+**Supplied EXTCODECOPY controls.**
+`STFSpec/Conformance/Vm/Instructions/ExtCodeCopyControls.lean` checks
+all frame fields and exact account and code callback observations through
+the facade. The guards cover each pop prefix, cold and warm denial, both
+missing-witness errors, a full stack, bytes at wide offsets and paid
+memory growth. Direct-source controls in both pinned Python modes compare
+complete frames and their transaction observations with interpreted and
+compiled Lean. They include reserved empty code, transaction and block hits,
+raw delegation bytes and the 31/32/33-byte copy price changes. The native
+ownership controls compare exclusive and retained frames, actual growth
+within existing capacity, newly allocated growth and paid provider failures.
+
 **Supplied EXTCODEHASH controls.**
 `STFSpec/Conformance/Vm/Instructions/ExtCodeHashControls.lean` checks
 the account test with the block's supplied empty-code hash. The guards
@@ -1498,6 +1516,12 @@ world identity, exclusive backing reuse and retained stack preservation.
 
 ## 5. Interface
 
+The standalone EXTCODECOPY handler is supplied through the Instructions facade.
+
+```lean
+def extcodecopy {m : Type → Type} [Monad m] : Handler m
+```
+
 The opcode enumeration and byte conversions below are **supplied** through
 `STFSpec.Vm.Instructions`, with exactly 153 constructors, two total conversions
 and the two ordinary laws in §7. No deriving, instance, alias or public
@@ -1647,7 +1671,7 @@ def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
 -- Remaining handlers (public): keccak, calldatasize, calldatacopy, codesize,
--- codecopy, extcodesize, extcodecopy, returndatasize, returndatacopy, number,
+-- codecopy, extcodesize, returndatasize, returndatacopy, number,
 -- gasLimit, blobBaseFee, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
 -- logN (n : Fin 5), create, call, callcode, delegatecall, create2, staticcall,
 -- selfdestruct : Handler m
@@ -2994,6 +3018,35 @@ The three `_continue_phi` laws give `phi(after) + price = phi(before)`
 on actual Id continuations with the offset-pop witness. The three
 `_continue_progress` laws require `1 ≤ price` on the same paths.
 
+**Supplied EXTCODECOPY laws.** Pop the address word, destination start,
+source start and byte count in that order. Mask the popped address word. Each underflow equation
+keeps the residual stack and all other fields and returns the given world.
+Once all pops succeed, quote the singleton destination window. Use the
+entry warmth to choose the warm or cold account tariff and insert a cold
+address before charging. The charge adds one warm code-read tariff, the
+selected copy-per-word tariff times the rounded byte count, and the Core
+quote with its configured ZERO seed. Denial retains the residual stack
+and resulting warmth, with the entry PC, memory, meter and world.
+
+Payment expands memory by the quoted amount. The private paid worker
+receives the expanded frame before entering State. Its ordinary equality
+gives the source-shaped frame projection, and the separate compiled call
+keeps expansion before both reads in Id, including on either fault.
+The generic action lifts
+`getAccount` at the masked address and `getCode` at the returned hash
+on the actual resulting transaction. At Id, either reached State error
+becomes the same wrapped `VmFault.state` as `liftState`, and the
+successful result carries the transaction after both reads. The observer
+law adds the account read and adds the code-read membership on the
+nonreserved code-provider branch. The provider's raw bytes feed the
+immutable padded read, even for a delegation marker. That read supplies
+exactly the requested width. Its size and the Q63 coverage law prove the
+Q62 destination window, with empty writes admitted at every offset.
+Success writes those bytes into the expanded memory, retains the resulting
+warmth and residual stack, and increments the exact Nat PC. The Id
+continuation spends exactly the selected price in meter potential and
+makes strict local progress when that price is positive.
+
 Storage laws use the `getStorage` and `setStorage` observations and the exact
 SSTORE cost, refund and state-gas table of §2.4 as a function
 `sstoreCharges original current new cold`. CALL and CREATE laws give the
@@ -3473,6 +3526,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ordered run equations, exact paid windows, local G2 laws and complete
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
+
+- **Standalone EXTCODECOPY supplied.** §§3/4/5/7 own the ordered local
+  run and State equations, exact bytes, Id accounting and bounded controls.
+  Related source traces, dispatcher integration, composed resources and
+  guest execution remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
