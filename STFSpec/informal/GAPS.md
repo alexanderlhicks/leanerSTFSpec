@@ -965,8 +965,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
-  complete byte-result law, and the standalone SHA256, RIPEMD160 and IDENTITY entries and
-  their local laws. Normal forms, table installation, runner settlement and guest
+  complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
+  entries and their local laws. Normal forms, table installation, runner settlement and guest
   integration remain open. The 917-source and 926 interpreted/native Kzg
   comparisons and the standalone controls leave the host, security and resource
   gates open.
@@ -1002,10 +1002,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   suite exists in EEST sources but not in the zkevm corpus; `test_bls12_precompiles_before_fork`
   and `test_eip_mainnet` fixtures are absent; there is no ECRECOVER area beyond `frontier` and
   `stPreCompiledContracts2` [V: fixture index and file list].
-- **BLAKE2 F provider supplied by `EthHash`.** The `blake2f` entry must
-  call `Blake2b.getParameters` and `Blake2b.compress` at the source points
-  after gas payment. Its implementation remains open. The standalone
-  RIPEMD160 entry uses the EthHash R4 provider in §7.
 - **Performance unmeasured.** No numbers exist for pure-Lean MODEXP at 8192 bits, BLS12-381 MSM
   at `k = 128`, or pairings; the cost envelope in §6 is analytical.
 - **Mathematical-correctness proofs (ii)** inherit every gap of `EthCurveMathlib` and

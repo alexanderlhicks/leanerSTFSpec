@@ -77,6 +77,7 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | SHA256 | EthPrecompiles | EthPrecompiles §§3–5 and §7 supply the direct configured charge, complete digest bytes and meter laws. Q46 supplies the original-input domain for the FIPS model. The provider remains total. Q83 normal form and action factorization, table installation and runner settlement remain open. |
 | RIPEMD160 | EthPrecompiles | EthPrecompiles §§3–5 and §7 give the exact configured charge and complete meter and digest laws. Base supplies the left padding and EthHash the digest. Host comparison uses Q19 and DISC-005. Q83 normal form and factorization, table installation and runner settlement remain open. |
 | IDENTITY | EthPrecompiles | The standalone entry takes the supplied VmConfig and returns the complete charged meter and unchanged bytes, or the nominal out-of-gas halt. EthPrecompiles §§3–5 and §7 own the exact local action equations and controls. The normal form, Q83 factorization, table installation and runner settlement remain open. |
+| BLAKE2F | EthPrecompiles | EthPrecompiles §§3–5 and §7 supply the local action equations for length rejection, denial, paid flag rejection and paid success. EthHash supplies the exact-size parser and the complete 64-byte compression model over UInt32 counts. Q83 normal form and factorization, table installation, runner settlement and the paid-input resource bounds remain open. |
 | Ops and byte conversions | EthVmInstructions | Use the supplied 153-member enum, total UInt8 encoder/optional decoder and exactly two ordinary round-trip laws owned by EthVmInstructions §3/§5/§7. Preserve the literal source member/byte identity; all 103 holes decode to none. Private facade clients and complete 256-byte controls cover this finite slice. Dispatch, step, remaining handlers, invalid-opcode halting and composed execution/fuel/resource/guest obligations remain open. |
 | StepResult and requests/resume | EthVmInstructions | EthVmInstructions §3/§5/§7 supplies exactly the raw seven-field CreateRequest and fourteen-field CallRequest and private complete facade clients, without extra admission, public helper laws or grant/staticness/settlement policy. Preserve independent Nat grants, complete nominal values/addresses/input/code bytes/flags and output-window words. The exact six-constructor indexed StepResult and class-free Handler alias are supplied by the same owner, with complete private facade clients and exactly the two strict local child bounds against the literal Core limit. Handler retains the original ctx index without returning context. The exact four-field ChildOutcome is also supplied there, retaining the complete frame/output/error and an already supplied Core ChildSettled frame error.isSome proof. Its private dependent-proof and full-payload controls add no producer, runtime guard or F11 proof-production choice. Request producers, child context construction, remaining handlers and resume remain unimplemented. The rows below describe the supplied standalone handlers. Future handlers suspend, runner executes a child, resume observes a settled child; no handler imports the runner. F11, source/admission, fuel/resources and guest obligations remain open. |
 | Mutable child frame | EthVmInstructions | Use `childFrame` at both EthVmRunner R-LOOP-2 entry paths with the request's grants. EthVmInstructions §3/§7 owns the two source slices and the initial committed-spill clause. Connect this clause to the returned outcome through execution and settlement (F11), and prove the returned potential bound (G2). |
@@ -625,16 +626,13 @@ pinned precompile observations do not discharge those Lean composition obligatio
 
 ### BLAKE2F parameter premise
 
-`EthPrecompiles` establishes `data.size = 213` after its size check before calling
-`Blake2b.getParameters`. The raw codec preserves every round count and flag;
-its public byte laws and two inverse laws are owned by
-[EthHash §3](modules/EthHash.md#3-eels-source-map). The precompile then owns gas
-charging and flag rejection in R5 order before invoking compression.
-
-BLAKE2b F's pure compression/byte premise is discharged for all UInt32 counts by
-[EthHash §3](modules/EthHash.md#3-eels-source-map). Its precompile consumer must still
-establish gas-before-compression and validate the raw flag after charging gas;
-those effect/order obligations are not produced by the pure hash function.
+The standalone `blake2f` entry establishes `data.size = 213` before calling
+`Blake2b.getParameters`. The parser preserves every round count and flag.
+[EthHash §3](modules/EthHash.md#3-eels-source-map) owns its public byte and inverse
+laws and the pure compression model over all UInt32 counts. EthPrecompiles
+§§3–5 and §7 supply the local charge, flag and output order of R5. The runner
+must consume the nominal halt and preserve the specified ordering in the
+installed-table path.
 
 ### Keccak digest premise
 

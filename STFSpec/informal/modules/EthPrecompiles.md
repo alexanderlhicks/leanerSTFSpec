@@ -1,6 +1,6 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. The standalone SHA256, RIPEMD160 and IDENTITY entries and the KZG versioned-hash helper are supplied. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F entries and the KZG versioned-hash helper are supplied. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
@@ -137,8 +137,10 @@ re-raised as `OutOfGasError` (`:159–160`, `:186–187`, `:225–226`) — stil
 **BLAKE2F** (`blake2f.py:21–42`) [V]. `len ≠ 213` halts (`:32–33`). Parameters
 (`crypto/blake2.py:133–150`, owned by `EthHash`): `rounds` = big-endian `u32` at `[0:4]`;
 `h` = 8 little-endian `u64` at `[4:68]`; `m` = 16 at `[68:196]`; `t₀, t₁` at `[196:212]`;
-`f = data[212]`. Charge `rounds` (`:38`), then `f ∉ {0, 1}` halts (`:39–40`); output the
-64-byte F compression (`EthHash`).
+`f = data[212]`. Charge the configured per-round price times `rounds` (`:38`).
+The pinned price is one (`vm/gas.py:113`). After payment, `f ∉ {0, 1}` halts
+(`:39–40`), and either valid flag selects the corresponding 64-byte F compression
+(`EthHash`).
 
 **POINT_EVALUATION** (`point_evaluation.py:32–72`) [V]. `len ≠ 192` halts before charging
 (`:44–45`). Fields: `vh = [0:32]`, `z = [32:64]`, `y = [64:96]`, `C = [96:144]`, `π = [144:192]`
@@ -261,7 +263,7 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::alt_bn128_add` | 140 | `altBn128Add : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::alt_bn128_mul` | 168 | `altBn128Mul : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::alt_bn128_pairing_check` | 196 | `altBn128PairingCheck : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/blake2f.py::blake2f` | 21 | `blake2f : Precompile` | compression from `EthHash` |
+| `forks/amsterdam/vm/precompiled_contracts/blake2f.py::blake2f` | 21 | `blake2f (cfg : VmConfig) : PrecompileFn m` | Supplied, total on raw inputs. Reject a wrong length, parse 213 bytes, charge through Core, then reject an invalid flag or return the whole paid meter and the 64-byte EthHash result. The four case equations and complete byte law are discharged in §7. §4 exercises every branch. Runner dispatch and halt settlement remain open. |
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::FIELD_ELEMENTS_PER_BLOB` | 27 | `PointEvaluation.fieldElementsPerBlob = 4096` | |
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::BLS_MODULUS` | 28 | `PointEvaluation.blsModulus` | `#guard` = `EthField.Bls12381.r` |
 | `forks/amsterdam/vm/precompiled_contracts/point_evaluation.py::VERSIONED_HASH_VERSION_KZG` | 29 | `PointEvaluation.versionedHashVersionKzg` | duplicate of the `crypto/kzg.py` constant |
@@ -395,6 +397,19 @@ optimized Python with the working host provider. The linked observations
 verify a charge in each case. Each of the 24 paid calls hashes the complete
 input and pads the 20-byte digest to 32. Each denied call skips both operations.
 
+**Supplied BLAKE2F controls.**
+`STFSpec/Conformance/Precompiles/Blake2fControls.lean` covers the complete
+64-byte outputs and the paid meter, wrong lengths, denial before flag
+rejection, both valid flags, zero and ordinary rounds, and configurable zero
+and above-U256 tariffs. The maximum UInt32 round count is parsed and rejected
+by the charge or flag check. Four query-counter guards cover the four
+branches through the facade.
+
+Both facade modes match 23 direct source cases in normal and optimized Python.
+The linked observations record no parsing on the four wrong lengths, one
+parse and charge on each sized input, and eight compression calls, all after
+payment and with their complete parsed words and counters.
+
 **Supplied KZG controls.** The single canonical catalog
 `STFSpec/Conformance/Precompiles/kzg-versioned-hash-cases.json` retains every byte of
 917 preimplementation frozen inputs and mathematical outputs. The original source
@@ -448,10 +463,11 @@ def table (cfg : VmConfig) : PrecompileTable m           -- closures capture cos
 def identity {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
 def sha256 {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
 def ripemd160 {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
+def blake2f {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
 
 -- remaining precompile entries
 def ecrecover modexp altBn128Add altBn128Mul
-    altBn128PairingCheck blake2f pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
+    altBn128PairingCheck pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
     bls12G2Msm bls12Pairing bls12MapFpToG1 bls12MapFp2ToG2 p256verify (cfg : VmConfig) : Precompile m
 def ecrecoverSpec … p256verifySpec (cfg : VmConfig) : PrecompileSpec m   -- normal forms (public, for proofs)
 
@@ -564,6 +580,20 @@ including original leading zeros. The result has size 32 on every input.
 The pure provider accepts every finite input. A comparison with EELS
 assumes a working host RIPEMD160 provider as in Q19 and DISC-005.
 
+**Supplied BLAKE2F laws.** A wrong input length gives
+`pure (.halt .invalidParameter)`. At length 213, the EthHash parser receives
+the exact input and its size proof. Charge
+`cfg.costs.precompileBlake2FPerRound * rounds.toNat` using the parsed UInt32
+count. Shortage gives `pure (.halt .outOfGas)` for every flag. With sufficient
+gas, a flag outside 0 and 1 gives `pure (.halt .invalidParameter)`. With
+sufficient gas and either valid flag, the action returns `pure` of the
+complete meter with only `gasLeft` debited and the full compression result as
+`Bytes`. The private output law gives size 64 and equality to the EthHash
+compression model on the parsed words and counters, with the final flag
+equal to the test `f == 1`. The provider accepts every UInt32 round count.
+The raw action uses Core's nominal halt. Runner settlement and practical
+resource bounds for paid inputs are separate obligations.
+
 **Supplied raw KZG law** (ordinary Lean theorem; discharged):
 `Kzg.commitmentToVersionedHash_toBytes (commitment : ByteArray)` states
 `(commitmentToVersionedHash commitment).toBytes.toList =
@@ -675,8 +705,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
-  complete byte-result law, and the standalone SHA256, RIPEMD160 and IDENTITY entries and
-  their local laws. Normal forms, table installation, runner settlement and guest
+  complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
+  entries and their local laws. Normal forms, table installation, runner settlement and guest
   integration remain open. The 917-source and 926 interpreted/native Kzg
   comparisons and the standalone controls leave the host, security and resource
   gates open.
@@ -712,10 +742,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   suite exists in EEST sources but not in the zkevm corpus; `test_bls12_precompiles_before_fork`
   and `test_eip_mainnet` fixtures are absent; there is no ECRECOVER area beyond `frontier` and
   `stPreCompiledContracts2` [V: fixture index and file list].
-- **BLAKE2 F provider supplied by `EthHash`.** The `blake2f` entry must
-  call `Blake2b.getParameters` and `Blake2b.compress` at the source points
-  after gas payment. Its implementation remains open. The standalone
-  RIPEMD160 entry uses the EthHash R4 provider in §7.
 - **Performance unmeasured.** No numbers exist for pure-Lean MODEXP at 8192 bits, BLS12-381 MSM
   at `k = 128`, or pairings; the cost envelope in §6 is analytical.
 - **Mathematical-correctness proofs (ii)** inherit every gap of `EthCurveMathlib` and
