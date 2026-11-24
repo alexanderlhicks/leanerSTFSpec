@@ -1,6 +1,6 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft; KZG versioned-hash helper supplied; precompile functions and table unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The standalone IDENTITY entry and KZG versioned-hash helper are supplied. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
@@ -244,7 +244,7 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/ecrecover.py::ecrecover` | 26 | `ecrecover : Precompile` | |
 | `forks/amsterdam/vm/precompiled_contracts/sha256.py::sha256` | 25 | `sha256 : Precompile` | hash from `EthHash` |
 | `forks/amsterdam/vm/precompiled_contracts/ripemd160.py::ripemd160` | 26 | `ripemd160 : Precompile` | hash from `EthHash` |
-| `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 23 | `identity : Precompile` | |
+| `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 23 | `identity (cfg : VmConfig) : PrecompileFn m` | Supplied. Charges through Core and returns the original bytes. |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::modexp` | 24 | `modexp : Precompile` | `EthField.powMod` |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::complexity` | 76 | `Modexp.complexity : Nat → Nat → Nat` | |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::iterations` | 102 | `Modexp.iterations : Nat → Nat → Nat` | |
@@ -301,10 +301,25 @@ libraries' public API.
 The KZG slice supplies exactly these two operations and the ordinary complete law
 Kzg.commitmentToVersionedHash_toBytes (§7), all discharged. Private conformance clients
 derive size, tag, every suffix position and extensional result determination using only
-public Base/Hash/Kzg contracts. KZG proof verification, PointEvaluation, gas/table/Frame
-integration, security and the rest of this module remain open.
+public Base/Hash/Kzg contracts. KZG proof verification, PointEvaluation, gas,
+table and frame integration, and security remain open.
+
+The standalone IDENTITY entry uses Core's `chargeGas` with
+`cfg.costs.precompileIdentityBase + cfg.costs.precompileIdentityPerWord * (ceil32 data.size / 32)`.
+On payment it returns the complete charged meter and the caller's bytes. On shortage it
+returns the nominal Core out-of-gas halt. The grouped §5 binders stay in place, and this
+entry makes no Keccak query. Section 7 describes the private exact laws.
 
 ## 4. Tests
+
+**Standalone IDENTITY controls.**
+`STFSpec/Conformance/Precompiles/IdentityControls.lean` checks the actual facade with
+all six meter fields, complete output bytes and the nominal halt. Cases include empty
+input, exact and insufficient budgets, both sides of word boundaries, and custom zero
+and large tariffs. Two controls check that a supplied query counter stays unchanged
+on payment and denial. The standalone differential comparison uses the pinned EELS
+body in both Python modes and both interpreted and compiled Lean facades. The EEST
+fixture areas below still govern guest replay.
 
 - **EEST fixture areas** (`blockchain_tests`, from `STFSpec/informal/eest-fixture-index.txt`; the
   `blockchain_tests_engine` copies cover the same areas with their own guest records,
@@ -397,8 +412,11 @@ def lookup (cfg : VmConfig) : Address → Option (Precompile m)
 def addresses : AddrSet                                  -- for pre-warming; equals the lookup domain
 def table (cfg : VmConfig) : PrecompileTable m           -- closures capture costs; exact address set and meter law
 
--- the 18 precompiles
-def ecrecover sha256 ripemd160 identity modexp altBn128Add altBn128Mul
+-- Standalone entry supplied.
+def identity {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
+
+-- remaining precompile entries
+def ecrecover sha256 ripemd160 modexp altBn128Add altBn128Mul
     altBn128PairingCheck blake2f pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
     bls12G2Msm bls12Pairing bls12MapFpToG1 bls12MapFp2ToG2 p256verify (cfg : VmConfig) : Precompile m
 def ecrecoverSpec … p256verifySpec (cfg : VmConfig) : PrecompileSpec m   -- normal forms (public, for proofs)
@@ -477,6 +495,19 @@ three 8192-bit operands; BLS12-381 MSM of `k` pairs, about `O(k·256/c + 2^c·25
 subgroup checks; pairings. These dominate guest runtime on precompile-heavy fixtures.
 
 ## 7. Contract and laws
+
+**Supplied standalone IDENTITY laws** (private ordinary Lean theorems).
+For every input, `ceil32 data.size / 32 = (data.size + 31) / 32`, so the
+configured base and per-word price determine the exact Nat tariff. When the meter
+covers it, the action is `pure` of the original bytes and the meter with exactly
+that amount subtracted from `gasLeft`. When execution gas is short, the action is
+`pure (.halt .outOfGas)`. At `Id`, a successful result returns exactly the meter
+from the Core charge and the unchanged input bytes, so every other meter field
+and the output length are preserved.
+
+The direct equations do not establish the generic `SatisfiesM` factorization.
+Erasing a pure certified witness needs the local `map_pure` equality. Q83
+owns the remaining generic constructor obligations.
 
 **Supplied raw KZG law** (ordinary Lean theorem; discharged):
 `Kzg.commitmentToVersionedHash_toBytes (commitment : ByteArray)` states
@@ -588,9 +619,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
-  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
-  comparisons do not close precompile, host, security, resource or whole-guest gates.
+- **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
+  complete byte-result law, and the standalone IDENTITY entry and its local laws.
+  IDENTITY's normal form, table installation, runner settlement and guest integration
+  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
+  standalone IDENTITY controls leave the host, security and resource gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,

@@ -484,9 +484,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read, storage reads, account write, storage clear, transient
-  read and write, snapshot and restore, fresh initialization, creation marker and
-  ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
+  and predicates, code read and installation, storage reads, account write,
+  storage clear, transient read and write, snapshot and restore, fresh
+  initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -529,12 +529,26 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes and R16 storage clear. R24 retains
-  saved order and value roots together. Clear composition, incorporation,
+  and the local laws for R14 account writes, R16 storage clear, R17 account
+  destruction, R18 modification and R21 code installation. R24 retains saved
+  order and value roots
+  together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory
   and zkVM resource gates open.
+- **Balance-preserving account clear supplied.** §§3/4/5/7.5 own the
+  standalone R16–R18 action and complete local controls. Caller integration,
+  production providers and world effects, fault projection and composed
+  State invariants remain open.
+- **Standalone R19 transfers and credits supplied.** §§3/4/5/7.5 own
+  checked arithmetic and the actual ordered R18 actions. Caller reachability,
+  provider and world effects, StateError projection under R29 and composed
+  state obligations remain open.
+- **Standalone R20 balance and nonce updates supplied.** §§3/4/5/7.5 own
+  the exact scalar record updates through R18. Caller admission, actual
+  provider and world integration, fault projection and composed State
+  invariants remain open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:199–200`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
@@ -764,6 +778,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
   resource or VM/guest/EEST/readiness gate follows from this vocabulary.
 
+- **Q93 raw fee sites and caller proofs.** Add the two planned constructors
+  in §5 and update both exhaustive private clients, `eliminateSite` and
+  `siteValue`, in `STFSpec/Conformance/Vm/Core/VmFaultCallerProofs.lean`.
+  Transport the decoded system and admitted user fee bounds in R-EXC-2
+  through the corresponding Lean environment producers to their actual
+  handler calls.
+
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
@@ -887,6 +908,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Scalar immediate decoders are supplied:** §3/§7 own the two existing UInt8 APIs and eight discharged ordinary laws. Complete 512-result guards, interpreted target/source frames and public-only clients establish the local slice. Actual handler/depth/gas/PC ordering, compiled costs, resource and guest gates remain open.
 - **Padded buffer read is supplied:** §3/§7 own the standalone existing Bytes/U256 adapter and exactly three discharged ordinary laws. Complete-byte guards, public-only clients and strict frame controls are local evidence. Successful Python correspondence retains its explicit runtime/dependency/width/allocation premises; compiled costs, actual caller reachability and all Memory/R1/C1–C4/guest gates remain open.
 - **G1 is partially discharged:** §3/§7 own the supplied complete meter, nominal exceptional-halt carrier, read-only check and two checked charges with ten all-raw-meter laws, plus commit/ordinary restore/entry restore with eight ordinary laws on their full local proof domains and refund/repay with seven ordinary all-raw-meter laws, plus four local transfer operations with eight ordinary laws (forfeit only on pending-spill-zero), and signed refund addition/scalar maximum with four unconditional ordinary laws. Caller premise reachability, remaining meter operations, actual settlement integration and whole-transaction conservation remain unimplemented/unproved. The Q61 `txStateGasUsed` observer and its single §7 equation are discharged; callers must establish the local baseline-to-grant proof. This closes no overall G1 or G2–G7 gate.
+- **Local child incorporation is supplied.** §§3/4/5/7 own the total
+  merge, the exact potential equation and both conditional warm equalities.
+  Actual caller proof production (F11), warm-set preservation from child
+  initialization, dispatch, resumption and composed G2 remain open.
 - **Cross-frame progress (G2) is unproved.** The bound "a child returns potential ≤ the potential granted" needs an induction over the runner and uses `L-SETTLE`, `L-INC` and the stipend accounting; its exact statement with 2-D gas is not yet written.
 - **Transaction-level gas conservation** has no statement yet; `EthBlock` needs one for receipts and block accounting.
 - **Top-level unsigned refund conversion remains a caller obligation.** Both `U256(gas_meter.refund_counter)` sites (`interpreter.py:279,312`) require `0 ≤ refundCounter < 2^256` and retain their source order (§3; Q66). The preparation-zero argument is recorded in EthVmRunner R-TOP-2; §3/§7 supply its private conditional gas composition, while actual preparation assertion derivation remains open. This implements no actual caller and removes no checked cast. Normal-return lower/upper bounds remain unresolved: the sketched non-negativity argument does not itself prove the unsigned upper bound. The existing proof-or-`VmFault.u256Overflow .refundCounter` obligation (R-EXC-2/O13) stays at the applicable original point. Successful projection into Runner's Nat field must retain the range for later validated U256 reconstruction, without moving failure to settlement or adding a public converter.
@@ -902,15 +927,26 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
-- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16
-  and DUPN have local run and accounting laws (§7) and the §4 facade
-  controls. SWAPN and EXCHANGE still need handlers, local laws and
-  controls. The full paid source correspondence
-  and its fetch premise (§7) still need proofs.
+- **Bounded context words.** §§3/4/7 own the nine standalone handlers and
+  their local laws and controls. The wider scalar casts for PC, GAS,
+  MSIZE, NUMBER, GASLIMIT, BASEFEE and GASPRICE have separate obligations.
+  Source context assembly, dispatch, trace, settlement, composed gas
+  progress and guest execution remain open.
+
+- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16,
+  DUPN, SWAPN and EXCHANGE have local run and accounting laws (§7)
+  and the §4 facade controls. Fixed SWAP1–SWAP16 and its interface
+  choice remain open. The full paid source correspondence and its
+  fetch premise (§7) still need proofs.
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/CALLDATALOAD/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **RETURN and REVERT supplied.** §§3/4/5/7 own the two Q92
+  handlers, the eight ordinary local laws and bounded raw and pinned
+  frame controls. Runner settlement, trace, dispatch, composed
+  ownership, gas and resource gates remain open.
+
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -919,7 +955,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/CALLDATALOAD/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Section 3 records the supplied standalone handlers and their local laws. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
@@ -931,6 +967,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+
+- **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
+  action and accounting laws, and bounded direct-source controls. Dispatch,
+  reachable source-world refinement and composed execution remain open.
+
+- **Standalone BLOBHASH supplied.** §3/§4/§5/§7 own the handler, local
+  laws and bounded direct-source and ownership controls. Dispatch,
+  reachable source-world refinement and composed execution remain open.
 
 - **Standalone CALLDATALOAD supplied.** §3/§4/§5/§7 own the handler, its
   private ordinary laws and local controls. Dispatch, composed source
@@ -945,20 +989,41 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   rollback and transaction lifetime, composed allocation and guest
   execution remain open.
 
+- **Standalone MLOAD, MSTORE and MSTORE8 supplied.** §3/§4/§5/§7 own the
+  ordered run equations, exact paid windows, local G2 laws and complete
+  standalone controls. Dispatch, trace and whole-runner refinement, composed
+  ownership and resource bounds, and guest execution remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-eight ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
 - **LT/GT/SLT/SGT/EQ and ISZERO local handlers supplied.** §§3/4/7 own the thirty binary comparison laws, five ISZERO laws and their complete frame controls. The general handler differential, source-model, trace and reachability refinement, dispatch and settlement remain open.
 - **AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ standalone handlers supplied.** §§3/4/7 own the 52 local laws and complete frame controls. The source entry relation, trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
 
-- **POP standalone handler supplied.** §§3/4/7 own the five local laws and complete frame controls. The other stack handlers, source entry relation and trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
+- **POP standalone handler supplied.** §§3/4/7 own the five local laws and complete frame controls. The source entry relation and trace, reachable-world refinement, dispatch, settlement, interpreter ownership, composed G2 and guest replay remain open.
 
 - **JUMPDEST standalone handler supplied.** §§3/4/7 own its four local laws and complete frame controls. Source trace, dispatch, settlement, composed G2 and guest execution remain open.
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
-- **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
-- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
-- **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
+- **Standalone BLOCKHASH supplied.** §3/§4/§5/§7 own the availability
+  check, exact fault offset and R27 action. CONTRACT O13 classifies the
+  missing-header case and records its pinned witness fixture.
+  Dispatch, guest fault propagation, composed source refinement and
+  constructor freezing (DECISIONS B14) remain open.
+- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
+- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
+  standalone handlers in §5 and compare denial, paid stack overflow,
+  paid raw conversion fault and successful push at the selected fee
+  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
+- **Standalone SELFBALANCE supplied.** §§3/4/5/7 own the handler,
+  complete private run equations and bounded direct controls. Interpreter
+  traces, dispatch, composed State, fuel and resource gates remain open.
+- **Read-order fidelity** (R-GEN-1). §§3/4/5/7 supply BALANCE and
+  EXTCODEHASH with their local laws and direct source and ownership
+  controls. Section 4 supplies the SELFBALANCE leaf controls. Interpreter
+  traces, dispatch, reachable State and composed fuel, ownership and guest
+  gates remain open. EEST `eip7928_block_level_access_lists`
+  (211 fixtures) indirectly exercises the wider BAL and witness read order.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.
@@ -968,9 +1033,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
-- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
-  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
-  comparisons do not close precompile, host, security, resource or whole-guest gates.
+- **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
+  complete byte-result law, and the standalone IDENTITY entry and its local laws.
+  IDENTITY's normal form, table installation, runner settlement and guest integration
+  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
+  standalone IDENTITY controls leave the host, security and resource gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,
@@ -1031,12 +1098,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
-- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
-  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
-  table action stays in base m; actual lifting through VmM/RunM and their
-  transformer/error order requires an explicit local bridge. Dispatch, separate halt
-  settlement and potential proofs remain open. This adds no observer API, base-error
-  reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
+  the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
+  and local frame-halt meter settlement (§3/§4/§7). The installed table, routing,
+  checked lift and its effect bridge, value transfer, world snapshot restoration
+  and composed settlement and potential proofs remain open.
 
 - **Output records and child outcome conversion are supplied.** §3/§4/§5/§7 own
   the records, proof-taking adapter and private facade clients. Actual

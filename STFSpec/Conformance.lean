@@ -10,6 +10,7 @@ import STFSpec.Conformance.Vm.Runner.CheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.RunCheckedCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputCallerProofs
 import STFSpec.Conformance.Vm.Runner.OutputControls
+import STFSpec.Conformance.Vm.Runner.RunPrecompileControls
 import STFSpec.Conformance.Vm.Runner.ExecKindCallerProofs
 import STFSpec.Conformance.Field.ModuliCallerProofs
 import STFSpec.Conformance.Field.ModuliGuards
@@ -70,6 +71,7 @@ import STFSpec.Conformance.Vm.Instructions.CreateRequestCallerProofs
 import STFSpec.Conformance.Vm.Instructions.OpsCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StepResultCallerProofs
 import STFSpec.Conformance.Vm.Instructions.StopCallerProofs
+import STFSpec.Conformance.Vm.Instructions.ReturnRevertControls
 import STFSpec.Conformance.Vm.Instructions.TstoreChecks
 import STFSpec.Conformance.Vm.Instructions.ArithmeticCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ComparisonCallerProofs
@@ -81,6 +83,15 @@ import STFSpec.Conformance.Vm.Instructions.JumpdestControls
 import STFSpec.Conformance.Vm.Instructions.JumpControls
 import STFSpec.Conformance.Vm.Instructions.PushControls
 import STFSpec.Conformance.Vm.Instructions.DupControls
+import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
+import STFSpec.Conformance.Vm.Instructions.ContextWordControls
+import STFSpec.Conformance.Vm.Instructions.DynamicSwapControls
+import STFSpec.Conformance.Vm.Instructions.BalanceControls
+import STFSpec.Conformance.Vm.Instructions.SelfBalanceControls
+import STFSpec.Conformance.Vm.Instructions.SloadControls
+import STFSpec.Conformance.Vm.Instructions.ExtCodeHashControls
+import STFSpec.Conformance.Vm.Instructions.BlobHashControls
+import STFSpec.Conformance.Vm.Instructions.BlockHashControls
 import STFSpec.Conformance.Vm.Instructions.CallDataLoadControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
@@ -274,6 +285,12 @@ import STFSpec.Conformance.State.PreStateAccountDefaultCallerProofs
 import STFSpec.Conformance.State.AccountOptionalCallerProofs
 import STFSpec.Conformance.State.AccountEmptinessControls
 import STFSpec.Conformance.State.DestroyStorageGuards
+import STFSpec.Conformance.State.DestroyAccountControls
+import STFSpec.Conformance.State.ModifyStateControls
+import STFSpec.Conformance.State.ClearAccountPreservingBalanceControls
+import STFSpec.Conformance.State.EtherUpdateControls
+import STFSpec.Conformance.State.AccountScalarControls
+import STFSpec.Conformance.State.SetCodeControls
 import STFSpec.Conformance.State.AccountExistsGuards
 import STFSpec.Conformance.State.CurrentStorageGuards
 import STFSpec.Conformance.State.StorageOriginalGuards
@@ -320,6 +337,7 @@ import STFSpec.Conformance.Vm.Core.LogsCallerProofs
 import STFSpec.Conformance.Vm.Core.LogsGuards
 import STFSpec.Conformance.Vm.Core.FrameCallerProofs
 import STFSpec.Conformance.Vm.Core.ChildSettledCallerProofs
+import STFSpec.Conformance.Vm.Core.IncorporateChildControls
 import STFSpec.Conformance.Vm.Core.FrameGuards
 import STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs
 import STFSpec.Conformance.Vm.Core.EnvironmentsGuards
@@ -410,6 +428,7 @@ import STFSpec.Conformance.Fork.AmsterdamSystemAddrsGuards
 
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
 import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
+import STFSpec.Conformance.Precompiles.IdentityControls
 
 import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 import STFSpec.Conformance.Vm.Core.TransferLogGuards

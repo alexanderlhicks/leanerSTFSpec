@@ -8,6 +8,7 @@ import STFSpec.Vm.Runner.RunChecked
 import STFSpec.Vm.Runner.Environment
 import STFSpec.Vm.Runner.ExecKind
 import STFSpec.Vm.Runner.Output
+import STFSpec.Vm.Runner.RunPrecompile
 
 /-!
 # STFSpec.Vm.Runner
@@ -17,6 +18,7 @@ The recursive call executor: the frame loop, child execution, named resume opera
 Library `EthVmRunner`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). The facade exports budget and entry-kind
 vocabulary, raw `RunnerEnv`, output records, child outcome conversion, checked control
-carriers and the F14 VM adapter. Recursive execution and fuel guarantees remain open.
+carriers, the F14 VM adapter and the internal precompile adapter. Recursive
+execution and fuel guarantees remain open.
 Spec guidance: `STFSpec/informal/modules/EthVmRunner.md`.
 -/
