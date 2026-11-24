@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -24,8 +24,9 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
   classification, including O4 for wrapped witness errors. BLOCKHASH beyond
   the available headers and the BLOBBASEFEE `U256` conversion overflow also
   propagate as `VmFault` and fall under O13. These faults are distinct from
-  exceptional halts. The SSZ widths `uint64`, `uint64` and `uint256` rule out
-  overflow in the `U256` casts for NUMBER, GASLIMIT and BASEFEE respectively.
+  exceptional halts. The guest's NUMBER and GASLIMIT values fit U256 by their
+  SSZ widths. Q93 specifies raw GASPRICE and BASEFEE conversion below.
+  EthVmCore R-EXC-2 gives the caller bounds and guest classification.
 
 **Stack-immediate reads (Q91).** Charge the selected execution price before
 reading the code. If the charge fails, halt with the entry frame and
@@ -83,7 +84,7 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
 | 38 | CODESIZE | `:246` | → \|code\| | 2 | executing frame's code (init code in a create frame) |
 | 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem | zero-padded |
-| 3A | GASPRICE | `:307` | → price | 2 | `effective_gas_price` |
+| 3A | GASPRICE | `:307` | → price | 2 | Check and push `effective_gas_price` after its own charge (Q93 below). |
 | 3B | EXTCODESIZE | `:330` | a → n | warm/cold + 100 | EIP-8038 code-read surcharge; reads account and code after the charge; size of the **raw** code (23 for a delegation designator) |
 | 3C | EXTCODECOPY | `:364` | a mo co sz → | warm/cold + 100 + 3·w(sz) + mem | warm-set add before charge; raw code, zero-padded |
 | 3D | RETURNDATASIZE | `:411` | → \|rd\| | 2 | |
@@ -97,10 +98,24 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 45 | GASLIMIT | `:205` | → limit | 2 | |
 | 46 | CHAINID | `:238` | → chain id | 2 | |
 | 47 | SELFBALANCE | `I/environment.py:513` | → bal | 5 | read after charge |
-| 48 | BASEFEE | `:539` | → base fee | 2 | `U256(base_fee_per_gas)`; cannot overflow (SSZ `uint256`) |
+| 48 | BASEFEE | `:539` | → base fee | 2 | Check and push `base_fee_per_gas` after its own charge (Q93 below). |
 | 49 | BLOBHASH | `:562` | i → h | 3 | `i < \|hashes\|` → hash, else 0 |
 | 4A | BLOBBASEFEE | `:589` | → price | 2 | `U256(calculate_blob_gas_price(excess_blob_gas))` (`:607`); overflow → `VmFault.u256Overflow .blobBaseFee` (O13, argued reachable) |
 | 4B | SLOTNUM | `I/block.py:268` | → slot | 2 | EIP-7843: `block_env.slot_number` |
+
+**Raw GASPRICE and BASEFEE (Q93).** GASPRICE uses
+`ctx.txEnv.effectiveGasPrice` and `ctx.config.costs.opcodeGasPrice`.
+BASEFEE uses `ctx.blockEnv.baseFeePerGas` and
+`ctx.config.costs.opcodeBaseFee`. Each handler uses only its selected
+tariff and fee. Charge the selected tariff before testing
+`fee < 2^256` (`I/environment.py:307–327,539–559` at the pin).
+A denied charge yields `.halt` for out-of-gas with the original frame.
+An out-of-range paid fee yields `VmFault.u256Overflow` with the selected
+site even on a full stack. In EELS the charge is already applied when
+the conversion raises. EthVmCore R-EXC-2 defines the Lean fault boundary.
+With a fitting fee, a failed push halts with the paid frame. A successful
+push increments the Nat PC by one and changes only the stack, PC and
+execution gas. Every frame result retains the original world.
 
 **Stack, memory, storage, control flow**
 
@@ -1195,7 +1210,10 @@ The exact four-field `ChildOutcome` is also supplied, retaining its complete fra
 output, optional error and supplied Core `ChildSettled frame error.isSome` proof.
 Construction adds no producer, runtime guard or F11 proof-production choice.
 
-Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values.
+R-GEN-7 still requires actual state-failure propagation, BLOCKHASH
+availability and ancestor tracking, and the checked conversions at
+their source points, including Q93.
 
 ```lean
 -- Opcodes and dispatch (public)
@@ -1280,13 +1298,17 @@ def dupn {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
+-- Prospective fee handlers (Q93).
+def gasprice {m : Type → Type} [Monad m] : Handler m
+def baseFee {m : Type → Type} [Monad m] : Handler m
+
 -- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
--- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
+-- calldatasize, calldatacopy, codesize, codecopy, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
--- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
+-- prevRandao, gasLimit, chainId, selfBalance, blobHash, blobBaseFee, slotNumber,
 -- mload, mstore, mstore8, sload, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
 -- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
@@ -2646,6 +2668,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D13**: the parent frame in `.call/.create` is a value; both a recursive runner and a continuation stack can consume it.
 - **D17**: accepted; this module is its opcode side. Replacement exercises 1 and 3 test that memory/gas changes stay within handlers' contracts.
 - **D18**: an unoptimised handler (for example MCOPY via intermediate copy) is correct and complete; performance debt only.
+- **Q93** gives the raw GASPRICE and BASEFEE paths in §2 and the prospective
+  interface in §5.
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
 - **Q91** covers stack-immediate reads and their source correspondence (§§2 and 7).
@@ -2704,7 +2728,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
-- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
+- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
+- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
+  standalone handlers in §5 and compare denial, paid stack overflow,
+  paid raw conversion fault and successful push at the selected fee
+  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.

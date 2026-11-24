@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-20. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83, Q93.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -83,7 +83,32 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
 ### 2.6 Exceptions
 
 - **R-EXC-1** `ExceptionalHalt` (`exceptions.py:17`) has the subclasses `StackUnderflowError`, `StackOverflowError`, `OutOfGasError`, `InvalidOpcode(code)`, `InvalidJumpDestError`, `StackDepthLimitError`, `WriteInStaticContext`, `OutOfBoundsRead`, `InvalidParameter`, `InvalidContractPrefix`, `AddressCollision`, `KZGProofError`; precompiles also raise bare `ExceptionalHalt` (`precompiled_contracts/modexp.py:34, 38, 42`). `Revert` (`:24`) is **not** an exceptional halt. The Lean type must keep one constructor per class (for traces and receipts' diagnostics) although every exceptional halt has the same effect (O8): spill restored, remaining execution gas forfeited, output empty.
-- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:294` catches `Exception`): `state` (a complete `StateError`; missing trie/code data arrives as `state (.witness e)` and maps to O4 through the adapters), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: an out-of-range top-level refund in `U256(refund_counter)` (`interpreter.py:279,312`; §3 preserves both checked casts and their order, with the preparation-zero argument owned by EthVmRunner R-TOP-2), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The `U256(...)` casts in NUMBER, GASLIMIT and BASEFEE cannot overflow, because the SSZ payload field widths (`uint64`, `uint64`, `uint256`) rule it out, so they have no constructor. The non-witness faults are CONTRACT **O13** members (D14): the existing invalid output, one named constructor each, never a catch-all; witness failures map to O4. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `test_validation_headers_invalid_ancestor_chain[…-missing_oldest_blockhash_ancestor]` (`eip8025_optional_proofs/witness_validation_headers/validation_headers_invalid_ancestor_chain.json`; `validation_headers_missing_oldest_blockhash_ancestor` at v21.0.0); the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
+- **R-EXC-2** Non-EVM failures that EELS raises from inside the VM as ordinary Python exceptions must be kept **separate** from `ExceptionalHalt` in a `VmFault` type, because the guest maps them to a failure output rather than to a halted frame (`stateless.py:294` catches `Exception`): `state` (a complete `StateError`; missing trie/code data arrives as `state (.witness e)` and maps to O4 through the adapters), `ancestorHashUnavailable` (BLOCKHASH beyond the witness headers, a Python `IndexError`, see EthVmInstructions), `u256Overflow` (Python `OverflowError` from `ethereum_types`: an out-of-range top-level refund in `U256(refund_counter)` (`interpreter.py:279,312`; §3 preserves both checked casts and their order, with the preparation-zero argument owned by EthVmRunner R-TOP-2), or `U256(calculate_blob_gas_price(…))` in BLOBBASEFEE (`instructions/environment.py:607`)). A recipient balance exceeding 2^256−1 in `move_ether` is also an `OverflowError`; it is raised inside `EthState` and arrives as `state`. The guest NUMBER and GASLIMIT inputs fit U256 by their SSZ widths. CONTRACT **O13** and D14 govern the listed non-witness guest failures: the existing invalid output, one named constructor each, never a catch-all; witness failures map to O4. BLOCKHASH's `IndexError` (`instructions/block.py:58`) is witnessed by the fixture `test_validation_headers_invalid_ancestor_chain[…-missing_oldest_blockhash_ancestor]` (`eip8025_optional_proofs/witness_validation_headers/validation_headers_invalid_ancestor_chain.json`; `validation_headers_missing_oldest_blockhash_ancestor` at v21.0.0); the reachability of the others is argued in the failure ledger (maintained outside this repository). `InternalError` (O11) is a different type again (EthVmRunner).
+
+  Q93 adds prospective `OverflowSite.gasPrice` and `OverflowSite.baseFee`
+  for the corresponding paid raw fee conversions
+  (`instructions/environment.py:307–327,539–559` at the pin).
+  `VmFault.u256Overflow` carries the site and the failed run returns no
+  frame or world. The EELS frame has been charged at the point of the
+  conversion exception. EthVmInstructions §2 owns the raw action order.
+  These are raw diagnostics outside the CONTRACT O13 enumeration.
+
+  On the decoded guest system route, the current payload fee fits
+  `uint256` (`execution_engine/types.py:62`). Header and block environment
+  construction copy that fee (`execution_engine/validation_helpers.py:75`,
+  `fork.py:303–310`). The system transaction uses the same value as its
+  effective gas price (`fork.py:750–757`). Header validation compares the
+  decoded fee with the parent-derived expectation (`fork.py:455–462`).
+  The raw system assembler can take a larger supplied fee.
+
+  On the admitted user route, the intrinsic check and positive base
+  execution cost give a positive gas limit (`transactions.py:669–675,777`,
+  `gas.py:143`). The maximum execution fee is gas limit times fee cap.
+  Affordability bounds that product by the sender's U256 balance. Pricing
+  puts the effective price between the base fee and fee cap
+  (`transactions.py:811–847`, `fork.py:538–570`). With a positive gas limit,
+  the fee cap is at most the maximum execution fee, so both fees fit U256.
+  Lean still needs both caller proofs (§10).
 
 ### 2.7 Jumpdest analysis
 
@@ -1753,8 +1778,9 @@ Reproduce with `lake build STFSpec.Conformance.Vm.Core.PrecompileCallerProofs --
 
 ## 5. Interface
 
-The two nominal types `OverflowSite` and `VmFault` displayed below are supplied
-exactly, in declaration-before-use order in Lean. `VmFault.state` consumes the
+The two supplied `OverflowSite` constructors and the supplied `VmFault`
+constructors are shown below in declaration-before-use order. The two Q93
+sites are prospective additions to `OverflowSite`. `VmFault.state` consumes the
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
 BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
@@ -1820,6 +1846,7 @@ structure VmConfig where
 structure VmWorld (m : Type → Type) where
   tx : TxState m             -- single owner of block, revertible writes, and observations
 inductive OverflowSite | blobBaseFee | refundCounter   -- supplied nominal sites (R-EXC-2)
+-- Q93 adds the prospective constructors gasPrice and baseFee to OverflowSite.
 inductive VmFault | state (e : STFSpec.State.StateError) | ancestorHashUnavailable (offset : Nat)
                   | u256Overflow (site : OverflowSite)   -- supplied nominal carrier (R-EXC-2)
 abbrev VmM (m : Type → Type) := StateT (VmWorld m) (ExceptT VmFault m) -- supplied raw alias
@@ -3383,6 +3410,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
   resource or VM/guest/EEST/readiness gate follows from this vocabulary.
+
+- **Q93 raw fee sites and caller proofs.** Add the two planned constructors
+  in §5 and update both exhaustive private clients, `eliminateSite` and
+  `siteValue`, in `STFSpec/Conformance/Vm/Core/VmFaultCallerProofs.lean`.
+  Transport the decoded system and admitted user fee bounds in R-EXC-2
+  through the corresponding Lean environment producers to their actual
+  handler calls.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample

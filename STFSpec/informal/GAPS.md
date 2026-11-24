@@ -764,6 +764,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
   resource or VM/guest/EEST/readiness gate follows from this vocabulary.
 
+- **Q93 raw fee sites and caller proofs.** Add the two planned constructors
+  in §5 and update both exhaustive private clients, `eliminateSite` and
+  `siteValue`, in `STFSpec/Conformance/Vm/Core/VmFaultCallerProofs.lean`.
+  Transport the decoded system and admitted user fee bounds in R-EXC-2
+  through the corresponding Lean environment producers to their actual
+  handler calls.
+
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
@@ -953,7 +960,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
-- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
+- **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
+- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
+  standalone handlers in §5 and compare denial, paid stack overflow,
+  paid raw conversion fault and successful push at the selected fee
+  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
