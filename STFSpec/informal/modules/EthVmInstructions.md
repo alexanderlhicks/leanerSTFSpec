@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, ADDRESS, ORIGIN, CALLER and CALLVALUE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -73,11 +73,11 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | Hex | Name | EELS | Pops → pushes | Gas | Semantics / halts |
 |---|---|---|---|---|---|
 | 20 | KECCAK | `I/keccak.py:26` | off sz → h | 30 + 6·w(sz) + mem(off,sz) | keccak256 of the window, as a `KeccakQuery` call (D5) |
-| 30 | ADDRESS | `I/environment.py:35` | → target | 2 | |
+| 30 | ADDRESS | `I/environment.py:35` | → target | 2 | Embed `ctx.currentTarget` via `Address.toU256`. |
 | 31 | BALANCE | `:58` | a → bal | warm/cold | address masked to 160 bits (`to_address_masked`); warm-set add **before** the charge (`:72–76`); read after the charge; missing account → 0 |
-| 32 | ORIGIN | `:89` | → origin | 2 | |
-| 33 | CALLER | `:113` | → caller | 2 | |
-| 34 | CALLVALUE | `:136` | → value | 2 | |
+| 32 | ORIGIN | `:89` | → origin | 2 | Embed `ctx.txEnv.origin` via `Address.toU256`. |
+| 33 | CALLER | `:113` | → caller | 2 | Embed `ctx.caller` via `Address.toU256`. |
+| 34 | CALLVALUE | `:136` | → value | 2 | Push the existing `ctx.value` word. |
 | 35 | CALLDATALOAD | `:159` | i → word | 3 | zero-padded read of 32 bytes at any i |
 | 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | |
 | 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
@@ -523,6 +523,26 @@ including values beyond the word range. EELS
 `src/ethereum/forks/amsterdam/vm/gas.py:70,225–227`,
 `src/ethereum/forks/amsterdam/vm/memory.py:63–83` and
 `src/ethereum/forks/amsterdam/vm/stack.py:25–53,115–131` at `59c1473d`.
+
+### Supplied standalone frame-context word handlers
+
+The four handlers in `STFSpec/Vm/Instructions/ContextWords.lean` accept any
+supplied context, bounded frame and world. They charge the selected Nat
+price, push one word after payment and advance the PC after the push.
+The three address embeddings use Base `Address.toU256` and its exact
+numeric observation. Their types require no raw narrowing guard.
+
+| Pinned source | Lean declaration | Price | Word |
+|---|---|---|---|
+| `I/environment.py:35–55` (`address`) | `STFSpec.Vm.Instructions.address` | `opcodeAddress` | `ctx.currentTarget.toU256` |
+| `I/environment.py:89–110` (`origin`) | `STFSpec.Vm.Instructions.origin` | `opcodeOrigin` | `ctx.txEnv.origin.toU256` |
+| `I/environment.py:113–133` (`caller`) | `STFSpec.Vm.Instructions.caller` | `opcodeCaller` | `ctx.caller.toU256` |
+| `I/environment.py:136–156` (`callvalue`) | `STFSpec.Vm.Instructions.callvalue` | `opcodeCallValue` | `ctx.value` |
+
+Each declaration has the Monad-only `Handler` signature in §5. The private
+ordinary laws in §7 fix the complete denial, paid full stack and success
+results. Complete public facade controls are in §4. All four pinned prices
+are 2. EELS `src/ethereum/forks/amsterdam/vm/gas.py:205–208` at `59c1473d`.
 
 ### Supplied STOP handler
 
@@ -1155,6 +1175,21 @@ The exclusive facade reuses the backing in 14 cases with spare
 capacity and grows it in six cases. The retained facade copies the
 backing when it pushes.
 
+**Supplied frame-context word controls.**
+`STFSpec/Conformance/Vm/Instructions/ContextWordControls.lean` exercises
+all four public handlers. Sixteen guards compare all nine frame fields
+and sampled world values on denial, paid full stack and success. They
+vary the selected price, independent context fields, zero and full-width
+words, static context, a wide PC and a price above the U256 range.
+
+Both native and interpreted facade projections match 72 direct pinned
+EELS cases in normal and optimized Python. The cases include all four
+source tariffs and independent raw schedules. The linked native trace
+checks the actual charge and push order for those cases. Twenty-four
+additional compiled profiles cover every handler's exclusive and retained
+frames. A successful push reuses an exclusive array with spare capacity or
+copies a retained array. Paid full-stack and denied calls skip the push.
+
 **Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
 one-byte immediate passes zero to the decoder and that decoding precedes
 stack checks. Exercise both payment outcomes at the last fitting start
@@ -1277,13 +1312,17 @@ def jumpi {m : Type → Type} [Monad m] : Handler m
 def jumpdest {m : Type → Type} [Monad m] : Handler m
 def dupN (ordinal : Fin 16) {m : Type → Type} [Monad m] : Handler m
 def dupn {m : Type → Type} [Monad m] : Handler m
+def address {m : Type → Type} [Monad m] : Handler m
+def origin {m : Type → Type} [Monad m] : Handler m
+def caller {m : Type → Type} [Monad m] : Handler m
+def callvalue {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
 -- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
--- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
+-- countLeadingZeros, keccak, balance, calldataload,
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
@@ -2612,6 +2651,19 @@ related code whose length is less than `2^256`, this gives
 supply these local facts. The raw frame and handler accept arbitrary Nat PCs.
 EELS `interpreter.py:438–445` at `59c1473d`.
 
+**Fixed frame-context word laws** [C], supplied. The private action laws
+return the complete entry frame and world on denial. A paid full stack
+returns the paid frame with the original stack and PC. A successful push
+prepends the selected word to the top-first stack model and advances the
+Nat PC by one. The actual successor retains the supplied world and every
+other frame field. On a continuing Id run, the successor meter's potential
+plus the selected price equals the entry potential. A positive price gives
+strict decrease.
+
+The executable worker tests stack capacity after payment, before taking
+ownership of the stack. Its ordinary equality with the direct push covers
+all supplied frames, prices and typed context reads.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
@@ -2702,6 +2754,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **JUMPDEST standalone handler supplied.** §§3/4/7 own its four local laws and complete frame controls. Source trace, dispatch, settlement, composed G2 and guest execution remain open.
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
+- **Fixed frame-context word handlers supplied.** §§3/4/7 describe
+  ADDRESS, ORIGIN, CALLER and CALLVALUE and their local run and accounting
+  laws. Actual context provenance, dispatch, settlement and composed
+  progress remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
