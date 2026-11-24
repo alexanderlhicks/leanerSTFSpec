@@ -964,9 +964,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
-- **Supplied slice:** only the two Kzg operations and complete ordinary byte-result law
-  described in §§3/5/7 are discharged. Full 917-source and 926 interpreted/native finite
-  comparisons do not close precompile, host, security, resource or whole-guest gates.
+- **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
+  complete byte-result law, and the standalone IDENTITY entry and its local laws.
+  IDENTITY's normal form, table installation, runner settlement and guest integration
+  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
+  standalone IDENTITY controls leave the host, security and resource gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,
