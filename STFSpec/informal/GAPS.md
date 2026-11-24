@@ -966,8 +966,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
   complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
-  entries and their local laws. Normal forms, table installation, runner settlement and guest
-  integration remain open. The 917-source and 926 interpreted/native Kzg
+  entries and their local laws. MODEXP's three Nat pricing helpers and
+  minimum-charge law are supplied. Its descriptor checks, exponent-head
+  read, payment, exponentiation and output remain open. Normal forms,
+  table installation, runner settlement and guest integration remain open. The 917-source and 926 interpreted/native Kzg
   comparisons and the standalone controls leave the host, security and resource
   gates open.
 

@@ -255,9 +255,9 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/ripemd160.py::ripemd160` | 26 | `ripemd160 (cfg : VmConfig) : PrecompileFn m` | Supplied. Charges through Core, then pads the complete EthHash digest with 12 leading zero bytes. Host correspondence uses Q19 and DISC-005. |
 | `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 23 | `identity (cfg : VmConfig) : PrecompileFn m` | Supplied. Charges through Core and returns the original bytes. |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::modexp` | 24 | `modexp : Precompile` | `EthField.powMod` |
-| `forks/amsterdam/vm/precompiled_contracts/modexp.py::complexity` | 76 | `Modexp.complexity : Nat → Nat → Nat` | |
-| `forks/amsterdam/vm/precompiled_contracts/modexp.py::iterations` | 102 | `Modexp.iterations : Nat → Nat → Nat` | |
-| `forks/amsterdam/vm/precompiled_contracts/modexp.py::gas_cost` | 143 | `Modexp.gasCost : Nat → Nat → Nat → Nat → Nat` | |
+| `forks/amsterdam/vm/precompiled_contracts/modexp.py::complexity` | 76 | `Modexp.complexity : Nat → Nat → Nat` | Supplied. Use the larger width and the eight-byte word count. |
+| `forks/amsterdam/vm/precompiled_contracts/modexp.py::iterations` | 102 | `Modexp.iterations : Nat → Nat → Nat` | Supplied. Complete zero-safe bit count and the exact term for exponent widths above 32. |
+| `forks/amsterdam/vm/precompiled_contracts/modexp.py::gas_cost` | 143 | `Modexp.gasCost : Nat → Nat → Nat → Nat → Nat` | Supplied. Multiply complexity by iterations and take the maximum with 500. |
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::bytes_to_g1` | 40 | `AltBn128.bytesToG1 : ByteArray → Except ExceptionalHalt Bn254.G1Proj` | |
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::bytes_to_g2` | 86 | `AltBn128.bytesToG2` | imaginary part first |
 | `forks/amsterdam/vm/precompiled_contracts/alt_bn128.py::alt_bn128_add` | 140 | `altBn128Add : Precompile` | |
@@ -434,6 +434,17 @@ optimized Python. The suite covers empty/non48/48 inputs, every input byte, orde
 block boundaries and leading/trailing suffix zeros. The all-input ordinary theorem
 remains the primary specification.
 
+**Supplied MODEXP pricing controls.** `ModexpPricingControls.lean`
+checks the public facade at the 32/33 and 40/41 width boundaries, the
+exponent width discontinuity, zero and nonzero heads, the floor at 500,
+and wide Nat inputs. A private client uses the ordinary floor law on
+arbitrary inputs. Thirty fresh helper cases agree with both pinned
+Python modes through interpreted and native Lean. Three further
+comparisons use an independent integer model for inputs above the
+U256 domain of the source helpers. The 1024/1025 cases exercise
+unrestricted pricing helpers. Section 2.3 governs handler admission
+before its quote.
+
 ## 5. Interface
 
 Public unless marked internal. Namespace `STFSpec.Precompiles`.
@@ -478,6 +489,8 @@ namespace Modexp
 def complexity (baseLength modulusLength : Nat) : Nat
 def iterations (exponentLength exponentHead : Nat) : Nat
 def gasCost (baseLength modulusLength exponentLength exponentHead : Nat) : Nat
+theorem gasCost_ge_500 (baseLength modulusLength exponentLength exponentHead : Nat) :
+    500 ≤ gasCost baseLength modulusLength exponentLength exponentHead
 end Modexp
 
 namespace AltBn128                                      -- EIP-196/197 codec
@@ -606,6 +619,15 @@ premise or failure/effect channel. Private consumer clients derive size 32, firs
 deliberately discarded; no injectivity, full-SHA binding, collision-resistance or
 KZG-security result follows.
 
+**Supplied MODEXP pricing laws.** `ModexpPricing.lean` provides the
+three Nat formulas in §2.3 and the ordinary `Modexp.gasCost_ge_500`
+law. The iteration formula uses saturating subtraction for the
+width beyond 32. The private equality identifies `Nat.log2 head`
+with the predecessor of the exact bit length, including zero.
+Pinned helper agreement concerns arguments that fit U256. An actual
+handler must apply its length checks and select the padded exponent
+head before taking its quote.
+
 Per precompile operation (the raw helper is separate):
 - [C] **Frame law.** At `m := Id`: `p data g = .ok g' out → chargeGas g c = .ok g'` for the
   precompile's `c`. For general `m`, state the stronger charge relation through Core's
@@ -620,7 +642,7 @@ Per precompile operation (the raw helper is separate):
 - [C] **Normal form.** `p = (pSpec).toPrecompile` up to the halt constructor, for every `p`.
   Proved per precompile against an EELS-shaped definition (check order as in EELS).
 - [C] **Gas laws.** Closed forms of §2.2/§2.3, e.g. `sha256Gas n = 60 + 12 * ((n + 31) / 32)`;
-  MODEXP: `gasCost ≥ 500`; MSM: `msmGas k = k * mul * disc k / 1000`. Do not claim MODEXP monotonicity in each length independently: changing `baseLength` moves the exponent-head window. Any monotonicity theorem must hold that head fixed and check the formula's boundary cases.
+  MODEXP's minimum quote is supplied above. MSM: `msmGas k = k * mul * disc k / 1000`. Do not claim MODEXP monotonicity in each length independently: changing `baseLength` moves the exponent-head window. Any monotonicity theorem must hold that head fixed and check the formula's boundary cases.
 - [C] **Padding laws.** For ECRECOVER, ECADD, ECMUL, MODEXP: the result depends only on
   `data ++ zeros` (any number of zeros) truncated to the bytes read.
 - [C] **Output-size laws** (for consumers such as evm-asm): ECRECOVER `∈ {0, 32}`; SHA256,
@@ -706,8 +728,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
   complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
-  entries and their local laws. Normal forms, table installation, runner settlement and guest
-  integration remain open. The 917-source and 926 interpreted/native Kzg
+  entries and their local laws. MODEXP's three Nat pricing helpers and
+  minimum-charge law are supplied. Its descriptor checks, exponent-head
+  read, payment, exponentiation and output remain open. Normal forms,
+  table installation, runner settlement and guest integration remain open. The 917-source and 926 interpreted/native Kzg
   comparisons and the standalone controls leave the host, security and resource
   gates open.
 
