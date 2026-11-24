@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, BLOCKHASH, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -200,7 +200,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/comparison.py::*` | 21–177 | `lessThan`, `greaterThan`, `signedLessThan`, `signedGreaterThan`, `equal`, `isZero` (supplied below) | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
 | `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | |
-| `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` … `slotNumber` | |
+| `forks/amsterdam/vm/instructions/block.py::*` | 22–299 | `blockHash` (supplied below) … `slotNumber` | |
 | `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP and DUPN are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
@@ -215,6 +215,12 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied BLOCKHASH handler
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/block.py:22–68` | `STFSpec.Vm.Instructions.blockHash` in `STFSpec/Vm/Instructions/BlockHash.lean`, exported by the Instructions facade | Pop the full requested word and charge `ctx.config.costs.opcodeBlockHash`. Use exact Nat arithmetic for the current number and age. Out-of-range requests push zero. A missing in-range ancestor gives `VmFault.ancestorHashUnavailable` at the array access. An in-range hit records R27 before pushing the full hash word. Successful cases advance PC by one. | Private exact run, action and gas laws (§7) and bounded facade controls (§4). |
 
 ### Supplied TLOAD handler
 
@@ -968,6 +974,25 @@ zero grants and two unequal grants above 2^256, including each large grant paire
 with zero. The pinned source comparison is a reading of the inline assignments
 in §3.
 
+**Standalone BLOCKHASH controls.**
+`STFSpec/Conformance/Vm/Instructions/BlockHashControls.lean` checks complete
+frame projections and the ancestor cursor for underflow, gas denial, current
+and future requests, ages 1, 256 and 257, missing history, and a full stack.
+A stored zero hash still records the successful ancestor access. Raw inputs cross the U256 boundary and vary the tariff independently. The
+controls use actual R24 snapshot and restore with a changed transient field.
+The saved field is restored and the block cursor survives.
+
+The direct comparison pairs the actual interpreted and compiled facade with
+sixteen authenticated pinned observations in normal and optimized Python.
+It compares complete local frame projections and shared tracker fields.
+For the missing case Lean returns the exact fault offset. The pinned Python
+control checks the pop and charge before `IndexError`, with no R27 call.
+Linked native controls run the real stack pop and push with exclusive and
+retained frames. They exercise the actual R27 call before the successful hash
+push and check that out-of-range, underflow, denied and missing cases skip it.
+The named O13 fixture establishes the existing guest outcome at the pin.
+The controls here cover the standalone handler.
+
 **Executed TLOAD controls.**
 `scripts/TloadNativeTests.lean` runs the public handler on the input-only
 `tload_inputs.json` catalogue. Native and interpreted streams compare all nine
@@ -1186,7 +1211,7 @@ literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
 Monad instance. STOP, ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND, ADDMOD,
 MULMOD, EXP, LT, GT, SLT, SGT, EQ, ISZERO, AND, OR, XOR, NOT, BYTE, SHL, SHR, SAR,
-CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE are supplied with their local
+CLZ, POP, JUMP, JUMPI, JUMPDEST, BLOCKHASH, TLOAD and TSTORE are supplied with their local
 laws. PUSH0–PUSH32, DUP1–DUP16 and DUPN are also supplied with their local laws.
 The mutable child frame constructor is supplied separately.
 Child context construction, remaining handlers, dispatch, step and resume remain open.
@@ -1195,7 +1220,10 @@ The exact four-field `ChildOutcome` is also supplied, retaining its complete fra
 output, optional error and supplied Core `ChildSettled frame error.isSome` proof.
 Construction adds no producer, runtime guard or F11 proof-production choice.
 
-Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values. R-GEN-7 still requires actual state-failure propagation, BLOCKHASH availability/ancestor tracking and BLOBBASEFEE checked conversion at their source points; no handler or reachability proof is supplied by the carriers.
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values.
+BLOCKHASH uses the ancestor fault at the missing array access and the State R27
+action on a hit. The remaining R-GEN-7 obligations include checked conversion
+for BLOBBASEFEE and propagation through dispatch and the guest.
 
 ```lean
 -- Opcodes and dispatch (public)
@@ -1277,6 +1305,7 @@ def jumpi {m : Type → Type} [Monad m] : Handler m
 def jumpdest {m : Type → Type} [Monad m] : Handler m
 def dupN (ordinal : Fin 16) {m : Type → Type} [Monad m] : Handler m
 def dupn {m : Type → Type} [Monad m] : Handler m
+def blockHash {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1285,7 +1314,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
--- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
+-- returndatasize, returndatacopy, extcodehash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- mload, mstore, mstore8, sload, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
 -- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
@@ -1418,6 +1447,24 @@ boundaries using public provider laws. No authored public helper-law family is
 added. The fixed ctx index prevents a handler result from returning a changed
 context. Actual operation effects, preservation/progress, source refinement,
 child execution, settlement/resume and F11 remain separate obligations.
+
+**Supplied BLOCKHASH contract.** The handler uses `Monad m` alone.
+Underflow returns the whole input frame and world before charging. An
+unaffordable charge returns the frame with the actual pop and keeps the
+whole original meter and world. After a successful charge, compare the
+full requested word with the exact Nat block number. A request for the
+current block, a future block or an age greater than 256 pushes zero and
+retains the entire world. At ages 1 through 256, insufficient history
+returns `ancestorHashUnavailable` with the exact age. A hit selects
+`blockHashes[blockHashes.size - age]` and runs the actual lifted State
+R27 action before pushing the full big-endian word. R27 owns the cursor
+update and R24 preserves it across transaction restore.
+
+Private ordinary equations justify the reference pop, actual push and
+branch ordering. Each continuing frame has the actual pushed stack, Nat
+PC plus one, the charged meter and the original remaining fields. At Id,
+a continuing run pays exactly the configured price in `phi`. A positive
+price also gives strict local progress. Raw zero prices are admitted.
 
 **Supplied TLOAD contract.** The handler uses `Monad m` alone and charges the
 raw Nat price from the supplied context. Underflow returns the original frame
@@ -2661,7 +2708,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/BLOCKHASH/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2670,7 +2717,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/BLOCKHASH/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
@@ -2703,7 +2750,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **JUMPDEST standalone handler supplied.** §§3/4/7 own its four local laws and complete frame controls. Source trace, dispatch, settlement, composed G2 and guest execution remain open.
 - **JUMP and JUMPI standalone handlers supplied.** §§3/4/7 own the twelve local laws and complete frame controls. Destination-map provenance, whole source trace and reachability refinement, dispatch, settlement, composed G2 and guest execution remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
-- **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
+- **Standalone BLOCKHASH supplied.** §3/§4/§5/§7 own the availability
+  check, exact fault offset and R27 action. The missing-header case is O13
+  in fixture `validation_headers_missing_oldest_blockhash_ancestor`.
+  Dispatch, guest fault propagation, composed source refinement and
+  constructor freezing (DECISIONS B14) remain open.
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].

@@ -12,6 +12,7 @@ import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Pop
 import STFSpec.Vm.Instructions.ControlFlow
+import STFSpec.Vm.Instructions.BlockHash
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Push
 import STFSpec.Vm.Instructions.Dup
@@ -34,7 +35,7 @@ The standalone stack handler POP has ordered run laws, exact Id accounting and
 strict progress at positive prices.
 JUMP, JUMPI and JUMPDEST have complete run equations and local Id accounting laws.
 Fixed DUP and DUPN have ordered run laws and local Id accounting laws.
-Standalone TLOAD and TSTORE have private local action equations.
+Standalone BLOCKHASH, TLOAD and TSTORE have private local action equations.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
