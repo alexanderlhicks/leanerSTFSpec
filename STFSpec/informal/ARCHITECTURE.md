@@ -1049,6 +1049,21 @@ that finds the first failure part of the contract; (C) a constructor carrying th
 path or remaining count, which adds data no consumer reads. Every option is an O4
 rejection on the guest path.
 
+**Stack-immediate offset options (Q91).** DECISIONS Q91 owns the selection.
+EthVmInstructions §§2 and 7 own the handler and source correspondence.
+
+- **A. Exact Nat padding.** A paid handler uses the padded Nat window on
+  every raw frame. A paid direct EELS call can raise `OverflowError` when
+  the start exceeds the U256 range. The local fitting-start premise
+  identifies the paid calls that the source correspondence covers.
+- **B. Explicit paid cast failure.** This would model that direct EELS
+  failure. It needs a diagnostic owner and a way to relate the paid meter.
+  The present `VmFault` channel returns no frame.
+- **C. Fitting start at a typed boundary.** A proof argument would make the
+  paid domain explicit. Taking it at handler entry would change the common
+  interface. A wrapper with the raw `Handler` type would still need behavior
+  for an unfitting paid start.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

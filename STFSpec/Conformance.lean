@@ -76,6 +76,11 @@ import STFSpec.Conformance.Vm.Instructions.ComparisonCallerProofs
 import STFSpec.Conformance.Vm.Instructions.ComparisonGuards
 import STFSpec.Conformance.Vm.Instructions.BitwiseCallerProofs
 import STFSpec.Conformance.Vm.Instructions.BitwiseGuards
+import STFSpec.Conformance.Vm.Instructions.PopControls
+import STFSpec.Conformance.Vm.Instructions.JumpdestControls
+import STFSpec.Conformance.Vm.Instructions.JumpControls
+import STFSpec.Conformance.Vm.Instructions.PushControls
+import STFSpec.Conformance.Vm.Instructions.DupControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
@@ -271,6 +276,9 @@ import STFSpec.Conformance.State.DestroyStorageGuards
 import STFSpec.Conformance.State.DestroyAccountControls
 import STFSpec.Conformance.State.ModifyStateControls
 import STFSpec.Conformance.State.ClearAccountPreservingBalanceControls
+import STFSpec.Conformance.State.EtherUpdateControls
+import STFSpec.Conformance.State.AccountScalarControls
+import STFSpec.Conformance.State.SetCodeControls
 import STFSpec.Conformance.State.AccountExistsGuards
 import STFSpec.Conformance.State.CurrentStorageGuards
 import STFSpec.Conformance.State.StorageOriginalGuards

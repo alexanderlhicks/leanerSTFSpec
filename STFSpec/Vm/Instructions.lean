@@ -10,7 +10,11 @@ import STFSpec.Vm.Instructions.Handler
 import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
+import STFSpec.Vm.Instructions.Pop
+import STFSpec.Vm.Instructions.ControlFlow
 import STFSpec.Vm.Instructions.Stop
+import STFSpec.Vm.Instructions.Push
+import STFSpec.Vm.Instructions.Dup
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -26,7 +30,12 @@ class-free `Handler` signature, opcode byte conversions, STOP and its complete
 run law are supplied. The arithmetic handlers ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/
 ADDMOD/MULMOD/EXP, comparison handlers LT/GT/SLT/SGT/EQ/ISZERO and bitwise
 handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting laws.
+The standalone stack handler POP has ordered run laws, exact Id accounting and
+strict progress at positive prices.
+JUMP, JUMPI and JUMPDEST have complete run equations and local Id accounting laws.
+Fixed DUP and DUPN have ordered run laws and local Id accounting laws.
 Standalone TLOAD and TSTORE have private local action equations.
+PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
 Other handlers, dispatch, step, child context construction and resume remain unimplemented.
