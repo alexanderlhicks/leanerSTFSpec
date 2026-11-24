@@ -260,13 +260,20 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
-| `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATION_MARKER` | 36 | `EOA_DELEGATION_MARKER` | `0xEF0100` |
+| `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATION_MARKER` | 36 | `EOA_DELEGATION_MARKER` (supplied) | The complete byte sequence `0xEF0100`. |
 | `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATION_MARKER_LENGTH` | 37 | constant 3 | |
 | `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATED_CODE_LENGTH` | 38 | constant 23 | |
-| `forks/amsterdam/vm/eoa_delegation.py::is_valid_delegation` | 42 | `isValidDelegation` | also used by `EthBlock` (EIP-3607 sender check) and the runner |
-| `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
+| `forks/amsterdam/vm/eoa_delegation.py::is_valid_delegation` | 42–61 | `isValidDelegation` (supplied) | Exact length and prefix test. EthBlock's EIP-3607 sender check and the runner are prospective consumers. |
+| `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64–81 | `getDelegatedCodeAddress` (supplied) | Exact address suffix on the valid branch. |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied EIP-7702 designator functions
+
+| EELS source at `59c1473d` | Lean declaration | Domain and result | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:36–61` | `STFSpec.Vm.Instructions.EOA_DELEGATION_MARKER` and `isValidDelegation` in `STFSpec/Vm/Instructions/DelegationDesignator.lean`, exported by the Instructions facade | The marker contains the three bytes `ef 01 00`. On every `Bytes`, recognition is true exactly at length 23 with that complete prefix. | Ordinary `isValidDelegation_iff` (§7) and exact byte controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:64–81` | `STFSpec.Vm.Instructions.getDelegatedCodeAddress` in the same module and facade | Every `Bytes`. Invalid input yields `none`. Valid input supplies the complete 20-byte suffix as an address. | Ordinary `getDelegatedCodeAddress_eq_some_iff` (§7) and complete address controls (§4). |
 
 ### Supplied SLOAD handler
 
@@ -1160,6 +1167,18 @@ from retained frames copy it. In-bounds loads and denied charges keep the
 memory backing in both cases. Exclusive growth reuses sufficient capacity
 and otherwise expands to the required extent.
 
+**Supplied EIP-7702 designator controls.**
+`STFSpec/Conformance/Vm/Instructions/DelegationDesignatorControls.lean`
+uses both ordinary laws through the public facade. The guards cover the exact
+marker, wrong bytes at each prefix position, short and long inputs, and
+complete address bytes including leading zeros and a marker inside the
+suffix. Direct-source comparisons in both pinned Python modes exercise
+every possible byte at each marker position, the nearby lengths and every
+suffix position. Interpreted and optimized native runs compare the complete
+recognition and address results. Native access controls check the bounded
+prefix reads and show that rejected inputs, including long packed sequences,
+reach neither suffix copy nor address decoding.
+
 **Supplied EXTCODEHASH controls.**
 `STFSpec/Conformance/Vm/Instructions/ExtCodeHashControls.lean` checks
 the account test with the block's supplied empty-code hash. The guards
@@ -1653,10 +1672,14 @@ def baseFee {m : Type → Type} [Monad m] : Handler m
 -- selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
--- EIP-7702 (public)
-def EOA_DELEGATION_MARKER : Bytes; def EOA_DELEGATION_MARKER_LENGTH : Nat; def EOA_DELEGATED_CODE_LENGTH : Nat
+-- Supplied EIP-7702 designator interface
+def EOA_DELEGATION_MARKER : Bytes
 def isValidDelegation : Bytes → Bool
 def getDelegatedCodeAddress : Bytes → Option Address
+
+-- Prospective EIP-7702 declarations
+def EOA_DELEGATION_MARKER_LENGTH : Nat
+def EOA_DELEGATED_CODE_LENGTH : Nat
 def calculateDelegationCost (f : Frame) (a : Address) : VmM m (Bool × Address × Nat)
 def resolveDelegatedCodeAddress (costs : GasCosts) (g : GasMeter) (warm : AddrSet) (a : Address) : VmM m (Except ExceptionalHalt (Address × Bool × GasMeter × AddrSet))
 def CALL_SUCCESS : U256
@@ -3365,7 +3388,26 @@ EELS `interpreter.py:438–445` at `59c1473d`.
 
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
-**Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
+**Delegation designator** [C]. The two supplied ordinary laws cover
+every input byte sequence and complete returned address.
+
+```lean
+theorem isValidDelegation_iff (code : Bytes) :
+    isValidDelegation code = true ↔
+      code.toList.length = 23 ∧ code.toList.take 3 = [0xef, 0x01, 0x00]
+theorem getDelegatedCodeAddress_eq_some_iff (code : Bytes) (address : Address) :
+    getDelegatedCodeAddress code = some address ↔
+      code.toList.length = 23 ∧ code.toList.take 3 = [0xef, 0x01, 0x00] ∧
+        code.toList.drop 3 = address.toBytes.toList
+```
+
+The packed recognizer tests length before reading the three fixed prefix
+positions. The Base byte-index observation gives the matching list prefix.
+Its suffix theorem uses the Base extraction length, list and address
+decoding laws. These laws admit each marker followed by a 20-byte address
+and recover all bytes of that address. The code length and marker length
+are local implementation values. R-DEL-2 and R-DEL-3 retain the prospective
+State, gas and warmth contracts.
 
 **Relational view** [R]: `step_iff` and `Step.deterministic`; a small-step relation `Steps` for straight-line code with additive gas (`GasSteps`-style) for consumers.
 
@@ -3473,6 +3515,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ordered run equations, exact paid windows, local G2 laws and complete
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
+
+- **R-DEL-1 designator functions supplied.** §§3/4/5/7 own the marker,
+  recognition, address extraction, complete byte laws and bounded controls.
+  Public length exports, R-DEL-2 and R-DEL-3 lookup and pricing, caller
+  integration and composed costs remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
