@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, CALLDATALOAD, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -78,7 +78,7 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 32 | ORIGIN | `:89` | → origin | 2 | |
 | 33 | CALLER | `:113` | → caller | 2 | |
 | 34 | CALLVALUE | `:136` | → value | 2 | |
-| 35 | CALLDATALOAD | `:159` | i → word | 3 | zero-padded read of 32 bytes at any i |
+| 35 | CALLDATALOAD | `:159` | i → word | 3 | Pop and charge, then push a big-endian word from the 32-byte zero-padded call-data window. |
 | 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | |
 | 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
 | 38 | CODESIZE | `:246` | → \|code\| | 2 | executing frame's code (init code in a create frame) |
@@ -215,6 +215,12 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied CALLDATALOAD handler
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:159–183` | `STFSpec.Vm.Instructions.calldataload` in `STFSpec/Vm/Instructions/CallDataLoad.lean`, exported by the Instructions facade | Pop the full offset and charge `ctx.config.costs.opcodeCallDataLoad`. Underflow precedes payment. Denial retains the pop and skips the read. On payment, use Core `bufferRead` on `ctx.callData`, push the complete big-endian word and advance PC by one. | Private ordered run, padded-word and gas laws (§7) and bounded facade controls (§4). |
 
 ### Supplied TLOAD handler
 
@@ -968,6 +974,19 @@ zero grants and two unequal grants above 2^256, including each large grant paire
 with zero. The pinned source comparison is a reading of the inline assignments
 in §3.
 
+**Standalone CALLDATALOAD controls.**
+`STFSpec/Conformance/Vm/Instructions/CallDataLoadControls.lean` checks the
+complete mutable frame projection and shared world fields. Cases cover
+underflow, gas denial, full stacks, exact and partial windows, empty
+input, very large offsets and independent configured prices.
+
+Fourteen paired cases compare the actual interpreted and compiled facade
+with authenticated normal and optimized Python at the pin. The native
+observer sees the linked pop and charge before the padded read and push,
+including the full set of 32 bytes and the exact offset. It checks the
+exclusive and retained paths through the real Stack operations. The
+retained entry stack stays intact, and its copied tail is reused on push.
+
 **Executed TLOAD controls.**
 `scripts/TloadNativeTests.lean` runs the public handler on the input-only
 `tload_inputs.json` catalogue. Native and interpreted streams compare all nine
@@ -1186,7 +1205,7 @@ literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
 Monad instance. STOP, ADD, SUB, MUL, DIV, SDIV, MOD, SMOD, SIGNEXTEND, ADDMOD,
 MULMOD, EXP, LT, GT, SLT, SGT, EQ, ISZERO, AND, OR, XOR, NOT, BYTE, SHL, SHR, SAR,
-CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE are supplied with their local
+CLZ, POP, JUMP, JUMPI, JUMPDEST, CALLDATALOAD, TLOAD and TSTORE are supplied with their local
 laws. PUSH0–PUSH32, DUP1–DUP16 and DUPN are also supplied with their local laws.
 The mutable child frame constructor is supplied separately.
 Child context construction, remaining handlers, dispatch, step and resume remain open.
@@ -1277,13 +1296,14 @@ def jumpi {m : Type → Type} [Monad m] : Handler m
 def jumpdest {m : Type → Type} [Monad m] : Handler m
 def dupN (ordinal : Fin 16) {m : Type → Type} [Monad m] : Handler m
 def dupn {m : Type → Type} [Monad m] : Handler m
+def calldataload {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
 -- One handler per opcode (public): stop, add, mul, sub, div, sdiv, mod, smod, addmod, mulmod, exp,
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
--- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
+-- countLeadingZeros, keccak, address, balance, origin, caller, callvalue,
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
@@ -1418,6 +1438,21 @@ boundaries using public provider laws. No authored public helper-law family is
 added. The fixed ctx index prevents a handler result from returning a changed
 context. Actual operation effects, preservation/progress, source refinement,
 child execution, settlement/resume and F11 remain separate obligations.
+
+**Supplied CALLDATALOAD contract.** The handler uses `Monad m` alone.
+Underflow returns the original frame and world. Denial returns the actual
+post-pop stack with the original meter, PC and other frame fields. Payment
+uses the exact configured price. The read begins at the full requested
+U256 offset in `FrameCtx.callData`. Core's `bufferRead` uses Nat endpoint
+arithmetic and returns the available bytes followed by enough zeros to
+make 32 bytes. The big-endian value fits U256 and agrees with the
+successful checked decoder. Push the word into the room left by the pop.
+Only the stack, execution gas and Nat PC change in a continuing frame.
+Every result retains the original world.
+
+Private ordinary laws cover the actual pop and push, padded word and
+complete results. A continuing Id run spends exactly the configured price
+in `phi`. Strict local progress requires a positive price.
 
 **Supplied TLOAD contract.** The handler uses `Monad m` alone and charges the
 raw Nat price from the supplied context. Underflow returns the original frame
@@ -2661,7 +2696,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/CALLDATALOAD/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2670,7 +2705,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/CALLDATALOAD/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
@@ -2682,6 +2717,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+
+- **Standalone CALLDATALOAD supplied.** §3/§4/§5/§7 own the handler, its
+  private ordinary laws and local controls. Dispatch, composed source
+  refinement and guest replay remain open.
 
 - **Standalone TLOAD supplied.** §3/§4/§5/§7 own the handler, its private local
   laws and isolated direct-source tests. Dispatch, interpreter traces, reachable
