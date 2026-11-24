@@ -1,7 +1,7 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
 *Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83, Q93.*
+*Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83, Q93, Q95.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -93,6 +93,19 @@ empty memory (`interpreter.py:221`, `instructions/system.py:159,428`).
   conversion exception. EthVmInstructions §2 owns the raw action order.
   These are raw diagnostics outside the CONTRACT O13 enumeration.
 
+  Q95 reserves separate sites `OverflowSite.pc` and `OverflowSite.gasLeft`
+  for the paid PC and GAS casts. The result is
+  `.error (.u256Overflow site)` with only that site. The EELS frame
+  exposes the charged prefix at the exception. For a paid call, the
+  precise fitting premise for PC is the entry PC's `< 2^256` bound.
+  For GAS it is the paid execution balance's `< 2^256` bound, equivalently
+  `entry.gasMeter.gasLeft - price < 2^256` under affordability. Any
+  exclusion proof must establish those premises at the actual calls.
+  For GAS, transport any proposed runner cap through the grant and
+  return paths. EthVmInstructions §2 owns the ordered producers.
+  CONTRACT O13 owns guest classification. EELS
+  `instructions/control_flow.py:101–122,125–146`.
+
   On the decoded guest system route, the current payload fee fits
   `uint256` (`execution_engine/types.py:62`). Header and block environment
   construction copy that fee (`execution_engine/validation_helpers.py:75`,
@@ -136,6 +149,7 @@ in its Except result; no rollback of underlying effects is implied.
 |---|---|---|---|---|
 | R-EXC-2/§5; `instructions/environment.py:606–607`, `interpreter.py:279,312` identify future conversion sites | `OverflowSite.blobBaseFee`, `OverflowSite.refundCounter : OverflowSite` | Pure nominal construction/elimination only | Private `Conformance/Vm/Core/VmFaultCallerProofs.lean` exact types, exhaustive dependent eliminator and distinct-site proof | Carrier supplied; actual checked casts unimplemented |
 | Q93; `instructions/environment.py:307–327,539–559` at the pin | `OverflowSite.gasPrice`, `OverflowSite.baseFee : OverflowSite` | Nominal sites for paid raw fee conversion faults | Private `VmFaultCallerProofs.lean` exact types, exhaustive elimination, distinct-site proof and complete observations | Sites supplied. EthVmInstructions owns both raw producers and §10 retains the caller obligations. |
+| Q95; `instructions/control_flow.py:101–122,125–146` at the pin | Prospective `OverflowSite.pc`, `OverflowSite.gasLeft : OverflowSite` | Separate sites for paid entry PC and paid execution balance | Planned exhaustive clients and distinct-site controls (§§4–5) | Constructors and raw producers remain unimplemented. |
 | R-EXC-2/§5; State R29, `instructions/block.py:58–62` and the above conversion sites | `VmFault.state : STFSpec.State.StateError → VmFault`; `ancestorHashUnavailable : Nat → VmFault`; `u256Overflow : OverflowSite → VmFault` | Retains the complete supplied state error, raw unbounded offset or conversion site; no action or output projection | Private public-Core-facade exact constructors, exhaustive dependent eliminator, whole-value reconstruction, three injectivity proofs, all pairwise outer-tag disjointness and complete controls (§4) | Carrier supplied; producers, propagation, classification proofs and B14 freezing remain open |
 
 `Core/VmFault.lean` imports the actual State-owned `StateError`, which already wraps
@@ -1784,7 +1798,9 @@ constructors are shown below in declaration-before-use order. `VmFault.state` co
 existing `STFSpec.State.StateError`. Every raw Nat offset, including zero and
 arbitrarily large values, is admitted by the carrier; this says nothing about
 BLOCKHASH reachability. The exact one-field VmWorld and VmM alias below are
-also supplied. The functional liftState and its complete literal run equation are
+also supplied. Q95 specifies the prospective `OverflowSite.pc` and
+`OverflowSite.gasLeft` additions. The supplied declaration below lists
+the four existing sites. The functional liftState and its complete literal run equation are
 supplied separately in StateLift.lean (§3/§7).
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
@@ -2244,6 +2260,8 @@ reconstruction, payload injectivity and constructor disjointness; no custom publ
 law or instance is added. EthVmInstructions §7 owns Q93's raw fee checks,
 including the precedence and effects of those fault producers. State lifting,
 error adaptation, classification and reachability have their own contracts.
+Q95's planned vocabulary needs exhaustive clients and a distinct-site
+observation. Its actual caller bounds remain in R-EXC-2.
 The raw offset domain carries no admissibility claim. D14/O4/O11/O13 and B14 retain
 their existing owners; failure-ledger closure and freezing remain open.
 
@@ -3415,6 +3433,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   clients are supplied (§3/§4/§5/§7). Transport the decoded system and
   admitted user fee bounds in R-EXC-2 through the corresponding Lean
   environment producers to their actual handler calls.
+
+- **Q95 PC and GAS sites.** Add the two prospective constructors and
+  exhaustive clients. The raw producers, paid action proofs and controls
+  remain in EthVmInstructions. Actual handler calls need their local
+  exclusion proofs before a runner can rule out the faults.
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample

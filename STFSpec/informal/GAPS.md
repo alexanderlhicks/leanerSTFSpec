@@ -769,6 +769,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   admitted user fee bounds in R-EXC-2 through the corresponding Lean
   environment producers to their actual handler calls.
 
+- **Q95 PC and GAS sites.** Add the two prospective constructors and
+  exhaustive clients. The raw producers, paid action proofs and controls
+  remain in EthVmInstructions. Actual handler calls need their local
+  exclusion proofs before a runner can rule out the faults.
+
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
   clients. The four raw shared declarations PrecompileResult, PrecompileFn,
@@ -912,7 +917,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   controls. SWAPN and EXCHANGE still need handlers, local laws and
   controls. The full paid source correspondence
   and its fetch premise (§7) still need proofs.
-  PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
+  The MSIZE scalar cast, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
@@ -963,6 +968,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
+- **PC and GAS handlers (Q95).** Implement the two planned handlers, their
+  complete local equations and controls. The supplied runner and source
+  contracts still need the actual bounds at these calls.
 - **Byte-size handlers (Q94).** Implement the three standalone handlers,
   their local laws and controls in §§2–5 and §7. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.

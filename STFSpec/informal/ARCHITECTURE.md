@@ -1092,6 +1092,19 @@ model.
 | B. Checked conversion with an opcode site | Keep the ordinary `Handler` and add three nominal conversion sites and their exhaustive clients. An out-of-range size faults before the paid stack check. The same local fitting premise identifies the exact size result. |
 | C. Proof-scoped conversion | Require a proof that the selected size fits when payment succeeds. Dispatch needs to supply the premise, including the current frame's return-data bound. The ordinary raw `Handler` would need a separate completion or a new input contract. |
 
+**Raw PC and GAS conversion options (Q95).** DECISIONS Q95 owns the
+selection. EthVmCore R-EXC-2 gives the fault and caller contracts.
+The pinned source charges first, then attempts a U256 conversion of the
+entry PC or paid execution balance. A paid selected value of `2^256`
+raises before either a successful push or a full-stack halt.
+
+| Option | Consequence for raw calls |
+|---|---|
+| A. Distinct checked sites | Use the ordinary `Handler` and the nominal sites `pc` and `gasLeft`. Both operations admit all raw denied inputs and preserve paid conversion failure before the push. |
+| B. Shared checked site | Preserve the branch order using one site. The surrounding opcode or trace supplies which source operation failed. |
+| C. Modular word | Use `U256.ofNat`. A frame with room pushes zero at the first oversized value. A full stack reaches its paid halt. Paid source correspondence uses the fitting premise. |
+| D. Caller proof | Require a proof on the selected value. A proof conditional on payment admits the raw denied branch. Dispatch then needs the selected tariff and a fitting proof for every paid call, or a raw wrapper with its own policy. |
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

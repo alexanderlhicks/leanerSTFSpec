@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, GASPRICE and BASEFEE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93, Q94.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93, Q94, Q95.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -142,9 +142,9 @@ execution gas. Every frame result retains the original world.
 | 55 | SSTORE | `:68` | k v → | see §2.4 | static first |
 | 56 | JUMP | `I/control_flow.py:45` | d → | 8 | `d ∉ jumpdests` → `InvalidJumpDestError` (after charge) |
 | 57 | JUMPI | `:70` | d c → | 10 | `c = 0` → `pc+1` (d not checked); else as JUMP |
-| 58 | PC | `:101` | → pc | 2 | |
+| 58 | PC | `:101` | → pc | 2 | After payment check the entry PC and push its word (Q95). |
 | 59 | MSIZE | `I/memory.py:119` | → \|mem\| | 2 | always a multiple of 32 |
-| 5A | GAS | `I/control_flow.py:125` | → gas_left | 2 | value **after** this charge; execution gas only (not the reservoir) |
+| 5A | GAS | `I/control_flow.py:125` | → gas_left | 2 | After payment check the paid execution balance and push its word (Q95). |
 | 5B | JUMPDEST | `:149` | – | 1 | |
 | 5C | TLOAD | `I/storage.py:164` | k → v | 100 | transient storage (EIP-1153) |
 | 5D | TSTORE | `:189` | k v → | 100 | static first; revertible (part of the tx snapshot) |
@@ -171,6 +171,18 @@ execution gas. Every frame result retains the original world.
 | FA | STATICCALL | `:884` | g a io is oo os → 0/1 | §2.6 | |
 | FD | REVERT | `:987` | off sz → | mem | `.revert` with output = window (gas not forfeited) |
 | FF | SELFDESTRUCT | `:706` | b → | §2.7 | static first |
+
+**Raw PC and GAS (Q95).** PC pays `ctx.config.costs.opcodePc`, then
+selects the entry `f.pc`. GAS pays `ctx.config.costs.opcodeGas`, then
+selects the paid meter's execution `gasLeft`. A denied charge returns
+the complete entry frame and world for every raw operand. Payment
+precedes `U256.ofNat?`, and the cast precedes the push. An oversized value
+returns `.error (.u256Overflow site)` with `.pc` or `.gasLeft`.
+EthVmCore R-EXC-2 owns the site and the source's paid prefix. After a
+fitting cast, full-stack halt returns the complete paid frame and world.
+Success pushes the word, increments the Nat PC by one and preserves
+the rest of the paid frame and the supplied world. EELS
+`I/control_flow.py:101–122,125–146` at `59c1473d`.
 
 ### 2.3 Dispatch
 
@@ -232,7 +244,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP and DUPN are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::*` | 30–179 | `mstore`, `mstore8`, `mload`, `msize`, `mcopy` | |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload`, `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
-| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | STOP, JUMP, JUMPI and JUMPDEST are supplied below. PC and GAS remain open. |
+| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | STOP, JUMP, JUMPI and JUMPDEST are supplied below. Q95 fixes the planned PC and GAS contracts. |
 | `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
@@ -243,6 +255,16 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Planned standalone PC and GAS handlers (Q95)
+
+| EELS source at `59c1473d` | Lean declaration | Contract |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/control_flow.py:101–122` | `pc` | Check and push the entry PC after payment. |
+| `src/ethereum/forks/amsterdam/vm/instructions/control_flow.py:125–146` | `gasLeft` | Check and push the paid execution balance. |
+
+The interfaces, four result paths and controls appear in §§2/4/5/7.
+The two handlers and their proofs remain unimplemented.
 
 ### Planned standalone byte-size handlers (Q94)
 
@@ -1222,6 +1244,13 @@ retained frames. Successful pushes reuse an exclusive stack array with spare
 capacity and copy a retained array. Full-stack halt, conversion fault and
 gas denial perform no push in the compiled worker.
 
+**Planned PC and GAS controls (Q95).** Check denial, paid cast failure,
+a fitting paid full stack and a fitting success with independent prices.
+At a selected value of `2^256`, test both a full stack and one with room.
+Check the paid Python prefix separately from the nominal Lean fault.
+For GAS, an entry balance of `2^256 + 1` and price 2 leaves a fitting
+paid balance of `2^256 - 1`. Vary the other meter fields independently.
+
 **Planned byte-size controls (Q94).** Give each handler distinct byte
 fields and configured tariffs. Compare the complete entry frame on
 denial, the complete paid frame on a full stack, and the exact pushed
@@ -1363,6 +1392,10 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
+-- Planned standalone PC and GAS handlers (Q95).
+def pc {m : Type → Type} [Monad m] : Handler m
+def gasLeft {m : Type → Type} [Monad m] : Handler m
+
 -- Planned standalone byte-size handlers (Q94).
 def calldatasize {m : Type → Type} [Monad m] : Handler m
 def codesize {m : Type → Type} [Monad m] : Handler m
@@ -1375,7 +1408,7 @@ def returndatasize {m : Type → Type} [Monad m] : Handler m
 -- calldatacopy, codecopy, extcodesize, extcodecopy,
 -- returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, blobHash, blobBaseFee, slotNumber,
--- mload, mstore, mstore8, sload, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
+-- mload, mstore, mstore8, sload, sstore, msize, mcopy, swapN (n : Fin 16),
 -- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
@@ -2712,6 +2745,15 @@ The private Id accounting equation says that successor potential plus the
 selected price equals entry potential. A positive selected price then gives
 strict decrease. The caller and dispatch obligations remain in §10.
 
+**PC and GAS local laws (Q95)** [C], planned. Denial gives the complete
+entry frame and world regardless of the selected word's range. Payment with
+a value outside U256 gives the exact nominal site and carries no paid frame
+or world. With a fitting word, a paid full stack retains the complete paid
+frame and world. Success returns that meter and world, the exact pushed
+value and Nat PC increment. Local accounting uses the selected price.
+The fitting GAS premise is on the paid execution balance. The corresponding
+source and caller proofs remain open.
+
 **Byte-size local laws (Q94)** [C], planned. The complete denial and
 paid full-stack equations hold for every raw byte size. The successful
 result contains `U256.ofNat size`. Its whole-size law uses only the
@@ -2763,6 +2805,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
 - **Q91** covers stack-immediate reads and their source correspondence (§§2 and 7).
 - **Q94** settles the raw byte-size word rule (§§2 and 7).
+- **Q95** settles the raw PC and GAS conversions (§§2 and 7).
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
@@ -2772,7 +2815,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   controls. SWAPN and EXCHANGE still need handlers, local laws and
   controls. The full paid source correspondence
   and its fetch premise (§7) still need proofs.
-  PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
+  The MSIZE scalar cast, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/TLOAD/TSTORE/POP/JUMP/JUMPI/JUMPDEST/PUSH/DUP/DUPN slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
@@ -2823,6 +2866,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   the ordered action equations and complete controls. Actual source entry
   refinement and trace, dispatch, runner propagation and composed progress
   remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
+- **PC and GAS handlers (Q95).** Implement the two planned handlers, their
+  complete local equations and controls. The supplied runner and source
+  contracts still need the actual bounds at these calls.
 - **Byte-size handlers (Q94).** Implement the three standalone handlers,
   their local laws and controls in §§2–5 and §7. Actual caller field
   relations, dispatch and proof of the pinned source relation remain open.
