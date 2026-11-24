@@ -19,9 +19,9 @@ namespace STFSpec.State
 inductive StateError where
   /-- Retain the complete supplied witness error. -/
   | witness (e : WitnessError)
-  /-- Insufficient balance for a future state operation (R29). -/
+  /-- The R19 sender debit exceeds the account balance. -/
   | balanceUnderflow
-  /-- Balance overflow in a future state operation (R29). -/
+  /-- The R19 credit exceeds the U256 balance range. -/
   | balanceOverflow
   /-- A future storage write targets a missing account (R29). -/
   | storageOnMissingAccount
