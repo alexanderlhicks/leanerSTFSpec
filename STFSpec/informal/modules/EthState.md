@@ -119,7 +119,7 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::set_account` | 434–454 | `setAccount` | **Discharged standalone action:** whole account option and B1 order update; private laws in §§7.1/7.5. |
 | `forks/amsterdam/state_tracker.py::set_storage` | 457 | `setStorage` | |
 | `forks/amsterdam/state_tracker.py::destroy_account` | 484–501 | `destroyAccount` | **Supplied standalone action:** clear target storage, then record the account tombstone (§7.5). |
-| `forks/amsterdam/state_tracker.py::clear_account_preserving_balance` | 504 | `clearAccountPreservingBalance` | |
+| `forks/amsterdam/state_tracker.py::clear_account_preserving_balance` | 504–525 | `clearAccountPreservingBalance` | **Supplied standalone action:** run R16 before R18, retaining the exact balance. |
 | `forks/amsterdam/state_tracker.py::destroy_storage` | 528–549 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | **Discharged standalone action:** pending slot keys become reads. The action erases the target patch and slot index, applies `WriteOrder.erase` to the address index, and records the clear. Private laws and typed controls below. |
 | `forks/amsterdam/state_tracker.py::mark_account_created` | 552–571 | `markAccountCreated` | **Supplied standalone action:** insert the complete address into the transaction's created-account set. Private run and retention equations (§7), facade guards and bounded source comparisons (§4). |
 | `forks/amsterdam/state_tracker.py::set_transient_storage` | 574–598 | `setTransientStorage` | **Discharged write:** insert or erase one full transient key and retain all other fields. |
@@ -299,6 +299,12 @@ select keys and the existing raw erasure policy to update metadata.
 | Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:601–613` | `STFSpec.State.modifyState {m : Type → Type} [Monad m] (a : Address) (f : Account → Except StateError Account) : StateM m Unit`, exported by State from `STFSpec/State/ModifyState.lean` | Read through `getAccount`, then call the supplied update. Either failure returns the complete nominal error through StateM. Success writes the account, runs the actual `accountExistsAndIsEmpty` read and conditionally runs R17. | Private literal Monad action, exact Id branches, second-read and snapshot equations in §7.5. Facade controls and pinned comparisons in §4. |
+
+### Implemented balance-preserving account clear
+
+| Source at the pin | Lean declaration and domain | Value, effects and ordered failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:504–525` | `STFSpec.State.clearAccountPreservingBalance {m : Type → Type} [Monad m] (a : Address) : StateM m Unit`, exported by State from `STFSpec/State/ClearAccountPreservingBalance.lean` | Run R16 before the R18 lookup. Set the nonce to zero and the code hash to the input block's supplied empty-code hash. Retain the exact balance and code table. Zero balance reaches R18's conditional R17 destruction. StateM propagates the complete reached error. | Private literal bind, exact Id continuation, emptiness and R24 restoration in §7.5. Facade controls and pinned comparisons in §4. |
 
 ### Implemented current account emptiness and liveness
 
@@ -591,6 +597,13 @@ positive cases, error-only vacuity and wrong-success rejection; they provide no
 production provider, progress, root/authentication, resource or release result.
 
 ## 4. Tests
+
+- **Balance-preserving account clear controls.** `ClearAccountPreservingBalanceControls.lean`
+  checks funded, empty and absent accounts, explicit zero and nonzero slots,
+  the input block's raw empty-code hash, and exact R24 restoration. The pinned
+  source observes the first clear and read conversion before the account
+  lookup, including when the provider throws. The interpreted and compiled
+  State facade compares complete successes and the reached nominal failure.
 
 - **Standalone R27 controls:** `AncestorAccessChecks.lean` checks five
   histories and 20 updates, including absence, explicit zero, equal/decreasing
@@ -1254,7 +1267,8 @@ def destroyStorage {m : Type → Type} [Monad m]
     (a : Address) : StateM m Unit -- supplied, Monad only
 def destroyAccount {m : Type → Type} [Monad m]
     (a : Address) : StateM m Unit -- supplied, Monad only
-def clearAccountPreservingBalance (a : Address) : StateM m Unit
+def clearAccountPreservingBalance {m : Type → Type} [Monad m]
+    (a : Address) : StateM m Unit -- supplied
 def markAccountCreated {m : Type → Type} [Monad m] (a : Address) : StateM m Unit
 def setTransientStorage {m : Type → Type} [Monad m]
     (a : Address) (k : Bytes32) (v : U256) : StateM m Unit -- supplied, Monad only
@@ -1821,6 +1835,17 @@ reinstates the saved revertible record and retains the observations.
 The source records the first account read before a callback exception.
 The existing Lean StateM error result carries only the nominal error.
 
+For the balance-preserving clear, the literal Monad action passes the
+transaction returned by R16 to the actual R18 update. Its callback keeps
+the balance and resets the nonce and hash with the empty-code hash
+supplied in the input block. The resulting account is empty exactly when
+its retained balance is zero. R18 owns the second storage clear and
+tombstone in that case. The Id equation propagates the reached nominal
+error after the completed R16 action. The original source retains its
+first clear and observations in place. On successful Lean execution,
+R24 restores the complete saved revertible record and retains the
+observations recorded by R16 and R18.
+
 - Preserve account first-write order, storage-address order, and each slot's first-write order. `record` appends a new key and leaves an existing key in place. Clearing storage removes that address's pending writes and both storage order indexes, converts dropped transaction writes into reads, and resets subsequent slot order. Incorporation removes cleared block entries before folding new transaction writes in their recorded order. Snapshots restore all three indexes with the writes; extraction emits forward-order lists once. `MathState.apply` forgets replay order, but operational witness refinement cannot. `BlockDiff` carries **no clear order**, so the witness root replay's iteration over `storageChanges ∪ storageClears` (a Python set; `EthStateWitness` W6 step 3) is **open (F7)**: prove that step-3 rewrites commute, including failures and observations, or add a clear order to `BlockDiff`. A prototype's traversal is not adopted, and a first-clear order alone does not reproduce Python set iteration. Independence of insert/delete group order is not assumed.
 
 ### Informal correctness argument
@@ -1960,6 +1985,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory
   and zkVM resource gates open.
+- **Balance-preserving account clear supplied.** §§3/4/5/7.5 own the
+  standalone R16–R18 action and complete local controls. Caller integration,
+  production providers and world effects, fault projection and composed
+  State invariants remain open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:199–200`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.

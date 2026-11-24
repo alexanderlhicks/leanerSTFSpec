@@ -457,6 +457,12 @@ then performs the current emptiness read before conditional R17. Both typed
 failure branches use the existing StateM result. R19 and the provider/source
 models remain separate.
 
+EthState §§3/4/5/7.5 supplies the R17 balance-preserving clear through
+R16 and R18. Use the transaction returned by the first storage clear and
+the supplied empty-code hash from its entry block. R18 handles the
+resulting empty account and R24 restores the complete saved revertible
+record. Actual caller integration and fault projection remain open.
+
 ### Supplied mathematical transaction view
 
 EthState §3/§5/§7.1/§7.2 owns class-free `TxState.view`, exactly block view followed
