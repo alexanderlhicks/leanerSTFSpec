@@ -25,6 +25,7 @@ import STFSpec.Vm.Instructions.Sload
 import STFSpec.Vm.Instructions.BlobHash
 import STFSpec.Vm.Instructions.BlockHash
 import STFSpec.Vm.Instructions.CallDataLoad
+import STFSpec.Vm.Instructions.Keccak
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -51,6 +52,7 @@ BLOBHASH and BLOCKHASH supply local lookup and accounting laws. BLOCKHASH also
 records the missing-ancestor fault and the State R27 action.
 CALLDATALOAD supplies exact frame and padded-word equations.
 MLOAD, MSTORE and MSTORE8 have local run, memory and accounting laws.
+Standalone KECCAK has local oracle, memory and accounting laws.
 RETURN and REVERT have ordered terminal run laws.
 Standalone TLOAD and TSTORE have private local action equations.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.

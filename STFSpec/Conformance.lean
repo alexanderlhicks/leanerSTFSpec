@@ -84,6 +84,7 @@ import STFSpec.Conformance.Vm.Instructions.JumpControls
 import STFSpec.Conformance.Vm.Instructions.PushControls
 import STFSpec.Conformance.Vm.Instructions.DupControls
 import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
+import STFSpec.Conformance.Vm.Instructions.KeccakControls
 import STFSpec.Conformance.Vm.Instructions.ContextWordControls
 import STFSpec.Conformance.Vm.Instructions.DynamicSwapControls
 import STFSpec.Conformance.Vm.Instructions.BalanceControls

@@ -246,7 +246,7 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/instructions/arithmetic.py::*` | 28–374 | `add`, `sub`, `mul`, `div`, `sdiv`, `mod`, `smod`, `signextend`, `addmod`, `mulmod`, `exp` (supplied below), `U255_CEIL_VALUE` | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/bitwise.py::*` | 21–274 | `bitwiseAnd` … `countLeadingZeros` (supplied below) | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/comparison.py::*` | 21–177 | `lessThan`, `greaterThan`, `signedLessThan`, `signedGreaterThan`, `equal`, `isZero` (supplied below) | Standalone handlers and local laws |
-| `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
+| `forks/amsterdam/vm/instructions/keccak.py::keccak` | 26–62 | `keccak` (supplied below) | Pop offset and size, pay, expand, query once, push all digest bytes and advance PC. |
 | `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | The bounded frame and transaction queries, BALANCE, CALLDATALOAD, EXTCODEHASH, SELFBALANCE and BLOBHASH have standalone handlers below. |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–298 | `blockHash` … `slotNumber` | BLOCKHASH and the bounded block queries have standalone handlers below. |
 | `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP, DUPN, SWAPN and EXCHANGE are supplied below. |
@@ -267,6 +267,12 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64 | `getDelegatedCodeAddress` | |
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
+
+### Supplied KECCAK handler
+
+| EELS source at `59c1473d` | Lean declaration | Domain and ordered effects | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/keccak.py:26–62` | `STFSpec.Vm.Instructions.keccak` in `STFSpec/Vm/Instructions/Keccak.lean`, exported by the Instructions facade | Every supplied context, frame and world. Pop offset and byte count. Charge base plus rounded-word price and the singleton memory quote. Payment expands memory, reads the exact window, queries `KeccakQuery` once, pushes its complete big-endian answer and advances PC. The static flag has no effect. | Ordered run, byte and local Id accounting laws (§7), and recorded-oracle and concrete source controls (§4). |
 
 ### Supplied SLOAD handler
 
@@ -1160,6 +1166,19 @@ from retained frames copy it. In-bounds loads and denied charges keep the
 memory backing in both cases. Exclusive growth reuses sufficient capacity
 and otherwise expands to the required extent.
 
+**Supplied KECCAK controls.**
+`STFSpec/Conformance/Vm/Instructions/KeccakControls.lean` compares complete
+frame fields and sampled world values through the facade. Its recording oracle
+checks exact paid preimages, absence of queries on both underflow prefixes and
+denial, and use of the supplied answer with leading zeros. The Id guards include
+a full stack and independent raw prices. Bounded direct-source comparisons
+cover complete frames in both pinned Python modes and interpreted and compiled
+Lean, including the 31/32/33-byte tariff boundary, the 135/136/137-byte Keccak
+rate boundary and denial before a window beyond the word range can allocate.
+Paired native ownership controls compare exclusive and retained frames,
+including growth within spare capacity, growth past capacity and unchanged
+memory for zero extension.
+
 **Supplied EXTCODEHASH controls.**
 `STFSpec/Conformance/Vm/Instructions/ExtCodeHashControls.lean` checks
 the account test with the block's supplied empty-code hash. The guards
@@ -1497,6 +1516,12 @@ stack model. The compiled controls check complete result frames and
 world identity, exclusive backing reuse and retained stack preservation.
 
 ## 5. Interface
+
+The standalone KECCAK handler is supplied through the Instructions facade.
+
+```lean
+def keccak {m : Type → Type} [Monad m] [KeccakQuery m] : Handler m
+```
 
 The opcode enumeration and byte conversions below are **supplied** through
 `STFSpec.Vm.Instructions`, with exactly 153 constructors, two total conversions
@@ -2994,6 +3019,33 @@ The three `_continue_phi` laws give `phi(after) + price = phi(before)`
 on actual Id continuations with the offset-pop witness. The three
 `_continue_progress` laws require `1 ≤ price` on the same paths.
 
+**Supplied KECCAK laws.** The two actual pops determine the offset, size
+and residual stack. A failed pop returns the frame with precisely that
+residual stack. When both pops succeed, let `e` be
+`calculateGasExtendMemory ctx.config f.memory [(offset, size)]`.
+The selected charge is `opcodeKeccak256Base + opcodeKeccak256PerWord *
+(ceil32 size.toNat / 32) + e.cost`. The Core quote includes the raw ZERO
+seed once. Denial retains the residual stack and original memory, meter
+and PC. Each failure returns the supplied world in the underlying `pure`.
+
+Payment gives the exact execution debit and extends memory by `e.expandBy`
+zeros. The local Core coverage equations admit the complete read at the
+exact Nat offset and width, including an empty read at any offset. The
+paid law is the literal underlying bind of one query on that complete
+byte window. Its continuation pushes the answer on the residual stack,
+increments the exact Nat PC by one and returns the supplied world. The
+private push proof uses the room made by the pops, and the fixed-width
+byte law recovers all 32 digest bytes from the pushed word. The owned stack
+and memory paths each have a private ordinary equality to
+the corresponding frame-projection form.
+
+In Id the existing EthHash instance supplies concrete `keccak256`. Every
+continuation satisfies `phi(after) + price = phi(before)`, and a positive
+selected charge gives the local strict decrease. Other monads supply their
+own query action. The equations use the two handler class premises from §5.
+Source correspondence uses related entry fields, the pinned prices and
+the concrete answer. See §10 for composed obligations.
+
 Storage laws use the `getStorage` and `setStorage` observations and the exact
 SSTORE cost, refund and state-gas table of §2.4 as a function
 `sstoreCharges original current new cold`. CALL and CREATE laws give the
@@ -3473,6 +3525,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ordered run equations, exact paid windows, local G2 laws and complete
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
+
+- **Standalone KECCAK supplied.** §§3/4/5/7 own its ordered run, byte and
+  local Id accounting laws and bounded controls. Source dispatch and trace,
+  generic oracle coupling, whole-runner G2 and resource bounds, and guest
+  execution remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
