@@ -450,11 +450,42 @@ exact inverse/bound consistency; Agrees separately equates optional forward
 presence with an arbitrary associated write map, including tombstones and zero.
 The standalone R14 action couples account writes to the account index.
 The standalone R16 action preserves the storage address index under local
-premises. EthState §7.5 owns the private proofs. R24 retains the saved
-order and value roots together. Clear composition, incorporation, reachable
+premises. R17 sequences the R16 clear and the R14 tombstone write. EthState
+§7.5 owns their private proofs, including the reads retained across R24
+snapshot restoration. Incorporation, reachable
 extraction and account-read history remain open, together with S1/S2 and
 composed C1/C4. Paired-root finite
 tests do not establish the whole State invariant or select F7 clear traversal.
+
+EthState §§3/5/7.5 supplies R18 `modifyState`. It brings
+the defaulted account and its returned transaction into the callback and write,
+then performs the current emptiness read before conditional R17. Both typed
+failure branches use the existing StateM result. Provider and source models
+remain separate.
+
+EthState §§3/4/5/7.5 supplies R19 `moveEther` and `createEther`. The
+transfer feeds the completed sender transaction to the recipient's R18
+action, including for a shared address. Credit uses one R18 action.
+Use the exact checked arithmetic and typed StateM errors at this seam.
+Caller reachability, provider and world agreement, and error projection
+remain open.
+
+EthState §§3/5/7.5 supplies R21 `setCode`. The caller supplies the code hash
+under D5. The action stages the bytes at a nonempty hash before applying R18
+to the account. The existing R24 snapshot restores the staged bytes together
+with the other revertible fields. EthStateCommit owns hash agreement.
+
+EthState §§3/4/5/7.5 supplies the R20 balance and nonce actions through
+R18. Use the exact U256 replacement or unbounded Nat successor. The
+resulting account determines R17 clearing, and R24 restores the
+revertible record after success. Caller bounds, composed provider and
+world effects and fault projection remain open.
+
+EthState §§3/4/5/7.5 supplies the R17 balance-preserving clear through
+R16 and R18. Use the transaction returned by the first storage clear and
+the supplied empty-code hash from its entry block. R18 handles the
+resulting empty account and R24 restores the complete saved revertible
+record. Actual caller integration and fault projection remain open.
 
 ### Supplied mathematical transaction view
 

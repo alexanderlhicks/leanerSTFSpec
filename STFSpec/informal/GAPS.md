@@ -484,9 +484,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read, storage reads, account write, storage clear, transient
-  read and write, snapshot and restore, fresh initialization, creation marker and
-  ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
+  and predicates, code read and installation, storage reads, account write,
+  storage clear, transient read and write, snapshot and restore, fresh
+  initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
   WriteOrder support, raw MathState with its pure observers and structural WF, raw
@@ -529,12 +529,26 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes and R16 storage clear. R24 retains
-  saved order and value roots together. Clear composition, incorporation,
+  and the local laws for R14 account writes, R16 storage clear, R17 account
+  destruction, R18 modification and R21 code installation. R24 retains saved
+  order and value roots
+  together. Incorporation,
   reachable extraction and the coupled WF and Agrees invariants remain open.
   Reachable, AccountWritesLookedUp, S1/S2 and composed C1/C4 remain open.
   Finite retained-version controls leave persistence throughput, host memory
   and zkVM resource gates open.
+- **Balance-preserving account clear supplied.** §§3/4/5/7.5 own the
+  standalone R16–R18 action and complete local controls. Caller integration,
+  production providers and world effects, fault projection and composed
+  State invariants remain open.
+- **Standalone R19 transfers and credits supplied.** §§3/4/5/7.5 own
+  checked arithmetic and the actual ordered R18 actions. Caller reachability,
+  provider and world effects, StateError projection under R29 and composed
+  state obligations remain open.
+- **Standalone R20 balance and nonce updates supplied.** §§3/4/5/7.5 own
+  the exact scalar record updates through R18. Caller admission, actual
+  provider and world integration, fault projection and composed State
+  invariants remain open.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **Account-change order** (R6) is preserved by ARCHITECTURE §5.3 and B1; its refinement proof and a committed account-trie regression input remain outstanding. The order-dependence claim is from reading `incremental_mpt.py:746–790` and `witness_state.py:199–200`; no fixture exercises an account-trie collapse whose success depends on order (`eip8025_optional_proofs/test_witness_state_replay_order.py` covers the storage trie's insert-before-delete order only). A regression input must be built.
