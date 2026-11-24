@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16 and DUPN have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, GASPRICE and BASEFEE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11, Q93.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -538,6 +538,18 @@ including values beyond the word range. EELS
 `src/ethereum/forks/amsterdam/vm/gas.py:70,225–227`,
 `src/ethereum/forks/amsterdam/vm/memory.py:63–83` and
 `src/ethereum/forks/amsterdam/vm/stack.py:25–53,115–131` at `59c1473d`.
+
+### Supplied standalone GASPRICE and BASEFEE handlers
+
+| Source | Lean declaration | Entry domain | Ordered effects | Checks and status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:307–327` (`gasprice` at the pin) | `STFSpec.Vm.Instructions.gasprice {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. The raw fee and tariff are Nat. | Charge `opcodeGasPrice`, check `effectiveGasPrice` for U256, and push the checked value. Paid conversion failure gives `VmFault.u256Overflow .gasPrice`. | Private ordered action and accounting laws (§7) and complete facade controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:539–559` (`base_fee` at the pin) | `STFSpec.Vm.Instructions.baseFee {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. The raw fee and tariff are Nat. | Charge `opcodeBaseFee`, check `baseFeePerGas` for U256, and push the checked value. Paid conversion failure gives `VmFault.u256Overflow .baseFee`. | Private ordered action and accounting laws (§7) and complete facade controls (§4). |
+
+Both entries use the private worker in `STFSpec/Vm/Instructions/FeeWords.lean`
+through the Instructions facade. After successful conversion it checks
+capacity so a nonfull frame can transfer ownership of its stack. An ordinary
+equality relates that push to the direct Core Stack push on every frame.
 
 ### Supplied STOP handler
 
@@ -1170,6 +1182,22 @@ The exclusive facade reuses the backing in 14 cases with spare
 capacity and grows it in six cases. The retained facade copies the
 backing when it pushes.
 
+**Supplied GASPRICE and BASEFEE controls.**
+`STFSpec/Conformance/Vm/Instructions/FeeWordControls.lean` runs eleven
+paired guards through the public handlers. These compare the nine frame
+fields and sampled world values on success and halt, and the exact nominal
+site for a conversion fault. Controls include distinct raw tariffs and fee
+fields, stack depths 1,023 and 1,024, the largest and first excluded fee,
+a wide PC, zero prices and a price above 2^256.
+
+The private interpreted and native facade probes match twenty direct cases
+from both pinned Python modes. For six conversion faults they compare the
+complete paid prefix on the Python side and the nominal site on the Lean side.
+Sixteen compiled ownership profiles cover both handlers with exclusive and
+retained frames. Successful pushes reuse an exclusive stack array with spare
+capacity and copy a retained array. Full-stack halt, conversion fault and
+gas denial perform no push in the compiled worker.
+
 **Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
 one-byte immediate passes zero to the decoder and that decoding precedes
 stack checks. Exercise both payment outcomes at the last fitting start
@@ -1212,8 +1240,8 @@ Construction adds no producer, runtime guard or F11 proof-production choice.
 
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values.
 R-GEN-7 still requires actual state-failure propagation, BLOCKHASH
-availability and ancestor tracking, and the checked conversions at
-their source points, including Q93.
+availability and ancestor tracking, and the remaining checked conversions
+at their source points. Q93's raw handlers are supplied below.
 
 ```lean
 -- Opcodes and dispatch (public)
@@ -1298,7 +1326,7 @@ def dupn {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
--- Prospective fee handlers (Q93).
+-- Supplied standalone fee handlers (Q93).
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
@@ -2634,6 +2662,18 @@ related code whose length is less than `2^256`, this gives
 supply these local facts. The raw frame and handler accept arbitrary Nat PCs.
 EELS `interpreter.py:438–445` at `59c1473d`.
 
+**GASPRICE and BASEFEE local laws (Q93)** [C], supplied. The private
+run equations cover denial, paid unsigned conversion fault, paid full
+stack with a fitting fee, and success after payment with a fitting fee
+and available stack space. Denial returns the complete entry frame and
+world. Paid conversion failure carries the exact selected nominal site.
+A fitting full-stack halt preserves every frame field except execution gas.
+Success retains the world and returns the paid meter, the exact top-first
+stack with the new U256 word at its head, and the Nat PC incremented by one.
+The private Id accounting equation says that successor potential plus the
+selected price equals entry potential. A positive selected price then gives
+strict decrease. The caller and dispatch obligations remain in §10.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
@@ -2668,7 +2708,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D13**: the parent frame in `.call/.create` is a value; both a recursive runner and a continuation stack can consume it.
 - **D17**: accepted; this module is its opcode side. Replacement exercises 1 and 3 test that memory/gas changes stay within handlers' contracts.
 - **D18**: an unoptimised handler (for example MCOPY via intermediate copy) is correct and complete; performance debt only.
-- **Q93** gives the raw GASPRICE and BASEFEE paths in §2 and the prospective
+- **Q93** gives the raw GASPRICE and BASEFEE paths in §2 and the supplied
   interface in §5.
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
@@ -2729,10 +2769,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
-- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
-  standalone handlers in §5 and compare denial, paid stack overflow,
-  paid raw conversion fault and successful push at the selected fee
-  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
+- **GASPRICE and BASEFEE standalone handlers supplied (Q93).** §§3/4/7 own
+  the ordered action equations and complete controls. Actual source entry
+  refinement and trace, dispatch, runner propagation and composed progress
+  remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
 - **Read-order fidelity** (R-GEN-1) is required for BAL and witness observations but has no dedicated test harness; EEST `eip7928_block_level_access_lists` (211 fixtures) is the only indirect check.
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
