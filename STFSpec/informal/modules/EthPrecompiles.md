@@ -1,6 +1,6 @@
 # `EthPrecompiles`: the Amsterdam precompiled contracts
 
-*Status: informal specification, draft. The standalone IDENTITY entry and KZG versioned-hash helper are supplied. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The standalone SHA256 and IDENTITY entries and the KZG versioned-hash helper are supplied. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F9, F16 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D4, D5, D6, D7, D12, D14, D15, D17, D18, D21 · questions: B8/Q43, B13/Q40–Q42, Q19, Q46, Q73, Q83.*
 
 Tags: **[V]** verified by reading the pinned source (or running the pinned dependency);
@@ -97,6 +97,9 @@ on `SignatureError` return empty (`:56–60`). Output
 **SHA256 / RIPEMD160 / IDENTITY** (`sha256.py:25–48`, `ripemd160.py:26–51`, `identity.py:23–46`)
 [V]. The hashes are Python `hashlib.sha256` and `hashlib.new("ripemd160")`, i.e. host OpenSSL
 (`reference.toml` note) [V]; RIPEMD-160 output is 20 bytes, left-padded to 32.
+SHA256 charges its base and per-word prices on the original input count,
+then hashes the complete input and returns all 32 digest bytes. SHA-256
+padding does not affect the charged count. EELS `sha256.py:35–48`.
 
 **MODEXP** (`modexp.py:24–176`) [V], EIP-198 as amended by EIP-2565, EIP-7823 and EIP-7883.
 1. `bl, el, ml` = the 32-byte big-endian words at offsets 0, 32, 64 (padded); each `> 1024`
@@ -242,7 +245,7 @@ a shared lower owner for the tag remains open.
 | `forks/amsterdam/vm/precompiled_contracts/__init__.py::P256VERIFY_ADDRESS` | 55 | `p256verifyAddress` | `0x100` |
 | `forks/amsterdam/vm/precompiled_contracts/mapping.py::PRE_COMPILED_CONTRACTS` | 59 | `preCompiledContracts : List (Address × Precompile)`, `lookup`, `addresses` | installed by `EthFork` |
 | `forks/amsterdam/vm/precompiled_contracts/ecrecover.py::ecrecover` | 26 | `ecrecover : Precompile` | |
-| `forks/amsterdam/vm/precompiled_contracts/sha256.py::sha256` | 25 | `sha256 : Precompile` | hash from `EthHash` |
+| `forks/amsterdam/vm/precompiled_contracts/sha256.py::sha256` | 25 | `sha256 (cfg : VmConfig) : PrecompileFn m` | Supplied. Charges through Core and returns the complete EthHash digest. Q46 supplies the source domain. |
 | `forks/amsterdam/vm/precompiled_contracts/ripemd160.py::ripemd160` | 26 | `ripemd160 : Precompile` | hash from `EthHash` |
 | `forks/amsterdam/vm/precompiled_contracts/identity.py::identity` | 23 | `identity (cfg : VmConfig) : PrecompileFn m` | Supplied. Charges through Core and returns the original bytes. |
 | `forks/amsterdam/vm/precompiled_contracts/modexp.py::modexp` | 24 | `modexp : Precompile` | `EthField.powMod` |
@@ -363,6 +366,19 @@ fixture areas below still govern guest replay.
   (Python harness calling the functions with a stub `Evm`), and against evmone/revm precompile
   suites; disagreements are settled by fixtures or pinned EELS.
 
+**Supplied SHA256 controls.** `STFSpec/Conformance/Precompiles/Sha256Controls.lean`
+checks complete output bytes, all six meter fields and the nominal halt
+through the public facade. It covers empty input, gas word boundaries at
+31/32/33 and 64/65, SHA-256 padding boundaries at 55/56/63/64/65,
+a leading-zero digest and zero, flat, per-word and larger-than-U256 tariffs.
+Two guards check the absence of Keccak queries on payment and denial.
+
+The interpreted and native facade results match 36 direct cases per
+pinned Python mode. Each comparison uses the complete charged meter and
+output bytes on success, or the OOG tag on denial. Native observation
+records the actual charge call in all 36 cases and exactly one complete
+input digest call after each of the 24 successful charges.
+
 **Supplied KZG controls.** The single canonical catalog
 `STFSpec/Conformance/Precompiles/kzg-versioned-hash-cases.json` retains every byte of
 917 preimplementation frozen inputs and mathematical outputs. The original source
@@ -412,11 +428,12 @@ def lookup (cfg : VmConfig) : Address → Option (Precompile m)
 def addresses : AddrSet                                  -- for pre-warming; equals the lookup domain
 def table (cfg : VmConfig) : PrecompileTable m           -- closures capture costs; exact address set and meter law
 
--- Standalone entry supplied.
+-- Standalone entries supplied.
 def identity {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
+def sha256 {m : Type → Type} [Monad m] [KeccakQuery m] (cfg : VmConfig) : PrecompileFn m
 
 -- remaining precompile entries
-def ecrecover sha256 ripemd160 modexp altBn128Add altBn128Mul
+def ecrecover ripemd160 modexp altBn128Add altBn128Mul
     altBn128PairingCheck blake2f pointEvaluation bls12G1Add bls12G1Msm bls12G2Add
     bls12G2Msm bls12Pairing bls12MapFpToG1 bls12MapFp2ToG2 p256verify (cfg : VmConfig) : Precompile m
 def ecrecoverSpec … p256verifySpec (cfg : VmConfig) : PrecompileSpec m   -- normal forms (public, for proofs)
@@ -508,6 +525,17 @@ and the output length are preserved.
 The direct equations do not establish the generic `SatisfiesM` factorization.
 Erasing a pure certified witness needs the local `map_pure` equality. Q83
 owns the remaining generic constructor obligations.
+
+**Supplied SHA256 laws.** The private tariff equation uses
+`cfg.costs.precompileSha256Base + cfg.costs.precompileSha256PerWord * ((data.size + 31) / 32)`
+on all input sizes. The paid action returns `pure` of the whole Core paid
+meter and the full `STFSpec.Hash.sha256 data.toByteArray` digest as `Bytes`.
+Shortage returns `pure (.halt .outOfGas)`. At `Id` the successful result
+identifies the complete charge and digest exactly and the output size is 32.
+The input conversion retains the original size, so under Q46's
+`8 * data.size < 2^64` premise the successful output satisfies the provider's
+FIPS digest model. Every input uses the provider's total extension, including
+sizes outside that proof domain. Table and normal-form proofs remain open.
 
 **Supplied raw KZG law** (ordinary Lean theorem; discharged):
 `Kzg.commitmentToVersionedHash_toBytes (commitment : ByteArray)` states
@@ -620,10 +648,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
-  complete byte-result law, and the standalone IDENTITY entry and its local laws.
-  IDENTITY's normal form, table installation, runner settlement and guest integration
-  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
-  standalone IDENTITY controls leave the host, security and resource gates open.
+  complete byte-result law, and the standalone SHA256 and IDENTITY entries and
+  their local laws. Normal forms, table installation, runner settlement and guest
+  integration remain open. The 917-source and 926 interpreted/native Kzg
+  comparisons and the standalone controls leave the host, security and resource
+  gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,

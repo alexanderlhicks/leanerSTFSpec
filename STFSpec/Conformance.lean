@@ -410,6 +410,7 @@ import STFSpec.Conformance.Fork.AmsterdamSystemAddrsGuards
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
 import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
 import STFSpec.Conformance.Precompiles.IdentityControls
+import STFSpec.Conformance.Precompiles.Sha256Controls
 
 import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 import STFSpec.Conformance.Vm.Core.TransferLogGuards
