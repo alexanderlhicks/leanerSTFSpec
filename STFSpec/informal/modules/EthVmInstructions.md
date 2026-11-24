@@ -1,6 +1,6 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
-*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, ADDRESS, ORIGIN, CALLER and CALLVALUE have their local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw requests, mutable child frame initialization, settled ChildOutcome, indexed StepResult, Handler, opcode bytes, STOP and ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP, LT/GT/SLT/SGT/EQ/ISZERO and AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, TLOAD and TSTORE with their local laws supplied. PUSH0–PUSH32, DUP1–DUP16, DUPN, ADDRESS, ORIGIN, CALLER and CALLVALUE have their local laws. COINBASE, TIMESTAMP, PREVRANDAO, CHAINID and SLOTNUM use the same local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -90,17 +90,17 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 3E | RETURNDATACOPY | `:434` | mo ro sz → | 3 + 3·w(sz) + mem | after the charge, **`ro + sz > \|rd\|` → `OutOfBoundsRead`, even when `sz = 0`** (`:463`); then expand and copy |
 | 3F | EXTCODEHASH | `:476` | a → h | warm/cold | account `== EMPTY_ACCOUNT` (absent or empty) → 0, else its `code_hash`; **no code read, no surcharge** |
 | 40 | BLOCKHASH | `I/block.py:22` | n → h | 20 | 0 unless `n < number ≤ n + 256`; else `block_hashes[−(number − n)]` and `track_ancestor_access(number − n)` (a block-level observation, never reverted). If `number − n > \|block_hashes\|` EELS raises `IndexError` (`I/block.py:58`) → `VmFault.ancestorHashUnavailable` (O13) [V: `stateless.py:246` supplies only the witness headers; fixture `validation_headers_missing_oldest_blockhash_ancestor`] |
-| 41 | COINBASE | `:71` | → coinbase | 2 | |
-| 42 | TIMESTAMP | `:105` | → time | 2 | |
+| 41 | COINBASE | `:71` | → coinbase | 2 | Embed `ctx.blockEnv.coinbase` via `Address.toU256`. |
+| 42 | TIMESTAMP | `:105` | → time | 2 | Push the stored `ctx.blockEnv.time` word. |
 | 43 | NUMBER | `:139` | → number | 2 | `U256(number)` |
-| 44 | PREVRANDAO | `:172` | → randao | 2 | |
+| 44 | PREVRANDAO | `:172` | → randao | 2 | Decode all 32 `ctx.blockEnv.prevRandao` bytes as an unsigned big-endian word. |
 | 45 | GASLIMIT | `:205` | → limit | 2 | |
-| 46 | CHAINID | `:238` | → chain id | 2 | |
+| 46 | CHAINID | `:238` | → chain id | 2 | Widen the stored U64 `ctx.blockEnv.chainId`. |
 | 47 | SELFBALANCE | `I/environment.py:513` | → bal | 5 | read after charge |
 | 48 | BASEFEE | `:539` | → base fee | 2 | `U256(base_fee_per_gas)`; cannot overflow (SSZ `uint256`) |
 | 49 | BLOBHASH | `:562` | i → h | 3 | `i < \|hashes\|` → hash, else 0 |
 | 4A | BLOBBASEFEE | `:589` | → price | 2 | `U256(calculate_blob_gas_price(excess_blob_gas))` (`:607`); overflow → `VmFault.u256Overflow .blobBaseFee` (O13, argued reachable) |
-| 4B | SLOTNUM | `I/block.py:268` | → slot | 2 | EIP-7843: `block_env.slot_number` |
+| 4B | SLOTNUM | `I/block.py:268` | → slot | 2 | Widen the stored U64 `ctx.blockEnv.slotNumber` (EIP-7843). |
 
 **Stack, memory, storage, control flow**
 
@@ -543,6 +543,25 @@ Each declaration has the Monad-only `Handler` signature in §5. The private
 ordinary laws in §7 fix the complete denial, paid full stack and success
 results. Complete public facade controls are in §4. All four pinned prices
 are 2. EELS `src/ethereum/forks/amsterdam/vm/gas.py:205–208` at `59c1473d`.
+
+### Supplied standalone bounded block-context word handlers
+
+The five handlers use the shared `ContextWords.lean` worker on every
+supplied context, bounded frame and world. They read separate Nat price
+fields and preserve all bytes and bits of their selected typed values.
+
+| Pinned source | Lean declaration | Price | Word |
+|---|---|---|---|
+| `I/block.py:71–102` (`coinbase`) | `STFSpec.Vm.Instructions.coinbase` | `opcodeCoinbase` | `ctx.blockEnv.coinbase.toU256` |
+| `I/block.py:105–136` (`timestamp`) | `STFSpec.Vm.Instructions.timestamp` | `opcodeTimestamp` | `ctx.blockEnv.time` |
+| `I/block.py:172–202` (`prev_randao`) | `STFSpec.Vm.Instructions.prevRandao` | `opcodePrevRandao` | `U256.ofBeBytes32 ctx.blockEnv.prevRandao` |
+| `I/block.py:238–265` (`chain_id`) | `STFSpec.Vm.Instructions.chainId` | `opcodeChainId` | `U256.ofNat ctx.blockEnv.chainId.toNat` |
+| `I/block.py:268–298` (`slot_number`) | `STFSpec.Vm.Instructions.slotNumber` | `opcodeSlotNum` | `U256.ofNat ctx.blockEnv.slotNumber.toNat` |
+
+Each declaration has the Monad-only `Handler` signature in §5. Section 7
+owns the shared charge, push, frame and accounting equations. Section 4
+covers the direct public facade checks. The pinned prices are all 2.
+EELS `src/ethereum/forks/amsterdam/vm/gas.py:200,212,215,217,221` at `59c1473d`.
 
 ### Supplied STOP handler
 
@@ -1190,6 +1209,22 @@ additional compiled profiles cover every handler's exclusive and retained
 frames. A successful push reuses an exclusive array with spare capacity or
 copies a retained array. Paid full-stack and denied calls skip the push.
 
+**Supplied bounded block-context word controls.**
+`STFSpec/Conformance/Vm/Instructions/BlockContextWordControls.lean` exercises
+all five public handlers with twenty guards over complete frame and sampled
+world observations. They vary distinct tariffs and source fields, zero and
+maximum words, all randomness bytes, wide prices and PC, and both full-stack
+charge outcomes. Private clients use the Base U64 widening and Bytes32
+round-trip laws.
+
+The actual interpreted and compiled facades match 95 direct pinned
+source cases per Python mode. The linked native trace checks charge
+and push order on all of them. Thirty ownership profiles cover paid
+success, denial and paid full stack for each handler with exclusive
+and retained frames. With spare capacity a successful exclusive push
+reuses the array. A retained stack is copied and the original complete
+frame remains intact. Neither halt path attempts a native push.
+
 **Planned SWAPN and EXCHANGE controls (Q91).** Check that an absent
 one-byte immediate passes zero to the decoder and that decoding precedes
 stack checks. Exercise both payment outcomes at the last fitting start
@@ -1316,6 +1351,11 @@ def address {m : Type → Type} [Monad m] : Handler m
 def origin {m : Type → Type} [Monad m] : Handler m
 def caller {m : Type → Type} [Monad m] : Handler m
 def callvalue {m : Type → Type} [Monad m] : Handler m
+def coinbase {m : Type → Type} [Monad m] : Handler m
+def timestamp {m : Type → Type} [Monad m] : Handler m
+def prevRandao {m : Type → Type} [Monad m] : Handler m
+def chainId {m : Type → Type} [Monad m] : Handler m
+def slotNumber {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1324,8 +1364,8 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, balance, calldataload,
 -- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
--- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
--- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
+-- returndatasize, returndatacopy, extcodehash, blockHash, number,
+-- gasLimit, selfBalance, baseFee, blobHash, blobBaseFee,
 -- mload, mstore, mstore8, sload, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
 -- swapn, exchange, logN (n : Fin 5), create, call, callcode, return_, delegatecall,
 -- create2, staticcall, revert, selfdestruct : Handler m
@@ -2664,6 +2704,15 @@ The executable worker tests stack capacity after payment, before taking
 ownership of the stack. Its ordinary equality with the direct push covers
 all supplied frames, prices and typed context reads.
 
+**Bounded block-context word laws** [C], supplied. COINBASE, TIMESTAMP,
+PREVRANDAO, CHAINID and SLOTNUM instantiate the same private run and Id
+accounting equations. Their result uses the selected typed field in §3.
+The Base address embedding retains its unsigned value. Decoding the
+randomness word preserves all 32 big-endian bytes by the Base round trip.
+Each U64 fits U256 and is widened with the same Nat value. TIMESTAMP
+pushes the stored U256 directly. The complete world, meter and PC effects
+are those of the shared equations above.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation** [C]: `isValidDelegation (EOA_DELEGATION_MARKER ++ a) = true` for every 20-byte `a`; `getDelegatedCodeAddress` inverts it.
@@ -2758,6 +2807,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ADDRESS, ORIGIN, CALLER and CALLVALUE and their local run and accounting
   laws. Actual context provenance, dispatch, settlement and composed
   progress remain open.
+- **Bounded block-context word handlers supplied.** §§3/4/7 describe
+  COINBASE, TIMESTAMP, PREVRANDAO, CHAINID and SLOTNUM and their shared
+  local laws. Actual block-environment provenance, dispatch, settlement
+  and composed progress remain open.
 - **Gas progress for the CALL family** is [I]: the inequality "execution charge of the calling opcode ≥ stipend + 1" must be proved for all four call opcodes, both preflight-failure paths, and the EIP-150 branch where `gas_left < extra + mem` (which fails the charge, so it is a halt, not a continue).
 - **BLOCKHASH in the stateless setting**: if the witness carries fewer than `number − n` headers, EELS raises `IndexError` (`I/block.py:58`), which reaches the inner catch-all (`stateless.py:294`). This is witnessed by the fixture `validation_headers_missing_oldest_blockhash_ancestor` and classified as O13 with `VmFault.ancestorHashUnavailable`. The named carrier is supplied by Core; actual handler/check/propagation implementation and its source refinement remain open, as does constructor freezing (DECISIONS B14).
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). NUMBER, GASLIMIT and BASEFEE cannot overflow (R-GEN-7).

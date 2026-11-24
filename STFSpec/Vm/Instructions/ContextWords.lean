@@ -6,7 +6,7 @@ import STFSpec.Base.IntegerBytes
 import STFSpec.Vm.Instructions.Handler
 
 /-!
-# Fixed frame-context words
+# Fixed frame and block context words
 
 Library `EthVmInstructions`. Each handler charges for and pushes one word
 from the immutable frame context. See `STFSpec/informal/modules/EthVmInstructions.md` §§2/3/7.
@@ -149,5 +149,30 @@ private theorem runContextWord_continue_progress (price : FrameCtx → Nat) (rea
     (positive : 1 ≤ price ctx) : f'.gasMeter.phi + 1 ≤ f.gasMeter.phi := by
   have exactPrice := runContextWord_continue_phi price read ctx f f' w w' observed
   omega
+
+/-- Charge and push the word embedding of the current block beneficiary.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/block.py:71–102`. -/
+def coinbase {m : Type → Type} [Monad m] : Handler m :=
+  runContextWord (·.config.costs.opcodeCoinbase) (·.blockEnv.coinbase.toU256)
+
+/-- Charge and push the timestamp word held by the current block context.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/block.py:105–136`. -/
+def timestamp {m : Type → Type} [Monad m] : Handler m :=
+  runContextWord (·.config.costs.opcodeTimestamp) (·.blockEnv.time)
+
+/-- Charge and push all 32 randomness bytes as one unsigned big-endian word.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/block.py:172–202`. -/
+def prevRandao {m : Type → Type} [Monad m] : Handler m :=
+  runContextWord (·.config.costs.opcodePrevRandao) (fun ctx ↦ U256.ofBeBytes32 ctx.blockEnv.prevRandao)
+
+/-- Charge and push the widened chain identifier.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/block.py:238–265`. -/
+def chainId {m : Type → Type} [Monad m] : Handler m :=
+  runContextWord (·.config.costs.opcodeChainId) (fun ctx ↦ U256.ofNat ctx.blockEnv.chainId.toNat)
+
+/-- Charge and push the widened block slot number.
+EELS `src/ethereum/forks/amsterdam/vm/instructions/block.py:268–298`. -/
+def slotNumber {m : Type → Type} [Monad m] : Handler m :=
+  runContextWord (·.config.costs.opcodeSlotNum) (fun ctx ↦ U256.ofNat ctx.blockEnv.slotNumber.toNat)
 
 end STFSpec.Vm.Instructions
