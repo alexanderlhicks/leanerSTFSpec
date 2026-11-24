@@ -5,6 +5,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Instructions.CallRequest
 import STFSpec.Vm.Instructions.ChildFrame
 import STFSpec.Vm.Instructions.ChildOutcome
+import STFSpec.Vm.Instructions.CreateChildContext
 import STFSpec.Vm.Instructions.CreateRequest
 import STFSpec.Vm.Instructions.Handler
 import STFSpec.Vm.Instructions.Arithmetic
@@ -56,6 +57,7 @@ Standalone TLOAD and TSTORE have private local action equations.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
-Other handlers, dispatch, step, child context construction and resume remain unimplemented.
+The immutable CREATE child context has its complete construction and F8 inheritance laws.
+Other handlers, dispatch, step, the CALL child context and resume remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
 -/

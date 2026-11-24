@@ -364,8 +364,9 @@ every provider input. Reproduce with:
 lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.Vm.Core.ContextGuards --wfail
 ```
 
-Actual childCtxOfCall/childCtxOfCreate, createEvm, RunnerEnv assembly and Fork→Block→Runner
-address transport, actual producer emission, world/handler/control/parent integration,
+EthVmInstructions §7 supplies the immutable CREATE context and its local F8
+inheritance. The CALL context, createEvm, RunnerEnv assembly, Fork→Block→Runner
+address transport, producer emission, world/handler/control/parent integration,
 F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
 
 ### Supplied raw child settlement predicate
@@ -3499,9 +3500,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
   operation and exactly two ordinary complete-Frame laws, private public-facade clients
   (including the exact padding bridge) and complete controls. The raw immutable
-  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
-  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
-  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  `FrameCtx.systemAddress` field is supplied above. EthVmInstructions §7 supplies
+  local CREATE inheritance. Runner construction, CALL inheritance, both producer
+  refinements, transfer/static/gas ordering and composed Fork→Block→Runner
+  transport remain open. F20 acquisition/lifetime,
   generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
   open. No Core literal, global admission predicate or new runtime policy is introduced.
 

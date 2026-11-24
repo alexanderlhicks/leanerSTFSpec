@@ -93,6 +93,7 @@ import STFSpec.Conformance.Vm.Instructions.ExtCodeHashControls
 import STFSpec.Conformance.Vm.Instructions.BlobHashControls
 import STFSpec.Conformance.Vm.Instructions.BlockHashControls
 import STFSpec.Conformance.Vm.Instructions.CallDataLoadControls
+import STFSpec.Conformance.Vm.Instructions.CreateChildContextControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs

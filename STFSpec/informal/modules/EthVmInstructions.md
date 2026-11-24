@@ -695,7 +695,7 @@ composed execution, error and resource obligations remain open.
 This is the Lean-side suspension interface specified in §5, not an implementation
 of an EELS function. The source read identifies where the seven values arise and
 where they are consumed. It supplies no source/admission bridge, gas-correctness
-proof, child context, handler or resume implementation.
+proof, handler or resume implementation. The immutable CREATE consumer is supplied below.
 
 ### Supplied raw call suspension carrier
 
@@ -725,6 +725,12 @@ frames; their only local proofs are `ctx.depth < STACK_DEPTH_LIMIT` and
 `parent.stack.size < STACK_DEPTH_LIMIT`. The literal Core limit is independent of
 `ctx.config.limits.stackDepthLimit`. Construction establishes no preflight,
 withholding, staticness, gas-progress, child settlement or F11 policy.
+
+### Supplied immutable CREATE context
+
+| EELS at `59c1473d` | Lean declaration | Domain and result | Laws and status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:133–150` (`generic_create` context at dispatch) | `childCtxOfCreate` in `STFSpec/Vm/Instructions/CreateChildContext.lean`, exported by the Instructions facade | Any parent and request with `ctx.depth < STACK_DEPTH_LIMIT`. Uses the request's caller, contract address, endowment and init code. The child has empty calldata, no code address, value transfer enabled, static mode false and precompiles enabled. Core builds the jump map from the init code. The child inherits both environments, config and system address. | Supplied complete `childCtxOfCreate_eq` and two F8 policy projections in §7. Section 4 covers the result at bounded source and raw inputs. Dispatch and request production remain open. |
 
 ### Supplied mutable child frame initialization
 
@@ -1381,9 +1387,18 @@ refuse a success proof for failure and refuse a proof about another frame; their
 diagnostics test local proof dependency, not runtime rejection or reachability.
 These controls supply no producer, Python oracle, rollback or execution claim.
 
-**F8 inheritance/producer controls (unimplemented).** Check both child-context
-systemAddress equations with a nonliteral parent address, independently varying
-the F20 topic. SELFDESTRUCT cases compare complete logs for zero/nonzero balances
+**CREATE child context controls.** `CreateChildContextControls.lean` tests the
+public constructor at depths zero and 1023 and with a static parent. The controls
+use distinct parent and request addresses, nonliteral policy, empty and nonempty
+init code, and a parent jump map that differs from the child's. Private facade clients check
+whole configuration and environment inheritance and independence from request
+grants and the account-charge flag. The bounded source comparison observes
+the pinned `generic_create` dispatch in normal and optimized Python and compares
+the complete child parameters and jump positions with interpreted and native Lean.
+
+**Remaining F8 inheritance/producer controls.** Check the CALL child-context
+systemAddress equation with a nonliteral parent address. Vary that address and
+the F20 topic independently for SELFDESTRUCT. Compare complete logs for zero/nonzero balances
 and equal/unequal beneficiaries, including all existing static/gas/state-fault
 precedence and runner-owned revert/halt discard.
 
@@ -1521,8 +1536,8 @@ Call/create carry exactly the two displayed strict proofs against the existing
 literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
 Monad instance. Section 3 records the supplied standalone handlers and their
-local laws. The mutable child frame constructor is supplied separately.
-Child context construction, remaining handlers, dispatch, step and resume remain open.
+local laws. The mutable child frame and immutable CREATE context constructors are
+supplied separately. The CALL child context, remaining handlers, dispatch, step and resume remain open.
 
 The exact four-field `ChildOutcome` is also supplied, retaining its complete frame,
 output, optional error and supplied Core `ChildSettled frame error.isSome` proof.
@@ -3001,7 +3016,21 @@ request fields and exact parent meter after withholding, with separate resume
 equations. The remaining local laws must give exception precedence (R-GEN-2)
 as in powdr's `StepDeterminism.lean`.
 
-**Child context policy** [C] (F8; local pure helper supplied by EthVmCore §3/§7): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
+**CREATE context** [C]. For every parent `ctx`, raw request `req` and
+`h : ctx.depth < STACK_DEPTH_LIMIT`, `childCtxOfCreate_eq` gives the entire
+child constructor from §3, at depth `ctx.depth + 1`. The depth proof comes
+from `h`. The request's grants and account-charge flag are consumed by other
+operations. `childCtxOfCreate_config` and `childCtxOfCreate_systemAddress` are
+the two supplied whole-field inheritance equations under F8.
+
+**Remaining child context policy** [C] (F8). For every parent context, call
+request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress`
+and the child's config equals `ctx.config`. Requests, Handler, step and
+child-constructor parameter lists are unchanged. SELFDESTRUCT uses the inherited
+context address and the stored F20 topic after the ordered gas charges and balance
+move, before deletion registration. Its source agreement separately instantiates
+the pinned address and topic. Local Step, gas-progress and inheritance laws
+require no new global address/source predicate.
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
@@ -3385,7 +3414,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthVmCore`, `EthHash`, `EthCodec`
 - **Used by:** `EthVmRunner` (calls `step`, `childCtxOf*`, `childFrame`, the resume operations and `resolveDelegatedCodeAddress`); `EthBlock` (uses `isValidDelegation`).
-- **Seams:** supplies `Handler`, `StepResult`, the request carriers and `childFrame`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
+- **Seams:** supplies `Handler`, `StepResult`, the request carriers, `childFrame` and `childCtxOfCreate`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
 
 ## 9. Open decisions
 
@@ -3428,7 +3457,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
+  constructor, two policy projections and raw and source controls. The runner
+  must still assemble it with the mutable child frame and execute the child.
 
 - **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
   source sites and the private complete facade clients. The runner still needs
@@ -3446,7 +3479,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-- **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+- **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,

@@ -822,9 +822,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
   operation and exactly two ordinary complete-Frame laws, private public-facade clients
   (including the exact padding bridge) and complete controls. The raw immutable
-  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
-  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
-  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  `FrameCtx.systemAddress` field is supplied above. EthVmInstructions §7 supplies
+  local CREATE inheritance. Runner construction, CALL inheritance, both producer
+  refinements, transfer/static/gas ordering and composed Fork→Block→Runner
+  transport remain open. F20 acquisition/lifetime,
   generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
   open. No Core literal, global admission predicate or new runtime policy is introduced.
 
@@ -948,7 +949,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
+  constructor, two policy projections and raw and source controls. The runner
+  must still assemble it with the mutable child frame and execute the child.
 
 - **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
   source sites and the private complete facade clients. The runner still needs
@@ -966,7 +971,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-- **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+- **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,
@@ -1112,7 +1117,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
-- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport.** EthVmCore §3/§7 supplies the transfer-log
+  helper. EthVmInstructions §7 supplies local CREATE inheritance. The runner
+  has raw `RunnerEnv.systemAddress` storage. Copying in `createEvm`, composed
+  child transport, CALL inheritance and `processCall` emission remain open.
+  Required controls vary a supplied address independently of the topic through
+  user and system entry, nested CALL/CREATE and `processCreate` to `processCall`.
+  Check whole emitted logs, zero/self-transfer suppression and log discard
+  after child success and outer revert or halt. G2–G7, S2, F20 lifetime and
+  resource obligations remain separate.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
