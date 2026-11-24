@@ -11,6 +11,7 @@ import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.MemoryWords
+import STFSpec.Vm.Instructions.LocalCopy
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
@@ -32,5 +33,6 @@ Standalone TLOAD and TSTORE have private local action equations.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.
 The `childFrame` constructor supplies the mutable frame for CALL and CREATE.
 Other handlers, dispatch, step, child context construction and resume remain unimplemented.
+CALLDATACOPY and CODECOPY have local ordered run and accounting laws.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
 -/

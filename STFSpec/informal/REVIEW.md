@@ -405,6 +405,12 @@ and the local G2 progress cases at positive prices. Use the source rows for
 the frame boundary and the handoff to `process_call` under O8. Dispatch,
 settlement and composed G2 remain open.
 
+EthVmInstructions §§3/4/5/7 supplies the standalone CALLDATACOPY and CODECOPY
+handlers with complete pop-prefix and paid-memory laws. The single charge
+includes the selected base, the copy-word term and the destination quote.
+The local byte-list model includes full source padding and the actual
+empty memory identity. Dispatch and composed progress remain open.
+
 EthVmInstructions §§3/4/5/7 supplies MLOAD, MSTORE and MSTORE8 and seventeen
 ordinary local laws. Run equations retain all reached pops and the complete
 world, with paid memory witnesses and the exact PC. The Id equations give the

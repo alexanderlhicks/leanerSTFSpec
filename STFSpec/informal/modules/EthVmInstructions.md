@@ -67,9 +67,9 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 34 | CALLVALUE | `:136` | → value | 2 | |
 | 35 | CALLDATALOAD | `:159` | i → word | 3 | zero-padded read of 32 bytes at any i |
 | 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | |
-| 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
+| 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | Charge the destination window, then copy zero-padded frame call data. |
 | 38 | CODESIZE | `:246` | → \|code\| | 2 | executing frame's code (init code in a create frame) |
-| 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem | zero-padded |
+| 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem(mo,sz) | Charge the destination window, then copy zero-padded executing code. |
 | 3A | GASPRICE | `:307` | → price | 2 | `effective_gas_price` |
 | 3B | EXTCODESIZE | `:330` | a → n | warm/cold + 100 | EIP-8038 code-read surcharge; reads account and code after the charge; size of the **raw** code (23 for a delegation designator) |
 | 3C | EXTCODECOPY | `:364` | a mo co sz → | warm/cold + 100 + 3·w(sz) + mem | warm-set add before charge; raw code, zero-padded |
@@ -535,6 +535,21 @@ share `error.isSome = true` while retaining their distinct complete payloads.
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/instructions/storage.py:189–216` | `STFSpec.Vm.Instructions.tstore` in `STFSpec/Vm/Instructions/Tstore.lean`, exported by Instructions | Static context halts before either pop. Pop the full slot key and then the value. Charge the configured execution price before the State write at the current target. Advance PC by one on success. | Private complete action equations and equality with the ordinary reference in §7. Deterministic full-stack, meter, frame and transient-map controls in §4. |
 
+### Supplied CALLDATACOPY and CODECOPY handlers
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:208–243` | `calldatacopy {m : Type → Type} [Monad m] : Handler m` | Pop destination, source and length in order. Then charge the call-data copy base, copy words and destination expansion before writing the padded bytes from `ctx.callData`. | Complete local laws (§7) and byte-level facade controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:269–304` | `codecopy {m : Type → Type} [Monad m] : Handler m` | Use the code copy base and `ctx.code` with the same operand, charge and memory order. | Complete local laws (§7) and byte-level facade controls (§4). |
+
+The Instructions facade exports both entries from
+`STFSpec/Vm/Instructions/LocalCopy.lean`. The provider quote prices only
+the destination window. The two bases, per-word price, memory-word price
+and raw ZERO seed are the existing `VmConfig` fields. On a paid run the
+Memory laws supply expansion alignment and the local write proof.
+`bufferRead` takes the full U256 source offset and length. EELS
+`vm/gas.py:761–798` and `vm/memory.py:20–36,63–83`.
+
 ## 4. Tests
 
 **Supplied opcode controls.**
@@ -980,6 +995,17 @@ under REVIEW §7. The fixture areas below cover this opcode family.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
 
+**Supplied local-copy controls.**
+`STFSpec/Conformance/Vm/Instructions/LocalCopyControls.lean` covers the
+three pop prefixes, denial before allocation, memory growth, existing
+memory, padding and the empty-window identity at a huge offset. It checks
+the complete residual frames, including a full entry stack, and exercises
+independent, zero and wide raw prices. Both facade modes match 34 direct
+frame cases in each pinned Python mode. Linked observations check the
+actual pops, destination quote, charge, expansion, padded read and write.
+Exclusive and retained inputs have matching values, and retained frames
+preserve their original memory.
+
 ## 5. Interface
 
 The opcode enumeration and byte conversions below are **supplied** through
@@ -1092,6 +1118,8 @@ def countLeadingZeros {m : Type → Type} [Monad m] : Handler m
 def mload {m : Type → Type} [Monad m] : Handler m
 def mstore {m : Type → Type} [Monad m] : Handler m
 def mstore8 {m : Type → Type} [Monad m] : Handler m
+def calldatacopy {m : Type → Type} [Monad m] : Handler m
+def codecopy {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
 
@@ -1099,7 +1127,7 @@ def tstore {m : Type → Type} [Monad m] : Handler m
 -- signextend, lessThan, greaterThan, signedLessThan, signedGreaterThan, equal, isZero,
 -- bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, getByte, bitwiseShl, bitwiseShr, bitwiseSar,
 -- countLeadingZeros, keccak, address, balance, origin, caller, callvalue, calldataload,
--- calldatasize, calldatacopy, codesize, codecopy, gasprice, extcodesize, extcodecopy,
+-- calldatasize, codesize, gasprice, extcodesize, extcodecopy,
 -- returndatasize, returndatacopy, extcodehash, blockHash, coinbase, timestamp, number,
 -- prevRandao, gasLimit, chainId, selfBalance, baseFee, blobHash, blobBaseFee, slotNumber,
 -- pop, sload, sstore, tload, tstore, jump, jumpi, pc, msize,
@@ -2135,6 +2163,22 @@ as in powdr's `StepDeterminism.lean`.
 
 **Child context policy** [C] (F8; local pure helper supplied by EthVmCore §3/§7): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
 
+**Supplied local copy laws.** The first, second and third underflow
+equations retain the exact preceding pop prefixes. The quote is
+`calculateGasExtendMemory ctx.config f.memory [(destination, length)]`.
+The charge adds the selected base and
+`opcodeCopyPerWord * (ceil32 length.toNat / 32)` to the full quote cost.
+A denial retains all three pops and the original memory and meter.
+A paid continuation writes the exact padded source into the expanded
+memory, returns the same residual stack, advances the Nat PC and
+subtracts exactly the selected charge from execution gas. The byte-list
+model retains every byte outside the written window. All five equations
+retain the whole supplied world. When the requested length is zero, the
+quote contributes the original ZERO seed, the per-word term vanishes and
+the memory value is identical at every destination and source offset.
+The Id laws give the exact loss in potential and strict progress when
+the total charge is positive.
+
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
 **Gas progress** [T] (feeds EthVmRunner G2): the supplied ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ laws above require local actual-charge positivity for strict progress on raw configurations. The following whole-iteration target uses a related positive pinned schedule; it is not an unconditional theorem on raw zero-price inputs. For every handler, if the result is `.continue f'` then `f'.gasMeter.phi + 1 ≤ f.gasMeter.phi` (every non-terminal opcode has execution cost ≥ 1 [V: minimum costs are JUMPDEST 1, `BASE` 2; the only zero-cost handlers, STOP/RETURN/REVERT, are terminal]; state-gas charges, credits and repays leave Φ unchanged). For `.call parent req`: `parent.gasMeter.phi + req.gas + 100 ≤ f.gasMeter.phi`, where `req.gas` already includes the stipend: the charge is `access + transfer + delegation + mem + g'` and `req.gas = g' + stipend`, with `access ≥ 100` and `transfer − stipend = 11300 − 2300` when a stipend is paid [I]. The preflight-failure path (`.continue`) satisfies the same bound through `restore_child_gas`. For `.create`: `parent.gasMeter.phi + req.gas + 12000 ≤ f.gasMeter.phi`; the collision path (`.continue`) loses `12000 + g` [I]. For the resume operations: `(resumeAfterCall cfg p r c hs).gasMeter.phi = p.gasMeter.phi + c.frame.gasMeter.phi` (EthVmCore `L-INC`; the NEW_ACCOUNT credit preserves Φ).
@@ -2179,7 +2223,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 10. Gaps
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
+- **Local copies supplied.** CALLDATACOPY and CODECOPY have complete local
+  run, memory and accounting laws (§7) and both source and facade controls
+  (§4). Dispatch, trace refinement, composed progress and the resource
+  bound for paid large windows remain open.
+
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and all handlers/laws except the supplied STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/CALLDATACOPY/CODECOPY/TLOAD/TSTORE slices remain unimplemented. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy; source-runtime, composed resource, fuel and guest obligations remain open.
 
 - **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
 
@@ -2188,7 +2237,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/TLOAD/TSTORE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. The STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP/LT/GT/SLT/SGT/EQ/ISZERO/AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ/MLOAD/MSTORE/MSTORE8/CALLDATACOPY/CODECOPY/TLOAD/TSTORE effects and their complete local laws are supplied separately above. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
 
 - **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
 
