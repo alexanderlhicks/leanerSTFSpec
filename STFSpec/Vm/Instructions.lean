@@ -26,6 +26,7 @@ import STFSpec.Vm.Instructions.BlobHash
 import STFSpec.Vm.Instructions.BlockHash
 import STFSpec.Vm.Instructions.CallDataLoad
 import STFSpec.Vm.Instructions.DelegationDesignator
+import STFSpec.Vm.Instructions.DelegationResolution
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -52,6 +53,7 @@ BLOBHASH and BLOCKHASH supply local lookup and accounting laws. BLOCKHASH also
 records the missing-ancestor fault and the State R27 action.
 CALLDATALOAD supplies exact frame and padded-word equations.
 The EIP-7702 designator functions supply exact prefix and address-suffix laws.
+The delegation resolver supplies ordered State reads and selected-price execution charging laws.
 MLOAD, MSTORE and MSTORE8 have local run, memory and accounting laws.
 RETURN and REVERT have ordered terminal run laws.
 Standalone TLOAD and TSTORE have private local action equations.

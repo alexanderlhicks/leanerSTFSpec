@@ -996,8 +996,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **R-DEL-1 designator functions supplied.** §§3/4/5/7 own the marker,
   recognition, address extraction, complete byte laws and bounded controls.
-  Public length exports, R-DEL-2 and R-DEL-3 lookup and pricing, caller
-  integration and composed costs remain open.
+  Public length exports and the composed caller obligations remain open.
+
+- **R-DEL-3 delegation resolver supplied.** §§3/4/5/7 cover the two ordered
+  State reads, their error layer, selected execution payment and warmth, and
+  bounded source controls. The caller must carry the returned address, flag,
+  paid meter and warm set through `createEvm`. R-DEL-2 quotation and its
+  caller contract remain separate.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

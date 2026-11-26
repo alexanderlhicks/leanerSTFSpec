@@ -202,7 +202,7 @@ Static → halt; pop `b` (masked); `cost := 5000 + (cold(b) ? 3000 : 0)`; `check
 
 - **R-DEL-1** `is_valid_delegation c ↔ |c| = 23 ∧ c[0:3] = 0xEF0100` (`:42–61`); `get_delegated_code_address` returns `c[3:23]` (`:64–81`).
 - **R-DEL-2** `calculate_delegation_cost f a` (`:155–188`) reads `a`'s account and code and returns `(false, a, 0)` or `(true, d, warm(d) ? 100 : 3000)` **without** warming `d` (the caller warms after the second check).
-- **R-DEL-3** `resolve_delegated_code_address` (`:84–109`, used by the runner's `create_evm`) reads the code, and for a designator charges warm/cold via `charge_gas_from_meter`, warms `d` and returns `(d, true)`.
+- **R-DEL-3** `resolve_delegated_code_address` (`:84–109`, used by the runner's `create_evm`) reads the target's account and then its code by the returned hash. Ordinary code returns `(a, false)` with the entry gas and warmth. For a designator, select the warm or cold price by membership of `d`, charge execution gas, and insert `d` if it was cold. Return `(d, true)` after payment.
 - **R-DEL-4** Resolution is one level only: if `d`'s code is itself a designator, those 23 bytes execute as code and the first byte `0xEF` is an invalid opcode [I: follows from `get_code(code_address)` with no loop]. When `disable_precompiles` is set and `d` is a precompile address, **no code runs** and the call succeeds with empty output (runner, `interpreter.py:432–433`).
 
 ### 2.9 RETURN and REVERT (Q92)
@@ -265,7 +265,7 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATED_CODE_LENGTH` | 38 | constant 23 | |
 | `forks/amsterdam/vm/eoa_delegation.py::is_valid_delegation` | 42–61 | `isValidDelegation` (supplied) | Exact length and prefix test. EthBlock's EIP-3607 sender check and the runner are prospective consumers. |
 | `forks/amsterdam/vm/eoa_delegation.py::get_delegated_code_address` | 64–81 | `getDelegatedCodeAddress` (supplied) | Exact address suffix on the valid branch. |
-| `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84 | `resolveDelegatedCodeAddress` | consumed by the runner's `createEvm` |
+| `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84–109 | `resolveDelegatedCodeAddress` (supplied below) | The runner's `createEvm` still needs to consume the address, flag, meter and warmth. |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
 
 ### Supplied EIP-7702 designator functions
@@ -274,6 +274,12 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:36–61` | `STFSpec.Vm.Instructions.EOA_DELEGATION_MARKER` and `isValidDelegation` in `STFSpec/Vm/Instructions/DelegationDesignator.lean`, exported by the Instructions facade | The marker contains the three bytes `ef 01 00`. On every `Bytes`, recognition is true exactly at length 23 with that complete prefix. | Ordinary `isValidDelegation_iff` (§7) and exact byte controls (§4). |
 | `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:64–81` | `STFSpec.Vm.Instructions.getDelegatedCodeAddress` in the same module and facade | Every `Bytes`. Invalid input yields `none`. Valid input supplies the complete 20-byte suffix as an address. | Ordinary `getDelegatedCodeAddress_eq_some_iff` (§7) and complete address controls (§4). |
+
+### Supplied delegation resolver
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:84–109` | `STFSpec.Vm.Instructions.resolveDelegatedCodeAddress` in `STFSpec/Vm/Instructions/DelegationResolution.lean`, exported by the Instructions facade | Lift the account and code reads in order. A State failure returns an outer fault. Ordinary code preserves the address, meter and warmth. A designator selects the price by its destination and charges execution gas. Denial returns an inner halt with the reached world. Payment returns the delegate, paid meter and updated warmth. | Whole generic action and five Id laws (§7). Recording providers, raw tariffs and direct-source cases (§4). |
 
 ### Supplied SLOAD handler
 
@@ -1179,6 +1185,17 @@ recognition and address results. Native access controls check the bounded
 prefix reads and show that rejected inputs, including long packed sequences,
 reach neither suffix copy nor address decoding.
 
+**Supplied delegation resolver controls.**
+`STFSpec/Conformance/Vm/Instructions/DelegationResolutionControls.lean`
+exercises both State faults, exact account and code keys, transaction and
+block precedence, and the reserved hash ahead of both code overlays. The
+controls check cold and warm payment boundaries, zero-price insertion,
+ordinary code at nonzero `ZERO`, and unchanged execution results outside
+the selected field updates. A delegate whose code also contains a designator
+checks that resolution stops after the first destination. The pinned direct
+cases compare both Python modes with interpreted and native Lean. Recording
+providers preserve the exact reached effects at the outer error boundary.
+
 **Supplied EXTCODEHASH controls.**
 `STFSpec/Conformance/Vm/Instructions/ExtCodeHashControls.lean` checks
 the account test with the block's supplied empty-code hash. The guards
@@ -1672,16 +1689,16 @@ def baseFee {m : Type → Type} [Monad m] : Handler m
 -- selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
--- Supplied EIP-7702 designator interface
+-- Supplied EIP-7702 designator and resolution interface
 def EOA_DELEGATION_MARKER : Bytes
 def isValidDelegation : Bytes → Bool
 def getDelegatedCodeAddress : Bytes → Option Address
+def resolveDelegatedCodeAddress (costs : GasCosts) (g : GasMeter) (warm : AddrSet) (a : Address) : VmM m (Except ExceptionalHalt (Address × Bool × GasMeter × AddrSet))
 
 -- Prospective EIP-7702 declarations
 def EOA_DELEGATION_MARKER_LENGTH : Nat
 def EOA_DELEGATED_CODE_LENGTH : Nat
 def calculateDelegationCost (f : Frame) (a : Address) : VmM m (Bool × Address × Nat)
-def resolveDelegatedCodeAddress (costs : GasCosts) (g : GasMeter) (warm : AddrSet) (a : Address) : VmM m (Except ExceptionalHalt (Address × Bool × GasMeter × AddrSet))
 def CALL_SUCCESS : U256
 
 -- Relational view (public, for consumers)
@@ -3406,8 +3423,24 @@ positions. The Base byte-index observation gives the matching list prefix.
 Its suffix theorem uses the Base extraction length, list and address
 decoding laws. These laws admit each marker followed by a 20-byte address
 and recover all bytes of that address. The code length and marker length
-are local implementation values. R-DEL-2 and R-DEL-3 retain the prospective
-State, gas and warmth contracts.
+are local implementation values.
+
+**Delegation resolution** [C]. `resolveDelegatedCodeAddress_run` gives the
+complete ordered action under Monad alone. It lifts `getAccount a`, then lifts
+`getCode` at the returned hash in the updated world. It applies the designator
+extractor to that byte array and calls `chargeGas` on a designator. The price
+comes from `warmAccess` or `coldAccountAccess` according to membership of the
+delegate in the input set.
+
+The five local Id laws identify the reached account fault, reached code fault,
+ordinary return, selected-price denial and paid resolution. Both State faults
+are outer `VmFault.state` values. Gas denial is an inner `.outOfGas` with the
+world from both reads. Ordinary code gives the original address, false, and
+the entire entry meter and warm set. Paid resolution changes only the meter's
+execution gas, decreases its `phi` by exactly the selected price, and returns
+the delegate and true. The warm branch retains the set and the cold branch
+inserts the delegate after payment. The surrounding runner still owns the
+use of the result and source-context agreement.
 
 **Relational view** [R]: `step_iff` and `Step.deterministic`; a small-step relation `Steps` for straight-line code with additive gas (`GasSteps`-style) for consumers.
 
@@ -3427,7 +3460,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthVmCore`, `EthHash`, `EthCodec`
 - **Used by:** `EthVmRunner` (calls `step`, `childCtxOf*`, `childFrame`, the resume operations and `resolveDelegatedCodeAddress`); `EthBlock` (uses `isValidDelegation`).
-- **Seams:** supplies `Handler`, `StepResult`, the request carriers and `childFrame`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
+- **Seams:** supplies `Handler`, `StepResult`, the request carriers, `childFrame` and `resolveDelegatedCodeAddress`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
 
 ## 9. Open decisions
 
@@ -3518,8 +3551,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **R-DEL-1 designator functions supplied.** §§3/4/5/7 own the marker,
   recognition, address extraction, complete byte laws and bounded controls.
-  Public length exports, R-DEL-2 and R-DEL-3 lookup and pricing, caller
-  integration and composed costs remain open.
+  Public length exports and the composed caller obligations remain open.
+
+- **R-DEL-3 delegation resolver supplied.** §§3/4/5/7 cover the two ordered
+  State reads, their error layer, selected execution payment and warmth, and
+  bounded source controls. The caller must carry the returned address, flag,
+  paid meter and warm set through `createEvm`. R-DEL-2 quotation and its
+  caller contract remain separate.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
