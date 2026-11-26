@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-24). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-26). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -1095,6 +1095,20 @@ raw call, EELS converts the selected fee before the stack push. A fee of
 The decoded system route and admitted user route supply the fitting
 source domain under each option. Their Lean caller obligations are in
 EthVmCore R-EXC-2.
+
+**Raw block access list carrier options (Q96).** DECISIONS Q96 owns the
+selection. EthBlock §5 owns the layouts. All options use the guided outer
+array and preserve the supplied order and duplicates.
+
+| Option | Representation and tradeoff |
+|---|---|
+| A. Nested lists | Use the builder's ordered `toList` results directly. A later encoder can reuse the Q69 list model. |
+| B. Nested arrays | Size and positional access are direct. The list model uses the ordered `toList` view or requires a separate traversal proof. A builder going through ordered lists must also materialize the arrays. |
+| C. Packed code bytes | Use `ByteArray` from State code reads and the guided builder, with the existing RLP byte-string model. |
+| D. Base byte wrapper | Use `Bytes` with its byte-list observation API. Convert at the boundary through the existing packed-buffer constructor and projection. |
+
+The later wire correspondence must use the complete assembled Q47 domain.
+Builder and hash costs remain subject to C4.
 
 ## 12. Not yet decided
 
