@@ -699,6 +699,10 @@ unsorted and duplicate nested entries, repeated outer positions, every byte
 and the nominal numeric bounds. Builder invariants, wire correspondence, the
 slot-union gas count, hashing and execution remain open (EthBlock §§6 and 10).
 
+EthBlock §§3–5 supply the raw `BlockOutput` record under D27. Private Block
+facade clients check construction, complete readback and reconstruction, and
+each independent field update. The remaining obligations are in EthBlock §10.
+
 EthBlock §3/§4/§5/§7 owns the supplied raw R-BLK Withdrawal carrier. Its private
 public-facade clients check all constructor/projection types, arbitrary complete
 construction/reconstruction, equality determined by all four fields and each

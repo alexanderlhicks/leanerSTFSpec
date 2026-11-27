@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list and block output records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -351,6 +351,15 @@ six nominal R-BAL records and the outer alias in §5.
 The supplied declarations impose no shape or ordering premise beyond their
 field types. §6 describes the invariants the builder must establish.
 
+### Supplied raw block output (D27)
+
+`STFSpec/Block/BlockOutput.lean`, exported by `STFSpec.Block`, supplies the
+ten-field record in §5.
+
+| Exact pinned EELS source / domain | Lean declaration | Effects / failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:66–114`; independently supplied fields of the §5 representation | `BlockOutput`, its constructor and its ten projections | Pure field storage | The three source tries correspond to separate arrays of encoded values in ordinal order (§6), with receipt keys implicit in that representation. The log tuple has the chronological `LogRope` model. The request list uses an ordered array of byte buffers. The raw BAL uses the §5 carrier. Private facade clients check complete construction, readback, reconstruction and single-field updates (§4). |
+
 ### Supplied raw withdrawal
 
 `STFSpec/Block/Withdrawal.lean`, exported by `STFSpec.Block`, supplies the
@@ -698,6 +707,14 @@ separate obligations.
   empty and 64-byte code, leading zeros, zero and maximum indices, nonces,
   slots, balances and storage values.
 
+- **Raw block output.** `BlockOutputControls.lean` imports only the Block facade.
+  Private clients check the constructor and projection types, complete readback and
+  reconstruction, and an update of each of the ten fields with all siblings retained.
+  Two interpreted guards compare all fields of an all-empty/zero case and a populated
+  case with independent gas values, unequal-length arrays, empty and repeated byte
+  entries, complete logs and repeated BAL accounts with nested changes. A third
+  guard checks the supplied rope shape and all its log values.
+
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
   `WithdrawalGuards.lean` has 30 interpreted complete-value guards: zero/max words,
@@ -855,6 +872,9 @@ These are future consumer checks; the guidance clarification claims no new confo
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values with full StateError payloads. The displayed BlockError embeddings and ofStateError/ofVmFault adapters remain unimplemented; nominal storage supplies neither actual system-call propagation nor O4/O13 projection.
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
+
+The raw `BlockOutput` record below is supplied. All ten fields may be constructed
+and updated independently, with no length, gas, ordering or encoding premise.
 
 All items are public unless marked (internal). Namespace `STFSpec.Block`.
 
@@ -1180,7 +1200,7 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 | `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | `Withdrawal` | four required independent fields in §5 order | itself | none beyond provider types | read-only, shared freely | O(1) projection/update |
 | Header, transactions, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
-| `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
+| `BlockOutput` counters | three `Nat` fields and `blobGasUsed : U64` | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
 | Transaction, receipt and withdrawal tries | an `Array ByteArray` of values in index order, built linearly; the root is computed once by `EthCommit` over `rlp i ↦ v` | finite map `Nat ⇀ Bytes` with domain `[0, n)` | α = `fun a i => a[i]?`; invariant: dense | linear-only (`Array`), never snapshotted | O(1) amortised append; root O(n log n) or better (EthCommit) |
 | `receiptKeys` | implicit (`0…n−1`) | list of `rlp i` | α = `(List.range n).map rlp` | — | — |
 | `blockLogs` and per-transaction logs | **rope** (D24, owned by `EthState`/`EthVmCore`); flattened once, per receipt and for the bloom, by the linear traversal of ARCHITECTURE §5.3 | `List Log` | rope → list | persistent, O(1) concat | flatten O(total) |
@@ -1322,7 +1342,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   - `HashConsts` (EthBase) and `HashConsts.query`, `KeccakQuery` with its `ExceptT`/`StateT` lifts (EthHash).
   - `CheckedT`, `runVmChecked` (EthVmRunner, F14).
   - `BlockState`/`TxState` operations and observers from `EthState`: `getAccount`, `getCode`, `incrementNonce`, `setAccountBalance`, `createEther`, `clearAccountPreservingBalance`, `incorporateTxIntoBlock`, `extractBlockDiff`.
-  - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `BlockOutput`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions.
+  - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `LogRope`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions. `BlockOutput` belongs to `EthBlock` (D27).
   - `secp256k1Recover` through `EthVmRunner`'s transitive closure (`EthCurve`).
   - EthCommit's existing `root`/`mathRoot` over the safe typed/prepared dense maps (§5, Q53), with caller context empty root and lawful byte keys; EthBlock supplies its concrete validity/encoding bridges. RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
 - **Dependency inversion (required).** EELS's `incorporate_tx_into_block` (`state_tracker.py:823–828`, G3) calls `update_builder_from_tx`, but `EthState` must not see the BAL. The spec therefore splits it:
@@ -1357,6 +1377,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source-wire correspondence under Q47 remain open. Builder construction,
   ordering, index accounting, read/write disjointness, the slot-union gas
   check, hashing and block or guest integration also remain open.
+
+- **Raw block output:** the ten-field record and private facade clients are
+  supplied (§§3–5). Source initialization, receipt encoding, ordinal keys and
+  dense root-input composition (Q53), accumulation and runner integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual

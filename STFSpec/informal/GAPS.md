@@ -1135,6 +1135,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ordering, index accounting, read/write disjointness, the slot-union gas
   check, hashing and block or guest integration also remain open.
 
+- **Raw block output:** the ten-field record and private facade clients are
+  supplied (§§3–5). Source initialization, receipt encoding, ordinal keys and
+  dense root-input composition (Q53), accumulation and runner integration
+  remain open.
+
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
   certified SSZ dictionary are supplied (§3–§5/§7). Supplementary RLP model/domain/
