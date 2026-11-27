@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-07. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83.*
+*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, the withdrawal trie byte dictionary, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83, Q97.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -329,11 +329,25 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 
 The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [REVIEW](../REVIEW.md). Earlier experiments using 0.1.7 remain historical evidence and must be rerun when load-bearing.
 
-### Clarified root-input seam (Q53; unimplemented)
+### Clarified root-input seam (Q53)
 
 | Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | The withdrawal byte dictionary is supplied below. Optional transaction/receipt value interpretations and dense composition remain open | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+
+### Supplied withdrawal trie byte dictionary (Q97)
+
+`STFSpec/Block/WithdrawalTrieValue.lean`, exported by `STFSpec.Block`, supplies
+`Withdrawal.encodedTrieValue` and the two complete model laws in §5. Use the value
+explicitly or bind it locally for calls that require a `Commit.TrieValue`.
+
+| Exact pinned source / domain | Lean declaration | Effect and domain | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/fork.py:1106–1111` and `src/ethereum/merkle_patricia_trie.py:252–269,325–338,429–439,451–475`, for the supplied already-encoded withdrawal byte values | `Withdrawal.encodedTrieValue : Commit.TrieValue (Option Base.Bytes)` | Pure packed-byte projection on `some`, including empty bytes. The mathematical total encoding of `none` gives an empty buffer. The source preparation path rejects a stored `None` before encoding and an exact empty encoding afterward | `encodedTrieValue_encode` and `encodedTrieValue_valid` cover every optional input. The class's nonempty proof uses the Base packed-buffer inverse. Private facade clients verify the law types, binding, raw storage and preparation (§4) |
+
+For the default-`none` trie the generic setter erases `none` and retains
+`some Bytes.empty`. Stored empty bytes and stored `none` fail the dictionary's
+validity predicate. The supplied dictionary adds no runtime check or error.
 
 ### Supplied raw withdrawal
 
@@ -672,6 +686,15 @@ separate obligations.
 
 ## 4. Tests
 
+- **Withdrawal trie byte dictionary.** `WithdrawalTrieValueControls.lean` checks
+  the exact dictionary and law types through the Block facade. It checks that
+  importing the facade and opening the Block and Withdrawal namespaces leave
+  instance search unchanged. A local choice selects the named dictionary.
+  Seven interpreted guards check complete short and 64-byte payloads, leading
+  zeros, empty and absent encodings, concrete empty retention, default deletion,
+  and the complete prepared map for valid input. Private proofs check invalid
+  stored cases and the safety premise for actual preparation.
+
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
   `WithdrawalGuards.lean` has 30 interpreted complete-value guards: zero/max words,
@@ -867,6 +890,19 @@ structure Withdrawal where
 instance Withdrawal.instRlpEncode : Codec.RlpEncode Withdrawal
 -- toRlp w := .list [Codec.Rlp.ofNat w.index.toNat, Codec.Rlp.ofNat w.validatorIndex.toNat,
 --   .bytes w.address.toBytes.toByteArray, Codec.Rlp.ofNat w.amount.toNat]
+
+-- Supplied named dictionary (Q97). Callers select it explicitly or locally.
+@[instance_reducible] def Withdrawal.encodedTrieValue : Commit.TrieValue (Option Base.Bytes)
+theorem Withdrawal.encodedTrieValue_encode (value : Option Base.Bytes) :
+    Withdrawal.encodedTrieValue.encode value =
+      (match value with
+       | none => ByteArray.empty
+       | some bytes => bytes.toByteArray)
+theorem Withdrawal.encodedTrieValue_valid (value : Option Base.Bytes) :
+    Withdrawal.encodedTrieValue.Valid value ↔
+      (match value with
+       | none => False
+       | some bytes => bytes ≠ Base.Bytes.empty)
 
 -- Supplied actual SSZ dictionary (Q81), in namespace Withdrawal.
 instance Withdrawal.instSszSchema : Codec.SszSchema Withdrawal
@@ -1071,9 +1107,9 @@ def stateTransition (cfg) (toPre : σ → HashConsts → PreState m) (apply : σ
 
 Constants-consuming entry and header helpers use `consts : HashConsts` and local EELS notation (CONTRIBUTING §7.2, F20). `validateHeader` takes the record explicitly because it runs before `BlockState.new`. Body, transaction, BAL and state consumers project `BlockState.consts` through their existing accumulator, state or world arguments. Construction and validation order follow R-EB (§2.7); the provider factory's type alone does not prove coherence.
 
-**Typed root inputs (Q53; unimplemented).** EthBlock supplies the concrete `TrieValue`
-bridges for `Option BlockTx`, `Option EncodedReceipt` and optional already-encoded
-withdrawal Bytes. `none` interprets Python `None` and is invalid for preparation;
+**Typed root inputs (Q53).** EthBlock supplies the withdrawal byte dictionary
+above. The concrete `TrieValue` bridges for `Option BlockTx` and
+`Option EncodedReceipt` remain open. `none` interprets Python `None` and is invalid for preparation;
 legacy records encode by RLP, and `some` actual Bytes encode by identity and are valid
 only when nonempty. Total encoding on `none` or other invalid Lean values supplies no
 Python-success claim. Valid legacy interpretations and source agreement retain exact
@@ -1298,9 +1334,17 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Parameter values: resolved, DECISIONS B8 (Q1): types here, values in `EthFork`.
 - Named runtime-fault constructors: resolved, DECISIONS B14 (Q2) and CONTRACT O13: named constructors, no `runtimeFault` catch-all.
 - Blob-price feasibility: tracked as DISC-002 (Q3).
-- Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
+- Q53: typed root input/default/validity and key contracts follow R-TRIE/§5.
+  Q97 supplies the withdrawal byte dictionary. Transaction/receipt encodings and
+  dense-map composition remain unimplemented.
 
 ## 10. Gaps
+
+- **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
+  supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
+  root composition, and full source equality, Q47, F20 and host correspondence
+  at the block consumer remain open. The dictionary introduces no fixture,
+  execution, resource or readiness result.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1335,7 +1379,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
-- **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
+- **Typed root consumers (Q53):** Q97 supplies the already-RLP withdrawal
+  dictionary (§§3–5). The Bytes-identity, legacy-RLP and typed-envelope
+  interpretations for transactions and receipts remain open, along with RLP
+  ordinal key preparation and dense-array/prepared-map equality. The consumers
+  still need stored-value validity, lawful byte keys, default-None semantics,
+  the caller-context empty root and §4's exact-byte and public-client validation.
+  The source-schema, assembled `Encodable`, equality, F20 and host premises
+  remain in force.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Ordinary totality of the Taylor helper for a positive denominator is supplied by [EthBase §3/§7](EthBase.md#implemented-taylor-exponential). Completion of the price wrapper, its callers’ domain and exception obligations, and practical feasibility remain open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

@@ -7,6 +7,7 @@ import STFSpec.Block.HeaderRlp
 import STFSpec.Block.Withdrawal
 import STFSpec.Block.WithdrawalRlp
 import STFSpec.Block.WithdrawalSsz
+import STFSpec.Block.WithdrawalTrieValue
 import STFSpec.Block.LogsBloom
 import STFSpec.Block.RequestsHash
 import STFSpec.Block.DepositData
@@ -24,7 +25,8 @@ Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.t
 `STFSpec/informal/ARCHITECTURE.md` §3). The calldata token, fixed deposit extraction,
 ordered request commitment and logs bloom helpers, raw block and transaction parameters and
 system address/budget records, raw headers, common parent projections and the raw
-withdrawal carrier with its forward RLP model and certified SSZ dictionary, and the three
-raw header forward RLP models are supplied. The remaining pipeline is scaffolding.
+withdrawal carrier with its forward RLP model and certified SSZ dictionary, the named
+withdrawal trie byte dictionary and the three raw header forward RLP models are supplied.
+The remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

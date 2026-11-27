@@ -572,7 +572,9 @@ preparation/root. Typed root passes the caller's F20 empty root directly to `mat
 on the pure prepared map; equality to a separate monadic sequential reference requires
 `LawfulMonad`, while local composition/empty equations need `Monad` alone. Secure traversal,
 collision folding, source history and generic coupling remain separate open obligations.
-EthCommit §3 supplies generic storage/safety, pure unsecured preparation and typed root composition; concrete consumer bridges remain open. This interface clarification changes no dependency boundary or implementation readiness.
+EthCommit §3 supplies generic storage/safety, pure unsecured preparation and
+typed root composition. EthBlock §3 supplies the Q97 withdrawal byte dictionary.
+The remaining concrete consumer encodings and their composition remain open.
 
 **Existing Bytes ordering options (Q54).** A bounded packed scanner can stop at
 the first differing byte; executable List conversion also satisfies byte semantics
@@ -1095,6 +1097,18 @@ raw call, EELS converts the selected fee before the stack push. A fee of
 The decoded system route and admitted user route supply the fitting
 source domain under each option. Their Lean caller obligations are in
 EthVmCore R-EXC-2.
+
+**Withdrawal trie byte dictionary activation options (Q97).** DECISIONS Q97
+owns the selection, and EthBlock §5 owns the dictionary and its two laws.
+
+| Option | Downstream effect |
+|---|---|
+| A. Named scoped instance | Clients can pass the name or activate it by opening the dedicated scope. |
+| B. Named definition | Clients pass the dictionary or select it locally. Imports and ordinary namespace openings leave instance search unchanged. |
+| C. Named global instance | Every importing client gets this interpretation for the shared optional byte type. Any other global interpretation needs priority coordination. |
+
+All options use the same Q53 validity and encoding contract for the withdrawal
+byte interpretation.
 
 ## 12. Not yet decided
 
