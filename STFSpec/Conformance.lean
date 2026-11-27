@@ -335,6 +335,7 @@ import STFSpec.Conformance.StateCommit.AccountDecodeGuards
 import STFSpec.Conformance.StateCommit.CodeAgreementCallerProofs
 import STFSpec.Conformance.StateCommit.CodeAgreementGuards
 import STFSpec.Conformance.StateFull.CarrierChecks
+import STFSpec.Conformance.StateFull.StorageChecks
 
 import STFSpec.Conformance.Commit.IncrementalRootCallerProofs
 import STFSpec.Conformance.Commit.IncrementalRootGuards
