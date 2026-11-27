@@ -10,7 +10,6 @@
 # files (for example evm-asm `ZiskAccel.lean` or Lean `Operations.lean`): confirm them.
 # Columns (tab-separated): document:line; citation as written; file it names or inherits, as
 # written ('-' if none); reason; context hash.
-STFSpec/Vm/Core/Environments.lean:12	src/ethereum/forks/amsterdam/vm/__init__.py:49–67,125–148	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	ab3547b2a46e61ee9b6e
 STFSpec/informal/ARCHITECTURE.md:244	incremental_mpt.py:1024–1030	incremental_mpt.py	its block mentions e1a316a0	6fdd05393ee8aa52d6c8
 STFSpec/informal/ARCHITECTURE.md:306	vm/gas.py:606–628	vm/gas.py	its block mentions e1a316a0	3559e265817a9dca6299
 STFSpec/informal/ARCHITECTURE.md:372	:194–234	-	its block mentions e1a316a0	88f1d1fe05535fa00912
@@ -50,7 +49,5 @@ STFSpec/informal/modules/EthStateWitness.md:20	ws:260–267	src/ethereum/forks/a
 STFSpec/informal/modules/EthStateWitness.md:22	ws:279–294	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 279–294 touches changed lines 284–288, 293	2b93e093caa07a4a40c0
 STFSpec/informal/modules/EthStateWitness.md:23	ws:296–309	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 296–309 touches changed lines 304–309	a6f6690785de88dc9e56
 STFSpec/informal/modules/EthStateWitness.md:24	ws:311	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 311 touches changed lines 311	049076b6785898024876
-STFSpec/informal/modules/EthVmCore.md:16	__init__.py:49–67	__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67; on a line with rewritten citations	38512b3221cdbf44b3c0
-STFSpec/informal/modules/EthVmCore.md:72	:749–773	-	forks/amsterdam/vm/gas.py (identified among its section's files): 749–773 touches changed lines 770–773	8e3e622040cbeee2739d
-STFSpec/informal/modules/EthVmCore.md:250	src/ethereum/forks/amsterdam/vm/__init__.py:49–67	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	4182b52184a2fc2033fc
+STFSpec/informal/modules/EthVmCore.md:84	:749–773	-	forks/amsterdam/vm/gas.py (identified among its section's files): 749–773 touches changed lines 770–773	8e3e622040cbeee2739d
 STFSpec/informal/modules/ToVCVio.md:20	src/ethereum/forks/amsterdam/incremental_mpt.py:349–379	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 349–379 touches changed lines 349, 351–354, 356–361, 363–366, an insertion after 367, 369–370, 376, 378	ce4812d458cb91f8c572

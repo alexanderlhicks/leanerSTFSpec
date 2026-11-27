@@ -13,7 +13,19 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.1 Frame and environments
 
-- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:245–247` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
+- **R-ENV-1** `BlockEnvironment` must carry eleven of the thirteen EELS fields
+  at `59c1473d` (`__init__.py:43–61`). In source order they are
+  `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32`,
+  `coinbase : Address`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`,
+  `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root : Hash32`,
+  `slot_number : U64`. The VM world owns `state : BlockState` (§5), and EthBlock owns
+  `block_access_list_builder : BlockAccessListBuilder`.
+
+  Intended construction supplies at most 256 hashes, oldest first, and may supply
+  fewer in the stateless path. `validate_headers` hashes the witness headers in their
+  supplied order and checks their parent links. Stateless validation passes those hashes
+  through `ChainContext` to `BlockEnvironment` (`stateless.py:230–252, 273–280`,
+  `fork.py:303–317`). The raw Lean `Array Hash32` accepts any length and order (§5).
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:119–142`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:298–300`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
 - **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). EthVmInstructions §3/§5/§7 supplies the indexed result and read-only Handler signature; the raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:66–114`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
@@ -169,7 +181,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 35 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
 | `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 36 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` field and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
-| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 44–61 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
+| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 43–61 | supplied raw `BlockEnvironment` | R-ENV-1 and the field mapping below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 66 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 119–142 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
 | `forks/amsterdam/vm/__init__.py::Evm` | 147–185 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
@@ -245,18 +257,18 @@ python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-
 
 ### Supplied raw environment data
 
-| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+| EELS source | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:49–67`, `BlockEnvironment` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
-| `src/ethereum/forks/amsterdam/vm/__init__.py:119–142`, `TransactionEnvironment` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:43–61`, `BlockEnvironment` at `59c1473d` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:125–148`, `TransactionEnvironment` at `e1a316a0` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
 
-R-ENV-1 excludes source `state` (VM world), `block_access_list_builder` and
-`transaction_public_keys` (EthBlock): fourteen source fields project to eleven.
-R-ENV-2 excludes `state` (VM world) and `accounts_with_paid_writes` (explicit
-threading): eighteen source fields project to sixteen. Static field/type partition
-correspondence is the source evidence; no source environment runtime or whole-Evm
-comparison is claimed. HashConsts, systemAddress and mutable bookkeeping retain
-their existing owners.
+At `59c1473d`, both normal and optimized EELS interpreter runs report the same
+thirteen block fields and types. The eleven Lean projections follow R-ENV-1.
+P1 and CONTRACT §2/O5 record the sender-key hint retirement.
+The historical R-ENV-2 mapping at `e1a316a0` projects sixteen of eighteen fields.
+The VM world owns `state`, and the delegation operation threads
+`accounts_with_paid_writes` explicitly. This evidence covers record fields and types.
+HashConsts, systemAddress and mutable bookkeeping retain their existing owners.
 
 The raw history array retains every occurrence in supplied order. Oldest-first
 and at-most-256 are intended construction/source-correspondence guarantees, not
@@ -3622,4 +3634,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Memory pricing (Q63) is locally supplied:** §3/§5/§7 own both VmConfig-first helpers, ten discharged ordinary laws, private public-only clients and forty-two full interpreted/native controls with twenty-four authenticated typed original comparisons. Clients derive actual Memory expansion/admitted-window/preservation facts through public laws; real handler payload/window derivation, frame/target config coherence, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, general source-host/resource and whole VM/guest gates remain open. Raw unaligned source controls remain source-only and unrun; no huge returned extent is allocated.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `BlockEnvironment.transaction_public_keys` was removed (execution-specs PR #3652), so the source has thirteen fields projecting to the Lean eleven; R-ENV-1 (§2.1) still lists `transaction_public_keys` among the source fields, and the §3 note under the `BlockEnvironment` row ("fourteen source fields project to eleven") still counts the removed field, and the `STFSpec/Vm/Core/Environments.lean` docstring cites `vm/__init__.py:49–67` at `e1a316a0`. The Lean structure is unchanged. (b) `vm/gas.py` dropped the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` (the values stay in `GasCosts`; PR #3655), and `calculate_memory_gas_cost` no longer turns a `ValueError` into `OutOfGasError` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]; the §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** R-ENV-1 and §3 give the current block environment field mapping. The outstanding gas items are the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` removed from `vm/gas.py` (the values stay in `GasCosts`, PR #3655) and the `ValueError` to `OutOfGasError` conversion removed from `calculate_memory_gas_cost` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]. The §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.
