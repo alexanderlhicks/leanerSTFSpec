@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-07. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83.*
+*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, the withdrawal trie byte dictionary, raw block access list records and their forward RLP models, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -158,7 +158,11 @@ It returns `IntrinsicGasCost`.
   
   For every storage write, the slot is converted to `U256` from big-endian. If the value differs from the pre-value, `addStorageWrite` is called; otherwise `removeStorageWrite`, which deletes the slot's entry when it becomes empty (`:539`).
 - **Build** (`:827`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
-- **Hash**: `keccak (rlp bal)` (`:850`). **Gas limit** (`:859`): `Σ_accounts (1 + |writtenSlots ∪ readSlots|) > gasLimit / BLOCK_ACCESS_LIST_ITEM [2000]` raises `balGasLimitExceeded`.
+- **Hash**: `keccak (rlp bal)` (`:850`). **Gas limit** (`:859`): sum
+  `1 + |writtenSlots ∪ readSlots|` for each outer entry. A sum greater than
+  `gasLimit / BLOCK_ACCESS_LIST_ITEM` [2000] raises `balGasLimitExceeded`.
+  Repeated slots count once within an entry. Repeated accounts contribute at
+  each position in the raw input.
 - The BAL is **checked only through its hash** against `header.blockAccessListHash`. On the stateless path, that hash is `keccak(payload.block_access_list)` (`execution_engine/validation_helpers.py:79`, G6). EELS never decodes the supplied BAL.
 
 ### 2.12 Failure mapping
@@ -262,12 +266,12 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/requests.py::extract_deposit_data` | 170–271 | `extractDepositData : ByteArray → Except DepositError ByteArray` | Supplied on every finite input; eleven ordered checks, R-RQ; complete result/size laws below |
 | `forks/amsterdam/requests.py::parse_deposit_requests` | 274 | `parseDepositRequests` | reads receipts, not a log list |
 | `forks/amsterdam/requests.py::compute_requests_hash` | 307–328 | `computeRequestsHash : List ByteArray → Hash32` | Supplied ordered complete SHA-256-of-digests result law; no request validation; Q46/host limits below |
-| `forks/amsterdam/block_access_lists.py::StorageChange` | 34 | `StorageChange` |  |
-| `forks/amsterdam/block_access_lists.py::BalanceChange` | 61 | `BalanceChange` |  |
-| `forks/amsterdam/block_access_lists.py::NonceChange` | 88 | `NonceChange` |  |
-| `forks/amsterdam/block_access_lists.py::CodeChange` | 115 | `CodeChange` |  |
-| `forks/amsterdam/block_access_lists.py::SlotChanges` | 142 | `SlotChanges` |  |
-| `forks/amsterdam/block_access_lists.py::AccountChanges` | 167 | `AccountChanges` | RLP field order fixed |
+| `forks/amsterdam/block_access_lists.py::StorageChange` | 34 | `StorageChange` | raw carrier supplied below |
+| `forks/amsterdam/block_access_lists.py::BalanceChange` | 61 | `BalanceChange` | raw carrier supplied below |
+| `forks/amsterdam/block_access_lists.py::NonceChange` | 88 | `NonceChange` | raw carrier supplied below |
+| `forks/amsterdam/block_access_lists.py::CodeChange` | 115 | `CodeChange` | raw carrier supplied below |
+| `forks/amsterdam/block_access_lists.py::SlotChanges` | 142 | `SlotChanges` | raw carrier supplied below |
+| `forks/amsterdam/block_access_lists.py::AccountChanges` | 167 | `AccountChanges` | raw carrier supplied below |
 | `forks/amsterdam/block_access_lists.py::AccountData` | 244 | `AccountData` | builder payload (§6) |
 | `forks/amsterdam/block_access_lists.py::BlockAccessListBuilder` | 285 | `BalBuilder` | ExtTreeMap-based (§6) |
 | `forks/amsterdam/block_access_lists.py::ensure_account` | 337 | `BalBuilder.ensureAccount` |  |
@@ -329,11 +333,63 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 
 The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [REVIEW](../REVIEW.md). Earlier experiments using 0.1.7 remain historical evidence and must be rerun when load-bearing.
 
-### Clarified root-input seam (Q53; unimplemented)
+### Clarified root-input seam (Q53)
 
 | Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
 |---|---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | The withdrawal byte dictionary is supplied below. Optional transaction/receipt value interpretations and dense composition remain open | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+
+### Supplied withdrawal trie byte dictionary (Q97)
+
+`STFSpec/Block/WithdrawalTrieValue.lean`, exported by `STFSpec.Block`, supplies
+`Withdrawal.encodedTrieValue` and the two complete model laws in §5. Use the value
+explicitly or bind it locally for calls that require a `Commit.TrieValue`.
+
+| Exact pinned source / domain | Lean declaration | Effect and domain | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/fork.py:1106–1111` and `src/ethereum/merkle_patricia_trie.py:252–269,325–338,429–439,451–475`, for the supplied already-encoded withdrawal byte values | `Withdrawal.encodedTrieValue : Commit.TrieValue (Option Base.Bytes)` | Pure packed-byte projection on `some`, including empty bytes. The mathematical total encoding of `none` gives an empty buffer. The source preparation path rejects a stored `None` before encoding and an exact empty encoding afterward | `encodedTrieValue_encode` and `encodedTrieValue_valid` cover every optional input. The class's nonempty proof uses the Base packed-buffer inverse. Private facade clients verify the law types, binding, raw storage and preparation (§4) |
+
+For the default-`none` trie the generic setter erases `none` and retains
+`some Bytes.empty`. Stored empty bytes and stored `none` fail the dictionary's
+validity predicate. The supplied dictionary adds no runtime check or error.
+
+### Supplied raw block access list (Q96)
+
+`STFSpec/Block/BlockAccessList.lean`, exported by `STFSpec.Block`, supplies the
+six nominal R-BAL records and the outer alias in §5.
+
+| Exact pinned EELS source / domain | Lean declaration | Effects / failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:34–216`; `src/ethereum/forks/amsterdam/fork_types.py:25`; independently supplied fields of the nominal source types | `StorageChange`, `BalanceChange`, `NonceChange`, `CodeChange`, `SlotChanges`, `AccountChanges` and `BlockAccessList` | Pure field storage | All fields retain their whole values in source order. The nested tuples correspond to the ordered Lean lists and the outer list to the ordered array view. Private public-facade clients establish exact constructor and projection types, complete construction and reconstruction, and independent updates of every field. The interpreted controls observe complete nested values (§4). |
+
+The supplied declarations impose no shape or ordering premise beyond their
+field types. §6 describes the invariants the builder must establish.
+
+### Supplied block access list forward RLP (Q98)
+
+`STFSpec/Block/BlockAccessListRlp.lean`, exported by `STFSpec.Block`, supplies the
+six nominal `RlpEncode` instances in §5. Each method produces the entire ordered
+RLP item through the existing Codec instances. Numeric fields use minimal
+unsigned bytes. Code and address fields retain the complete bytes. Lists retain
+all entries, including duplicates and unsorted entries.
+
+| Pinned EELS source and domain | Lean declaration | Complete model |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:34–55` | `StorageChange.instRlpEncode` | Index and new `U256` value |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:61–82` | `BalanceChange.instRlpEncode` | Index and post-change `U256` balance |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:88–109` | `NonceChange.instRlpEncode` | Index and new `U64` nonce |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:115–136` | `CodeChange.instRlpEncode` | Index and original code byte string |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:142–161` | `SlotChanges.instRlpEncode` | `U256` slot and ordered storage changes |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:167–214` | `AccountChanges.instRlpEncode` | Fixed address, then ordered storage changes, reads, balances, nonces and code changes |
+
+The outer route `Rlp.encodeOf bal.toList` uses the generic ordered List model
+(Q69) and the supplied array order (`block_access_lists.py:216`). The models are
+pure and total on the Lean carriers. Standard source-wire correspondence uses
+locked `ethereum_rlp/rlp.py:66–135` (0.1.6) and requires the complete assembled
+`Rlp.Encodable` condition, including the joined payload bound, together with
+source typed dispatch, conversions and host completion (Q47). Private clients
+check each whole model and the outer List assembly. Interpreted controls
+compare complete wire bytes (§4).
 
 ### Supplied raw withdrawal
 
@@ -672,6 +728,34 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw block access list.** `BlockAccessListControls.lean` imports only the
+  Block facade. Private clients check the six constructor types, each
+  projection type, the outer alias, complete construction and reconstruction,
+  and independent updates of all sixteen fields. Four interpreted guards compare
+  the complete observations of an empty array, an account with empty lists, an
+  account with repeated and unsorted nested entries, and an array with the same
+  account in two positions. The controls retain all twenty address bytes, both
+  empty and 64-byte code, leading zeros, zero and maximum indices, nonces,
+  slots, balances and storage values.
+
+- **Block access list forward RLP.** `BlockAccessListRlpControls.lean` imports
+  the Block facade. Private proofs check all six complete models and the ordered
+  outer List model on arbitrary inputs. Complete wire guards cover each record,
+  full-width addresses, zero and maximum unsigned values, numeric zero versus
+  a zero code byte, and string and list payloads at 55 and 56 bytes. Outer
+  controls cover an empty array, one account, ordered distinct entries and a
+  repeated account. Nested controls retain unsorted duplicates and overlapping
+  read and written slots.
+
+- **Withdrawal trie byte dictionary.** `WithdrawalTrieValueControls.lean` checks
+  the exact dictionary and law types through the Block facade. It checks that
+  importing the facade and opening the Block and Withdrawal namespaces leave
+  instance search unchanged. A local choice selects the named dictionary.
+  Seven interpreted guards check complete short and 64-byte payloads, leading
+  zeros, empty and absent encodings, concrete empty retention, default deletion,
+  and the complete prepared map for valid input. Private proofs check invalid
+  stored cases and the safety premise for actual preparation.
+
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
   `WithdrawalGuards.lean` has 30 interpreted complete-value guards: zero/max words,
@@ -868,6 +952,19 @@ instance Withdrawal.instRlpEncode : Codec.RlpEncode Withdrawal
 -- toRlp w := .list [Codec.Rlp.ofNat w.index.toNat, Codec.Rlp.ofNat w.validatorIndex.toNat,
 --   .bytes w.address.toBytes.toByteArray, Codec.Rlp.ofNat w.amount.toNat]
 
+-- Supplied named dictionary (Q97). Callers select it explicitly or locally.
+@[instance_reducible] def Withdrawal.encodedTrieValue : Commit.TrieValue (Option Base.Bytes)
+theorem Withdrawal.encodedTrieValue_encode (value : Option Base.Bytes) :
+    Withdrawal.encodedTrieValue.encode value =
+      (match value with
+       | none => ByteArray.empty
+       | some bytes => bytes.toByteArray)
+theorem Withdrawal.encodedTrieValue_valid (value : Option Base.Bytes) :
+    Withdrawal.encodedTrieValue.Valid value ↔
+      (match value with
+       | none => False
+       | some bytes => bytes ≠ Base.Bytes.empty)
+
 -- Supplied actual SSZ dictionary (Q81), in namespace Withdrawal.
 instance Withdrawal.instSszSchema : Codec.SszSchema Withdrawal
 -- type := .container [.uint 8, .uint 8, .byteVector 20, .uint 8]
@@ -1015,7 +1112,37 @@ def extractDepositData : ByteArray → Except DepositError ByteArray
 def parseDepositRequests (cfg) : BlockOutput → Except BlockError ByteArray
 def computeRequestsHash : List ByteArray → Hash32
 -- BAL (§6)
-structure BalBuilder; structure AccountChanges; abbrev BlockAccessList := Array AccountChanges
+structure StorageChange where
+  blockAccessIndex : Base.U32
+  newValue : Base.U256
+structure BalanceChange where
+  blockAccessIndex : Base.U32
+  postBalance : Base.U256
+structure NonceChange where
+  blockAccessIndex : Base.U32
+  newNonce : Base.U64
+structure CodeChange where
+  blockAccessIndex : Base.U32
+  newCode : ByteArray
+structure SlotChanges where
+  slot : Base.U256
+  changes : List StorageChange
+structure AccountChanges where
+  address : Base.Address
+  storageChanges : List SlotChanges
+  storageReads : List Base.U256
+  balanceChanges : List BalanceChange
+  nonceChanges : List NonceChange
+  codeChanges : List CodeChange
+abbrev BlockAccessList := Array AccountChanges
+instance StorageChange.instRlpEncode : RlpEncode StorageChange
+instance BalanceChange.instRlpEncode : RlpEncode BalanceChange
+instance NonceChange.instRlpEncode : RlpEncode NonceChange
+instance CodeChange.instRlpEncode : RlpEncode CodeChange
+instance SlotChanges.instRlpEncode : RlpEncode SlotChanges
+instance AccountChanges.instRlpEncode : RlpEncode AccountChanges
+-- Outer forward encoding uses the ordered List instance: Rlp.encodeOf bal.toList.
+structure BalBuilder
 structure BlockOutput where
   blockGasUsed blockStateGasUsed cumulativeGasUsed : Nat
   transactionValues receiptValues withdrawalValues : Array ByteArray
@@ -1071,9 +1198,9 @@ def stateTransition (cfg) (toPre : σ → HashConsts → PreState m) (apply : σ
 
 Constants-consuming entry and header helpers use `consts : HashConsts` and local EELS notation (CONTRIBUTING §7.2, F20). `validateHeader` takes the record explicitly because it runs before `BlockState.new`. Body, transaction, BAL and state consumers project `BlockState.consts` through their existing accumulator, state or world arguments. Construction and validation order follow R-EB (§2.7); the provider factory's type alone does not prove coherence.
 
-**Typed root inputs (Q53; unimplemented).** EthBlock supplies the concrete `TrieValue`
-bridges for `Option BlockTx`, `Option EncodedReceipt` and optional already-encoded
-withdrawal Bytes. `none` interprets Python `None` and is invalid for preparation;
+**Typed root inputs (Q53).** EthBlock supplies the withdrawal byte dictionary
+above. The concrete `TrieValue` bridges for `Option BlockTx` and
+`Option EncodedReceipt` remain open. `none` interprets Python `None` and is invalid for preparation;
 legacy records encode by RLP, and `some` actual Bytes encode by identity and are valid
 only when nonempty. Total encoding on `none` or other invalid Lean values supplies no
 Python-success claim. Valid legacy interpretations and source agreement retain exact
@@ -1137,7 +1264,7 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 | `blockLogs` and per-transaction logs | **rope** (D24, owned by `EthState`/`EthVmCore`); flattened once, per receipt and for the bloom, by the linear traversal of ARCHITECTURE §5.3 | `List Log` | rope → list | persistent, O(1) concat | flatten O(total) |
 | Bloom builder | fixed 256-byte `ByteArray`, latest-owner byte updates | private positional Nat bitset and ordered `m Bloom` action | exact size and complete action equality; three selected bits per answer | threaded linearly; compiled uniqueness unclaimed | O(entries), excluding oracle/provider costs; no measured C gate |
 | `BalBuilder` | `accounts : Std.ExtTreeMap Address AccountData`; `AccountData = {storageChanges : ExtTreeMap U256 (ExtTreeMap U32 U256), storageReads : ExtTreeSet U256, balance : ExtTreeMap U32 U256, nonce : ExtTreeMap U32 U64, code : ExtTreeMap U32 ByteArray}`; memo tables `ExtTreeMap (U32 × Address) (Option Account)` and `ExtTreeMap (U32 × Address × Bytes32) U256`; `index : U32` | `Address ⇀ (slot ⇀ idx ⇀ value) × Set slot × (idx ⇀ bal) × (idx ⇀ nonce) × (idx ⇀ code)` | α forgets the tree structure; invariant: Std's `Ordered`/WF, **no empty inner storage map** (matching `:539`), and memo entries equal the pre-values at their index | linear (threaded once through the block; never inside a call snapshot) | each add/remove O(log n); build O(N) through ordered `toList` |
-| `BlockAccessList` | `Array AccountChanges` | a sorted list | invariants: addresses strictly increasing; per account, slots strictly increasing, reads strictly increasing and disjoint from written slots, change lists strictly increasing by index | read-only | hash O(size) |
+| Raw `BlockAccessList` | `Array AccountChanges` and the nested lists in §5 | ordered account entries with all nested entries intact | construction preserves supplied order, duplicates and read/write overlap. Builder output has strictly increasing addresses and, per account, strictly increasing slots, strictly increasing reads disjoint from written slots and strictly increasing indices in every change list | read-only | hash target O(size) |
 
 EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by index gives the same result, because EELS itself keeps at most one entry per index: replace-in-place, or maximum for nonces. It is also sorted by construction. The equivalence is a [C] lemma (§7). The builder is not reachable from a call snapshot (it is touched only at incorporation), so ARCHITECTURE §5.0 permits a `HashMap`. The ordered tree is chosen so that `build` needs no sort and its output order follows from `ordered_keys_toList` (ARCHITECTURE §5.6). `ofList`/`union` are not used on the hot path (ARCHITECTURE §5.0 caveat); per-transaction updates are single inserts.
 
@@ -1298,9 +1425,27 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Parameter values: resolved, DECISIONS B8 (Q1): types here, values in `EthFork`.
 - Named runtime-fault constructors: resolved, DECISIONS B14 (Q2) and CONTRACT O13: named constructors, no `runtimeFault` catch-all.
 - Blob-price feasibility: tracked as DISC-002 (Q3).
-- Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
+- Q53: typed root input/default/validity and key contracts follow R-TRIE/§5.
+  Q97 supplies the withdrawal byte dictionary. Transaction/receipt encodings and
+  dense-map composition remain unimplemented.
+- Q96 owns the raw block access list representation in §5. Q98 owns the forward
+  RLP interface in §§3–5.
 
 ## 10. Gaps
+
+- **Block access list:** the six raw records, outer array alias, six forward
+  RLP models and private facade clients are supplied (§§3–5). The outer route
+  uses the ordered List instance. General source-wire correspondence retains
+  Q47 and the source typed-dispatch, conversion and host premises. Typed
+  decoding, builder construction, ordering, index accounting, read/write
+  disjointness, the slot-union gas check, hashing and block or guest integration
+  remain open.
+
+- **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
+  supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
+  root composition, and full source equality, Q47, F20 and host correspondence
+  at the block consumer remain open. The dictionary introduces no fixture,
+  execution, resource or readiness result.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1335,7 +1480,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
-- **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
+- **Typed root consumers (Q53):** Q97 supplies the already-RLP withdrawal
+  dictionary (§§3–5). The Bytes-identity, legacy-RLP and typed-envelope
+  interpretations for transactions and receipts remain open, along with RLP
+  ordinal key preparation and dense-array/prepared-map equality. The consumers
+  still need stored-value validity, lawful byte keys, default-None semantics,
+  the caller-context empty root and §4's exact-byte and public-client validation.
+  The source-schema, assembled `Encodable`, equality, F20 and host premises
+  remain in force.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Ordinary totality of the Taylor helper for a positive denominator is supplied by [EthBase §3/§7](EthBase.md#implemented-taylor-exponential). Completion of the price wrapper, its callers’ domain and exception obligations, and practical feasibility remain open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

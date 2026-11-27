@@ -686,9 +686,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection is supplied by the complete decoder (§3); witness/guest adapters and whole-trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
-- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. Concrete encoding bridges remain open. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
+- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. EthBlock §3 supplies the Q97 withdrawal byte dictionary. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
 - **Existing-Bytes key adapter (Q54):** `instKeyBytesBytes`, its named exact-export `toBytes_bytes` equation and ordinary all-finite injection/order fields are discharged in §3, with private public-import complete generic map and root clients. Choosing a concrete Python key/equality/alias interpretation, consumer encoding/root agreement, actual map/preparation/root/retention/replacement and C1–C4 costs remains open; no raw ByteArray order, additional production value/default/equality instance or secured policy is supplied.
-- **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
+- **`TrieValue` consumer dictionaries (Q53):** EthBlock §3 supplies Q97 for already encoded withdrawal bytes. Valid legacy transaction/receipt RLP and typed envelopes remain open. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
@@ -1179,6 +1179,20 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Block access list:** the six raw records, outer array alias, six forward
+  RLP models and private facade clients are supplied (§§3–5). The outer route
+  uses the ordered List instance. General source-wire correspondence retains
+  Q47 and the source typed-dispatch, conversion and host premises. Typed
+  decoding, builder construction, ordering, index accounting, read/write
+  disjointness, the slot-union gas check, hashing and block or guest integration
+  remain open.
+
+- **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
+  supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
+  root composition, and full source equality, Q47, F20 and host correspondence
+  at the block consumer remain open. The dictionary introduces no fixture,
+  execution, resource or readiness result.
+
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
   certified SSZ dictionary are supplied (§3–§5/§7). Supplementary RLP model/domain/
@@ -1212,7 +1226,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
-- **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
+- **Typed root consumers (Q53):** Q97 supplies the already-RLP withdrawal
+  dictionary (§§3–5). The Bytes-identity, legacy-RLP and typed-envelope
+  interpretations for transactions and receipts remain open, along with RLP
+  ordinal key preparation and dense-array/prepared-map equality. The consumers
+  still need stored-value validity, lawful byte keys, default-None semantics,
+  the caller-context empty root and §4's exact-byte and public-client validation.
+  The source-schema, assembled `Encodable`, equality, F20 and host premises
+  remain in force.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Ordinary totality of the Taylor helper for a positive denominator is supplied by [EthBase §3/§7](modules/EthBase.md#implemented-taylor-exponential). Completion of the price wrapper, its callers’ domain and exception obligations, and practical feasibility remain open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

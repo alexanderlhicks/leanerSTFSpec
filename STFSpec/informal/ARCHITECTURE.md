@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-24). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-26). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -572,7 +572,9 @@ preparation/root. Typed root passes the caller's F20 empty root directly to `mat
 on the pure prepared map; equality to a separate monadic sequential reference requires
 `LawfulMonad`, while local composition/empty equations need `Monad` alone. Secure traversal,
 collision folding, source history and generic coupling remain separate open obligations.
-EthCommit §3 supplies generic storage/safety, pure unsecured preparation and typed root composition; concrete consumer bridges remain open. This interface clarification changes no dependency boundary or implementation readiness.
+EthCommit §3 supplies generic storage/safety, pure unsecured preparation and
+typed root composition. EthBlock §3 supplies the Q97 withdrawal byte dictionary.
+The remaining concrete consumer encodings and their composition remain open.
 
 **Existing Bytes ordering options (Q54).** A bounded packed scanner can stop at
 the first differing byte; executable List conversion also satisfies byte semantics
@@ -1120,6 +1122,46 @@ raises before either a successful push or a full-stack halt.
 | B. Shared checked site | Preserve the branch order using one site. The surrounding opcode or trace supplies which source operation failed. |
 | C. Modular word | Use `U256.ofNat`. A frame with room pushes zero at the first oversized value. A full stack reaches its paid halt. Paid source correspondence uses the fitting premise. |
 | D. Caller proof | Require a proof on the selected value. A proof conditional on payment admits the raw denied branch. Dispatch then needs the selected tariff and a fitting proof for every paid call, or a raw wrapper with its own policy. |
+
+**Raw block access list carrier options (Q96).** DECISIONS Q96 owns the
+selection. EthBlock §5 owns the layouts. All options use the guided outer
+array and preserve the supplied order and duplicates.
+
+| Option | Representation and tradeoff |
+|---|---|
+| A. Nested lists | Use the builder's ordered `toList` results directly. A later encoder can reuse the Q69 list model. |
+| B. Nested arrays | Size and positional access are direct. The list model uses the ordered `toList` view or requires a separate traversal proof. A builder going through ordered lists must also materialize the arrays. |
+| C. Packed code bytes | Use `ByteArray` from State code reads and the guided builder, with the existing RLP byte-string model. |
+| D. Base byte wrapper | Use `Bytes` with its byte-list observation API. Convert at the boundary through the existing packed-buffer constructor and projection. |
+
+The later wire correspondence must use the complete assembled Q47 domain.
+Builder and hash costs remain subject to C4.
+
+**Withdrawal trie byte dictionary activation options (Q97).** DECISIONS Q97
+owns the selection, and EthBlock §5 owns the dictionary and its two laws.
+
+| Option | Downstream effect |
+|---|---|
+| A. Named scoped instance | Clients can pass the name or activate it by opening the dedicated scope. |
+| B. Named definition | Clients pass the dictionary or select it locally. Imports and ordinary namespace openings leave instance search unchanged. |
+| C. Named global instance | Every importing client gets this interpretation for the shared optional byte type. Any other global interpretation needs priority coordination. |
+
+All options use the same Q53 validity and encoding contract for the withdrawal
+byte interpretation.
+
+**Forward block access list RLP options (Q98).** DECISIONS Q98 owns the
+selection. Every option uses the six nominal `RlpEncode` instances in EthBlock
+§5 and preserves the complete ordered model.
+
+| Option | Outer surface and tradeoff |
+|---|---|
+| A. Named outer model | Export `blockAccessListToRlp : BlockAccessList → RlpItem` and `blockAccessListToRlp_eq`, which identifies it with `RlpEncode.toRlp bal.toList`. A direct array fold can avoid materializing a list of input accounts. |
+| B. Existing List model | Use `Rlp.encodeOf bal.toList` through the existing ordered Codec dictionary. The six nominal instances are the public additions. |
+| C. Array instance | Export `instRlpEncodeBlockAccessList : RlpEncode BlockAccessList`, with method `RlpEncode.toRlp bal.toList`. Its specialized search entry also applies to `Array AccountChanges` and must be accounted for by a future generic array instance. |
+
+Every option retains the complete assembled Q47 domain and source host
+premises for standard wire correspondence. An allocation-sensitive outer route
+would need a measured cost case.
 
 ## 12. Not yet decided
 

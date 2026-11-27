@@ -211,7 +211,7 @@ optimized-source behavior or change the approved typed bare diagnostics.
 | `merkle_patricia_trie.py::K` | 189 | type parameter of `Trie` | |
 | `merkle_patricia_trie.py::V` | 190 | type parameter of `Trie` | |
 | `merkle_patricia_trie.py::encode_internal_node` | 213 | `encodeInternalNode` | |
-| `merkle_patricia_trie.py::encode_node` | 252 | `TrieValue.encode` | unimplemented Q53 bridge; contextual Account encoding in `EthStateCommit` |
+| `merkle_patricia_trie.py::encode_node` | 252 | `TrieValue.encode` | EthBlock §3 supplies Q97 for withdrawal bytes. Remaining Q53 bridges are open. EthStateCommit owns contextual Account encoding |
 | `merkle_patricia_trie.py::Trie` | 274 | `Trie` | C11 storage discharged below |
 | `merkle_patricia_trie.py::copy_trie` | 315 | `copyTrie` | C11 discharged; persistent identity |
 | `merkle_patricia_trie.py::trie_set` | 325 | `trieSet` | C11 storage/safety discharged below |
@@ -1452,7 +1452,8 @@ It directly calls `mathRoot emptyRoot (prepareTrieModel t)`, without an executab
 preparation bind. The erased premises are `t.secured = false` and `t.PrepareSafe`;
 there is no `NoDefault` requirement, default filter, new query, error or root policy.
 The generic `KeyBytes`/`TrieValue` interpretation and caller-owned F20 constant are
-retained from the existing seams. Concrete consumer adapters remain open.
+retained from the existing seams. EthBlock §3 supplies the Q97 withdrawal byte dictionary.
+Concrete root consumers remain open.
 
 | Exact pinned EELS source | Lean declaration/public domain | Success/effects | Ordered failures/handler | Ordinary public law | Deterministic/source evidence |
 |---|---|---|---|---|---|
@@ -2077,7 +2078,8 @@ Arbitrary generic answers carry no concrete authentication guarantee.
 ### 7.0.3 Typed defaults, preparation validity and root composition (Q53)
 
 The storage/safety and generic unsecured preparation laws are implemented as listed
-in §3, including typed-root composition; concrete consumer bridges remain unimplemented. `Valid` is preparation validity for the chosen
+in §3, including typed-root composition. EthBlock §3 supplies the Q97 withdrawal
+byte dictionary. `Valid` is preparation validity for the chosen
 typed interpretation, independently of a particular trie default; no `Decidable Valid`
 instance is required. The class supplies only encoding nonemptiness under `Valid`.
 Empty construction establishes `NoDefault` and `PrepareSafe` for **every** supplied
@@ -2543,7 +2545,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Depends on:** `EthCodec`
 - **Used by:** `EthStateCommit` (state and storage tries), `EthBlock` (transaction, receipt and withdrawal roots through `Trie`/`root`), and transitively `EthStateFull`, `EthStateWitness`, `EthSecurity`.
 - **Pure path seam:** the public bounded List abstraction and the path equations/laws of §7.0 supply digit order, canonical compact output, lenient decoding and maximal prefix comparison; future node/trie consumers still own their contracts.
-- **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied; concrete encoding bridges remain unimplemented. Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value instances, and EthStateCommit owns contextual Account/storage integration.
+- **Typed seam (Q53):** EthCommit supplies generic `Trie`/`TrieValue` storage/safety, `KeyBytes` and pure unsecured preparation laws (§3); typed root composition is supplied. Q97 supplies the withdrawal byte dictionary (EthBlock §3). Consumers prove stored-value `PrepareSafe`, lawful byte-key interpretation and concrete Python equality/encoding agreement, and pass their coherent F20 empty root. `NoDefault` alone is insufficient. Initial root/preparation calls additionally prove `secured = false`; EthBlock owns its concrete value dictionaries, and EthStateCommit owns contextual Account/storage integration.
 - **Seams provided:** C12 `NodeDB.build`/`Authentic` and ordinary query/model/Id laws (§3); C7
   `patricialize`, C8 `mathRoot` on prepared full-nibble maps and Q53 typed `root` (§3); complete
   generic `decodeRoot`/`decodeWitnessToMpt` and their three equations (§3); pure bare `lookup`
@@ -2583,9 +2585,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: arbitrary supplied defaults, separate preparation validity, lawful injective byte keys and
   the initial unsecured proof domain follow §2/§5/§7.0.3. Generic storage/safety/key
   interpretation/preparation are supplied in §3; typed root composition is supplied; the
-  conditional existing-Bytes key instance is supplied in §3, while concrete consumer
-  value/source bridges remain unimplemented; secure ordering/collision/source-history and generic
-  coupling remain open.
+  conditional existing-Bytes key instance is supplied in §3. Q97 supplies the withdrawal
+  byte dictionary (EthBlock §3). Remaining value/source bridges, secure ordering, collision
+  or source-history proofs and generic coupling remain open.
 - Q49: bounded construction, clipped copies and lawful ordering use the exact provider equations in §3/§5/§7.0; root domains and decoder allocation replacement are separate.
 - Q52: two-item path-list and leaf-value-list diagnostics follow C14/§5; complete dispatcher ordering and source acceptance controls are supplied in §3/§4, while WitnessError/guest adapters remain open.
 - Q48: raw empty compact diagnostic ownership is distinct from the later empty decoded extension-path failure; C3/§5/§7 specify the seam.
@@ -2697,9 +2699,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection is supplied by the complete decoder (§3); witness/guest adapters and whole-trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
-- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. Concrete encoding bridges remain open. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
+- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. EthBlock §3 supplies the Q97 withdrawal byte dictionary. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
 - **Existing-Bytes key adapter (Q54):** `instKeyBytesBytes`, its named exact-export `toBytes_bytes` equation and ordinary all-finite injection/order fields are discharged in §3, with private public-import complete generic map and root clients. Choosing a concrete Python key/equality/alias interpretation, consumer encoding/root agreement, actual map/preparation/root/retention/replacement and C1–C4 costs remains open; no raw ByteArray order, additional production value/default/equality instance or secured policy is supplied.
-- **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
+- **`TrieValue` consumer dictionaries (Q53):** EthBlock §3 supplies Q97 for already encoded withdrawal bytes. Valid legacy transaction/receipt RLP and typed envelopes remain open. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).

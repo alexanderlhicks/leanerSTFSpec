@@ -1,6 +1,6 @@
 # Conditional correctness of the complete guest
 
-*Status: conditional proof plan. Date: 2026-11-24.*
+*Status: conditional proof plan. Date: 2026-11-26.*
 
 Reviewed against `tests-zkevm@v21.0.0`, commit `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36`, on 2026-09-28. The pin has since moved to `tests-zkevm@v21.0.6`, commit `59c1473ddfba341babaeca1c97a50e996f639a0b` (DECISIONS P1); the deltas that affect this plan are re-pin items in the owning modules' §10 (GAPS-CROSSCUTTING X16). This is the shared contract for the spec guidance documents. It states a proof plan and its unproved premises; it does **not** certify that the current draft, or a future implementation merely following it, is already complete or sound. [REVIEW](REVIEW.md) records the remaining gates.
 
@@ -124,8 +124,9 @@ The checked registry is [contracts.toml](contracts.toml). A consumer imports the
 | BudgetPolicy, `phiBudget`, `constBudget` | EthVmRunner | Supplied selectable mathematical vocabulary over the existing complete Core meter, owned by EthVmRunner §3/§5/§7. All raw fields and every Nat constant including zero are admitted. No installed default, runner integration or B11/G2–G7 guarantee is supplied. |
 | ExecKind | EthVmRunner | Supplied nominal three-constructor entry carrier, owned by EthVmRunner §3/§5/§7 and exported by its facade. Private Conformance clients check exhaustive elimination and all ordered constructor inequalities. The `Exec` relation, its exact form and execution guarantees remain open. |
 | InternalError, CheckedResult, `CheckedT`, RunM, `runVmChecked` | EthVmRunner | EthVmRunner §3/§5/§7 supplies minimal source-free fuelExhausted depth storage and exact Type-level aliases without class premises. Actual `.run.run` retains `m (Except InternalError (Except ε α))`. Every future caller must propagate the internal channel without treating it as a validation error; the F14 VM adapter is supplied below; actual caller propagation, execution and guest projection remain open, as do F11 and G2–G7. |
-| Withdrawal | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-BLK four-field carrier. Retain every independent Base.U64/Address value and the amount in Gwei. The actual Q81 SSZ dictionary and its three external certificates are supplied there, with private support/layout/count clients and complete interpreted controls. The forward RLP reference instance and its private model/domain/wire controls are supplied there. Raw/guest decoding, root laws, processing and Q53 root-input composition remain open. |
+| Withdrawal | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-BLK four-field carrier. Retain every independent Base.U64/Address value and the amount in Gwei. The actual Q81 SSZ dictionary and its three external certificates are supplied there, with private support/layout/count clients and complete interpreted controls. The forward RLP reference instance and its private model/domain/wire controls are supplied there. Q97 supplies the named trie byte dictionary in EthBlock §§3–5. Raw/guest decoding, root laws, processing and Q53 root-input composition remain open. |
 | Header, PrevHeader, ParentHeader | EthBlock | EthBlock §3/§5/§7 owns the supplied raw R-HDR fields and nine common parent getters. Preserve the complete supplied variant and nominal Base fields. The three forward RLP models and private complete wire/size/domain clients and mathematical controls are supplied there. Complete assembled Encodable remains local to standard wire/raw inverse claims. Typed decoding/fallback, hashing, validation, authentication and actual consumers remain open. |
+| BlockAccessList and its six records | EthBlock | Use the raw layouts and six forward RLP models in EthBlock §§3 and 5. Produce outer wire bytes with `Rlp.encodeOf bal.toList` in supplied array order. Q47 applies to the assembled model for standard source-wire correspondence. The builder must establish the ordering and disjointness in §6. Typed decoding, gas count, hash and execution composition remain open. |
 | BlockConfig, BlockOutput, transaction records and errors | EthBlock | EthFork supplies values; EthStateless supplies payload/header adapters. BlockOutput is not defined in VmCore. |
 | ExecutionPayload, NewPayloadRequest | EthStateless | Use exactly the nineteen-/four-field raw constructors/projections in EthStateless §3/§5/§7, with private complete arbitrary clients and whole finite controls in §4. Retain every independent whole field, including actual Block.Withdrawal and ExecutionRequests providers, all opaque bytes and ordered duplicate arrays. Raw storage adds no admission, effects, public helper laws or schema; actual Payload/NewPayloadRequest dictionaries and their Q81 certificates, private count/support/layout clients and complete mathematical wire controls are supplied there. Raw decoding/roots, validation, Header adapters, source-host and input/guest/resource/security/readiness remain separate (§10). |
 | ProtocolFork | EthStateless | The complete historical carrier and total forward UInt8 tag observation are supplied under EthStateless §3/§4/§7, with private complete facade proofs and literal guards. EthFork §3 owns the five selected schema constants; EthStateless §3/§5/§7 supplies the nominal selector via a private bounded transport and four transparent owner aliases, with private all-supported/selected coherence proofs and complete facade controls. No public inverse, schema decoder, guest policy or resource/readiness result follows (EthStateless §10). |
@@ -941,7 +942,8 @@ Concrete Id/pinned-root correspondence needs compatible prepared-map/value
 interpretation, constant coherence, complete assembled-node `Encodable` and
 successful host behavior. Python empty root queries `80` once; local Q50 empty
 execution queries zero times. These whole generic traces are not identified.
-Q53 typed preparation/root composition is supplied above. Concrete encoding bridges, whole-source refinement and D5 generic coupling remain open.
+Q53 typed preparation/root composition is supplied above. Concrete root
+consumers, whole-source refinement and D5 generic coupling remain open.
 
 ### RLP encoding premise
 
@@ -1113,8 +1115,9 @@ EthBlock §3/§5/§7 supplies the direct forward Withdrawal instance and owns it
 complete four-field public reference model. Private clients establish all-input
 single-value Encodable and complete wire/size facts. This does not discharge an
 arbitrary assembled outer-list/block domain or supply a typed Withdrawal decoder.
-The future Q53 consumer retains ordinal keys, already-RLP Bytes identity, default
-safety, F20 coherence and source/host premises.
+Q97 supplies the named dictionary for already-RLP withdrawal bytes. The future
+Q53 consumer selects it explicitly or locally and retains ordinal keys, stored
+value safety, F20 coherence and source/host premises.
 
 ### Hash32 table-support premise
 
