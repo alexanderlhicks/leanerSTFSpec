@@ -310,6 +310,7 @@ import STFSpec.Conformance.State.AccountScalarControls
 import STFSpec.Conformance.State.SetCodeControls
 import STFSpec.Conformance.State.AccountExistsGuards
 import STFSpec.Conformance.State.CurrentStorageGuards
+import STFSpec.Conformance.State.SetStorageControls
 import STFSpec.Conformance.State.StorageOriginalGuards
 import STFSpec.Conformance.State.TransientStorageCallerProofs
 import STFSpec.Conformance.State.TransientStorageWriteChecks

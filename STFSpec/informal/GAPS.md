@@ -484,7 +484,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read and installation, storage reads, account write,
+  and predicates, code read and installation, storage reads and write, account write,
   storage clear, transient read and write, snapshot and restore, fresh
   initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
@@ -529,7 +529,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
   retained-value controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes, R16 storage clear, R17 account
+  and the local laws for R14 account writes, R15 storage writes, R16 storage clear, R17 account
   destruction, R18 modification and R21 code installation. R24 retains saved
   order and value roots
   together. Incorporation,
@@ -567,7 +567,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability of the assertion in R15** is inferred.
+- **R15 reachability:** §§3/4/7.1/7.5 supply the standalone write and its
+  typed absence error, complete action and local order laws, and the conditional
+  visible-word equation. The whole-state commuting equation, the public
+  read-after-write law and proof of the R15 assertion's unreachability remain
+  open.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3). EthState §3 supplies the raw TxObs and
