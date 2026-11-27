@@ -23,13 +23,6 @@ STFSpec/informal/DECISIONS.md:209	execution_engine/new_payload.py:112–136,147�
 STFSpec/informal/DECISIONS.md:210	fork.py:265,309–325,498	fork.py	its block mentions e1a316a0	a9c7fba77cc9471bb1bb
 STFSpec/informal/EXCLUDED.md:12	stateless.py:89–100	stateless.py	its block mentions e1a316a0	ff1d7c0b69f71549d02e
 STFSpec/informal/modules/EthBase.md:710	forks/amsterdam/execution_engine/requests.py:123,125,133,149	forks/amsterdam/execution_engine/requests.py	forks/amsterdam/execution_engine/requests.py: 123 touches changed lines 119–197; 125 touches changed lines 119–197; 133 touches changed lines 119–197; 149 touches changed lines 119–197	84e67a60053cd74ddbae
-STFSpec/informal/modules/EthBlock.md:34	:944	-	no file named earlier in its block	acd6a2d7729b5cc449ae
-STFSpec/informal/modules/EthBlock.md:35	:883	-	its block names no file (crypto/elliptic_curve.py in its section); none defines a nearby name around it	e82b2558cb243730284b
-STFSpec/informal/modules/EthBlock.md:35	:937	-	its block names no file (crypto/elliptic_curve.py in its section); none defines a nearby name around it	196108d36473eb39c7ae
-STFSpec/informal/modules/EthBlock.md:36	fork.py:563–574	fork.py	forks/amsterdam/fork.py: 563–574 touches changed lines 563–575	2d7c3f0505610be65bbd
-STFSpec/informal/modules/EthBlock.md:36	transactions.py:932	transactions.py	forks/amsterdam/transactions.py: 932 touches changed lines 893–948	8059327cbc680753a310
-STFSpec/informal/modules/EthBlock.md:67	fork.py:506–666	fork.py	forks/amsterdam/fork.py: 506–666 touches changed lines 563–575, 608–612	3f64b03f5d30d90851a4
-STFSpec/informal/modules/EthBlock.md:95	fork.py:281–383	fork.py	forks/amsterdam/fork.py: 281–383 touches changed lines 285, 300–301, 312–318, 341	91278c5081b18b143961
 STFSpec/informal/modules/EthCodec.md:3437	witness_state.py:112,198	witness_state.py	forks/amsterdam/witness_state.py: 198 touches changed lines 197–203; on a line with rewritten citations	f8c2152f5c040057956c
 STFSpec/informal/modules/EthCodec.md:3437	witness_state.py:198	witness_state.py	forks/amsterdam/witness_state.py: 198 touches changed lines 197–203; on a line with rewritten citations	d594b5b913b646f49027
 STFSpec/informal/modules/EthConformance.md:52	requests.py:236–296	requests.py	ambiguous path: src/ethereum/forks/amsterdam/execution_engine/requests.py, src/ethereum/forks/amsterdam/requests.py; on a line with rewritten citations	bebb268a339c95005efe
