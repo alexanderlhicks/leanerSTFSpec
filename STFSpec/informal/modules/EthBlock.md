@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, the withdrawal trie byte dictionary, raw block access list records and their forward RLP models, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Supplied scope includes raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, the withdrawal trie byte dictionary, raw block access list records and their forward RLP models, the raw transaction access entry, calldata token count, deposit extraction, requests hash and logs bloom. Block execution remains open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -221,7 +221,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::IntrinsicGasCost` | 43 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
 | `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 64 | `versionedHashVersionKzg` | `0x01` |
 | `forks/amsterdam/transactions.py::LegacyTransaction` | 89 | `LegacyTransaction` | type 0 |
-| `forks/amsterdam/transactions.py::Access` | 152 | `Access` |  |
+| `forks/amsterdam/transactions.py::Access` | 152–166 | `STFSpec.Block.Access` | Raw two-field carrier supplied below |
 | `forks/amsterdam/transactions.py::AccessListTransaction` | 172 | `AccessListTransaction` | type 1 |
 | `forks/amsterdam/transactions.py::FeeMarketTransaction` | 245 | `FeeMarketTransaction` | type 2 |
 | `forks/amsterdam/transactions.py::BlobTransaction` | 323 | `BlobTransaction` | type 3; `to : Address` |
@@ -584,6 +584,12 @@ base-fee operations, their errors, division safety or complete configuration.
 EthFork §3 maps and checks the two actual private operands as well as all three
 actual public projections, retaining the subtraction rather than a literal.
 
+### Supplied raw transaction access entry
+
+| EELS record and domain | Lean declaration | Contract and evidence |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/transactions.py:152–166` at `59c1473d`, with an `Address` and a finite `Tuple[Bytes32, ...]` | `STFSpec/Block/Access.lean`, exported by `STFSpec.Block`. `Access.mk : Address → Array Bytes32 → Access`, with projections `Access.account` and `Access.slots` in source field order. | The array retains every supplied slot at its original position. The fields admit every well-typed pair, including empty slot arrays and repeated slots. Ordinary structure reductions give the complete contract in §7. The private facade clients and two full byte controls are in §4. |
+
 ### Supplied raw transaction parameters
 
 `STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
@@ -727,6 +733,14 @@ integration, F20 coherence, full block execution and guest/EEST readiness remain
 separate obligations.
 
 ## 4. Tests
+
+- **Raw transaction access entry.** `AccessControls.lean` imports the Block
+  facade. Private clients check the exact constructor and projection types,
+  both projections together on arbitrary inputs, complete reconstruction and
+  independent replacement of each field. Two interpreted guards compare every
+  address byte and every slot byte in an empty sequence and an unsorted sequence
+  with its first slot repeated. The byte samples include leading zeros and high
+  bits.
 
 - **Raw block access list.** `BlockAccessListControls.lean` imports only the
   Block facade. Private clients check the six constructor types, each
@@ -1034,7 +1048,10 @@ def ParentHeader.parentHash : ParentHeader → Hash32
 instance Header.instRlpEncode : Codec.RlpEncode Header
 instance PrevHeader.instRlpEncode : Codec.RlpEncode PrevHeader
 instance ParentHeader.instRlpEncode : Codec.RlpEncode ParentHeader
-structure Access where account : Address; slots : Array Bytes32
+-- supplied raw transaction access entry in source field order
+structure Access where
+  account : Address
+  slots : Array Bytes32
 structure LegacyTransaction; structure AccessListTransaction; structure FeeMarketTransaction
 structure BlobTransaction; structure SetCodeTransaction
 inductive Transaction | legacy | accessList | feeMarket | blob | setCode
@@ -1270,6 +1287,13 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+The raw `Access` stores the supplied `Address` and the complete `Array Bytes32`
+independently. Construction projects both inputs, and reconstruction from those
+projections returns the original record. Replacing either field preserves the
+other. These reductions apply to every finite slot array and retain order,
+duplicates and all bytes. The private clients in §4 prove them through the Block
+facade.
+
 **Precompile routing (Q83).** BlockConfig transports the same Core table to
 RunnerEnv; Block never imports Precompiles. Action factorization and its exact Id
 law add no observer parameter or construction premise. Actual generic producer
@@ -1432,6 +1456,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   RLP interface in §§3–5.
 
 ## 10. Gaps
+
+- **Transaction access lists.** The raw entry is supplied (§§3–5 and 7).
+  The outer transaction collections and their encoding and decoding remain
+  open, along with validity, intrinsic gas and conversion to state access
+  sets.
 
 - **Block access list:** the six raw records, outer array alias, six forward
   RLP models and private facade clients are supplied (§§3–5). The outer route

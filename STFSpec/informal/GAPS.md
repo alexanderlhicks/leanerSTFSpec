@@ -1179,6 +1179,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Transaction access lists.** The raw entry is supplied (§§3–5 and 7).
+  The outer transaction collections and their encoding and decoding remain
+  open, along with validity, intrinsic gas and conversion to state access
+  sets.
+
 - **Block access list:** the six raw records, outer array alias, six forward
   RLP models and private facade clients are supplied (§§3–5). The outer route
   uses the ordered List instance. General source-wire correspondence retains

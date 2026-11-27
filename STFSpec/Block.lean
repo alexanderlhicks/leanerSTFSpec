@@ -17,6 +17,7 @@ import STFSpec.Block.TxParams
 import STFSpec.Block.SystemAddrs
 import STFSpec.Block.BlockAccessList
 import STFSpec.Block.BlockAccessListRlp
+import STFSpec.Block.Access
 
 /-!
 # STFSpec.Block
@@ -30,7 +31,7 @@ system address/budget records, raw headers, common parent projections and the ra
 withdrawal carrier with its forward RLP model and certified SSZ dictionary, the named
 withdrawal trie byte dictionary, the three
 raw header forward RLP models and the block access list carriers with their six
-forward RLP models are supplied.
+forward RLP models are supplied, along with the raw transaction access entry.
 The remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

@@ -119,6 +119,7 @@ import STFSpec.Conformance.Block.WithdrawalRlpCallerProofs
 import STFSpec.Conformance.Block.WithdrawalRlpControls
 import STFSpec.Conformance.Block.BlockAccessListControls
 import STFSpec.Conformance.Block.BlockAccessListRlpControls
+import STFSpec.Conformance.Block.AccessControls
 import STFSpec.Conformance.Block.WithdrawalTrieValueControls
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
