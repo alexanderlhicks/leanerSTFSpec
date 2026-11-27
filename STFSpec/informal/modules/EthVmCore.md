@@ -183,7 +183,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 | `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/runtime.py::get_valid_jump_destinations` | 22–69 | `validJumpDestinations`, `JumpdestMap.contains` | supplied packed/reference refinement and three ordinary laws; raw bytes, no Lean `Ops` import |
-| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 79 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
+| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 79 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork §3 supplies the pinned specialization. EthVmInstructions §7 supplies the local CREATE depth proof. Runner entry and CALL depth integration remain open. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 80 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 81 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
@@ -3046,6 +3046,10 @@ Pricing retains its independent resource obligation:
 Pure price/alignment/coverage equations do not prove L-MEM-BOUND or authorize
 allocation, including for huge mathematically admitted extents.
 
+The CREATE and CREATE2 handlers derive their admitted window from the supplied
+alignment and coverage laws after payment and the init-code size check.
+EthVmInstructions §7 owns those caller laws and the ordered effects.
+
 **Logs** [C], supplied ordinary laws on arbitrary raw fields and every finite rope:
 
 ```lean
@@ -3530,9 +3534,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization is
-  discharged (EthFork §3); actual frame creation and CALL/CREATE depth proofs remain open. Raw
-  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
-  gate follows from this literal alone.
+  discharged (EthFork §3). The CREATE handlers supply the strict parent-depth proof,
+  which bounds the child depth in `childCtxOfCreate` (EthVmInstructions §7). Runner
+  entry and CALL depth integration remain open. Raw VmLimits/VmConfig domains and
+  Stack behavior are unchanged; no VM/guest/readiness gate follows from this literal alone.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged

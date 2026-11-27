@@ -835,9 +835,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization is
-  discharged (EthFork §3); actual frame creation and CALL/CREATE depth proofs remain open. Raw
-  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
-  gate follows from this literal alone.
+  discharged (EthFork §3). The CREATE handlers supply the strict parent-depth proof,
+  which bounds the child depth in `childCtxOfCreate` (EthVmInstructions §7). Runner
+  entry and CALL depth integration remain open. Raw VmLimits/VmConfig domains and
+  Stack behavior are unchanged; no VM/guest/readiness gate follows from this literal alone.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
@@ -960,7 +961,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, CALL resume and ChildOutcome producers remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied.** Section 3 owns the exact `CreateRequest`
+  and `CallRequest` types and their facade controls. CALL request producers,
+  the CALL child context, CALL resume, and child-outcome producers remain open.
+- **CREATE and CREATE2 handlers supplied.** Sections 3, 4 and 7 own their
+  ordered effects, local laws and bounded pinned controls. Dispatch to these
+  handlers, whole source and admission refinement, child execution and
+  settlement, F11, the child-return Φ bound (G2), L-MEM-BOUND, and the resource,
+  guest and EEST gates remain open.
 
 - **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
   constructor, two policy projections and raw and source controls. The runner
@@ -1138,7 +1146,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ChildSettled predicate and constructive Decidable instance. EthVmInstructions §7
   supplies the committed-spill clause at child entry. Preservation through execution,
   call/create settlement and snapshots, returned proof production and runner
-  integration remain open. EthVmInstructions §7 supplies local CREATE resume.
+  integration remain open. EthVmInstructions §7 proves local CREATE progress
+  through resume under the separately required child-return Φ bound (G2).
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 

@@ -103,6 +103,7 @@ import STFSpec.Conformance.Vm.Instructions.LocalCopyControls
 import STFSpec.Conformance.Vm.Instructions.MemoryCopyControls
 import STFSpec.Conformance.Vm.Instructions.LogOpcodeControls
 import STFSpec.Conformance.Vm.Instructions.CreateChildContextControls
+import STFSpec.Conformance.Vm.Instructions.CreateControls
 import STFSpec.Conformance.Vm.Instructions.CreateResumeControls
 import STFSpec.Conformance.Vm.Instructions.FeeWordControls
 import STFSpec.Conformance.Vm.Instructions.SizeWordControls
