@@ -700,6 +700,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
+- **Code agreement integration:** §3 and §7.3 supply the raw graph and Id provider
+  predicates and private preservation under raw diff application. Prove
+  authenticity of reachable tracker-produced changes and the code clause for
+  each backend. Code availability remains a backend progress obligation.
+
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
 - **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.

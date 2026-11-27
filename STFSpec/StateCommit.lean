@@ -6,6 +6,7 @@ import STFSpec.StateCommit.Storage
 import STFSpec.StateCommit.Account
 import STFSpec.StateCommit.StorageDecode
 import STFSpec.StateCommit.AccountDecode
+import STFSpec.StateCommit.CodeAgreement
 
 /-!
 # STFSpec.StateCommit
@@ -20,7 +21,7 @@ backends build on it.
 Library `EthStateCommit`. Its allowed dependencies are listed in `scripts/boundaries.toml`
 (see `STFSpec/informal/ARCHITECTURE.md` §3). Total storage encoding and its all-value
 laws, contextual account encoding and its complete-domain binding law, and strict
-storage and lenient account decoders with their local roundtrip laws are implemented;
-other integration operations remain specified in the guidance document.
+storage and lenient account decoders with their local roundtrip laws are implemented.
+The code agreement predicates cover raw code maps, raw changes and Id provider answers.
 Spec guidance: `STFSpec/informal/modules/EthStateCommit.md`.
 -/

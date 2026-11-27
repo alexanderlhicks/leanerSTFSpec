@@ -1,6 +1,6 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft; account and storage leaf encoders, lenient account and strict storage decoders supplied; roots and `Models` unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Account and storage leaf encoders, lenient account and strict storage decoders, and code agreement predicates supplied. Roots and full `Models` unimplemented. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55, Q57.*
 
 EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -290,7 +290,29 @@ triggered lookup/root contexts, callbacks, secure roots, backend progress,
 collision/source-history, generic coupling, global errors/O12/resources and C1–C4
 remain open.
 
+### Implemented code agreement predicates (SC7, Q57)
+
+`StateCommit/CodeAgreement.lean` supplies three propositions at the concrete Id
+interpretation of `KeccakQuery`. The source correspondences below are verified at
+`59c1473d`. The propositions describe the source's code storage and read obligations.
+
+| EELS at `59c1473d` | Lean declaration | Domain, agreement and evidence |
+|---|---|---|
+| `state_mpt.py:45–57`, `:164–170`; `forks/amsterdam/witness_state.py:33–35` | `CodeAuthentic : MathState → Prop` | Every raw key/bytes pair must satisfy the digest equation, including entries hidden by the reserved-hash bypass. The finite table may be empty. Private field and reserved-entry controls (§4, §7.3). |
+| `state_mpt.py:133–161` | `CodeChangesAuthentic : BlockDiff → Prop` | Every raw change must satisfy the same digest equation. The source applies all entries by dictionary update, including one at the reserved hash if supplied. The private preservation proof and wrong-digest control use the public `MathState.apply_code_lookup` equation (§4, §7.3). |
+| `state_mpt.py:49–57`; `forks/amsterdam/witness_state.py:129–137` | `ModelsCode : PreState Id → Prop` | A provider must return empty bytes at the queried Id empty-code hash, before considering any raw entry there. All successes must authenticate. A nonreserved absence raises `KeyError` at either source dictionary lookup. The predicate leaves nonreserved provider errors unconstrained. Private field, success and error controls (§4, §7.3). |
+
 ## 4. Tests
+
+- **Code agreement (SC7):** `CodeAgreementCallerProofs.lean` checks all three
+  field contracts, preservation under raw diff application, and agreement from
+  the empty answer and mathematical lookup at coherent Id constants.
+  `CodeAgreementGuards.lean` admits an authentic empty entry at the reserved
+  hash, rejects a wrong digest there before and after raw application, and
+  verifies that the mathematical observer still returns empty bytes there.
+  Provider controls require the reserved answer, allow every nonreserved query
+  to fail, and reject any success with an incorrect digest. Two full code
+  digests are checked against pinned EELS observations.
 
 - **EEST fixture areas:** every blockchain fixture's post-state root exercises `mathStateRoot` (through `EthStateFull`) and its witness variant; `amsterdam/eip8025_optional_proofs` for leaves read from witnesses; `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` `TestGetAccountOptional`, `TestGetStorage`, `TestComputeStateRoot` (leaf decoding and roots through the backend).
@@ -395,7 +417,19 @@ The storage decoder uses the public strict RLP parser and bounded integer provid
 ### 7.3 Code [C]
 
 - **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This subsection's hash-agreement laws use `consts = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
-- `setCode` agreement: if every `EthState.setCode` call passes `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` has `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
+- **Raw application.** If `CodeAuthentic σ` and `CodeChangesAuthentic d`
+  hold, `CodeAuthentic (σ.apply d)` follows. A raw lookup in the result
+  takes the changed bytes when present and the old bytes otherwise.
+  This private proof includes the reserved key. The separate
+  `MathState.code?` observer returns empty bytes at that key.
+- **Provider success.** At coherent Id constants, an authentic mathematical
+  state supplies the digest equation for every successful provider answer
+  that agrees with its mathematical code lookup. The reserved query must
+  also have an explicit successful empty answer. The private client proves
+  `ModelsCode` from these premises.
+- **Open `setCode` agreement.** If every `EthState.setCode` call passes
+  `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` must have
+  `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
 
 ### Informal correctness argument
 
@@ -405,7 +439,10 @@ The storage decoder uses the public strict RLP parser and bounded integer provid
 
 **Argument.** Canonical account encoding is injective under both complete assembled Q47 domains by the four field codecs; storage maps omit zero values, while the total storage encoder preserves the canonical integer encoding even at zero. Apply the trie equation first to each storage map, then to the account map whose leaves include those storage roots. This yields mathStateRoot and the root clause of Models. Code storage is a separate map: state roots bind account code hashes, but do not authenticate the bytes stored under them. CodeAuthentic supplies that missing equation. Compare successful witness paths with the mathematical paths: equal encoded preimages permit descent; differing preimages with equal hashes yield a collision. The extractor must include trie nodes, secure-key preimages and code preimages from both the witness and σ, not only node DB entries.
 
-**Open obligations.** Complete the collision extractor and its finite query set, lenient leaf-decoding refinement and the hash-relative code-authenticity model. Backend progress is additional to Models: a backend that always errors would otherwise satisfy successful-answer implications vacuously.
+**Open obligations.** Complete the collision extractor and its finite query set,
+lenient leaf-decoding refinement, and backend code and root agreement. The
+reserved-hash success required by `ModelsCode` gives no availability guarantee
+for other hashes. Backend progress is a separate obligation.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -431,6 +468,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Decoder consumer bridge (Q55):** implement the explicit concrete Id-run agreement premises and existing error adaptation; prove cache provenance under authenticity/eligible length. Generic action ownership/lifetime, oracle interpretation/coupling and whole state agreement remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
+
+- **Code agreement integration:** §3 and §7.3 supply the raw graph and Id provider
+  predicates and private preservation under raw diff application. Prove
+  authenticity of reachable tracker-produced changes and the code clause for
+  each backend. Code availability remains a backend progress obligation.
 
 - **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
 
