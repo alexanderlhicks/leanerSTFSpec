@@ -58,7 +58,7 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
 | `forks/amsterdam/stateless_host.py::serialize_stateless_input` | 32–38 at `59c1473d` | `serializeStatelessInput` | schema-prefixed SSZ input bytes |
-| `forks/amsterdam/stateless_host.py::deserialize_stateless_output` | 41–43 at `59c1473d` | `deserializeStatelessOutput` | SSZ validation result |
+| `forks/amsterdam/stateless_host.py::deserialize_stateless_output` | 41–43 at `59c1473d` | `deserializeStatelessOutput` | implemented below, with the output clause of L-host-inverse (§7) and complete field checks (§4) |
 | `forks/amsterdam/stateless_host.py::build_stateless_input` | 46–120 at `59c1473d` | `buildStatelessInput` | host assembly from block data and supplied witness, requests, BAL and chain ID (L-build) |
 | `forks/amsterdam/execution_engine/requests.py::decode_execution_requests` | 173 | `decodeExecutionRequests` | engine wire form → typed; outside the guest call closure (a name-based static call-graph pass from `run_stateless_guest`) |
 | `forks/amsterdam/execution_engine/requests.py::REQUEST_ITEM_TYPES` | 119 at `59c1473d` | request-type table in `decodeExecutionRequests` (internal) | type byte → (item container, item size, name); replaces the five per-type decoders removed at v21.0.6 |
@@ -69,9 +69,18 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 | `forks/amsterdam/execution_engine/requests.py::BUILDER_EXIT_REQUEST_SIZE` | 36 | `builderExitRequestSize := 68` | |
 | `forks/amsterdam/execution_engine/new_payload.py::verify_and_notify_new_payload` | 130 | `verifyAndNotifyNewPayload` | engine runner over `EthStateFull` |
 
+### Implemented host output decoder
+
+`deserializeStatelessOutput` implements the R10 output codec. It checks the packed
+size before reading the Boolean or copying field slices. The 43-byte layout carries
+the 32-byte root, the 0/1 Boolean, the little-endian U64 chain ID and the
+little-endian UInt16 schema ID. The raw decoder accepts every schema ID,
+including zero with nonzero accompanying fields. EthStateless §3 and §7 own the
+layout and encoder laws.
+
 ### Implemented fixture-tooling slice
 
-The following local operations implement R2/R9 fixture handling. Field provenance is `packages/testing/src/execution_testing/fixtures/blockchain.py:890–971` at the pin; archive/index counts and identity keys are the R2 authenticated corpus format. The existing EELS source-map rows above remain **unimplemented**. No guest, stateful, engine, host SSZ codec, oracle, replay or public tier operation is implemented by this slice.
+The following local operations implement R2/R9 fixture handling. Field provenance is `packages/testing/src/execution_testing/fixtures/blockchain.py:890–971` at the pin; archive/index counts and identity keys are the R2 authenticated corpus format. Guest, stateful, engine, oracle, replay and public tier operations remain open.
 
 | Local operation and type | Domain and observations | Ordered fixture failures | Status and evidence |
 |---|---|---|---|
@@ -178,6 +187,14 @@ powMod, field hierarchy and guest conformance remain open.
     the last 255 blocks in source order (`new_payload.py:155–160`).
   These trace and failure cases remain open until the engine implementation and
   its checked result/error adapter are available; documentation checks do not run them.
+- **Host output decoder (R10).** `OutputDecodeGuards.lean` checks every field and
+  every re-encoded byte for the sentinel, nonzero multibyte fields with distinct byte values,
+  the maximum chain ID, an arbitrary schema ID and a zero schema ID with nonzero
+  fields. The guards also check malformed lengths, malformed Boolean bytes and
+  an input with both defects. Two pinned EELS runs, in normal and optimized
+  Python, compare the full results against Lean on 309 cases. Those cases include
+  all Boolean byte values at width 43, 46 other widths and three inputs with
+  both defects. Failure comparisons observe the error branch.
 - **Property checks.** `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for generated well-formed `x`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`; `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`.
 - **Differential.** Run the R7 oracles on the `ci` slice and on fuzzed inputs. For the stateful-vs-stateless cross-check on engine fixtures, assemble an input from `params`, `executionWitness` and the fixture's chain ID. Compare `successful_validation` with `¬ validationError`. Report this as bug-finding only, since R2 shows that guest records and block validity can differ.
 
@@ -252,7 +269,7 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 
 - [R] **L-golden**: for every `GuestRecord r` of the pinned corpus, `runGuestRecord r = .pass`. This is the conformance statement; it is checked by execution (`local` tier), not proved.
 - [C] **L-verdict**: `runGuestRecord r = .pass ↔ runStatelessGuestChecked r.input = .ok r.expected`. In particular a `specBug` verdict never counts as a pass, and the public `runStatelessGuest` is not used.
-- [C] **L-host-inverse**: `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for `x.WF`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`.
+- [C] **L-host-inverse**: `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for `x.WF`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`. `deserializeStatelessOutput_serializeStatelessOutput` proves the output clause for every raw result.
 - [C] **L-requests-roundtrip**: `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`. For accepted wire forms, `decodeExecutionRequests w = .ok rq → encodeExecutionRequests rq = normalizeRequests w`, where normalization removes type-only blobs. Equality with `w` requires non-empty bodies. The counterexample `w = #[00]` is accepted and re-encodes as `#[]`; the decoder must retain that acceptance.
 - [C] **L-build.** `buildStatelessInput` sets `blockHash := keccak256 (rlp blk.header)` through `KeccakQuery` (D5). It copies the payload fields from the header, takes withdrawals from the block and RLP-encodes the supplied BAL.
   - The payload contains one byte string for every transaction in block order. Encode each legacy record as RLP and copy each typed byte string unchanged.

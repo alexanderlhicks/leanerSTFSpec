@@ -1344,7 +1344,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Output composition.** The output codec laws are supplied in §7 and EthConformance §7. Decoder-to-Rootable bridges, request-root computation, guest classification and execution, F20 composition and the O-row, fuel, backend and resource gates remain open.
 
 - **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
 

@@ -45,6 +45,7 @@ import STFSpec.Conformance.Stateless.InputSszCallerProofs
 import STFSpec.Conformance.Stateless.InputSszControls
 import STFSpec.Conformance.Stateless.InputSszWireControls
 import STFSpec.Conformance.Stateless.OutputCallerProofs
+import STFSpec.Conformance.Stateless.OutputDecodeGuards
 import STFSpec.Conformance.Stateless.OutputGuards
 import STFSpec.Conformance.Stateless.PayloadCallerProofs
 import STFSpec.Conformance.Stateless.PayloadGuards
