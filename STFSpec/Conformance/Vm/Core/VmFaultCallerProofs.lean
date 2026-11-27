@@ -21,15 +21,24 @@ universe u
 
 private def blobSite : OverflowSite := OverflowSite.blobBaseFee
 private def refundSite : OverflowSite := OverflowSite.refundCounter
+private def gasPriceSite : OverflowSite := OverflowSite.gasPrice
+private def baseFeeSite : OverflowSite := OverflowSite.baseFee
+private def pcSite : OverflowSite := OverflowSite.pc
+private def gasLeftSite : OverflowSite := OverflowSite.gasLeft
 private def stateConstructor : StateError → VmFault := VmFault.state
 private def ancestorConstructor : Nat → VmFault := VmFault.ancestorHashUnavailable
 private def overflowConstructor : OverflowSite → VmFault := VmFault.u256Overflow
 
 private def eliminateSite {P : OverflowSite → Sort u}
-    (blob : P .blobBaseFee) (refund : P .refundCounter) (site : OverflowSite) : P site :=
+    (blob : P .blobBaseFee) (refund : P .refundCounter) (gasPrice : P .gasPrice) (baseFee : P .baseFee)
+    (pc : P .pc) (gasLeft : P .gasLeft) (site : OverflowSite) : P site :=
   match site with
   | .blobBaseFee => blob
   | .refundCounter => refund
+  | .gasPrice => gasPrice
+  | .baseFee => baseFee
+  | .pc => pc
+  | .gasLeft => gasLeft
 
 private def eliminateFault {P : VmFault → Sort u}
     (state : ∀ e, P (.state e)) (ancestor : ∀ offset, P (.ancestorHashUnavailable offset))
@@ -66,6 +75,14 @@ private theorem sites_distinct : OverflowSite.blobBaseFee ≠ .refundCounter := 
   intro h
   cases h
 
+private theorem fee_sites_distinct : OverflowSite.gasPrice ≠ .baseFee := by
+  intro h
+  cases h
+
+private theorem machine_sites_distinct : OverflowSite.pc ≠ .gasLeft := by
+  intro h
+  cases h
+
 private theorem tags_distinct (e : StateError) (offset : Nat) (site : OverflowSite) :
     VmFault.state e ≠ .ancestorHashUnavailable offset ∧
     VmFault.state e ≠ .u256Overflow site ∧
@@ -91,6 +108,10 @@ private def stateValue : StateError → Nat × Option (Nat × Nat × List Nat)
 private def siteValue : OverflowSite → Nat
   | .blobBaseFee => 0
   | .refundCounter => 1
+  | .gasPrice => 2
+  | .baseFee => 3
+  | .pc => 4
+  | .gasLeft => 5
 
 private def observe : VmFault →
     Sum (Nat × Option (Nat × Nat × List Nat)) (Sum Nat Nat)
@@ -127,6 +148,10 @@ private def payloadControls (bytes : List Nat) : Bool :=
 #guard observe (stateConstructor (.witness (.malformed .leaf))) == .inl (0, some (1, 2, []))
 #guard observe (overflowConstructor blobSite) == .inr (.inr 0)
 #guard observe (overflowConstructor refundSite) == .inr (.inr 1)
+#guard observe (overflowConstructor gasPriceSite) == .inr (.inr 2)
+#guard observe (overflowConstructor baseFeeSite) == .inr (.inr 3)
+#guard observe (overflowConstructor pcSite) == .inr (.inr 4)
+#guard observe (overflowConstructor gasLeftSite) == .inr (.inr 5)
 #guard ([0, 1, 255, 256, 257, 2^64, 2^256, 2^4096] : List Nat).all
   (fun offset ↦ observe (ancestorConstructor offset) == .inr (.inl offset))
 

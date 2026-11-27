@@ -84,9 +84,13 @@ import STFSpec.Conformance.Vm.Instructions.JumpControls
 import STFSpec.Conformance.Vm.Instructions.PushControls
 import STFSpec.Conformance.Vm.Instructions.DupControls
 import STFSpec.Conformance.Vm.Instructions.MemoryWordControls
+import STFSpec.Conformance.Vm.Instructions.KeccakControls
 import STFSpec.Conformance.Vm.Instructions.ContextWordControls
+import STFSpec.Conformance.Vm.Instructions.FrameContextWordControls
+import STFSpec.Conformance.Vm.Instructions.BlockContextWordControls
 import STFSpec.Conformance.Vm.Instructions.DynamicSwapControls
 import STFSpec.Conformance.Vm.Instructions.BalanceControls
+import STFSpec.Conformance.Vm.Instructions.ExtCodeCopyControls
 import STFSpec.Conformance.Vm.Instructions.DelegationDesignatorControls
 import STFSpec.Conformance.Vm.Instructions.DelegationResolutionControls
 import STFSpec.Conformance.Vm.Instructions.SelfBalanceControls
@@ -95,6 +99,14 @@ import STFSpec.Conformance.Vm.Instructions.ExtCodeHashControls
 import STFSpec.Conformance.Vm.Instructions.BlobHashControls
 import STFSpec.Conformance.Vm.Instructions.BlockHashControls
 import STFSpec.Conformance.Vm.Instructions.CallDataLoadControls
+import STFSpec.Conformance.Vm.Instructions.LocalCopyControls
+import STFSpec.Conformance.Vm.Instructions.MemoryCopyControls
+import STFSpec.Conformance.Vm.Instructions.LogOpcodeControls
+import STFSpec.Conformance.Vm.Instructions.CreateChildContextControls
+import STFSpec.Conformance.Vm.Instructions.FeeWordControls
+import STFSpec.Conformance.Vm.Instructions.SizeWordControls
+import STFSpec.Conformance.Vm.Instructions.PcGasWordControls
+import STFSpec.Conformance.Vm.Instructions.SwapControls
 import STFSpec.Conformance.Vm.Core.SatisfiesMCallerProofs
 import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
@@ -431,6 +443,10 @@ import STFSpec.Conformance.Fork.AmsterdamSystemAddrsGuards
 import STFSpec.Conformance.Precompiles.KzgVersionedHashCallerProofs
 import STFSpec.Conformance.Precompiles.KzgVersionedHashGuards
 import STFSpec.Conformance.Precompiles.IdentityControls
+import STFSpec.Conformance.Precompiles.Sha256Controls
+import STFSpec.Conformance.Precompiles.Ripemd160Controls
+import STFSpec.Conformance.Precompiles.Blake2fControls
+import STFSpec.Conformance.Precompiles.ModexpPricingControls
 
 import STFSpec.Conformance.Vm.Core.TransferLogCallerProofs
 import STFSpec.Conformance.Vm.Core.TransferLogGuards

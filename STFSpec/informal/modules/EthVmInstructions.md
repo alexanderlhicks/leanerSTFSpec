@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft. Section 3 records the supplied carriers, opcode conversions, handlers and local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, Q92, Q93, F11.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, Q92, Q93, Q94, Q95, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -80,14 +80,14 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 33 | CALLER | `:113` | → caller | 2 | |
 | 34 | CALLVALUE | `:136` | → value | 2 | |
 | 35 | CALLDATALOAD | `:159` | i → word | 3 | Pop and charge, then push a big-endian word from the 32-byte zero-padded call-data window. |
-| 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | |
-| 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | zero-padded source |
-| 38 | CODESIZE | `:246` | → \|code\| | 2 | executing frame's code (init code in a create frame) |
-| 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem | zero-padded |
+| 36 | CALLDATASIZE | `:185` | → \|cd\| | 2 | Push the call-data size word after its own charge (Q94). |
+| 37 | CALLDATACOPY | `:208` | mo do sz → | 3 + 3·w(sz) + mem(mo,sz) | Charge the destination window, then copy zero-padded frame call data. |
+| 38 | CODESIZE | `:246` | → \|code\| | 2 | Push the executing code size word after its own charge (Q94). A create frame uses its init code. |
+| 39 | CODECOPY | `:269` | mo co sz → | 3 + 3·w(sz) + mem(mo,sz) | Charge the destination window, then copy zero-padded executing code. |
 | 3A | GASPRICE | `:307` | → price | 2 | Check and push `effective_gas_price` after its own charge (Q93 below). |
 | 3B | EXTCODESIZE | `:330` | a → n | warm/cold + 100 | EIP-8038 code-read surcharge; reads account and code after the charge; size of the **raw** code (23 for a delegation designator) |
 | 3C | EXTCODECOPY | `:364` | a mo co sz → | warm/cold + 100 + 3·w(sz) + mem | warm-set add before charge; raw code, zero-padded |
-| 3D | RETURNDATASIZE | `:411` | → \|rd\| | 2 | |
+| 3D | RETURNDATASIZE | `:411` | → \|rd\| | 2 | Push the current return-data size word after its own charge (Q94). |
 | 3E | RETURNDATACOPY | `:434` | mo ro sz → | 3 + 3·w(sz) + mem | after the charge, **`ro + sz > \|rd\|` → `OutOfBoundsRead`, even when `sz = 0`** (`:463`); then expand and copy |
 | 3F | EXTCODEHASH | `:476` | a → h | warm/cold | account `== EMPTY_ACCOUNT` (absent or empty) → 0, else its `code_hash`; **no code read, no surcharge** |
 | 40 | BLOCKHASH | `I/block.py:22` | n → h | 20 | 0 unless `n < number ≤ n + 256`; else `block_hashes[−(number − n)]` and `track_ancestor_access(number − n)` (a block-level observation, never reverted). If `number − n > \|block_hashes\|` EELS raises `IndexError` (`I/block.py:58`) → `VmFault.ancestorHashUnavailable` (O13) [V: `stateless.py:246` supplies only the witness headers. CONTRACT O13 records the pinned witness fixture.] |
@@ -102,6 +102,19 @@ Stack columns list operands top first. "mem" = memory-expansion cost of the list
 | 49 | BLOBHASH | `:562` | i → h | 3 | `i < \|hashes\|` → hash, else 0 |
 | 4A | BLOBBASEFEE | `:589` | → price | 2 | `U256(calculate_blob_gas_price(excess_blob_gas))` (`:607`); overflow → `VmFault.u256Overflow .blobBaseFee` (O13, argued reachable) |
 | 4B | SLOTNUM | `I/block.py:268` | → slot | 2 | EIP-7843: `block_env.slot_number` |
+
+**Raw byte-size words (Q94).** Each handler charges its selected
+execution tariff before converting the selected byte count. CALLDATASIZE
+uses `ctx.config.costs.opcodeCallDataSize` and `ctx.callData.size`.
+CODESIZE uses `ctx.config.costs.opcodeCodeSize` and `ctx.code.size`.
+RETURNDATASIZE uses `ctx.config.costs.opcodeReturnDataSize` and the
+current `frame.returnData.size`. A charge denial halts with out-of-gas
+and the complete entry frame. After payment, convert the full Nat size
+with `U256.ofNat`, then attempt the push. A full stack halts with the
+complete charged frame. Success pushes the word and increments the
+Nat PC by one. Every result retains the supplied world. At mathematical
+size `2^256`, a paid frame with room pushes zero. EELS
+`I/environment.py:185–205,246–266,411–431` at `59c1473d`.
 
 **Raw GASPRICE and BASEFEE (Q93).** GASPRICE uses
 `ctx.txEnv.effectiveGasPrice` and `ctx.config.costs.opcodeGasPrice`.
@@ -129,9 +142,9 @@ execution gas. Every frame result retains the original world.
 | 55 | SSTORE | `:68` | k v → | see §2.4 | static first |
 | 56 | JUMP | `I/control_flow.py:45` | d → | 8 | `d ∉ jumpdests` → `InvalidJumpDestError` (after charge) |
 | 57 | JUMPI | `:70` | d c → | 10 | `c = 0` → `pc+1` (d not checked); else as JUMP |
-| 58 | PC | `:101` | → pc | 2 | |
+| 58 | PC | `:101` | → pc | 2 | After payment check the entry PC and push its word (Q95). |
 | 59 | MSIZE | `I/memory.py:119` | → \|mem\| | 2 | always a multiple of 32 |
-| 5A | GAS | `I/control_flow.py:125` | → gas_left | 2 | value **after** this charge; execution gas only (not the reservoir) |
+| 5A | GAS | `I/control_flow.py:125` | → gas_left | 2 | After payment check the paid execution balance and push its word (Q95). |
 | 5B | JUMPDEST | `:149` | – | 1 | |
 | 5C | TLOAD | `I/storage.py:164` | k → v | 100 | transient storage (EIP-1153) |
 | 5D | TSTORE | `:189` | k v → | 100 | static first; revertible (part of the tx snapshot) |
@@ -158,6 +171,18 @@ execution gas. Every frame result retains the original world.
 | FA | STATICCALL | `:884` | g a io is oo os → 0/1 | §2.6 | |
 | FD | REVERT | `:987` | off sz → | §2.9 | `.revert` with the window as output |
 | FF | SELFDESTRUCT | `:706` | b → | §2.7 | static first |
+
+**Raw PC and GAS (Q95).** PC pays `ctx.config.costs.opcodePc`, then
+selects the entry `f.pc`. GAS pays `ctx.config.costs.opcodeGas`, then
+selects the paid meter's execution `gasLeft`. A denied charge returns
+the complete entry frame and world for every raw operand. Payment
+precedes `U256.ofNat?`, and the cast precedes the push. An oversized value
+returns `.error (.u256Overflow site)` with `.pc` or `.gasLeft`.
+EthVmCore R-EXC-2 owns the site and the source's paid prefix. After a
+fitting cast, full-stack halt returns the complete paid frame and world.
+Success pushes the word, increments the Nat PC by one and preserves
+the rest of the paid frame and the supplied world. EELS
+`I/control_flow.py:101–122,125–146` at `59c1473d`.
 
 ### 2.3 Dispatch
 
@@ -246,18 +271,18 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/instructions/arithmetic.py::*` | 28–374 | `add`, `sub`, `mul`, `div`, `sdiv`, `mod`, `smod`, `signextend`, `addmod`, `mulmod`, `exp` (supplied below), `U255_CEIL_VALUE` | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/bitwise.py::*` | 21–274 | `bitwiseAnd` … `countLeadingZeros` (supplied below) | Standalone handlers and local laws |
 | `forks/amsterdam/vm/instructions/comparison.py::*` | 21–177 | `lessThan`, `greaterThan`, `signedLessThan`, `signedGreaterThan`, `equal`, `isZero` (supplied below) | Standalone handlers and local laws |
-| `forks/amsterdam/vm/instructions/keccak.py::*` | 30 | `keccak` | through `KeccakQuery` (D5); `m := Id` gives `EthHash.keccak256` |
-| `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | The bounded frame and transaction queries, BALANCE, CALLDATALOAD, EXTCODEHASH, SELFBALANCE and BLOBHASH have standalone handlers below. |
+| `forks/amsterdam/vm/instructions/keccak.py::keccak` | 26–62 | `keccak` (supplied below) | Pop offset and size, pay, expand, query once, push all digest bytes and advance PC. |
+| `forks/amsterdam/vm/instructions/environment.py::*` | 35–610 | `address` … `blobBaseFee` | The bounded frame and transaction queries, BALANCE, CALLDATALOAD, CALLDATACOPY, CODECOPY, EXTCODEHASH, EXTCODECOPY, SELFBALANCE, GASPRICE, BASEFEE, the three byte-size words and BLOBHASH have standalone handlers below. |
 | `forks/amsterdam/vm/instructions/block.py::*` | 22–298 | `blockHash` … `slotNumber` | BLOCKHASH and the bounded block queries have standalone handlers below. |
-| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP, DUPN, SWAPN and EXCHANGE are supplied below. |
+| `forks/amsterdam/vm/instructions/stack.py::*` | 26–314 | `pop`, `pushN`, `dupN`, `swapN`, `dupn`, `swapn`, `exchange` | The `partial` aliases `push0…push32`, `dup1…`, `swap1…` are dispatch instances. Q91 specifies the immediate reads in §2 and the source boundary in §7. POP, PUSH, fixed DUP, DUPN, fixed SWAP, SWAPN and EXCHANGE are supplied below. |
 | `forks/amsterdam/vm/instructions/memory.py::mstore` | 26–54 | `mstore` (supplied) | Two pops, paid 32-byte big-endian write, PC + 1 |
 | `forks/amsterdam/vm/instructions/memory.py::mstore8` | 57–86 | `mstore8` (supplied) | Two pops, paid low-byte write, PC + 1 |
 | `forks/amsterdam/vm/instructions/memory.py::mload` | 89–116 | `mload` (supplied) | Offset pop, paid 32-byte big-endian read and push, PC + 1 |
 | `forks/amsterdam/vm/instructions/memory.py::msize` | 119 | `msize` | Unimplemented |
-| `forks/amsterdam/vm/instructions/memory.py::mcopy` | 142 | `mcopy` | Unimplemented |
+| `forks/amsterdam/vm/instructions/memory.py::mcopy` | 142 | `mcopy` | Standalone two-window snapshot copy with local action and accounting laws (§§3–5 and §7). |
 | `forks/amsterdam/vm/instructions/storage.py::*` | 37–216 | `sload` (supplied below), `sstore`, `tload` (supplied below), `tstore` (supplied below) | |
-| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | STOP, JUMP, JUMPI and JUMPDEST are supplied below. PC and GAS remain open. |
-| `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | `log0…log4` aliases |
+| `forks/amsterdam/vm/instructions/control_flow.py::*` | 22–171 | `stop`, `jump`, `jumpi`, `pc`, `gasLeft`, `jumpdest` | The supplied standalone handlers and local contracts are recorded below. |
+| `forks/amsterdam/vm/instructions/log.py::*` | 32 | `logN` | The standalone handler and local laws cover all five aliases (§§3–5 and §7). |
 | `forks/amsterdam/vm/instructions/system.py::*` | 66–1023 | `genericCreate`, `create`, `create2`, `return_`, `GenericCall` (→ `CallRequest`), `genericCall`, `call`, `callcode`, `selfdestruct`, `delegatecall`, `staticcall`, `revert`, plus `resumeAfterCall`, `resumeAfterCreate` | the EELS functions are split at the dispatch point (§2.5–2.6) |
 | `forks/amsterdam/vm/__init__.py::CALL_SUCCESS` | 39 | `CALL_SUCCESS : U256 := 1` | |
 | `forks/amsterdam/vm/eoa_delegation.py::EOA_DELEGATION_MARKER` | 36 | `EOA_DELEGATION_MARKER` (supplied) | The complete byte sequence `0xEF0100`. |
@@ -268,6 +293,16 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | `forks/amsterdam/vm/eoa_delegation.py::resolve_delegated_code_address` | 84–109 | `resolveDelegatedCodeAddress` (supplied below) | The runner's `createEvm` still needs to consume the address, flag, meter and warmth. |
 | `forks/amsterdam/vm/eoa_delegation.py::calculate_delegation_cost` | 155 | `calculateDelegationCost` | |
 
+### Supplied KECCAK handler
+
+| EELS source at `59c1473d` | Lean declaration | Domain and ordered effects | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/keccak.py:26–62` | `STFSpec.Vm.Instructions.keccak` in `STFSpec/Vm/Instructions/Keccak.lean`, exported by the Instructions facade | Every supplied context, frame and world. Pop offset and byte count. Charge base plus rounded-word price and the singleton memory quote. Payment expands memory, reads the exact window, queries `KeccakQuery` once, pushes its complete big-endian answer and advances PC. The static flag has no effect. | Ordered run, byte and local Id accounting laws (§7), and recorded-oracle and concrete source controls (§4). |
+### Supplied EXTCODECOPY handler
+
+| EELS source at `59c1473d` | Lean declaration | Domain and ordered effects | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:364–405` | `STFSpec.Vm.Instructions.extcodecopy` in `STFSpec/Vm/Instructions/ExtCodeCopy.lean`, exported by the Instructions facade | Every raw frame, context and world. Mask the address word, retain the reached pop prefix, quote the destination and insert cold warmth before payment. Payment expands memory, reads the defaulted account and then its raw code, writes the padded source slice and advances PC. The static flag has no effect. | Private ordered run, observation, byte and Id accounting laws (§7), and complete facade controls (§4). |
 ### Supplied EIP-7702 designator functions
 
 | EELS source at `59c1473d` | Lean declaration | Domain and result | Laws and tests |
@@ -304,6 +339,32 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/instructions/environment.py:159–183` | `STFSpec.Vm.Instructions.calldataload` in `STFSpec/Vm/Instructions/CallDataLoad.lean`, exported by the Instructions facade | Pop the full offset and charge `ctx.config.costs.opcodeCallDataLoad`. Underflow precedes payment. Denial retains the pop and skips the read. On payment, use Core `bufferRead` on `ctx.callData`, push the complete big-endian word and advance PC by one. | Private ordered run, padded-word and gas laws (§7) and bounded facade controls (§4). |
+
+### Supplied standalone byte-size handlers (Q94)
+
+| EELS source at `59c1473d` | Lean declaration | Contract |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:185–205` | `calldatasize` | Push the call-data size word. |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:246–266` | `codesize` | Push the executing code size word. |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:411–431` | `returndatasize` | Push the current return-data size word. |
+
+The three operations require a `Monad` instance and use the class-free
+`Handler` alias. The Instructions facade exports them from
+`STFSpec/Vm/Instructions/SizeWords.lean`. Section 2 specifies the charge and
+push order, §5 gives the signatures, §7 the private laws and §4 the controls.
+The executable capacity check retains the paid full frame. An ordinary
+equality relates it to the direct `Stack.push` match on every word.
+
+### Supplied standalone PC and GAS handlers (Q95)
+
+| EELS source at `59c1473d` | Lean declaration | Contract |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/control_flow.py:101–122` | `pc` | Check and push the entry PC after payment. |
+| `src/ethereum/forks/amsterdam/vm/instructions/control_flow.py:125–146` | `gasLeft` | Check and push the paid execution balance. |
+
+The Instructions facade exports both handlers from
+`STFSpec/Vm/Instructions/PcGasWords.lean`. The interfaces, four result
+paths and controls appear in §§2/4/5/7.
 
 ### Supplied TLOAD handler
 
@@ -662,6 +723,30 @@ relates each executable worker to the direct Core swap model.
 EELS `gas.py:70,228–229`, `memory.py:63–83` and
 `stack.py:25–91` at `59c1473d`.
 
+### Supplied standalone GASPRICE and BASEFEE handlers
+
+| Source | Lean declaration | Entry domain | Ordered effects | Checks and status |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:307–327` (`gasprice` at the pin) | `STFSpec.Vm.Instructions.gasprice {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. The raw fee and tariff are Nat. | Charge `opcodeGasPrice`, check `effectiveGasPrice` for U256, and push the checked value. Paid conversion failure gives `VmFault.u256Overflow .gasPrice`. | Private ordered action and accounting laws (§7) and complete facade controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:539–559` (`base_fee` at the pin) | `STFSpec.Vm.Instructions.baseFee {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. The raw fee and tariff are Nat. | Charge `opcodeBaseFee`, check `baseFeePerGas` for U256, and push the checked value. Paid conversion failure gives `VmFault.u256Overflow .baseFee`. | Private ordered action and accounting laws (§7) and complete facade controls (§4). |
+
+Both entries use the private worker in `STFSpec/Vm/Instructions/FeeWords.lean`
+through the Instructions facade. After successful conversion it checks
+capacity so a nonfull frame can transfer ownership of its stack. An ordinary
+equality relates that push to the direct Core Stack push on every frame.
+
+### Supplied standalone fixed SWAP handlers
+
+| EELS source at `59c1473d` | Lean declaration and type | Domain | Effects and ordered failures | Laws and tests |
+|---|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/stack.py:110–141,195–210` (`swap_n`, `swap1`–`swap16`) | `STFSpec.Vm.Instructions.swapN (n : Fin 16) {m : Type → Type} [Monad m] : Handler m` | Every supplied context, frame and world. The ordinal `n` corresponds to opcode `0x90 + n.val` and top-relative depth `n.val + 1`. | Charge `opcodeSwap`. Denial retains the entry frame. After payment, missing depth halts with the paid frame. Success exchanges both original cells through Core `Stack.swap?` and advances the Nat PC by one. All outcomes retain the supplied world. | Three complete run laws and two local Id laws (§7). All 16 source bindings, complete frame controls and native ownership checks (§4). |
+
+The pinned price is 3 (`vm/gas.py:70,226`). The private executable checks
+depth after payment, then gives an exclusive stack to `Stack.swap?` when the
+caller supplies one. An ordinary equality relates the worker to a direct
+`Stack.swap?` match for every raw frame. Immediate SWAPN and EXCHANGE use
+their separate Q91 read and decode.
+
 ### Supplied STOP handler
 
 | EELS source at `59c1473d` | Lean declaration / exact type | Domain | Effects / ordered failures | Law and tests | Status |
@@ -708,7 +793,7 @@ composed execution, error and resource obligations remain open.
 This is the Lean-side suspension interface specified in §5, not an implementation
 of an EELS function. The source read identifies where the seven values arise and
 where they are consumed. It supplies no source/admission bridge, gas-correctness
-proof, child context, handler or resume implementation.
+proof, handler or resume implementation. The immutable CREATE consumer is supplied below.
 
 ### Supplied raw call suspension carrier
 
@@ -738,6 +823,12 @@ frames; their only local proofs are `ctx.depth < STACK_DEPTH_LIMIT` and
 `parent.stack.size < STACK_DEPTH_LIMIT`. The literal Core limit is independent of
 `ctx.config.limits.stackDepthLimit`. Construction establishes no preflight,
 withholding, staticness, gas-progress, child settlement or F11 policy.
+
+### Supplied immutable CREATE context
+
+| EELS at `59c1473d` | Lean declaration | Domain and result | Laws and status |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/system.py:133–150` (`generic_create` context at dispatch) | `childCtxOfCreate` in `STFSpec/Vm/Instructions/CreateChildContext.lean`, exported by the Instructions facade | Any parent and request with `ctx.depth < STACK_DEPTH_LIMIT`. Uses the request's caller, contract address, endowment and init code. The child has empty calldata, no code address, value transfer enabled, static mode false and precompiles enabled. Core builds the jump map from the init code. The child inherits both environments, config and system address. | Supplied complete `childCtxOfCreate_eq` and two F8 policy projections in §7. Section 4 covers the result at bounded source and raw inputs. Dispatch and request production remain open. |
 
 ### Supplied mutable child frame initialization
 
@@ -787,6 +878,33 @@ and memory-word prices. See §2.9 for their source order and §7 for the
 local Memory admission. The private executable pop worker consumes the
 nonempty stack with a size witness. An ordinary equality identifies
 it with the pop reference on every frame, including empty ones (D25).
+
+### Supplied CALLDATACOPY and CODECOPY handlers
+
+| EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:208–243` | `calldatacopy {m : Type → Type} [Monad m] : Handler m` | Pop destination, source and length in order. Then charge the call-data copy base, copy words and destination expansion before writing the padded bytes from `ctx.callData`. | Complete local laws (§7) and byte-level facade controls (§4). |
+| `src/ethereum/forks/amsterdam/vm/instructions/environment.py:269–304` | `codecopy {m : Type → Type} [Monad m] : Handler m` | Use the code copy base and `ctx.code` with the same operand, charge and memory order. | Complete local laws (§7) and byte-level facade controls (§4). |
+
+The Instructions facade exports both entries from
+`STFSpec/Vm/Instructions/LocalCopy.lean`. The provider quote prices only
+the destination window. The two bases, per-word price, memory-word price
+and raw ZERO seed are the existing `VmConfig` fields. On a paid run the
+Memory laws supply expansion alignment and the local write proof.
+`bufferRead` takes the full U256 source offset and length. EELS
+`vm/gas.py:761–798` and `vm/memory.py:20–36,63–83`.
+
+### Supplied MCOPY handler
+
+| EELS source at `59c1473d` | Lean declaration | Complete local effect |
+|---|---|---|
+| `vm/instructions/memory.py:142–175`, `vm/memory.py:20–60` | `mcopy` in `LocalCopy.lean` | Pop destination, source and length. Quote source before destination and charge before expanding. Read the entire source slice from that expansion and write its snapshot to the destination. |
+
+### Supplied LOG0 through LOG4 handlers
+
+| EELS source at `59c1473d` | Lean declaration | Complete local effect |
+|---|---|---|
+| `vm/instructions/log.py:28–86` | `logN (n : Fin 5)` in `LogOpcode.lean` | Pop the window and exactly `n` topics. Charge the full configured cost. Expand before checking static mode. A successful call appends the whole log in pop order and advances PC. |
 
 ## 4. Tests
 
@@ -1173,6 +1291,29 @@ from retained frames copy it. In-bounds loads and denied charges keep the
 memory backing in both cases. Exclusive growth reuses sufficient capacity
 and otherwise expands to the required extent.
 
+**Supplied KECCAK controls.**
+`STFSpec/Conformance/Vm/Instructions/KeccakControls.lean` compares complete
+frame fields and sampled world values through the facade. Its recording oracle
+checks exact paid preimages, absence of queries on both underflow prefixes and
+denial, and use of the supplied answer with leading zeros. The Id guards include
+a full stack and independent raw prices. Bounded direct-source comparisons
+cover complete frames in both pinned Python modes and interpreted and compiled
+Lean, including the 31/32/33-byte tariff boundary, the 135/136/137-byte Keccak
+rate boundary and denial before a window beyond the word range can allocate.
+Paired native ownership controls compare exclusive and retained frames,
+including growth within spare capacity, growth past capacity and unchanged
+memory for zero extension.
+**Supplied EXTCODECOPY controls.**
+`STFSpec/Conformance/Vm/Instructions/ExtCodeCopyControls.lean` checks
+all frame fields and exact account and code callback observations through
+the facade. The guards cover each pop prefix, cold and warm denial, both
+missing-witness errors, a full stack, bytes at wide offsets and paid
+memory growth. Direct-source controls in both pinned Python modes compare
+complete frames and their transaction observations with interpreted and
+compiled Lean. They include reserved empty code, transaction and block hits,
+raw delegation bytes and the 31/32/33-byte copy price changes. The native
+ownership controls compare exclusive and retained frames, actual growth
+within existing capacity, newly allocated growth and paid provider failures.
 **Supplied EIP-7702 designator controls.**
 `STFSpec/Conformance/Vm/Instructions/DelegationDesignatorControls.lean`
 uses both ordinary laws through the public facade. The guards cover the exact
@@ -1417,9 +1558,18 @@ refuse a success proof for failure and refuse a proof about another frame; their
 diagnostics test local proof dependency, not runtime rejection or reachability.
 These controls supply no producer, Python oracle, rollback or execution claim.
 
-**F8 inheritance/producer controls (unimplemented).** Check both child-context
-systemAddress equations with a nonliteral parent address, independently varying
-the F20 topic. SELFDESTRUCT cases compare complete logs for zero/nonzero balances
+**CREATE child context controls.** `CreateChildContextControls.lean` tests the
+public constructor at depths zero and 1023 and with a static parent. The controls
+use distinct parent and request addresses, nonliteral policy, empty and nonempty
+init code, and a parent jump map that differs from the child's. Private facade clients check
+whole configuration and environment inheritance and independence from request
+grants and the account-charge flag. The bounded source comparison observes
+the pinned `generic_create` dispatch in normal and optimized Python and compares
+the complete child parameters and jump positions with interpreted and native Lean.
+
+**Remaining F8 inheritance/producer controls.** Check the CALL child-context
+systemAddress equation with a nonliteral parent address. Vary that address and
+the F20 topic independently for SELFDESTRUCT. Compare complete logs for zero/nonzero balances
 and equal/unequal beneficiaries, including all existing static/gas/state-fault
 precedence and runner-owned revert/halt discard.
 
@@ -1458,6 +1608,28 @@ under REVIEW §7. The fixture areas below cover this opcode family.
 - **`core` `#guard` cases** (per handler, via `step` on a synthetic frame; a `#guard` evaluates only once every leaf it reaches is implemented, F16): every arithmetic op at `0`, `1`, `2^255`, `2^256−1` (SDIV `−2^255 ÷ −1`, SMOD sign, SAR of negatives by 255/256, SIGNEXTEND k = 30, 31, 32, BYTE 31/32, EXP gas for exponents of 0/1/256/2^255, CLZ 0); `Ops.ofByte?` for all 256 bytes (153 some, 103 none; supplied by kernel `rfl` equations in `OpsCallerProofs`, §4); DUPN/SWAPN/EXCHANGE on every immediate including 91 and 127, the immediate past the end of code, and underflow by one; PUSH32 truncated at end of code; JUMPI with cond 0 to an invalid target; RETURNDATACOPY `(0, 1, 0)` with empty return data (halts); CALLDATALOAD at `2^256−1`; MCOPY overlapping both directions; LOG in a static frame (charges first); SSTORE all 27 `(original, current, new) ∈ {0, x, y}³` combinations with expected execution cost, refund delta and state gas, plus the gas-left = 2300 sentry; CALL with value to a dead account then failing child (state gas refilled); CREATE collision (grant consumed, nonce incremented); BLOCKHASH offsets 0, 1, 256, 257 and one beyond `|block_hashes|`.
 - **Adversarial:** stack exactly 1024 then PUSH/DUP; 1023 then CALL chain; memory offset `2^64`, `2^256−1` with size 0 (no charge) and 1 (OOG); CALL gas argument `2^256−1` (capped by 63/64); static context for each state-changing op; RETURNDATACOPY bounds after revert, halt and successful create (empty).
 - **Differential:** handler-by-handler against EELS on random frames (random stack, memory, meter, warm sets) using the EELS functions directly, including the order of state reads (recorded through an instrumented `TransactionState`).
+
+**Supplied LOG controls.** `LogOpcodeControls.lean` compares complete
+frame results and sampled world observations. It checks all five counts,
+every short stack prefix, denial before a required expansion, and paid
+static failure after that expansion. Success preserves old log order and
+appends the current target, the ordered complete topic words, and the
+selected bytes. An additional case reads an empty window at the largest
+U256 offset with zero prices. A paid full-stack case retains every
+unconsumed word.
+
+The implementer's matrix compares 55 complete before and after frames in
+interpreted and compiled Lean against each pinned Python mode. Native traces check the successful
+pops, the complete topic conversion values, the single quote and charge,
+expansion and the full read. They observe the supplied world identity in
+every result. With exclusive entry, the compiled pops reuse the stack array.
+A retained frame requires one copy on the first pop. Later pops reuse that
+array. For LOG0 and LOG4, paid static and ordinary calls grow exclusive
+64-byte memory to 96 bytes in the original backing with capacity 126.
+Retained frames keep their original stack and memory while the paid
+result uses a new backing. Growth from 32 to 64 bytes with capacity
+62 allocates a larger backing. Empty-stack and gas-denied controls retain
+the original memory and perform no expansion or read.
 
 **Supplied PUSH controls.** `STFSpec/Conformance/Vm/Instructions/PushControls.lean`
 uses the facade to apply the five public laws. Its ten guards compare the
@@ -1517,6 +1689,20 @@ Exclusive facade calls reuse the backing in 27 spare-capacity cases
 and grow it in 27 cases. The 54 retained successful cases copy the
 backing and preserve the saved frame.
 
+**Supplemental frame and block context controls.**
+`STFSpec/Conformance/Vm/Instructions/FrameContextWordControls.lean`
+runs sixteen guards for ADDRESS, ORIGIN, CALLER and CALLVALUE.
+It varies tariffs and staticness and checks the complete frame for
+denial, paid overflow and success, including wide prices and full-width
+values. `STFSpec/Conformance/Vm/Instructions/BlockContextWordControls.lean`
+runs twenty guards for the five block-context handlers. It also checks
+U64 widening and the big-endian randomness round trip.
+
+The block-context implementer's separate comparison covers 95 direct
+cases per pinned Python mode, and the orchestrator's comparison covers
+35 cases. Both compared interpreted and compiled Lean. These counts
+describe the original block-context evaluations.
+
 **Supplied SWAPN and EXCHANGE controls.**
 `STFSpec/Conformance/Vm/Instructions/DynamicSwapControls.lean` checks the
 twelve local laws through the facade. Twenty guards compare every frame
@@ -1531,8 +1717,108 @@ Additional controls exercise both payment outcomes outside the fitting
 read range and compare the paid raw Nat extension with an independent
 stack model. The compiled controls check complete result frames and
 world identity, exclusive backing reuse and retained stack preservation.
+**Supplied local-copy controls.**
+`STFSpec/Conformance/Vm/Instructions/LocalCopyControls.lean` covers the
+three pop prefixes, denial before allocation, memory growth, existing
+memory, padding and the empty-window identity at a huge offset. It checks
+the complete residual frames, including a full entry stack, and exercises
+independent, zero and wide raw prices. The implementer's matrix compares 34 complete
+frames in interpreted and compiled Lean against each pinned Python mode.
+Linked observations check the
+actual pops, destination quote, charge, expansion, padded read and write.
+Exclusive and retained inputs have matching values, and retained frames
+preserve their original memory.
+
+**Supplied MCOPY controls.** `MemoryCopyControls.lean` checks all three
+underflow prefixes and compares every frame field and sampled world
+observations. It covers both overlap directions, identical windows,
+either window requiring expansion, and source bytes from the new zero
+region. Maximum offsets succeed at zero length and leave memory intact.
+Positive oversized windows exercise denial. The controls also cover a
+full stack, wide prices, and a one-unit boundary between exact payment
+and denial.
+
+The implementer's matrix compares 24 complete frames in interpreted and
+compiled Lean against each pinned Python mode. Compiled tests observe the two-window quote
+in order, its full charge, one expansion, complete snapshot bytes and
+the exact destination write. The same tests check retained and exclusive
+frames for within-memory overlap, growth, zero length and denial.
+The covered write reuses its exclusive memory buffer in the paired
+ownership control. A retained entry keeps its original bytes. Zero-length
+writes preserve the original buffer in both ownership cases.
+
+**Supplied GASPRICE and BASEFEE controls.**
+`STFSpec/Conformance/Vm/Instructions/FeeWordControls.lean` runs eleven
+paired guards through the public handlers. These compare the nine frame
+fields and sampled world values on success and halt, and the exact nominal
+site for a conversion fault. Controls include distinct raw tariffs and fee
+fields, stack depths 1,023 and 1,024, the largest and first excluded fee,
+a wide PC, zero prices and a price above 2^256.
+
+The private interpreted and native facade probes match twenty direct cases
+from both pinned Python modes. For six conversion faults they compare the
+complete paid prefix on the Python side and the nominal site on the Lean side.
+Sixteen compiled ownership profiles cover both handlers with exclusive and
+retained frames. Successful pushes reuse an exclusive stack array with spare
+capacity and copy a retained array. Full-stack halt, conversion fault and
+gas denial perform no push in the compiled worker.
+
+**Supplied byte-size controls (Q94).**
+`STFSpec/Conformance/Vm/Instructions/SizeWordControls.lean` covers
+distinct byte fields and tariffs, the complete denied and paid full
+frames, and the pushed word, charged meter and Nat PC on success.
+The return-data controls vary the current buffer under a single context.
+The implementer's 27 complete direct cases match in both facade modes
+and both pinned Python modes, including empty and 65,539-byte selected
+fields. The orchestrator's separate replay compares 21 cases in the same
+four modes.
+The native controls check charge before conversion, and conversion before
+the push on success, with exclusive and retained stacks. The symbolic law
+at size `2^256` uses the Base word model.
+
+**PC and GAS controls (Q95).** `PcGasWordControls.lean` checks denial,
+paid cast failure, a fitting paid full stack and a fitting success with
+independent prices and meter fields. The controls include the last fitting
+value and the first excluded value on both spare and full stacks. GAS
+observes the paid balance, even when the entry balance lies outside U256.
+PC can advance past the word bound after pushing the last fitting value.
+
+The implementer's 26 direct cases match in both facade modes and both
+pinned Python modes. The orchestrator's separate replay compares 20 cases
+in the same four modes. It checks the complete paid Python prefix
+separately from each Lean nominal fault. Compiled traces check the exact
+operand passed to conversion after payment, the two nominal sites, and
+retention of memory and world when a frame is returned. Eight exclusive
+and retained frame pairs cover denial, paid conversion fault, fitting
+full stack and success for each opcode.
+
+**Supplied fixed SWAP controls.**
+`STFSpec/Conformance/Vm/Instructions/SwapControls.lean` uses the public
+laws and compares all frame fields with sampled world values. It covers
+the whole fixed index range, denial before depth, a full stack, PC above
+the word range and zero and wide prices.
+
+The implementer's 128 complete observations across all sixteen bindings
+match in both facade modes and both pinned Python modes. The
+orchestrator's separate replay compares 70 complete frame pairs in the
+same four modes. The native controls
+check the exact charge before each successful exchange, the two selected
+indexes and the original world. Each of six exclusive successful runs
+reuses its stack backing. Each of six matching retained runs copies the
+backing and leaves the saved frame intact.
 
 ## 5. Interface
+
+The standalone KECCAK handler is supplied through the Instructions facade.
+
+```lean
+def keccak {m : Type → Type} [Monad m] [KeccakQuery m] : Handler m
+```
+The standalone EXTCODECOPY handler is supplied through the Instructions facade.
+
+```lean
+def extcodecopy {m : Type → Type} [Monad m] : Handler m
+```
 
 The opcode enumeration and byte conversions below are **supplied** through
 `STFSpec.Vm.Instructions`, with exactly 153 constructors, two total conversions
@@ -1557,8 +1843,8 @@ Call/create carry exactly the two displayed strict proofs against the existing
 literal limit. The other four cases impose no such proofs. Handler returns only
 mutable frame/control data at the original ctx index; its alias forms without a
 Monad instance. Section 3 records the supplied standalone handlers and their
-local laws. The mutable child frame constructor is supplied separately.
-Child context construction, remaining handlers, dispatch, step and resume remain open.
+local laws. The mutable child frame and immutable CREATE context constructors are
+supplied separately. The CALL child context, remaining handlers, dispatch, step and resume remain open.
 
 The exact four-field `ChildOutcome` is also supplied, retaining its complete frame,
 output, optional error and supplied Core `ChildSettled frame error.isSome` proof.
@@ -1567,8 +1853,8 @@ Construction adds no producer, runtime guard or F11 proof-production choice.
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values.
 BLOCKHASH uses the ancestor fault at the missing array access and the State R27
 action on a hit. The remaining R-GEN-7 obligations include checked conversion
-for BLOBBASEFEE, GASPRICE and BASEFEE (Q93), and propagation through
-dispatch and the guest.
+for BLOBBASEFEE and propagation through dispatch and the guest. The Q93 raw
+fee handlers are supplied below.
 
 ```lean
 -- Opcodes and dispatch (public)
@@ -1649,6 +1935,7 @@ def jump {m : Type → Type} [Monad m] : Handler m
 def jumpi {m : Type → Type} [Monad m] : Handler m
 def jumpdest {m : Type → Type} [Monad m] : Handler m
 def dupN (ordinal : Fin 16) {m : Type → Type} [Monad m] : Handler m
+def swapN (n : Fin 16) {m : Type → Type} [Monad m] : Handler m
 def dupn {m : Type → Type} [Monad m] : Handler m
 def mload {m : Type → Type} [Monad m] : Handler m
 def mstore {m : Type → Type} [Monad m] : Handler m
@@ -1671,21 +1958,32 @@ def extcodehash {m : Type → Type} [Monad m] : Handler m
 def blobHash {m : Type → Type} [Monad m] : Handler m
 def blockHash {m : Type → Type} [Monad m] : Handler m
 def calldataload {m : Type → Type} [Monad m] : Handler m
+def calldatacopy {m : Type → Type} [Monad m] : Handler m
+def codecopy {m : Type → Type} [Monad m] : Handler m
+def mcopy {m : Type → Type} [Monad m] : Handler m
 def tload {m : Type → Type} [Monad m] : Handler m
 def tstore {m : Type → Type} [Monad m] : Handler m
+def logN {m : Type → Type} [Monad m] (n : Fin 5) : Handler m
 
 -- Supplied Q92 handlers
 def return_ {m : Type → Type} [Monad m] : Handler m
 def revert {m : Type → Type} [Monad m] : Handler m
 
--- Prospective fee handlers (Q93).
+-- Supplied standalone fee handlers (Q93).
 def gasprice {m : Type → Type} [Monad m] : Handler m
 def baseFee {m : Type → Type} [Monad m] : Handler m
 
--- Remaining handlers (public): keccak, calldatasize, calldatacopy, codesize,
--- codecopy, extcodesize, extcodecopy, returndatasize, returndatacopy, number,
--- gasLimit, blobBaseFee, sstore, pc, msize, gasLeft, mcopy, swapN (n : Fin 16),
--- logN (n : Fin 5), create, call, callcode, delegatecall, create2, staticcall,
+-- Supplied standalone PC and GAS handlers (Q95).
+def pc {m : Type → Type} [Monad m] : Handler m
+def gasLeft {m : Type → Type} [Monad m] : Handler m
+
+-- Supplied standalone byte-size handlers (Q94).
+def calldatasize {m : Type → Type} [Monad m] : Handler m
+def codesize {m : Type → Type} [Monad m] : Handler m
+def returndatasize {m : Type → Type} [Monad m] : Handler m
+
+-- Remaining handlers (public): extcodesize, returndatacopy, number, gasLimit,
+-- blobBaseFee, sstore, msize, create, call, callcode, delegatecall, create2, staticcall,
 -- selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
@@ -2998,7 +3296,7 @@ F20 constants to the pin.
 **Remaining per-opcode semantic lemmas** [R] (for evm-asm and pancaketh) use the
 public Core/State contracts and never unfold their representations. ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP use
 the supplied handler laws above, replacing the former literal-3 `step_add` sketch.
-LT/GT/SLT/SGT/EQ/ISZERO, AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, PUSH, fixed DUP and DUPN use their supplied local laws. Actual `step`, its code-byte premises, `step_iff` and determinism remain unimplemented.
+LT/GT/SLT/SGT/EQ/ISZERO, AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ, POP, JUMP, JUMPI, JUMPDEST, PUSH, fixed DUP, DUPN and fixed SWAP use their supplied local laws. Actual `step`, its code-byte premises, `step_iff` and determinism remain unimplemented.
 
 **Supplied fixed-width memory laws.** For the offset returned by the first
 actual pop, take `e = calculateGasExtendMemory ctx.config f.memory [(off, width)]`.
@@ -3034,6 +3332,61 @@ The three `_continue_phi` laws give `phi(after) + price = phi(before)`
 on actual Id continuations with the offset-pop witness. The three
 `_continue_progress` laws require `1 ≤ price` on the same paths.
 
+**Supplied KECCAK laws.** The two actual pops determine the offset, size
+and residual stack. A failed pop returns the frame with precisely that
+residual stack. When both pops succeed, let `e` be
+`calculateGasExtendMemory ctx.config f.memory [(offset, size)]`.
+The selected charge is `opcodeKeccak256Base + opcodeKeccak256PerWord *
+(ceil32 size.toNat / 32) + e.cost`. The Core quote includes the raw ZERO
+seed once. Denial retains the residual stack and original memory, meter
+and PC. Each failure returns the supplied world in the underlying `pure`.
+
+Payment gives the exact execution debit and extends memory by `e.expandBy`
+zeros. The local Core coverage equations admit the complete read at the
+exact Nat offset and width, including an empty read at any offset. The
+paid law is the literal underlying bind of one query on that complete
+byte window. Its continuation pushes the answer on the residual stack,
+increments the exact Nat PC by one and returns the supplied world. The
+private push proof uses the room made by the pops, and the fixed-width
+byte law recovers all 32 digest bytes from the pushed word. The owned stack
+and memory paths each have a private ordinary equality to
+the corresponding frame-projection form.
+
+In Id the existing EthHash instance supplies concrete `keccak256`. Every
+continuation satisfies `phi(after) + price = phi(before)`, and a positive
+selected charge gives the local strict decrease. Other monads supply their
+own query action. The equations use the two handler class premises from §5.
+Source correspondence uses related entry fields, the pinned prices and
+the concrete answer. See §10 for composed obligations.
+**Supplied EXTCODECOPY laws.** Pop the address word, destination start,
+source start and byte count in that order. Mask the popped address word. Each underflow equation
+keeps the residual stack and all other fields and returns the given world.
+Once all pops succeed, quote the singleton destination window. Use the
+entry warmth to choose the warm or cold account tariff and insert a cold
+address before charging. The charge adds one warm code-read tariff, the
+selected copy-per-word tariff times the rounded byte count, and the Core
+quote with its configured ZERO seed. Denial retains the residual stack
+and resulting warmth, with the entry PC, memory, meter and world.
+
+Payment expands memory by the quoted amount. The private paid worker
+receives the expanded frame before entering State. Its ordinary equality
+gives the source-shaped frame projection, and the separate compiled call
+keeps expansion before both reads in Id, including on either fault.
+The generic action lifts
+`getAccount` at the masked address and `getCode` at the returned hash
+on the actual resulting transaction. At Id, either reached State error
+becomes the same wrapped `VmFault.state` as `liftState`, and the
+successful result carries the transaction after both reads. The observer
+law adds the account read and adds the code-read membership on the
+nonreserved code-provider branch. The provider's raw bytes feed the
+immutable padded read, even for a delegation marker. That read supplies
+exactly the requested width. Its size and the Q63 coverage law prove the
+Q62 destination window, with empty writes admitted at every offset.
+Success writes those bytes into the expanded memory, retains the resulting
+warmth and residual stack, and increments the exact Nat PC. The Id
+continuation spends exactly the selected price in meter potential and
+makes strict local progress when that price is positive.
+
 Storage laws use the `getStorage` and `setStorage` observations and the exact
 SSTORE cost, refund and state-gas table of §2.4 as a function
 `sstoreCharges original current new cold`. CALL and CREATE laws give the
@@ -3041,7 +3394,37 @@ request fields and exact parent meter after withholding, with separate resume
 equations. The remaining local laws must give exception precedence (R-GEN-2)
 as in powdr's `StepDeterminism.lean`.
 
-**Child context policy** [C] (F8; local pure helper supplied by EthVmCore §3/§7): for every parent context, request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress` and `(childCtxOfCreate ctx req h).systemAddress = ctx.systemAddress`. Both retain `ctx.config` as already required. Requests, Handler, step and child-constructor parameter lists are unchanged; no request field or runner dependency carries the address. SELFDESTRUCT uses this inherited context address and the stored F20 topic after the existing ordered gas charges and balance move, before deletion registration. Its source agreement separately instantiates the pinned address/topic; local Step, gas-progress and inheritance laws require no new global address/source predicate.
+**CREATE context** [C]. For every parent `ctx`, raw request `req` and
+`h : ctx.depth < STACK_DEPTH_LIMIT`, `childCtxOfCreate_eq` gives the entire
+child constructor from §3, at depth `ctx.depth + 1`. The depth proof comes
+from `h`. The request's grants and account-charge flag are consumed by other
+operations. `childCtxOfCreate_config` and `childCtxOfCreate_systemAddress` are
+the two supplied whole-field inheritance equations under F8.
+
+**Remaining child context policy** [C] (F8). For every parent context, call
+request and existing depth proof, `(childCtxOfCall ctx req h).systemAddress = ctx.systemAddress`
+and the child's config equals `ctx.config`. Requests, Handler, step and
+child-constructor parameter lists are unchanged. SELFDESTRUCT uses the inherited
+context address and the stored F20 topic after the ordered gas charges and balance
+move, before deletion registration. Its source agreement separately instantiates
+the pinned address and topic. Local Step, gas-progress and inheritance laws
+require no new global address/source predicate.
+
+**Supplied local copy laws.** The first, second and third underflow
+equations retain the exact preceding pop prefixes. The quote is
+`calculateGasExtendMemory ctx.config f.memory [(destination, length)]`.
+The charge adds the selected base and
+`opcodeCopyPerWord * (ceil32 length.toNat / 32)` to the full quote cost.
+A denial retains all three pops and the original memory and meter.
+A paid continuation writes the exact padded source into the expanded
+memory, returns the same residual stack, advances the Nat PC and
+subtracts exactly the selected charge from execution gas. The byte-list
+model retains every byte outside the written window. All five equations
+retain the whole supplied world. When the requested length is zero, the
+quote contributes the original ZERO seed, the per-word term vanishes and
+the memory value is identical at every destination and source offset.
+The Id laws give the exact loss in potential and strict progress when
+the total charge is positive.
 
 **Frame invariants** [C]: every handler preserves `stack.size ≤ 1024`, `memory.size % 32 = 0`, `ctx` unchanged (by typing), `f.accessedAddresses ⊆ f'.accessedAddresses` (warm sets only grow within a frame), and `Wf gasMeter`.
 
@@ -3170,6 +3553,20 @@ theorem pushN_continue_progress
     let price := if n.val = 0 then ctx.config.costs.opcodePush0 else ctx.config.costs.opcodePush
     1 ≤ price → f'.gasMeter.phi + 1 ≤ f.gasMeter.phi
 ```
+
+**Supplied fixed SWAP laws.** All three run laws preserve the complete
+`VmWorld m` under underlying `pure`. `swapN_run_oog` retains the full
+entry frame for a short execution grant. With enough gas,
+`swapN_run_underflow` retains the full paid frame when the stack size is
+at most `n.val + 1`. `swapN_run_success` gives the actual successful
+`Stack.swap? 0 (n.val + 1)` witness, both original words and the full
+top-relative list after replacing those two cells, with unchanged size.
+Its result has exactly the Core execution debit, the exchanged stack
+and PC incremented by one. The local `swapN_continue_phi` equation gives
+the exact configured cost for each continuing Id run.
+`swapN_continue_progress` needs only positivity of that cost.
+Source agreement specializes the tariff and identifies input and result
+frame fields. Dispatch and halt settlement remain open.
 
 **Supplied fixed DUP and DUPN laws.** Each outcome retains the supplied
 world. A successful duplication exposes the actual peek and push,
@@ -3403,6 +3800,44 @@ related code whose length is less than `2^256`, this gives
 supply these local facts. The raw frame and handler accept arbitrary Nat PCs.
 EELS `interpreter.py:438–445` at `59c1473d`.
 
+**GASPRICE and BASEFEE local laws (Q93)** [C], supplied. The private
+run equations cover denial, paid unsigned conversion fault, paid full
+stack with a fitting fee, and success after payment with a fitting fee
+and available stack space. Denial returns the complete entry frame and
+world. Paid conversion failure carries the exact selected nominal site.
+A fitting full-stack halt preserves every frame field except execution gas.
+Success retains the world and returns the paid meter, the exact top-first
+stack with the new U256 word at its head, and the Nat PC incremented by one.
+The private Id accounting equation says that successor potential plus the
+selected price equals entry potential. A positive selected price then gives
+strict decrease. The caller and dispatch obligations remain in §10.
+
+**Byte-size local laws (Q94)** [C], supplied. The private run equations
+preserve the world and give the complete entry frame on denial and the
+complete paid frame on a full stack for every raw byte size. On success
+the returned frame has the exact debit, `U256.ofNat size` pushed onto the
+original stack and the Nat PC incremented by one. The whole-size law
+uses only `size < 2^256` for that field, and the symbolic equation gives
+zero at `2^256`. The Id continuation spends exactly the selected price
+in potential, and a positive price gives strict progress. At the pin,
+successful `len` on the authenticated 64-bit CPython runtime returns at most `2^63 - 1`, so source bytes
+satisfy the premise. A symbolic Python length proxy with a larger
+advertised length can raise inside `len` before the U256 constructor.
+That proxy lies outside the source byte-field type. Practical host
+resource behavior belongs to CONTRACT O12.
+
+**PC and GAS local laws (Q95)** [C], supplied by private ordinary laws in
+`PcGasWords.lean`. Denial gives the complete
+entry frame and world regardless of the selected word's range. Payment with
+a value outside U256 gives the exact nominal site and carries no paid frame
+or world. With a fitting word, a paid full stack retains the complete paid
+frame and world. Success returns that meter and world, the exact pushed
+value and Nat PC increment. The private stack worker equals its
+source-shaped reference. The successful Id continuation spends exactly
+the selected price from meter potential, so a positive price gives strict
+decrease. The fitting GAS premise is on the paid execution balance. The
+source relation and caller bounds remain open.
+
 **Resume laws** [C]: return-data rules of ARCHITECTURE §6 (`CALL`: child output in all three outcomes; `CREATE`: ∅ on success, child output on failure); stack effect (one push); memory: only the window `[outOffset, outOffset + min(outSize, |output|))` changes; logs/deletions/warm sets merged iff success; `pc` advanced by 1.
 
 **Delegation designator** [C]. The two supplied ordinary laws cover
@@ -3444,6 +3879,44 @@ use of the result and source-context agreement.
 
 **Relational view** [R]: `step_iff` and `Step.deterministic`; a small-step relation `Steps` for straight-line code with additive gas (`GasSteps`-style) for consumers.
 
+**MCOPY local laws** [C], supplied privately in `LocalCopy.lean`. Each
+underflow law retains the completed pop prefix without charging. On a
+complete prefix, the memory quote lists source then destination. The
+charge is the configured base plus the per-word price times the rounded
+copy word count, plus the entire quote including its ZERO seed. Denial
+retains the popped frame and the supplied world.
+
+Payment expands memory once. The whole memory model is the expanded
+prefix before the destination, the complete source slice from the same
+expansion, then the expanded suffix after the destination window. This
+preserves the snapshot interpretation for overlaps and identical windows.
+At zero length both windows are erased from the pricing calculation,
+even at maximum offsets. The charge retains the base and seed and the
+memory remains identical. Success retains the residual stack and paid
+meter and advances Nat PC once. The Id potential law accounts for the
+complete charge, and a positive charge gives strict decrease.
+
+**LOG local laws** [C], supplied privately in `LogOpcode.lean`. The stack
+model identifies the offset, width and exact topic prefix in that order.
+Each returned topic retains all 32 big-endian bytes. The checked stack
+worker equals the reference pop, including the original empty residual.
+A short stack halts with that residual and retains the other entry fields
+and the world. With a complete prefix, the charge is the configured base,
+data price times the full byte count, topic price times the count, plus
+the singleton window quote from EthVmCore §7. The quote carries its
+`ZERO` seed even for an empty window.
+
+Denial retains the popped frame and world. The paid worker consumes the
+frame's memory and applies the quoted zero expansion before the static
+check. Its private ordinary equality gives the complete result of the
+source-shaped reference. A static failure retains the
+expanded memory, paid meter, popped stack and original logs and PC.
+Success reads the admitted slice of that expanded memory, appends exactly
+one log for `ctx.currentTarget`, and advances PC by one. The existing
+coverage proof accepts an empty read at every offset. The complete Id
+potential equation accounts for the selected charge, and any positive
+charge gives strict decrease.
+
 ### Informal correctness argument
 
 **Claim.** Each opcode's one executable handler refines the pinned instruction, including the order of guards, charges, observations, faults and child requests.
@@ -3460,7 +3933,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Depends on:** `EthVmCore`, `EthHash`, `EthCodec`
 - **Used by:** `EthVmRunner` (calls `step`, `childCtxOf*`, `childFrame`, the resume operations and `resolveDelegatedCodeAddress`); `EthBlock` (uses `isValidDelegation`).
-- **Seams:** supplies `Handler`, `StepResult`, the request carriers, `childFrame` and `resolveDelegatedCodeAddress`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
+- **Seams:** supplies `Handler`, `StepResult`, the request carriers, `childFrame`, `childCtxOfCreate` and `resolveDelegatedCodeAddress`. The `step` and resume interfaces are targets. Consumes EthVmCore's frame, meter and memory contracts, EthState's lookup/overlay laws (through `VmM m`), `KeccakQuery` (KECCAK; CREATE and CREATE2 addresses through EthCodec's `…Q` forms), RLP (CREATE address). Relies on: the frame it receives satisfies the EthVmCore invariants; the runner passes back a `ChildOutcome` built from a frame with `ChildSettled`. The supplied `.call/.create` types guarantee only `depth < STACK_DEPTH_LIMIT` and room in the parent stack for the result (`hs`). Future handler contracts additionally require balance and nonce preflight and the parent meter already withholding the grant.
 
 ## 9. Open decisions
 
@@ -3472,28 +3945,38 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D13**: the parent frame in `.call/.create` is a value; both a recursive runner and a continuation stack can consume it.
 - **D17**: accepted; this module is its opcode side. Replacement exercises 1 and 3 test that memory/gas changes stay within handlers' contracts.
 - **D18**: an unoptimised handler (for example MCOPY via intermediate copy) is correct and complete; performance debt only.
-- **Q93** gives the raw GASPRICE and BASEFEE paths in §2 and the prospective
+- **Q93** gives the raw GASPRICE and BASEFEE paths in §2 and the supplied
   interface in §5.
 - NEW-VM-1: resolved by D14, CONTRACT O13 and DECISIONS B14 (Q23) (EthVmCore R-EXC-2).
 - NEW-VM-2: resolved by DECISIONS B7 (Q24): halts are values.
 - **Q91** covers stack-immediate reads and their source correspondence (§§2 and 7).
 - **Q92** owns the selected raw RETURN and REVERT charge rule (§§2.9/7).
+- **Q94** settles the raw byte-size word rule (§§2 and 7).
+- **Q95** settles the raw PC and GAS conversions (§§2 and 7).
 - **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
 
 ## 10. Gaps
 
+- **MCOPY integration.** The local snapshot handler and action, byte and
+  accounting laws are supplied (§§3–5 and §7). Prove the source relation,
+  dispatch and composed progress and resource bounds. O12 remains open.
+
+- **Local copies supplied.** CALLDATACOPY and CODECOPY have complete local
+  run, memory and accounting laws (§7) and both source and facade controls
+  (§4). Dispatch, trace refinement, composed progress and the resource
+  bound for paid large windows remain open.
+
 - **Bounded context words.** §§3/4/7 own the nine standalone handlers and
-  their local laws and controls. The wider scalar casts for PC, GAS,
-  MSIZE, NUMBER, GASLIMIT, BASEFEE and GASPRICE have separate obligations.
+  their local laws and controls. The scalar operations and caller bounds for MSIZE, NUMBER, GASLIMIT, Q93
+  and Q95 have separate obligations.
   Source context assembly, dispatch, trace, settlement, composed gas
   progress and guest execution remain open.
 
-- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16,
-  DUPN, SWAPN and EXCHANGE have local run and accounting laws (§7)
-  and the §4 facade controls. Fixed SWAP1–SWAP16 and its interface
-  choice remain open. The full paid source correspondence and its
+- **Stack handlers.** PUSH0–PUSH32, DUP1–DUP16, DUPN, SWAP1–SWAP16,
+  SWAPN and EXCHANGE have local run and accounting laws (§7)
+  and the §4 facade controls. The full paid source correspondence and its
   fetch premise (§7) still need proofs.
-  PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
+  The MSIZE scalar cast, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
 - **RETURN and REVERT supplied.** §§3/4/5/7 own the two Q92
@@ -3503,7 +3986,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
+  constructor, two policy projections and raw and source controls. The runner
+  must still assemble it with the mutable child frame and execute the child.
 
 - **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
   source sites and the private complete facade clients. The runner still needs
@@ -3521,7 +4008,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-- **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+- **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,
@@ -3549,6 +4036,14 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
 
+- **Standalone KECCAK supplied.** §§3/4/5/7 own its ordered run, byte and
+  local Id accounting laws and bounded controls. Source dispatch and trace,
+  generic oracle coupling, whole-runner G2 and resource bounds, and guest
+  execution remain open.
+- **Standalone EXTCODECOPY supplied.** §§3/4/5/7 own the ordered local
+  run and State equations, exact bytes, Id accounting and bounded controls.
+  Related source traces, dispatcher integration, composed resources and
+  guest execution remain open.
 - **R-DEL-1 designator functions supplied.** §§3/4/5/7 own the marker,
   recognition, address extraction, complete byte laws and bounded controls.
   Public length exports and the composed caller obligations remain open.
@@ -3576,10 +4071,17 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Dispatch, guest fault propagation, composed source refinement and
   constructor freezing (DECISIONS B14) remain open.
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
-- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
-  standalone handlers in §5 and compare denial, paid stack overflow,
-  paid raw conversion fault and successful push at the selected fee
-  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
+- **GASPRICE and BASEFEE standalone handlers supplied (Q93).** §§3/4/7 own
+  the ordered action equations and complete controls. Actual source entry
+  refinement and trace, dispatch, runner propagation and composed progress
+  remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
+- **PC and GAS integration (Q95).** The standalone handlers, local laws
+  and controls are supplied (§§3–5 and §7). Prove the pinned source relation,
+  the actual caller bounds in EthVmCore R-EXC-2, dispatch, runner fault
+  propagation and composed progress.
+- **Byte-size handlers supplied (Q94).** §§2–5 and §7 cover the three
+  standalone entries, local laws and controls. Actual caller field
+  relations, dispatch and proof of the pinned source relation remain open.
 - **Standalone SELFBALANCE supplied.** §§3/4/5/7 own the handler,
   complete private run equations and bounded direct controls. Interpreter
   traces, dispatch, composed State, fuel and resource gates remain open.
@@ -3592,6 +4094,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.
-- **Static LOG precedence** (charge and expand before the static check) is observable only in traces; traces are diagnostics (§7 of ARCHITECTURE), so the Lean trace schema must decide whether it records it.
+- **LOG integration.** The local action returns the paid expanded frame on
+  static failure (§§3–5 and §7). Prove the pinned source relation, dispatch,
+  runner rollback and receipt incorporation. Composed progress and resource
+  bounds remain open.
 - **`Ops` enum line numbers**: the constant block spans `I/__init__.py:32–220`; the `partial` aliases (push1…) are not inventory items and are covered by `pushN`/`dupN`/`swapN`/`logN`.
 - **Precompile-addressed code under delegation** (R-DEL-4) is inferred from the runner branch; no dedicated fixture located.
