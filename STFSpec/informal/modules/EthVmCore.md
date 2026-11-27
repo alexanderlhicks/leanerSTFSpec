@@ -2185,8 +2185,7 @@ instance instDecidableChildSettled (child : Frame) (failed : Bool) :
     Decidable (ChildSettled child failed)
 -- Non-top child meter: committed spill = 0; if failed, spill/refund = 0 and reservoir = baseline.
 -- Includes the exact unconditional and failed-child side conditions of __init__.py:221,226–228 (L-SETTLE).
--- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
--- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
+-- The internal non-top runner result carries this proof (F11; EthVmRunner §7).
 -- Supplied pure merge of a settled child.
 def incorporateChild (parent child : Frame) (childFailed : Bool)
     (h : ChildSettled child childFailed) : Frame
@@ -3410,7 +3409,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-1 (VM-internal Python faults): resolved by D14 (accepted), CONTRACT O13 and DECISIONS B14 (Q23); the constructors are those of R-EXC-2, frozen once this module's failure-ledger entries close.
 - NEW-VM-3: resolved by D27 (DECISIONS Q25).
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
-- **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
+- **F11** (adopted): the internal non-top runner result carries `ChildSettled`
+  (EthVmRunner §7). Proof production through execution remains open.
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
 - **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent; memory pricing’s policy-threading contract is owned separately by Q63.
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
@@ -3466,7 +3466,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   cover the predicate boundary. EthVmInstructions §7 supplies zero committed spill at child entry.
   Preservation through execution, runner child settlement and snapshots,
   proof production and resume integration remain open. EthVmRunner §3
-  supplies the proof-taking result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
+  supplies the proof-taking result adapter. The F11 producer proof, generic Q83 bridges, G1/G2–G7,
   S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly

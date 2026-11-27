@@ -1163,10 +1163,21 @@ Every option retains the complete assembled Q47 domain and source host
 premises for standard wire correspondence. An allocation-sensitive outer route
 would need a measured cost case.
 
+**Non-top child settlement options (F11).** DECISIONS F11 adopts option B.
+EthVmRunner §7 owns the producer and continuation contracts.
+
+| Option | Boundary and proof obligation |
+|---|---|
+| A. Check the raw result | Check `ChildSettled` after execution. A new checked internal error would require a payload and an unreachability proof. |
+| B. Carry the settlement proof | Return `{r : FrameResult // ChildSettled r.frame r.error.isSome}` from the internal non-top route. Prove settlement at the producer and feed that proof to the existing continuation adapter. |
+
+The bound on returned child potential and strict iteration progress require
+their own proofs.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
-- Open obligations from the interface prototype (DECISIONS §3): **F6** storage-trie memo ownership, lifetime and triggers; **F7** clear iteration order in the witness root; **F11** how `ChildSettled` is produced; **O2** request-root unreachability proof.
+- Open obligations from the interface prototype (DECISIONS §3) include **F6** for storage-trie memo ownership, lifetime and triggers, **F7** for clear iteration order in the witness root, and **O2** for the request-root unreachability proof.
 - The fuel budget policy Φ + 1 (B11; the fuel-adequacy investigation, [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
 - **Compilation (future work).** A compiler from the spec to a verified assembly shape comes only after the guest assembly (evm-asm, or Pancake with autoresearch-style optimisation) has been fine-tuned and verified; veir or Lean's IR become relevant then. Nothing in the current phase depends on it. Keep abstract types behind interfaces so that implementations can refine representations locally.
 

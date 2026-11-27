@@ -1951,8 +1951,8 @@ structure CreateRequest where
   initCode : Bytes; newAccountCharged : Bool
 structure ChildOutcome where
   frame : Frame; output : Bytes; error : Option FrameError
-  settled : ChildSettled frame error.isSome                -- EthVmCore L-SETTLE; the runner's way of
-                                                           -- producing it is open (F11, EthVmRunner §9)
+  settled : ChildSettled frame error.isSome                -- EthVmCore L-SETTLE; internal runner
+                                                           -- return supplies it (F11, EthVmRunner §7)
 
 -- Named resume operations (public, pure, total). CREATE resume is supplied.
 -- The config supplies the new-account price (F10). The StepResult constructor supplies hs.
@@ -4064,7 +4064,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Q92** owns the selected raw RETURN and REVERT charge rule (§§2.9/7).
 - **Q94** settles the raw byte-size word rule (§§2 and 7).
 - **Q95** settles the raw PC and GAS conversions (§§2 and 7).
-- **F11** (open): how the runner produces the `ChildSettled` proof in `ChildOutcome` (EthVmRunner §9).
+- **F11** (adopted): the internal non-top runner return carries the
+  `ChildSettled` proof (EthVmRunner §7). The actual producer remains open.
 
 ## 10. Gaps
 
@@ -4127,8 +4128,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   ChildSettled predicate and constructive Decidable instance. Non-top
   committed-spill-zero preservation, call/create settlement and snapshots,
   returned proof production and runner resume integration remain open.
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  EthVmRunner §7 owns the adopted proof-carrying route. The settled executor
+  and generic Q83 effect bridge remain open.
 
 - **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 

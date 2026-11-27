@@ -91,10 +91,9 @@ The spec guidance documents' Lean-like signatures are informal by design (`CONTR
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
 
 ### X15. Open interface obligations from the interface prototype
-Four items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
+Three items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
 - **F6:** memo ownership, lifetime and decode triggers for storage tries (EthStateWitness). Cache mechanics stay outside semantic state; this is a DEBT candidate until settled.
 - **F7:** the iteration order of storage clears in the witness root replay (EthState, EthStateWitness). It must agree on failures and observations, not only on roots.
-- **F11:** how the runner produces `ChildSettled` (EthVmRunner).
 - **O2:** the proof that request-root computation cannot fail on decoded values (EthStateless).
 
 **Owners:** as listed.
@@ -767,7 +766,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   cover the predicate boundary. EthVmInstructions §7 supplies zero committed spill at child entry.
   Preservation through execution, runner child settlement and snapshots,
   proof production and resume integration remain open. EthVmRunner §3
-  supplies the proof-taking result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
+  supplies the proof-taking result adapter. The F11 producer proof, generic Q83 bridges, G1/G2–G7,
   S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
@@ -991,8 +990,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   ChildSettled predicate and constructive Decidable instance. Non-top
   committed-spill-zero preservation, call/create settlement and snapshots,
   returned proof production and runner resume integration remain open.
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  EthVmRunner §7 owns the adopted proof-carrying route. The settled executor
+  and generic Q83 effect bridge remain open.
 
 - **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
@@ -1148,10 +1147,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   call/create settlement and snapshots, returned proof production and runner
   integration remain open. EthVmInstructions §7 proves local CREATE progress
   through resume under the separately required child-return Φ bound (G2).
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  F11 chooses the proof-carrying return. Implement the producer and the
+  generic Q83 effect bridge.
 
-- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented. The F11 producer and G2–G7 proofs remain open, including exhaustion unreachability.
 
 - **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
   the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
@@ -1226,7 +1225,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14). The F11 producer proof and G2–G7 remain open.
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing and
   the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and the Q83
@@ -1359,7 +1358,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented. The F11 producer proof, G2–G7 and internal-error freedom remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
