@@ -1034,10 +1034,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
-  complete byte-result law, and the standalone IDENTITY entry and its local laws.
-  IDENTITY's normal form, table installation, runner settlement and guest integration
-  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
-  standalone IDENTITY controls leave the host, security and resource gates open.
+  complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
+  entries and their local laws. MODEXP's three Nat pricing helpers and
+  minimum-charge law are supplied. Its descriptor checks, exponent-head
+  read, payment, exponentiation and output remain open. Normal forms,
+  table installation, runner settlement and guest integration remain open. The 917-source and 926 interpreted/native Kzg
+  comparisons and the standalone controls leave the host, security and resource
+  gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,
@@ -1070,11 +1073,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   suite exists in EEST sources but not in the zkevm corpus; `test_bls12_precompiles_before_fork`
   and `test_eip_mainnet` fixtures are absent; there is no ECRECOVER area beyond `frontier` and
   `stPreCompiledContracts2` [V: fixture index and file list].
-- **RIPEMD-160 and BLAKE2 F providers are supplied by `EthHash`** (`Hash.ripemd160`,
-  `Blake2b.getParameters`, `Blake2b.compress`; EthHash §3). The `ripemd160` and `blake2f`
-  precompile functions that consume them, with gas charged before the computation, remain
-  unimplemented. `EthHash` owns RIPEMD-160 (its R4), although EELS calls `hashlib` directly in
-  `ripemd160.py`.
 - **Performance unmeasured.** No numbers exist for pure-Lean MODEXP at 8192 bits, BLS12-381 MSM
   at `k = 128`, or pairings; the cost envelope in §6 is analytical.
 - **Mathematical-correctness proofs (ii)** inherit every gap of `EthCurveMathlib` and
