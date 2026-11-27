@@ -114,6 +114,7 @@ import STFSpec.Conformance.Block.HeaderRlpControls
 import STFSpec.Conformance.Block.HeaderCallerProofs
 import STFSpec.Conformance.Block.ReceiptCallerProofs
 import STFSpec.Conformance.Block.ReceiptGuards
+import STFSpec.Conformance.Block.ReceiptRlpControls
 import STFSpec.Conformance.Block.WithdrawalCallerProofs
 import STFSpec.Conformance.Block.WithdrawalGuards
 import STFSpec.Conformance.Block.WithdrawalSszControls

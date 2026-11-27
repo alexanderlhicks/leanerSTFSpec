@@ -5,6 +5,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Block.Header
 import STFSpec.Block.HeaderRlp
 import STFSpec.Block.Receipt
+import STFSpec.Block.ReceiptRlp
 import STFSpec.Block.Withdrawal
 import STFSpec.Block.WithdrawalRlp
 import STFSpec.Block.WithdrawalSsz
@@ -26,7 +27,7 @@ Library `EthBlock`. Its allowed dependencies are listed in `scripts/boundaries.t
 ordered request commitment and logs bloom helpers, raw block and transaction parameters and
 system address/budget records, raw receipts and their envelope variants, raw headers
 and common parent projections are supplied. The raw withdrawal carrier has a forward
-RLP model and a certified SSZ dictionary. `Header`, `PrevHeader` and `ParentHeader`
-have forward RLP models. The remaining pipeline is scaffolding.
+RLP model and a certified SSZ dictionary. `Receipt`, `Header`, `PrevHeader` and
+`ParentHeader` have forward RLP models. The remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

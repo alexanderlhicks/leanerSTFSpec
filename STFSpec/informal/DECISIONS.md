@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-11-24. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-11-27. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -168,6 +168,7 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 | Q93 | GASPRICE and BASEFEE raw fee conversion sites | **Accepted by the maintainer (2026-11-24).** Choose A in ARCHITECTURE §11. Retain the raw Nat fee fields and the class-free `Handler` alias. The operations require a `Monad` instance. `VmFault.u256Overflow` identifies the distinct `OverflowSite.gasPrice` and `OverflowSite.baseFee` sites. The selected opcode pays its configured tariff before checking its selected fee for U256 conversion and before attempting the push. EthVmCore R-EXC-2 owns the raw fault seam and caller bounds. EthVmInstructions §2 and §5 own the handler contract. Both sites are raw diagnostics outside the CONTRACT O13 enumeration. |
 | Q94 | Raw byte-size words | **Accepted by the maintainer (2026-11-24).** Select A in ARCHITECTURE §11 for CALLDATASIZE, CODESIZE and RETURNDATASIZE. Keep the class-free `Handler` alias. The operations require a `Monad` instance and apply `U256.ofNat` after the selected execution charge. The local fitting-length premise applies to the exact whole-size result. Denial and paid full-stack laws use arbitrary raw sizes. EthVmInstructions §§2–5 and §7 own the contract, and §10 records the remaining composition and source refinement. CONTRACT owns O12 and O13. [Issue #510](https://github.com/alexanderlhicks/leanerSTFSpec/issues/510) |
 | Q95 | PC and GAS raw conversion sites | **Accepted by the maintainer (2026-11-24).** Select A in ARCHITECTURE §11 for PC and GAS. Keep the class-free `Handler` alias and require a `Monad` instance on the operations. Charge first and then check the entry PC or the paid execution balance with `U256.ofNat?` before any push. The sites are `OverflowSite.pc` and `OverflowSite.gasLeft`. EthVmCore R-EXC-2 owns the fault seam and exact local caller premises, and EthVmInstructions §§2–5 and §7 own the action contract. CONTRACT owns O13. [Issue #513](https://github.com/alexanderlhicks/leanerSTFSpec/issues/513) |
+| Q99 | Forward receipt RLP and embedded log visibility | **Accepted by the maintainer (2026-11-27).** Select A in ARCHITECTURE §11. Export exactly the named `Receipt.instRlpEncode` through the Block facade and keep `logItem` private. EthBlock §5/§7 owns the total four-field model with complete bloom, log, topic and data bytes. Pinned wire agreement uses the assembled Q47 premise, exact source dispatch and conversion, and successful host execution. EthBlock §10 owns remaining receipt obligations. Revisit for a named standalone log consumer or changed source schema. |
 
 ## 5. Adding or changing a decision
 

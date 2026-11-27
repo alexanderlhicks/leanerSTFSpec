@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-24). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-27). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -1120,6 +1120,16 @@ raises before either a successful push or a full-stack halt.
 | B. Shared checked site | Preserve the branch order using one site. The surrounding opcode or trace supplies which source operation failed. |
 | C. Modular word | Use `U256.ofNat`. A frame with room pushes zero at the first oversized value. A full stack reaches its paid halt. Paid source correspondence uses the fitting premise. |
 | D. Caller proof | Require a proof on the selected value. A proof conditional on payment admits the raw denied branch. Dispatch then needs the selected tariff and a fitting proof for every paid call, or a raw wrapper with its own policy. |
+
+**Receipt RLP options (Q99).** DECISIONS Q99 owns the selection. Each option
+uses the same Receipt instance, the complete EthBlock §7 model and the same
+source premises. D27 keeps the Log carrier in EthVmCore.
+
+| Option | Scope of the embedded log model |
+|---|---|
+| A. Private model | Only the Receipt instance exposes the forward operation. EthBlock keeps `logItem` private. |
+| B. Named public model | EthBlock also exports `logRlpModel : Vm.Core.Log → Codec.RlpItem` for explicit calls. |
+| C. Nominal dictionary | EthBlock also exports `instRlpEncodeLog : Codec.RlpEncode Vm.Core.Log`. Importing the Block facade selects a Log encoding for other callers. |
 
 ## 12. Not yet decided
 

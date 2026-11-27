@@ -1179,12 +1179,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
-- **Raw receipts:** The R-RCPT record and both envelope constructors are supplied
-  with private facade proofs and interpreted storage guards (§§3–5). Receipt RLP,
-  encoding and decoding envelopes, receipt production, Q53 receipt trie inputs and
-  request integration remain open. The required decode path in R-RCPT consumes
-  produced receipts. Completion on arbitrary typed bytes is open. For a decodable
-  body with an unknown prefix, pinned EELS raises on the prefix assertion when
+- **Raw receipts:** The R-RCPT carriers and forward RLP model are supplied
+  (§§3–5 and 7). Typed envelope dispatch, receipt decoding and production, Q53
+  receipt trie inputs and request integration remain open. The required decode
+  path in R-RCPT consumes produced receipts. Completion on arbitrary typed bytes
+  is open. For a decodable body with an unknown prefix, pinned EELS raises on the prefix assertion when
   assertions are enabled and decodes the body when they are disabled
   (`src/ethereum/forks/amsterdam/blocks.py:432–434`).
 
