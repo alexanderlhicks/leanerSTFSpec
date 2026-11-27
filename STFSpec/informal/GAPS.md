@@ -1466,7 +1466,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Quantitative query budgets.** `queryBudget x σ` must be computed from the executable spec (nodes decoded, roots recomputed, headers hashed); no bound function exists yet, and the stateful side's `mathStateRoot` makes it linear in `|σ|`.
 - **Completeness/liveness** (DECISIONS Q13) is not stated: nothing guarantees that an honest prover's witness is accepted.
 - **Consumers' composition.** How evm-asm's or pancaketh's refinement theorem composes with these statements (their toolchains are v4.33.x; a Mathlib version conflict with evm-asm) is unresolved.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The public-key hint was removed upstream (execution-specs PR #3652; EthStateless §10), together with the `witness_public_keys` fixture area. R8's sentence on the hint and the `some x.publicKeys` argument in §5 still describe `tests-zkevm@v21.0.0`.
+- **Sender recovery in block agreement (P1, O5, X16).** R8 and §§5/7 follow the
+  current payload interface and sender-recovery path. The simulation of reached
+  recovery steps and the sender-recovery refinement remain proof obligations (§7).
 
 ### [`ToVCVio`](modules/ToVCVio.md)
 
