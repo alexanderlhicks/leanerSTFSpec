@@ -716,6 +716,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateFull`](modules/EthStateFull.md)
 
+- **Backend integration:** §3 supplies the carrier and `ofMath`. Provider
+  construction, lookups, root computation, updates and operational equality
+  remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - `CodeComplete σ` (every account's code hash is stored) is assumed for fixtures, not checked.

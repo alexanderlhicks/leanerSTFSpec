@@ -1,6 +1,6 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft; unimplemented. Date: 2026-11-05. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The full-state carrier and `ofMath` are supplied. Backend operations are open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
 Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -23,7 +23,7 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 
 | EELS item | Line | Spec declaration | Notes |
 |---|---|---|---|
-| `state_mpt.py::State` | 34 | `FullState` (a `MathState` with `WF`) | code store excluded from equality |
+| `state_mpt.py::State` | 34–47 | `FullState`, `FullState.ofMath` | The supplied FS1 carrier retains all three mathematical maps and their two invariant proofs. EELS excludes the code store from its dataclass equality. |
 | `state_mpt.py::State.get_code` | 49 | `FullState.toPreState.getCode` | |
 | `state_mpt.py::State.get_account_optional` | 59 | `….getAccount?` | |
 | `state_mpt.py::State.get_storage` | 67 | `….getStorage` | |
@@ -37,8 +37,25 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 
 **External semantics.** Python `dict` copy/update (value semantics in Lean); the `Trie` functions from `merkle_patricia_trie.py` (`EthCommit`).
 
+### Implemented full-state carrier (FS1)
+
+At `59c1473d`, `state_mpt.py:34–47` defines an account trie, per-address
+storage tries and a hash-indexed code store. `STFSpec/StateFull.lean` supplies
+the guided `FullState` record over `MathState`. Its two proof fields establish
+structural well-formedness and raw code authenticity.
+`FullState.ofMath (σ : MathState) (hwf : MathState.WF σ) (hc : CodeAuthentic σ) :
+FullState` returns the supplied state and proofs by construction. It is pure
+and total for these inputs. The private projection and reconstruction checks
+in §4 retain the complete input state. The operational equality policy and
+backend operations remain open (§10).
+
 ## 4. Tests
 
+- **Carrier (FS1):** `STFSpec/Conformance/StateFull/CarrierChecks.lean`
+  verifies all three projections and reconstruction. It checks an empty
+  state and a state with a present account whose nonreserved code hash is
+  missing from an authentic empty code table. The latter uses the public
+  mathematical account and code observers.
 - **EEST:** all `blockchain_tests` and `blockchain_tests_engine` areas (295 area directories in `STFSpec/informal/eest-fixture-index.txt`) run through this backend in `EthConformance`, checking every post-state root; multi-block fixtures exercise `applyChanges`.
 - **EELS unit tests:** `tests/json_loader/test_genesis.py` (genesis roots via `store_code`/`set_account`/`set_storage`); `helpers/load_blockchain_tests.py` is the reference runner.
 - **`core` `#guard` cases:** empty state root; a diff that clears an address and rewrites one slot (root equals building the post-state from scratch); a diff deleting an account (its storage trie dropped by the clear); `getCode` of `emptyCodeHash` and of a missing hash.
@@ -108,6 +125,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-STATE-2: resolved: DECISIONS B2 (Q30) (FS2).
 
 ## 10. Gaps
+
+- **Backend integration:** §3 supplies the carrier and `ofMath`. Provider
+  construction, lookups, root computation, updates and operational equality
+  remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
