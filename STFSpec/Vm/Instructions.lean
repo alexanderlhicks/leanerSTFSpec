@@ -12,9 +12,19 @@ import STFSpec.Vm.Instructions.Comparison
 import STFSpec.Vm.Instructions.Bitwise
 import STFSpec.Vm.Instructions.Pop
 import STFSpec.Vm.Instructions.ControlFlow
+import STFSpec.Vm.Instructions.MemoryWords
 import STFSpec.Vm.Instructions.Stop
 import STFSpec.Vm.Instructions.Push
 import STFSpec.Vm.Instructions.Dup
+import STFSpec.Vm.Instructions.ReturnRevert
+import STFSpec.Vm.Instructions.ContextWords
+import STFSpec.Vm.Instructions.DynamicSwap
+import STFSpec.Vm.Instructions.Balance
+import STFSpec.Vm.Instructions.SelfBalance
+import STFSpec.Vm.Instructions.Sload
+import STFSpec.Vm.Instructions.BlobHash
+import STFSpec.Vm.Instructions.BlockHash
+import STFSpec.Vm.Instructions.CallDataLoad
 import STFSpec.Vm.Instructions.Tload
 import STFSpec.Vm.Instructions.Tstore
 import STFSpec.Vm.Instructions.Ops
@@ -33,7 +43,15 @@ handlers AND/OR/XOR/NOT/BYTE/SHL/SHR/SAR/CLZ have ordered run and accounting law
 The standalone stack handler POP has ordered run laws, exact Id accounting and
 strict progress at positive prices.
 JUMP, JUMPI and JUMPDEST have complete run equations and local Id accounting laws.
-Fixed DUP and DUPN have ordered run laws and local Id accounting laws.
+Fixed DUP, DUPN, SWAPN and EXCHANGE have ordered run laws and local Id accounting laws.
+Nine bounded context-word handlers have complete run and local Id accounting laws.
+BALANCE and EXTCODEHASH supply local warmth, charge and State-read equations.
+SELFBALANCE and SLOAD have complete local run equations for their State reads.
+BLOBHASH and BLOCKHASH supply local lookup and accounting laws. BLOCKHASH also
+records the missing-ancestor fault and the State R27 action.
+CALLDATALOAD supplies exact frame and padded-word equations.
+MLOAD, MSTORE and MSTORE8 have local run, memory and accounting laws.
+RETURN and REVERT have ordered terminal run laws.
 Standalone TLOAD and TSTORE have private local action equations.
 PUSH0 through PUSH32 have complete run equations and local Id accounting laws.
 The settled `ChildOutcome` carrier and its supplied local proof are also available.

@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft. Selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, output records, child outcome conversion, checked control carriers and F14 VM adapter supplied. Date: 2026-11-21. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, output records, child outcome conversion, checked control carriers, F14 VM adapter and local precompile adapter supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83, Q91.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -110,6 +110,12 @@ execution/fuel/resource/readiness obligations remain open.
 |---|---|---|---|
 | Project adapter for the incorporation assertions at `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` and child error handling at `src/ethereum/forks/amsterdam/vm/interpreter.py:449–465` at `59c1473d` | `FrameResult.toChildOutcome (r : FrameResult) (h : ChildSettled r.frame r.error.isSome) : ChildOutcome` in `STFSpec/Vm/Runner/Output.lean`, exported by `STFSpec.Vm.Runner` | Any result with the stated proof. Pure record construction preserves the frame, output, error and supplied proof. | Supplied definition. Private `OutputCallerProofs` and `OutputControls` clients (§4). |
 
+### Supplied local precompile adapter
+
+| Source / operation | Lean declaration and type | Domain, effects and ordered failures | Client / status |
+|---|---|---|---|
+| `interpreter.py:432–436,450–459` and `gas.py:493–517,650–663` at `59c1473d` | `runPrecompile {m} [Monad m] : PrecompileFn m → Frame → Bytes → m FrameResult` in `STFSpec/Vm/Runner/RunPrecompile.lean`, supplied through `STFSpec.Vm.Runner` for internal runner use | All supplied actions, complete frames and inputs. One literal base bind passes the input and incoming meter. Successful results install the returned meter and output. A halt settles the entry meter by restoring state gas and then forfeiting execution gas, and returns empty output with the supplied halt error. | Private `RunPrecompileControls` equations and complete frame controls (§4/§7). `processCall` owns table routing and snapshot restoration. |
+
 ### Supplied mathematical budget vocabulary
 
 | Source/model | Lean declaration | Domain, effects and failures | Validation |
@@ -190,6 +196,8 @@ corresponding EELS function and asserts no source execution correspondence.
 | None (F14 project adapter) | `runVmChecked {m : Type → Type} [Monad m] {α : Type} (action : VmM m (Except InternalError α)) (world : VmWorld m) : m (CheckedResult VmFault (α × VmWorld m))` in the same module | Every complete action, world, payload and fault; one supplied base bind followed by one pure; VM fault → `.ok (.error vf)`, internal failure → `.error i` with its world erased, success → `.ok (.ok (a, after))`. No lawful-monad, hash, WF or coherence premise | Same private client: public equation, complete Id channels/world updates, lawful effects, base failures and nonlawful map distinction; supplied, sole ordinary law `runVmChecked_eq` discharged |
 
 ## 4. Tests
+
+- **Supplied precompile adapter controls.** `RunPrecompileControls` uses the actual Runner facade. Private ordinary proofs check the complete literal action and Id branches, the conditional settlement equality after an execution-only debit, the Q83 successful installed Id bound and an underlying `Option` failure. Complete frame controls check one stateful invocation with the incoming bytes and all meter fields, the returned meter and output, and three nominal halt payloads. The output and frame return data have distinct inputs. A pinned `process_call` comparison checks identity success and gas denial and BLAKE2F invalid-flag halts with and without an initial execution debit, in both source modes.
 
 - **Supplied entry-kind clients:** `ExecKindCallerProofs` imports the public Runner
   facade and privately checks all three nullary constructor types, exhaustive
@@ -319,8 +327,9 @@ structure TransactionOutput where
 def runFrame      (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) (fuel : Nat) : RunM m FrameResult
 def processCall   (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
 def processCreate (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
--- The table action stays in base m; Q83 does not supply a VmM/RunM transformer bridge.
-def runPrecompile (p : PrecompileFn m) (f : Frame) (input : Bytes) : m FrameResult   -- internal; installs the returned meter (R-LOOP-3)
+-- Supplied internal adapter. The table action stays in base m (R-LOOP-3).
+def runPrecompile {m : Type → Type} [Monad m]
+    (p : PrecompileFn m) (f : Frame) (input : Bytes) : m FrameResult
 
 -- Top level (public)
 def chargeValueTransferToNonAliveAccount (cfg : VmConfig) (g : GasMeter) (recipient : Address) (value : U256) : VmM m (Except ExceptionalHalt GasMeter)
@@ -447,7 +456,9 @@ These are separate results: 2 does not give a computable budget and 4 does not g
 
 **Resume and depth** [C]: `childCtxOf*` produces `depth + 1 ≤ 1024`; the EELS depth guard is provably dead (R-CALL-1).
 
-**Precompile dispatch** [C]: `processCall` on a precompile address with `disablePrecompiles = false` equals `runPrecompile` after the value transfer; with `true` it succeeds with empty output without running the precompile or code (`interpreter.py:432–436`). On success the runner installs the returned meter and output, without charging again. On halt it applies the ordinary frame-halt settlement. At Id, `satisfiesM_id_iff` turns `meter_law` into the successful local meter bound, including both spill pools. For generic m the actual dispatch/lift requires its own effect bridge. Settlement remains a separate proof; no opcode proof depends on precompile internals (Q83).
+**Local precompile adapter (supplied).** `runPrecompile` binds `p input f.gasMeter` and returns the branch via `pure`. Success replaces the complete meter and sets the output with an empty error. Halt replaces the meter with `forfeitRemainingGas (restoreStateGas f.gasMeter)`, using the zero-pending-spill postcondition of the restore. The reservoir returns to its baseline, execution gas, pending spill and refund become zero, and the baseline and committed spill are retained. Output is empty and the error is `.halt e`. Both branches preserve every other frame field, including `returnData`. The halted result is equal for two entry meters related by changing only execution gas. At Id, Q83 bounds successful installed actions and shows that their returned meters differ only in execution gas. The arbitrary-monad equation retains underlying effects and failure. These checks are private Conformance clients.
+
+**Precompile dispatch** [C]. The planned `processCall` runs `runPrecompile` after value transfer for a recognized address with `disablePrecompiles = false`. With `true` it succeeds with empty output and consumes neither the precompile nor the code. The checked-world lift and Q83 effect bridge remain open. `processCall` owns restoring the world snapshot on error. See `interpreter.py:432–436,467–468`.
 
 **Authorizations** [C]: `setDelegation` fails only with `outOfGas`; on failure the caller's snapshot restore undoes every applied authorization (R-TOP-2); the `AUTH_BASE` charge is paid at most once per authority per transaction and never credited back (the EELS docstring's claim, `eoa_delegation.py:253–258`, to be proved).
 
@@ -507,12 +518,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
 
-- **Precompile interpretation (Q83):** Core supplies only the raw shared carriers,
-  transparent MeterOk (Core §3/§5) and the Q83 predicate and Id law (EthVmCore §7). The
-  table action stays in base m; actual lifting through VmM/RunM and their
-  transformer/error order requires an explicit local bridge. Dispatch, separate halt
-  settlement and potential proofs remain open. This adds no observer API, base-error
-  reinterpretation, F11 choice or G2–G7 claim.
+- **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
+  the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
+  and local frame-halt meter settlement (§3/§4/§7). The installed table, routing,
+  checked lift and its effect bridge, value transfer, world snapshot restoration
+  and composed settlement and potential proofs remain open.
 
 - **Output records and child outcome conversion are supplied.** §3/§4/§5/§7 own
   the records, proof-taking adapter and private facade clients. Actual

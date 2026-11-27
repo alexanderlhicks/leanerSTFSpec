@@ -379,11 +379,12 @@ through the public facade. It covers empty input, gas word boundaries at
 a leading-zero digest and zero, flat, per-word and larger-than-U256 tariffs.
 Two guards check the absence of Keccak queries on payment and denial.
 
-The interpreted and native facade results match 36 direct cases per
+The original instrumented comparison matches 36 direct cases per
 pinned Python mode. Each comparison uses the complete charged meter and
 output bytes on success, or the OOG tag on denial. Native observation
 records the actual charge call in all 36 cases and exactly one complete
-input digest call after each of the 24 successful charges.
+input digest call after each of the 24 successful charges. The separate
+orchestrator comparison exercises 14 cases per mode.
 
 **Supplied RIPEMD160 controls.**
 `STFSpec/Conformance/Precompiles/Ripemd160Controls.lean` compares the full
@@ -392,10 +393,11 @@ empty, gas-word and compression-padding boundaries, a leading-zero digest,
 and independent configured tariffs, including zero and above-U256 values.
 The paid and denied query-counter controls retain the supplied counter.
 
-Both facade modes match 36 direct pinned source cases under normal and
+The original instrumented comparison matches 36 direct pinned source cases under normal and
 optimized Python with the working host provider. The linked observations
 verify a charge in each case. Each of the 24 paid calls hashes the complete
 input and pads the 20-byte digest to 32. Each denied call skips both operations.
+The separate orchestrator comparison exercises 15 cases per mode.
 
 **Supplied BLAKE2F controls.**
 `STFSpec/Conformance/Precompiles/Blake2fControls.lean` covers the complete
@@ -405,10 +407,11 @@ and above-U256 tariffs. The maximum UInt32 round count is parsed and rejected
 by the charge or flag check. Four query-counter guards cover the four
 branches through the facade.
 
-Both facade modes match 23 direct source cases in normal and optimized Python.
+The original instrumented comparison matches 23 direct source cases in normal and optimized Python.
 The linked observations record no parsing on the four wrong lengths, one
 parse and charge on each sized input, and eight compression calls, all after
-payment and with their complete parsed words and counters.
+payment and with their complete parsed words and counters. The separate
+orchestrator comparison exercises 15 cases per mode.
 
 **Supplied KZG controls.** The single canonical catalog
 `STFSpec/Conformance/Precompiles/kzg-versioned-hash-cases.json` retains every byte of
@@ -438,7 +441,9 @@ remains the primary specification.
 checks the public facade at the 32/33 and 40/41 width boundaries, the
 exponent width discontinuity, zero and nonzero heads, the floor at 500,
 and wide Nat inputs. A private client uses the ordinary floor law on
-arbitrary inputs. Thirty fresh helper cases agree with both pinned
+arbitrary inputs. The guide records a thirty-case helper comparison. The
+separate orchestrator replay covers 29 source cases per mode and three
+mathematical cases. The thirty-case comparison agrees with both pinned
 Python modes through interpreted and native Lean. Three further
 comparisons use an independent integer model for inputs above the
 U256 domain of the source helpers. The 1024/1025 cases exercise
