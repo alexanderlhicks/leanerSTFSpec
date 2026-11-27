@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list records and their forward RLP models, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list records with forward RLP models and typed hash, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q98.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -158,7 +158,8 @@ It returns `IntrinsicGasCost`.
   
   For every storage write, the slot is converted to `U256` from big-endian. If the value differs from the pre-value, `addStorageWrite` is called; otherwise `removeStorageWrite`, which deletes the slot's entry when it becomes empty (`:539`).
 - **Build** (`:827`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
-- **Hash**: `keccak (rlp bal)` (`:850`). **Gas limit** (`:859`): sum
+- **Hash.** Query Keccak once on the complete typed RLP bytes (`:850–856`, §3).
+- **Gas limit** (`:859`): sum
   `1 + |writtenSlots ∪ readSlots|` for each outer entry. A sum greater than
   `gasLimit / BLOCK_ACCESS_LIST_ITEM` [2000] raises `balGasLimitExceeded`.
   Repeated slots count once within an entry. Repeated accounts contribute at
@@ -292,7 +293,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/block_access_lists.py::_index_start_storage` | 747 | `BalBuilder.indexStartStorage` | memo per (index, address, slot) |
 | `forks/amsterdam/block_access_lists.py::update_builder_from_tx` | 765 | `updateBuilderFromTx` | called from `incorporate_tx_into_block` (seam, §8) |
 | `forks/amsterdam/block_access_lists.py::build_block_access_list` | 827 | `buildBlockAccessList` |  |
-| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | keccak(rlp) |
+| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | supplied typed hash, see below |
 | `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 859 | `validateBlockAccessListGasLimit` | items ≤ gasLimit / 2000 |
 | `forks/amsterdam/exceptions.py::WrongChainIdError` | 15 | `TxError.wrongChainId` |  |
 | `forks/amsterdam/exceptions.py::WrongChainIdError.__init__` | 23 | (constructor fields) | fields carried as constructor arguments |
@@ -376,6 +377,15 @@ locked `ethereum_rlp/rlp.py:66–135` (0.1.6) and requires the complete assemble
 source typed dispatch, conversions and host completion (Q47). Private clients
 check each whole model and the outer List assembly. Interpreted controls
 compare complete wire bytes (§4).
+
+### Implemented block access list hash
+
+`STFSpec/Block/BlockAccessListHash.lean`, exported by `STFSpec.Block`, supplies
+the typed hash in §5.
+
+| Pinned EELS source and domain | Lean declaration | Complete action and failures | Evidence |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:850–856`, `src/ethereum/crypto/hash.py:62–76`, locked `ethereum_rlp/rlp.py:66–135` (0.1.6). Every finite raw Lean `BlockAccessList`. Source agreement uses the assembled Q47 and source premises above and the concrete Keccak interpretation. | `hashBlockAccessList {m} [Monad m] [KeccakQuery m] : BlockAccessList → m Hash32` | Return exactly `KeccakQuery.keccak (Rlp.encodeOf bal.toList)`. Retain every occurrence in array order and pass through the complete supplied action, including any underlying effects or failures. There is no local failure or handler. | Private facade clients prove the complete action, its concrete `Id` equation and the recording instance's complete result and trace on arbitrary inputs. These local equations are discharged without `LawfulMonad`. §4 records complete finite source controls. |
 
 ### Supplied raw withdrawal
 
@@ -732,6 +742,14 @@ separate obligations.
   controls cover an empty array, one account, ordered distinct entries and a
   repeated account. Nested controls retain unsorted duplicates and overlapping
   read and written slots.
+
+- **Block access list hash.** `BlockAccessListHashControls.lean` imports the
+  Block facade and is built through `STFSpec.Conformance`. Its three interpreted
+  guards compare the complete query preimage and all 32 concrete digest bytes
+  with locked EELS observations. The inputs are an empty array, one account with
+  empty changes, and a raw unsorted array with a repeated account, repeated
+  nested entries and opaque code. A recording oracle checks one query before an
+  existing trace and retention of a supplied answer for every control.
 
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
@@ -1120,6 +1138,7 @@ def BalBuilder.{empty, setIndex, addStorageWrite, addStorageRead, addBalanceChan
   removeCodeChange, addTouchedAccount, build}
 def updateBuilderFromTx : BalBuilder → TxState m → m (Except WitnessError (BalBuilder × TxState m))
 def buildBlockAccessList : BalBuilder → BlockState m → BlockAccessList
+-- Supplied typed hash returns one query action on the complete outer encoding.
 def hashBlockAccessList : BlockAccessList → m Hash32
 def validateBlockAccessListGasLimit : BlockAccessList → Nat → Except BlockError Unit
 -- pipeline (the seam)
@@ -1396,12 +1415,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Block access list:** the six raw records, outer array alias, six forward
-  RLP models and private facade clients are supplied (§§3–5). The outer route
-  uses the ordered List instance. General source-wire correspondence retains
-  Q47 and the source typed-dispatch, conversion and host premises. Typed
-  decoding, builder construction, ordering, index accounting, read/write
-  disjointness, the slot-union gas check, hashing and block or guest integration
-  remain open.
+  RLP models and typed hash are supplied with private facade clients (§§3–5).
+  The outer route uses the ordered List instance. General source correspondence
+  retains assembled Q47, the source typed-dispatch, conversion and host premises,
+  and the concrete Keccak interpretation for the hash. Typed decoding, builder
+  construction, ordering, index accounting, read/write disjointness, the slot-union
+  gas check and block or guest integration remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual

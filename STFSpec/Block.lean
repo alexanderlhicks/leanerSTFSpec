@@ -16,6 +16,7 @@ import STFSpec.Block.TxParams
 import STFSpec.Block.SystemAddrs
 import STFSpec.Block.BlockAccessList
 import STFSpec.Block.BlockAccessListRlp
+import STFSpec.Block.BlockAccessListHash
 
 /-!
 # STFSpec.Block
@@ -28,7 +29,7 @@ ordered request commitment and logs bloom helpers, raw block and transaction par
 system address/budget records, raw headers, common parent projections and the raw
 withdrawal carrier with its forward RLP model and certified SSZ dictionary, the three
 raw header forward RLP models and the block access list carriers with their six
-forward RLP models are supplied.
+forward RLP models and typed hash are supplied.
 The remaining pipeline is scaffolding.
 Spec guidance: `STFSpec/informal/modules/EthBlock.md`.
 -/

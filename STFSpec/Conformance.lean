@@ -105,6 +105,7 @@ import STFSpec.Conformance.Block.WithdrawalRlpCallerProofs
 import STFSpec.Conformance.Block.WithdrawalRlpControls
 import STFSpec.Conformance.Block.BlockAccessListControls
 import STFSpec.Conformance.Block.BlockAccessListRlpControls
+import STFSpec.Conformance.Block.BlockAccessListHashControls
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Fork.AmsterdamWireLimitsGuards
