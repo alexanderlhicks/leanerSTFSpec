@@ -510,6 +510,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
+- **BAL pre-transaction read handoff:** §§3/4/7.2/8 supply the standalone
+  account and storage values, including the exact typed provider errors.
+  Incorporation, index-start memoisation, ordered write observers and
+  the G3 composition law remain open.
 - **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;

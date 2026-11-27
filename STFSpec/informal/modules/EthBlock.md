@@ -286,8 +286,8 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/block_access_lists.py::remove_code_change` | 585 | `BalBuilder.removeCodeChange` |  |
 | `forks/amsterdam/block_access_lists.py::add_touched_account` | 606 | `BalBuilder.addTouchedAccount` |  |
 | `forks/amsterdam/block_access_lists.py::_build_from_builder` | 625 | `BalBuilder.build` | sorted output |
-| `forks/amsterdam/block_access_lists.py::_get_pre_tx_account` | 690 | `preTxAccount` | internal; needs EthState observer |
-| `forks/amsterdam/block_access_lists.py::_get_pre_tx_storage` | 708 | `preTxStorage` | internal; needs EthState observer |
+| `forks/amsterdam/block_access_lists.py::_get_pre_tx_account` | 690–705 | `preTxAccount` | Standalone read supplied by EthState §3. |
+| `forks/amsterdam/block_access_lists.py::_get_pre_tx_storage` | 708–724 | `preTxStorage` | Standalone read supplied by EthState §3. |
 | `forks/amsterdam/block_access_lists.py::_index_start_account` | 727 | `BalBuilder.indexStartAccount` | memo per (index, address) |
 | `forks/amsterdam/block_access_lists.py::_index_start_storage` | 747 | `BalBuilder.indexStartStorage` | memo per (index, address, slot) |
 | `forks/amsterdam/block_access_lists.py::update_builder_from_tx` | 765 | `updateBuilderFromTx` | called from `incorporate_tx_into_block` (seam, §8) |
@@ -1407,7 +1407,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   1. `EthBlock` calls `updateBuilderFromTx` **first**, reading the un-merged block state;
   2. it then calls `EthState.incorporateTxIntoBlock`.
   
-  A law must show that the pair equals the EELS function. `EthState` must export read-only observers for `preTxAccount`/`preTxStorage`: the block-level account write, storage write, clear set and pre-state for one key, plus the block-level read sets consumed by `buildBlockAccessList`. **This is a requirement on G3.**
+  EthState §§3/7.2 supplies the read-only `preTxAccount` and `preTxStorage`
+  actions, and its §3 supplies the block-level read-set observers for
+  `buildBlockAccessList`. R-BAL specifies when the index-start memo layer
+  must capture each pre-value. The law that the paired
+  update and incorporation equal the EELS operation remains a requirement
+  on G3.
 - **Precompile table.** The runner needs the table (`vm/interpreter.py:167, 432` also uses its key set to warm addresses), and `EthBlock` may not import `EthPrecompiles`. It is therefore a field of `BlockConfig`, filled by `EthFork`.
 - **Guaranteed to callers.** On `.ok (.ok diff)`, the header's commitments equal the recomputed ones; `diff` is the block diff whose root is `header.stateRoot`, via `ModelsRoot`.
 
