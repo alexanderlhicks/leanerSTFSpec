@@ -532,7 +532,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
-- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport.** EthVmCore §3/§7 supplies the transfer-log
+  helper. EthVmInstructions §7 supplies local CREATE inheritance. The runner
+  has raw `RunnerEnv.systemAddress` storage. Copying in `createEvm`, composed
+  child transport, CALL inheritance and `processCall` emission remain open.
+  Required controls vary a supplied address independently of the topic through
+  user and system entry, nested CALL/CREATE and `processCreate` to `processCall`.
+  Check whole emitted logs, zero/self-transfer suppression and log discard
+  after child success and outer revert or halt. G2–G7, S2, F20 lifetime and
+  resource obligations remain separate.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

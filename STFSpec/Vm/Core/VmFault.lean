@@ -15,12 +15,20 @@ Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§2.6/3/4/5/7/10.
 
 namespace STFSpec.Vm.Core
 
-/-- The two supplied VM-local unsigned conversion sites (R-EXC-2). -/
+/-- The named VM-local unsigned conversion sites (R-EXC-2). -/
 inductive OverflowSite where
   /-- The BLOBBASEFEE price conversion; the actual check remains unimplemented. -/
   | blobBaseFee
   /-- A top-level refund-counter conversion; the actual checks remain unimplemented. -/
   | refundCounter
+  /-- The effective transaction gas-price conversion in GASPRICE. -/
+  | gasPrice
+  /-- The current block base-fee conversion in BASEFEE. -/
+  | baseFee
+  /-- The entry program-counter conversion in PC after payment. -/
+  | pc
+  /-- The paid execution-balance conversion in GAS. -/
+  | gasLeft
 
 /-- Nominal non-frame faults, distinct from exceptional halts and internal failures. -/
 inductive VmFault where
