@@ -686,9 +686,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Compact decoding scope:** Q48's empty diagnostic, lenient value model, canonical inverse/injectivity and accepted-wire normalization are discharged in §3/§7.0. The later extension-path rejection is supplied by the complete decoder (§3); witness/guest adapters and whole-trie/W1 proof remain unimplemented. Allocation replacement belongs to DEBT-COMPACT-DECODE; no arbitrary accepted-wire byte identity is claimed.
 - **Additional Nibbles interfaces:** future consumers use the supplied equality and lawful ordering in §3/§7.0. Any additional default-value or container-specific interface remains a scoped consumer obligation behind the private storage boundary.
 - **Unsecured-trie key properties:** the transaction/receipt/withdrawal tries use RLP-encoded indices as keys; whether they are prefix-free matters only for the branch-value case of `patricialize` and is not checked here.
-- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. Concrete encoding bridges remain open. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
+- **Typed-trie contracts (Q53):** generic storage, the `TrieValue` class, separate `NoDefault`/`PrepareSafe` laws, injective byte-lex `KeyBytes` and pure unsecured preparation with public clients are discharged in §3. Generic typed root and caller-empty-root equations of §5/§7.0.3 are supplied with public proof-only clients and §4 validation. EthBlock §3 supplies the Q97 withdrawal byte dictionary. Initial preparation/root proofs cover unsecured safe tries only; secure traversal/collisions/source history and generic coupling remain open.
 - **Existing-Bytes key adapter (Q54):** `instKeyBytesBytes`, its named exact-export `toBytes_bytes` equation and ordinary all-finite injection/order fields are discharged in §3, with private public-import complete generic map and root clients. Choosing a concrete Python key/equality/alias interpretation, consumer encoding/root agreement, actual map/preparation/root/retention/replacement and C1–C4 costs remains open; no raw ByteArray order, additional production value/default/equality instance or secured policy is supplied.
-- **`TrieValue` consumer instances (Q53):** EthBlock must supply valid legacy RLP and nonempty typed Bytes/withdrawal-already-RLP interpretations without double encoding. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
+- **`TrieValue` consumer dictionaries (Q53):** EthBlock §3 supplies Q97 for already encoded withdrawal bytes. Valid legacy transaction/receipt RLP and typed envelopes remain open. EthStateCommit owns contextual Account integration; this class does not furnish a bare Account instance. Concrete equality, schema/assembled `Encodable`, F20 and host premises remain required for source/root agreement.
 - **Host-side items** (C28) are specified at reduced depth; whether they belong in `STFSpec/informal/EXCLUDED.md` (G6) instead is undecided.
 - **EEST coverage** of witness malformations is thin: `eip8025_optional_proofs` covers missing nodes and extra nodes and, at v21.0.6, over-length secured paths (`witness_state_overlength`), not malformed RLP, bad node shapes, cycles or non-canonical encodings; the EELS unit tests cover node shapes only.
 - **`Std` caveats:** `ExtTreeMap` has no proved cost bounds; `HashMap` bounds are expected only, and adversarial key distributions for `NodeDB` are unmeasured (keys are keccak outputs, so this is mostly moot, but the memo is keyed the same way).
@@ -778,12 +778,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
   resource or VM/guest/EEST/readiness gate follows from this vocabulary.
 
-- **Q93 raw fee sites and caller proofs.** Add the two planned constructors
-  in §5 and update both exhaustive private clients, `eliminateSite` and
-  `siteValue`, in `STFSpec/Conformance/Vm/Core/VmFaultCallerProofs.lean`.
-  Transport the decoded system and admitted user fee bounds in R-EXC-2
-  through the corresponding Lean environment producers to their actual
-  handler calls.
+- **Q93 fee caller proofs.** The two raw sites and exhaustive private
+  clients are supplied (§3/§4/§5/§7). Transport the decoded system and
+  admitted user fee bounds in R-EXC-2 through the corresponding Lean
+  environment producers to their actual handler calls.
+
+- **Q95 PC and GAS caller bounds.** The two constructors and exhaustive
+  clients are supplied (§§3–5 and §7). Actual handler calls need their
+  local exclusion proofs before a runner can rule out the faults
+  (R-EXC-2).
 
 - **Logical action factorization is supplied (Q83):** §3/§5/§7 own exactly
   SatisfiesM and its Id iff law, with private complete-meter/effect/counterexample
@@ -822,9 +825,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **F8 pure transfer-log helper is supplied:** §3/§5/§7 own the single supplied-address
   operation and exactly two ordinary complete-Frame laws, private public-facade clients
   (including the exact padding bridge) and complete controls. The raw immutable
-  `FrameCtx.systemAddress` field is supplied above. Actual frame constructors, both
-  producer refinements, transfer/static/gas ordering, intended Fork→Block→Runner
-  construction and child inheritance remain unimplemented. F20 acquisition/lifetime,
+  `FrameCtx.systemAddress` field is supplied above. EthVmInstructions §7 supplies
+  local CREATE inheritance. Runner construction, CALL inheritance, both producer
+  refinements, transfer/static/gas ordering and composed Fork→Block→Runner
+  transport remain open. F20 acquisition/lifetime,
   generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
   open. No Core literal, global admission predicate or new runtime policy is introduced.
 
@@ -927,18 +931,26 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
+- **MCOPY integration.** The local snapshot handler and action, byte and
+  accounting laws are supplied (§§3–5 and §7). Prove the source relation,
+  dispatch and composed progress and resource bounds. O12 remains open.
+
+- **Local copies supplied.** CALLDATACOPY and CODECOPY have complete local
+  run, memory and accounting laws (§7) and both source and facade controls
+  (§4). Dispatch, trace refinement, composed progress and the resource
+  bound for paid large windows remain open.
+
 - **Bounded context words.** §§3/4/7 own the nine standalone handlers and
-  their local laws and controls. The wider scalar casts for PC, GAS,
-  MSIZE, NUMBER, GASLIMIT, BASEFEE and GASPRICE have separate obligations.
+  their local laws and controls. The scalar operations and caller bounds for MSIZE, NUMBER, GASLIMIT, Q93
+  and Q95 have separate obligations.
   Source context assembly, dispatch, trace, settlement, composed gas
   progress and guest execution remain open.
 
-- **Stack duplication and immediate handlers.** PUSH0–PUSH32, DUP1–DUP16,
-  DUPN, SWAPN and EXCHANGE have local run and accounting laws (§7)
-  and the §4 facade controls. Fixed SWAP1–SWAP16 and its interface
-  choice remain open. The full paid source correspondence and its
+- **Stack handlers.** PUSH0–PUSH32, DUP1–DUP16, DUPN, SWAP1–SWAP16,
+  SWAPN and EXCHANGE have local run and accounting laws (§7)
+  and the §4 facade controls. The full paid source correspondence and its
   fetch premise (§7) still need proofs.
-  PC, GAS and MSIZE scalar casts, R25 observation order, dispatch, whole trace,
+  The MSIZE scalar cast, R25 observation order, dispatch, whole trace,
   O13 classification and guest composition retain their own obligations.
 
 - **RETURN and REVERT supplied.** §§3/4/5/7 own the two Q92
@@ -948,7 +960,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+
+- **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
+  constructor, two policy projections and raw and source controls. The runner
+  must still assemble it with the mutable child frame and execute the child.
 
 - **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
   source sites and the private complete facade clients. The runner still needs
@@ -966,7 +982,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   This logical decision procedure chooses neither F11 production option and
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
-- **F8 address inheritance and SELFDESTRUCT:** both child-context field equations and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address/topic, nested CALL/CREATE inheritance, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner; no new guard or raw-context admission is selected.
+- **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,
@@ -994,6 +1010,24 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   standalone controls. Dispatch, trace and whole-runner refinement, composed
   ownership and resource bounds, and guest execution remain open.
 
+- **Standalone KECCAK supplied.** §§3/4/5/7 own its ordered run, byte and
+  local Id accounting laws and bounded controls. Source dispatch and trace,
+  generic oracle coupling, whole-runner G2 and resource bounds, and guest
+  execution remain open.
+- **Standalone EXTCODECOPY supplied.** §§3/4/5/7 own the ordered local
+  run and State equations, exact bytes, Id accounting and bounded controls.
+  Related source traces, dispatcher integration, composed resources and
+  guest execution remain open.
+- **R-DEL-1 designator functions supplied.** §§3/4/5/7 own the marker,
+  recognition, address extraction, complete byte laws and bounded controls.
+  Public length exports and the composed caller obligations remain open.
+
+- **R-DEL-3 delegation resolver supplied.** §§3/4/5/7 cover the two ordered
+  State reads, their error layer, selected execution payment and warmth, and
+  bounded source controls. The caller must carry the returned address, flag,
+  paid meter and warm set through `createEvm`. R-DEL-2 quotation and its
+  caller contract remain separate.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - **STOP/ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP supplied; remaining per-opcode laws open.** §3/§7 own `stop_run` and the sixty-eight ADD/SUB/MUL/DIV/SDIV/MOD/SMOD/SIGNEXTEND/ADDMOD/MULMOD/EXP local laws, including raw selected-cost accounting and conditional Id progress. Their local source-entry/price boundaries and bounded direct-source tests are explicit; complete source-model, reachable-entry and trace refinement remain open. Remaining per-opcode/precedence lemmas, `step_iff` and determinism are specifications only; private raw-carrier and typed-result/signature clients prove no execution semantics.
@@ -1011,10 +1045,17 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   Dispatch, guest fault propagation, composed source refinement and
   constructor freezing (DECISIONS B14) remain open.
 - **BLOBBASEFEE `U256` overflow** (`I/environment.py:607`) is argued reachable on an unanchored parent header (O13), but not witnessed. It also costs `taylor_exponential` time proportional to its result (DISC-002). The NUMBER and GASLIMIT guest bounds are in R-GEN-7.
-- **GASPRICE and BASEFEE remain to implement (Q93).** Supply the two
-  standalone handlers in §5 and compare denial, paid stack overflow,
-  paid raw conversion fault and successful push at the selected fee
-  and tariff. EthVmCore R-EXC-2 owns the separate caller-bound obligations.
+- **GASPRICE and BASEFEE standalone handlers supplied (Q93).** §§3/4/7 own
+  the ordered action equations and complete controls. Actual source entry
+  refinement and trace, dispatch, runner propagation and composed progress
+  remain open. EthVmCore R-EXC-2 owns the caller-bound obligations.
+- **PC and GAS integration (Q95).** The standalone handlers, local laws
+  and controls are supplied (§§3–5 and §7). Prove the pinned source relation,
+  the actual caller bounds in EthVmCore R-EXC-2, dispatch, runner fault
+  propagation and composed progress.
+- **Byte-size handlers supplied (Q94).** §§2–5 and §7 cover the three
+  standalone entries, local laws and controls. Actual caller field
+  relations, dispatch and proof of the pinned source relation remain open.
 - **Standalone SELFBALANCE supplied.** §§3/4/5/7 own the handler,
   complete private run equations and bounded direct controls. Interpreter
   traces, dispatch, composed State, fuel and resource gates remain open.
@@ -1027,17 +1068,23 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **`to_address_masked`** is owned by `EthBase`, and **`compute_contract_address`, `compute_create2_contract_address`** by `EthCodec` (A1, A2) (`utils/address.py`); this spec assumes their behaviour (low 20 bytes; `keccak(rlp([sender, nonce]))[12:]`; `keccak(0xff ‖ sender ‖ salt ‖ keccak(init))[12:]`) [I: not re-read].
 - **`account_deployable` ignores storage** [V], so a CREATE to an address with only storage succeeds after `destroy_storage` in `process_create`; relies on EthState's `destroy_storage` semantics.
 - **EIP-8246 detail**: the balance-preserving clear is in `fork.py`/`state_tracker.py` (not read here in full); the SELFDESTRUCT handler spec depends on it only through `accounts_to_delete`.
-- **Static LOG precedence** (charge and expand before the static check) is observable only in traces; traces are diagnostics (§7 of ARCHITECTURE), so the Lean trace schema must decide whether it records it.
+- **LOG integration.** The local action returns the paid expanded frame on
+  static failure (§§3–5 and §7). Prove the pinned source relation, dispatch,
+  runner rollback and receipt incorporation. Composed progress and resource
+  bounds remain open.
 - **`Ops` enum line numbers**: the constant block spans `I/__init__.py:32–220`; the `partial` aliases (push1…) are not inventory items and are covered by `pushN`/`dupN`/`swapN`/`logN`.
 - **Precompile-addressed code under delegation** (R-DEL-4) is inferred from the runner branch; no dedicated fixture located.
 
 ### [`EthPrecompiles`](modules/EthPrecompiles.md)
 
 - **Supplied slices:** §§3–5 and §7 describe the two Kzg operations and their
-  complete byte-result law, and the standalone IDENTITY entry and its local laws.
-  IDENTITY's normal form, table installation, runner settlement and guest integration
-  remain open. The 917-source and 926 interpreted/native Kzg comparisons and the
-  standalone IDENTITY controls leave the host, security and resource gates open.
+  complete byte-result law, and the standalone SHA256, RIPEMD160, IDENTITY and BLAKE2F
+  entries and their local laws. MODEXP's three Nat pricing helpers and
+  minimum-charge law are supplied. Its descriptor checks, exponent-head
+  read, payment, exponentiation and output remain open. Normal forms,
+  table installation, runner settlement and guest integration remain open. The 917-source and 926 interpreted/native Kzg
+  comparisons and the standalone controls leave the host, security and resource
+  gates open.
 
 - **KZG tag owner:** `Kzg` owns the `0x01` versioned-hash tag here, but the pinned source
   also defines it in `point_evaluation.py:29` and `forks/amsterdam/transactions.py:64`,
@@ -1070,11 +1117,6 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   suite exists in EEST sources but not in the zkevm corpus; `test_bls12_precompiles_before_fork`
   and `test_eip_mainnet` fixtures are absent; there is no ECRECOVER area beyond `frontier` and
   `stPreCompiledContracts2` [V: fixture index and file list].
-- **RIPEMD-160 and BLAKE2 F providers are supplied by `EthHash`** (`Hash.ripemd160`,
-  `Blake2b.getParameters`, `Blake2b.compress`; EthHash §3). The `ripemd160` and `blake2f`
-  precompile functions that consume them, with gas charged before the computation, remain
-  unimplemented. `EthHash` owns RIPEMD-160 (its R4), although EELS calls `hashlib` directly in
-  `ripemd160.py`.
 - **Performance unmeasured.** No numbers exist for pure-Lean MODEXP at 8192 bits, BLS12-381 MSM
   at `k = 128`, or pairings; the cost envelope in §6 is analytical.
 - **Mathematical-correctness proofs (ii)** inherit every gap of `EthCurveMathlib` and
@@ -1112,7 +1154,15 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
 
-- **F8 immutable address transport:** the local pure helper is supplied by EthVmCore §3/§7; raw `RunnerEnv.systemAddress` storage is supplied; createEvm copying, child inheritance and processCall emission remain unimplemented. Required controls use a nonliteral supplied address independently of the topic, through user/system entry, nested CALL/CREATE and processCreate→processCall, checking whole emitted logs and zero/self-transfer suppression. Include child success and outer revert/halt log discard under existing settlement rules. These controls prove no G2–G7, S2, F20 lifetime or resource result.
+- **F8 immutable address transport.** EthVmCore §3/§7 supplies the transfer-log
+  helper. EthVmInstructions §7 supplies local CREATE inheritance. The runner
+  has raw `RunnerEnv.systemAddress` storage. Copying in `createEvm`, composed
+  child transport, CALL inheritance and `processCall` emission remain open.
+  Required controls vary a supplied address independently of the topic through
+  user and system entry, nested CALL/CREATE and `processCreate` to `processCall`.
+  Check whole emitted logs, zero/self-transfer suppression and log discard
+  after child success and outer revert or halt. G2–G7, S2, F20 lifetime and
+  resource obligations remain separate.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -1136,6 +1186,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   decoding, builder construction, ordering, index accounting, read/write
   disjointness, the slot-union gas check, hashing and block or guest integration
   remain open.
+
+- **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
+  supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
+  root composition, and full source equality, Q47, F20 and host correspondence
+  at the block consumer remain open. The dictionary introduces no fixture,
+  execution, resource or readiness result.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1170,7 +1226,14 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **System addresses and budgets:** the raw ten-field `SystemAddrs` is supplied (§3); actual system-call/request consumers, F8 runnerEnv projection at both runner entries and construction/source coherence remain open. Controls must vary the supplied address independently of the F20 topic, through user and unchecked/checked system paths; unchanged checked-system guard/error ordering and request processing remain separate.
 - **Transaction parameters:** the raw three-field `TxParams` is supplied (§3); actual admission/intrinsic-cost consumers, full `BlockConfig`, configuration coherence and blob-budget premises remain open.
 - **F20 implementation/refinement:** acquire and thread the F20 record, prove constructor/context preservation and wrapper effect order, and establish backend coherence. DECISIONS §6 records the design; these production obligations remain open.
-- **Typed root consumers (Q53):** implement the actual Bytes-identity/legacy-RLP/typed-envelope/withdrawal-already-RLP bridges, prove stored-value validity and dense-array/prepared-map equality with lawful byte keys, default-None semantics and caller-context empty root, and run §4's exact-byte/public-client validation. All remain unimplemented; Q53 discharges none of the schema/assembled `Encodable`, equality, F20 or host premises.
+- **Typed root consumers (Q53):** Q97 supplies the already-RLP withdrawal
+  dictionary (§§3–5). The Bytes-identity, legacy-RLP and typed-envelope
+  interpretations for transactions and receipts remain open, along with RLP
+  ordinal key preparation and dense-array/prepared-map equality. The consumers
+  still need stored-value validity, lawful byte keys, default-None semantics,
+  the caller-context empty root and §4's exact-byte and public-client validation.
+  The source-schema, assembled `Encodable`, equality, F20 and host premises
+  remain in force.
 - **Fork activation is not checked** (CONTRACT §5). `executeBlock` never compares the timestamp with an activation time; blocks are executed as Amsterdam unconditionally. This is an explicit exclusion that follows the reference, and the L1 consumer supplies activation outside this guest.
 - **Slot number** (EIP-7843) is not validated against the parent or any rule in `validateHeader`. It is only passed to the environment. The same is true of `prevRandao`, `parentBeaconBlockRoot` and an upper bound on the timestamp. This follows the reference; whether it is intended is unconfirmed upstream.
 - **Adversarial `excessBlobGas`, feasibility.** For an unanchored parent header (CONTRACT §7: the parent is authenticated only by hash to the payload's `parent_hash`), `calculate_excess_blob_gas` calls `calculate_blob_gas_price(parent.excess)`, whose Taylor loop (`utils/numeric.py:199–207`) needs about `e·excess/11 684 671` iterations over numbers with about as many bits. At `excess ≈ 2⁶⁴` that is about 4×10¹² iterations (DISC-002), and EELS would hang or fail with `MemoryError` (O12). Ordinary totality of the Taylor helper for a positive denominator is supplied by [EthBase §3/§7](modules/EthBase.md#implemented-taylor-exponential). Completion of the price wrapper, its callers’ domain and exception obligations, and practical feasibility remain open. DISC-002 records measured smaller-input behaviour and large-input extrapolation; the maximum input was not executed.

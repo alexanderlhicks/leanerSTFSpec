@@ -572,7 +572,9 @@ preparation/root. Typed root passes the caller's F20 empty root directly to `mat
 on the pure prepared map; equality to a separate monadic sequential reference requires
 `LawfulMonad`, while local composition/empty equations need `Monad` alone. Secure traversal,
 collision folding, source history and generic coupling remain separate open obligations.
-EthCommit §3 supplies generic storage/safety, pure unsecured preparation and typed root composition; concrete consumer bridges remain open. This interface clarification changes no dependency boundary or implementation readiness.
+EthCommit §3 supplies generic storage/safety, pure unsecured preparation and
+typed root composition. EthBlock §3 supplies the Q97 withdrawal byte dictionary.
+The remaining concrete consumer encodings and their composition remain open.
 
 **Existing Bytes ordering options (Q54).** A bounded packed scanner can stop at
 the first differing byte; executable List conversion also satisfies byte semantics
@@ -1096,6 +1098,31 @@ The decoded system route and admitted user route supply the fitting
 source domain under each option. Their Lean caller obligations are in
 EthVmCore R-EXC-2.
 
+**Raw byte-size conversion options (Q94).** DECISIONS Q94 owns the selection.
+EthVmInstructions §§2 and 7 own the handler and source correspondence.
+On the authenticated reference host, successful Python `len` fits the U256
+constructor. The choices below govern arbitrary Nat sizes in the raw Lean
+model.
+
+| Option | Consequence for raw calls |
+|---|---|
+| A. Total modular word | Keep the ordinary `Handler` and convert with `U256.ofNat` after payment. A paid frame with room at size 2^256 pushes zero. Denial and the paid full-stack contract apply at all sizes. A local fitting premise supplies the exact size law on success. |
+| B. Checked conversion with an opcode site | Keep the ordinary `Handler` and add three nominal conversion sites and their exhaustive clients. An out-of-range size faults before the paid stack check. The same local fitting premise identifies the exact size result. |
+| C. Proof-scoped conversion | Require a proof that the selected size fits when payment succeeds. Dispatch needs to supply the premise, including the current frame's return-data bound. The ordinary raw `Handler` would need a separate completion or a new input contract. |
+
+**Raw PC and GAS conversion options (Q95).** DECISIONS Q95 owns the
+selection. EthVmCore R-EXC-2 gives the fault and caller contracts.
+The pinned source charges first, then attempts a U256 conversion of the
+entry PC or paid execution balance. A paid selected value of `2^256`
+raises before either a successful push or a full-stack halt.
+
+| Option | Consequence for raw calls |
+|---|---|
+| A. Distinct checked sites | Use the ordinary `Handler` and the nominal sites `pc` and `gasLeft`. Both operations admit all raw denied inputs and preserve paid conversion failure before the push. |
+| B. Shared checked site | Preserve the branch order using one site. The surrounding opcode or trace supplies which source operation failed. |
+| C. Modular word | Use `U256.ofNat`. A frame with room pushes zero at the first oversized value. A full stack reaches its paid halt. Paid source correspondence uses the fitting premise. |
+| D. Caller proof | Require a proof on the selected value. A proof conditional on payment admits the raw denied branch. Dispatch then needs the selected tariff and a fitting proof for every paid call, or a raw wrapper with its own policy. |
+
 **Raw block access list carrier options (Q96).** DECISIONS Q96 owns the
 selection. EthBlock §5 owns the layouts. All options use the guided outer
 array and preserve the supplied order and duplicates.
@@ -1109,6 +1136,18 @@ array and preserve the supplied order and duplicates.
 
 The later wire correspondence must use the complete assembled Q47 domain.
 Builder and hash costs remain subject to C4.
+
+**Withdrawal trie byte dictionary activation options (Q97).** DECISIONS Q97
+owns the selection, and EthBlock §5 owns the dictionary and its two laws.
+
+| Option | Downstream effect |
+|---|---|
+| A. Named scoped instance | Clients can pass the name or activate it by opening the dedicated scope. |
+| B. Named definition | Clients pass the dictionary or select it locally. Imports and ordinary namespace openings leave instance search unchanged. |
+| C. Named global instance | Every importing client gets this interpretation for the shared optional byte type. Any other global interpretation needs priority coordination. |
+
+All options use the same Q53 validity and encoding contract for the withdrawal
+byte interpretation.
 
 **Forward block access list RLP options (Q98).** DECISIONS Q98 owns the
 selection. Every option uses the six nominal `RlpEncode` instances in EthBlock

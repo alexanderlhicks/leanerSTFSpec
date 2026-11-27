@@ -17,10 +17,10 @@ STFSpec/informal/ARCHITECTURE.md:372	:194–234	-	its block mentions e1a316a0	88
 STFSpec/informal/ARCHITECTURE.md:372	:295–314	state_tracker.py	its block mentions e1a316a0	32a26d6cb679fe827190
 STFSpec/informal/ARCHITECTURE.md:372	:547–568	state_tracker.py	its block mentions e1a316a0	be2789275071724711c7
 STFSpec/informal/ARCHITECTURE.md:372	:763–796	state_tracker.py	its block mentions e1a316a0	f8536cd8c5088a250a3e
-STFSpec/informal/ARCHITECTURE.md:653	witness_state.py:53–100	witness_state.py	forks/amsterdam/witness_state.py: 53–100 touches changed lines 47–100	6cf7f82aad6b25c8d7eb
-STFSpec/informal/DECISIONS.md:203	src/ethereum/forks/amsterdam/stateless.py:250,281–294	src/ethereum/forks/amsterdam/stateless.py	its block mentions e1a316a0	1139bbea1149b2ef1463
-STFSpec/informal/DECISIONS.md:204	execution_engine/new_payload.py:112–136,147–157	execution_engine/new_payload.py	its block mentions e1a316a0	67d0d2c8742d337bb03b
-STFSpec/informal/DECISIONS.md:205	fork.py:265,309–325,498	fork.py	its block mentions e1a316a0	a9c7fba77cc9471bb1bb
+STFSpec/informal/ARCHITECTURE.md:655	witness_state.py:53–100	witness_state.py	forks/amsterdam/witness_state.py: 53–100 touches changed lines 47–100	6cf7f82aad6b25c8d7eb
+STFSpec/informal/DECISIONS.md:208	src/ethereum/forks/amsterdam/stateless.py:250,281–294	src/ethereum/forks/amsterdam/stateless.py	its block mentions e1a316a0	1139bbea1149b2ef1463
+STFSpec/informal/DECISIONS.md:209	execution_engine/new_payload.py:112–136,147–157	execution_engine/new_payload.py	its block mentions e1a316a0	67d0d2c8742d337bb03b
+STFSpec/informal/DECISIONS.md:210	fork.py:265,309–325,498	fork.py	its block mentions e1a316a0	a9c7fba77cc9471bb1bb
 STFSpec/informal/EXCLUDED.md:12	stateless.py:89–100	stateless.py	its block mentions e1a316a0	ff1d7c0b69f71549d02e
 STFSpec/informal/modules/EthBase.md:710	forks/amsterdam/execution_engine/requests.py:123,125,133,149	forks/amsterdam/execution_engine/requests.py	forks/amsterdam/execution_engine/requests.py: 123 touches changed lines 119–197; 125 touches changed lines 119–197; 133 touches changed lines 119–197; 149 touches changed lines 119–197	84e67a60053cd74ddbae
 STFSpec/informal/modules/EthBlock.md:34	:944	-	no file named earlier in its block	acd6a2d7729b5cc449ae
@@ -52,5 +52,5 @@ STFSpec/informal/modules/EthStateWitness.md:23	ws:296–309	src/ethereum/forks/a
 STFSpec/informal/modules/EthStateWitness.md:24	ws:311	src/ethereum/forks/amsterdam/witness_state.py	forks/amsterdam/witness_state.py: 311 touches changed lines 311	049076b6785898024876
 STFSpec/informal/modules/EthVmCore.md:16	__init__.py:49–67	__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67; on a line with rewritten citations	38512b3221cdbf44b3c0
 STFSpec/informal/modules/EthVmCore.md:72	:749–773	-	forks/amsterdam/vm/gas.py (identified among its section's files): 749–773 touches changed lines 770–773	8e3e622040cbeee2739d
-STFSpec/informal/modules/EthVmCore.md:235	src/ethereum/forks/amsterdam/vm/__init__.py:49–67	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	4182b52184a2fc2033fc
+STFSpec/informal/modules/EthVmCore.md:250	src/ethereum/forks/amsterdam/vm/__init__.py:49–67	src/ethereum/forks/amsterdam/vm/__init__.py	forks/amsterdam/vm/__init__.py: 49–67 touches changed lines 67	4182b52184a2fc2033fc
 STFSpec/informal/modules/ToVCVio.md:20	src/ethereum/forks/amsterdam/incremental_mpt.py:349–379	src/ethereum/forks/amsterdam/incremental_mpt.py	forks/amsterdam/incremental_mpt.py: 349–379 touches changed lines 349, 351–354, 356–361, 363–366, an insertion after 367, 369–370, 376, 378	ce4812d458cb91f8c572
