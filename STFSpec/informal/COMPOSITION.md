@@ -1371,7 +1371,12 @@ Witness agreement also requires authenticated witness node/code databases, coher
 
 For a **successful witness trace**, compare it with a progressive full provider representing σ. At each query, successful-answer agreement gives the same value, or the collision extractor reports unequal preimages with equal hash. Deterministic step/validation laws then choose the same branch and preserve the observation/state invariant. Induct through child frames, transaction settlement and block incorporation. The ordered final diff is the same; the backend root law gives the mathematical post-state root or a collision. This is directional simulation of successful witness execution, not equality of success/failure for any pair of Models providers.
 
-The extractor must cover node encodings, address/slot preimages, dirty updated paths and code preimages from both providers. Structural WF alone does not authenticate σ.code; a state root binds code hashes, not bytes in a separate store. The secure-key collision case also needs a specified fold order for full roots.
+The extractor must cover node encodings, address/slot preimages, dirty
+updated paths and code preimages from both providers. Structural WF alone
+does not authenticate σ.code. A state root binds the code hashes. Q99
+fixes the mathematical fold order (EthStateCommit SC4). At a repeated
+digest path the final map can discard the earlier leaf, so extraction
+needs both preimages and their actual answers (EthStateCommit §7.2).
 
 This simulation establishes the conditional block-level theorem once all induction cases are proved. It does not establish that every honest witness succeeds. Witness completeness requires a separate construction/availability theorem, including eager off-path decoding obligations.
 

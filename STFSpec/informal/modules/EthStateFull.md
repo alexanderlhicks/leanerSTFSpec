@@ -14,7 +14,10 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 - FS1. `State` holds an account trie (secured, default `None`), per-address storage tries (secured, default `0`) and a code store keyed by hash that is **excluded from equality** (`state_mpt.py:34–47`). In Lean the state is a `MathState` with `MathState.WF`.
 - FS2. `get_code h`: `b""` for `EMPTY_CODE_HASH`, else the store entry; a missing hash raises `KeyError` (`state_mpt.py:49–57`). In Lean: `WitnessError.missing (.code h)` (B2: missing code is an error, empty code a successful value), unreachable under `CodeComplete σ` [inference for the corpus].
 - FS3. `get_account_optional` is a trie lookup (`state_mpt.py:59–65`); `get_storage` is `0` without a storage trie, else a lookup whose result must be a `U256` (`state_mpt.py:67–80`). It does **not** check that the account exists; `MathState.WF` (no orphan storage) makes this unobservable.
-- FS4. `compute_state_root d` (`state_mpt.py:82–120`): copy the tries; drop storage tries of `d.storage_clears`; apply `d.account_changes`; apply `d.storage_changes` (creating a trie if needed and removing it if it becomes empty); the root of the account trie with each existing account's storage root (`EMPTY_TRIE_ROOT` without a trie). `code_changes` is ignored. It must equal `mathStateRoot (σ.apply d)`, computed through the oracle (D5), and never fail on WF inputs.
+- FS4. `compute_state_root d` (`state_mpt.py:82–120`): copy the tries; drop storage tries of `d.storage_clears`; apply `d.account_changes`; apply `d.storage_changes` (creating a trie if needed and removing it if it becomes empty); the root of the account trie with each existing account's storage root (`EMPTY_TRIE_ROOT` without a trie). `code_changes` is ignored. The Lean `stateRoot` returns `mathStateRoot (σ.apply d)` through
+  `KeccakQuery` (D5) and succeeds on WF inputs at Id. Prove agreement with the
+  source result under the preparation and interpretation premises of
+  EthStateCommit §7.2 (Q99).
 - FS5. `apply_changes_to_state` (`state_mpt.py:133–161`), used between blocks by the chain runner (`forks/amsterdam/fork.py:259`) and by `execution_engine/new_payload.py`: clears first, then accounts, then storage, then `code_store.update(code_changes)`. In Lean: `σ ↦ σ.apply d`.
 - FS6. `store_code` (`state_mpt.py:164–171`) stores non-empty code under its keccak (through the oracle, D5) and returns the hash (genesis loading); `set_account` (`:174–184`); `set_storage` (`:187–206`) **asserts that the account exists**, then writes and removes empty tries; `state_root` = `compute_state_root(BlockDiff())` (`:209–213`); `close_state` (`:123–130`) releases resources and has no Lean counterpart beyond dropping the value.
 - FS7. **Progress:** every operation succeeds on a WF state and a WF diff, except `getCode` of a hash not in the store.
@@ -78,7 +81,11 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
 ## 7. Contract and laws
 
 - [C] `ModelsLookups consts (s.toPreState consts) s.σ` at Id: by the observer definitions for every supplied record, with no acquisition. Full binary `Models` and its `ModelsCode` clause remain at `constsId` (Q57), so the execution-context lookup premise follows under concrete record coherence. `ModelsCode`: every returned `(h, c)` has `keccak256 c = h`, from `CodeAuthentic`; `storeCode` computes the hash and `applyChanges` requires `CodeChangesAuthentic`. Authentication and `CodeComplete` are separate: completeness ensures progress for account-referenced code.
-- [C] `ModelsRoot`: `stateRoot d = mathStateRoot (σ.apply d)` by definition; the EELS commuting equation (FS4) is that `compute_state_root` computes this value.
+- [C] `ModelsRoot`: the mathematical target is
+  `stateRoot d = mathStateRoot (σ.apply d)` (FS4). The source can reach the
+  same finite raw map through different insertion histories. Prove the
+  commuting equation with the preparation and interpretation premises in
+  EthStateCommit §7.2 (Q99).
 - [C] `applyChanges` preserves `WF` given `BlockDiff.WF`; `s.toPreState.stateRoot d = .ok (stateRoot (applyChanges s d))` (with the required WF/authenticity proofs).
 - [T] Progress FS7; no failure on WF inputs except missing code.
 
@@ -90,7 +97,11 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
 
 **Argument.** Account and storage lookup are direct finite-map observations with the specified absent defaults. Code lookup returns empty code for the empty-code hash, and otherwise returns the stored bytes or the named missing-code failure. Applying a diff follows the same clear/delete/write equations as MathState.apply; induction over entries preserves structural well-formedness under the supplied update premises. Authentic new code preserves CodeAuthentic. Root computation uses the defining canonical two-level trie construction, so its result is the mathematical root of the updated state. Taking successful-answer equations gives Models; taking existence of the required map entries gives progress. These are distinct deductions. A raw account deletion is not automatically a valid FullState update because it can leave orphaned storage.
 
-**Open obligations.** Make the progress domain and CodeComplete explicit in every caller, prove apply preservation, and fix the hash-relative root fold in collision cases. Equality of states may omit the code store operationally, but proofs using code must retain its authenticity and availability hypotheses.
+**Open obligations.** Make the progress domain and CodeComplete explicit
+in every caller and prove apply preservation. Implement the SC4 fold and
+prove the source boundary and `ModelsRoot` (EthStateCommit §7.2).
+Equality of states may omit the code store operationally, but proofs using
+code must retain its authenticity and availability hypotheses.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 

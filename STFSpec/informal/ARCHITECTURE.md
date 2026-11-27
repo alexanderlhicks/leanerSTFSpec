@@ -1163,6 +1163,15 @@ Every option retains the complete assembled Q47 domain and source host
 premises for standard wire correspondence. An allocation-sensitive outer route
 would need a measured cost case.
 
+**Secured mathematical state-root traversal options (Q99).** DECISIONS Q99
+selects A. EthStateCommit SC4 and §7.2 own the action and source boundary.
+
+| Option | Boundary and tradeoff |
+|---|---|
+| A. Ascending raw keys | Traverse the existing extensional maps in key order. Each later raw key replaces the previous leaf at a shared digest path. The four SC4 types retain their result carriers. |
+| B. Source insertion order | The source's last entry wins at a shared digest path. Preserve account and per-address slot order separately, with update and lifetime laws. |
+| C. Checked conflict | Report a conflict when leaves differ at a shared digest path. This requires a checked carrier or operation, diagnostic order and both preimages. |
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
