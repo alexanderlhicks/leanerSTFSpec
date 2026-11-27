@@ -1129,11 +1129,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
-- **Raw block access list:** the six raw records, outer array alias and
-  private facade clients are supplied (§3–§5). Encoding and its complete
-  source-wire correspondence under Q47 remain open. Builder construction,
-  ordering, index accounting, read/write disjointness, the slot-union gas
-  check, hashing and block or guest integration also remain open.
+- **Block access list:** the six raw records, outer array alias, six forward
+  RLP models and private facade clients are supplied (§§3–5). The outer route
+  uses the ordered List instance. General source-wire correspondence retains
+  Q47 and the source typed-dispatch, conversion and host premises. Typed
+  decoding, builder construction, ordering, index accounting, read/write
+  disjointness, the slot-union gas check, hashing and block or guest integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual

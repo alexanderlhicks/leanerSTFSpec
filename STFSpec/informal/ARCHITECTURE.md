@@ -1110,6 +1110,20 @@ array and preserve the supplied order and duplicates.
 The later wire correspondence must use the complete assembled Q47 domain.
 Builder and hash costs remain subject to C4.
 
+**Forward block access list RLP options (Q98).** DECISIONS Q98 owns the
+selection. Every option uses the six nominal `RlpEncode` instances in EthBlock
+§5 and preserves the complete ordered model.
+
+| Option | Outer surface and tradeoff |
+|---|---|
+| A. Named outer model | Export `blockAccessListToRlp : BlockAccessList → RlpItem` and `blockAccessListToRlp_eq`, which identifies it with `RlpEncode.toRlp bal.toList`. A direct array fold can avoid materializing a list of input accounts. |
+| B. Existing List model | Use `Rlp.encodeOf bal.toList` through the existing ordered Codec dictionary. The six nominal instances are the public additions. |
+| C. Array instance | Export `instRlpEncodeBlockAccessList : RlpEncode BlockAccessList`, with method `RlpEncode.toRlp bal.toList`. Its specialized search entry also applies to `Array AccountChanges` and must be accounted for by a future generic array instance. |
+
+Every option retains the complete assembled Q47 domain and source host
+premises for standard wire correspondence. An allocation-sensitive outer route
+would need a measured cost case.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).

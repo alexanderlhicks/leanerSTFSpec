@@ -1,7 +1,7 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list records, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96.*
+*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, raw block access list records and their forward RLP models, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q98.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -351,6 +351,32 @@ six nominal R-BAL records and the outer alias in §5.
 The supplied declarations impose no shape or ordering premise beyond their
 field types. §6 describes the invariants the builder must establish.
 
+### Supplied block access list forward RLP (Q98)
+
+`STFSpec/Block/BlockAccessListRlp.lean`, exported by `STFSpec.Block`, supplies the
+six nominal `RlpEncode` instances in §5. Each method produces the entire ordered
+RLP item through the existing Codec instances. Numeric fields use minimal
+unsigned bytes. Code and address fields retain the complete bytes. Lists retain
+all entries, including duplicates and unsorted entries.
+
+| Pinned EELS source and domain | Lean declaration | Complete model |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:34–55` | `StorageChange.instRlpEncode` | Index and new `U256` value |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:61–82` | `BalanceChange.instRlpEncode` | Index and post-change `U256` balance |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:88–109` | `NonceChange.instRlpEncode` | Index and new `U64` nonce |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:115–136` | `CodeChange.instRlpEncode` | Index and original code byte string |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:142–161` | `SlotChanges.instRlpEncode` | `U256` slot and ordered storage changes |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:167–214` | `AccountChanges.instRlpEncode` | Fixed address, then ordered storage changes, reads, balances, nonces and code changes |
+
+The outer route `Rlp.encodeOf bal.toList` uses the generic ordered List model
+(Q69) and the supplied array order (`block_access_lists.py:216`). The models are
+pure and total on the Lean carriers. Standard source-wire correspondence uses
+locked `ethereum_rlp/rlp.py:66–135` (0.1.6) and requires the complete assembled
+`Rlp.Encodable` condition, including the joined payload bound, together with
+source typed dispatch, conversions and host completion (Q47). Private clients
+check each whole model and the outer List assembly. Interpreted controls
+compare complete wire bytes (§4).
+
 ### Supplied raw withdrawal
 
 `STFSpec/Block/Withdrawal.lean`, exported by `STFSpec.Block`, supplies the
@@ -697,6 +723,15 @@ separate obligations.
   account in two positions. The controls retain all twenty address bytes, both
   empty and 64-byte code, leading zeros, zero and maximum indices, nonces,
   slots, balances and storage values.
+
+- **Block access list forward RLP.** `BlockAccessListRlpControls.lean` imports
+  the Block facade. Private proofs check all six complete models and the ordered
+  outer List model on arbitrary inputs. Complete wire guards cover each record,
+  full-width addresses, zero and maximum unsigned values, numeric zero versus
+  a zero code byte, and string and list payloads at 55 and 56 bytes. Outer
+  controls cover an empty array, one account, ordered distinct entries and a
+  repeated account. Nested controls retain unsorted duplicates and overlapping
+  read and written slots.
 
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
@@ -1064,6 +1099,13 @@ structure AccountChanges where
   nonceChanges : List NonceChange
   codeChanges : List CodeChange
 abbrev BlockAccessList := Array AccountChanges
+instance StorageChange.instRlpEncode : RlpEncode StorageChange
+instance BalanceChange.instRlpEncode : RlpEncode BalanceChange
+instance NonceChange.instRlpEncode : RlpEncode NonceChange
+instance CodeChange.instRlpEncode : RlpEncode CodeChange
+instance SlotChanges.instRlpEncode : RlpEncode SlotChanges
+instance AccountChanges.instRlpEncode : RlpEncode AccountChanges
+-- Outer forward encoding uses the ordered List instance: Rlp.encodeOf bal.toList.
 structure BalBuilder
 structure BlockOutput where
   blockGasUsed blockStateGasUsed cumulativeGasUsed : Nat
@@ -1348,15 +1390,18 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Named runtime-fault constructors: resolved, DECISIONS B14 (Q2) and CONTRACT O13: named constructors, no `runtimeFault` catch-all.
 - Blob-price feasibility: tracked as DISC-002 (Q3).
 - Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
-- Q96 owns the raw block access list representation in §5.
+- Q96 owns the raw block access list representation in §5. Q98 owns the forward
+  RLP interface in §§3–5.
 
 ## 10. Gaps
 
-- **Raw block access list:** the six raw records, outer array alias and
-  private facade clients are supplied (§3–§5). Encoding and its complete
-  source-wire correspondence under Q47 remain open. Builder construction,
-  ordering, index accounting, read/write disjointness, the slot-union gas
-  check, hashing and block or guest integration also remain open.
+- **Block access list:** the six raw records, outer array alias, six forward
+  RLP models and private facade clients are supplied (§§3–5). The outer route
+  uses the ordered List instance. General source-wire correspondence retains
+  Q47 and the source typed-dispatch, conversion and host premises. Typed
+  decoding, builder construction, ordering, index accounting, read/write
+  disjointness, the slot-union gas check, hashing and block or guest integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
