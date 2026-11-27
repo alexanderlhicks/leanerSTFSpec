@@ -705,14 +705,19 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   authenticity of reachable tracker-produced changes and the code clause for
   each backend. Code availability remains a backend progress obligation.
 
-- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
+- **Typed encoding integration (Q53):** §3 supplies the U256 encoder,
+  instance and wire injectivity, contextual Account encoding with its
+  unconditional nonempty and conditional binding laws, and its use
+  in mathematical root preparation. Prove callback and root source
+  agreement without assuming a bare Account instance. Whole source
+  equality/schema/dispatch, assembled-node `Encodable`, F20 and host
+  premises, and secured traversal, collision, history and generic
+  coupling obligations remain open.
 
-- **Mathematical root implementation (SC4, Q99):** implement the four §5
-  actions in ascending raw key order. The ordered-list traversal provides
-  the plain-`Monad` reference. A direct ordered-tree fold and its action
-  equivalence use a separate `LawfulMonad` premise. Source preparation
+- **Mathematical root agreement (SC4, Q99):** §3 supplies all four §5
+  actions with the ordered-list reference. Prove source preparation
   agreement, generic query order, `ModelsRoot` and collision extraction
-  remain open (§7.2).
+  (§7.2). Full-state integration and cost checks remain open.
 
 - **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
 - **Falsy empty lists** in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).

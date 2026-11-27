@@ -98,8 +98,9 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
 **Argument.** Account and storage lookup are direct finite-map observations with the specified absent defaults. Code lookup returns empty code for the empty-code hash, and otherwise returns the stored bytes or the named missing-code failure. Applying a diff follows the same clear/delete/write equations as MathState.apply; induction over entries preserves structural well-formedness under the supplied update premises. Authentic new code preserves CodeAuthentic. Root computation uses the defining canonical two-level trie construction, so its result is the mathematical root of the updated state. Taking successful-answer equations gives Models; taking existence of the required map entries gives progress. These are distinct deductions. A raw account deletion is not automatically a valid FullState update because it can leave orphaned storage.
 
 **Open obligations.** Make the progress domain and CodeComplete explicit
-in every caller and prove apply preservation. Implement the SC4 fold and
-prove the source boundary and `ModelsRoot` (EthStateCommit §7.2).
+in every caller and prove apply preservation. Integrate the SC4 fold
+supplied by EthStateCommit §3 into the provider and prove the source boundary
+and `ModelsRoot` (EthStateCommit §7.2).
 Equality of states may omit the code store operationally, but proofs using
 code must retain its authenticity and availability hypotheses.
 

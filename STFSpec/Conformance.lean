@@ -334,6 +334,8 @@ import STFSpec.Conformance.StateCommit.AccountDecodeCallerProofs
 import STFSpec.Conformance.StateCommit.AccountDecodeGuards
 import STFSpec.Conformance.StateCommit.CodeAgreementCallerProofs
 import STFSpec.Conformance.StateCommit.CodeAgreementGuards
+import STFSpec.Conformance.StateCommit.MathStateRootGuards
+import STFSpec.Conformance.StateCommit.MathStateRootEffects
 
 import STFSpec.Conformance.Commit.IncrementalRootCallerProofs
 import STFSpec.Conformance.Commit.IncrementalRootGuards

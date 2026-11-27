@@ -1374,8 +1374,10 @@ For a **successful witness trace**, compare it with a progressive full provider 
 The extractor must cover node encodings, address/slot preimages, dirty
 updated paths and code preimages from both providers. Structural WF alone
 does not authenticate σ.code. A state root binds the code hashes. Q99
-fixes the mathematical fold order (EthStateCommit SC4). At a repeated
-digest path the final map can discard the earlier leaf, so extraction
+fixes the order of the mathematical fold supplied by EthStateCommit §3.
+The backend root agreement proof still needs the premises of
+EthStateCommit §7.2. At a repeated digest path the final map can
+discard the earlier leaf, so extraction
 needs both preimages and their actual answers (EthStateCommit §7.2).
 
 This simulation establishes the conditional block-level theorem once all induction cases are proved. It does not establish that every honest witness succeeds. Witness completeness requires a separate construction/availability theorem, including eager off-path decoding obligations.

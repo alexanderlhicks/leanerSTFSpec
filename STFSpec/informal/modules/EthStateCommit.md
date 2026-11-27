@@ -316,7 +316,33 @@ interpretation of `KeccakQuery`. The source correspondences below are verified a
 | `state_mpt.py:133–161` | `CodeChangesAuthentic : BlockDiff → Prop` | Every raw change must satisfy the same digest equation. The source applies all entries by dictionary update, including one at the reserved hash if supplied. The private preservation proof and wrong-digest control use the public `MathState.apply_code_lookup` equation (§4, §7.3). |
 | `state_mpt.py:49–57`; `forks/amsterdam/witness_state.py:129–137` | `ModelsCode : PreState Id → Prop` | A provider must return empty bytes at the queried Id empty-code hash, before considering any raw entry there. All successes must authenticate. A nonreserved absence raises `KeyError` at either source dictionary lookup. The predicate leaves nonreserved provider errors unconstrained. Private field, success and error controls (§4, §7.3). |
 
+### Implemented mathematical state roots (SC4, Q99)
+
+`STFSpec/StateCommit/MathStateRoot.lean` supplies the four §5 actions.
+Each uses the base `Monad` and the supplied `KeccakQuery`. The following
+rows describe the raw Lean actions and the corresponding source stages.
+Generic actions retain the effects of the supplied bind. The failure
+prefixes below apply to the observing `ExceptT` control or to an
+interpretation whose bind stops on failure. Universal source agreement
+remains an obligation of §7.2.
+
+| Source at the pin | Declaration and status | Raw success and effects | Failure order and evidence |
+|---|---|---|---|
+| `src/ethereum/merkle_patricia_trie.py:325–338,407–475` | `storageTrieMap (σ : MathState) (a : Address) : m (Std.ExtTreeMap Nibbles ByteArray)`, implemented | Visit the selected slot map in ascending raw order. Skip explicit zero. Query the complete slot bytes, expand the digest to nibbles and replace the full encoded value at the resulting path. | In the observing `ExceptT` control, a failed reached slot query skips its insertion and all later queries. The control checks the complete map and preimages, including the later collision winner and a skipped zero. |
+| `src/ethereum/state_mpt.py:113–116`, `src/ethereum/merkle_patricia_trie.py:478–504` | `storageRoot (consts : HashConsts) (σ : MathState) (a : Address) : m Hash32`, implemented | Bind the selected prepared map to `mathRoot consts.emptyTrieRoot`. This also handles a raw slot map under an absent account when called directly. At `Id`, the empty map returns the supplied root. | Preparation precedes canonical trie queries. The direct orphan-storage and reached storage-root controls check the complete query prefix and value. |
+| `src/ethereum/state_mpt.py:113–118`, `src/ethereum/merkle_patricia_trie.py:407–448` | `accountTrieMap (consts : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Nibbles ByteArray)`, implemented | Visit the present accounts in ascending raw order. Compute the chosen storage root before querying the full address bytes. Replace the complete contextual account leaf at a repeated path. | Under short-circuiting bind, a failed storage action skips the account query, and a failed address query skips its insertion and later traversal. The observing control checks these positions, the whole leaf using the returned storage root and the later collision winner. |
+| `src/ethereum/state_mpt.py:82–120`, `src/ethereum/merkle_patricia_trie.py:478–504` | `mathStateRoot (consts : HashConsts) (σ : MathState) : m Hash32`, implemented | Bind prepared accounts to `mathRoot consts.emptyTrieRoot`. Account traversal visits only their corresponding storage and uses the account's code hash. | The final trie queries are in the continuation of account preparation. Controls compare eight whole roots with pinned source observations and check the complete successful trace and all reached `ExceptT` failure prefixes on a synthetic collision path. |
+
 ## 4. Tests
+
+- **Mathematical roots (SC4):** `MathStateRootGuards.lean` compares eight
+  complete roots from the pinned source, including empty and present-empty
+  states, reversed insertion, orphan storage, code-only changes and zero
+  removal. The synthetic controls reverse source insertion at shared account
+  and storage digest paths. `MathStateRootEffects.lean` compares complete
+  prepared maps, the supplied empty root, the successful query preimages and
+  all six failure prefixes of its observed root call. Its ordinary code-field
+  equality applies to the complete action.
 
 - **Code agreement (SC7):** `CodeAgreementCallerProofs.lean` checks all three
   field contracts, preservation under raw diff application, and agreement from
@@ -331,7 +357,11 @@ interpretation of `KeccakQuery`. The source correspondences below are verified a
 - **EEST fixture areas:** every blockchain fixture's post-state root exercises `mathStateRoot` (through `EthStateFull`) and its witness variant; `amsterdam/eip8025_optional_proofs` for leaves read from witnesses; `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` `TestGetAccountOptional`, `TestGetStorage`, `TestComputeStateRoot` (leaf decoding and roots through the backend).
 - **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount consts) consts.emptyTrieRoot` bytes, with `consts = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient account SC5 cases (all-empty-string and all-empty-list account fields take defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails, although longer leading-zero encodings can fit); strict storage SC6 cases (empty payload zero, raw empty failure, list/first-zero/width rejection and full-value boundaries).
-- **Property tests:** round trips on random accounts and values; `mathStateRoot` invariant under insertion order; `mathStateRoot σ` unchanged by adding storage for an absent account.
+- **Property tests:** round trips on random accounts and values; equal raw
+  account and slot maps across input insertion histories yield the same
+  `mathStateRoot`; adding storage for an absent account leaves the whole-state
+  result unchanged. Source preparation order across a shared digest path is
+  governed by §7.2.
 
 ## 5. Interface
 
@@ -412,7 +442,18 @@ Q55 chooses none and adds no local constants acquisition.
 ## 6. Data structures
 
 The storage decoder uses the public strict RLP parser and bounded integer provider
-(§3), with numeric construction limited to admitted payloads of at most 32 bytes. No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
+(§3), with numeric construction limited to admitted payloads of at most
+32 bytes. `accountTrieMap` and `storageTrieMap` build
+`ExtTreeMap Nibbles ByteArray` views on demand. Their planned consumers
+are the full-state provider and mathematical proofs. For a map with
+`n` visited raw entries, the ordered-list traversal takes O(n) time
+and O(n) list space. It materializes one account list and one slot
+list per reached raw storage map. The prepared-map insertions use an
+estimated O(n log(n+1)) key comparisons for that traversal. Leaf
+encoding, secure-key hashing, the per-account storage roots and the
+final canonical trie root have separate costs. Full-state cost remains
+open. A direct ordered-tree fold is a separate optimization under
+`LawfulMonad`.
 
 ## 7. Contract and laws
 
@@ -507,14 +548,19 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   authenticity of reachable tracker-produced changes and the code clause for
   each backend. Code availability remains a backend progress obligation.
 
-- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
+- **Typed encoding integration (Q53):** §3 supplies the U256 encoder,
+  instance and wire injectivity, contextual Account encoding with its
+  unconditional nonempty and conditional binding laws, and its use
+  in mathematical root preparation. Prove callback and root source
+  agreement without assuming a bare Account instance. Whole source
+  equality/schema/dispatch, assembled-node `Encodable`, F20 and host
+  premises, and secured traversal, collision, history and generic
+  coupling obligations remain open.
 
-- **Mathematical root implementation (SC4, Q99):** implement the four §5
-  actions in ascending raw key order. The ordered-list traversal provides
-  the plain-`Monad` reference. A direct ordered-tree fold and its action
-  equivalence use a separate `LawfulMonad` premise. Source preparation
+- **Mathematical root agreement (SC4, Q99):** §3 supplies all four §5
+  actions with the ordered-list reference. Prove source preparation
   agreement, generic query order, `ModelsRoot` and collision extraction
-  remain open (§7.2).
+  (§7.2). Full-state integration and cost checks remain open.
 
 - **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
 - **Falsy empty lists** in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).

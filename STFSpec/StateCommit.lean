@@ -7,6 +7,7 @@ import STFSpec.StateCommit.Account
 import STFSpec.StateCommit.StorageDecode
 import STFSpec.StateCommit.AccountDecode
 import STFSpec.StateCommit.CodeAgreement
+import STFSpec.StateCommit.MathStateRoot
 
 /-!
 # STFSpec.StateCommit
