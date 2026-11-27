@@ -1,6 +1,6 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-07. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Raw receipts and their envelope variants, raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, calldata token count, deposit extraction, requests hash and logs bloom are supplied. Block execution is unimplemented. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q53, Q54, Q83.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -20,7 +20,7 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 - **R-TX.** The five transaction structures must have exactly the EELS fields in RLP order (`transactions.py:89–490`). Type-specific points: `LegacyTransaction.v : U256`, and the typed variants have `yParity : U256`. `BlobTransaction.to` and `SetCodeTransaction.to` are `Address`, not optional, while the other variants have `to : Option Address` for `Bytes0 | Address`. `SetCodeTransaction.nonce : U64` whereas the other four are `U256`. `SetCodeTransaction.authorizations : Array Authorization`, with `Authorization = {chainId : U256, address, nonce : U64, yParity : U8, r s : U256}` taken from `EthBase` (`fork_types.py:87`, owned by G1).
 - **R-TX-ENC.** `encodeTransaction` (`transactions.py:535`): legacy is returned as the structure (RLP-encoded where bytes are needed); type *k* ∈ {1,2,3,4} is `[k] ++ rlp tx`.
 - **R-TX-DEC.** `decodeTransaction` (`:557`) on `typed b`: `b[0] ∈ {1,2,3,4}` decodes `b[1:]` as that type; `0xC0 ≤ b[0] ≤ 0xFE` decodes the whole of `b` as legacy; any other first byte in `0x00…0xBF` raises `TransactionTypeError b[0]`. Two branches are not EthereumExceptions: `b[0] = 0xFF` fails an `assert` (`:579`), and `b = []` fails with `IndexError` (`tx[0]`). The spec gives both explicit constructors (`BlockError.txDecode`) [V]. An RLP failure inside a typed payload (`rlp.DecodingError`, not an EthereumException) is also `txDecode`. **Scope of these errors.** On the complete guest path, an empty transaction is rejected first at `execution_engine/new_payload.py:104` (O6), and every other deterministic payload-transaction decode failure is consumed by `is_valid_versioned_hashes` (`new_payload.py:55–63`), which returns `False` and so gives O6 before `execute_block` runs; legacy payload bytes are also pre-decoded when the block is built (`validation_helpers.py:88–97`, G6). A **standalone** `executeBlock` (for example `blockchain_tests` through `stateTransition`) still raises its own decode errors (`TransactionTypeError` was reproduced), so the `txDecode` constructors are live and must not be removed. A host-resource failure (`RecursionError`, `MemoryError`) during `execute_block`'s repeated decode (`fork.py:827`) is not excluded by the first decode's success; it belongs to O12/DISC-001, not here.
-- **R-RCPT.** `Receipt = {succeeded : Bool, cumulativeGasUsed : Nat, bloom, logs : Array Log}` and `Log = {address, topics : Array Hash32, data}` (`blocks.py:330, 363`). `encodeReceipt tx r` (`:394`) is `[k] ++ rlp r` for a typed transaction of type *k*, and the bare structure for legacy. `decodeReceipt` (`:417`) is needed only by `parseDepositRequests`, on receipts this module produced.
+- **R-RCPT.** `Receipt` stores an independent `Bool`, `Nat`, `Base.Bloom` and ordered `Array Vm.Core.Log` in §5 field order (`blocks.py:363–391`, D27). `EncodedReceipt` retains a complete legacy receipt or arbitrary typed bytes. `encodeReceipt tx r` (`blocks.py:394–414`) must return `[k] ++ rlp r` for a typed transaction of type *k* and the bare receipt for legacy. The only required caller of `decodeReceipt` (`blocks.py:417–436`) is `parseDepositRequests`. It decodes receipts this module produced.
 - **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1102`). The six signing hashes (`:942–1099`) must hash exactly these tuples:
   - pre-155: `(nonce, gasPrice, gas, to, value, data)`;
   - EIP-155: that tuple plus `(chainId, 0, 0)`;
@@ -203,10 +203,10 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw carrier, forward RLP model and certified SSZ dictionary supplied below |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` | raw 23-field carrier supplied below |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
-| `forks/amsterdam/blocks.py::Log` | 330 | `Log` |  |
-| `forks/amsterdam/blocks.py::Receipt` | 363 | `Receipt` |  |
-| `forks/amsterdam/blocks.py::encode_receipt` | 394 | `encodeReceipt` | type-prefixed except legacy |
-| `forks/amsterdam/blocks.py::decode_receipt` | 417 | `decodeReceipt` | only on self-encoded receipts |
+| `forks/amsterdam/blocks.py::Log` | 330 | `Vm.Core.Log` | reused in `Receipt` (D27) |
+| `forks/amsterdam/blocks.py::Receipt` | 363–391 | `Receipt` | raw carrier supplied below |
+| `forks/amsterdam/blocks.py::encode_receipt` | 394–414 | `encodeReceipt` | result carrier `EncodedReceipt` supplied below. Encoding remains open. |
+| `forks/amsterdam/blocks.py::decode_receipt` | 417–436 | `decodeReceipt` | produced-receipt decoding remains open |
 | `forks/bpo5/blocks.py::Withdrawal` | 37 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
 | `forks/bpo5/blocks.py::Header` | 71 | `PrevHeader` | raw 21-field parent carrier supplied below |
 | `forks/bpo5/blocks.py::Block` | 253 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
@@ -334,6 +334,16 @@ The review reproducer now uses `uv.lock`, including `ethereum-rlp` 0.1.6; see [R
 | Exact pinned EELS source | Planned declaration/domain | Success/effects | Ordered failure/domain boundary | Required model/composition law | Required validation |
 |---|---|---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:101–111`; `transactions.py:535–554`; `blocks.py:394–414`; `fork.py:1038–1042,1073–1084,1106–1111,326–329` | EthBlock-owned `TrieValue` bridges for optional transaction/receipt values and already-encoded withdrawal Bytes; dense array representation unchanged | Unsecured/default-None inputs; legacy RLP once, Bytes identity; RLP ordinal byte keys and supplied F20 empty root; C8 effects retained | `none` means default deletion; nondefault empty Bytes is unsafe, not silently deleted; no new preparation error/O-row; source-schema/assembled `Encodable` and host premises remain caller obligations | Arrays equal the encoded prepared map of the corresponding safe typed trie; existing EthCommit `root`/`mathRoot` equation, no second root API | Legacy and each typed transaction (0x01–0x04), legacy/typed receipts, withdrawal already-RLP, ordinal keys 0/1/127/128/256, empty/nonempty blocks and nonliteral empty constants; proof-only consumer clients |
+
+### Supplied raw receipt and envelope
+
+`STFSpec/Block/Receipt.lean` supplies both carriers through `STFSpec.Block`.
+`Receipt` reuses `Base.Bloom` and `Vm.Core.Log` (D27).
+
+| Exact pinned EELS source and domain | Lean declaration and types | Effects and failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:363–391`. Each field admits every value of its type. | `Receipt : Type`, `Receipt.mk : Bool → Nat → Base.Bloom → Array Vm.Core.Log → Receipt`, and the four projections in §5 | Pure field storage | The private facade clients check the exact types, complete arbitrary construction and reconstruction, and each independent field update. Interpreted guards compare every field, including all bloom and log bytes (§4). |
+| `src/ethereum/forks/amsterdam/blocks.py:394–436` uses a union of receipt records and bytes. The raw Lean constructors accept every receipt and byte array. | `EncodedReceipt : Type`, `EncodedReceipt.legacy : Receipt → EncodedReceipt`, `EncodedReceipt.typed : ByteArray → EncodedReceipt` | Pure tagged storage | The private facade clients check the exact types, both complete payloads, reconstruction and variant distinction. Interpreted guards compare the full legacy record and both empty and nonempty typed bytes (§4). |
 
 ### Supplied raw withdrawal
 
@@ -672,6 +682,14 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw receipts.** `ReceiptCallerProofs.lean` checks arbitrary values through the
+  Block facade as described in §3. `ReceiptGuards.lean` contains nine interpreted
+  guards. They cover both status values, zero gas and gas above `2^256`, all 256
+  bloom bytes, empty and ordered duplicate logs, every address, topic and data byte,
+  and each independent field update. The envelope guards compare a complete legacy
+  receipt and empty and nonempty typed payloads, including an unknown prefix and
+  embedded and trailing zero bytes.
+
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
   `WithdrawalGuards.lean` has 30 interpreted complete-value guards: zero/max words,
@@ -942,8 +960,15 @@ structure LegacyTransaction; structure AccessListTransaction; structure FeeMarke
 structure BlobTransaction; structure SetCodeTransaction
 inductive Transaction | legacy | accessList | feeMarket | blob | setCode
 inductive BlockTx | legacy (t : LegacyTransaction) | typed (b : ByteArray)
-structure Block; structure Receipt   -- `Log` is declared in EthVmCore (D27) and re-exported here
-inductive EncodedReceipt | legacy (r : Receipt) | typed (b : ByteArray)
+structure Block
+structure Receipt where
+  succeeded : Bool
+  cumulativeGasUsed : Nat
+  bloom : Base.Bloom
+  logs : Array Vm.Core.Log
+inductive EncodedReceipt where
+  | legacy (r : Receipt)
+  | typed (b : ByteArray)
 structure IntrinsicGasCost where execution calldataFloor : Nat
 structure ChainContext where chainId : U64; blockHashes : Array Hash32; parentHeader : ParentHeader
 
@@ -1301,6 +1326,15 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - Q53: typed root input/default/validity and key contracts follow R-TRIE/§5; consumer bridges and dense-map composition remain unimplemented.
 
 ## 10. Gaps
+
+- **Raw receipts:** The R-RCPT record and both envelope constructors are supplied
+  with private facade proofs and interpreted storage guards (§§3–5). Receipt RLP,
+  encoding and decoding envelopes, receipt production, Q53 receipt trie inputs and
+  request integration remain open. The required decode path in R-RCPT consumes
+  produced receipts. Completion on arbitrary typed bytes is open. For a decodable
+  body with an unknown prefix, pinned EELS raises on the prefix assertion when
+  assertions are enabled and decodes the body when they are disabled
+  (`src/ethereum/forks/amsterdam/blocks.py:432–434`).
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
