@@ -110,7 +110,7 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::get_account` | 200–225 | `getAccount` | **Discharged bounded wrapper:** one current optional action, absence defaulted from initial retained constants; five laws below. |
 | `forks/amsterdam/state_tracker.py::get_code` | 228–259 | `getCode` | **Discharged bounded action:** hash-only priority, fall-through observation and five laws below. |
 | `forks/amsterdam/state_tracker.py::get_storage` | 262 | `getStorage` | Standalone action supplied (§3/§7.1, R11) |
-| `forks/amsterdam/state_tracker.py::get_storage_original` | 298–324 | `getStorageOriginal` | **Supplied standalone action:** created-account membership, block slot write, block clear, then the retained storage provider. Private equations and controls appear below. |
+| `forks/amsterdam/state_tracker.py::get_storage_original` | 298–324 | `getStorageOriginal` | **Supplied standalone action:** created-account membership, block slot write, block clear, then the retained storage provider. The mathematical `TxState.originalAt` models the selected word. Private equations and controls appear below. |
 | `forks/amsterdam/state_tracker.py::get_transient_storage` | 327–349 | `getTransientStorage` | **Discharged read:** transaction transient lookup with a zero default and a complete action law below. |
 | `forks/amsterdam/state_tracker.py::account_exists` | 352–369 | `accountExists` | Supplied wrapper over `getAccountOptional` (§7.1). |
 | `forks/amsterdam/state_tracker.py::account_deployable` | 372 | `accountDeployable` | Supplied, R13. |
@@ -156,11 +156,12 @@ equation and the public block, application and lookup laws.
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:78–104`, used at `fork.py:540,697,748,1104` | `TxState.new (b : BlockState m) : TxState m` in `STFSpec/State/TransactionInitialization.lean`, exported by State | Class-free construction over the complete supplied block. Empty transaction maps, clear set, observations and created accounts. Both global order indexes are `WriteOrder.empty` and per-address slot order is absent. | A private complete equation verifies every default and retention of the entire supplied block. The private facade controls and direct source comparison cover the defaults (§4). |
 
-### Implemented original storage read
+### Implemented original storage read and model observer
 
 | Source at the pin | Lean declaration and domain | Ordered effects and failures | Laws and validation |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:298–324` | `getStorageOriginal : Address → Bytes32 → StateM m U256` in `State/StorageOriginal.lean`. Requires only `Monad m` and accepts raw transactions. | Created membership returns zero first. Otherwise a block slot entry returns its value, including zero. A missed entry at a cleared address returns zero. The remaining branch calls `t.block.preState.getStorage a k` once. Success returns the whole input transaction. A provider error returns the complete `StateError.witness` payload without a transaction. | Private complete branch equations and the guided conditional `Id` model equation (§7.1). Finite effect, frame and source controls appear in §4. |
+| Model of the value selected by `src/ethereum/forks/amsterdam/state_tracker.py:298–324` | `TxState.originalAt (σ₀ : MathState) (t : TxState m) (a : Address) (k : Bytes32) : U256` in the same module, without class or validity premises | Created membership returns zero. Otherwise use the selected storage word in the mathematical block view over the supplied base. | Private dependence equation and the named Id success bridge (§7.1). Facade model guards are in §4. |
 
 ### Implemented optional pre-transaction account read
 
@@ -671,6 +672,13 @@ production provider, progress, root/authentication, resource or release result.
   the pinned EELS function in isolated normal and optimized Python. The Python
   failure case checks propagation of the thrown object and unchanged source
   fields. The Lean case separately checks the typed error representation.
+  The mathematical observer controls use a supplied raw base with
+  full-width storage words. They check created-account masking, nonzero
+  and zero block hits, block clear after a miss, and the selected base
+  word. A failing runtime query still leaves the pure observer defined
+  on its supplied mathematical inputs. Private facade proofs frame
+  transaction writes, unrelated observations and the whole provider
+  record.
 
 - **EEST fixture areas** (`STFSpec/informal/eest-fixture-index.txt`): `cancun/eip1153_tstore`, `ported_static/stEIP1153_transientStorage` (transient storage, reset per transaction); `cancun/eip6780_selfdestruct`, `amsterdam/eip8246_selfdestruct_no_burn` (created accounts, clears, `clear_account_preserving_balance`); `ported_static/stSStoreTest`, `istanbul/eip2200_net_gas_metering`, `ported_static/stRefundTest` (current versus original values); `ported_static/stRevertTest`, `stZeroCallsRevert`, `stCallCreateCallCodeTest` (snapshot/revert); `spurious_dragon/eip161_state_trie_clearing`, `ported_static/stEIP158Specific` (empty-account destruction in `modify_state`); `ported_static/stCreate2`, `stCreateTest`, `stInitCodeTest` (creation over storage-only accounts); `amsterdam/eip7928_block_level_access_lists` (211 files; persistent observations, write→read conversion); `amsterdam/eip8025_optional_proofs` (witness reads in reverted calls: `test_witness_state_reads.py`, `test_witness_headers.py` for `track_ancestor_access` in reverted calls); `prague/eip2935_historical_block_hashes_from_state`; `shanghai/eip4895_withdrawals` (`create_ether`); `prague/eip7702_set_code_tx` (`set_code`, `get_pre_state_account`); `amsterdam/eip8037_state_creation_gas_cost_increase`, `eip8038_state_access_gas_cost_increase`.
 - **EELS unit tests:** none target `state_tracker.py` at the pin. `tests/json_loader/test_optimized_state.py` (`test_storage_key`, `test_resurrection`) concerns an older optimized state and is not normative here.
@@ -1358,7 +1366,8 @@ theorem TxState.view_account?_eq {m : Type → Type}
     (t.view σ₀).account? a = match t.rev.accountWrites[a]? with
       | some account => account
       | none => (t.block.view σ₀).account? a
-def TxState.originalAt (σ₀) (t) (a) (k) : U256
+def TxState.originalAt {m : Type → Type} (σ₀ : MathState) (t : TxState m)
+    (a : Address) (k : Bytes32) : U256  -- supplied, without class premises
 private def TxRevertible.asDiff (r : TxRevertible) : BlockDiff       -- owning view module
 def BlockDiff.merge (d₁ d₂ : BlockDiff) : BlockDiff                  -- incorporate's rule, R25
 -- Read-only BAL views; they expose source semantics, never container layout.
@@ -1640,7 +1649,9 @@ Per operation, under success (`op t = .ok (x, t')`) [C]:
   `StateError.witness`. At `Id`, failure returns that exact error without a
   transaction. The mathematical proof uses the two view applications and
   the storage clause of `ModelsLookups`.
-- `getStorageOriginal a k` (proved privately): `x = if a ∈ t.obs.createdAccounts then 0 else (t.block.view σ₀).storageAt a k`, `t' = t`. The proof uses the block-view application and extraction laws and the storage clause of `ModelsLookups`. Its domain retains the initial `MathState.WF` premise.
+- `getStorageOriginal a k` (proved privately): `x = t.originalAt σ₀ a k` and `t' = t`. The proof uses the block-view
+  application and extraction laws and the storage clause of `ModelsLookups`.
+  Its domain retains the initial `MathState.WF` and success premises.
 - `getAccountOptional a`: `x = (t.view σ₀).account? a`, `accountReads += a`. `getPreStateAccountOptional a`: `x = (t.block.view σ₀).account? a`.
 - `getCode h` (supplied): `getCode_model` gives `(t.view σ₀).code? t.block.consts h = some x` under the initial WF, ModelsLookups and Id success premises. The separate membership law records a provider read when neither write layer holds `h` and `h ≠ emptyCodeHash`.
 - `setStorage a k v`: `t'.view σ₀ = (t.view σ₀).setStorage a k v`; `destroyStorage a`: `… .clearStorage a` and `storageReads' = storageReads ∪ {(a,k) | k ∈ dom t.rev.storageWrites[a]}`.
@@ -1652,6 +1663,14 @@ Per operation, under success (`op t = .ok (x, t')`) [C]:
 - `setTransientStorage a k v`: `transient' = transient.insert (a,k) v` (erase if `v = 0`).
 - Invariant preservation of `TxRevertible`'s order-list invariant for every write.
 - **Progress** [T]: every operation terminates; a read fails only if the provider call it makes fails, or by R15/R19.
+
+The class-free observer `t.originalAt σ₀ a k` is zero when `a` is in
+`t.obs.createdAccounts`. Otherwise it equals `(t.block.view σ₀).storageAt a k`.
+The private dependence equation uses the queried created-account membership,
+the selected block slot and the block clear at that address. Transaction
+writes, clears, transient storage, other observations and provider callbacks
+do not affect the observer. It accepts an arbitrary raw base and gives no
+runtime-success conclusion after a provider failure.
 
 The original storage read has four private complete run equations for arbitrary
 `Monad m`. The first three return one `pure` with the selected value and the
@@ -2039,7 +2058,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
   BlockState.view with its exact application equation, mathematical TxState.view
-  with its account observer law and private conversion, plus raw three-field
+  with its account observer law and private conversion, the mathematical
+  original-storage observer with the private R12 bridge, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations, other contextual

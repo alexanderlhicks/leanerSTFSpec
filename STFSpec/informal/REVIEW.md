@@ -1239,10 +1239,13 @@ call execution, composed D23 ownership and the wider State gates remain open.
 
 EthState §3/§4/§7.1 supplies `getStorageOriginal` with a `Monad` premise.
 Four private equations cover every branch and the exact retained provider action.
-The private `Id` proof gives the original value and identical transaction on the
-guided initial WF/ModelsLookups/success domain. Eleven finite controls check
-effects, the retained data, and agreement with pinned source. The separate
-`TxState.originalAt` observer and SSTORE composition remain open.
+The class-free `TxState.originalAt` observer uses created-account membership
+and the mathematical block view. The private `Id` proof gives that word
+and the identical transaction on the initial WF/ModelsLookups/success
+domain. Eleven finite controls check the operational read and agree with
+pinned source. The added model controls check a supplied raw base,
+including when the runtime query fails. The public precedence laws and
+SSTORE composition remain open.
 
 EthState §3/§4/§7.1 supplies the standalone current storage action. The
 private proofs cover branch actions under Monad and exact error, whole-state
