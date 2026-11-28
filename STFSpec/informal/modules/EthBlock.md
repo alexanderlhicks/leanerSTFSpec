@@ -8,7 +8,7 @@ The raw block output carrier and transaction access entry are supplied.
 Calldata token count, deposit extraction, requests hash and logs bloom are supplied.
 Block execution remains open.
 Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98, Q99.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98, Q99, Q101.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -126,7 +126,11 @@ It returns `IntrinsicGasCost`.
 5. `processWithdrawals`.
 6. `processGeneralPurposeRequests`.
 7. `bal := buildBlockAccessList builder blockState`.
-8. `validateBlockAccessListGasLimit bal header.gasLimit`.
+8. Call `validateBlockAccessListGasLimit bal blockEnv.blockGasLimit
+   cfg.gas.blockAccessListItem positive`. The body caller supplies
+   `positive : 0 < cfg.gas.blockAccessListItem` (Q101). The block environment
+   gets this limit from the header in R-EB. EELS
+   `src/ethereum/forks/amsterdam/fork.py:306,842–850`.
 
 **System calls** (`:665–780`). An unchecked call runs `process_top_level` with `origin = cfg.system.systemAddress` (source `SYSTEM_ADDRESS`, F8), value 0, `gasLimit = executionGrant = cfg.system.txGas` [30 M], state reservoir `STORAGE_SET · 16` [97 920 · 16], zero floor, no access lists, no paid writes, `effectiveGasPrice = baseFee`, `indexInBlock = txHash = none`. It invokes `processTopLevelChecked cfg.runnerEnv`, supplying the same configured address to the emitter context for system and user calls (F8). It then incorporates its state into the block (BAL update, then merge). No gas is added to block counters; no nonce is changed and no fee is charged. A checked call first reads the target's code through a throwaway, never-incorporated `TxState`, so that code deployed earlier in the same block is visible (`:689–701`). Empty code raises `systemContractNoCode addr`. It then makes the unchecked call, and any frame error raises `systemContractFailed addr`.
 
@@ -167,11 +171,12 @@ It returns `IntrinsicGasCost`.
   For every storage write, the slot is converted to `U256` from big-endian. If the value differs from the pre-value, `addStorageWrite` is called; otherwise `removeStorageWrite`, which deletes the slot's entry when it becomes empty (`:539`).
 - **Build** (`:827`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
 - **Hash.** Query Keccak once on the complete typed RLP bytes (`:850–856`, §3).
-- **Gas limit** (`:859`): sum
-  `1 + |writtenSlots ∪ readSlots|` for each outer entry. A sum greater than
-  `gasLimit / BLOCK_ACCESS_LIST_ITEM` [2000] raises `balGasLimitExceeded`.
-  Repeated slots count once within an entry. Repeated accounts contribute at
-  each position in the raw input.
+- **Gas limit.** Count each outer entry once. For each entry, also count each
+  key in the union of its storage-change keys and its storage-read keys once.
+  Start a fresh union for each entry, including repeated addresses. Compare
+  the resulting count with the allowance at the selected positive price
+  (Q101, §7). EELS
+  `src/ethereum/forks/amsterdam/block_access_lists.py:859–892`.
 - The BAL is **checked only through its hash** against `header.blockAccessListHash`. On the stateless path, that hash is `keccak(payload.block_access_list)` (`execution_engine/validation_helpers.py:79`, G6). EELS never decodes the supplied BAL.
 
 ### 2.12 Failure mapping
@@ -302,7 +307,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/block_access_lists.py::update_builder_from_tx` | 765 | `updateBuilderFromTx` | called from `incorporate_tx_into_block` (seam, §8) |
 | `forks/amsterdam/block_access_lists.py::build_block_access_list` | 827 | `buildBlockAccessList` |  |
 | `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | supplied typed hash, see below |
-| `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 859 | `validateBlockAccessListGasLimit` | items ≤ gasLimit / 2000 |
+| `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 859–892 | `validateBlockAccessListGasLimit` | R-BAL counts per entry, then tests the integer allowance. Q101 takes the selected positive price. EELS uses the Amsterdam schedule value at `vm/gas.py:140`. |
 | `forks/amsterdam/exceptions.py::WrongChainIdError` | 15 | `TxError.wrongChainId` |  |
 | `forks/amsterdam/exceptions.py::WrongChainIdError.__init__` | 23 | (constructor fields) | fields carried as constructor arguments |
 | `forks/amsterdam/exceptions.py::TransactionTypeError` | 29 | `TxDecodeError.unsupported` (via `BlockError.txDecode`) | an `InvalidTransaction` subclass, but raised only by `decode_transaction`; one constructor for the one site |
@@ -780,6 +785,16 @@ separate obligations.
 
 ## 4. Tests
 
+- **Block access list gas limit (Q101).** Compare complete results at one
+  gas unit below, at and above the threshold. Cover an empty BAL at zero
+  gas, zero allowance for a nonempty BAL, repeated outer addresses and
+  duplicates across storage-change and read keys within an entry. Use the
+  Amsterdam price and other positive Nat prices, including one larger
+  than a fixed-width word. Each rejected result carries the exact item
+  count and quotient. For body composition, check that validation receives
+  the built BAL and the environment's gas limit after requests. An earlier
+  failure suppresses the validator.
+
 - **Raw transaction access entry.** `AccessControls.lean` imports the Block
   facade. Private clients check the exact constructor and projection types,
   both projections together on arbitrary inputs, complete reconstruction and
@@ -967,7 +982,6 @@ These are future consumer checks; the guidance clarification claims no new confo
   - `computeRequestsHash`: complete ordered request/digest native rows, empty-list versus one-empty, duplicates, order reversals, arbitrary prefixes, split boundaries, inner lengths at the 55/56 and 64 SHA-256 padding boundaries and count 256; private facade-law clients and strict normal/optimized parser controls as in §3. Source coupling compares both original-source modes, separately from authenticated packet/host provenance.
   - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
-  - `validateBlockAccessListGasLimit` at the limit and one past it.
   - Signing hashes against EEST transaction vectors. Recover senders for legacy pre-EIP-155 and protected signatures with both parities, and for all four typed transaction variants. Compare the signing digest, parity and complete sender address.
 - **Adversarial transactions:**
   - `s = N/2 + 1`, `r = 0`, `r = N`. Combine invalid `r`, invalid `s` and bad typed parity to check the R-SIG order before any signing or sender-address hash.
@@ -1266,7 +1280,8 @@ def updateBuilderFromTx : BalBuilder → TxState m → m (Except WitnessError (B
 def buildBlockAccessList : BalBuilder → BlockState m → BlockAccessList
 -- Supplied typed hash returns one query action on the complete outer encoding.
 def hashBlockAccessList : BlockAccessList → m Hash32
-def validateBlockAccessListGasLimit : BlockAccessList → Nat → Except BlockError Unit
+def validateBlockAccessListGasLimit (bal : BlockAccessList) (blockGasLimit : Nat)
+    (itemPrice : Nat) (positive : 0 < itemPrice) : Except BlockError Unit
 -- pipeline (the seam)
 abbrev BlockAcc (m) := BlockOutput × BlockState m × BalBuilder      -- threaded linearly
 def checkTransaction (cfg) : BlockEnvironment → BlockAcc m → Transaction → Nat
@@ -1493,6 +1508,17 @@ Per operation (model-based, D25):
 - **Deposit extraction (supplied).** `extractDepositData_eq` preserves the first reached constructor among the eleven source guards and every successful output byte, without a domain premise. Full unbounded BE reads reject high-bit corruptions. All offsets are admitted before size checks, so fixed size/data windows equal the source's reached dynamic offsets. `size_extractDepositData` derives exact 192-byte output from success and the admitted 576-byte length using public slice/append/export laws. No ignored-padding or field-content check is added. Source intermediate slice allocation/failure and O12 host resources remain separate. [R][T]
 
 - **Execution-request commitment (supplied).** `computeRequestsHash_eq` identifies the complete ordered SHA-of-SHA result through the existing pure SHA provider and exact `Hash32.ofBytes32` bridge. A private ordinary packed/List equality proves that reservation and per-digest byte emission preserve the entire outer preimage. Empty requests and duplicates are retained; no request typing, order normalization or content validation occurs. Private facade clients derive complete output-byte, empty/singleton/pair and exact model-preimage-size consequences using public contracts only. Source/FIPS agreement retains each inner and outer Q46 bound and host/API/native premises; source streaming storage and crypto binding are separate. [R][T]
+- **BAL gas limit (Q101).** Let `items` be the R-BAL count and `limit`
+  be the Nat quotient `blockGasLimit / itemPrice`. If `items ≤ limit`,
+  return `.ok ()`. Otherwise return
+  `.error (.balGasLimitExceeded items limit)`. The count depends on the
+  outer entries and their storage keys. Balance, nonce, code and the
+  payloads of storage changes leave it unchanged. The result applies to
+  raw BALs, including duplicates and read/write overlap, at every
+  positive Nat price. EthFork §7 owns the positivity of the supplied
+  Amsterdam value. The generic body caller must establish or carry the
+  selected-price proof at the R-AB step. Caller admission and proof
+  transport remain open.
 - **BAL builder.** Every `BalBuilder` operation preserves the invariant and commutes with α, where the model operations are finite-map update/erase with "last wins" (storage, balance, code) and "max wins" (nonce). [C]
   - `build_sorted`: the output of `build` satisfies the `BlockAccessList` invariant. [C]
   - `build_eq_eels`: `build b = sortBy… (eelsBuild (αList b))`. That is, it equals EELS's list-and-sort result for any trace of EELS operations, by uniqueness of sorted lists over a strict order (Nipkow et al. Thm 2.9). [C]
@@ -1584,7 +1610,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   Q97 supplies the withdrawal byte dictionary. Transaction/receipt encodings and
   dense-map composition remain unimplemented.
 - Q96 owns the raw block access list representation in §5. Q98 owns the forward
-  RLP interface in §§3–5.
+  RLP interface in §§3–5. Q101 selects the item-price input and local
+  positivity proof for the gas-limit validator (§§5 and 7).
 - Q99 owns the disposition on the visibility of the embedded receipt log model. The supplied model is in §§3, 5 and 7.
 
 ## 10. Gaps
@@ -1599,8 +1626,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   The outer route uses the ordered List instance. General source correspondence
   retains assembled Q47, the source typed-dispatch, conversion and host premises,
   and the concrete Keccak interpretation for the hash. Typed decoding, builder
-  construction, ordering, index accounting, read/write disjointness, the slot-union
-  gas check and block or guest integration remain open.
+  construction, ordering, index accounting, read/write disjointness,
+  executable slot-union counting and block or guest integration remain open.
+  Q101 gives the gas-limit validator its positive price input and complete
+  diagnostic (§§5 and 7). The validator, BlockError carrier and the body
+  caller's positivity proof transport remain open.
 
 - **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
   supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,

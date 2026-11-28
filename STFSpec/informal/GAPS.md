@@ -1237,8 +1237,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   The outer route uses the ordered List instance. General source correspondence
   retains assembled Q47, the source typed-dispatch, conversion and host premises,
   and the concrete Keccak interpretation for the hash. Typed decoding, builder
-  construction, ordering, index accounting, read/write disjointness, the slot-union
-  gas check and block or guest integration remain open.
+  construction, ordering, index accounting, read/write disjointness,
+  executable slot-union counting and block or guest integration remain open.
+  Q101 gives the gas-limit validator its positive price input and complete
+  diagnostic (§§5 and 7). The validator, BlockError carrier and the body
+  caller's positivity proof transport remain open.
 
 - **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
   supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
