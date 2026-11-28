@@ -1,6 +1,6 @@
 # Decisions
 
-*Status: current. Date: 2026-11-26. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
+*Status: current. Date: 2026-11-27. This is the single register of design decisions and question dispositions: statuses are recorded only here. Other documents cite entries by ID (P1, D5, B8, F7, Q20) and never restate them.*
 
 | Status | Meaning |
 |---|---|
@@ -171,6 +171,7 @@ Questions that do not affect interfaces, or that are resolved or tracked elsewhe
 | Q96 | Raw block access list carriers | **Accepted by the maintainer (2026-11-26), recorded in [issue #528](https://github.com/alexanderlhicks/leanerSTFSpec/issues/528).** Select A+C in ARCHITECTURE §11. Use `List` for all six nested sequences and `ByteArray` for `CodeChange.newCode`. EthBlock §5 owns the six exact source-ordered raw layouts and the existing outer `Array AccountChanges` choice. Construction retains all fields independently, including order, duplicates and every code byte. The builder owns its output ordering and disjointness. A later codec or execution operation needs its own contract. Revisit for a positional consumer or measured builder or hash costs. |
 | Q97 | Withdrawal trie byte dictionary activation | **Accepted by the maintainer (2026-11-26), recorded in [issue #531](https://github.com/alexanderlhicks/leanerSTFSpec/issues/531).** Select B in ARCHITECTURE §11. EthBlock supplies the named, unregistered `@[instance_reducible] def Withdrawal.encodedTrieValue : Commit.TrieValue (Option Base.Bytes)` and the two exact encode and validity laws in EthBlock §5. Callers select the dictionary explicitly or bind it locally. Dense ordinal preparation and root composition remain separate. Revisit if a shared interpretation needs common instance inference. |
 | Q98 | Block access list forward RLP | **Accepted by the maintainer (2026-11-26), recorded in [issue #532](https://github.com/alexanderlhicks/leanerSTFSpec/issues/532).** Select B in ARCHITECTURE §11. Export the six nominal `RlpEncode` instances in EthBlock §5 and use the existing Codec primitive and ordered List dictionaries. The outer route is `Rlp.encodeOf bal.toList`. Standard source-wire correspondence requires complete assembled Q47 and the source typed-dispatch, conversion and host premises. Decoding, hashing, counting and the builder retain separate contracts. Revisit for a measured need to traverse the outer array directly. |
+| Q99 | Forward receipt RLP and embedded log visibility | **Accepted by the maintainer (2026-11-27).** Select A in ARCHITECTURE §11. Export exactly the named `Receipt.instRlpEncode` through the Block facade and keep `logItem` private. EthBlock §5/§7 owns the total four-field model with complete bloom, log, topic and data bytes. Pinned wire agreement uses the assembled Q47 premise, exact source dispatch and conversion, and successful host execution. EthBlock §10 owns remaining receipt obligations. Revisit for a named standalone log consumer or changed source schema. |
 
 ## 5. Adding or changing a decision
 

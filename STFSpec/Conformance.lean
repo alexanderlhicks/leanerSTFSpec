@@ -45,6 +45,7 @@ import STFSpec.Conformance.Stateless.InputSszCallerProofs
 import STFSpec.Conformance.Stateless.InputSszControls
 import STFSpec.Conformance.Stateless.InputSszWireControls
 import STFSpec.Conformance.Stateless.OutputCallerProofs
+import STFSpec.Conformance.Stateless.OutputDecodeGuards
 import STFSpec.Conformance.Stateless.OutputGuards
 import STFSpec.Conformance.Stateless.PayloadCallerProofs
 import STFSpec.Conformance.Stateless.PayloadGuards
@@ -112,6 +113,9 @@ import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpControls
 import STFSpec.Conformance.Block.HeaderCallerProofs
+import STFSpec.Conformance.Block.ReceiptCallerProofs
+import STFSpec.Conformance.Block.ReceiptGuards
+import STFSpec.Conformance.Block.ReceiptRlpControls
 import STFSpec.Conformance.Block.WithdrawalCallerProofs
 import STFSpec.Conformance.Block.WithdrawalGuards
 import STFSpec.Conformance.Block.WithdrawalSszControls
@@ -119,7 +123,10 @@ import STFSpec.Conformance.Block.WithdrawalRlpCallerProofs
 import STFSpec.Conformance.Block.WithdrawalRlpControls
 import STFSpec.Conformance.Block.BlockAccessListControls
 import STFSpec.Conformance.Block.BlockAccessListRlpControls
+import STFSpec.Conformance.Block.AccessControls
 import STFSpec.Conformance.Block.WithdrawalTrieValueControls
+import STFSpec.Conformance.Block.BlockAccessListHashControls
+import STFSpec.Conformance.Block.BlockOutputControls
 import STFSpec.Conformance.Block.BlockParamsCallerProofs
 import STFSpec.Conformance.Fork.AmsterdamBlockParamsGuards
 import STFSpec.Conformance.Fork.AmsterdamWireLimitsGuards
