@@ -2,12 +2,13 @@
 
 *Status: informal specification, draft.
 Raw receipts and headers with their forward RLP models are supplied, along with receipt envelope variants, withdrawals and parameter records.
+The nominal `HeaderError` carrier is supplied.
 Withdrawal has a certified SSZ dictionary, forward RLP model and named trie byte dictionary.
 Block access list records have forward RLP models and a typed hash.
 The raw block output carrier and transaction access entry are supplied.
 Calldata token count, deposit extraction, requests hash and logs bloom are supplied.
 Block execution remains open.
-Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+Date: 2026-11-28. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98, Q99.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -92,7 +93,7 @@ It returns `IntrinsicGasCost`.
 1. `number < 1` raises `header .numberZero`.
 2. `excessBlobGas ≠ calculate_excess_blob_gas parent` (`gas.py:886`) raises `header .excessBlobGas`. The helper reads `excessBlobGas`, `blobGasUsed` and `baseFeePerGas` from **either** parent variant. Its U64 arithmetic (`excess + used`, `used · (MAX − TARGET)`) can raise `OverflowError` on an adversarial parent, which is `BlockError.arith .excessBlobGasOverflow`. Its `calculate_blob_gas_price` is a Taylor series whose cost grows with `excess` (see Gaps).
 3. `gasUsed > gasLimit` raises `header .gasUsedExceedsGasLimit`.
-4. `calculateBaseFeePerGas gasLimit parent.gasLimit parent.gasUsed parent.baseFee` (`:361`). It **first** calls `checkGasLimit` (`:1118`), which raises `header .gasLimit` unless `parent − parent/1024 < gasLimit < parent + parent/1024` and `gasLimit ≥ 5000`. Then, with `target = parent.gasLimit / 2`: equal usage leaves the fee unchanged; above target, the fee rises by `max(1, baseFee·Δ/target/8)`; below target, it falls by `baseFee·Δ/target/8`. A mismatch raises `header .baseFee`.
+4. `calculateBaseFeePerGas gasLimit parent.gasLimit parent.gasUsed parent.baseFee` (`:361`). The helper raises `header .gasLimit` (`:387–389`) if the Boolean `checkGasLimit` (`:1118`) rejects. Admission requires `parent − parent/1024 < gasLimit < parent + parent/1024` and `gasLimit ≥ 5000`. Then, with `target = parent.gasLimit / 2`: equal usage leaves the fee unchanged; above target, the fee rises by `max(1, baseFee·Δ/target/8)`; below target, it falls by `baseFee·Δ/target/8`. A mismatch raises `header .baseFee`.
 5. `timestamp ≤ parent.timestamp` raises `header .timestamp`.
 6. `number ≠ parent.number + 1` raises `header .number`.
 7. `len extraData > 32` raises `header .extraData`.
@@ -200,8 +201,8 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::get_last_256_block_hashes` | 188 | `getLast256BlockHashes` | ≤256 hashes, oldest first; `[]` for an empty chain |
 | `forks/amsterdam/fork.py::state_transition` | 228 | `stateTransition` | full-state path only (blockchain_tests) |
 | `forks/amsterdam/fork.py::execute_block` | 267 | `executeBlock` | Unimplemented. Check order R-EB and caller acquisition F20 |
-| `forks/amsterdam/fork.py::calculate_base_fee_per_gas` | 361 | `calculateBaseFeePerGas` | raises `gasLimit` via `check_gas_limit` first |
-| `forks/amsterdam/fork.py::validate_header` | 424 | `validateHeader` | 12 checks, order R-VH |
+| `forks/amsterdam/fork.py::calculate_base_fee_per_gas` | 361 | `calculateBaseFeePerGas` | first raises `gasLimit` at `:389` if `check_gas_limit` rejects |
+| `forks/amsterdam/fork.py::validate_header` | 424–478 | `validateHeader`, `HeaderError` | R-VH order, including the base-fee helper gas-limit rejection at `:389`. The nominal carrier is supplied below. |
 | `forks/amsterdam/fork.py::check_transaction` | 481 | `checkTransaction` | Unimplemented. Sender recovery starts R-CT |
 | `forks/amsterdam/fork.py::make_receipt` | 628 | `makeReceipt` |  |
 | `forks/amsterdam/fork.py::process_checked_system_transaction` | 665 | `processCheckedSystemTransaction` | no-code / failure ⇒ `BlockError` |
@@ -551,6 +552,18 @@ observations are out-of-tree evidence, not a public source replay driver.
 Header forward RLP models are supplied below. Header decoding, hashing, validation
 and execution remain unimplemented.
 
+### Supplied nominal header errors
+
+`STFSpec/Block/HeaderError.lean` supplies the twelve nullary
+`HeaderError` constructors through the Block facade. Their order
+follows the header rejection sites in R-VH. EELS uses the same
+`InvalidBlock` class for these checks, including the gas-limit
+rejection inside the base-fee helper.
+EELS `src/ethereum/forks/amsterdam/fork.py:387–389,445–478`.
+The private conformance client checks exhaustive case analysis and
+constructor order (§4). Producing these errors during validation and
+embedding them in the block outcome remain separate (§10).
+
 ### Supplied header forward RLP models
 
 `STFSpec/Block/HeaderRlp.lean`, exported by `STFSpec.Block`, supplies exactly
@@ -779,6 +792,15 @@ integration, F20 coherence, full block execution and guest/EEST readiness remain
 separate obligations.
 
 ## 4. Tests
+
+- **Header errors.** `HeaderErrorChecks.lean` uses the public Block
+  facade to check exhaustive elimination, all twelve constructor
+  positions and the ordered source-site correspondence. Thirty-two
+  source probes per Python mode check each rejection site and
+  acceptance for Amsterdam and bpo5 parents. Paired failures check
+  precedence, including gas-limit rejection before fee mismatch
+  and an ommers failure that suppresses the parent query. The
+  reached queries retain the complete encoded parent.
 
 - **Raw transaction access entry.** `AccessControls.lean` imports the Block
   facade. Private clients check the exact constructor and projection types,
@@ -1157,6 +1179,7 @@ structure ChainContext where chainId : U64; blockHashes : Array Hash32; parentHe
 
 -- errors (§2.12); one constructor per EELS class / raise site
 inductive GasDim | execution | state
+-- Supplied nominal HeaderError (R-VH).
 inductive HeaderError | numberZero | excessBlobGas | gasUsedExceedsGasLimit | gasLimit
   | baseFee | timestamp | number | extraData | difficulty | nonce | ommersHash | parentHash
 inductive DepositError | length | pubkeyOffset | wcOffset | amountOffset | signatureOffset
@@ -1630,6 +1653,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   and Q53 withdrawal root-input composition remain unimplemented. Typed source-view
   scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
   Execution, resource/C1–C4, security and readiness gates remain open.
+
+- **Nominal header errors:** §§3–5 supply the complete R-VH carrier
+  and finite site observations. The actual validation predicates and
+  failure order proof, arithmetic errors, BlockError embedding and
+  guest outcome composition remain open.
 
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source

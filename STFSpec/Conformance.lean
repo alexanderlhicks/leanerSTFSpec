@@ -115,6 +115,7 @@ import STFSpec.Conformance.Vm.Core.PrecompileCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpCallerProofs
 import STFSpec.Conformance.Block.HeaderRlpControls
 import STFSpec.Conformance.Block.HeaderCallerProofs
+import STFSpec.Conformance.Block.HeaderErrorChecks
 import STFSpec.Conformance.Block.ReceiptCallerProofs
 import STFSpec.Conformance.Block.ReceiptGuards
 import STFSpec.Conformance.Block.ReceiptRlpControls

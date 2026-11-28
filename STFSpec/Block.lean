@@ -3,6 +3,7 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 -/
 
 import STFSpec.Block.Header
+import STFSpec.Block.HeaderError
 import STFSpec.Block.HeaderRlp
 import STFSpec.Block.Receipt
 import STFSpec.Block.ReceiptRlp
