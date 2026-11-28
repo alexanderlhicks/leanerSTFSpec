@@ -1,6 +1,6 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft. The full-state carrier, `ofMath` and the standalone storage setter are supplied. Provider integration remains open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The full-state carrier, `ofMath`, storage setter and code insertion are supplied. Provider integration remains open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F20, F21 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
 Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -43,7 +43,7 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 | `state_mpt.py::State.compute_state_root` | 82 | `….stateRoot` | `mathStateRoot (σ.apply d)` |
 | `state_mpt.py::close_state` | 123 | — (no-op) | resource release |
 | `state_mpt.py::apply_changes_to_state` | 133 | `FullState.applyChanges` | `σ.apply d` |
-| `state_mpt.py::store_code` | 164–171 | `FullState.storeCode` | Guided F21 operation and complete projection law (§§5/7). The reserved digest returns the original carrier. Other answers install the complete bytes at the certified digest. |
+| `state_mpt.py::store_code` | 164–171 | `FullState.storeCode` | Supplied F21 operation and complete projection law (§§5/7). The reserved digest returns the original carrier. Other answers install the complete bytes at the certified digest. |
 | `state_mpt.py::set_account` | 174 | `FullState.setAccount` | genesis/tests |
 | `state_mpt.py::set_storage` | 187–206 | `FullState.setStorage` | Supplied FS6 setter. Check account presence before writing, then erase at zero and prune the touched empty map. |
 | `state_mpt.py::state_root` | 209 | `FullState.stateRoot` | |
@@ -81,6 +81,19 @@ Python removes that check. A missing nonzero write creates orphan storage
 and a missing zero succeeds with unchanged maps. Both Lean calls return
 the same typed absence error.
 
+### Implemented code insertion (FS6, F21)
+
+`STFSpec/StateFull.lean` supplies `FullState.storeCode` and
+`FullState.storeCode_project` at the exact §5 types. The operation uses
+the explicit certified-action bind. The continuation returns the whole
+input carrier at the supplied reserved hash. For a nonreserved answer,
+it inserts the complete bytes and packages the preserved structural
+proof and the authentication proof for the new table. The proof uses
+the returned digest certificate at the written key and the original
+table's proof at every other key. The ordinary projection proof uses
+the complete `observes` equality and `LawfulMonad`. The caller supplies
+the hash constants and certified action.
+
 ## 4. Tests
 
 - **Carrier (FS1):** `STFSpec/Conformance/StateFull/CarrierChecks.lean`
@@ -96,6 +109,18 @@ the same typed absence error.
   source cases agree in normal and
   optimized pinned Python. The absence controls exercise the assertion
   difference in §3.
+- **Code insertion (FS6, F21):** `STFSpec/Conformance/StateFull/CodeInsertionChecks.lean`
+  compares the digest and complete raw maps for insertion, repeat and
+  the concrete reserved skip. The observing controls use a selected
+  reserve whose authentic entry already exists. They check whole
+  carrier retention, the query preimage and trace, and propagation
+  of the selected typed error and Option absence. A private lawful
+  observing proof uses the public whole-action projection equation.
+  Six authenticated source probes in each Python mode check the complete
+  maps before, during and after the query. They include the original
+  query exception and a synthetic nonreserved answer. That answer tests
+  the Python write branch only. F21's nonreserved certificate requires
+  the concrete code digest (§7).
 - **EEST:** all `blockchain_tests` and `blockchain_tests_engine` areas (295 area directories in `STFSpec/informal/eest-fixture-index.txt`) run through this backend in `EthConformance`, checking every post-state root; multi-block fixtures exercise `applyChanges`.
 - **EELS unit tests:** `tests/json_loader/test_genesis.py` (genesis roots via `store_code`/`set_account`/`set_storage`); `helpers/load_blockchain_tests.py` is the reference runner.
 - **`core` `#guard` cases:** empty state root; a diff that clears an address and rewrites one slot (root equals building the post-state from scratch); a diff deleting an account (its storage trie dropped by the clear); `getCode` of `emptyCodeHash` and of a missing hash.
@@ -227,9 +252,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   computation, the full diff operation, other updates and operational
   equality remain open.
 
-- **Full-state code insertion:** F21 supplies the guidance for the
-  operation and its projection law (§§5/7). Their implementation,
-  caller construction and a common certificate adapter remain open.
+- **Full-state code insertion:** §§3–5 and §7 supply the F21 action,
+  complete projection law and local conformance. Caller construction,
+  a common certificate adapter, availability and backend progress remain
+  open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

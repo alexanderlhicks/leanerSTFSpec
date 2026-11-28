@@ -19,7 +19,7 @@ Spec guidance: `STFSpec/informal/modules/EthStateFull.md`.
 
 namespace STFSpec.StateFull
 
-open STFSpec.Base STFSpec.State STFSpec.StateCommit
+open STFSpec.Base STFSpec.State STFSpec.StateCommit STFSpec.Hash
 
 /-- Mathematical carrier for the account, storage and code maps of EELS
 `src/ethereum/state_mpt.py:34–47`, with the supplied invariant proofs. -/
@@ -126,5 +126,66 @@ private theorem setStorage_retains (s next : FullState) (a : Address) (k : Bytes
     apply MathState.apply_storage_of_untouched
     · simp [storageWrite, Ne.symm different]
     · simp [storageWrite]
+
+private def insertCode (σ : MathState) (digest : Hash32) (code : ByteArray) : MathState :=
+  { σ with code := σ.code.insert digest code }
+
+private theorem insertCode_wf (σ : MathState) (digest : Hash32) (code : ByteArray)
+    (wf : MathState.WF σ) : MathState.WF (insertCode σ digest code) := wf
+
+private theorem insertCode_authentic (σ : MathState) (digest : Hash32) (code : ByteArray)
+    (authentic : CodeAuthentic σ)
+    (proof : Id.run (KeccakQuery.keccak (m := Id) code) = digest) :
+    CodeAuthentic (insertCode σ digest code) := by
+  intro queried bytes stored
+  change (σ.code.insert digest code)[queried]? = some bytes at stored
+  simp only [Std.ExtTreeMap.getElem?_insert, Std.LawfulEqOrd.compare_eq_iff_eq] at stored
+  by_cases equal : digest = queried
+  · simp only [ite_eq_left equal] at stored
+    have exactBytes := Option.some.inj stored
+    subst bytes
+    exact proof.trans equal
+  · simp only [ite_eq_right equal] at stored
+    exact authentic queried bytes stored
+
+/-- Bind the certified code digest. Keep the original state at the supplied
+reserved hash and install the full bytes at any certified nonreserved digest.
+EELS `src/ethereum/state_mpt.py:164–171` at the pin. -/
+def FullState.storeCode {m : Type → Type} [Monad m] [KeccakQuery m]
+    (s : FullState) (consts : HashConsts) (code : ByteArray)
+    (answer : m {h : Hash32 //
+      h ≠ consts.emptyCodeHash → Id.run (KeccakQuery.keccak (m := Id) code) = h})
+    (observes : Subtype.val <$> answer = KeccakQuery.keccak (m := m) code) :
+    m (Hash32 × FullState) := do
+  let _ := observes
+  let digest ← answer
+  if skip : digest.val = consts.emptyCodeHash then
+    pure (digest.val, s)
+  else
+    pure (digest.val, FullState.ofMath (insertCode s.σ digest.val code)
+      (insertCode_wf s.σ digest.val code s.wf)
+      (insertCode_authentic s.σ digest.val code s.codeAuthentic (digest.property skip)))
+
+/-- Project the complete action to its digest and raw state at the supplied query. -/
+theorem FullState.storeCode_project {m : Type → Type} [Monad m] [LawfulMonad m] [KeccakQuery m]
+    (s : FullState) (consts : HashConsts) (code : ByteArray)
+    (answer : m {h : Hash32 //
+      h ≠ consts.emptyCodeHash → Id.run (KeccakQuery.keccak (m := Id) code) = h})
+    (observes : Subtype.val <$> answer = KeccakQuery.keccak (m := m) code) :
+    (fun result : Hash32 × FullState ↦ (result.1, result.2.σ)) <$>
+        s.storeCode consts code answer observes =
+      (do
+        let h ← KeccakQuery.keccak (m := m) code
+        pure (h, if h = consts.emptyCodeHash then s.σ
+          else {s.σ with code := s.σ.code.insert h code})) := by
+  dsimp only [FullState.storeCode]
+  rw [← observes]
+  simp only [map_bind, bind_map_left]
+  apply congrArg (fun next : {h : Hash32 // h ≠ consts.emptyCodeHash →
+    Id.run (KeccakQuery.keccak (m := Id) code) = h} → m (Hash32 × MathState) ↦ answer >>= next)
+  funext digest
+  by_cases skip : digest.val = consts.emptyCodeHash <;>
+    simp only [skip, dite_true, dite_false, ite_true, ite_false, map_pure,
+      FullState.ofMath, insertCode]
 
 end STFSpec.StateFull
