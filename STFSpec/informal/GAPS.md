@@ -489,7 +489,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
-  WriteOrder support, raw MathState with its pure observers and structural WF, raw
+  WriteOrder support, raw MathState with its pure observers, selected account update
+  and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
@@ -500,7 +501,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   BlockState.view with its exact application equation, mathematical TxState.view
   with its account observer law and private conversion, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
-  owning laws and test rows specify their domains. MathState mutation, diff
+  owning laws and test rows specify their domains. Further raw mutations, diff
   WF/history/reachable preservation, actual provider operations, other contextual
   tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
   witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
@@ -717,9 +718,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthStateFull`](modules/EthStateFull.md)
 
 - **Backend integration:** §3 supplies the carrier, `ofMath` and the
-  standalone storage setter. Provider construction, lookups, root
-  computation, the full diff operation, other updates and operational
-  equality remain open.
+  standalone account and storage setters. Provider construction, lookups, root
+  computation, the full diff operation, caller integration for account
+  updates and operational equality remain open.
 
 - **Full-state code insertion:** §§3–5 and §7 supply the F21 action,
   complete projection law and local conformance. Caller construction,

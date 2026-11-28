@@ -544,6 +544,7 @@ Whole-tracker refinement remains open.
 |---|---|---|---|
 | Mathematical finite maps (no EELS `MathState` class) | `MathState` with `accounts : ExtTreeMap Address Account`, `storage : ExtTreeMap Address (ExtTreeMap Bytes32 U256)`, `code : ExtTreeMap Hash32 ByteArray` | Every raw finite triple; exact fields, no normalization, effects or failure | **Discharged:** constructor, reconstruction and raw extensionality laws (§7); raw extensionality requires whole optional inner-map equality and raw code lookup equality at every hash, including the reserved hash. |
 | `state.py:94–100`, `state_mpt.py:59–66` | `MathState.account? : MathState → Address → Option Account` | Raw lookup; `none` differs from `some (emptyAccount consts)`; no effects/failure | `account?_eq_lookup`; empty/present/huge-nonce/max-balance and all-hash-byte cases in `Conformance/State/MathStateGuards.lean` and `MathStateNativeTests`. |
+| `state_mpt.py:174–184`, `merkle_patricia_trie.py:325–338` | `MathState.setAccount (σ : MathState) (a : Address) (acc : Option Account) : MathState` in `STFSpec/State/MathState.lean` | Insert each supplied account, including a default-shaped account. Erase the selected account at `none`. Retain every other account and both complete storage and code maps. | Private full lookup and map framing proofs under every raw input. Complete states and the FullState proof boundary are checked in EthStateFull §4. |
 | `state.py:102–108`, `state_mpt.py:67–80`, `merkle_patricia_trie.py:341–347` | `MathState.storageAt : MathState → Address → Bytes32 → U256` | Missing outer or inner lookup returns zero; present raw zero is retained; no account guard, effects or failure | `storageAt_eq_lookup`, `storageAt_of_storage_none`, `storageAt_of_slot_none`, `storageAt_of_slot_some`; absent/empty/zero/orphan/nonzero/max and complete key-byte cases. |
 | `state.py:110–116`, `state_mpt.py:49–57`, `forks/amsterdam/witness_state.py:129–137` | `MathState.code? : MathState → HashConsts → Hash32 → Option ByteArray` | Supplied `emptyCodeHash` returns `some ByteArray.empty` before raw lookup, even with hidden bytes; other hashes retain raw `none`/empty/nonempty distinction. No hash acquisition or effects/failure. Provider `KeyError` on missing nonreserved code remains a separate B2 error, never a successful absent provider answer. Concrete source comparison requires caller-coherent F20 constants. | `code?_empty`, `code?_of_ne`, `code?_congr_consts`; arbitrary/nonliteral constants, unrelated-field variation and hidden reserved entry guards. |
 | Structural model invariant, motivated by `state_mpt.py:187–206` and `merkle_patricia_trie.py:325–338` cleanup | `MathState.WF : MathState → Prop` | Exactly nonzero stored values, nonempty stored inner maps, and storage-domain inclusion in accounts; no code clause, account-value restriction or runtime wrapper. | `wf_iff`, `wf_empty`, `wf_storage_value_ne_zero`, `wf_storage_nonempty`, `wf_storage_account_present`, `storageAt_zero_of_account_none`, `storageAt_zero_iff`, `storage_present_iff_exists_nonzero`. Three independent omission proofs exercise each clause. |
@@ -628,6 +629,12 @@ production provider, progress, root/authentication, resource or release result.
 
 ## 4. Tests
 
+- **Raw mathematical account update.** `AccountChecks.lean` exercises
+  `MathState.setAccount` through StateFull. Private proofs check the
+  selected and unrelated optional account lookups and complete map
+  framing. Raw deletion leaves the stored slots observable, and inserting
+  an account at the same address restores their account association.
+  EthStateFull §4 records the complete source and Lean controls.
 - **Balance-preserving account clear controls.** `ClearAccountPreservingBalanceControls.lean`
   checks funded, empty and absent accounts, explicit zero and nonzero slots,
   the input block's raw empty-code hash, and exact R24 restoration. The pinned
@@ -1222,6 +1229,7 @@ structure MathState where
   storage  : Std.ExtTreeMap Address (Std.ExtTreeMap Bytes32 U256)
   code     : Std.ExtTreeMap Hash32 ByteArray
 def MathState.account? (σ) (a : Address) : Option Account
+def MathState.setAccount (σ : MathState) (a : Address) (acc : Option Account) : MathState
 def MathState.storageAt (σ) (a : Address) (k : Bytes32) : U256        -- default 0
 def MathState.code? (σ) (consts : HashConsts) (h : Hash32) : Option ByteArray  -- consts.emptyCodeHash ↦ some empty
 def MathState.WF (σ) : Prop           -- no zero values, no empty inner maps, storage keys ⊆ account keys
@@ -1520,6 +1528,12 @@ The raw laws hold for every finite raw state, without `WF`:
 | `storageAt_of_storage_none`, `storageAt_of_slot_none`, `storageAt_of_slot_some` | The stated absent/present lookup premise determines the exact storage answer, retaining raw zero. |
 | `code?_empty`, `code?_of_ne` | The supplied reserved hash returns empty bytes; every other hash retains its raw optional lookup. |
 | `code?_congr_consts` | Equal empty-code fields suffice for equal code observations; other supplied constant fields are irrelevant. |
+
+The supplied `MathState.setAccount` uses the whole account option at the
+selected address and retains the old optional lookup at every other
+address. Storage and raw code keep their complete contents by construction.
+These facts hold for every raw state and are checked by private clients.
+EthStateFull §7 gives the structural proof boundary for packaging the result.
 
 The structural laws expose only the stated storage invariant:
 
@@ -2030,7 +2044,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
   supplied empty-account values, internal
-  WriteOrder support, raw MathState with its pure observers and structural WF, raw
+  WriteOrder support, raw MathState with its pure observers, selected account update
+  and structural WF, raw
   BlockDiff values, raw mathematical application, the raw four-operation PreState
   carrier, coarse nominal WitnessItem/WitnessError and StateError values, the raw
   eight-field TxRevertible carrier, bounded structural preservation, supplied-record
@@ -2041,7 +2056,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   BlockState.view with its exact application equation, mathematical TxState.view
   with its account observer law and private conversion, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
-  owning laws and test rows specify their domains. MathState mutation, diff
+  owning laws and test rows specify their domains. Further raw mutations, diff
   WF/history/reachable preservation, actual provider operations, other contextual
   tracker/full-model proofs, other StateError operation/adapter semantics and freezing,
   witness diagnostic refinement, other tracker effects/errors, ordered-write integration,
