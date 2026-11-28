@@ -1,7 +1,14 @@
 # `EthBlock`: block, transaction and receipt semantics; block execution
 
-*Status: informal specification, draft; raw headers and their forward RLP models, withdrawal and parameter records, the Withdrawal SSZ dictionary and forward RLP model, the withdrawal trie byte dictionary, raw block access list records and their forward RLP models, calldata token count, deposit extraction, requests hash and logs bloom supplied; block execution unimplemented. Date: 2026-11-26. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98.*
+*Status: informal specification, draft.
+Raw receipts and headers with their forward RLP models are supplied, along with receipt envelope variants, withdrawals and parameter records.
+Withdrawal has a certified SSZ dictionary, forward RLP model and named trie byte dictionary.
+Block access list records have forward RLP models and a typed hash.
+The raw block output carrier and transaction access entry are supplied.
+Calldata token count, deposit extraction, requests hash and logs bloom are supplied.
+Block execution remains open.
+Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Navigation: interface findings F1, F2, F8, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D3, D5, D8, D14, D18, D22, D23, D24, D25, D26, D27 · questions: B1, B8 (Q1), B14 (Q2), Q3, Q8, Q9, Q46, Q47, Q53, Q54, Q69, Q83, Q96, Q97, Q98, Q99.*
 
 Conventions. Line references are to `src/ethereum/forks/amsterdam/` unless another path is given. **[V]** means read in the pinned source; **[I]** means an inference that has not been checked by running code. EELS `Uint` is `Nat`; `U64`, `U256`, `U32` are the `EthBase` fixed-width types. In `ethereum-types` 0.4.1, fixed-width constructors, `+` and `*` **raise `OverflowError`** when out of range, and every unsigned `-` raises when the result would be negative (`ethereum_types/numeric.py:44–47, 103–128`) [V]. Nothing wraps unless it calls `wrapping_*`. Where such a raise is reachable, this spec names it as an explicit constructor (§2.12). EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -20,7 +27,7 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 - **R-TX.** The five transaction structures must have exactly the EELS fields in RLP order (`transactions.py:89–490`). Type-specific points: `LegacyTransaction.v : U256`, and the typed variants have `yParity : U256`. `BlobTransaction.to` and `SetCodeTransaction.to` are `Address`, not optional, while the other variants have `to : Option Address` for `Bytes0 | Address`. `SetCodeTransaction.nonce : U64` whereas the other four are `U256`. `SetCodeTransaction.authorizations : Array Authorization`, with `Authorization = {chainId : U256, address, nonce : U64, yParity : U8, r s : U256}` taken from `EthBase` (`fork_types.py:87`, owned by G1).
 - **R-TX-ENC.** `encodeTransaction` (`transactions.py:535`): legacy is returned as the structure (RLP-encoded where bytes are needed); type *k* ∈ {1,2,3,4} is `[k] ++ rlp tx`.
 - **R-TX-DEC.** `decodeTransaction` (`:557`) on `typed b`: `b[0] ∈ {1,2,3,4}` decodes `b[1:]` as that type; `0xC0 ≤ b[0] ≤ 0xFE` decodes the whole of `b` as legacy; any other first byte in `0x00…0xBF` raises `TransactionTypeError b[0]`. Two branches are not EthereumExceptions: `b[0] = 0xFF` fails an `assert` (`:579`), and `b = []` fails with `IndexError` (`tx[0]`). The spec gives both explicit constructors (`BlockError.txDecode`) [V]. An RLP failure inside a typed payload (`rlp.DecodingError`, not an EthereumException) is also `txDecode`. **Scope of these errors.** On the complete guest path, an empty transaction is rejected first at `execution_engine/new_payload.py:104` (O6), and every other deterministic payload-transaction decode failure is consumed by `is_valid_versioned_hashes` (`new_payload.py:55–63`), which returns `False` and so gives O6 before `execute_block` runs; legacy payload bytes are also pre-decoded when the block is built (`validation_helpers.py:88–97`, G6). A **standalone** `executeBlock` (for example `blockchain_tests` through `stateTransition`) still raises its own decode errors (`TransactionTypeError` was reproduced), so the `txDecode` constructors are live and must not be removed. A host-resource failure (`RecursionError`, `MemoryError`) during `execute_block`'s repeated decode (`fork.py:827`) is not excluded by the first decode's success; it belongs to O12/DISC-001, not here.
-- **R-RCPT.** `Receipt = {succeeded : Bool, cumulativeGasUsed : Nat, bloom, logs : Array Log}` and `Log = {address, topics : Array Hash32, data}` (`blocks.py:330, 363`). `encodeReceipt tx r` (`:394`) is `[k] ++ rlp r` for a typed transaction of type *k*, and the bare structure for legacy. `decodeReceipt` (`:417`) is needed only by `parseDepositRequests`, on receipts this module produced.
+- **R-RCPT.** `Receipt` stores an independent `Bool`, `Nat`, `Base.Bloom` and ordered `Array Vm.Core.Log` in §5 field order (`blocks.py:363–391`, D27). Q99 fixes the forward Receipt RLP model (§7). `EncodedReceipt` retains a complete legacy receipt or arbitrary typed bytes. `encodeReceipt tx r` (`blocks.py:394–414`) must return `[k] ++ rlp r` for a typed transaction of type *k* and the bare receipt for legacy. The only required caller of `decodeReceipt` (`blocks.py:417–436`) is `parseDepositRequests`. It decodes receipts this module produced.
 - **R-HASH.** `getTransactionHash` is `keccak (rlp tx)` for legacy and `keccak bytes` for typed (`:1102`). The six signing hashes (`:942–1099`) must hash exactly these tuples:
   - pre-155: `(nonce, gasPrice, gas, to, value, data)`;
   - EIP-155: that tuple plus `(chainId, 0, 0)`;
@@ -31,10 +38,12 @@ Each requirement has an identifier (R-…) so that tests and proofs can cite it.
 
 ### 2.2 Signatures and senders
 
-- **R-SIG.** `signatureRecoveryParameters chainId tx` (`:944`). It raises `invalidSignature` unless `0 < r < SECP256K1N` and `0 < s ≤ SECP256K1N / 2`. For legacy, `v ∈ {27, 28}` gives recovery id `v − 27` over `signingHashPre155`; otherwise `v` must equal `35 + 2c` or `36 + 2c`, where *c* is the **`chainId` argument**, giving id `v − 35 − 2c` over `signingHash155 tx c`. For typed transactions, `yParity ∈ {0, 1}` is required, over the type's signing hash. `recoverTransactionPublicKey` returns `0x04 ++ secp256k1Recover r s id h` (65 bytes). A failed recovery raises `invalidSignature` (`crypto/elliptic_curve.py:54, 74`; G2).
-- **R-SENDER.** `recoverSender tx` (`:883`) uses `chainId tx` (0 when that is `none`), then `senderAddress pk = keccak(pk[1:])[12:32]` (`:937`).
-- **R-HINT (O5).** When `publicKeys = some ks`, `checkTransaction` uses `recoverSenderFromPublicKey blockEnv.chainId tx ks[i]` (`fork.py:563–574`). It raises `invalidSignature` unless `ks[i]` **equals** the recovered key (`transactions.py:932`); any cheaper check must be equivalent on every input (CONTRACT §2). The count check comes earlier, in `executeBlock` (R-EB step 2).
-- **R-CHAINID.** `chainId tx` (`:860`). For legacy: `v ∈ {27, 28}` gives `none`; `v < 35` raises `invalidSignature "bad v"`; otherwise it is `U64((v − 35) >> 1)`, which **raises `OverflowError` when the value is ≥ 2⁶⁴** [V, from the `U64` constructor]. The spec names this `BlockError.arith .chainIdOverflow`. Typed transactions return `tx.chainId`.
+- **R-SIG.** `recoverSender tx` checks `0 < r < SECP256K1N` first and `0 < s ≤ SECP256K1N / 2` second. A failed check raises `invalidSignature`. It then selects the signing hash and recovery parity for the transaction type (`transactions.py:878–937`, [V at `59c1473d`]):
+  - Legacy `v ∈ {27, 28}` uses `signingHashPre155 tx` and parity `v − 27`.
+  - Other legacy values enter the protected branch. EELS asserts `v ≥ 35`, then computes `c := U64((v − 35) >> 1)` and parity `(v − 35) & 1` from the transaction's `v`. It uses `signingHash155 tx c`. R-PT admits the chain ID before block execution reaches this branch. Direct calls outside that domain are covered by §10.
+  - Typed transactions require `yParity ∈ {0, 1}` before computing the transaction type's signing hash (R-HASH). Other parity values raise `invalidSignature`.
+- **R-SENDER.** After R-SIG, recover the unprefixed 64-byte `x ‖ y` key. The source maps a failed curve-coordinate check or the recovery binding's `ValueError` to `InvalidSignatureError`. On success return `keccak(publicKey)[12:32]` through `KeccakQuery` (D5). The curve adapter and error refinement remain open (§10). EELS `crypto/elliptic_curve.py:26–76` and `transactions.py:939` [V at `59c1473d`].
+- **R-CHAINID.** `chainId tx` reads the transaction chain ID for the separate admission step R-PT 3. For legacy, `v ∈ {27, 28}` gives `none`. For other `v < 35`, the source raises `InvalidSignatureError("bad v")`. For `v ≥ 35`, it returns `U64((v − 35) >> 1)` and raises `OverflowError` if the quotient is at least 2⁶⁴ ([V at `59c1473d`], from the checked `U64` constructor). The spec names this `BlockError.arith .chainIdOverflow`. Typed transactions return `some tx.chainId`. EELS `transactions.py:860–875`.
 
 ### 2.3 Intrinsic gas (R-IG, `calculate_intrinsic_cost`, `transactions.py:687–796`)
 
@@ -64,9 +73,9 @@ The state-dependent parts (new-account state gas, delegation writes) are charged
 
 It returns `IntrinsicGasCost`.
 
-### 2.5 Inclusion checks (R-CT, `check_transaction`, `fork.py:506–666`), in order
+### 2.5 Inclusion checks (R-CT, `check_transaction`, `fork.py:481–625`), in order
 
-1. The sender, from R-HINT or R-SENDER.
+1. Obtain the sender from `recoverSender tx` (R-SIG and R-SENDER, `fork.py:538`). On the block path, R-PT has already admitted the transaction's chain ID.
 2. `validateTransaction tx sender`.
 3. A fresh `TxState` over the block state (`EthState`).
 4. `check_block_gas_capacity` (`vm/gas.py:1038`, G4, consumed). With `L = header.gasLimit`: `min(TX_MAX_GAS_LIMIT, gas) > L − blockGasUsed` raises `gasUsedExceedsLimit .execution`; `gas > L − blockStateGasUsed` raises `gasUsedExceedsLimit .state`; `blobGas > MAX_BLOB_GAS_PER_BLOCK [2 752 512] − blobGasUsed` raises `blobGasLimitExceeded`.
@@ -92,22 +101,21 @@ It returns `IntrinsicGasCost`.
 
 `validateHeader` checks nothing else (Gaps: slot number, fork activation, timestamp upper bound).
 
-### 2.7 Block execution (R-EB, `execute_block`, `fork.py:281–383`), in order
+### 2.7 Block execution (R-EB, `execute_block`, `fork.py:267–358`), in order
 
-`executeBlock cfg consts` is the kernel: its caller supplies the constants record (F20), and the kernel neither calls `HashConsts.query` nor uses literals. `executeBlockStandalone` calls `HashConsts.query` once on entry, builds the pre-state with `mkPre consts`, then runs steps 1–10 below. The provider factory must use that same record and oracle interpretation. Each wrapper run acquires independently, without caching the record. A run that fails in steps 1–4 has still made the constant queries and called its factory.
+`executeBlock cfg consts` is the kernel: its caller supplies the constants record (F20), and the kernel neither calls `HashConsts.query` nor uses literals. `executeBlockStandalone` calls `HashConsts.query` once on entry, builds the pre-state with `mkPre consts`, then runs steps 1–9 below. The provider factory must use that same record and oracle interpretation. Each wrapper run acquires independently, without caching the record. A run that fails in steps 1–3 has still made the constant queries and called its factory.
 
-`stateTransition cfg toPre apply chain block` first derives the parent header and block hashes, then calls `executeBlockStandalone` with the provider factory `fun consts ↦ pure (toPre chain.state consts)` and `none` for the public-key hint.
+`stateTransition cfg toPre apply chain block` first derives the parent header and block hashes, then calls `executeBlockStandalone` with the provider factory `fun consts ↦ pure (toPre chain.state consts)`.
 
 1. `len (rlp block) > cfg.block.maxRlpBlockSize` [8 388 608] raises `rlpSizeExceeded` (EIP-7934).
-2. `publicKeys = some ks ∧ |ks| ≠ |txs|` raises `publicKeyCountMismatch` (O5).
-3. `validateHeader cfg consts ctx.parentHeader header`.
-4. `ommers ≠ []` raises `ommersNotEmpty`.
-5. Build the `BlockState` over `preState` and `consts` (`BlockState` carries them), and the `BlockEnvironment` from the header fields, a fresh `BalBuilder` and `publicKeys`.
-6. `applyBody`.
-7. `diff := extractBlockDiff`; `stateRoot := preState.stateRoot diff` (O4 errors propagate here, **before any root comparison**).
-8. Compute the transaction root, receipt root, bloom, withdrawals root, requests hash and BAL hash.
-9. Compare, in this order: `max(blockGasUsed, blockStateGasUsed) ≠ gasUsed` (EIP-7778/8037); `transactionsRoot`; `stateRoot`; `receiptRoot`; `bloom`; `withdrawalsRoot`; `blobGasUsed`; `requestsHash`; `blockAccessListHash`. Each has its own `…Mismatch` constructor.
-10. Return `diff`.
+2. `validateHeader cfg consts ctx.parentHeader header`.
+3. `ommers ≠ []` raises `ommersNotEmpty`.
+4. Build the `BlockState` over `preState` and `consts`. Assemble the block environment from `ctx` and the header, with that state and a fresh `BalBuilder` for execution.
+5. `applyBody`.
+6. `diff := extractBlockDiff`. Compute `stateRoot := preState.stateRoot diff` (O4 errors propagate here, **before any root comparison**).
+7. Compute the transaction root, receipt root, bloom, withdrawals root, requests hash and BAL hash.
+8. Compare `max(blockGasUsed, blockStateGasUsed)` with `gasUsed` first (EIP-7778/8037). Then compare `transactionsRoot`, `stateRoot`, `receiptRoot`, `bloom`, `withdrawalsRoot`, `blobGasUsed`, `requestsHash` and `blockAccessListHash` in that order. Each has its own `…Mismatch` constructor.
+9. Return `diff`.
 
 ### 2.8 Body (R-AB, `apply_body`, `fork.py:783–852`), in order
 
@@ -126,8 +134,8 @@ It returns `IntrinsicGasCost`.
 
 1. The BAL index is set to `i + 1`.
 2. `trieSet txTrie (rlp i) (encode tx)`.
-3. `chainId tx`; a mismatch raises `wrongChainId expected actual`.
-4. `checkTransaction`.
+3. Compute `chainId tx` (R-CHAINID). Propagate an extraction failure. If it returns `some actual` and `actual ≠ blockEnv.chainId`, raise `wrongChainId expected actual`, where `expected = blockEnv.chainId`. EELS `fork.py:1044–1049`.
+4. Run `checkTransaction` (R-CT). The BAL index and trie writes therefore precede chain-ID admission, and every failure in step 3 precedes sender recovery. EELS `fork.py:1034–1051`.
 5. `updateSenderState` (`:924`): the nonce is incremented and `balance := balance − gas·effectivePrice − blobFee`, where `blobFee = blobGas · blobGasPrice(excess)`. The **actual** blob price is charged, not the cap.
 6. `processTopLevelChecked cfg.runnerEnv` (G4 runner, with the precompile table, three-field VmConfig and `cfg.system.systemAddress`, F8).
 7. `settle_transaction_gas` (`gas.py:1163`, G4): `before = gas − gasLeft − stateGasLeft`; `refund = min(before / 5, refundCounter)`; `gasUsed = max(before − refund, floor)`; `stateUsed = max(0, stateGasUsed)`; `execUsed = max(before − stateUsed, floor)`; `gasLeft' = gas − gasUsed`.
@@ -158,7 +166,8 @@ It returns `IntrinsicGasCost`.
   
   For every storage write, the slot is converted to `U256` from big-endian. If the value differs from the pre-value, `addStorageWrite` is called; otherwise `removeStorageWrite`, which deletes the slot's entry when it becomes empty (`:539`).
 - **Build** (`:827`). Add every block-level storage read (`addStorageRead`), then every account read as touched. Then `build` (`:625`). Each account has storage changes sorted by slot, each slot's changes sorted by index, **storage reads minus written slots** sorted ascending, and balance, nonce and code changes each sorted by index. Accounts are sorted by address, compared as bytes, lexicographically.
-- **Hash**: `keccak (rlp bal)` (`:850`). **Gas limit** (`:859`): sum
+- **Hash.** Query Keccak once on the complete typed RLP bytes (`:850–856`, §3).
+- **Gas limit** (`:859`): sum
   `1 + |writtenSlots ∪ readSlots|` for each outer entry. A sum greater than
   `gasLimit / BLOCK_ACCESS_LIST_ITEM` [2000] raises `balGasLimitExceeded`.
   Repeated slots count once within an entry. Repeated accounts contribute at
@@ -190,10 +199,10 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::BlockChain` | 155 | `BlockChain σ` | generic over the state carrier (§6) |
 | `forks/amsterdam/fork.py::get_last_256_block_hashes` | 188 | `getLast256BlockHashes` | ≤256 hashes, oldest first; `[]` for an empty chain |
 | `forks/amsterdam/fork.py::state_transition` | 228 | `stateTransition` | full-state path only (blockchain_tests) |
-| `forks/amsterdam/fork.py::execute_block` | 267 | `executeBlock` | the seam; check order R-EB |
+| `forks/amsterdam/fork.py::execute_block` | 267 | `executeBlock` | Unimplemented. Check order R-EB and caller acquisition F20 |
 | `forks/amsterdam/fork.py::calculate_base_fee_per_gas` | 361 | `calculateBaseFeePerGas` | raises `gasLimit` via `check_gas_limit` first |
 | `forks/amsterdam/fork.py::validate_header` | 424 | `validateHeader` | 12 checks, order R-VH |
-| `forks/amsterdam/fork.py::check_transaction` | 481 | `checkTransaction` | order R-CT |
+| `forks/amsterdam/fork.py::check_transaction` | 481 | `checkTransaction` | Unimplemented. Sender recovery starts R-CT |
 | `forks/amsterdam/fork.py::make_receipt` | 628 | `makeReceipt` |  |
 | `forks/amsterdam/fork.py::process_checked_system_transaction` | 665 | `processCheckedSystemTransaction` | no-code / failure ⇒ `BlockError` |
 | `forks/amsterdam/fork.py::process_unchecked_system_transaction` | 724 | `processUncheckedSystemTransaction` | errors ignored |
@@ -201,16 +210,16 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/fork.py::process_general_purpose_requests` | 855 | `processGeneralPurposeRequests` | EIP-7685 + EIP-8282 |
 | `forks/amsterdam/fork.py::update_sender_state` | 924 | `updateSenderState` |  |
 | `forks/amsterdam/fork.py::disburse_gas_fees` | 965 | `disburseGasFees` |  |
-| `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | order R-PT |
+| `forks/amsterdam/fork.py::process_transaction` | 1004 | `processTransaction` | Unimplemented. R-PT admits the chain ID before R-CT |
 | `forks/amsterdam/fork.py::process_withdrawals` | 1096 | `processWithdrawals` |  |
 | `forks/amsterdam/fork.py::check_gas_limit` | 1118 | `checkGasLimit` | Bool |
 | `forks/amsterdam/blocks.py::Withdrawal` | 38–66 | `Withdrawal` | raw carrier, forward RLP model and certified SSZ dictionary supplied below |
 | `forks/amsterdam/blocks.py::Header` | 72 | `Header` | raw 23-field carrier supplied below |
 | `forks/amsterdam/blocks.py::Block` | 276 | `Block` | `transactions : Array BlockTx` |
-| `forks/amsterdam/blocks.py::Log` | 330 | `Log` |  |
-| `forks/amsterdam/blocks.py::Receipt` | 363 | `Receipt` |  |
-| `forks/amsterdam/blocks.py::encode_receipt` | 394 | `encodeReceipt` | type-prefixed except legacy |
-| `forks/amsterdam/blocks.py::decode_receipt` | 417 | `decodeReceipt` | only on self-encoded receipts |
+| `forks/amsterdam/blocks.py::Log` | 330 | `Vm.Core.Log` | reused in `Receipt` (D27) |
+| `forks/amsterdam/blocks.py::Receipt` | 363–391 | `Receipt` | raw carrier supplied below |
+| `forks/amsterdam/blocks.py::encode_receipt` | 394–414 | `encodeReceipt` | Result carrier `EncodedReceipt` supplied below. Envelope dispatch remains open. |
+| `forks/amsterdam/blocks.py::decode_receipt` | 417–436 | `decodeReceipt` | produced-receipt decoding remains open |
 | `forks/bpo5/blocks.py::Withdrawal` | 37 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
 | `forks/bpo5/blocks.py::Header` | 71 | `PrevHeader` | raw 21-field parent carrier supplied below |
 | `forks/bpo5/blocks.py::Block` | 253 | — | unused: only the bpo5 `Header` is decoded (`stateless.py:227`) |
@@ -221,7 +230,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::IntrinsicGasCost` | 43 | `IntrinsicGasCost` | `execution`, `calldataFloor` |
 | `forks/amsterdam/transactions.py::VERSIONED_HASH_VERSION_KZG` | 64 | `versionedHashVersionKzg` | `0x01` |
 | `forks/amsterdam/transactions.py::LegacyTransaction` | 89 | `LegacyTransaction` | type 0 |
-| `forks/amsterdam/transactions.py::Access` | 152 | `Access` |  |
+| `forks/amsterdam/transactions.py::Access` | 152–166 | `STFSpec.Block.Access` | Raw two-field carrier supplied below |
 | `forks/amsterdam/transactions.py::AccessListTransaction` | 172 | `AccessListTransaction` | type 1 |
 | `forks/amsterdam/transactions.py::FeeMarketTransaction` | 245 | `FeeMarketTransaction` | type 2 |
 | `forks/amsterdam/transactions.py::BlobTransaction` | 323 | `BlobTransaction` | type 3; `to : Address` |
@@ -234,8 +243,8 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/transactions.py::calculate_effective_gas_price` | 811 | `calculateEffectiveGasPrice` | legacy/2930 below base fee ⇒ `BlockError`, not `TxError` |
 | `forks/amsterdam/transactions.py::calculate_max_gas_fee` | 840 | `calculateMaxGasFee` |  |
 | `forks/amsterdam/transactions.py::check_nonce` | 850 | `checkNonce` |  |
-| `forks/amsterdam/transactions.py::chain_id` | 860 | `chainId` | may overflow U64 (Gaps) |
-| `forks/amsterdam/transactions.py::recover_sender` | 878 | `recoverSender` |  |
+| `forks/amsterdam/transactions.py::chain_id` | 860 | `chainId` | Unimplemented. Checked U64 conversion in R-CHAINID |
+| `forks/amsterdam/transactions.py::recover_sender` | 878 | `recoverSender` | Unimplemented. Transaction-only input for R-SIG and R-SENDER |
 | `forks/amsterdam/transactions.py::signing_hash_pre155` | 942 | `signingHashPre155` |  |
 | `forks/amsterdam/transactions.py::signing_hash_155` | 966 | `signingHash155` |  |
 | `forks/amsterdam/transactions.py::signing_hash_2930` | 992 | `signingHash2930` |  |
@@ -292,7 +301,7 @@ Parameter constants of `fork.py`, `transactions.py` and `requests.py`, together 
 | `forks/amsterdam/block_access_lists.py::_index_start_storage` | 747 | `BalBuilder.indexStartStorage` | memo per (index, address, slot) |
 | `forks/amsterdam/block_access_lists.py::update_builder_from_tx` | 765 | `updateBuilderFromTx` | called from `incorporate_tx_into_block` (seam, §8) |
 | `forks/amsterdam/block_access_lists.py::build_block_access_list` | 827 | `buildBlockAccessList` |  |
-| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | keccak(rlp) |
+| `forks/amsterdam/block_access_lists.py::hash_block_access_list` | 850 | `hashBlockAccessList` | supplied typed hash, see below |
 | `forks/amsterdam/block_access_lists.py::validate_block_access_list_gas_limit` | 859 | `validateBlockAccessListGasLimit` | items ≤ gasLimit / 2000 |
 | `forks/amsterdam/exceptions.py::WrongChainIdError` | 15 | `TxError.wrongChainId` |  |
 | `forks/amsterdam/exceptions.py::WrongChainIdError.__init__` | 23 | (constructor fields) | fields carried as constructor arguments |
@@ -390,6 +399,43 @@ locked `ethereum_rlp/rlp.py:66–135` (0.1.6) and requires the complete assemble
 source typed dispatch, conversions and host completion (Q47). Private clients
 check each whole model and the outer List assembly. Interpreted controls
 compare complete wire bytes (§4).
+
+### Implemented block access list hash
+
+`STFSpec/Block/BlockAccessListHash.lean`, exported by `STFSpec.Block`, supplies
+the typed hash in §5.
+
+| Pinned EELS source and domain | Lean declaration | Complete action and failures | Evidence |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:850–856`, `src/ethereum/crypto/hash.py:62–76`, locked `ethereum_rlp/rlp.py:66–135` (0.1.6). Every finite raw Lean `BlockAccessList`. Source agreement uses the assembled Q47 and source premises above and the concrete Keccak interpretation. | `hashBlockAccessList {m} [Monad m] [KeccakQuery m] : BlockAccessList → m Hash32` | Return exactly `KeccakQuery.keccak (Rlp.encodeOf bal.toList)`. Retain every occurrence in array order and pass through the complete supplied action, including any underlying effects or failures. There is no local failure or handler. | Private facade clients prove the complete action, its concrete `Id` equation and the recording instance's complete result and trace on arbitrary inputs. These local equations are discharged without `LawfulMonad`. §4 records complete finite source controls. |
+
+### Supplied raw receipt and envelope
+
+`STFSpec/Block/Receipt.lean` supplies both carriers through `STFSpec.Block`.
+`Receipt` reuses `Base.Bloom` and `Vm.Core.Log` (D27).
+
+| Exact pinned EELS source and domain | Lean declaration and types | Effects and failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:363–391`. Each field admits every value of its type. | `Receipt : Type`, `Receipt.mk : Bool → Nat → Base.Bloom → Array Vm.Core.Log → Receipt`, and the four projections in §5 | Pure field storage | The private facade clients check the exact types, complete arbitrary construction and reconstruction, and each independent field update. Interpreted guards compare every field, including all bloom and log bytes (§4). |
+| `src/ethereum/forks/amsterdam/blocks.py:394–436` uses a union of receipt records and bytes. The raw Lean constructors accept every receipt and byte array. | `EncodedReceipt : Type`, `EncodedReceipt.legacy : Receipt → EncodedReceipt`, `EncodedReceipt.typed : ByteArray → EncodedReceipt` | Pure tagged storage | The private facade clients check the exact types, both complete payloads, reconstruction and variant distinction. Interpreted guards compare the full legacy record and both empty and nonempty typed bytes (§4). |
+### Supplied raw block output (D27)
+
+`STFSpec/Block/BlockOutput.lean`, exported by `STFSpec.Block`, supplies the
+ten-field record in §5.
+
+| Exact pinned EELS source / domain | Lean declaration | Effects / failures | Local contract and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/__init__.py:66–114`; independently supplied fields of the §5 representation | `BlockOutput`, its constructor and its ten projections | Pure field storage | The three source tries correspond to separate arrays of encoded values in ordinal order (§6), with receipt keys implicit in that representation. The log tuple has the chronological `LogRope` model. The request list uses an ordered array of byte buffers. The raw BAL uses the §5 carrier. Private facade clients check complete construction, readback, reconstruction and single-field updates (§4). |
+
+### Supplied receipt forward RLP model
+
+`STFSpec/Block/ReceiptRlp.lean` supplies the forward body model through the Block
+facade (Q99). The instance reuses Codec's Bool and Nat models. Its private
+`logItem` uses the complete byte observers of the existing Base and Core fields.
+
+| Exact pinned EELS source and domain | Lean declaration and type | Effects and failures | Model and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/blocks.py:330–391,394–414` and locked `ethereum_rlp/rlp.py:66–135` (0.1.6). Every raw Receipt has a model. Pinned wire agreement uses the premises in §7. | `Receipt.instRlpEncode : Codec.RlpEncode Receipt` | Pure and total, with no rejection. | The local whole-model and Codec wire-model equations are discharged by private facade clients. Lean checks the complete trees and wires against 17 frozen cases. Pinned EELS agrees on all 7,417 wire bytes in each mode (§4). |
 
 ### Supplied raw withdrawal
 
@@ -584,6 +630,12 @@ base-fee operations, their errors, division safety or complete configuration.
 EthFork §3 maps and checks the two actual private operands as well as all three
 actual public projections, retaining the subtraction rather than a literal.
 
+### Supplied raw transaction access entry
+
+| EELS record and domain | Lean declaration | Contract and evidence |
+|---|---|---|
+| `src/ethereum/forks/amsterdam/transactions.py:152–166` at `59c1473d`, with an `Address` and a finite `Tuple[Bytes32, ...]` | `STFSpec/Block/Access.lean`, exported by `STFSpec.Block`. `Access.mk : Address → Array Bytes32 → Access`, with projections `Access.account` and `Access.slots` in source field order. | The array retains every supplied slot at its original position. The fields admit every well-typed pair, including empty slot arrays and repeated slots. Ordinary structure reductions give the complete contract in §7. The private facade clients and two full byte controls are in §4. |
+
 ### Supplied raw transaction parameters
 
 `STFSpec.Block.TxParams` is exported through `STFSpec.Block`; its three independent
@@ -728,6 +780,14 @@ separate obligations.
 
 ## 4. Tests
 
+- **Raw transaction access entry.** `AccessControls.lean` imports the Block
+  facade. Private clients check the exact constructor and projection types,
+  both projections together on arbitrary inputs, complete reconstruction and
+  independent replacement of each field. Two interpreted guards compare every
+  address byte and every slot byte in an empty sequence and an unsorted sequence
+  with its first slot repeated. The byte samples include leading zeros and high
+  bits.
+
 - **Raw block access list.** `BlockAccessListControls.lean` imports only the
   Block facade. Private clients check the six constructor types, each
   projection type, the outer alias, complete construction and reconstruction,
@@ -755,6 +815,40 @@ separate obligations.
   zeros, empty and absent encodings, concrete empty retention, default deletion,
   and the complete prepared map for valid input. Private proofs check invalid
   stored cases and the safety premise for actual preparation.
+- **Block access list hash.** `BlockAccessListHashControls.lean` imports the
+  Block facade and is built through `STFSpec.Conformance`. Its three interpreted
+  guards compare the complete query preimage and all 32 concrete digest bytes
+  with locked EELS observations. The inputs are an empty array, one account with
+  empty changes, and a raw unsorted array with a repeated account, repeated
+  nested entries and opaque code. A recording oracle checks one query before an
+  existing trace and retention of a supplied answer for every control.
+- **Raw receipts.** `ReceiptCallerProofs.lean` checks arbitrary values through the
+  Block facade as described in §3. `ReceiptGuards.lean` contains nine interpreted
+  guards. They cover both status values, zero gas and gas above `2^256`, all 256
+  bloom bytes, empty and ordered duplicate logs, every address, topic and data byte,
+  and each independent field update. The envelope guards compare a complete legacy
+  receipt and empty and nonempty typed payloads, including an unknown prefix and
+  embedded and trailing zero bytes.
+- **Raw block output.** `BlockOutputControls.lean` imports only the Block facade.
+  Private clients check the constructor and projection types, complete readback and
+  reconstruction, and an update of each of the ten fields with all siblings retained.
+  Two interpreted guards compare all fields of an all-empty/zero case and a populated
+  case with independent gas values, unequal-length arrays, empty and repeated byte
+  entries, complete logs and repeated BAL accounts with nested changes. A third
+  guard checks the supplied rope shape and all its log values.
+
+- **Receipt RLP.** `ReceiptRlpControls.lean` imports only the Block facade.
+  Its private clients identify the named instance, prove the §7 whole-model
+  and wire-model equations and check that `logItem` is private and that instance
+  search for `Codec.RlpEncode Vm.Core.Log` fails. Its 17 interpreted controls
+  compare the complete ordered tree and 7,417 wire bytes with frozen independent
+  expectations. The EELS encoder at `59c1473d` matched the same 17 complete frozen wires
+  in each of normal and `-O` mode. The cases cover both status values, gas zero
+  and gas above `2^512`, complete 256-byte blooms, empty logs and payloads,
+  significant leading and trailing zeros, and ordered duplicates among logs and
+  topics. Payloads exercise singleton tags, 31/32/33, 55/56, 63/64/65 and 255/256
+  byte lengths. A nested log crosses the 55/56 joined-byte prefix boundary.
+  The tests exercise the receipt body on the admitted source inputs in §7.
 
 - **Raw Withdrawal.** `WithdrawalCallerProofs.lean` imports only the public Block
   facade and checks the complete arbitrary four-field contract in §3.
@@ -874,17 +968,17 @@ These are future consumer checks; the guidance clarification claims no new confo
   - `extractDepositData`: supplied complete 142-case catalog and interpreted controls in §3, including the pinned default 576-byte test/fixture literal payload and all eleven corruptions; actual whole-fixture execution remains open.
   - BAL `build`: out-of-order inserts; reads that overlap writes; nonce-maximum versus balance-last-wins in one index; a write reverted to its pre-value (removed); two incorporations in index `n + 1`.
   - `validateBlockAccessListGasLimit` at the limit and one past it.
-  - Signing hashes against EEST transaction vectors.
+  - Signing hashes against EEST transaction vectors. Recover senders for legacy pre-EIP-155 and protected signatures with both parities, and for all four typed transaction variants. Compare the signing digest, parity and complete sender address.
 - **Adversarial transactions:**
-  - `s = N/2 + 1`, `r = 0`, `r = N`;
-  - legacy `v = 29`, `v = 34`, `v = 35 + 2c + 2`, `v = 2⁶⁵ + 35` (the `chainIdOverflow` path);
+  - `s = N/2 + 1`, `r = 0`, `r = N`. Combine invalid `r`, invalid `s` and bad typed parity to check the R-SIG order before any signing or sender-address hash.
+  - On the block path, pair an invalid signature scalar with each of malformed legacy `v` (for example 29 or 34), a protected legacy chain ID different from the block's, and the first `v` that overflows the checked chain ID (`2⁶⁵ + 35`). Check the BAL index and trie writes, the winning chain-ID failure and the absence of sender recovery. The preceding value gives the largest U64 chain ID and parity one.
+  - In direct EELS recovery calls, exercise malformed legacy `v` with invalid `r`, invalid `s` and both scalars valid. Record the first failure in both normal and optimized execution (§10).
   - typed `yParity = 2`; type bytes `0x00`, `0x05`, `0xBF` (`txDecode .unsupported`), `0xFF` (`txDecode .reservedFF`), and the empty byte string;
   - a legacy transaction wrapped as a typed byte string starting with `0xC0` (decoded as legacy);
   - blob transactions with 0 and 7 blobs and a hash starting with 0x02; type 4 with no authorizations;
   - `nonce = 2⁶⁴ − 1`; `gas = 2³²`; `maxPriority > maxFee`;
   - a legacy transaction with `gasPrice < baseFee` (**`BlockError`, not `TxError`**);
-  - a sender with non-delegation code;
-  - a public-key hint that is the other recovery candidate; hint count ±1.
+  - a sender with non-delegation code.
 - **Adversarial headers:**
   - each R-VH check failing alone, and pairs failing together (order);
   - a bpo5 parent (the transition fixtures);
@@ -896,8 +990,8 @@ These are future consumer checks; the guidance clarification claims no new confo
 - **F20 composition cases to implement.** Use a synthetic oracle whose four constant
   answers each differ from the literals:
   - Run the standalone wrapper with both full-state and witness provider factories; its query trace follows §2.7 and each factory receives the acquired record.
-  - Fail the size, key-count and header checks separately; the trace still contains acquisition and factory effects, in R-EB order.
-  - Run the kernel directly; it makes no acquisition and stores the supplied record at step 5.
+  - Fail the size, header and ommer checks individually and together. Check their R-EB precedence and confirm that acquisition and the factory call precede each validation failure.
+  - Run the kernel directly. Check that it stores the supplied record at step 4 and makes no acquisition.
   - Change the stored fields; body and state consumers observe the corresponding empty-root, empty-code and transfer-topic values.
   - Use a provider factory or kernel that substitutes literals for the acquired record;
     its empty-root or empty-code observations differ from the synthetic oracle-derived
@@ -913,6 +1007,9 @@ These are future consumer checks; the guidance clarification claims no new confo
 Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values with full StateError payloads. The displayed BlockError embeddings and ofStateError/ofVmFault adapters remain unimplemented; nominal storage supplies neither actual system-call propagation nor O4/O13 projection.
 
 Reference field order, widths and inherited records are catalogued in [REFERENCE-RECORDS](../REFERENCE-RECORDS.md), generated from the exact pin. Wire-schema owners must use those layouts and prove their codec instances. Runtime records may use the explicit abstraction below; omitted fields or `…` remain implementation blockers, not implicit freedom to choose semantics.
+
+The raw `BlockOutput` record below is supplied. All ten fields may be constructed
+and updated independently, with no length, gas, ordering or encoding premise.
 
 All items are public unless marked (internal). Namespace `STFSpec.Block`.
 
@@ -1034,13 +1131,27 @@ def ParentHeader.parentHash : ParentHeader → Hash32
 instance Header.instRlpEncode : Codec.RlpEncode Header
 instance PrevHeader.instRlpEncode : Codec.RlpEncode PrevHeader
 instance ParentHeader.instRlpEncode : Codec.RlpEncode ParentHeader
-structure Access where account : Address; slots : Array Bytes32
+-- supplied raw transaction access entry in source field order
+structure Access where
+  account : Address
+  slots : Array Bytes32
 structure LegacyTransaction; structure AccessListTransaction; structure FeeMarketTransaction
 structure BlobTransaction; structure SetCodeTransaction
 inductive Transaction | legacy | accessList | feeMarket | blob | setCode
 inductive BlockTx | legacy (t : LegacyTransaction) | typed (b : ByteArray)
-structure Block; structure Receipt   -- `Log` is declared in EthVmCore (D27) and re-exported here
-inductive EncodedReceipt | legacy (r : Receipt) | typed (b : ByteArray)
+structure Block
+structure Receipt where
+  succeeded : Bool
+  cumulativeGasUsed : Nat
+  bloom : Base.Bloom
+  logs : Array Vm.Core.Log
+
+-- Supplied forward model (Q99). Section 7 gives the complete method.
+instance Receipt.instRlpEncode : Codec.RlpEncode Receipt
+
+inductive EncodedReceipt where
+  | legacy (r : Receipt)
+  | typed (b : ByteArray)
 structure IntrinsicGasCost where execution calldataFloor : Nat
 structure ChainContext where chainId : U64; blockHashes : Array Hash32; parentHeader : ParentHeader
 
@@ -1064,8 +1175,7 @@ inductive TxError
 inductive BlockError
   | invalidTransaction (index : Nat) (e : TxError)
   | txDecode (index : Nat) (e : TxDecodeError) -- RLP DecodingError / 0xFF assert / empty bytes
-  | invalidPublicKeyHint (index : Nat) (e : TxError)
-  | header (e : HeaderError) | rlpSizeExceeded | publicKeyCountMismatch | ommersNotEmpty
+  | header (e : HeaderError) | rlpSizeExceeded | ommersNotEmpty
   | gasPriceBelowBaseFee (index : Nat)    -- InvalidBlock raised inside tx admission
   | missingParentHash | systemContractNoCode (a : Address) | systemContractFailed (a : Address)
   | deposit (e : DepositError) | balGasLimitExceeded (items limit : Nat)
@@ -1093,9 +1203,7 @@ def decodeReceipt : EncodedReceipt → Option Receipt
 def hasAccessList : Transaction → Bool
 -- senders
 def chainId : Transaction → Except BlockError (Option U64)
-def recoverTransactionPublicKey : U64 → Transaction → m (Except TxError ByteArray)
-def recoverSender : U64 → Transaction → m (Except BlockError Address)
-def recoverSenderFromPublicKey : U64 → Transaction → ByteArray → m (Except TxError Address)
+def recoverSender : Transaction → m (Except BlockError Address)
 -- gas and validity
 def countTokensInData : ByteArray → Nat
 def calculateIntrinsicCost (cfg : BlockConfig) : Transaction → Address → IntrinsicGasCost
@@ -1156,6 +1264,7 @@ def BalBuilder.{empty, setIndex, addStorageWrite, addStorageRead, addBalanceChan
   removeCodeChange, addTouchedAccount, build}
 def updateBuilderFromTx : BalBuilder → TxState m → m (Except WitnessError (BalBuilder × TxState m))
 def buildBlockAccessList : BalBuilder → BlockState m → BlockAccessList
+-- Supplied typed hash returns one query action on the complete outer encoding.
 def hashBlockAccessList : BlockAccessList → m Hash32
 def validateBlockAccessListGasLimit : BlockAccessList → Nat → Except BlockError Unit
 -- pipeline (the seam)
@@ -1178,17 +1287,17 @@ def processGeneralPurposeRequests (cfg) : BlockEnvironment → BlockAcc m → Bl
 def applyBody (cfg) : BlockEnvironment → Array BlockTx → Array Withdrawal
     → BlockState m → BlockM m (BlockAcc m)
 def executeBlockM (cfg : BlockConfig) (consts : HashConsts) (block : Block) (preState : PreState m)
-    (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) : BlockM m BlockDiff
+    (ctx : ChainContext) : BlockM m BlockDiff
 def executeBlock (cfg : BlockConfig) (consts : HashConsts) (block : Block) (preState : PreState m)
-    (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) : m (CheckedResult BlockError BlockDiff)
-    := (executeBlockM cfg consts block preState ctx publicKeys).run.run
+    (ctx : ChainContext) : m (CheckedResult BlockError BlockDiff)
+    := (executeBlockM cfg consts block preState ctx).run.run
 -- standalone caller: acquisition precedes provider construction and all validation (F20)
 def executeBlockStandalone (cfg : BlockConfig) (mkPre : HashConsts → m (PreState m))
-    (block : Block) (ctx : ChainContext) (publicKeys : Option (Array ByteArray)) :
+    (block : Block) (ctx : ChainContext) :
     m (CheckedResult BlockError BlockDiff) := do
   let consts ← HashConsts.query
   let preState ← mkPre consts
-  executeBlock cfg consts block preState ctx publicKeys
+  executeBlock cfg consts block preState ctx
 -- full-state driver (instantiated by EthConformance, at m := Id)
 structure BlockChain (σ : Type) where blocks : Array Block; state : σ; chainId : U64
 def getLast256BlockHashes : BlockChain σ → m (Array Hash32)      -- hashes the most recent header
@@ -1258,7 +1367,7 @@ filtering, BlockOutput/header/BlockError and guest integration remain separate.
 | `SystemAddrs` | eight `Address` fields and two unrestricted `Nat` fields in §5 order | itself | none beyond field types | read-only, shared freely | O(1) projection/update |
 | `Withdrawal` | four required independent fields in §5 order | itself | none beyond provider types | read-only, shared freely | O(1) projection/update |
 | Header, transactions, receipts | structures of `EthBase` types | themselves | none beyond field types | read-only, shared freely | codec linear in size |
-| `BlockOutput` counters | `Nat` fields | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
+| `BlockOutput` counters | three `Nat` fields and `blobGasUsed : U64` | themselves | `blockGasUsed ≤ gasLimit`, `blockStateGasUsed ≤ gasLimit`, `blobGasUsed ≤ MAX_BLOB_GAS` after every successful `processTransaction` [C] | linear (threaded once per block) | O(1) |
 | Transaction, receipt and withdrawal tries | an `Array ByteArray` of values in index order, built linearly; the root is computed once by `EthCommit` over `rlp i ↦ v` | finite map `Nat ⇀ Bytes` with domain `[0, n)` | α = `fun a i => a[i]?`; invariant: dense | linear-only (`Array`), never snapshotted | O(1) amortised append; root O(n log n) or better (EthCommit) |
 | `receiptKeys` | implicit (`0…n−1`) | list of `rlp i` | α = `(List.range n).map rlp` | — | — |
 | `blockLogs` and per-transaction logs | **rope** (D24, owned by `EthState`/`EthVmCore`); flattened once, per receipt and for the bloom, by the linear traversal of ARCHITECTURE §5.3 | `List Log` | rope → list | persistent, O(1) concat | flatten O(total) |
@@ -1270,10 +1379,51 @@ EELS keeps change *lists* and sorts at the end (`:649–685`). A map keyed by in
 
 ## 7. Contract and laws
 
+The raw `Access` stores the supplied `Address` and the complete `Array Bytes32`
+independently. Construction projects both inputs, and reconstruction from those
+projections returns the original record. Replacing either field preserves the
+other. These reductions apply to every finite slot array and retain order,
+duplicates and all bytes. The private clients in §4 prove them through the Block
+facade.
+
 **Precompile routing (Q83).** BlockConfig transports the same Core table to
 RunnerEnv; Block never imports Precompiles. Action factorization and its exact Id
 law add no observer parameter or construction premise. Actual generic producer
 and Runner lift/dispatch/settlement proofs remain separate obligations.
+
+**Receipt RLP (Q99).** The following model applies to every raw receipt. The
+inner model is local to EthBlock.
+
+```lean
+logItem (entry : Vm.Core.Log) :=
+  .list [.bytes entry.address.toBytes.toByteArray,
+    .list (entry.topics.toList.map fun hash => .bytes hash.toBytes.toByteArray),
+    .bytes entry.data.toByteArray]
+
+Receipt.instRlpEncode.toRlp receipt =
+  .list [Codec.RlpEncode.toRlp receipt.succeeded,
+    Codec.Rlp.ofNat receipt.cumulativeGasUsed,
+    .bytes receipt.bloom.toBytes.toByteArray,
+    .list (receipt.logs.toList.map logItem)]
+```
+
+The status payload is empty for false and is `01` for true. Gas is minimal
+unsigned big-endian with empty zero and no fixed-width bound. The model retains
+all 256 bloom bytes, all twenty address bytes, all thirty-two bytes of every
+topic and all data bytes. Log and topic lists retain their supplied order and
+multiplicity. The existing `Codec.Rlp.encodeOf` gives the Codec wire model for
+this item on every raw input.
+
+For standard RLP and pinned wire agreement the caller supplies Q47's
+`Codec.Rlp.Encodable` on the complete assembled item. This bounds each byte
+payload and each list's concatenated encoded children, including the enclosing
+receipt list. The source call must dispatch the exact EELS Receipt and Log records
+as dataclasses. Its conversion must preserve the four receipt fields and three
+log fields in order. It must preserve the exact `bool` and `Uint` classes,
+the complete byte values for `Bloom`, `Address`, `Hash32` and `Bytes`, and
+the nested tuples of logs and topics. The source encoder must complete
+successfully on the host. The Lean model and its Codec equation hold on all raw
+inputs.
 
 The supplied raw `Withdrawal` retains exactly the four independent R-BLK fields
 in §5 order, including the complete Address and the amount in Gwei. Construction
@@ -1372,9 +1522,9 @@ Per operation (model-based, D25):
   - the block-capacity subtractions never underflow, because the counters stay ≤ `gasLimit`. This is [I] and needs G4's bound `execUsed ≤ min(TX_MAX_GAS_LIMIT, gas)` and `stateUsed ≤ gas`.
   
   Each is [T]: it justifies computing with `Nat` truncated subtraction where EELS would raise.
-- **Order.** `validateHeader` returns the error of the first failing check in R-VH order, and similarly for R-VT, R-CT and R-EB. These are stated as equations that unfold one check at a time. [R]
-- **Hint equivalence.** If `chainId tx ∈ {none, some ctx.chainId}` and `ks[i] = recoverTransactionPublicKey ctx.chainId tx`, then the hint path and `recoverSender` return the same sender. Otherwise the hint path raises `invalidSignature`. [C] It is used by consumers that replace full recovery (CONTRACT §2). [R]
-- **Seam.** `executeBlock cfg consts b ps ctx ks` depends on `ps` only through the `PreState m` operations. At `m := Id`, a **successful witness execution** over `ps` is simulated by a progressive full backend of σ, assuming `Models ps σ`, code authenticity, reachable caller invariants, and agreement on every successful answer; the post-state root agrees or yields a named hash collision. This is the directional block-level agreement obligation for EthSecurity (COMPOSITION §5), not equality of success and failure for arbitrary `Models` providers. [R][S] The oracle coupling at generic `m` is open (D5).
+- **Order.** `validateHeader` returns the error of the first failing check in R-VH order, and similarly for R-VT, R-CT and R-EB. State these as equations that unfold one check at a time. The R-PT equations expose the BAL index and trie write before chain-ID admission, then the first chain-ID failure or the call to R-CT. [R]
+- **Sender recovery (unimplemented).** On the domain admitted by R-PT 3, prove agreement with the reached R-SIG and R-SENDER source operations under the signing-encoding, oracle and curve-adapter premises. Preserve the order of signature checks, the complete signing digest and recovery inputs, and the address hash on the full unprefixed key after successful recovery. [C][R]
+- **Seam.** `executeBlock cfg consts b ps ctx` depends on `ps` only through the `PreState m` operations. At `m := Id`, a **successful witness execution** over `ps` is simulated by a progressive full backend of σ, assuming `Models ps σ`, code authenticity, reachable caller invariants, and agreement on every successful answer; the post-state root agrees or yields a named hash collision. This is the directional block-level agreement obligation for EthSecurity (COMPOSITION §5), not equality of success and failure for arbitrary `Models` providers. [R][S] The oracle coupling at generic `m` is open (D5).
 - **Constants lifetime (F20).** Prove the acquisition and effect order in §2.7 as implementation equations. The kernel preserves the supplied record in `BlockState.new`; context consumers read the stored fields, including under synthetic constants differing from the Id literals. These laws are unimplemented; generic oracle and backend coupling remains D5/X7. [R]
 - **Determinism and totality.** Every function here is total. The only recursion is structural over the transaction, withdrawal, log and BAL arrays, apart from the runner calls, whose totality is `EthVmRunner`'s obligation (O11). [T]
 - **Conservation** (generic, a hypothesis on `cfg`; discharged for Amsterdam in `EthFork`): the sum of balance changes over sender, coinbase and burn in one transaction is 0 when the frame's value transfers are counted. [C] The strategy is open (Gaps).
@@ -1385,7 +1535,7 @@ Per operation (model-based, D25):
 
 **Premises.** Exact record schemas and check order; well-formed fork configuration; runner fuel sufficiency; reachable state invariants; backend successful-answer/root agreement and data availability; checked arithmetic rather than silently widened reference values.
 
-**Argument.** Induct over pipeline stages and then over transactions, maintaining the accumulated diff, gas counters, receipt sequence and BAL builder relation. Admission establishes sender balance/nonce and intrinsic-gas premises before execution. Sender hints must be verified against the same signing hash and recovered key; mere hint length is insufficient. Settlement updates fees and receipts using the runner's distinction between success, revert and halt. Update BAL from the unmerged transaction and block views before incorporation: first-index pre-values remain fixed, balance/code keep the last change and nonce the maximum. Ordered dense trie inputs reproduce index-keyed transaction/receipt/withdrawal roots. System calls omit user gas counters; unchecked calls ignore FrameError but propagate backend faults and InternalError. Finish by computing requests and asking the backend for the ordered diff root, then perform the reference's commitment checks.
+**Argument.** Induct over pipeline stages and then over transactions, maintaining the accumulated diff, gas counters, receipt sequence and BAL builder relation. The R-PT chain-ID guard supplies the reachable legacy recovery domain. Use R-SIG and R-SENDER with signing-hash and curve-adapter agreement to obtain the sender for R-CT. Admission establishes sender balance/nonce and intrinsic-gas premises before execution. Settlement updates fees and receipts using the runner's distinction between success, revert and halt. Update BAL from the unmerged transaction and block views before incorporation: first-index pre-values remain fixed, balance/code keep the last change and nonce the maximum. Ordered dense trie inputs reproduce index-keyed transaction/receipt/withdrawal roots. System calls omit user gas counters; unchecked calls ignore FrameError but propagate backend faults and InternalError. Finish by computing requests and asking the backend for the ordered diff root, then perform the reference's commitment checks.
 
 **Open obligations.** Instantiate every schema, arithmetic failure and ordered adapter; prove BAL read side effects and index bounds; establish backend-parametric trace simulation. Success against an unanchored supplied parent is not a statement of accepted-chain validity.
 
@@ -1400,7 +1550,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   - `HashConsts` (EthBase) and `HashConsts.query`, `KeccakQuery` with its `ExceptT`/`StateT` lifts (EthHash).
   - `CheckedT`, `runVmChecked` (EthVmRunner, F14).
   - `BlockState`/`TxState` operations and observers from `EthState`: `getAccount`, `getCode`, `incrementNonce`, `setAccountBalance`, `createEther`, `clearAccountPreservingBalance`, `incorporateTxIntoBlock`, `extractBlockDiff`.
-  - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `BlockOutput`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions.
+  - `processTopLevel`, `TransactionEnvironment`, `BlockEnvironment`, `LogRope`, `settleTransactionGas`, `allocateEvmGas`, the blob-gas helpers and `isValidDelegation` from `EthVmCore`/`EthVmRunner`/instructions. `BlockOutput` belongs to `EthBlock` (D27).
   - `secp256k1Recover` through `EthVmRunner`'s transitive closure (`EthCurve`).
   - EthCommit's existing `root`/`mathRoot` over the safe typed/prepared dense maps (§5, Q53), with caller context empty root and lawful byte keys; EthBlock supplies its concrete validity/encoding bridges. RLP from `EthCodec`; keccak (`KeccakQuery`) and SHA-256 from `EthHash`.
 - **Dependency inversion (required).** EELS's `incorporate_tx_into_block` (`state_tracker.py:823–828`, G3) calls `update_builder_from_tx`, but `EthState` must not see the BAL. The spec therefore splits it:
@@ -1430,22 +1580,42 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   dense-map composition remain unimplemented.
 - Q96 owns the raw block access list representation in §5. Q98 owns the forward
   RLP interface in §§3–5.
+- Q99 owns the disposition on the visibility of the embedded receipt log model. The supplied model is in §§3, 5 and 7.
 
 ## 10. Gaps
 
+- **Transaction access lists.** The raw entry is supplied (§§3–5 and 7).
+  The outer transaction collections and their encoding and decoding remain
+  open, along with validity, intrinsic gas and conversion to state access
+  sets.
+
 - **Block access list:** the six raw records, outer array alias, six forward
-  RLP models and private facade clients are supplied (§§3–5). The outer route
-  uses the ordered List instance. General source-wire correspondence retains
-  Q47 and the source typed-dispatch, conversion and host premises. Typed
-  decoding, builder construction, ordering, index accounting, read/write
-  disjointness, the slot-union gas check, hashing and block or guest integration
-  remain open.
+  RLP models and typed hash are supplied with private facade clients (§§3–5).
+  The outer route uses the ordered List instance. General source correspondence
+  retains assembled Q47, the source typed-dispatch, conversion and host premises,
+  and the concrete Keccak interpretation for the hash. Typed decoding, builder
+  construction, ordering, index accounting, read/write disjointness, the slot-union
+  gas check and block or guest integration remain open.
 
 - **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
   supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
   root composition, and full source equality, Q47, F20 and host correspondence
   at the block consumer remain open. The dictionary introduces no fixture,
   execution, resource or readiness result.
+
+- **Raw receipts:** The R-RCPT carriers and forward RLP model are supplied
+  (§§3–5 and 7). Typed envelope dispatch, receipt decoding and production, Q53
+  receipt trie inputs and request integration remain open. The required decode
+  path in R-RCPT consumes produced receipts. Completion on arbitrary typed bytes
+  is open. For a decodable body with an unknown prefix, pinned EELS raises on
+  the prefix assertion when assertions are enabled. With assertions disabled,
+  it decodes the body
+  (`src/ethereum/forks/amsterdam/blocks.py:432–434`).
+
+- **Raw block output:** the ten-field record and private facade clients are
+  supplied (§§3–5). Source initialization, receipt envelope encoding, ordinal keys and
+  dense root-input composition (Q53), accumulation and runner integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1467,7 +1637,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14). The F11 producer proof and G2–G7 remain open.
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing and
   the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and the Q83
@@ -1504,4 +1674,5 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Conservation law** (§7): no proof strategy yet; it depends on G4's frame-level value-transfer and SELFDESTRUCT (EIP-8246) contracts.
 - **Complexity**: the BAL build cost with `ExtTreeMap` is expected to be O(N log N), but no `Std` cost theorem exists (ARCHITECTURE §5.0). Trie roots are built from scratch per block (EthCommit's cost) and not measured.
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.
+- **Sender recovery and block execution (P1, O5, X16).** Implement the ordered pipeline and sender recovery in §§2 and 5, and discharge the tests and laws in §§4 and 7. The D26 curve adapter and the refinement of signature failures to indexed transaction errors remain open. For a direct `recover_sender` call with `v < 35` outside `{27, 28}`, bad `r` or `s` still fails at its own guard. With valid scalars the source raises `AssertionError` in normal Python and `OverflowError` from checked subtraction with assertions disabled. R-PT 3 excludes these direct cases and also rejects a legacy chain ID that overflows U64 before recovery. The total completion and precise diagnostic for direct calls with malformed `v` remain open. EELS `transactions.py:860–875,892–906` and `fork.py:1044–1051` [V at `59c1473d`].
+- **Ancestor tracking (X16).** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.

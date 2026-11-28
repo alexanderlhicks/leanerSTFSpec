@@ -32,7 +32,7 @@ private def prepareSlots : List (Bytes32 × U256) → Prepared → m Prepared
       let path := bytesToNibbleList digest.toBytes.toByteArray
       prepareSlots rest (prepared.insert path (encodeStorage value))
 
-/-- Prepare the selected address's nonzero slots in ascending slot order (Q99).
+/-- Prepare the selected address's nonzero slots in ascending slot order (Q100).
 Repeated digest paths retain the later leaf. The source preparation is
 EELS `src/ethereum/merkle_patricia_trie.py:407–475`. -/
 def storageTrieMap (σ : MathState) (a : Address) : m (Std.ExtTreeMap Nibbles ByteArray) :=
@@ -55,7 +55,7 @@ private def prepareAccounts (storage : Address → m Hash32) :
     let path := bytesToNibbleList digest.toBytes.toByteArray
     prepareAccounts storage rest (prepared.insert path leaf)
 
-/-- Prepare present accounts in ascending address order (Q99). Each account's
+/-- Prepare present accounts in ascending address order (Q100). Each account's
 storage root precedes the address query, and the later leaf wins at a shared path.
 The source callback is EELS `src/ethereum/state_mpt.py:113–118`. -/
 def accountTrieMap (consts : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Nibbles ByteArray) :=

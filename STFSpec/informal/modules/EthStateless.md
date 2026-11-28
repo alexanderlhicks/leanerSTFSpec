@@ -1508,7 +1508,7 @@ support, layout, count and finite control facts remain private; no extra API is 
 **Supplied output laws.** `STFSpec/Stateless/Output.lean` supplies the ordinary
 `serializeStatelessOutput_eq` complete byte-list equation, `serializeStatelessOutput_size`
 for every carrier value, and `serializeStatelessOutput_inj` (equal bytes iff equal records).
-The latter discharges only the serialization direction of L-output-codec.
+EthConformance §7 supplies the host decoder left inverse in L-output-codec.
 `zeroSentinel_fields` specifies all four fields and `serializeStatelessOutput_zeroSentinel`
 specifies all 43 zero bytes. The private concrete Q80 schema/value/support and child
 certificates consume `Ssz.serializable_iff`, `Ssz.encode_eq`, structural classifier laws
@@ -1655,9 +1655,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Output composition.** The output codec laws are supplied in §7 and EthConformance §7. Decoder-to-Rootable bridges, request-root computation, guest classification and execution, F20 composition and the O-row, fuel, backend and resource gates remain open.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented. The F11 producer proof, G2–G7 and internal-error freedom remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 

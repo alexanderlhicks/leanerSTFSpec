@@ -73,7 +73,7 @@ Each of these items has an owner, so do not restate it elsewhere:
 
 - The blockers of the informal specification: [`STFSpec/informal/GAPS.md`](STFSpec/informal/GAPS.md) (generated), with the cross-cutting items X1–X16 in `STFSpec/informal/GAPS-CROSSCUTTING.md`.
 - Pending investigations: fuel adequacy (`STFSpec/informal/REVIEW.md` §7 G2–G7) and agreement of the witness with the full state (S2). REVIEW §6 covers both.
-- Open interface items F6, F7, F11 and O2: `STFSpec/informal/DECISIONS.md` §3.
+- Open interface items F6, F7 and O2 are in `STFSpec/informal/DECISIONS.md` §3.
 - O12, host resources: `STFSpec/informal/DISCREPANCIES.md` DISC-001 and DISC-006.
 
 ## Documentation conventions

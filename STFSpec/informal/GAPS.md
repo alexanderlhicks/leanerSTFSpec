@@ -91,10 +91,9 @@ The spec guidance documents' Lean-like signatures are informal by design (`CONTR
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
 
 ### X15. Open interface obligations from the interface prototype
-Four items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
+Three items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
 - **F6:** memo ownership, lifetime and decode triggers for storage tries (EthStateWitness). Cache mechanics stay outside semantic state; this is a DEBT candidate until settled.
 - **F7:** the iteration order of storage clears in the witness root replay (EthState, EthStateWitness). It must agree on failures and observations, not only on roots.
-- **F11:** how the runner produces `ChildSettled` (EthVmRunner).
 - **O2:** the proof that request-root computation cannot fail on decoded values (EthStateless).
 
 **Owners:** as listed.
@@ -484,7 +483,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 ### [`EthState`](modules/EthState.md)
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read and installation, storage reads, account write,
+  and predicates, code read and installation, storage reads and write, account write,
   storage clear, transient read and write, snapshot and restore, fresh
   initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
@@ -516,7 +515,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   current-pin full-state refinement remains open.
   Caller initialization and coherence, the remaining tracker operations,
   observation lifetimes, other StateError semantics and freezing, S1/S2/W1,
-  generic D5, F6/F7/F11 and C1–C4 remain open.
+  generic D5, F6/F7, runner settlement proof production (F11) and C1–C4 remain
+  open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Standalone initialization and R24
@@ -526,10 +526,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
-  S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
-  retained-value controls. Whole-State readiness is unchanged.
+  S1/S2/W1, F6/F7, the runner settlement producer proof (F11), generic D5 and
+  C1–C4 require evidence beyond the raw fields and finite retained-value
+  controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes, R16 storage clear, R17 account
+  and the local laws for R14 account writes, R15 storage writes, R16 storage clear, R17 account
   destruction, R18 modification and R21 code installation. R24 retains saved
   order and value roots
   together. Incorporation,
@@ -567,7 +568,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability of the assertion in R15** is inferred.
+- **R15 reachability:** §§3/4/7.1/7.5 supply the standalone write and its
+  typed absence error, complete action and local order laws, and the conditional
+  visible-word equation. The whole-state commuting equation, the public
+  read-after-write law and proof of the R15 assertion's unreachability remain
+  open.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3). EthState §3 supplies the raw TxObs and
@@ -711,10 +716,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   in mathematical root preparation. Prove callback and root source
   agreement without assuming a bare Account instance. Whole source
   equality/schema/dispatch, assembled-node `Encodable`, F20 and host
-  premises, and secured traversal, collision, history and generic
-  coupling obligations remain open.
+  premises remain open, along with the secured traversal source comparison
+  proof and the collision, history and generic coupling obligations.
 
-- **Mathematical root agreement (SC4, Q99):** §3 supplies all four §5
+- **Mathematical root agreement (SC4, Q100):** §3 supplies all four §5
   actions with the ordered-list reference. Prove source preparation
   agreement, generic query order, `ModelsRoot` and collision extraction
   (§7.2). Full-state integration and cost checks remain open.
@@ -728,6 +733,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthStateFull`](modules/EthStateFull.md)
 
+- **Backend integration:** §3 supplies the carrier, `ofMath` and the
+  standalone storage setter. Provider construction, lookups, root
+  computation, the full diff operation, other updates and operational
+  equality remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - `CodeComplete σ` (every account's code hash is stored) is assumed for fixtures, not checked.
@@ -740,13 +750,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Backend construction and code access** (W1, W5). Compose the authenticated databases, parent state root and caller's constants into a backend. Implement the empty-code sentinel and missing-code error at the code access boundary.
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved; step-4 order dependence is verified by executing a minimal example, but no fixture tests it on the account trie.
+- **Order equivalences** (W8 step 3, which is F7, open; insert/delete groups) are unproved. A minimal example establishes step-4 order dependence [executed at `e1a316a0`]. No fixture in `tests-zkevm@v21.0.0` tests it on the account trie.
 - **Generic action lifetime (Q55):** implement/prove decoder sequencing at W2, Id-run thunk agreement and its error adapter, read-cache versus fresh root-computation behavior, successful-result ownership/lifetime, first failure and F6 refinement. Stable Id value comparisons do not establish generic stateful/failing-query equivalence.
 - **History condition** (W7) depends on an `EthState` invariant whose formal statement for a pure provider is not settled.
 - **Storage-trie memo** (F6, open): ownership, lifetime and decode triggers are unspecified; until then storage tries are decoded per query (a DEBT candidate). Any precomputation must be shown not to reject anything EELS accepts, in particular storage tries reachable only from account leaves that EELS never reads (B4).
-- **Leaf-failure fidelity:** CONTRACT O4(e) records the SC5/SC6 failures. Exact error adapters and precedence at each eager decode/lookup trigger remain implementation obligations; the failure ledger (X1) must close the individual sites.
+- **Leaf-failure fidelity.** CONTRACT O4(e) records the SC5/SC6 failures. Implement the error adapters and the order in W3–W4. X1 tracks the individual failure sites.
 - **Exponential decode on DAG witnesses** (`EthCommit` C17) remains a host-resource question (DISC-004, DISC-001, O12 unresolved). The single-node RLP-nesting probes exceed guest SSZ admission and establish no admitted-guest divergence (DISC-001). Deep chains of trie nodes no longer give the recorded recursion-output divergence once every decode here is secured (Q90, below; EthCommit C17); executable memory costs remain separate. Q55's total mathematical baseline and any unselected B15 memo remain unreconciled with the remaining host-resource behavior.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** The backend was restructured without an output change [V by reading] (execution-specs PR #3659): `_get_decoded_secure_root` became `_get_decoded_secure_trie` (`witness_state.py:83–94`), which caches the whole decoded trie, with the empty-root shortcut moved into `decode_witness_to_mpt`; lookups go through `incremental_mpt.mpt_get`; `compute_state_root_and_trie_changes` was folded into `compute_state_root` (`witness_state.py:139–202`), whose storage writes go through `mpt_set_storage_slots` and whose account writes pass the storage root to `mpt_set` directly. W6 (its step-by-step text and every `ws:` citation in it), W3's `ws:73` and W4's `ws:179–203` still describe the `e1a316a0` layout, and the `computeStateRootAndTrieChanges` row (with its always-empty node list) is gone from §3. Every secured decode now also validates path lengths (EthCommit §10), which bounds the decoded depth and bears on the deep-chain item above, and storage reads decode leaves strictly (EthStateCommit §10). Q90: the account and storage tries must be obtained through `decodeWitnessToMpt … (secured := true)` (or `decodeRoot` followed by the Q90 check), and the TrieError-to-WitnessError adaptation must map `.malformed .securedPathLength` to the O4(b) rejection.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The two unimplemented `computeStateRootAndTrieChanges` signatures in §5 specify a tuple result. W6's `compute_state_root` returns only the state root, and `PreState.stateRoot` already returns `Hash32` on success. Resolve the public helper target separately (CONTRIBUTING §6.5). Apply Q90 in the backend by using `decodeWitnessToMpt … (secured := true)` or `decodeRoot` followed by the Q90 check. The TrieError-to-WitnessError adapter must map `.malformed .securedPathLength` to O4(b). Storage reads must use the strict SC6 decoder.
 - **No fixtures** for malformed nodes, cycles, non-canonical encodings, malformed account or storage leaves, or balance overflow from witness data.
 
 ### [`EthVmCore`](modules/EthVmCore.md)
@@ -760,13 +770,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   observation lifetimes, provider/context acquisition/coherence, actual
   handlers/runner and full-current-source refinement remain open. EthState R24
   supplies the standalone snapshot and restore operations.
-  No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
-  gate closes through nominal wiring.
+  F6/F7, the runner settlement producer proof (F11), generic D5/S1/S2/W1, G1–G7,
+  C1–C4 and VM/guest/EEST/readiness remain open.
 
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
-  result handling, fault/outcome adapters and ChildSettled proof production/F11 remain
+  result handling, fault/outcome adapters and ChildSettled proof production (F11) remain
   open with their existing owners. No gas, resource or VM/guest readiness result
   follows.
 
@@ -775,25 +785,27 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   clients and full-value controls. No history/admission/default/proof field or extra
   public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
   construction, source context coherence, intended oldest-first/at-most-256 history and
-  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
-  gas/fuel/resources and VM/guest/EEST/readiness remain open.
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime,
+  the runner settlement producer proof (F11), gas/fuel/resources and
+  VM/guest/EEST/readiness remain open.
 
 - **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
   exactly ChildSettled and its constructive Decidable instance. Private logical,
   all-frame, each-clause, decision and conditional public rollback/forfeit clients
   cover the predicate boundary. EthVmInstructions §7 supplies zero committed spill at child entry.
-  Preservation through execution, incorporation, processCall/processCreate settlement and snapshots, proof
-  production and resume remain open. EthVmRunner §3 supplies the proof-taking
-  result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
-  S2, resources and VM/guest/EEST/readiness remain open.
+  EthVmRunner §3 supplies the proof-taking result adapter. The runner still
+  needs to prove preservation through execution, settlement and snapshots,
+  produce the return proof and integrate resume (F11). Generic Q83 effect
+  bridges, G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
   tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
-  Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
-  resource or VM/guest/EEST/readiness gate follows from this vocabulary.
+  Raw VmWorld/VmM wiring is supplied separately above. The runner settlement
+  producer proof (F11), G1–G7, resource and VM/guest/EEST/readiness gates remain
+  open.
 
 - **Q93 fee caller proofs.** The two raw sites and exhaustive private
   clients are supplied (§3/§4/§5/§7). Transport the decoded system and
@@ -813,7 +825,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   producer construction needs an actual witness/erasure proof and
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
-  No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
+  The runner settlement producer proof (F11), D5 coupling, G1/G2–G7, resource
+  and VM/guest readiness gates remain open.
 
 - **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
   `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
@@ -835,7 +848,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   code/map choices, supplied addresses, environments, frame and flags remain
   independent. EthVmInstructions §3/§5/§7 owns the supplied read-only Handler/StepResult
   signatures. Actual creation/inheritance, source/config/history/code coherence,
-  world/control/parent execution, F20/F11,
+  world/control/parent execution, F20 lifetime and the F11 producer proof,
   gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
   default, instance or global coherence/WF predicate is supplied.
 
@@ -846,15 +859,16 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   local CREATE inheritance. Runner construction, CALL inheritance, both producer
   refinements, transfer/static/gas ordering and composed Fork→Block→Runner
   transport remain open. F20 acquisition/lifetime,
-  generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
-  open. No Core literal, global admission predicate or new runtime policy is introduced.
+  generic D5 coupling, the runner settlement producer proof (F11), fuel, C1–C4
+  and VM/guest/EEST/readiness remain open. No Core literal, global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization is
-  discharged (EthFork §3); actual frame creation and CALL/CREATE depth proofs remain open. Raw
-  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
-  gate follows from this literal alone.
+  discharged (EthFork §3). The CREATE handlers supply the strict parent-depth proof,
+  which bounds the child depth in `childCtxOfCreate` (EthVmInstructions §7). Runner
+  entry and CALL depth integration remain open. Raw VmLimits/VmConfig domains and
+  Stack behavior are unchanged; no VM/guest/readiness gate follows from this literal alone.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
@@ -868,8 +882,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   cap consistency, system-call separation, returned/state/floor derivation,
   validated unsigned refund/range reconstruction at the unchanged Runner Nat
   boundary, checked-failure precedence, fees/providers/conservation, compiled
-  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. No finite
-  source observation supplies a universal theorem or these actual caller premises.
+  resources, G1/G2–G7, the F11 producer proof, B11 and VM/guest/EEST/readiness
+  remain open. No finite source observation supplies a universal theorem or
+  these actual caller premises.
 
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
@@ -913,9 +928,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   No reservoir bound enters phi accounting. This supplies no actual CALL handler
   or child semantics. Source ZERO coherence, actual access/
   failure/effect ordering, saved grants/config identity and reachability, child
-  returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
-  G2–G7, source/default/host agreement, resources, security and guest/readiness
-  remain open.
+  returned-potential bound, runner incorporation/settlement/step/loop, the F11
+  producer proof, B11/D5/S2, G2–G7, source/default/host agreement, resources,
+  security and guest/readiness remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
@@ -944,7 +959,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Memory pricing (Q63) is locally supplied:** §3/§5/§7 own both VmConfig-first helpers, ten discharged ordinary laws, private public-only clients and forty-two full interpreted/native controls with twenty-four authenticated typed original comparisons. Clients derive actual Memory expansion/admitted-window/preservation facts through public laws; real handler payload/window derivation, frame/target config coherence, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, general source-host/resource and whole VM/guest gates remain open. Raw unaligned source controls remain source-only and unrun; no huge returned extent is allocated.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `BlockEnvironment.transaction_public_keys` was removed (execution-specs PR #3652), so the source has thirteen fields projecting to the Lean eleven; R-ENV-1 (§2.1) still lists `transaction_public_keys` among the source fields, and the §3 note under the `BlockEnvironment` row ("fourteen source fields project to eleven") still counts the removed field, and the `STFSpec/Vm/Core/Environments.lean` docstring cites `vm/__init__.py:49–67` at `e1a316a0`. The Lean structure is unchanged. (b) `vm/gas.py` dropped the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` (the values stay in `GasCosts`; PR #3655), and `calculate_memory_gas_cost` no longer turns a `ValueError` into `OutOfGasError` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]; the §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** R-ENV-1 and §3 give the current block environment field mapping. The outstanding gas items are the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` removed from `vm/gas.py` (the values stay in `GasCosts`, PR #3655) and the `ValueError` to `OutOfGasError` conversion removed from `calculate_memory_gas_cost` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]. The §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.
 
 ### [`EthVmInstructions`](modules/EthVmInstructions.md)
 
@@ -975,29 +990,40 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   frame controls. Runner settlement, trace, dispatch, composed
   ownership, gas and resource gates remain open.
 
-- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The enum fixes no future `swapN` argument interpretation, CALL staticness or F11 policy. Source-runtime, composed resource, fuel and guest obligations remain open.
+- **Opcode bytes supplied; dispatch open:** §3 owns the exact 153-member enum, total conversions, two discharged ordinary laws and complete literal byte controls. `opImplementation`, `step`, invalid-opcode halting and the remaining handlers and laws are open. The handler contracts own the `swapN` argument interpretation and CALL staticness. EthVmRunner §7 owns settlement proof production (F11). Source-runtime, composed resource, fuel and guest obligations remain open.
 
-- **Raw request carriers supplied; execution open:** §3 owns the exact `CreateRequest` and `CallRequest` types and private complete facade controls. `genericCreate`, CREATE/CREATE2 preflight, ordered state/gas effects, grant computation, collision and source/admission bridge, CALL-family/`genericCall` producers and their source/admission bridge, the CALL child context, ChildOutcome producers and resume remain unimplemented. The raw carriers add no admission/staticness policy and resolve neither F11 nor fuel, host-resource, guest or EEST obligations.
+- **Raw request carriers supplied.** Section 3 owns the exact `CreateRequest`
+  and `CallRequest` types and their facade controls. CALL request producers,
+  the CALL child context, CALL resume, and child-outcome producers remain open.
+- **CREATE and CREATE2 handlers supplied.** Sections 3, 4 and 7 own their
+  ordered effects, local laws and bounded pinned controls. Dispatch to these
+  handlers, whole source and admission refinement, child execution and
+  settlement, proof production (F11), the child-return Φ bound (G2),
+  L-MEM-BOUND and the resource, guest and EEST gates remain open.
 
 - **Immutable CREATE context supplied.** Sections 3, 4 and 7 own the complete
   constructor, two policy projections and raw and source controls. The runner
   must still assemble it with the mutable child frame and execute the child.
+
+- **CREATE and CREATE2 resume supplied.** Sections 3, 4 and 7 own the
+  operation, local laws and frame controls. Runner integration must pass
+  the settled child and prove the source address relation and composed G2.
 
 - **Mutable child frame initialization supplied:** §3/§4/§7 cover both inline
   source sites and the private complete facade clients. The runner still needs
   to assemble context and frame, prove the committed-spill clause through
   execution, and bound the returned potential by the child's grant (G2).
 
-- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Section 3 records the supplied standalone handlers and their local laws. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution/settlement/resume, gas/staticness/admission and F11 remain open; these types close no fuel, resource, guest or readiness gate.
+- **Typed results/signature supplied; execution open:** §3/§5/§7 own the exact six-constructor indexed `StepResult`, class-free `Handler` alias and private complete facade clients. Only the two strict local child bounds are carried. Section 3 records the supplied standalone handlers and their local laws. Remaining opcode effects, dispatch/step/Step relation, whole source-Evm/control refinement, child execution and settlement, proof production (F11), runner resume integration and gas/staticness/admission remain open; these types close no fuel, resource, guest or readiness gate.
 
-- **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11), incorporation and resume remain open.
+- **Settled child outcome supplied, production open.** §3/§4/§5/§7 own exactly the four-field `ChildOutcome` and private full-payload, dependent-proof, clause/boundary and negative elaboration controls. EthVmRunner §3 supplies the proof-taking result adapter. Actual producer reachability, rollback, source-Evm refinement, runner settlement and proof production (F11) remain open.
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance. Non-top
   committed-spill-zero preservation, call/create settlement and snapshots,
-  returned proof production, incorporation and child/resume remain open.
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  returned proof production and runner resume integration remain open.
+  EthVmRunner §7 owns the adopted proof-carrying route. The settled executor
+  and generic Q83 effect bridge remain open.
 
 - **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
@@ -1150,12 +1176,13 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance. EthVmInstructions §7
   supplies the committed-spill clause at child entry. Preservation through execution,
-  call/create settlement and snapshots, returned proof production, incorporation
-  and child/resume remain open.
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  call/create settlement and snapshots, returned proof production and runner
+  integration remain open. EthVmInstructions §7 proves local CREATE progress
+  through resume under the separately required child-return Φ bound (G2).
+  F11 chooses the proof-carrying return. Implement the producer and the
+  generic Q83 effect bridge.
 
-- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented. The F11 producer and G2–G7 proofs remain open, including exhaustion unreachability.
 
 - **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
   the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
@@ -1169,7 +1196,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   casts/range evidence, settlement and production of the adapter argument (F11)
   are open, along with the execution/fuel/resource/readiness gates.
 
-- **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
+- **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly, runtime transport, execution, the F11 producer proof, D5 coupling, fuel, resource and guest/readiness remain open.
 
 - **F8 immutable address transport.** EthVmCore §3/§7 supplies the transfer-log
   helper. EthVmInstructions §7 supplies local CREATE inheritance. The runner
@@ -1196,19 +1223,38 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Transaction access lists.** The raw entry is supplied (§§3–5 and 7).
+  The outer transaction collections and their encoding and decoding remain
+  open, along with validity, intrinsic gas and conversion to state access
+  sets.
+
 - **Block access list:** the six raw records, outer array alias, six forward
-  RLP models and private facade clients are supplied (§§3–5). The outer route
-  uses the ordered List instance. General source-wire correspondence retains
-  Q47 and the source typed-dispatch, conversion and host premises. Typed
-  decoding, builder construction, ordering, index accounting, read/write
-  disjointness, the slot-union gas check, hashing and block or guest integration
-  remain open.
+  RLP models and typed hash are supplied with private facade clients (§§3–5).
+  The outer route uses the ordered List instance. General source correspondence
+  retains assembled Q47, the source typed-dispatch, conversion and host premises,
+  and the concrete Keccak interpretation for the hash. Typed decoding, builder
+  construction, ordering, index accounting, read/write disjointness, the slot-union
+  gas check and block or guest integration remain open.
 
 - **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
   supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
   root composition, and full source equality, Q47, F20 and host correspondence
   at the block consumer remain open. The dictionary introduces no fixture,
   execution, resource or readiness result.
+
+- **Raw receipts:** The R-RCPT carriers and forward RLP model are supplied
+  (§§3–5 and 7). Typed envelope dispatch, receipt decoding and production, Q53
+  receipt trie inputs and request integration remain open. The required decode
+  path in R-RCPT consumes produced receipts. Completion on arbitrary typed bytes
+  is open. For a decodable body with an unknown prefix, pinned EELS raises on
+  the prefix assertion when assertions are enabled. With assertions disabled,
+  it decodes the body
+  (`src/ethereum/forks/amsterdam/blocks.py:432–434`).
+
+- **Raw block output:** the ten-field record and private facade clients are
+  supplied (§§3–5). Source initialization, receipt envelope encoding, ordinal keys and
+  dense root-input composition (Q53), accumulation and runner integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1230,7 +1276,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **Implemented bounded scope:** `countTokensInData`, `extractDepositData`, `computeRequestsHash` and `logsBloom`, with their complete all-finite result/action laws, extraction success-size law and lawful Bloom empty/sequential-append laws, are supplied (§3/§5/§7). Their 266-case, 142-case, 298-case and 20-case complete native/source observations supply finite coupling only. Bloom observations retain all 85 ordered query occurrences of its 20-case catalogue; the operation requires no oracle law or `LawfulMonad`, while the action laws use lawful sequencing. Its independent single-log test attribution repair is owned by §4. Actual receipt/block integration, generic oracle coupling, compiled ownership and all C1–C4 claims remain open. The request commitment retains each inner and outer Q46 bound for source/FIPS agreement, host/API/native premises, separate streaming/materialized-storage limits and no cryptographic binding claim. Original fixture literal provenance adds no fixture/EVM execution claim. Source/runtime authentication, intermediate allocation and host-resource guarantees, BlockError/request collection integration, composed intrinsic gas/floor and the remaining block pipeline remain open. No readiness or resource gate closes.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14); F11 and G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free CheckedResult/CheckedT carriers. Actual BlockM execution and VmFault mapping/internal-error propagation through runVmChecked, system calls and body execution remain unimplemented (F14). The F11 producer proof and G2–G7 remain open.
 
 - **Precompile table handoff (Q83):** preserve Fork→BlockConfig→RunnerEnv routing and
   the supplied Monad-only carrier (Core §3/§5/§7). The raw shared types and the Q83
@@ -1267,7 +1313,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Conservation law** (§7): no proof strategy yet; it depends on G4's frame-level value-transfer and SELFDESTRUCT (EIP-8246) contracts.
 - **Complexity**: the BAL build cost with `ExtTreeMap` is expected to be O(N log N), but no `Std` cost theorem exists (ARCHITECTURE §5.0). Trie roots are built from scratch per block (EthCommit's cost) and not measured.
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.
+- **Sender recovery and block execution (P1, O5, X16).** Implement the ordered pipeline and sender recovery in §§2 and 5, and discharge the tests and laws in §§4 and 7. The D26 curve adapter and the refinement of signature failures to indexed transaction errors remain open. For a direct `recover_sender` call with `v < 35` outside `{27, 28}`, bad `r` or `s` still fails at its own guard. With valid scalars the source raises `AssertionError` in normal Python and `OverflowError` from checked subtraction with assertions disabled. R-PT 3 excludes these direct cases and also rejects a legacy chain ID that overflows U64 before recovery. The total completion and precise diagnostic for direct calls with malformed `v` remain open. EELS `transactions.py:860–875,892–906` and `fork.py:1044–1051` [V at `59c1473d`].
+- **Ancestor tracking (X16).** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.
 
 ### [`EthFork`](modules/EthFork.md)
 
@@ -1361,9 +1408,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   source-host agreement and resource/security/cost/readiness obligations remain open.
   Other owners' X16 execution/hint migration remains separate, as recorded below.
 
-- **Implemented output slice.** The concrete output record, serializer and sentinel, with their ordinary laws, are supplied in §3/§7 and bounded controls in §4. The host-side decoder left inverse in L-output-codec remains open. Decoder-to-Rootable bridges, request-root computation, guest classification/execution, F20 composition and O-row/fuel/backend/resource gates are separate; this slice closes none of those obligations.
+- **Output composition.** The output codec laws are supplied in §7 and EthConformance §7. Decoder-to-Rootable bridges, request-root computation, guest classification and execution, F20 composition and the O-row, fuel, backend and resource gates remain open.
 
-- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented; no internal-error-freedom result follows, and F11/G2–G7 remain open.
+- **Checked control handoff:** Runner §3/§5/§7 supplies minimal source-free internal-error and checked carriers. Actual classification/propagation and O11 checked/public guest projection remain unimplemented. The F11 producer proof, G2–G7 and internal-error freedom remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
@@ -1412,6 +1459,7 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Exception-name mapping** is warning-only (DECISIONS Q9); the table itself is unwritten, so the stateful runner currently checks only validity.
 - **No conformance statement for consumers.** evm-asm/pancaketh guests are not run by this module; running their ELFs on the same records is out of scope and has no owner.
 - **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Request decoding.** `decode_execution_requests` now decodes through `REQUEST_ITEM_TYPES` and `SszContainer.decode_bytes` instead of five per-type decoders, and rejects an empty per-type payload (a type byte alone) with `InvalidBlock` (`execution_engine/requests.py:173–218`; execution-specs PRs #3658 and #3669). R10's `decodeExecutionRequests` must include that rejection; R10 still cites the decoder at `e1a316a0`. (b) **Corpus statistics.** The figures marked [V, v21.0.0] in R2 (138, 60 and 39 records; 4,807 recordless block entries), the R11 ledger run, the missing-record counts above, EthStateless §4's corpus facts and X5 were not recomputed on the v21.0.6 archive; doing so needs pinned EELS runs over both formats. (c) **Differential evidence.** The re-stamping and regeneration of driver catalogues listed in X16 is owned here, together with each owning module's changed-target drivers.
+- **Host assembly (X16).** L-build and the §4 source controls cover the pinned host builder under P1 and CONTRACT §2/O5. Implement the host builder and codecs and port the source controls to `core`.
 
 ### [`EthFieldMathlib`](modules/EthFieldMathlib.md)
 
@@ -1483,7 +1531,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Quantitative query budgets.** `queryBudget x σ` must be computed from the executable spec (nodes decoded, roots recomputed, headers hashed); no bound function exists yet, and the stateful side's `mathStateRoot` makes it linear in `|σ|`.
 - **Completeness/liveness** (DECISIONS Q13) is not stated: nothing guarantees that an honest prover's witness is accepted.
 - **Consumers' composition.** How evm-asm's or pancaketh's refinement theorem composes with these statements (their toolchains are v4.33.x; a Mathlib version conflict with evm-asm) is unresolved.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The public-key hint was removed upstream (execution-specs PR #3652; EthStateless §10), together with the `witness_public_keys` fixture area. R8's sentence on the hint and the `some x.publicKeys` argument in §5 still describe `tests-zkevm@v21.0.0`.
+- **Sender recovery in block agreement (P1, O5, X16).** R8 and §§5/7 follow the
+  current payload interface and sender-recovery path. The simulation of reached
+  recovery steps and the sender-recovery refinement remain proof obligations (§7).
 
 ### [`ToVCVio`](modules/ToVCVio.md)
 

@@ -54,7 +54,15 @@ and the bridge `probEvent_eq_one_simulateQ_randomOracle_run_iff` (`VCVio/OracleC
 
 **R7. Request binding is separate.** `new_payload_request_root` is SSZ `hash_tree_root` over SHA-256 (`stateless.py:210–216`), with progressive containers and lists (`utils/ssz.py:245–246`). Binding is proved from SSZ merkleization laws (`EthCodec`) and a SHA-256 collision extractor, independent of keccak. No keccak ROM statement may be used to justify it.
 
-**R8. Precompiles.** Cryptographic security of precompiles (ECDSA recovery, P-256, BN254/BLS12-381 pairings, KZG) is D12(iii) and out of this library's first scope. The agreement theorems need none of it, since both sides compute the same precompile functions (ECRECOVER's keccak goes through the shared oracle, R4). The public-key hint needs none either: the reference accepts a hint only if it equals the recovered key (`transactions.py:916–934`), a deterministic equality (`EthBlock` law).
+**R8. Precompiles.** Cryptographic security of precompiles (ECDSA recovery, P-256, BN254/BLS12-381 pairings, KZG) is D12(iii) and out of this library's first scope. The agreement theorems need none of it, since both sides compute the same precompile functions (ECRECOVER's keccak goes through the shared oracle, R4).
+
+The witness and engine callers enter the same payload function, which forwards
+the supplied backend to `execute_block`. EELS `stateless.py:288–292` and
+`execution_engine/new_payload.py:117–127, 147–151` [V: read at `59c1473d`].
+On that block path, the chain-ID check precedes `check_transaction`, which calls
+`recover_sender(tx)`. The recovered address feeds static transaction validation
+and the first sender-account read. EELS `fork.py:1044–1051, 538–546` and
+`transactions.py:878–939` [V: read at `59c1473d`, CONTRACT §2/O5, P1].
 
 ## 3. EELS source map
 
@@ -98,9 +106,12 @@ theorem keccakQuery_ofFn (f) (k : KeccakKernel α) :
 -- Notation: for a kernel k : KeccakKernel α, `k h` is k run with every query answered by h
 -- (simulateQ (QueryImpl.ofFn h)); identifying h = keccak256 with executable Id
 -- requires the actual keccakQuery_ofFn bridge, not notation alone (Q55).
--- `PreState` below means the core's `PreState m` at that run. ModelsQ/ProgressQ below
--- name proposed hash-relative premises; their definitions and concrete bridges are
--- the open oracle coupling (D5, X7). The core Models/Progress remain at `PreState Id`.
+-- For the payload runs, take both providers at `PreState (OracleComp keccakSpec)`.
+-- For an action in this monad, `action h` interprets the complete action with
+-- `simulateQ (QueryImpl.ofFn h)`, using the same h for all queries in either run.
+-- ModelsQ and ProgressQ are proposed hash-relative premises. Their definitions
+-- and the provider bridge remain open under D5 and X7. Core Models and Progress
+-- apply to `PreState Id`.
 -- CodeAuthenticQ requires D5 closure; Id specialisations must match COMPOSITION and the
 -- module §5 signatures.
 -- (1) deterministic trie agreement
@@ -119,11 +130,12 @@ theorem witness_root_update_agreement (h db r ops r' M) (ha : NodeDB.Authentic h
 
 -- state level (from EthStateCommit/EthStateWitness contracts)
 -- consts = HashConsts.query h names the record under the hash interpretation above (F20).
--- witnessPreState h consts x is built by authenticated DB builders using that record;
--- its hash-relative WitnessBackend.WF must be established, not inferred from root equality.
-def ProviderCoherent (h) (consts : HashConsts) (ps : PreState) : Prop -- proposed proof premise
-def ModelsQ (h) (consts : HashConsts) (ps : PreState) (σ : MathState) : Prop -- proposed hash-relative Models
-def ProgressQ (h) (consts : HashConsts) (ps : PreState) : Prop -- proposed hash-relative Progress
+-- witnessPreState h consts x is a provider in this monad, built from authenticated DBs
+-- using that record. The witness construction must establish its hash-relative
+-- WitnessBackend.WF.
+def ProviderCoherent (h) (consts : HashConsts) (ps : PreState (OracleComp keccakSpec)) : Prop -- proposed proof premise
+def ModelsQ (h) (consts : HashConsts) (ps : PreState (OracleComp keccakSpec)) (σ : MathState) : Prop -- proposed hash-relative Models
+def ProgressQ (h) (consts : HashConsts) (ps : PreState (OracleComp keccakSpec)) : Prop -- proposed hash-relative Progress
 def stateQueries (h) (x : StatelessInput) (σ : MathState) : Finset ByteArray      -- R3
 def extractStateCollision (h) (x) (σ) : Option (Collision h)
 theorem witness_models (h x σ) (consts : HashConsts)
@@ -135,13 +147,13 @@ theorem witness_models (h x σ) (consts : HashConsts)
 -- (2) block-level agreement
 theorem stateless_implies_stateful (h) (x : StatelessInput) (σ : MathState)
     (consts : HashConsts) (hconsts : consts = HashConsts.query h)
-    (ps : PreState) (hprovider : ProviderCoherent h consts ps)
+    (ps : PreState (OracleComp keccakSpec)) (hprovider : ProviderCoherent h consts ps)
     (hm : ModelsQ h consts ps σ) (hp : ProgressQ h consts ps)
     (hv : classify h (schemaIdBytes ++ encode x) = .ok (.valid root cid))
     (hroot : mathStateRoot h consts σ = (parentOf x).stateRoot) :
-    (∃ d blk, executeNewPayloadRequest h consts x.newPayloadRequest ps (ctxOf x) none = .ok (.ok (d, blk))
-        ∧ executeNewPayloadRequest h consts x.newPayloadRequest (witnessPreState h consts x) (ctxOf x)
-            (some x.publicKeys) = .ok (.ok (d, blk))
+    (∃ d blk, (executeNewPayloadRequest consts x.newPayloadRequest ps (ctxOf x)) h = .ok (.ok (d, blk))
+        ∧ (executeNewPayloadRequest consts x.newPayloadRequest (witnessPreState h consts x) (ctxOf x)) h
+            = .ok (.ok (d, blk))
         ∧ mathStateRoot h consts (σ.apply d) = x.newPayloadRequest.executionPayload.stateRoot)
     ∨ ∃ c, extractStateCollision h x σ = some c
 corollary stateless_implies_full (h x σ) (consts : HashConsts)
@@ -226,7 +238,16 @@ All [S]; each lists the core obligations it consumes (the ids are the owning mod
 
 1. **Trie agreement** (`decodeRoot_represents`, `witness_lookup_agreement`, `witness_root_update_agreement`). Consumes: `EthCommit` [C] canonical-form invariant and "canonical tries are equal iff they represent the same map" (Nipkow et al. Ex. 12.1), `represents` simulation laws for lookup/update/delete, NodeDB.Authentic, the actual Q55 interpretation/Id-run decoder premise and the decoded-node hash law restricted to eligible raw lengths, RLP prefix-freeness/injectivity (`EthCodec`), eager decoding (D19) so that the decoded trie covers everything reachable. **Strategy:** induction on the decoded trie; at each hashed reference compare the witness node with `M`'s canonical subtrie node: equal encodings → recurse; different encodings with equal hash → collision; RLP injectivity closes the "same encoding, different node" case. Incremental root agreement follows Cassez (FM 2021) for "incremental = from-scratch" plus the same case split.
 2. **State models up to collision** (`witness_models`). Consumes `EthStateCommit` account/storage leaf encodings and `ModelsRoot`/`ModelsCode`, `EthStateWitness` backend construction, including WitnessBackend.WF authentication/coherence. Code: a code-DB hit `c'` for `code_hash` with `σ` holding `c ≠ c'` and `keccak c = code_hash` is a collision.
-3. **Block agreement** (`stateless_implies_stateful`). Consumes: `EthStateless` L-backend-generic (the payload path touches `pre` only through `PreState` operations), `EthBlock` L-hint-equivalence (hint accepted ⇒ same result as recovery), and a **Models-parametricity** law for `executeBlock`: if `ps₁`, `ps₂` both model `σ` and every operation `ps₁` answers during the run succeeds, and `ps₂` has progress, then the runs agree. **Strategy:** a simulation between the two runs in which the only differing component is the backend, with equal answers at every query (from `Models`), then `ModelsRoot` for the post-state root. The proof size of the parametricity law is the dominant unknown (§10).
+3. **Block agreement** (`stateless_implies_stateful`). Uses `EthStateless` L-backend-generic
+   (the payload path touches `pre` only through `PreState` operations), sender-recovery
+   refinement from `EthBlock`, and a **Models-parametricity** law for `executeBlock`.
+   If `ps₁` and `ps₂` both model `σ`, every operation that `ps₁` answers during the run
+   succeeds, and `ps₂` has progress, then the runs agree. Simulate the two runs with
+   equal answers at each backend query from `Models` and the common hash
+   interpretation from D5. Prove that the runs reach corresponding recovery
+   steps with the same transaction and that recovery refines the pinned sender
+   action in R8. Use `ModelsRoot` for the post-state root. The proof size of the
+   parametricity law is the dominant unknown (§10).
 4. **Header binding** (`header_chain_binding`, `blockhash_agreement`). Consumes `EthStateless` L-headers, RLP injectivity and re-encoding identity (`rlp (decode b) = b`), `EthBlock` `validate_header` parent-hash check. **Strategy:** backward induction along the chain from the anchored parent hash.
 5. **Request binding** (`request_root_binding`). Consumes `EthCodec` SSZ laws: injectivity of serialization-to-chunks for each type, merkleization with length mix-in and progressive-container active-field mix-in, and the SHA-256 pair-hash structure. **Strategy:** the standard Merkle binding argument (VCV-io `getPutativeRootWithHash_binding_collision` pattern, `MerkleTree/Inductive/Binding.lean:192` [V]) generalised to SSZ's shapes.
 6. **ROM bound** (`rom_disagreement_bound`). From (3) and (4) for every `h`, the bridge lemma gives: with probability 1 over the lazily sampled oracle, a win implies the final cache contains a collision. Build a `BoundedROMCRAdversary` that runs `A`, then both sides and the extractor, with `t + Q` queries; apply `romCRAdvantage_le_birthday` with `Fintype.card Digest = 2^256`. With `t + Q = 2^64` the bound is about `2^-129` [I: arithmetic only].
@@ -239,7 +260,7 @@ All [S]; each lists the core obligations it consumes (the ids are the owning mod
 
 **Premises.** Models plus progress, CodeAuthentic/CodeComplete where used, successful witness operations, reachable read-before-write, backend trace refinement, header/schema binding and the four runner guarantees. The keccak-derived constants are `HashConsts`, answered by the same oracle and threaded under F20 (F2); backend/oracle coherence and generic coupling remain explicit premises, and newly produced code hashes are oracle answers (D5).
 
-**Argument.** Compare authenticated witness nodes with the mathematical trie: equal preimages permit descent, whereas unequal preimages with equal hashes supply a genuine collision. Include secure keys and both code stores in this comparison. Simulate the successful execution trace query by query; full-state progress ensures it can follow the witness's successful answers. Preserve frame observations, diffs and error order using the component contracts, then apply the root-update law. Verified sender hints give the same sender as recovery. Header binding descends from the externally accepted tip; request binding uses the separate SHA-256/schema argument. Finally, run the deterministic extractor inside the oracle experiment and count adversary, guest, full-state and extractor queries before applying a collision bound.
+**Argument.** Compare authenticated witness nodes with the mathematical trie: equal preimages permit descent, whereas unequal preimages with equal hashes supply a genuine collision. Include secure keys and both code stores in this comparison. Simulate the successful execution trace query by query. Full-state progress lets that backend follow the witness's successful answers. Relate the reached sender-recovery steps under D5 as in block agreement above. Preserve frame observations, diffs and error order using the component contracts, then apply the root-update law. Header binding descends from the externally accepted tip; request binding uses the separate SHA-256/schema argument. Finally, run the deterministic extractor inside the oracle experiment and count adversary, guest, full-state and extractor queries before applying a collision bound.
 
 **Open obligations.** Define and prove the simulation, extractor and budgets; prove that `HashConsts` and newly produced code hashes are authentic relative to `h`, fold secure-key collisions, and state `Models` at generic `m` (the open oracle coupling). Resolve X7 with hash-relative Models/Progress premises and exhibit compatible providers; always-error backends must not make the theorem vacuous. No numeric security conclusion follows until the VCV-io theorem, oracle coupling and all domains are fixed.
 
@@ -285,4 +306,6 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Quantitative query budgets.** `queryBudget x σ` must be computed from the executable spec (nodes decoded, roots recomputed, headers hashed); no bound function exists yet, and the stateful side's `mathStateRoot` makes it linear in `|σ|`.
 - **Completeness/liveness** (DECISIONS Q13) is not stated: nothing guarantees that an honest prover's witness is accepted.
 - **Consumers' composition.** How evm-asm's or pancaketh's refinement theorem composes with these statements (their toolchains are v4.33.x; a Mathlib version conflict with evm-asm) is unresolved.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The public-key hint was removed upstream (execution-specs PR #3652; EthStateless §10), together with the `witness_public_keys` fixture area. R8's sentence on the hint and the `some x.publicKeys` argument in §5 still describe `tests-zkevm@v21.0.0`.
+- **Sender recovery in block agreement (P1, O5, X16).** R8 and §§5/7 follow the
+  current payload interface and sender-recovery path. The simulation of reached
+  recovery steps and the sender-recovery refinement remain proof obligations (§7).
