@@ -9,8 +9,8 @@ import STFSpec.State.TxState
 /-!
 # Original storage reads
 
-The `EthState` action reads an original slot according to R12 in
-`STFSpec/informal/modules/EthState.md`.
+Library `EthState`. Supply the R12 action and its mathematical observer.
+Spec guidance: `STFSpec/informal/modules/EthState.md` §§3/5/7.1.
 -/
 
 namespace STFSpec.State
@@ -33,6 +33,32 @@ def getStorageOriginal {m : Type → Type} [Monad m]
         match ← t.block.preState.getStorage a k with
         | .ok value => pure (.ok (value, t))
         | .error error => pure (.error (.witness error))
+
+/-- The mathematical original word for R12. Transaction-created accounts have
+zero original storage. Other accounts use the supplied mathematical block view.
+This models the value selected by EELS
+`src/ethereum/forks/amsterdam/state_tracker.py:298–324` at the pin. -/
+def TxState.originalAt {m : Type → Type} (σ₀ : MathState) (t : TxState m)
+    (a : Address) (k : Bytes32) : U256 :=
+  if a ∈ t.obs.createdAccounts then U256.zero else (t.block.view σ₀).storageAt a k
+
+private theorem originalAt_frame {m n : Type → Type} (σ₀ : MathState)
+    (t : TxState m) (u : TxState n) (a : Address) (k : Bytes32)
+    (created : a ∈ t.obs.createdAccounts ↔ a ∈ u.obs.createdAccounts)
+    (slot : (t.block.storageWrites[a]?).bind (fun writes ↦ writes[k]?) =
+      (u.block.storageWrites[a]?).bind (fun writes ↦ writes[k]?))
+    (clear : a ∈ t.block.storageClears ↔ a ∈ u.block.storageClears) :
+    t.originalAt σ₀ a k = u.originalAt σ₀ a k := by
+  by_cases made : a ∈ t.obs.createdAccounts
+  · simp only [TxState.originalAt, made, created.mp made, ite_true]
+  · have notMade : a ∉ u.obs.createdAccounts := mt created.mpr made
+    simp only [TxState.originalAt, made, notMade, ite_false, ← BlockState.apply_extractBlockDiff,
+      MathState.apply_storageAt_eq, extractBlockDiff_storageChanges, extractBlockDiff_storageClears,
+      slot]
+    by_cases cleared : a ∈ t.block.storageClears
+    · simp only [cleared, clear.mp cleared, ite_true]
+    · have notCleared : a ∉ u.block.storageClears := mt clear.mpr cleared
+      simp only [cleared, notCleared, ite_false]
 
 private theorem original_of_created {m : Type → Type} [Monad m] (t : TxState m)
     (a : Address) (k : Bytes32) (created : a ∈ t.obs.createdAccounts) :
@@ -68,9 +94,8 @@ private theorem original_model (t next : TxState Id) (σ₀ : MathState)
     (_wf : MathState.WF σ₀) (agreement : ModelsLookups t.block.consts t.block.preState σ₀)
     (a : Address) (k : Bytes32) (value : U256)
     (success : ((getStorageOriginal a k).run t).run = .ok (value, next)) :
-    value = (if a ∈ t.obs.createdAccounts then U256.zero else (t.block.view σ₀).storageAt a k) ∧
-      next = t := by
-  rw [← t.block.apply_extractBlockDiff σ₀, MathState.apply_storageAt_eq,
+    value = t.originalAt σ₀ a k ∧ next = t := by
+  rw [TxState.originalAt, ← t.block.apply_extractBlockDiff σ₀, MathState.apply_storageAt_eq,
     extractBlockDiff_storageChanges, extractBlockDiff_storageClears]
   by_cases created : a ∈ t.obs.createdAccounts
   · rw [original_of_created t a k created] at success

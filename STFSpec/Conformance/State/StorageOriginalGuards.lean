@@ -9,6 +9,7 @@ import STFSpec.State
 
 Private tests run the `EthState` action through its public facade. A supplied
 provider records each call, and populated raw carriers expose unintended writes.
+The model controls use arbitrary supplied mathematical storage directly.
 Spec guidance is in `STFSpec/informal/modules/EthState.md` §4.
 -/
 
@@ -207,5 +208,30 @@ private def check (c : Case) (o : Observation) : Bool :=
 
 #guard cases.length == 11
 #guard cases.all (fun c ↦ check c (observe c))
+
+private theorem originalIgnoresTransaction {m : Type → Type} (σ₀ : MathState)
+    (t : TxState m) (a : Address) (k : Bytes32) (rev : TxRevertible) (obs : TxObs) :
+    ({ t with rev := rev, obs := { obs with createdAccounts := t.obs.createdAccounts } }).originalAt
+      σ₀ a k = t.originalAt σ₀ a k := rfl
+
+private theorem originalIgnoresProvider {m : Type → Type} (σ₀ : MathState)
+    (t : TxState m) (a : Address) (k : Bytes32) (p : PreState m) :
+    ({ t with block.preState := p }).originalAt σ₀ a k = t.originalAt σ₀ a k := rfl
+
+private def rawBase (value : Nat) : MathState :=
+  ⟨∅, (Std.ExtTreeMap.insert ∅ otherAddress (slots [(key.toNat, 37)])).insert
+    address (slots [(key.toNat, value), (otherKey.toNat, 11)]), ∅⟩
+
+private def modelWord (c : Case) (baseValue : Nat) : Nat :=
+  ((transaction c).originalAt (rawBase baseValue) address key).toNat
+
+#guard cases.all (fun c ↦ c.expected.all (fun value ↦ modelWord c maxWord == value))
+
+#guard cases.any (fun c ↦ c.name == "other-slot-provider" &&
+  modelWord c (2 ^ 254 + 59) == 2 ^ 254 + 59 && modelWord c 61 == 61)
+
+-- The pure observer still has a mathematical input on a runtime error.
+#guard cases.any (fun c ↦ c.name == "provider-error" &&
+  (observe c).value.isNone && modelWord c (2 ^ 254 + 67) == 2 ^ 254 + 67)
 
 end STFSpec.Conformance.State.StorageOriginalGuards

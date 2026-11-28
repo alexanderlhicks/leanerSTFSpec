@@ -498,7 +498,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   new_consts law, plus logical account/storage read views and their two exact
   membership iff laws, raw extraction and its seven Q85 laws, and the mathematical
   BlockState.view with its exact application equation, mathematical TxState.view
-  with its account observer law and private conversion, plus raw three-field
+  with its account observer law and private conversion, the mathematical
+  original-storage observer with the private R12 bridge, plus raw three-field
   TxState and the StateM transformer alias, are supplied (§3/§5/§7). The
   owning laws and test rows specify their domains. MathState mutation, diff
   WF/history/reachable preservation, actual provider operations, other contextual
