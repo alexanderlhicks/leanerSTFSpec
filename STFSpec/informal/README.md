@@ -6,7 +6,7 @@ This document composes the 24 spec guidance documents in [`modules/`](modules) i
 
 The review adds [COMPOSITION](COMPOSITION.md), the conditional end-to-end correctness argument and canonical adapters; [REVIEW](REVIEW.md), evidence and implementation gates; [REFERENCE-RECORDS](REFERENCE-RECORDS.md), generated source field layouts; and [contracts.toml](contracts.toml), shared declaration ownership/proof imports. Every module's §7 includes its claim, premises, argument and open obligations.
 
-**Current evidence** (read alongside the spec guidance documents, which cite it on their navigation lines): the interface findings F1–F20, whose dispositions are recorded in [`STFSpec/informal/DECISIONS.md`](DECISIONS.md) §3.
+**Current evidence** (read alongside the spec guidance documents, which cite it on their navigation lines): the interface findings F1–F21, whose dispositions are recorded in [`STFSpec/informal/DECISIONS.md`](DECISIONS.md) §3.
 
 **Documents in this directory:**
 
