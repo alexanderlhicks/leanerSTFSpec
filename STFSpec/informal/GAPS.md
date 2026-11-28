@@ -1269,6 +1269,11 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   scope supplies no arbitrary Python/coercion/cache/host or source-runtime result.
   Execution, resource/C1–C4, security and readiness gates remain open.
 
+- **Nominal header errors:** §§3–5 supply the complete R-VH carrier
+  and finite site observations. The actual validation predicates and
+  failure order proof, arithmetic errors, BlockError embedding and
+  guest outcome composition remain open.
+
 - **Raw headers:** R-HDR storage and the nine common parent projections are supplied
   with private complete arbitrary clients and finite native/interpreted/source
   observations (§3–§5/§7). The three forward RLP models, private complete
