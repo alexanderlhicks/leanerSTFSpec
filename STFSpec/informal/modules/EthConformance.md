@@ -45,7 +45,7 @@ A mismatch is a failure of the spec (or of the pin), never of the fixture (P2). 
 
 **R8. Fuzzing.** Two input classes:
 - *byte/SSZ-level mutation* of corpus inputs (schema bytes, offsets, list lengths, witness nodes, headers, chain id, payload fields including transaction bytes). Use only oracles for expected output. The spec must never report O11.
-- *new blocks*: generate a block by executing a fuzzed transaction list on a known pre-state with the full-state backend, then assemble a `StatelessInput` with `buildStatelessInput` (claimed here, `stateless_host.py:46`) from a witness produced by the **pinned EELS host** (`stateless_host_exec_witness.build_execution_witness`, run out of process). The Lean witness generator is excluded for now (`STFSpec/informal/EXCLUDED.md`).
+- *new blocks*: generate a block by executing a fuzzed transaction list on a known pre-state with the full-state backend, then assemble a `StatelessInput` with `buildStatelessInput` specialized to `Id` (EELS `stateless_host.py:46`) from a witness produced by the **pinned EELS host** (`stateless_host_exec_witness.build_execution_witness`, run out of process). The Lean witness generator is excluded for now (`STFSpec/informal/EXCLUDED.md`).
 
 **R9. Fixture pin verification.** Before any run the tooling must check: archive sha256 = `reference.toml` `release.fixtures.sha256`; archive size; JSON file count and guest-record count (`reference.toml` `json_files`, `guest_records`); `.meta/index.json` `test_count` and, per test, that `_info.hash` equals the index's `fixture_hash`. Archive integrity is checked by a script (Lean has no gzip); the extracted tree is then consumed by the Lean runner, which rechecks the counts. Passing verification proves nothing about conformance ([REVIEW §7](../REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks), "Report and implementation handoff").
 
@@ -103,7 +103,7 @@ Metadata `format` and `fork` and fixture `network` must be present strings befor
 
 The internal `fixture-records` protocol is one JSON request array per stdin line: `[archiveRelativeName, localPath]` for counts or `[archiveRelativeName, localPath, "content"]` for bytes. Each reply is terminated by LF on stdout (LF is the only delimiter): `ok N`, the JSON object `{"count": N, "records": [{"id": {"file": ..., "testId": ..., "blockIndex": ..., "infoHash": ...}, "input": "0x...", "expected": "0x..."}, ...]}`, or `error ...`. `blockIndex` is the entry's position in the container that the file's format selects. Byte strings use lowercase hex. Error text is diagnostic and has no stable schema; rendered fixture diagnostics are quoted and escaped onto one LF-delimited line. Unicode line separators such as U+2028 remain data, so consumers must not use `splitlines()`. The host requires one terminated reply per request, no trailing stdout after EOF and a successful process exit. EOF ends the session, and any failed request makes the exit code nonzero. IO failures are separate `error IO: ...` replies. The executable's entry point is excluded from the library root, so downstream executables may define their own `main`.
 
-**Decision on `stateless_host*.py`.** EthConformance owns the two host codecs and `buildStatelessInput` as future conformance tooling. The codecs supply the inverse operations in L-host-inverse. The builder assembles the payload from the block and BAL, puts the payload and requests into a `NewPayloadRequest`, and packages it with the supplied witness and chain ID (L-build). Fuzzing and engine cross-checks use these operations to prepare inputs for the guest. `runStatelessGuest` receives the serialized input at its validation entry point. The pinned EELS host runs `stateless_host_exec_witness.py` out of process for fuzzing. The Lean witness generator remains deferred (DECISIONS Q7, §9, `STFSpec/informal/EXCLUDED.md`).
+**Decision on `stateless_host*.py`.** EthConformance owns the two host codecs and `buildStatelessInput` as future conformance tooling. The codecs supply the inverse operations in L-host-inverse. The builder assembles the payload from the block and BAL, puts the payload and requests into a `NewPayloadRequest`, and packages it with the supplied witness and chain ID (L-build). Concrete fuzzing and engine cross-check callers run the builder in `Id` with the standard Keccak instance. Callers can supply their own query monad for oracle tracing. `runStatelessGuest` receives the serialized input at its validation entry point. The pinned EELS host runs `stateless_host_exec_witness.py` out of process for fuzzing. The Lean witness generator remains deferred (DECISIONS Q7, §9, `STFSpec/informal/EXCLUDED.md`).
 
 **External semantics.** In `stateless_host.py`: `ethereum_rlp.rlp` (`rlp.encode(header)` for the block hash, `rlp.encode(tx)` for legacy transactions, `rlp.encode(block_access_list)`), `ethereum_types` `Bytes`/`U64`; behaviour specified by `EthCodec`/`EthBase`. In `requests.py` decoders: `ethereum_types` `Bytes32/48/96`, `U64.from_le_bytes` (little-endian), `slotted_freezable` (no semantics). JSON parsing (`Lean.Json`, allowed as part of `Lean`) and hex decoding are local and must reject odd-length and non-hex strings as *fixture malformed*.
 
@@ -192,9 +192,11 @@ powMod, field hierarchy and guest conformance remain open.
   the maximum chain ID, an arbitrary schema ID and a zero schema ID with nonzero
   fields. The guards also check malformed lengths, malformed Boolean bytes and
   an input with both defects. Two pinned EELS runs, in normal and optimized
-  Python, compare the full results against Lean on 309 cases. Those cases include
-  all Boolean byte values at width 43, 46 other widths and three inputs with
-  both defects. Failure comparisons observe the error branch.
+  Python, compare the full results against Lean on a 309-case decoder matrix.
+  It covers every Boolean byte at width 43, 46 other widths and three inputs
+  with both defects. The separate 373-case work-item run checks 3,010
+  re-encoded bytes and the exact failure branches, including length precedence.
+  The Lean guard for an input with both defects expects `.length`.
 - **Property checks.** `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for generated well-formed `x`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`; `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`.
 - **Differential.** Run the R7 oracles on the `ci` slice and on fuzzed inputs. For the stateful-vs-stateless cross-check on engine fixtures, assemble an input from `params`, `executionWitness` and the fixture's chain ID. Compare `successful_validation` with `¬ validationError`. Report this as bug-finding only, since R2 shows that guest records and block validity can differ.
 
@@ -206,8 +208,9 @@ Namespace `STFSpec.Conformance`; public unless marked. IO drivers live in a `lea
 -- host codecs (public)
 def serializeStatelessInput : StatelessInput → ByteArray
 def deserializeStatelessOutput : ByteArray → Except SszError StatelessValidationResult
-def buildStatelessInput (blk : Block) (witness : ExecutionWitness) (rq : ExecutionRequests)
-    (bal : BlockAccessList) (chainId : U64) : StatelessInput
+def buildStatelessInput {m : Type → Type} [Monad m] [KeccakQuery m]
+    (blk : Block) (witness : ExecutionWitness) (rq : ExecutionRequests)
+    (bal : BlockAccessList) (chainId : U64) : m StatelessInput
 def decodeExecutionRequests : Array ByteArray → Except BlockError ExecutionRequests
 def depositRequestSize : Nat := 192   -- and the other four sizes
 
@@ -271,7 +274,7 @@ Large inputs (up to 8.4 MB) must be read into a `ByteArray` once and passed by o
 - [C] **L-verdict**: `runGuestRecord r = .pass ↔ runStatelessGuestChecked r.input = .ok r.expected`. In particular a `specBug` verdict never counts as a pass, and the public `runStatelessGuest` is not used.
 - [C] **L-host-inverse**: `deserializeStatelessInput (serializeStatelessInput x) = .ok x` for `x.WF`; `deserializeStatelessOutput (serializeStatelessOutput r) = .ok r`. `deserializeStatelessOutput_serializeStatelessOutput` proves the output clause for every raw result.
 - [C] **L-requests-roundtrip**: `decodeExecutionRequests (encodeExecutionRequests rq) = .ok rq`. For accepted wire forms, `decodeExecutionRequests w = .ok rq → encodeExecutionRequests rq = normalizeRequests w`, where normalization removes type-only blobs. Equality with `w` requires non-empty bodies. The counterexample `w = #[00]` is accepted and re-encodes as `#[]`; the decoder must retain that acceptance.
-- [C] **L-build.** `buildStatelessInput` sets `blockHash := keccak256 (rlp blk.header)` through `KeccakQuery` (D5). It copies the payload fields from the header, takes withdrawals from the block and RLP-encodes the supplied BAL.
+- [C] **L-build.** `buildStatelessInput` queries `KeccakQuery` on `rlp blk.header` and uses the returned hash as `blockHash` in its result in `m` (D5). It copies the payload fields from the header, takes withdrawals from the block and RLP-encodes the supplied BAL.
   - The payload contains one byte string for every transaction in block order. Encode each legacy record as RLP and copy each typed byte string unchanged.
   - If decoding a typed byte string fails, retain the original bytes and add no versioned hashes. For each decoded blob transaction, retain every supplied hash in order, including repeats. This includes hashes from transactions whose signatures or hash version bytes would fail guest validation. Concatenate the hash lists in block order.
   - Build the request from the payload, the ordered versioned hashes, the header's parent beacon block root and the supplied execution requests. Put the request, the supplied execution witness and the chain ID into `StatelessInput`. EELS `stateless_host.py:46–120` at `59c1473d` [V].

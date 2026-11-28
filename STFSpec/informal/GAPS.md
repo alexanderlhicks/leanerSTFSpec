@@ -1179,19 +1179,38 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 ### [`EthBlock`](modules/EthBlock.md)
 
+- **Transaction access lists.** The raw entry is supplied (§§3–5 and 7).
+  The outer transaction collections and their encoding and decoding remain
+  open, along with validity, intrinsic gas and conversion to state access
+  sets.
+
 - **Block access list:** the six raw records, outer array alias, six forward
-  RLP models and private facade clients are supplied (§§3–5). The outer route
-  uses the ordered List instance. General source-wire correspondence retains
-  Q47 and the source typed-dispatch, conversion and host premises. Typed
-  decoding, builder construction, ordering, index accounting, read/write
-  disjointness, the slot-union gas check, hashing and block or guest integration
-  remain open.
+  RLP models and typed hash are supplied with private facade clients (§§3–5).
+  The outer route uses the ordered List instance. General source correspondence
+  retains assembled Q47, the source typed-dispatch, conversion and host premises,
+  and the concrete Keccak interpretation for the hash. Typed decoding, builder
+  construction, ordering, index accounting, read/write disjointness, the slot-union
+  gas check and block or guest integration remain open.
 
 - **Withdrawal trie bytes:** the Q97 dictionary and its two local laws are
   supplied (§§3–5). Dense ordinal-map construction and its `PrepareSafe` proof,
   root composition, and full source equality, Q47, F20 and host correspondence
   at the block consumer remain open. The dictionary introduces no fixture,
   execution, resource or readiness result.
+
+- **Raw receipts:** The R-RCPT carriers and forward RLP model are supplied
+  (§§3–5 and 7). Typed envelope dispatch, receipt decoding and production, Q53
+  receipt trie inputs and request integration remain open. The required decode
+  path in R-RCPT consumes produced receipts. Completion on arbitrary typed bytes
+  is open. For a decodable body with an unknown prefix, pinned EELS raises on
+  the prefix assertion when assertions are enabled. With assertions disabled,
+  it decodes the body
+  (`src/ethereum/forks/amsterdam/blocks.py:432–434`).
+
+- **Raw block output:** the ten-field record and private facade clients are
+  supplied (§§3–5). Source initialization, receipt envelope encoding, ordinal keys and
+  dense root-input composition (Q53), accumulation and runner integration
+  remain open.
 
 - **Raw withdrawal:** the R-BLK four-field carrier and private complete facade
   proofs/interpreted controls, the forward RLP reference instance and the actual
@@ -1250,7 +1269,8 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Conservation law** (§7): no proof strategy yet; it depends on G4's frame-level value-transfer and SELFDESTRUCT (EIP-8246) contracts.
 - **Complexity**: the BAL build cost with `ExtTreeMap` is expected to be O(N log N), but no `Std` cost theorem exists (ARCHITECTURE §5.0). Trie roots are built from scratch per block (EthCommit's cost) and not measured.
 - **Not specified here (owned elsewhere)**: EIP-7702 authorization processing (`set_delegation`, G4); settlement internals and the 2-D gas meter (G4); `NewPayloadRequest` → `Block` conversion, `is_valid_block_hash` and versioned-hash checks (G6); account and storage trie roots (G3).
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) **Public-key hint removed** (execution-specs PR #3652). `check_transaction` always calls `recover_sender(tx)` (`fork.py:538`; the EELS docstring still mentions a chain-id parameter); `recover_transaction_public_key`, `recover_sender_from_public_key`, `_sender_address_from_public_key`, `_signature_recovery_parameters` and `SECP256K1_UNCOMPRESSED_PUBLIC_KEY_PREFIX` are deleted, their logic is inlined back into `recover_sender` (`transactions.py:878–939`), and the hint count check in `fork.py` is gone. The legacy branch no longer calls `chain_id(tx)`: for `v ∉ {27, 28}` it asserts `v ≥ 35` (`transactions.py:905`) and derives the chain id from `v`. A direct `recover_sender` call on a legacy transaction with `v` in 29–34 therefore raises `AssertionError` instead of `InvalidSignatureError("bad v")`. On the block path this is unreachable, because `process_transaction` calls `chain_id(tx)` first (`fork.py:1044`), which raises `bad v` [V by reading]. Their §3 rows are removed; R-SIG, R-SENDER, R-HINT, the §5 signatures `recoverSender : U64 → …` and `recoverSenderFromPublicKey`, the hint-equivalence law (§7), `publicKeyCountMismatch`, `invalidPublicKeyHint` and the `publicKeys` parameter of `executeBlock` still describe `tests-zkevm@v21.0.0`. No Lean implements sender recovery or the hint. (b) **Ancestor tracking.** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.
+- **Sender recovery and block execution (P1, O5, X16).** Implement the ordered pipeline and sender recovery in §§2 and 5, and discharge the tests and laws in §§4 and 7. The D26 curve adapter and the refinement of signature failures to indexed transaction errors remain open. For a direct `recover_sender` call with `v < 35` outside `{27, 28}`, bad `r` or `s` still fails at its own guard. With valid scalars the source raises `AssertionError` in normal Python and `OverflowError` from checked subtraction with assertions disabled. R-PT 3 excludes these direct cases and also rejects a legacy chain ID that overflows U64 before recovery. The total completion and precise diagnostic for direct calls with malformed `v` remain open. EELS `transactions.py:860–875,892–906` and `fork.py:1044–1051` [V at `59c1473d`].
+- **Ancestor tracking (X16).** `apply_body` no longer calls `track_ancestor_access` after the EIP-2935 system call (PR #3657; EthState §10). R-AB gives the current call sequence.
 
 ### [`EthFork`](modules/EthFork.md)
 
@@ -1467,7 +1487,9 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 - **Quantitative query budgets.** `queryBudget x σ` must be computed from the executable spec (nodes decoded, roots recomputed, headers hashed); no bound function exists yet, and the stateful side's `mathStateRoot` makes it linear in `|σ|`.
 - **Completeness/liveness** (DECISIONS Q13) is not stated: nothing guarantees that an honest prover's witness is accepted.
 - **Consumers' composition.** How evm-asm's or pancaketh's refinement theorem composes with these statements (their toolchains are v4.33.x; a Mathlib version conflict with evm-asm) is unresolved.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16).** The public-key hint was removed upstream (execution-specs PR #3652; EthStateless §10), together with the `witness_public_keys` fixture area. R8's sentence on the hint and the `some x.publicKeys` argument in §5 still describe `tests-zkevm@v21.0.0`.
+- **Sender recovery in block agreement (P1, O5, X16).** R8 and §§5/7 follow the
+  current payload interface and sender-recovery path. The simulation of reached
+  recovery steps and the sender-recovery refinement remain proof obligations (§7).
 
 ### [`ToVCVio`](modules/ToVCVio.md)
 

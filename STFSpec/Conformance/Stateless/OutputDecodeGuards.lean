@@ -44,6 +44,8 @@ private def fails (wire : List UInt8) : Bool :=
 #guard fails (List.replicate 4096 0)
 #guard fails (root ++ [2] ++ List.replicate 10 0)
 #guard fails (root ++ [255] ++ List.replicate 10 0)
-#guard fails (root ++ [2] ++ List.replicate 11 0)
+#guard match deserializeStatelessOutput (root ++ [2] ++ List.replicate 11 0).toByteArray with
+  | .error .length => true
+  | _ => false
 
 end STFSpec.Conformance.Stateless.OutputDecodeGuards
