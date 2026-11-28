@@ -10,7 +10,8 @@ import Std.Data.ExtTreeMap
 
 Library `EthState`: three finite maps with total observers and a separate structural `WF`.
 Raw states retain zero slots, empty inner maps, orphan storage and hidden reserved code.
-Code authenticity, completeness, providers, mutation and commitments are separate contracts.
+The account update changes one selected account. Code authenticity, completeness,
+providers and commitments are separate contracts.
 Spec guidance: `STFSpec/informal/modules/EthState.md`.
 -/
 
@@ -72,6 +73,14 @@ theorem ext_lookup {σ τ : MathState}
 
 /-- Optional account lookup; EELS `src/ethereum/state_mpt.py:59–66`. -/
 def account? (σ : MathState) (a : Address) : Option Account := σ.accounts[a]?
+
+/-- Insert or erase the selected raw account while retaining storage and code.
+EELS `src/ethereum/state_mpt.py:174–184` and
+`src/ethereum/merkle_patricia_trie.py:325–338` at the pin. -/
+def setAccount (σ : MathState) (a : Address) (acc : Option Account) : MathState :=
+  { σ with accounts := match acc with
+    | none => σ.accounts.erase a
+    | some value => σ.accounts.insert a value }
 
 /-- Storage lookup defaults either missing layer to zero;
 EELS `src/ethereum/state_mpt.py:67–80`. -/

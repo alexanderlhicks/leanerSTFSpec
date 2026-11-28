@@ -1,6 +1,6 @@
 # `EthStateFull`: the full-state backend
 
-*Status: informal specification, draft. The full-state carrier, `ofMath`, storage setter and code insertion are supplied. Provider integration remains open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. The full-state carrier, `ofMath`, account and storage setters and code insertion are supplied. Provider integration remains open. Date: 2026-11-28. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F20, F21 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
 Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -19,8 +19,10 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 - FS6. `store_code` (`state_mpt.py:164–171`) computes Keccak on the complete
   code bytes and returns the digest. It replaces the raw code entry at that digest
   when the digest differs from `EMPTY_CODE_HASH`. F21 gives the Lean operation
-  its insertion-only certificate (§§5/7). The account setter is
-  `set_account` (`:174–184`). `set_storage` (`:187–206`) **asserts that the
+  its insertion-only certificate (§§5/7). `set_account` (`:174–184`)
+  changes the selected account and retains storage and code.
+  `FullState.setAccount` packages that result with the supplied WF proof.
+  `set_storage` (`:187–206`) **asserts that the
   account exists**, then writes and removes empty tries. `state_root` calls
   `compute_state_root(BlockDiff())` (`:209–213`). `close_state` (`:123–130`)
   releases resources. In Lean, drop the value.
@@ -44,7 +46,7 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 | `state_mpt.py::close_state` | 123 | — (no-op) | resource release |
 | `state_mpt.py::apply_changes_to_state` | 133 | `FullState.applyChanges` | `σ.apply d` |
 | `state_mpt.py::store_code` | 164–171 | `FullState.storeCode` | Supplied F21 operation and complete projection law (§§5/7). The reserved digest returns the original carrier. Other answers install the complete bytes at the certified digest. |
-| `state_mpt.py::set_account` | 174 | `FullState.setAccount` | genesis/tests |
+| `state_mpt.py::set_account` | 174–184 | `FullState.setAccount` | Supplied FS6 setter over EthState's raw account update. The caller supplies structural WF of the result. |
 | `state_mpt.py::set_storage` | 187–206 | `FullState.setStorage` | Supplied FS6 setter. Check account presence before writing, then erase at zero and prune the touched empty map. |
 | `state_mpt.py::state_root` | 209 | `FullState.stateRoot` | |
 
@@ -61,6 +63,15 @@ FullState` returns the supplied state and proofs by construction. It is pure
 and total for these inputs. The private projection and reconstruction checks
 in §4 retain the complete input state. The operational equality policy and
 remaining backend operations remain open (§10).
+
+### Implemented standalone account setter (FS6)
+
+`FullState.setAccount` packages the result of the raw `MathState.setAccount`
+operation and the supplied structural proof. It reuses the carrier's code
+authenticity proof because the code map is unchanged. A supplied account
+is present even when it has default values. `none` erases the account
+while retaining its storage map. EELS `src/ethereum/state_mpt.py:174–184`
+and `src/ethereum/merkle_patricia_trie.py:325–338`.
 
 ### Implemented standalone storage setter (FS6)
 
@@ -101,6 +112,15 @@ the hash constants and certified action.
   state and a state with a present account whose nonreserved code hash is
   missing from an authentic empty code table. The latter uses the public
   mathematical account and code observers.
+- **Account setter (FS6):** `STFSpec/Conformance/StateFull/AccountChecks.lean`
+  checks the exact raw option and carrier equations and the structural
+  proof boundary. The complete finite snapshots cover insertion of a
+  default-shaped account and one with unavailable code, replacement with
+  retained storage, deletion with no selected storage and raw deletion
+  with selected slots still visible. Eight authenticated source probes
+  in each Python mode compare the complete maps before and after
+  each call, including the retained orphan map and its account restored
+  by a raw insertion.
 - **Storage setter (FS6):** `STFSpec/Conformance/StateFull/StorageChecks.lean`
   compares complete account, storage and code states for insertion,
   insertion on a present empty account, replacement, zero deletion,
@@ -158,7 +178,7 @@ theorem FullState.storeCode_project {m : Type → Type} [Monad m] [LawfulMonad m
           else {s.σ with code := s.σ.code.insert h code}))
 
 def FullState.setAccount (s : FullState) (a : Address) (acc : Option Account)
-    (h : MathState.WF (s.σ.setAccount a acc)) : FullState -- raw deletion alone does not clear storage
+    (h : MathState.WF (s.σ.setAccount a acc)) : FullState -- deletion retains the selected storage map
 def FullState.setStorage (s : FullState) (a : Address) (k : Bytes32) (v : U256) : Except StateError FullState
 def FullState.stateRoot (s : FullState) (consts : HashConsts) : m Hash32
 def CodeComplete (σ : MathState) : Prop -- every account-referenced nonempty code hash is available
@@ -189,10 +209,22 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
   requires the separate `CodeComplete` premise.
 - [C] `ModelsRoot`: `stateRoot d = mathStateRoot (σ.apply d)` by definition; the EELS commuting equation (FS4) is that `compute_state_root` computes this value.
 - [C] `applyChanges` preserves `WF` given `BlockDiff.WF`; `s.toPreState.stateRoot d = .ok (stateRoot (applyChanges s d))` (with the required WF/authenticity proofs).
-- [T] Progress FS7 requires the §5 proof for the account, storage and root
-  operations. Code lookup progress uses the availability premise in FS2.
-  The supplied setter's success requires account presence, which structural
-  well-formedness alone does not imply (FS6, §3).
+- [T] FS7 covers the planned account and storage lookups and root operation
+  under the §5 contract. Code lookup progress uses the availability premise
+  in FS2. The supplied storage setter requires a present account for success
+  (FS6, §3).
+
+### Full-state account updates (FS6)
+
+For a supplied `FullState`, inserting any account preserves structural WF.
+Erasing an account preserves WF exactly when the old storage map has no
+entry at that address. The raw update retains storage at the selected
+address and every other address. A retained map at an erased address would
+violate the account-presence clause. The caller supplies the proof on the
+resulting state in both cases. The private conformance client proves
+these conditions and checks that the setter packages the entire raw state
+with the supplied proof and the preserved authentication proof.
+Code lookup availability remains a separate premise.
 
 ### Full-state code insertion (FS6, F21)
 
@@ -248,9 +280,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Backend integration:** §3 supplies the carrier, `ofMath` and the
-  standalone storage setter. Provider construction, lookups, root
-  computation, the full diff operation, other updates and operational
-  equality remain open.
+  standalone account and storage setters. Provider construction, lookups, root
+  computation, the full diff operation, caller integration for account
+  updates and operational equality remain open.
 
 - **Full-state code insertion:** §§3–5 and §7 supply the F21 action,
   complete projection law and local conformance. Caller construction,

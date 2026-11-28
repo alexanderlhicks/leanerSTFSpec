@@ -40,6 +40,13 @@ def FullState.ofMath (σ : MathState) (hwf : MathState.WF σ) (hc : CodeAuthenti
     codeAuthentic := hc
   }
 
+/-- Set the selected account and package the supplied structural proof (FS6).
+Storage and the authentic code table retain their complete contents.
+EELS `src/ethereum/state_mpt.py:174–184` at the pin. -/
+def FullState.setAccount (s : FullState) (a : Address) (acc : Option Account)
+    (h : MathState.WF (s.σ.setAccount a acc)) : FullState :=
+  FullState.ofMath (s.σ.setAccount a acc) h s.codeAuthentic
+
 private def storageWrite (a : Address) (k : Bytes32) (v : U256) : BlockDiff where
   accountChanges := ∅
   accountOrder := []
