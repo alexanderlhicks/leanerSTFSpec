@@ -474,6 +474,7 @@ source handler ordering and actual frame ownership/allocation remain consumer wo
 | D11 | Memory representation | `ByteArray` · zero-extending buffer | exercise 1 plus measurement |
 | D12 | Precompile deliverables | (i) executable · (ii) mathematical correctness · (iii) cryptographic security | — (tracked and scheduled separately) |
 | D13 | Call execution | recursive runner (EELS-shaped) · explicit continuation stack | the fuel-adequacy investigation (REVIEW §7 G2–G7). Because of the stepping/runner split, either choice keeps the opcode proofs |
+| Q100 | SSTORE raw access price | A: add the configured ZERO initializer to the selected warm or cold price · B: use the selected price directly | Both agree when the initializer is zero. A repriced source run can distinguish the sentry and the later payment. Both keep the separate initial state amount at literal zero. DECISIONS Q100 owns the disposition. |
 | D14 | Failure semantics | the O1–O13 mapping, clarified as (O3: empty header list; O4: eager witness decoding; O11: checked runner versus public function; O12: reconciled with the discrepancy policy) | O12's resolution (DISC-001) |
 | D15 | BLS12-381/KZG reference | ethereum/cryptography-specs · own | packaging and toolchain |
 | D16 | State/commitment separation | `EthState` independent of `EthCommit`; two backends | replacement exercise R2 |

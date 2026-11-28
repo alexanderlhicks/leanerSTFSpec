@@ -984,6 +984,12 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
 
 - **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
 
+- **SSTORE guidance (Q100).** §§2.4/3/5/7 specify the charge result,
+  source initializer and ordered handler. The charge function, sole
+  whole-result law, handler and tests remain open. The live provider
+  and runner relation, R15 reachability, O13 and G2–G7 retain their
+  separate obligations.
+
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,
   reachable source-world refinement and composed execution remain open.
