@@ -721,6 +721,10 @@ host dispatch with no corresponding Lean operation. A static call-graph pass ove
   computation, the full diff operation, other updates and operational
   equality remain open.
 
+- **Full-state code insertion:** F21 supplies the guidance for the
+  operation and its projection law (§§5/7). Their implementation,
+  caller construction and a common certificate adapter remain open.
+
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
 - `CodeComplete σ` (every account's code hash is stored) is assumed for fixtures, not checked.

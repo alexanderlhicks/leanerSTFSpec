@@ -1,7 +1,7 @@
 # `EthStateFull`: the full-state backend
 
 *Status: informal specification, draft. The full-state carrier, `ofMath` and the standalone storage setter are supplied. Provider integration remains open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F2, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
+*Navigation: interface findings F1, F2, F20, F21 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D10, D22 · questions: B2 (Q30), Q57.*
 
 Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -16,7 +16,14 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 - FS3. `get_account_optional` is a trie lookup (`state_mpt.py:59–65`); `get_storage` is `0` without a storage trie, else a lookup whose result must be a `U256` (`state_mpt.py:67–80`). It does **not** check that the account exists; `MathState.WF` (no orphan storage) makes this unobservable.
 - FS4. `compute_state_root d` (`state_mpt.py:82–120`): copy the tries; drop storage tries of `d.storage_clears`; apply `d.account_changes`; apply `d.storage_changes` (creating a trie if needed and removing it if it becomes empty); the root of the account trie with each existing account's storage root (`EMPTY_TRIE_ROOT` without a trie). `code_changes` is ignored. It must equal `mathStateRoot (σ.apply d)`, computed through the oracle (D5), and never fail on WF inputs.
 - FS5. `apply_changes_to_state` (`state_mpt.py:133–161`), used between blocks by the chain runner (`forks/amsterdam/fork.py:259`) and by `execution_engine/new_payload.py`: clears first, then accounts, then storage, then `code_store.update(code_changes)`. In Lean: `σ ↦ σ.apply d`.
-- FS6. `store_code` (`state_mpt.py:164–171`) stores non-empty code under its keccak (through the oracle, D5) and returns the hash (genesis loading); `set_account` (`:174–184`); `set_storage` (`:187–206`) **asserts that the account exists**, then writes and removes empty tries; `state_root` = `compute_state_root(BlockDiff())` (`:209–213`); `close_state` (`:123–130`) releases resources and has no Lean counterpart beyond dropping the value.
+- FS6. `store_code` (`state_mpt.py:164–171`) computes Keccak on the complete
+  code bytes and returns the digest. It replaces the raw code entry at that digest
+  when the digest differs from `EMPTY_CODE_HASH`. F21 gives the Lean operation
+  its insertion-only certificate (§§5/7). The account setter is
+  `set_account` (`:174–184`). `set_storage` (`:187–206`) **asserts that the
+  account exists**, then writes and removes empty tries. `state_root` calls
+  `compute_state_root(BlockDiff())` (`:209–213`). `close_state` (`:123–130`)
+  releases resources. In Lean, drop the value.
 - FS7. **Progress:** at Id, the planned `getAccount?`, `getStorage` and
   `stateRoot` operations succeed on well-formed inputs under the §5
   contract, including the well-formed diff for the root. `getCode` succeeds
@@ -36,7 +43,7 @@ Requirement IDs are `FS1`–`FS7`; interface findings are owned by DECISIONS §3
 | `state_mpt.py::State.compute_state_root` | 82 | `….stateRoot` | `mathStateRoot (σ.apply d)` |
 | `state_mpt.py::close_state` | 123 | — (no-op) | resource release |
 | `state_mpt.py::apply_changes_to_state` | 133 | `FullState.applyChanges` | `σ.apply d` |
-| `state_mpt.py::store_code` | 164 | `FullState.storeCode` | computes and returns the hash |
+| `state_mpt.py::store_code` | 164–171 | `FullState.storeCode` | Guided F21 operation and complete projection law (§§5/7). The reserved digest returns the original carrier. Other answers install the complete bytes at the certified digest. |
 | `state_mpt.py::set_account` | 174 | `FullState.setAccount` | genesis/tests |
 | `state_mpt.py::set_storage` | 187–206 | `FullState.setStorage` | Supplied FS6 setter. Check account presence before writing, then erase at zero and prune the touched empty map. |
 | `state_mpt.py::state_root` | 209 | `FullState.stateRoot` | |
@@ -106,7 +113,25 @@ variable {m : Type → Type} [Monad m] [KeccakQuery m]      -- D5; public uses t
 def FullState.toPreState (s : FullState) (consts : HashConsts) : PreState m   -- lookups are `pure`; stateRoot hashes
 def FullState.applyChanges (s : FullState) (d : BlockDiff) (h : BlockDiff.WF s.σ d)
     (hc : CodeChangesAuthentic d) : FullState
-def FullState.storeCode (s : FullState) (code : ByteArray) : m (Hash32 × FullState)
+def FullState.storeCode {m : Type → Type} [Monad m] [KeccakQuery m]
+    (s : FullState) (consts : HashConsts) (code : ByteArray)
+    (answer : m {h : Hash32 //
+      h ≠ consts.emptyCodeHash → Id.run (KeccakQuery.keccak (m := Id) code) = h})
+    (observes : Subtype.val <$> answer = KeccakQuery.keccak (m := m) code) :
+    m (Hash32 × FullState)
+
+theorem FullState.storeCode_project {m : Type → Type} [Monad m] [LawfulMonad m] [KeccakQuery m]
+    (s : FullState) (consts : HashConsts) (code : ByteArray)
+    (answer : m {h : Hash32 //
+      h ≠ consts.emptyCodeHash → Id.run (KeccakQuery.keccak (m := Id) code) = h})
+    (observes : Subtype.val <$> answer = KeccakQuery.keccak (m := m) code) :
+    (fun result : Hash32 × FullState ↦ (result.1, result.2.σ)) <$>
+        s.storeCode consts code answer observes =
+      (do
+        let h ← KeccakQuery.keccak (m := m) code
+        pure (h, if h = consts.emptyCodeHash then s.σ
+          else {s.σ with code := s.σ.code.insert h code}))
+
 def FullState.setAccount (s : FullState) (a : Address) (acc : Option Account)
     (h : MathState.WF (s.σ.setAccount a acc)) : FullState -- raw deletion alone does not clear storage
 def FullState.setStorage (s : FullState) (a : Address) (k : Bytes32) (v : U256) : Except StateError FullState
@@ -127,13 +152,45 @@ The provider factory (F20) closes over `s` and receives the caller's `consts`, r
 
 ## 7. Contract and laws
 
-- [C] `ModelsLookups consts (s.toPreState consts) s.σ` at Id: by the observer definitions for every supplied record, with no acquisition. Full binary `Models` and its `ModelsCode` clause remain at `constsId` (Q57), so the execution-context lookup premise follows under concrete record coherence. `ModelsCode`: every returned `(h, c)` has `keccak256 c = h`, from `CodeAuthentic`; `storeCode` computes the hash and `applyChanges` requires `CodeChangesAuthentic`. Authentication and `CodeComplete` are separate: completeness ensures progress for account-referenced code.
+- [C] `ModelsLookups consts (s.toPreState consts) s.σ` follows at Id from the
+  observer definitions for every supplied record. Full binary `Models` and
+  its unary `ModelsCode` clause use the concrete interpretation (Q57), so
+  the execution-context lookup premise requires coherence with `constsId`.
+  `CodeAuthentic` gives the digest equation `keccak256 c = h` for
+  successful nonreserved answers `(h, c)`. FS2 gives the reserved
+  empty answer at the coherent hash (EthStateCommit SC7).
+  `applyChanges` requires
+  `CodeChangesAuthentic`. Code lookup progress for account references
+  requires the separate `CodeComplete` premise.
 - [C] `ModelsRoot`: `stateRoot d = mathStateRoot (σ.apply d)` by definition; the EELS commuting equation (FS4) is that `compute_state_root` computes this value.
 - [C] `applyChanges` preserves `WF` given `BlockDiff.WF`; `s.toPreState.stateRoot d = .ok (stateRoot (applyChanges s d))` (with the required WF/authenticity proofs).
 - [T] Progress FS7 requires the §5 proof for the account, storage and root
   operations. Code lookup progress uses the availability premise in FS2.
   The supplied setter's success requires account presence, which structural
   well-formedness alone does not imply (FS6, §3).
+
+### Full-state code insertion (FS6, F21)
+
+The operation takes the caller's `HashConsts` and explicitly binds the
+certified `answer`. Its effects follow the supplied monad's bind. When the
+continuation receives `consts.emptyCodeHash`, it returns that digest and the
+original complete `FullState`. At another digest it uses the conditional
+proof to establish authentication of the new entry. It returns that digest
+and the carrier with the complete code bytes stored at that key, replacing
+any prior entry there. It retains the accounts, storage and every other raw
+code entry. The only branch test is equality with the supplied reserved hash.
+
+The `observes` premise equates the entire action obtained by erasing the
+certificate with the actual `KeccakQuery.keccak` action on these bytes.
+Only `storeCode_project` adds `LawfulMonad`. It projects the entire result
+action to the digest and mathematical state and equates it with binding the
+actual query and choosing the same raw result. Constructing the executable
+certified action and proving its erasure are caller obligations.
+
+Correspondence to EELS `src/ethereum/state_mpt.py:164–171` requires the
+concrete hash interpretation and a coherent caller-supplied
+`emptyCodeHash`. A raw reserved answer needs no proof about the concrete
+digest because it leaves the code store intact.
 
 ### Informal correctness argument
 
@@ -155,7 +212,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 ## 9. Open decisions
 
-- D5 (broad scope, monad-parametric): `toPreState` returns `PreState m`; `storeCode` and `stateRoot` hash through the oracle; `Models` and the progress theorem are stated at `m := Id`.
+- D5 (broad scope, monad-parametric). `toPreState` returns `PreState m`
+  and `stateRoot` hashes through the oracle. F21 governs how `storeCode`
+  uses its certified Keccak action. `Models` and the progress theorem
+  are stated at `m := Id`.
 - D10 (accepted): included.
 - D22: the state is read-only within a block, so the persistence rule does not bind; trees are kept for `=`-reasoning.
 - NEW-STATE-2: resolved: DECISIONS B2 (Q30) (FS2).
@@ -166,6 +226,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   standalone storage setter. Provider construction, lookups, root
   computation, the full diff operation, other updates and operational
   equality remain open.
+
+- **Full-state code insertion:** F21 supplies the guidance for the
+  operation and its projection law (§§5/7). Their implementation,
+  caller construction and a common certificate adapter remain open.
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
