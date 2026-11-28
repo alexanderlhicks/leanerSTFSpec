@@ -1,6 +1,6 @@
 # `EthStateCommit`: account and storage encodings, the state-root law, code-hash agreement, `Models`
 
-*Status: informal specification, draft; account and storage leaf encoders, lenient account and strict storage decoders supplied; roots and `Models` unimplemented. Date: 2026-11-06. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Account and storage leaf encoders, lenient account and strict storage decoders, code agreement predicates and mathematical root actions supplied. Backend root integration and full `Models` remain open. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F4, F16, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D9, D16, D20 · questions: B2 (Q30), Q16, Q53, Q55, Q57.*
 
 EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -14,7 +14,21 @@ EELS `file:line` citations are at `59c1473d` except where marked and those liste
 - SC1. **Account leaf encoding** (`merkle_patricia_trie.py:193–210`): `rlp [nonce, balance, storageRoot, codeHash]`, integers as minimal big-endian RLP strings, `storageRoot` and `codeHash` as 32-byte strings. The same function appears in `forks/amsterdam/fork_types.py` (claimed here); the two must be one Lean definition or proved equal.
 - SC2. **Storage leaf encoding**: `encode_node(U256)` is `rlp.encode` of the integer (`merkle_patricia_trie.py:268–269`), i.e. the minimal big-endian bytes as an RLP string; value `0` is never stored (the trie default, `state_mpt.py:106`, `witness_state.py:166`).
 - SC3. **Secured keys**: account keys are `keccak256(address)`, storage keys `keccak256(slot)` (`Trie(secured=True, …)`, `state_mpt.py:40`, `:106`; `witness_state.py:91`, `:168`, `:191`).
-- SC4. **`mathStateRoot σ`** = `mathRoot` of `{keccak256 a ↦ encodeAccount (σ.accounts a) (storageRoot σ a)}` where `storageRoot σ a = mathRoot {keccak256 k ↦ rlp v | σ.storageAt a k = v ≠ 0}`, which is `EMPTY_TRIE_ROOT` for no storage (`state_mpt.py:113–118`; `merkle_patricia_trie.py:429–433`). Storage of absent accounts does not contribute. Every hash here (secure keys, node references, the root) goes through `KeccakQuery` (D5), and the empty constants come from `HashConsts` (`EthBase`); the model definitions are stated at `m := Id` (§5).
+- SC4. **Mathematical roots** (Q100). The four operations in §5 construct
+  actions for every finite raw `MathState` using `Monad` and `KeccakQuery` (D5).
+  `storageTrieMap` traverses the selected address's stored slots in ascending
+  slot order. Skip zero words before querying the slot key. For each nonzero
+  word, insert its complete `encodeStorage` result at the digest path.
+  `storageRoot` applies `mathRoot` to that map with the supplied
+  `HashConsts.emptyTrieRoot`. `accountTrieMap` traverses present accounts in
+  ascending address order. Complete each account's storage root, encode the
+  account with that root, then query the address and insert the complete leaf
+  at its digest path. In both maps a later raw key replaces the previous leaf
+  at the same digest path. `mathStateRoot` applies `mathRoot` with the same
+  supplied empty root to the prepared account map. Whole-state calculation
+  ignores the raw code table and storage of absent accounts. A per-address
+  storage operation still uses the selected storage map. Underlying oracle
+  failures propagate through the existing monad. The source boundary is §7.2.
 - SC5. **Account leaf decoding** (`witness_state.py:38–62`), lenient [executed against pinned `ethereum_rlp`]: the leaf must RLP-decode to a list of exactly 4 items (else malformed); each field that is falsy (the empty string **or the empty list**) takes its default (`0`, `0`, `EMPTY_TRIE_ROOT`, `EMPTY_CODE_HASH`, i.e. the `HashConsts` fields, which the decoder therefore takes as a parameter); otherwise nonce and balance are big-endian with **leading zeros accepted**, nonce unbounded, balance ≥ 2²⁵⁶ fails (`OverflowError`); a non-empty storage root or code hash of length ≠ 32 fails (`ValueError`); a non-empty list in any field fails (`TypeError`). An empty leaf value fails (`rlp.decode(b"")`). All failures are witness failures (O4).
 - SC6. **Storage leaf decoding** (`witness_state.py:127`): complete canonical RLP parsing first, then reject lists; for byte strings, reject a first zero byte before checking the payload width ≤32. An admitted payload yields its full unsigned big-endian U256 value, with the empty payload yielding zero. Raw empty input, malformed RLP, trailing bytes and every typed rejection map to `.malformed .leaf` (CONTRACT O4(e)). The caller's empty-root and absent-leaf zero cases precede this helper and are separate.
 - SC7. **Code-hash agreement**: the empty constants are `HashConsts` fields (`EthBase`; D5), and `EthHash` checks that `HashConsts.query` at `Id` yields `HashConsts.literals`, in particular `emptyCodeHash = keccak256 ByteArray.empty` (`state.py:30`) and `emptyTrieRoot = keccak256 (rlp b"")` (`EthHash` §7); a code DB entry is keyed by the keccak of its bytes (`witness_state.py:33–35`; `state_mpt.py:168–170`); `EthState.setCode` callers pass `keccak256 code` (ARCHITECTURE §5.3). `ModelsCode ps` (for `ps : PreState Id`; B2: `getCode` has no absent case): `ps.getCode consts.emptyCodeHash = .ok ByteArray.empty` (with `consts = Id.run HashConsts.query`) and `ps.getCode h = .ok c → keccak256 c = h`. Missing code is `.error`, which `ModelsCode` leaves unconstrained (a progress question).
@@ -290,12 +304,64 @@ triggered lookup/root contexts, callbacks, secure roots, backend progress,
 collision/source-history, generic coupling, global errors/O12/resources and C1–C4
 remain open.
 
+### Implemented code agreement predicates (SC7, Q57)
+
+`StateCommit/CodeAgreement.lean` supplies three propositions at the concrete Id
+interpretation of `KeccakQuery`. The source correspondences below are verified at
+`59c1473d`. The propositions describe the source's code storage and read obligations.
+
+| EELS at `59c1473d` | Lean declaration | Domain, agreement and evidence |
+|---|---|---|
+| `state_mpt.py:45–57`, `:164–170`; `forks/amsterdam/witness_state.py:33–35` | `CodeAuthentic : MathState → Prop` | Every raw key/bytes pair must satisfy the digest equation, including entries hidden by the reserved-hash bypass. The finite table may be empty. Private field and reserved-entry controls (§4, §7.3). |
+| `state_mpt.py:133–161` | `CodeChangesAuthentic : BlockDiff → Prop` | Every raw change must satisfy the same digest equation. The source applies all entries by dictionary update, including one at the reserved hash if supplied. The private preservation proof and wrong-digest control use the public `MathState.apply_code_lookup` equation (§4, §7.3). |
+| `state_mpt.py:49–57`; `forks/amsterdam/witness_state.py:129–137` | `ModelsCode : PreState Id → Prop` | Both pinned EELS reads return empty bytes at the reserved hash before consulting the code dictionary. The predicate requires a successful empty answer at the queried Id empty-code hash and authentic bytes on every success. A nonreserved absence raises `KeyError` at either source dictionary lookup. The predicate leaves nonreserved provider errors unconstrained. Private field, success and error controls (§4, §7.3). |
+
+### Implemented mathematical state roots (SC4, Q100)
+
+`STFSpec/StateCommit/MathStateRoot.lean` supplies the four §5 actions.
+Each uses the base `Monad` and the supplied `KeccakQuery`. The following
+rows describe the raw Lean actions and the corresponding source stages.
+Generic actions retain the effects of the supplied bind. The failure
+prefixes below apply to the observing `ExceptT` control or to an
+interpretation whose bind stops on failure. Universal source agreement
+remains an obligation of §7.2.
+
+| Source at the pin | Declaration and status | Raw success and effects | Failure order and evidence |
+|---|---|---|---|
+| `src/ethereum/merkle_patricia_trie.py:325–338,407–475` | `storageTrieMap (σ : MathState) (a : Address) : m (Std.ExtTreeMap Nibbles ByteArray)`, implemented | Visit the selected slot map in ascending raw order. Skip explicit zero. Query the complete slot bytes, expand the digest to nibbles and replace the full encoded value at the resulting path. | In the observing `ExceptT` control, a failed reached slot query skips its insertion and all later queries. The control checks the complete map and preimages, including the later collision winner and a skipped zero. |
+| `src/ethereum/state_mpt.py:113–116`, `src/ethereum/merkle_patricia_trie.py:478–504` | `storageRoot (consts : HashConsts) (σ : MathState) (a : Address) : m Hash32`, implemented | Bind the selected prepared map to `mathRoot consts.emptyTrieRoot`. This also handles a raw slot map under an absent account when called directly. At `Id`, the empty map returns the supplied root. | Preparation precedes canonical trie queries. The direct orphan-storage and reached storage-root controls check the complete query prefix and value. |
+| `src/ethereum/state_mpt.py:113–118`, `src/ethereum/merkle_patricia_trie.py:407–448` | `accountTrieMap (consts : HashConsts) (σ : MathState) : m (Std.ExtTreeMap Nibbles ByteArray)`, implemented | Visit the present accounts in ascending raw order. Compute the chosen storage root before querying the full address bytes. Replace the complete contextual account leaf at a repeated path. | Under short-circuiting bind, a failed storage action skips the account query, and a failed address query skips its insertion and later traversal. The observing control checks these positions, the whole leaf using the returned storage root and the later collision winner. |
+| `src/ethereum/state_mpt.py:82–120`, `src/ethereum/merkle_patricia_trie.py:478–504` | `mathStateRoot (consts : HashConsts) (σ : MathState) : m Hash32`, implemented | Bind prepared accounts to `mathRoot consts.emptyTrieRoot`. Account traversal visits only their corresponding storage and uses the account's code hash. | The final trie queries are in the continuation of account preparation. Controls compare eight whole roots with pinned source observations and check the complete successful trace and all reached `ExceptT` failure prefixes on a synthetic collision path. |
+
 ## 4. Tests
 
-- **EEST fixture areas:** every blockchain fixture's post-state root exercises `mathStateRoot` (through `EthStateFull`) and its witness variant; `amsterdam/eip8025_optional_proofs` for leaves read from witnesses; `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
+- **Mathematical roots (SC4):** `MathStateRootGuards.lean` compares eight
+  complete roots from the pinned source, including empty and present-empty
+  states, reversed insertion, orphan storage, code-only changes and zero
+  removal. The synthetic controls reverse source insertion at shared account
+  and storage digest paths. `MathStateRootEffects.lean` compares complete
+  prepared maps, the supplied empty root, the successful query preimages and
+  all six failure prefixes of its observed root call. Its ordinary code-field
+  equality applies to the complete action.
+
+- **Code agreement (SC7):** `CodeAgreementCallerProofs.lean` checks all three
+  field contracts, preservation under raw diff application, and agreement from
+  the empty answer and mathematical lookup at coherent Id constants.
+  `CodeAgreementGuards.lean` admits an authentic empty entry at the reserved
+  hash, rejects a wrong digest there before and after raw application, and
+  verifies that the mathematical observer still returns empty bytes there.
+  Provider controls require the reserved answer, allow every nonreserved query
+  to fail, and reject any success with an incorrect digest. Two full code
+  digests are checked against pinned EELS observations.
+
+- **Planned EEST coverage.** Every blockchain fixture's post-state root will exercise `mathStateRoot` through `EthStateFull` and the witness root through `EthStateWitness`. Use `amsterdam/eip8025_optional_proofs` for leaves read from witnesses and `prague/eip7702_set_code_tx` and `cancun/create` for code-hash handling.
 - **EELS unit tests:** `tests/json_loader/test_witness_state.py` `TestGetAccountOptional`, `TestGetStorage`, `TestComputeStateRoot` (leaf decoding and roots through the backend).
 - **`core` `#guard` cases** (all dependencies must be implemented before evaluation, F16; core proof holes are banned): `encodeAccount (emptyAccount consts) consts.emptyTrieRoot` bytes, with `consts = HashConsts.literals`; `mathStateRoot` of the empty state is `emptyTrieRoot`; a one-account, one-slot state against a fixture root; round trips SC10; lenient account SC5 cases (all-empty-string and all-empty-list account fields take defaults; nonce `0x0001`; 31-byte storage root fails; balance ≥ 2^256 fails, although longer leading-zero encodings can fit); strict storage SC6 cases (empty payload zero, raw empty failure, list/first-zero/width rejection and full-value boundaries).
-- **Property tests:** round trips on random accounts and values; `mathStateRoot` invariant under insertion order; `mathStateRoot σ` unchanged by adding storage for an absent account.
+- **Property tests:** round trips on random accounts and values; equal raw
+  account and slot maps across input insertion histories yield the same
+  `mathStateRoot`; adding storage for an absent account leaves the whole-state
+  result unchanged. Source preparation order across a shared digest path is
+  governed by §7.2.
 
 ## 5. Interface
 
@@ -376,7 +442,18 @@ Q55 chooses none and adds no local constants acquisition.
 ## 6. Data structures
 
 The storage decoder uses the public strict RLP parser and bounded integer provider
-(§3), with numeric construction limited to admitted payloads of at most 32 bytes. No new containers. `accountTrieMap`/`storageTrieMap` are `ExtTreeMap Nibbles ByteArray` views computed on demand (model definitions, O(n log n) to build; used by `EthStateFull` and in proofs, never on the witness path). Persistence: values only.
+(§3), with numeric construction limited to admitted payloads of at most
+32 bytes. `accountTrieMap` and `storageTrieMap` build
+`ExtTreeMap Nibbles ByteArray` views on demand. Their planned consumers
+are the full-state provider and mathematical proofs. For a map with
+`n` visited raw entries, the ordered-list traversal takes O(n) time
+and O(n) list space. It materializes one account list and one slot
+list per reached raw storage map. The prepared-map insertions use an
+estimated O(n log(n+1)) key comparisons for that traversal. Leaf
+encoding, secure-key hashing, the per-account storage roots and the
+final canonical trie root have separate costs. Full-state cost remains
+open. A direct ordered-tree fold is a separate optimization under
+`LawfulMonad`.
 
 ## 7. Contract and laws
 
@@ -388,14 +465,44 @@ The storage decoder uses the public strict RLP parser and bounded integer provid
 
 ### 7.2 Root and apply [C], [R]
 
-- `mathStateRoot (σ.apply d)` is the root after `apply_changes_to_state` (`state_mpt.py:133–161`) and after `State.compute_state_root` (`state_mpt.py:82–120`) — the full backend's commuting equation.
+- **Source root agreement (open).** The full backend must prove the commuting
+  equation for `mathStateRoot (σ.apply d)`, the root after
+  `apply_changes_to_state` (`state_mpt.py:133–161`) or
+  `State.compute_state_root` (`state_mpt.py:82–120`). EELS prepares each raw
+  dictionary in insertion order (`merkle_patricia_trie.py:407–475` at
+  `59c1473d`). Different complete leaves at a shared digest path can therefore
+  give different roots under source and SC4 traversal. Under a fixed hash
+  interpretation, equal complete encoded leaves wherever prepared paths
+  coincide suffice to compare reordered writes. This includes distinct
+  digest paths. Apply that condition to storage writes first and then to
+  account writes with the resulting storage roots. The proof needs the source
+  and encoding premises and coherent caller-supplied F20 constants. In
+  particular, `emptyTrieRoot` must agree with EELS's `EMPTY_TRIE_ROOT`.
+  Equal prepared maps can have different query order. Generic ordered-action
+  agreement and `ModelsRoot` require separate proofs.
+- **Secure-key collision evidence.** Last-write replacement can remove an
+  earlier leaf from the final prepared map. Extraction must preserve both
+  relevant preimages and their actual answers through recorded observations
+  or justified replay under the same interpretation.
 - **Lenient decodings are collision-guarded:** if a leaf decoded by `decodeAccountLeaf` is not the canonical encoding of the result, then no WF σ with the same root has it without a collision, since the leaf bytes are part of an authenticated node.
 - **Witness agreement (lifting `EthCommit.decode_agreement`):** for the witness backend `ps` built from authenticated `db` and `codes`, coherent HashConsts, explicit `Id.run (decodeRoot consts.emptyTrieRoot db r) = .ok t` premises at the triggered roots, and parent root `r`, and every structurally WF, code-authentic σ with `mathStateRoot σ = r`: `Models ps σ ∨ (StateCollision db codes σ).isSome`. The storage-trie part applies `decode_agreement` per account, with the storage root taken from the authenticated account leaf. Code-store authenticity is an additional premise because the state root does not commit to the code store's values.
 
 ### 7.3 Code [C]
 
 - **Empty constants.** Under D5 the constants are `HashConsts` fields queried through the oracle; the literals (`HashConsts.literals`, `EthBase`) are only their values at `Id`. This subsection's hash-agreement laws use `consts = Id.run HashConsts.query`. `EthHash` owns the check `HashConsts.query (m := Id) = HashConsts.literals` (`EthHash` §7), so this module states no separate literal-equality theorem.
-- `setCode` agreement: if every `EthState.setCode` call passes `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` has `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
+- **Raw application.** If `CodeAuthentic σ` and `CodeChangesAuthentic d`
+  hold, `CodeAuthentic (σ.apply d)` follows. A raw lookup in the result
+  takes the changed bytes when present and the old bytes otherwise.
+  This private proof includes the reserved key. The separate
+  `MathState.code?` observer returns empty bytes at that key.
+- **Provider success.** At coherent Id constants, an authentic mathematical
+  state supplies the digest equation for every successful provider answer
+  that agrees with its mathematical code lookup. The reserved query must
+  also have an explicit successful empty answer. The private client proves
+  `ModelsCode` from these premises.
+- **Open `setCode` agreement.** If every `EthState.setCode` call passes
+  `keccak256 code`, every `BlockDiff.codeChanges` entry `(h, c)` must have
+  `keccak256 c = h` and `h ≠ consts.emptyCodeHash`.
 
 ### Informal correctness argument
 
@@ -405,7 +512,10 @@ The storage decoder uses the public strict RLP parser and bounded integer provid
 
 **Argument.** Canonical account encoding is injective under both complete assembled Q47 domains by the four field codecs; storage maps omit zero values, while the total storage encoder preserves the canonical integer encoding even at zero. Apply the trie equation first to each storage map, then to the account map whose leaves include those storage roots. This yields mathStateRoot and the root clause of Models. Code storage is a separate map: state roots bind account code hashes, but do not authenticate the bytes stored under them. CodeAuthentic supplies that missing equation. Compare successful witness paths with the mathematical paths: equal encoded preimages permit descent; differing preimages with equal hashes yield a collision. The extractor must include trie nodes, secure-key preimages and code preimages from both the witness and σ, not only node DB entries.
 
-**Open obligations.** Complete the collision extractor and its finite query set, lenient leaf-decoding refinement and the hash-relative code-authenticity model. Backend progress is additional to Models: a backend that always errors would otherwise satisfy successful-answer implications vacuously.
+**Open obligations.** Complete the collision extractor and its finite query set,
+lenient leaf-decoding refinement, and backend code and root agreement. The
+reserved-hash success required by `ModelsCode` gives no availability guarantee
+for other hashes. Backend progress is a separate obligation.
 
 See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [REVIEW](../REVIEW.md) for implementation gates. This is a conditional informal argument, not a completed Lean proof.
 
@@ -425,6 +535,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-STATE-2 (from `EthState`): resolved: DECISIONS B2 (Q30); SC7 has no `.ok none` case.
 - Q53: U256 preparation validity and contextual Account integration follow §5/§8, with no bare Account instance or secured policy supplied.
 - Q57: the explicit lookup record follows §5; full model/code/root contracts retain the existing concrete Id interpretation and all authentication/collision/progress premises.
+- Q100: SC4 traverses the existing ascending raw key order. Section 7.2 owns
+  the remaining source correspondence and collision obligations.
 
 ## 10. Gaps
 
@@ -432,7 +544,24 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 
 - **Review gate:** discharge the open obligations in §7’s informal correctness argument and the module’s rows in [REVIEW](../REVIEW.md) before claiming the corresponding refinement. Expand grouped source claims into exact per-operation signatures, ordered failures and effect equations; coverage ownership alone does not supply these.
 
-- **Typed encoding integration (Q53):** the all-value U256 encoder/instance and wire injectivity, plus contextual Account encoding, unconditional nonempty and binding under both complete Q47 domains, are discharged in §3; implement/prove callback/root integration without assuming a bare Account instance. Whole source equality/schema/dispatch, assembled-node `Encodable`, F20 and host premises, and secured traversal/collision/source-history/generic-coupling obligations remain open.
+- **Code agreement integration:** §3 and §7.3 supply the raw graph and Id provider
+  predicates and private preservation under raw diff application. Prove
+  authenticity of reachable tracker-produced changes and the code clause for
+  each backend. Code availability remains a backend progress obligation.
+
+- **Typed encoding integration (Q53):** §3 supplies the U256 encoder,
+  instance and wire injectivity, contextual Account encoding with its
+  unconditional nonempty and conditional binding laws, and its use
+  in mathematical root preparation. Prove callback and root source
+  agreement without assuming a bare Account instance. Whole source
+  equality/schema/dispatch, assembled-node `Encodable`, F20 and host
+  premises remain open, along with the secured traversal source comparison
+  proof and the collision, history and generic coupling obligations.
+
+- **Mathematical root agreement (SC4, Q100):** §3 supplies all four §5
+  actions with the ordered-list reference. Prove source preparation
+  agreement, generic query order, `ModelsRoot` and collision extraction
+  (§7.2). Full-state integration and cost checks remain open.
 
 - **Leaf decoding integration:** local lenient account SC5, strict storage SC6 and conditional account/nonzero storage SC10 are discharged in §3. Complete RLP-first order, storage typed admission, statically sequential account-field order, coarse `.malformed .leaf` results and malformed-wire regressions are supplied; account bounded/reference proofs remain separate. Triggered backend lookup/root contexts, authentication/progress, collision-guarded agreement, shared error adaptation/granularity and the remaining X1 failure ledger are open.
 - **Falsy empty lists** in account leaves (SC5) look accidental; not reported upstream (P2/§6 discrepancy policy).

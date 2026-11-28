@@ -5,8 +5,10 @@ Copyright (c) 2026 The STFspec Contributors. Licensed under Apache-2.0 OR MIT.
 import STFSpec.Vm.Instructions.CallRequest
 import STFSpec.Vm.Instructions.ChildFrame
 import STFSpec.Vm.Instructions.ChildOutcome
+import STFSpec.Vm.Instructions.Create
 import STFSpec.Vm.Instructions.CreateChildContext
 import STFSpec.Vm.Instructions.CreateRequest
+import STFSpec.Vm.Instructions.CreateResume
 import STFSpec.Vm.Instructions.Handler
 import STFSpec.Vm.Instructions.Arithmetic
 import STFSpec.Vm.Instructions.Comparison
@@ -77,6 +79,8 @@ MCOPY has local snapshot, memory and accounting laws.
 The immutable CREATE child context has its complete construction and F8 inheritance laws.
 CALLDATASIZE, CODESIZE and RETURNDATASIZE have local ordered run and accounting laws.
 PC and GAS have complete local checked conversion, push and accounting laws.
-Other handlers, dispatch, step, the CALL child context and resume remain unimplemented.
+CREATE and CREATE2 handlers return the parent exit or an indexed child request.
+CREATE and CREATE2 resume incorporates a supplied settled child into the parent.
+Other handlers, dispatch, step, the CALL child context and CALL resume remain unimplemented.
 Spec guidance: `STFSpec/informal/modules/EthVmInstructions.md`.
 -/

@@ -1,6 +1,6 @@
 # Spec architecture
 
-*Status: current (v2.6, 2026-11-26). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
+*Status: current (v2.6, 2026-11-27). Decision statuses and question dispositions are owned by [DECISIONS](DECISIONS.md); the acceptance criteria are in [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks). Project status is in the README.*
 
 This document is the intended breakdown of the spec: the libraries, what each may depend on, the data structures each starts with, the *boundary* each must preserve when its implementation changes, and the properties to be proved. It follows [`CONTRIBUTING.md`](../../CONTRIBUTING.md): EEST zkevm conformance is mandatory and decisive, legibility is first-class, and performance comes from asymptotically good data structures. Everything here is a design contract, not a proved result; for example, the source-checked gas accounting in §5.5 is evidence for a proof obligation, not a termination theorem.
 
@@ -500,8 +500,8 @@ construction. A map-shaped adapter needs actual map-on-pure/composition equation
 local `LawfulApplicative` suffices, while Monad alone does not, and bind-pure/map
 agreement needs its own law. These remain unselected constructor choices, as do
 erasure-first computation, concrete effect bridges and nominal-halt equivalence.
-Revisit with a concrete constructor/consumer proposal; no F11, D5, fuel or resource
-claim follows.
+Revisit with a concrete constructor/consumer proposal. The F11 producer proof,
+D5 coupling, fuel and resource obligations remain open.
 
 **System-address transport options (F8).** A1 carries Fork's `SystemAddrs.systemAddress` through new `RunnerEnv` and immutable `FrameCtx` fields, with the explicit helper argument after Frame. It keeps fork policy separate from mutable state and header data while preserving the implemented three-field `VmConfig`. A2 would add one `VmWorld` field, requiring preservation by the specified VM transitions; arbitrary `StateT` actions cannot promise that preservation. A3 would add one immutable `BlockEnvironment` field, mixing fork policy with the header/chain abstraction and changing every environment constructor. B would retain a closed Core constant and broaden F8's literal exception, tying future address changes to Core. A `VmConfig` field would migrate its already implemented constructor/laws and Amsterdam values. A1 accepts two record-construction updates for immutable policy and modular fork changes; DECISIONS F8 owns the selection and authorization. Construction, child inheritance and both producer source refinements remain implementation obligations. The four-hash F20 record, request/handler/runner parameter lists and failure/effect order are unchanged. Revisit for changed source or consumer/context requirements.
 
@@ -1162,11 +1162,40 @@ selection. Every option uses the six nominal `RlpEncode` instances in EthBlock
 Every option retains the complete assembled Q47 domain and source host
 premises for standard wire correspondence. An allocation-sensitive outer route
 would need a measured cost case.
+**Receipt RLP options (Q99).** DECISIONS Q99 owns the selection. Each option
+uses the same Receipt instance, the complete EthBlock §7 model and the same
+source premises. D27 keeps the Log carrier in EthVmCore.
+
+| Option | Scope of the embedded log model |
+|---|---|
+| A. Private model | Only the Receipt instance exposes the forward operation. EthBlock keeps `logItem` private. |
+| B. Named public model | EthBlock also exports `logRlpModel : Vm.Core.Log → Codec.RlpItem` for explicit calls. |
+| C. Nominal dictionary | EthBlock also exports `instRlpEncodeLog : Codec.RlpEncode Vm.Core.Log`. Importing the Block facade selects a Log encoding for other callers. |
+
+**Secured mathematical state-root traversal options (Q100).** DECISIONS Q100
+selects A. EthStateCommit SC4 and §7.2 own the action and source boundary.
+
+| Option | Boundary and tradeoff |
+|---|---|
+| A. Ascending raw keys | Traverse the existing extensional maps in key order. Each later raw key replaces the previous leaf at a shared digest path. The four SC4 types retain their result carriers. |
+| B. Source insertion order | The source's last entry wins at a shared digest path. Preserve account and per-address slot order separately, with update and lifetime laws. |
+| C. Checked conflict | Report a conflict when leaves differ at a shared digest path. This requires a checked carrier or operation, diagnostic order and both preimages. |
+
+**Non-top child settlement options (F11).** DECISIONS F11 adopts option B.
+EthVmRunner §7 owns the producer and continuation contracts.
+
+| Option | Boundary and proof obligation |
+|---|---|
+| A. Check the raw result | Check `ChildSettled` after execution. A new checked internal error would require a payload and an unreachability proof. |
+| B. Carry the settlement proof | Return `{r : FrameResult // ChildSettled r.frame r.error.isSome}` from the internal non-top route. Prove settlement at the producer and feed that proof to the existing continuation adapter. |
+
+The bound on returned child potential and strict iteration progress require
+their own proofs.
 
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
-- Open obligations from the interface prototype (DECISIONS §3): **F6** storage-trie memo ownership, lifetime and triggers; **F7** clear iteration order in the witness root; **F11** how `ChildSettled` is produced; **O2** request-root unreachability proof.
+- Open obligations from the interface prototype (DECISIONS §3) include **F6** for storage-trie memo ownership, lifetime and triggers, **F7** for clear iteration order in the witness root, and **O2** for the request-root unreachability proof.
 - The fuel budget policy Φ + 1 (B11; the fuel-adequacy investigation, [REVIEW §7](REVIEW.md#7-acceptance-criteria-proof-gates-composition-cases-replacement-and-cost-checks) G2–G7).
 - **Compilation (future work).** A compiler from the spec to a verified assembly shape comes only after the guest assembly (evm-asm, or Pancake with autoresearch-style optimisation) has been fine-tuned and verified; veir or Lean's IR become relevant then. Nothing in the current phase depends on it. Keep abstract types behind interfaces so that implementations can refine representations locally.
 

@@ -1,6 +1,6 @@
 # `EthVmCore`: EVM frame, environments, stack, memory, 2-D gas meter, jumpdest analysis
 
-*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft; §3 lists the supplied declarations and §10 the remaining work. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F2, F3, F8, F9, F11, F12, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D11, D13, D14, D17, D22, D23, D24, D25, D27 · questions: B7/Q24, B8/Q1/Q26/Q43, B14/Q23, F11, Q61, Q62, Q63, Q64, Q65, Q66, Q82, Q83, Q93, Q95.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless they start with another directory. "[V]" marks a claim checked against the pinned source by reading; "[I]" marks an inference not yet checked by execution or proof. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -13,7 +13,19 @@ Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm
 
 ### 2.1 Frame and environments
 
-- **R-ENV-1** `BlockEnvironment` (`__init__.py:49–67`) must carry `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32` (intended construction is oldest first, at most 256, possibly fewer in the stateless setting: `stateless.py:245–247` builds it from the witness headers only; the raw Lean `Array Hash32` carries no ordering/count proof or guard), `coinbase`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`, `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root`, `slot_number : U64`. The EELS fields `state : BlockState`, `block_access_list_builder` and `transaction_public_keys` are **not** in the Lean record: the block state is part of the VM world (§5), the BAL builder and public-key hints are never read by the VM [V: `grep` over `vm/`] and belong to `EthBlock`.
+- **R-ENV-1** `BlockEnvironment` must carry eleven of the thirteen EELS fields
+  at `59c1473d` (`__init__.py:43–61`). In source order they are
+  `chain_id : U64`, `block_gas_limit : Uint`, `block_hashes : List Hash32`,
+  `coinbase : Address`, `number : Uint`, `base_fee_per_gas : Uint`, `time : U256`,
+  `prev_randao : Bytes32`, `excess_blob_gas : U64`, `parent_beacon_block_root : Hash32`,
+  `slot_number : U64`. The VM world owns `state : BlockState` (§5), and EthBlock owns
+  `block_access_list_builder : BlockAccessListBuilder`.
+
+  Intended construction supplies at most 256 hashes, oldest first, and may supply
+  fewer in the stateless path. `validate_headers` hashes the witness headers in their
+  supplied order and checks their parent links. Stateless validation passes those hashes
+  through `ChainContext` to `BlockEnvironment` (`stateless.py:230–252, 273–280`,
+  `fork.py:303–317`). The raw Lean `Array Hash32` accepts any length and order (§5).
 - **R-ENV-2** `TransactionEnvironment` (`__init__.py:119–142`) must carry `origin`, `recipient`, `is_create`, `data`, `value`, `gas_limit`, `effective_gas_price`, `execution_gas_grant`, `state_gas_reservoir`, `calldata_floor`, `access_list_addresses`, `access_list_storage_keys`, `blob_versioned_hashes`, `authorizations`, `index_in_block`, `tx_hash`. It is immutable during execution **except** `accounts_with_paid_writes`, which only `set_delegation` mutates (`eoa_delegation.py:298–300`); in Lean that set is threaded out of `setDelegation` (EthVmRunner), not stored mutably. `state : TransactionState` moves into the VM world.
 - **R-ENV-3** `Evm` (`__init__.py:147–185`) is split: `FrameCtx` = the call parameters fixed at frame creation (`block_env`, `tx_env`, `caller`, `current_target`, `value`, `call_data`, `code_address`, `code`, `valid_jump_destinations`, `depth`, `should_transfer_value`, `is_static`, `disable_precompiles`), plus the supplied immutable policy fields `config : VmConfig` and `systemAddress : Address` (F8); `Frame` = `pc`, `stack`, `memory`, `gas_meter`, `logs`, `accounts_to_delete`, `return_data`, `accessed_addresses`, `accessed_storage_keys`. EELS's `running`, `output` and `error` are replaced by the `StepResult` constructors (EthVmInstructions) and `parent_evm` is replaced by the runner's recursion (EthVmRunner). **Handler signatures must not return or modify `FrameCtx`**, in particular `depth` (ARCHITECTURE §5.5, "improvement over EVMLean"). EthVmInstructions §3/§5/§7 supplies the indexed result and read-only Handler signature; the raw record alone does not enforce that execution discipline.
 - **R-ENV-4** `BlockOutput` (`__init__.py:66–114`): the VM-visible part is the gas counters `block_gas_used`, `block_state_gas_used`, `blob_gas_used`, used by `check_block_gas_capacity`. The full record (tries, receipts, logs, requests, BAL) needs `EthCommit` and `EthBlock` types and must be declared in `EthBlock`; this module specifies only `BlockGasCounters` (D27).
@@ -169,7 +181,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 |---|---|---|---|
 | `forks/amsterdam/vm/__init__.py::TRANSFER_TOPIC` | 35 | `HashConsts.transferTopic` (EthBase field), read from `world.tx.block.consts` | not a literal (D5, F2); the `Id` value is checked outside Core (R-LOG-1) |
 | `forks/amsterdam/vm/__init__.py::SYSTEM_ADDRESS` | 36 | Fork's `systemAddrs.systemAddress`; Core's supplied `FrameCtx.systemAddress` field and `emitTransferLog` argument | F8 owns the literal placement; Core consumes it, and EthBlock uses the same configured system caller |
-| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 44–61 | supplied raw `BlockEnvironment` | exact eleven-field partition (R-ENV-1); row below |
+| `forks/amsterdam/vm/__init__.py::BlockEnvironment` | 43–61 | supplied raw `BlockEnvironment` | R-ENV-1 and the field mapping below |
 | `forks/amsterdam/vm/__init__.py::BlockOutput` | 66 | `structure BlockGasCounters` here; full record in `EthBlock` | D27 |
 | `forks/amsterdam/vm/__init__.py::TransactionEnvironment` | 119–142 | supplied raw `TransactionEnvironment` | exact sixteen-field partition (R-ENV-2); row below |
 | `forks/amsterdam/vm/__init__.py::Evm` | 147–185 | supplied raw `FrameCtx`, `Frame` and assembled `Evm` | R-ENV-3 data partition; exact rows below; actual creation/control/parent integration remain open |
@@ -183,7 +195,7 @@ default, monad/world declaration or adapter. `InternalError`, `ExceptionalHalt` 
 | `forks/amsterdam/vm/stack.py::decode_single` | 25–53 | `decodeSingle` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/stack.py::decode_pair` | 56–91 | `decodePair` | complete UInt8 domain; precise row below |
 | `forks/amsterdam/vm/runtime.py::get_valid_jump_destinations` | 22–69 | `validJumpDestinations`, `JumpdestMap.contains` | supplied packed/reference refinement and three ordinary laws; raw bytes, no Lean `Ops` import |
-| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 79 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork specialization and actual frame/CALL/CREATE depth proofs remain separate. |
+| `forks/amsterdam/vm/interpreter.py::STACK_DEPTH_LIMIT` | 79 | `abbrev STFSpec.Vm.Core.STACK_DEPTH_LIMIT : Nat := 1024` in `STFSpec/Vm/Core/Limits.lean`, exported by the Core facade | **discharged:** literal Nat value, reducible by `rfl`, with no inputs, effects or failures. `StackDepthLimitCallerProofs.lean` checks the exact Nat signature, literal reduction (also at reducible transparency), a `Fin` indexed bound, a numeric `Fin STACK_DEPTH_LIMIT` literal and an ordinary 1024 guard through the public facade; the reducible-transparency and numeric-literal clients fail if the limit is not reducible. F8; raw `VmLimits.stackDepthLimit` remains independent. EthFork §3 supplies the pinned specialization. EthVmInstructions §7 supplies the local CREATE depth proof. Runner entry and CALL depth integration remain open. |
 | `forks/amsterdam/vm/interpreter.py::MAX_CODE_SIZE` | 80 | field `VmLimits.maxCodeSize` (Amsterdam value `0x10000`, in `EthFork`) | EIP-7954; used by the runner's code deposit |
 | `forks/amsterdam/vm/interpreter.py::MAX_INIT_CODE_SIZE` | 81 | field `VmLimits.maxInitCodeSize` (Amsterdam value `2 · 0x10000`, in `EthFork`) | CREATE/CREATE2 and `EthBlock` transaction validation |
 
@@ -245,18 +257,18 @@ python3 -B -O STFSpec/Conformance/Vm/Core/transfer_log_differential.py --source-
 
 ### Supplied raw environment data
 
-| EELS source at `e1a316a06fc3d3e0a5da36fdc78580811e9d8a36` | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
+| EELS source | Lean declaration | Domain, effects and ordered failures | Laws and regression clients | Status |
 |---|---|---|---|---|
-| `src/ethereum/forks/amsterdam/vm/__init__.py:49–67`, `BlockEnvironment` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
-| `src/ethereum/forks/amsterdam/vm/__init__.py:119–142`, `TransactionEnvironment` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:43–61`, `BlockEnvironment` at `59c1473d` | `STFSpec.Vm.Core.BlockEnvironment` in `STFSpec/Vm/Core/Environments.lean`, exported by the Core facade | Exactly the eleven §5 fields in order; existing U64/U256/Address/Hash32/Bytes32 widths, independent Nat quantities and arbitrary ordered Array history. No effects, failures, defaults, derived instances or extra proof/admission fields. | Private `EnvironmentsCallerProofs.lean` complete constructor/projection/type/reconstruction and independent update clients; `EnvironmentsGuards.lean` complete zero/high/max/history observations below. Record equations reduce directly. | **supplied raw data**; intended history construction and actual consumers remain open |
+| `src/ethereum/forks/amsterdam/vm/__init__.py:125–148`, `TransactionEnvironment` at `e1a316a0` | `STFSpec.Vm.Core.TransactionEnvironment` in the same leaf/facade | Exactly the sixteen §5 fields in order; independent gas/price/grant/reservoir/floor, address roles and options; complete ordered blob/authorization arrays and existing persistent sets. No effects, failures, defaults, derived instances or extra proof/admission fields. | The same private complete clients, including separate quantity/address updates; complete finite zero/nonempty/metadata controls below. | **supplied raw data**; actual assembly/admission and execution remain open |
 
-R-ENV-1 excludes source `state` (VM world), `block_access_list_builder` and
-`transaction_public_keys` (EthBlock): fourteen source fields project to eleven.
-R-ENV-2 excludes `state` (VM world) and `accounts_with_paid_writes` (explicit
-threading): eighteen source fields project to sixteen. Static field/type partition
-correspondence is the source evidence; no source environment runtime or whole-Evm
-comparison is claimed. HashConsts, systemAddress and mutable bookkeeping retain
-their existing owners.
+At `59c1473d`, both normal and optimized EELS interpreter runs report the same
+thirteen block fields and types. The eleven Lean projections follow R-ENV-1.
+P1 and CONTRACT §2/O5 record the sender-key hint retirement.
+The historical R-ENV-2 mapping at `e1a316a0` projects sixteen of eighteen fields.
+The VM world owns `state`, and the delegation operation threads
+`accounts_with_paid_writes` explicitly. This evidence covers record fields and types.
+HashConsts, systemAddress and mutable bookkeeping retain their existing owners.
 
 The raw history array retains every occurrence in supplied order. Oldest-first
 and at-most-256 are intended construction/source-correspondence guarantees, not
@@ -282,8 +294,8 @@ lake build STFSpec.Conformance.Vm.Core.EnvironmentsCallerProofs STFSpec.Conforma
 
 This supplies raw environment data only. Actual frame/world construction, history
 lookup/admission, actual capacity/intrinsic/settlement consumers, F8 transport,
-F20 lifetime, F11, gas/fuel/resources and VM/guest/EEST/readiness obligations
-remain open.
+F20 lifetime, the runner settlement producer proof (F11), gas/fuel/resources
+and VM/guest/EEST/readiness obligations remain open.
 
 ### Supplied logical action factorization (Q83)
 
@@ -382,14 +394,15 @@ lake build STFSpec.Conformance.Vm.Core.ContextCallerProofs STFSpec.Conformance.V
 EthVmInstructions §7 supplies the immutable CREATE context and its local F8
 inheritance. The CALL context, createEvm, RunnerEnv assembly, Fork→Block→Runner
 address transport, producer emission, world/handler/control/parent integration,
-F20 lifetime, F11, G1–G7, C1–C4 and VM/guest/EEST/readiness remain open.
+F20 lifetime, the runner settlement producer proof (F11), G1–G7, C1–C4 and
+VM/guest/EEST/readiness remain open.
 
 ### Supplied raw child settlement predicate
 
 | Pinned EELS source | Lean declaration and domain | Effects, decidability and private clients | Status |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/__init__.py:221,226–228` | `ChildSettled : Frame → Bool → Prop` in `STFSpec/Vm/Core/ChildSettled.lean`, exported by the Core facade | All raw Frames and both flags. Exactly C=0 unconditionally; on failure also S=0, signed refund=0 and reservoir=baseline. Pure logical predicate with no runtime check, effect or failure. | **Supplied** transparent clause contract; no additional public law. |
-| Same four assertions; Core §5's decidability requirement | `instDecidableChildSettled (child : Frame) (failed : Bool) : Decidable (ChildSettled child failed)` | Constructive Nat/Int/Bool decisions only; no Frame/container equality, classical choice or noncomputable code. `ChildSettledCallerProofs.lean` privately checks exact types, all-frame decomposition/reconstruction, both branches, each necessary clause, irrelevant fields and executable decisions. | **Supplied** logical decision procedure; no F11 proof-production choice or runtime caller. |
+| Same four assertions; Core §5's decidability requirement | `instDecidableChildSettled (child : Frame) (failed : Bool) : Decidable (ChildSettled child failed)` | Constructive Nat/Int/Bool decisions only; no Frame/container equality, classical choice or noncomputable code. `ChildSettledCallerProofs.lean` privately checks exact types, all-frame decomposition/reconstruction, both branches, each necessary clause, irrelevant fields and executable decisions. | **Supplied** logical decision procedure. The runner settlement producer proof remains open (F11). |
 
 Successful raw meters may have reservoir above baseline, negative or positive
 refund and both reservoir/pending spill positive. Failed raw meters may retain
@@ -400,9 +413,10 @@ with or without forfeiture, using an explicit input committed-spill-zero premise
 and retaining all Frame fields. The complete `(3,10,1,-2,4,7)` meter restores to
 `(7,1,1,0,0,7)` and forfeits to `(0,1,1,0,0,7)`; both still fail C=0.
 EthVmInstructions §7 supplies the committed-spill clause at child entry.
-Preservation through execution and actual incorporation, processCall/processCreate
-settlement and snapshots, returned proof production, child/resume, F11, Q83
-bridges, G1/G2–G7, S2, resources and guest/readiness remain open.
+EthVmCore supplies local incorporation, and EthVmInstructions supplies CREATE
+resume. The runner must establish preservation through execution, settlement
+and snapshots to produce the return proof (F11). Runner integration, generic Q83
+effect bridges, G1/G2–G7, S2, resources and guest/readiness remain open.
 
 ### Supplied incorporation of a settled child
 
@@ -835,8 +849,9 @@ retains its explicit cfg.costs.zero=0 premise, while general clients permit any
 raw zero price and explicit stipend. State credit may repay preexisting pending
 spill and redistribute the reservoir; potential preservation is not raw rollback.
 Actual state/code access and error ordering, cfg/grant coherence and reachability,
-child returned-potential bounds, incorporation/settlement/step/loop, F11/B11/D5/S2,
-G2–G7 and resource/readiness obligations remain separate. In particular, the local
+child returned-potential bounds, runner incorporation/settlement/step/loop,
+the settlement producer proof (F11), B11/D5/S2, G2–G7 and resource/readiness
+obligations remain separate. In particular, the local
 child-phi bridge assumes its quantitative hypothesis. No running child is proved
 to satisfy it, and ChildSettled alone does not establish it. Source/default/host
 agreement, security and guest integration remain separate.
@@ -1138,8 +1153,8 @@ this target carrier expresses that distinction without implementing their effect
 
 Actual exceptional gas consumption, revert settlement, producer/error priority,
 frame/runner result handling, fault/outcome adapters and ChildSettled proof
-production/F11 remain separate obligations. This raw vocabulary supplies no G1–G7,
-resource or readiness gate.
+production (F11) remain separate obligations. This raw vocabulary supplies no
+G1–G7, resource or readiness gate.
 
 ### Supplied local meter algebra
 
@@ -2185,8 +2200,7 @@ instance instDecidableChildSettled (child : Frame) (failed : Bool) :
     Decidable (ChildSettled child failed)
 -- Non-top child meter: committed spill = 0; if failed, spill/refund = 0 and reservoir = baseline.
 -- Includes the exact unconditional and failed-child side conditions of __init__.py:221,226–228 (L-SETTLE).
--- How the runner produces this proof is open (F11; EthVmRunner §9): a decidable check whose
--- failure is a runner-internal error, or a settled subtype returned by the runner. Keep it decidable.
+-- The internal non-top runner result carries this proof (F11; EthVmRunner §7).
 -- Supplied pure merge of a settled child.
 def incorporateChild (parent child : Frame) (childFailed : Bool)
     (h : ChildSettled child childFailed) : Frame
@@ -2342,8 +2356,9 @@ and supplies the actual witness through the existing Id law.
 Actual entry/source/normal-form proofs, generic construction assumptions and
 adapter equations, arbitrary-monad observation, effect/transformer/dispatch and
 halt-settlement bridges remain open. CountMap's Q83 limitation still applies;
-True on halt asserts no gas, progress, error or settlement policy. F11, D5
-coupling and all resource/fuel/VM/guest readiness gates remain separate.
+True on halt asserts no gas, progress, error or settlement policy. The F11
+producer proof, D5 coupling and all resource/fuel/VM/guest readiness gates
+remain separate.
 
 **Raw Frame carrier controls are supplied.** §3/§5 own the two persistent-set
 aliases and exact nine-field mutable record. Private generic clients verify all
@@ -3046,6 +3061,10 @@ Pricing retains its independent resource obligation:
 Pure price/alignment/coverage equations do not prove L-MEM-BOUND or authorize
 allocation, including for huge mathematically admitted extents.
 
+The CREATE and CREATE2 handlers derive their admitted window from the supplied
+alignment and coverage laws after payment and the init-code size check.
+EthVmInstructions §7 owns those caller laws and the ordered effects.
+
 **Logs** [C], supplied ordinary laws on arbitrary raw fields and every finite rope:
 
 ```lean
@@ -3114,7 +3133,7 @@ Commit uses only `h : m.stateGasLeft ≤ m.stateGasBaseline`. Entry restore uses
 no premise and preserves committed spill even on raw meters with `R>B` or negative
 refund. These three operations use only unbounded addition: no subtraction, word cast,
 refund-sign assumption, spill-exclusivity assumption or new failure channel occurs.
-Their local postconditions do not discharge the full `L-SETTLE` or F11 obligations.
+The full L-SETTLE contract and the runner producer proof (F11) remain open.
 
 
 | Supplied refund public law | Contract |
@@ -3283,10 +3302,10 @@ R has no bound: the public phi observer excludes reservoir, baseline and refund.
 Whole-field return/credit equations preserve the other fields through public laws.
 The local child-meter bridge derives gasLeft≤grant from a supplied phi≤grant,
 while the raw-Frame countermodel satisfies ChildSettled at gasLeft=grant+1 for
-either failure flag. Neither client establishes a running child's returned-phi
-bound or selects F11's proof producer. Real child/handler effects, successful-child
-credit bookkeeping, settlement/step/loop, source/default/host agreement,
-F11/B11/D5/S2/G2–G7, resources, security and guest/readiness remain open.
+either failure flag. The runner must prove the returned-phi bound and produce
+the settlement proof (F11). Real child/handler effects, successful-child credit
+bookkeeping, settlement/step/loop, source/default/host agreement, B11/D5/S2/G2–G7,
+resources, security and guest/readiness remain open.
 
 The charge, three rollback, two refund, four local transfer and signed-addition/scalar equations are supplied
 above. The following list retains the remaining G1 and composition obligations:
@@ -3406,7 +3425,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - NEW-VM-1 (VM-internal Python faults): resolved by D14 (accepted), CONTRACT O13 and DECISIONS B14 (Q23); the constructors are those of R-EXC-2, frozen once this module's failure-ledger entries close.
 - NEW-VM-3: resolved by D27 (DECISIONS Q25).
 - NEW-VM-4: resolved by DECISIONS B8 (Q26).
-- **F11** (open): how the runner produces `ChildSettled` (EthVmRunner §9).
+- **F11** (adopted): the internal non-top runner result carries `ChildSettled`
+  (EthVmRunner §7). Proof production through execution remains open.
 - **Q61**: `txStateGasUsed` uses the local baseline-to-grant proof in §5/§7; DECISIONS owns the disposition. Caller premise reachability remains an obligation.
 - **Q62**: DECISIONS owns the Memory disposition; §5/§7 own the exact supplied API/ten-law contract. BufferRead remains independent; memory pricing’s policy-threading contract is owned separately by Q63.
 - **Q63**: DECISIONS owns the pricing-policy disposition; §5/§7 own the two supplied VmConfig-first signatures and ten discharged ordinary laws, including local relevant-price congruence. Caller/frame/target config coherence and general source/host agreement remain separate from the bounded typed comparison in §3.
@@ -3438,13 +3458,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   observation lifetimes, provider/context acquisition/coherence, actual
   handlers/runner and full-current-source refinement remain open. EthState R24
   supplies the standalone snapshot and restore operations.
-  No F6/F7/F11 choice, generic D5/S1/S2/W1, G1–G7, C1–C4 or VM/guest/EEST/readiness
-  gate closes through nominal wiring.
+  F6/F7, the runner settlement producer proof (F11), generic D5/S1/S2/W1, G1–G7,
+  C1–C4 and VM/guest/EEST/readiness remain open.
 
 - **Raw FrameError vocabulary is supplied:** §3/§4/§5 own the exact halt/revert carrier,
   private complete-payload construction/elimination clients and guards. Actual
   exceptional gas consumption, revert settlement, producers/error priority, frame/runner
-  result handling, fault/outcome adapters and ChildSettled proof production/F11 remain
+  result handling, fault/outcome adapters and ChildSettled proof production (F11) remain
   open with their existing owners. No gas, resource or VM/guest readiness result
   follows.
 
@@ -3453,25 +3473,27 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   clients and full-value controls. No history/admission/default/proof field or extra
   public law is added. Raw FrameCtx/Evm are supplied separately; actual frame/world
   construction, source context coherence, intended oldest-first/at-most-256 history and
-  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime, F11,
-  gas/fuel/resources and VM/guest/EEST/readiness remain open.
+  lookup, capacity/intrinsic/settlement consumers, F8 transport, F20 lifetime,
+  the runner settlement producer proof (F11), gas/fuel/resources and
+  VM/guest/EEST/readiness remain open.
 
 - **Raw child settlement predicate and decidability are supplied:** §3/§5/§7 own
   exactly ChildSettled and its constructive Decidable instance. Private logical,
   all-frame, each-clause, decision and conditional public rollback/forfeit clients
   cover the predicate boundary. EthVmInstructions §7 supplies zero committed spill at child entry.
-  Preservation through execution, incorporation, processCall/processCreate settlement and snapshots, proof
-  production and resume remain open. EthVmRunner §3 supplies the proof-taking
-  result adapter. F11's two production options, generic Q83 bridges, G1/G2–G7,
-  S2, resources and VM/guest/EEST/readiness remain open.
+  EthVmRunner §3 supplies the proof-taking result adapter. The runner still
+  needs to prove preservation through execution, settlement and snapshots,
+  produce the return proof and integrate resume (F11). Generic Q83 effect
+  bridges, G1/G2–G7, S2, resources and VM/guest/EEST/readiness remain open.
 
 - **Nominal non-frame fault vocabulary is supplied:** §3/§4/§5/§7 own exactly
   OverflowSite and VmFault with private complete facade clients/controls. Actual
   tracker error production, BLOCKHASH availability/ancestor tracking, BLOBBASEFEE and both
   original refund checked casts, error propagation/outcome adapters, reachability
   and B14 failure-ledger classification/freezing remain unimplemented or unproved.
-  Raw VmWorld/VmM wiring is supplied separately above; no F11 choice, G1–G7,
-  resource or VM/guest/EEST/readiness gate follows from this vocabulary.
+  Raw VmWorld/VmM wiring is supplied separately above. The runner settlement
+  producer proof (F11), G1–G7, resource and VM/guest/EEST/readiness gates remain
+  open.
 
 - **Q93 fee caller proofs.** The two raw sites and exhaustive private
   clients are supplied (§3/§4/§5/§7). Transport the decoded system and
@@ -3491,7 +3513,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   producer construction needs an actual witness/erasure proof and
   separately selected local laws or equations; adapter/normal-form/halt equivalence,
   concrete effect observations and actual Runner bridges/settlement remain open.
-  No F11, D5 coupling, G1/G2–G7, resource or VM/guest readiness gate is closed.
+  The runner settlement producer proof (F11), D5 coupling, G1/G2–G7, resource
+  and VM/guest readiness gates remain open.
 
 - **SatisfiesM name (future bridges):** Batteries defines a universe-polymorphic
   `_root_.SatisfiesM` over `[Functor m]`. A Mathlib or security file that opens
@@ -3513,7 +3536,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   code/map choices, supplied addresses, environments, frame and flags remain
   independent. EthVmInstructions §3/§5/§7 owns the supplied read-only Handler/StepResult
   signatures. Actual creation/inheritance, source/config/history/code coherence,
-  world/control/parent execution, F20/F11,
+  world/control/parent execution, F20 lifetime and the F11 producer proof,
   gas/fuel/resources and VM/guest/EEST/readiness remain open. No extra public law,
   default, instance or global coherence/WF predicate is supplied.
 
@@ -3524,15 +3547,16 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   local CREATE inheritance. Runner construction, CALL inheritance, both producer
   refinements, transfer/static/gas ordering and composed Fork→Block→Runner
   transport remain open. F20 acquisition/lifetime,
-  generic D5 coupling, F11 settlement, fuel, C1–C4 and VM/guest/EEST/readiness remain
-  open. No Core literal, global admission predicate or new runtime policy is introduced.
+  generic D5 coupling, the runner settlement producer proof (F11), fuel, C1–C4
+  and VM/guest/EEST/readiness remain open. No Core literal, global admission predicate or new runtime policy is introduced.
 
 - **Stack depth literal is supplied (F8):** §3/§5 own the exact kernel-reducible
   `STACK_DEPTH_LIMIT : Nat := 1024`, with private facade signature/reduction/indexed
   clients and an ordinary literal guard. EthFork's `vmLimits_depth` specialization is
-  discharged (EthFork §3); actual frame creation and CALL/CREATE depth proofs remain open. Raw
-  VmLimits/VmConfig domains and Stack behavior are unchanged; no VM/guest/readiness
-  gate follows from this literal alone.
+  discharged (EthFork §3). The CREATE handlers supply the strict parent-depth proof,
+  which bounds the child depth in `childCtxOfCreate` (EthVmInstructions §7). Runner
+  entry and CALL depth integration remain open. Raw VmLimits/VmConfig domains and
+  Stack behavior are unchanged; no VM/guest/readiness gate follows from this literal alone.
 
 - **Allocation and settlement are locally supplied (Q65, Q66):**
   §3/§5/§7 own the raw allocation carrier, exact two-bound helper, four discharged
@@ -3546,8 +3570,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   cap consistency, system-call separation, returned/state/floor derivation,
   validated unsigned refund/range reconstruction at the unchanged Runner Nat
   boundary, checked-failure precedence, fees/providers/conservation, compiled
-  resources, G1/G2–G7, F11/B11 and VM/guest/EEST/readiness remain open. No finite
-  source observation supplies a universal theorem or these actual caller premises.
+  resources, G1/G2–G7, the F11 producer proof, B11 and VM/guest/EEST/readiness
+  remain open. No finite source observation supplies a universal theorem or
+  these actual caller premises.
 
 - **Raw block-gas counter data is supplied:** §3/§5/§7 own the exact
   Nat/Nat/U64 carrier, two ordinary ext/eta laws, private public-only clients
@@ -3591,9 +3616,9 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   No reservoir bound enters phi accounting. This supplies no actual CALL handler
   or child semantics. Source ZERO coherence, actual access/
   failure/effect ordering, saved grants/config identity and reachability, child
-  returned-potential bound, incorporation/settlement/step/loop, F11/B11/D5/S2,
-  G2–G7, source/default/host agreement, resources, security and guest/readiness
-  remain open.
+  returned-potential bound, runner incorporation/settlement/step/loop, the F11
+  producer proof, B11/D5/S2, G2–G7, source/default/host agreement, resources,
+  security and guest/readiness remain open.
 
 - **Jump-destination analysis is supplied locally:** §3/§5/§7 own the abstract immutable packed map, existing two operations and three discharged ordinary lookup equations, with all-code/all-Nat private reference refinement. Public-only clients, the unchanged 32 handwritten controls and the dated external 940-case comparisons scoped in §3/§4 are local evidence. Code/map provenance, a future cache's authenticity/coherence, actual JUMP/JUMPI operands/gas/error ordering, typed source/host generalization, compiled allocation/sharing/ownership, random campaigns and measured asymptotic/resource costs remain open. This closes no C1–C4, G1–G7, whole VM/guest/EEST or readiness gate.
 
@@ -3622,4 +3647,4 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Memory pricing (Q63) is locally supplied:** §3/§5/§7 own both VmConfig-first helpers, ten discharged ordinary laws, private public-only clients and forty-two full interpreted/native controls with twenty-four authenticated typed original comparisons. Clients derive actual Memory expansion/admitted-window/preservation facts through public laws; real handler payload/window derivation, frame/target config coherence, charge/allocation/check ordering, L-MEM-BOUND, compiled C1–C4, general source-host/resource and whole VM/guest gates remain open. Raw unaligned source controls remain source-only and unrun; no huge returned extent is allocated.
 - **Meter well-formedness `Wf`** is not yet characterised. `state_gas_left ≤ state_gas_baseline` is **not** an invariant (a cross-frame refund can push the reservoir above the baseline), so the right invariant is still to be found; only the EELS asserts are known facts.
 - **Envelope limits** for `Nat` gas (a `u64` fast path) are not specified; D1 and a future `Envelope` record decide.
-- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** (a) `BlockEnvironment.transaction_public_keys` was removed (execution-specs PR #3652), so the source has thirteen fields projecting to the Lean eleven; R-ENV-1 (§2.1) still lists `transaction_public_keys` among the source fields, and the §3 note under the `BlockEnvironment` row ("fourteen source fields project to eleven") still counts the removed field, and the `STFSpec/Vm/Core/Environments.lean` docstring cites `vm/__init__.py:49–67` at `e1a316a0`. The Lean structure is unchanged. (b) `vm/gas.py` dropped the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` (the values stay in `GasCosts`; PR #3655), and `calculate_memory_gas_cost` no longer turns a `ValueError` into `OutOfGasError` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]; the §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.
+- **Re-pin to `tests-zkevm@v21.0.6` (GAPS-CROSSCUTTING X16; line citations in this item are at `59c1473d` unless marked).** R-ENV-1 and §3 give the current block environment field mapping. The outstanding gas items are the aliases `BLOB_SCHEDULE_TARGET`, `BLOB_SCHEDULE_MAX` and `BLOB_BASE_FEE_UPDATE_FRACTION` removed from `vm/gas.py` (the values stay in `GasCosts`, PR #3655) and the `ValueError` to `OutOfGasError` conversion removed from `calculate_memory_gas_cost` (PR #3651). `ExecutionGas` is an unbounded `Uint`, so neither changes behaviour [V by reading]. The §2.5 `calculate_memory_gas_cost` row (`:749–773`) still cites the removed lines.

@@ -85,10 +85,9 @@ The spec guidance documents' Lean-like signatures are informal by design (`CONTR
 All 24 module documents and COMPOSITION contain conditional arguments. Implemented components prove only local ordinary laws (module §3 and §7). COMPOSITION §7 records which premises are partly discharged. REACHABLE caller invariants, code authenticity, rootability/encodability domains and backend progress must be established independently; document-structure checks cannot prove them. **Owners:** the producers/consumers in COMPOSITION §7 and REVIEW §3.
 
 ### X15. Open interface obligations from the interface prototype
-Four items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
+Three items from the interface-composition prototype are open (`STFSpec/informal/DECISIONS.md` §3):
 - **F6:** memo ownership, lifetime and decode triggers for storage tries (EthStateWitness). Cache mechanics stay outside semantic state; this is a DEBT candidate until settled.
 - **F7:** the iteration order of storage clears in the witness root replay (EthState, EthStateWitness). It must agree on failures and observations, not only on roots.
-- **F11:** how the runner produces `ChildSettled` (EthVmRunner).
 - **O2:** the proof that request-root computation cannot fail on decoded values (EthStateless).
 
 **Owners:** as listed.

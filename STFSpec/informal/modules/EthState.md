@@ -117,7 +117,7 @@ refinement. The action and laws are supplied in §3 and §7.1.
 | `forks/amsterdam/state_tracker.py::account_exists_and_is_empty` | 383–410 | `accountExistsAndIsEmpty` | **Implemented:** current optional read and a complete comparison with the supplied empty account. |
 | `forks/amsterdam/state_tracker.py::is_account_alive` | 413–431 | `isAccountAlive` | **Implemented:** current optional read and a complete comparison with the supplied empty account. |
 | `forks/amsterdam/state_tracker.py::set_account` | 434–454 | `setAccount` | **Discharged standalone action:** whole account option and B1 order update; private laws in §§7.1/7.5. |
-| `forks/amsterdam/state_tracker.py::set_storage` | 457 | `setStorage` | |
+| `forks/amsterdam/state_tracker.py::set_storage` | 457–481 | `setStorage` | **Supplied standalone action:** current optional account read, followed on presence by the complete slot write and B1 order update (§§7.1/7.5). |
 | `forks/amsterdam/state_tracker.py::destroy_account` | 484–501 | `destroyAccount` | **Supplied standalone action:** clear target storage, then record the account tombstone (§7.5). |
 | `forks/amsterdam/state_tracker.py::clear_account_preserving_balance` | 504–525 | `clearAccountPreservingBalance` | **Supplied standalone action:** run R16 before R18, retaining the exact balance. |
 | `forks/amsterdam/state_tracker.py::destroy_storage` | 528–549 | `destroyStorage` (ARCHITECTURE's `clearStorage`) | **Discharged standalone action:** pending slot keys become reads. The action erases the target patch and slot index, applies `WriteOrder.erase` to the address index, and records the clear. Private laws and typed controls below. |
@@ -289,6 +289,12 @@ action, frame, model and local order proofs are specified in §§7.1/7.5.
 `SetAccountNativeTests.lean` and the differential driver cover the finite
 cases in §4.
 
+### Implemented standalone transaction storage write
+
+| Source at the pin | Lean declaration and domain | Ordered effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/state_tracker.py:457–481`, using `:174–197` and `:107–137` | `setStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) (v : U256) : StateM m Unit` in `State/SetStorage.lean`, through the State facade on every raw transaction state | Bind the current optional account action. The continuation propagates the supplied error or returns `StateError.storageOnMissingAccount` on successful absence. On presence, it uses the returned transaction to write the complete word and record its address and slot. Prior clears are retained. | Private complete action, visible-word and local order proofs (§§7.1/7.5), with facade and pinned-source controls (§4). |
+
 ### Implemented standalone transaction storage clear
 
 | Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
@@ -393,8 +399,8 @@ law, default, instance, factory or operation is added by the carrier. The separa
 mathematical transaction view below owns a Lean-private `asDiff`. The separate
 R24 operations use the whole carrier. Persistence cost, tracker/source refinement
 and S1/S2/W1 remain open. Observation hash support (Q84, EthBase §3), provider/cache
-lifetime (F6), clear replay order (F7), F11 and the remaining §10 obligations stay
-separate.
+lifetime (F6), clear replay order (F7), runner settlement proof production
+(F11) and the remaining §10 obligations stay separate.
 
 ### Implemented raw transaction observation carrier
 
@@ -603,8 +609,9 @@ Lean-only nominal shapes of §5. Source attribution does not assert lookup/root 
 Lean equality, without an effect-equivalence interpretation. The coarse errors are not frozen;
 their §10 refinement obligations remain open. `State/StateError.lean` imports only
 `State/WitnessError.lean` and is exported by the State aggregate. The R19
-operations use the two balance errors as specified in §7.5. The R15
-missing-account error and R29 fault projection remain open. `ModelsLookups`
+operations use the two balance errors as specified in §7.5. The R15 setter
+returns the missing-account error on successful absence. Its reached-fault
+classification and R29 fault projection remain open. `ModelsLookups`
 supplies Q57 lookup agreement. Actual providers and full-model/contextual
 tracker proofs remain open.
 
@@ -810,6 +817,22 @@ production provider, progress, root/authentication, resource or release result.
   `59c1473d` executes these recipes on the pinned tracker in normal and optimized
   Python and checks both full maps and read results. It also checks the source
   tracker fields and provider identity after each write.
+- **Implemented transaction storage write controls.** `SetStorageControls.lean`
+  checks complete successful transactions and exact errors through the State
+  facade. It covers a present empty transaction account, block presence, both
+  tombstones, and provider presence, absence and failure. The observing base
+  records the account call and exposes unexpected storage, code or root calls.
+  The successful cases check explicit zero, a prior clear, a fresh address and
+  slot, an overwrite and a raw existing map with a missing index. Separate list
+  controls check insertion order at both levels.
+  Eight probes of the pinned tracker exercise these account branches and native
+  dictionary ordering. Normal Python records the read before a possible error.
+  A failed source call retains that observation in its mutable transaction.
+  Optimized Python elides the entire assertion expression, including the
+  read and any provider request, so all eight writes succeed. Lean's action
+  includes the R15 guard independently of Python's optimization mode. Its typed
+  failure returns no transaction
+  state, and the underlying account action follows the base monad.
 - **Implemented BAL pre-transaction read controls.** `PreTxReadControls.lean`
   checks twelve cases through the State facade. Account cases cover block
   presence and tombstones, provider presence and absence, and an exact error.
@@ -1791,6 +1814,18 @@ Under the initial WF, ModelsLookups and successful lookup premises above,
 the private model controls classify `(t.view σ₀).account? a` with those
 constants. Exactly one predicate holds for each present account.
 
+The private R15 action equation uses only Monad. It binds one current optional
+account read. An error propagates unchanged. Successful absence produces
+`storageOnMissingAccount`. Both failures carry no transaction state.
+Presence, including an empty account, returns unit and the read's complete state
+with just the storage writes and selected order metadata updated. The account
+read supplies its usual observations and underlying actions. With `m := Id`,
+if that read returns a present account, the private visible-word equation holds
+for every supplied mathematical base state. The written address and slot have
+the new word in the resulting transaction view. Each other pair retains its
+initial visible word. The whole-state commuting equation stated above remains
+open.
+
 ### 7.2 Derived laws (proved once on the model, D25) [C], [R]
 
 - **Transaction account observation (supplied):** `TxState.view_account?_eq` gives
@@ -1895,8 +1930,19 @@ behavior, without repair or a universal lawful list claim.
 present writes. The two maps and next must be saved with the associated write
 root; selecting a saved version can lower next relative to a discarded child.
 Whole inner clear discards that inner index. Later recreation starts empty.
-The standalone clear supplies the private equations below. The remaining
-integration laws cover slot recreation, snapshots and incorporation.
+The standalone write and clear supply the private equations below. The
+remaining integration laws cover slot recreation across lifetimes, snapshots
+and incorporation.
+
+For `setStorage a k v` (R15), the successful read's revertible data supplies the
+current slot map and the per-address order index. An absent slot map starts
+empty and an absent slot index independently starts at `WriteOrder.empty`.
+The insertion retains explicit zero and does not erase clear membership. It
+records `a` in the storage-address index and `k` in the selected slot index.
+For each updated index, local WF and agreement with its original map imply
+WF and agreement with the resulting map. On that domain, an overwrite retains
+the original position and a new key appends. For raw input with no selected
+index, only the written key is recorded in the new index.
 
 For `destroyStorage a` (R16), the private run equation returns the updated
 transaction and unit with one underlying `pure`. If the target patch is absent,
@@ -2077,7 +2123,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 ## 10. Gaps
 
 - **Bounded component support:** §3 records the supplied standalone account reads
-  and predicates, code read and installation, storage reads, account write,
+  and predicates, code read and installation, storage reads and write, account write,
   storage clear, transient read and write, snapshot and restore, fresh
   initialization, creation marker and ancestor recording. Sections 4 and 7 give their tests and law domains. Caller
   integration and remaining tracker operations stay open. Account and
@@ -2113,7 +2159,8 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   current-pin full-state refinement remains open.
   Caller initialization and coherence, the remaining tracker operations,
   observation lifetimes, other StateError semantics and freezing, S1/S2/W1,
-  generic D5, F6/F7/F11 and C1–C4 remain open.
+  generic D5, F6/F7, runner settlement proof production (F11) and C1–C4 remain
+  open.
 - **Raw TxRevertible boundary:** §3/§4/§5/§7 supplies storage and private complete
   clients for the carrier; the separate mathematical transaction view and private
   conversion are supplied in §3/§7.1/§7.2. Standalone initialization and R24
@@ -2123,10 +2170,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   AccountWritesLookedUp, errors/adapters and provider progress remain open.
   TxObs/BlockState's specified HashSet fields use the Q84 canonical Address/Bytes32
   dictionaries (EthBase §3); no replacement dictionary is chosen.
-  S1/S2/W1, F6/F7/F11, generic D5 and C1–C4 are not discharged by raw fields or finite
-  retained-value controls. Whole-State readiness is unchanged.
+  S1/S2/W1, F6/F7, the runner settlement producer proof (F11), generic D5 and
+  C1–C4 require evidence beyond the raw fields and finite retained-value
+  controls. Whole-State readiness is unchanged.
 - **Order-index integration:** §7.5 supplies the internal `WriteOrder` laws
-  and the local laws for R14 account writes, R16 storage clear, R17 account
+  and the local laws for R14 account writes, R15 storage writes, R16 storage clear, R17 account
   destruction, R18 modification and R21 code installation. R24 retains saved
   order and value roots
   together. Incorporation,
@@ -2164,7 +2212,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   history/reachability, AccountWritesLookedUp and F7 remain open.
 - **`AccountWritesLookedUp`** (R32) is argued from a grep of `forks/amsterdam/` callers of `set_account`; it needs a Lean statement that is meaningful for a pure provider (currently only an instrumented-execution formulation is sketched) and a proof across system transactions, withdrawals and the throwaway pre-check state (R28).
 - **`BlockDiff.WF` (ii)** is an inference; in particular 7702 delegation and creation paths must be checked to never leave storage changes for an absent account.
-- **Unreachability of the assertion in R15** is inferred.
+- **R15 reachability:** §§3/4/7.1/7.5 supply the standalone write and its
+  typed absence error, complete action and local order laws, and the conditional
+  visible-word equation. The whole-state commuting equation, the public
+  read-after-write law and proof of the R15 assertion's unreachability remain
+  open.
 - **`WitnessError` granularity:** the coarse constructors here must be refined together with `EthCommit`/`EthStateWitness` and the O4 sub-cases; CONTRACT owns the outcome, EthState owns the shared error type, and EthCommit/EthStateWitness supply the site-specific adapters (D14).
 - **Observation-set representation (Q84):** Base's canonical functional key
   support is supplied (EthBase §3). EthState §3 supplies the raw TxObs and
