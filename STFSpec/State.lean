@@ -31,6 +31,7 @@ import STFSpec.State.SetCode
 import STFSpec.State.AccountExists
 import STFSpec.State.CurrentStorage
 import STFSpec.State.SetStorage
+import STFSpec.State.PreTxReads
 import STFSpec.State.StorageOriginal
 import STFSpec.State.TransientStorage
 import STFSpec.State.TransientStorageWrite

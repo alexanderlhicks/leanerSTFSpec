@@ -259,6 +259,17 @@ mathematical inputs. Other trackers, generic coupling and whole-State gates rema
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/state_tracker.py:262–295` | `getStorage {m : Type → Type} [Monad m] (a : Address) (k : Bytes32) : StateM m U256` on arbitrary raw states and supplied providers | Mark `(a,k)`. Select the transaction slot, transaction clear, block slot, block clear or retained provider in R11 order. Present writes include zero. Repeat the provider call on every fall-through. Wrap its complete error as `StateError.witness` (R29/R30). | Private five-branch equations under `Monad`. Private `Id` whole-state, read-membership, exact error and conditional transaction-view proofs (§7.1). Facade guards and bounded native/interpreted comparisons with pinned source are in §4. |
 
+### Implemented BAL pre-transaction value reads
+
+| Source at the pin | Lean declaration and domain | Ordered effects and failures | Laws and validation |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/block_access_lists.py:690–705` | `preTxAccount {m : Type → Type} [Monad m] (t : TxState m) (a : Address) : m (Except StateError (Option Account))` on arbitrary supplied states | Return the complete block account entry, including a tombstone. On a block miss, bind the retained optional account action. Return its optional answer or wrap its exact error as `StateError.witness`. | Private complete action, framing and contextual Id block-view laws (§7.2), with facade and source checks (§4). |
+| `src/ethereum/forks/amsterdam/block_access_lists.py:708–724` | `preTxStorage {m : Type → Type} [Monad m] (t : TxState m) (a : Address) (k : Bytes32) : m (Except StateError U256)` on arbitrary supplied states | Select a block slot, including zero. On a slot miss, a block clear returns zero. Otherwise bind the retained storage action and return its word or wrap its exact error as `StateError.witness`. | Private complete action, framing and contextual Id block-view laws (§7.2), with facade and source checks (§4). |
+
+`State/PreTxReads.lean` supplies both operations through the State facade.
+The reads leave tracker fields and observations alone. R25 and EthBlock §8
+govern the later BAL use before incorporation.
+
 ### Implemented account existence check
 
 | Source at the pin | Lean declaration and domain | Value, effects and failures | Laws and validation |
@@ -822,6 +833,19 @@ production provider, progress, root/authentication, resource or release result.
   includes the R15 guard independently of Python's optimization mode. Its typed
   failure returns no transaction
   state, and the underlying account action follows the base monad.
+- **Implemented BAL pre-transaction read controls.** `PreTxReadControls.lean`
+  checks twelve cases through the State facade. Account cases cover block
+  presence and tombstones, provider presence and absence, and an exact error.
+  Storage cases distinguish a zero slot with a clear, a nonzero hit, a missing
+  slot with a sibling, a clear, a missing address and an empty slot map.
+  The observing base checks complete values and exact provider keys, errors,
+  and call order, including repeated reads through the retained provider.
+  Private facade proofs allow arbitrary replacements of the transaction
+  revertible record and observation sets without changing either action.
+  Eight pinned BAL source probes per Python mode exercise the corresponding
+  helper branches, compare whole answer and provider traces, and check that
+  the input tracker layers retain their fields. The normal and optimized
+  source logs agree.
 - **Implemented optional-account controls:** `PreStateAccountCallerProofs.lean`
   consumes only public action/framing/membership/model laws. The input-only
   `pre_state_account_inputs.json` has 66 cases distinguishing missing entries,
@@ -1385,8 +1409,10 @@ def TxState.originalAt (σ₀) (t) (a) (k) : U256
 private def TxRevertible.asDiff (r : TxRevertible) : BlockDiff       -- owning view module
 def BlockDiff.merge (d₁ d₂ : BlockDiff) : BlockDiff                  -- incorporate's rule, R25
 -- Read-only BAL views; they expose source semantics, never container layout.
-def preTxAccount (t : TxState m) (a : Address) : m (Except StateError (Option Account))   -- falls through to the pre-state
-def preTxStorage (t : TxState m) (a : Address) (k : Bytes32) : m (Except StateError U256)
+def preTxAccount {m : Type → Type} [Monad m] (t : TxState m) (a : Address) :
+    m (Except StateError (Option Account))  -- supplied
+def preTxStorage {m : Type → Type} [Monad m] (t : TxState m) (a : Address) (k : Bytes32) :
+    m (Except StateError U256)  -- supplied
 def TxState.accountWritesInOrder : TxState m → List (Address × Option Account)
 def TxState.storageWritesInOrder : TxState m → List (Address × List (Bytes32 × U256))
 -- Supplied logical membership views, without class premises or a Set provider.
@@ -1808,6 +1834,25 @@ open.
   input and arbitrary m, without any class or validity premise. This is the only
   public transaction-view law, for the `getAccountOptional_model` consumer.
   Whole construction/application, metadata, other observers and support stay private.
+
+The BAL pre-transaction value reads have private complete action equations
+under Monad. A block hit returns the selected value through `pure`. A storage
+clear after a slot miss also returns through `pure`. Each remaining miss
+uses one explicit bind of its retained provider action. The continuation
+wraps the exact provider error in `StateError.witness`. The equations
+depend only on the selected block lookups, storage clear membership for the
+queried address, and the respective provider actions. In particular,
+transaction writes, clears, created accounts and observations do not
+affect either action.
+
+At Id, a successful `preTxAccount t a` returns `(t.block.view σ₀).account? a`
+and a successful `preTxStorage t a k` returns
+`(t.block.view σ₀).storageAt a k` under their respective local agreement
+premises. A successful account provider answer at `a` must equal
+`σ₀.account? a`. A successful storage provider answer at `(a, k)`
+must equal `σ₀.storageAt a k`. Each proof uses its premise only on the
+provider branch. The mathematical base is otherwise unrestricted.
+
 - **Read-after-write:** `setStorage a k v; getStorage a k` returns `v`; same for accounts and code writes. The transient instance is supplied privately at Id on every raw state: a read after `setTransientStorage a k v` returns `v` and the complete written state. The proof uses the existing action equation for `getTransientStorage`.
 - **Frame:** a write to `(a,k)` leaves `getStorage a' k'` unchanged for `(a',k') ≠ (a,k)`; writes never change `getStorageOriginal`.
 - **Clear suppression:** after `destroyStorage a`, `getStorage a k = 0` until `(a,k)` is written again in the same transaction; later writes are visible. At block level: a transaction clear hides all earlier block writes of `a`, and later transactions see only the post-clear writes.
@@ -2021,6 +2066,13 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   with reachable WF/history separate. The two supplied class-free logical block read
   views and membership iff laws provide exact raw account/storage membership; BAL
   construction/sorting and tracker observation accumulation remain separate.
+- **BAL pre-transaction values supplied:** `preTxAccount` and `preTxStorage`
+  expose the current block overlay and retained provider for EthBlock
+  (§§3/7.2). Their types carry a value or typed error without tracker
+  updates. `getPreStateAccountOptional` records account reads, and
+  `getStorageOriginal` follows the R12 created-account branch. The BAL
+  reads use the block overlay without either behavior. EthBlock owns
+  memoisation and when to sample these actions.
 - **Constants context (F20).** `BlockState.new` preserves the supplied record:
   `(BlockState.new ps consts).consts = consts`. State operations read it through their
   existing `TxState`/`BlockState` context; they receive no parallel constants argument.
@@ -2097,6 +2149,10 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   initialization consumer laws await a named consumer and separately reviewed
   contract. The EELS default-empty BlockDiff convenience constructor remains deferred.
   These component contracts do not change whole-State readiness.
+- **BAL pre-transaction read handoff:** §§3/4/7.2/8 supply the standalone
+  account and storage values, including the exact typed provider errors.
+  Incorporation, index-start memoisation, ordered write observers and
+  the G3 composition law remain open.
 - **Raw TxState/StateM boundary:** §3/§4/§5/§7 supplies nominal assembly of the
   complete providers and the exact state/error transformer order, with
   private ordinary wiring clients only. Hash-only codeReads matches the pin;
