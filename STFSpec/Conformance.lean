@@ -104,6 +104,8 @@ import STFSpec.Conformance.Vm.Instructions.LocalCopyControls
 import STFSpec.Conformance.Vm.Instructions.MemoryCopyControls
 import STFSpec.Conformance.Vm.Instructions.LogOpcodeControls
 import STFSpec.Conformance.Vm.Instructions.CreateChildContextControls
+import STFSpec.Conformance.Vm.Instructions.CreateControls
+import STFSpec.Conformance.Vm.Instructions.CreateResumeControls
 import STFSpec.Conformance.Vm.Instructions.FeeWordControls
 import STFSpec.Conformance.Vm.Instructions.SizeWordControls
 import STFSpec.Conformance.Vm.Instructions.PcGasWordControls
@@ -317,6 +319,7 @@ import STFSpec.Conformance.State.AccountScalarControls
 import STFSpec.Conformance.State.SetCodeControls
 import STFSpec.Conformance.State.AccountExistsGuards
 import STFSpec.Conformance.State.CurrentStorageGuards
+import STFSpec.Conformance.State.SetStorageControls
 import STFSpec.Conformance.State.StorageOriginalGuards
 import STFSpec.Conformance.State.TransientStorageCallerProofs
 import STFSpec.Conformance.State.TransientStorageWriteChecks
@@ -339,6 +342,12 @@ import STFSpec.Conformance.StateCommit.AccountCallerProofs
 import STFSpec.Conformance.StateCommit.AccountGuards
 import STFSpec.Conformance.StateCommit.AccountDecodeCallerProofs
 import STFSpec.Conformance.StateCommit.AccountDecodeGuards
+import STFSpec.Conformance.StateCommit.CodeAgreementCallerProofs
+import STFSpec.Conformance.StateCommit.CodeAgreementGuards
+import STFSpec.Conformance.StateCommit.MathStateRootGuards
+import STFSpec.Conformance.StateCommit.MathStateRootEffects
+import STFSpec.Conformance.StateFull.CarrierChecks
+import STFSpec.Conformance.StateFull.StorageChecks
 
 import STFSpec.Conformance.Commit.IncrementalRootCallerProofs
 import STFSpec.Conformance.Commit.IncrementalRootGuards

@@ -1,6 +1,6 @@
 # `EthVmRunner`: message-call and create execution, child frames, precompile dispatch, termination
 
-*Status: informal specification, draft. Selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, output records, child outcome conversion, checked control carriers, F14 VM adapter and local precompile adapter supplied. Date: 2026-11-23. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
+*Status: informal specification, draft. Selectable budget and entry-kind vocabulary, raw RunnerEnv carrier, output records, child outcome conversion, checked control carriers, F14 VM adapter and local precompile adapter supplied. Date: 2026-11-27. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
 *Navigation: interface findings F1, F3, F8, F10, F11, F12, F14, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D5, D13, D14, D17, D22, D23, D24, D26 · questions: B11/Q28, B12/Q4, B14, F11, Q6/Q20, Q83, Q91.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference not yet checked by proof or execution. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
@@ -52,12 +52,27 @@ In this order:
   For the paid stack-immediate cases, use the running fetch guard and the
   related code-length bound to discharge Q91's fitting-start premise
   (EthVmInstructions §7).
-- **R-LOOP-2** On `.call parent req h hs`: build the child context with `childCtxOfCall ctx req h` (depth + 1) and the child frame with `childFrame parent req.gas req.stateGasReservoir` (its warm sets are the parent's); the child context inherits `ctx.systemAddress` unchanged (F8). Run `processCall`, form the `ChildOutcome` (the `ChildSettled` proof: F11, §9), and continue with `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`: likewise with `processCreate` and `resumeAfterCreate` (EELS: `I/system.py:133–185, 402–462`). The parent frame is suspended unchanged while the child runs.
+- **R-LOOP-2** On `.call parent req h hs`, build the child context with
+  `childCtxOfCall ctx req h` (depth + 1) and the child frame with
+  `childFrame parent req.gas req.stateGasReservoir`. The frame inherits the
+  parent's warm sets, and the context inherits `ctx.systemAddress` (F8).
+  Run the internal non-top CALL route (F11, §7). For the returned frame result,
+  pass its settlement proof to `FrameResult.toChildOutcome`, then continue with
+  `resumeAfterCall ctx.config parent req outcome hs` (F10). On `.create`,
+  use the corresponding internal CREATE route and `resumeAfterCreate`
+  (EELS: `I/system.py:133–185, 402–462`). The parent frame is suspended
+  unchanged while the child runs.
+  The supplied CREATE and CREATE2 handlers provide the suspended frame, request,
+  strict depth proof and stack-room proof (EthVmInstructions §§3 and 7). Start
+  the child from that frame and the post-handler world, which already carries
+  the sender nonce update. Pass the original suspension data to
+  `resumeAfterCreate` after settlement.
 - **R-LOOP-3 Precompile table.** `PrecompileFn m` (EthVmCore) takes `(input, meter)` and returns, in `m`, either `.ok meter' output` or `.halt e`. At Id the table's `meter_law`, via Core's `satisfiesM_id_iff` (Q83), guarantees that `meter'` differs from `meter` only by a `gas_left` charge. For arbitrary m, the action-factorization witness requires a concrete bridge through the actual dispatch/lift before making that observed-result claim. The runner **installs `meter'` as the frame meter** and sets the output, without charging again; on `.halt` it applies the ordinary frame-halt settlement (R-CALL-4). This matches EELS, whose precompiles read only `evm.call_data`, write only `evm.output` and charge only execution gas on the frame's own meter [V: `grep evm\.` over `precompiled_contracts/` finds only `call_data` and `output`, plus `charge_gas`]. ecrecover and p256verify return empty output on invalid input rather than halting (O9, EthPrecompiles). The table's key set is also the warm-set seed of §2.2 step 3.
 
 EthVmInstructions §7 supplies the mutable child frame initialization used by
-R-LOOP-2. The runner must preserve the initial zero committed spill through
-execution and use the settled result at resume.
+R-LOOP-2. At child entry, obtain zero committed spill from that construction.
+Preserve it through execution and use the internal settled result at resume
+(F11, §7).
 
 ### 2.7 Termination and fuel (ARCHITECTURE §5.5; O11; REVIEW §7 G2–G7)
 
@@ -101,8 +116,8 @@ The source refund is U256 after the checked casts in R-TOP-2/R-TOP-3. This raw
 Nat storage performs no cast or range check; actual source correspondence needs
 the successful unsigned range and exact U256 reconstruction (Q66). Raw error
 presence implies neither empty logs/deletions nor ChildSettled. Frame output and
-frame.returnData are independent. Actual producers, settlement, F11 and
-execution/fuel/resource/readiness obligations remain open.
+frame.returnData are independent. Actual producers, the settlement producer
+proof (F11) and execution/fuel/resource/readiness obligations remain open.
 
 ### Supplied child outcome conversion
 
@@ -182,8 +197,8 @@ is asserted. EELS uses a different operational termination model.
 
 All checked-carrier clients are private in
 `STFSpec/Conformance/Vm/Runner/CheckedCallerProofs.lean`, importing only the
-public Runner facade. Only `fuelExhausted` is supplied; the conditional future
-`invariant` option remains reserved by F11. Actual caller propagation, execution,
+public Runner facade. The sole constructor is `fuelExhausted`. F11 carries
+the settlement proof on the internal return (§7). Actual caller propagation, execution,
 budget, exhaustion-unreachability and guest projection remain open. The F14
 adapter is supplied below.
 
@@ -286,7 +301,7 @@ success and outer revert/halt discard cases under the existing settlement contra
 
 ## 5. Interface
 
-Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values, including `.u256Overflow .refundCounter`. Both original top-level unsigned casts and their order/bounds remain obligations of R-TOP-2/R-TOP-3; checked propagation, F11 and G2–G7 remain open.
+Core §3/§4/§5/§7 supplies nominal OverflowSite/VmFault values, including `.u256Overflow .refundCounter`. Both original top-level unsigned casts and their order/bounds remain obligations of R-TOP-2/R-TOP-3; checked propagation, the F11 producer proof and G2–G7 remain open.
 
 ```lean
 -- PrecompileResult, PrecompileFn, PrecompileTable and VmConfig are imported from EthVmCore.
@@ -301,7 +316,6 @@ structure RunnerEnv (m : Type → Type) [Monad m] where
 
 -- Internal errors and checked carriers (supplied; source-free; O11/F14)
 inductive InternalError | fuelExhausted (depth : Nat)
-  -- `| invariant (what : String)` only if F11 chooses the checked option (§9); G7 must then prove it dead
 abbrev CheckedResult (ε α : Type) := Except InternalError (Except ε α)
 abbrev CheckedT (ε : Type) (m : Type → Type) := ExceptT ε (ExceptT InternalError m)   -- F14; `.run.run : m (CheckedResult ε α)`
 -- Runner monad and checked adapter (supplied; F14)
@@ -317,8 +331,8 @@ def constBudget (n : Nat) : BudgetPolicy := fun _ => n
 -- Frame results and proof-taking conversion (supplied)
 structure FrameResult where frame : Frame; output : Bytes; error : Option FrameError
 def FrameResult.toChildOutcome (r : FrameResult) (h : ChildSettled r.frame r.error.isSome) : ChildOutcome
--- Pure field-preserving adapter; apply only after processCall/processCreate settles a non-top child.
--- How the runner obtains `h` is open (F11, §9).
+-- Pure field-preserving adapter. The continuation takes `h` from the internal
+-- non-top CALL/CREATE return after settlement (F11, §7).
 structure TransactionOutput where
   gasLeft : Nat; refundCounter : Nat; logs : LogRope; accountsToDelete : AddrSet
   error : Option FrameError; returnData : Bytes; stateGasLeft : Nat; stateGasUsed : Int
@@ -327,6 +341,8 @@ structure TransactionOutput where
 def runFrame      (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) (fuel : Nat) : RunM m FrameResult
 def processCall   (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
 def processCreate (env : RunnerEnv m) (b : BudgetPolicy) (ctx : FrameCtx) (f : Frame) : RunM m FrameResult
+-- The internal non-top CALL/CREATE return carries
+-- {r : FrameResult // ChildSettled r.frame r.error.isSome} (F11, §7).
 -- Supplied internal adapter. The table action stays in base m (R-LOOP-3).
 def runPrecompile {m : Type → Type} [Monad m]
     (p : PrecompileFn m) (f : Frame) (input : Bytes) : m FrameResult
@@ -371,19 +387,34 @@ TransactionOutput, with ordinary generated structure support. Private facade
 clients retain every complete field, reconstruct both records and replace each
 field independently. No settlement, relation between output and frame.returnData,
 error/effect relation, refund range, hash/class premise or authored public law is
-added. Source casts, actual producers and F11 remain open.
+added. Source casts and actual producers remain open.
 
 **Child outcome conversion (supplied).** For every `r` and supplied settlement
 proof `h`, `r.toChildOutcome h` reduces to `ChildOutcome.mk r.frame r.output r.error h`.
 The adapter uses the complete frame and retains its return data independently of
-`r.output`. For executed results, F11 governs how `processCall` and `processCreate`
-provide the proof. The child-return gas bound is a separate G2 premise.
+`r.output`. F11 specifies `{r : FrameResult // ChildSettled r.frame r.error.isSome}`
+for the internal non-top CALL/CREATE return. The continuation
+passes that result's proof to `FrameResult.toChildOutcome` before resuming the
+parent. The public raw runner signatures and top-level carriers retain their
+specified types (F11).
+
+For the producer proof, take zero committed spill from `childFrame` at admitted
+non-top entry and maintain it through child execution to return. On failure,
+ordinary meter rollback clears pending spill and the signed refund and
+restores the reservoir to its baseline. The producer must preserve zero
+committed spill through rollback as well. The CALL and CREATE snapshot,
+revert, halt and code deposit contracts still apply. Share the operation
+bodies wherever the top-level and child routes have the same semantics. The
+exact private recursion, producer proof and generic Q83 effect bridge remain
+implementation work.
+The returned-child potential bound and strict parent-iteration progress are
+separate G2 obligations.
 
 **Supplied entry-kind carrier.** `ExecKind` has exactly the three nullary
 constructors specified in §5, with exhaustive dependent elimination and pairwise
 disjointness checked by private ordinary facade clients. There are no parameters
 and no authored instance, default or observer. No `Exec` relation or execution law is supplied;
-D13/B11, F11 and G2–G7 remain open.
+D13/B11, the F11 producer proof and G2–G7 remain open.
 
 **Checked control storage (supplied).** §3/§5 own exactly `InternalError` with
 `fuelExhausted (depth : Nat)`, `CheckedResult` and `CheckedT`, with ordinary
@@ -391,8 +422,8 @@ inductive infrastructure and no authored public law/default/instance package.
 Private facade proofs preserve arbitrary complete payloads, both exact alias
 unfoldings and the entire underlying `m` action without a Monad, KeccakQuery or
 lawful-monad premise. Local Id binds exercise distinct short-circuit channels.
-F11's optional future invariant remains unselected. Actual caller propagation,
-execution, budget policy, G2–G7 and O11 guest projection remain open.
+F11 uses the internal settlement proof described above. Actual caller
+propagation, execution, budget policy, G2–G7 and O11 guest projection remain open.
 
 **Checked VM action routing (supplied/discharged; F14).** `RunM` is the
 class-free alias in §5. The sole public law `runVmChecked_eq` is the complete
@@ -422,7 +453,7 @@ existing generic factorization witness and exact Id consequence through Core's
 public contract. This storage introduces no effects, hash query, failure,
 coherence/global invariant, KeccakQuery or lawful-monad premise. It establishes
 no successful createEvm copy, child inheritance, emission, installed-table/config
-assembly, transformer/dispatch/settlement bridge, F11 or G2–G7 result.
+assembly, transformer/dispatch/settlement bridge, F11 producer proof or G2–G7 result.
 
 **Supplied budget definitions.** For every raw meter `m` and every `n : Nat`,
 `phiBudget m = m.phi + 1` and `constBudget n m = n` by their ordinary definitions.
@@ -450,7 +481,7 @@ termination or fuel-adequacy result is added. The remaining laws below are plann
 1. *Soundness* [T/R]: `processCall env b ctx f w = .ok (.ok r, w') → Exec env .call ctx f w r w'` for **every** policy `b`.
 2. *Completeness* [T]: `Exec env .call ctx f w r w' → ∃ N, ∀ n ≥ N, processCall env (constBudget n) ctx f w = .ok (.ok r, w')`.
 3. *Fuel monotonicity at fixed semantic gas* [T]: `processCall env (constBudget n) ctx f w = .ok (.ok r, w') → processCall env (constBudget (n + k)) ctx f w = .ok (.ok r, w')`; similarly for pointwise-larger policies.
-4. *Fuel sufficiency* [T]: `processCall env phiBudget ctx f w ≠ .ok (.error (.fuelExhausted _), w')` for all `w'`, including executions ending in revert, exceptional halt or EVM out-of-gas; lifted to `processTopLevelChecked`. Composed at the guest (EthStateless) this gives O11's `∀ input, ∃ out, runStatelessGuestChecked input = .ok out`, provided `InternalError` has no other reachable constructor (G7; this includes `invariant` if F11 chooses the checked option).
+4. *Fuel sufficiency* [T]: `processCall env phiBudget ctx f w ≠ .ok (.error (.fuelExhausted _), w')` for all `w'`, including executions ending in revert, exceptional halt or EVM out-of-gas. Lift this to `processTopLevelChecked` and prove the complete checked guest's O11 target `∀ input, ∃ out, runStatelessGuestChecked input = .ok out` (G7).
 
 These are separate results: 2 does not give a computable budget and 4 does not give agreement with `Exec`. No gas-monotonicity statement is claimed: more *gas* can change behaviour (GAS, 63/64 forwarding).
 
@@ -485,11 +516,11 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **Supplied budget seam:** reuse the existing `EthVmCore.GasMeter` and its `phi`
   directly; the public Runner facade exports the three policies and EthConformance
   imports their private clients/guards. Callbacks accept every raw meter. No runner
-  consumes a policy yet and no default is installed; B11/F11 and O11 remain open.
+  consumes a policy yet. B11 and O11 remain open.
 - **Supplied checked-carrier seam:** the Runner facade exports `InternalError`,
   `CheckedResult` and `CheckedT`; EthConformance imports their private clients. The
   F14 RunM/runVmChecked adapter and ordinary equation are supplied; actual caller
-  propagation, F11 and O11 projection remain open.
+  propagation, the F11 producer and O11 projection remain open.
 - **Depends on:** `EthVmInstructions`, `EthCurve` (secp256k1 recovery for EIP-7702 authorities, D26; the runner calls `secp256k1Recover` directly, as EELS does).
 - **Used by:** `EthBlock` (`processTopLevelChecked` for user and system transactions; `TransactionOutput`), transitively `EthFork` (supplies `RunnerEnv`: the precompile table from `EthPrecompiles`, one `VmConfig` and `systemAddress` through BlockConfig.runnerEnv; recovery is a direct `EthCurve` call).
 - **Seams:** consumes `step`, the request/resume operations and delegation resolution (EthVmInstructions), the meter and settlement laws (EthVmCore), EthState snapshot/restore and account operations; provides the transaction-level execution function and the four fuel guarantees. Cross-module invariants relied on: `EthBlock` validates the transaction before calling (intrinsic gas affordable, sender balance and nonce, `is_create → authorizations = ()`); `EthFork`'s table satisfies `lookup_iff`/`meter_law`. Guaranteed: settlement post-conditions above; `InternalError` is the only non-`VmFault` failure.
@@ -504,19 +535,21 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
 - **D24**: child logs merge as a rope append.
 - NEW-VM-5: resolved by D26 (DECISIONS Q27).
 - **NEW-VM-6** (DECISIONS B11, Q28): Φ + 1 remains an unproved candidate, settled by the fuel-adequacy investigation; also open is whether the fuel-indexed family for guarantees 2–3 is `constBudget n` or "all policies pointwise ≥ some policy".
-- **F11** (open, choose one): how the runner produces `ChildSettled` for `toChildOutcome`. Either a decidable check whose failure raises a new `InternalError.invariant` (then proved dead with the fuel guarantees, G7; the choice of a compiled prototype of the interfaces), or a settled subtype returned by `processCall`/`processCreate`, which needs `L-SETTLE` proved inline.
+- **F11** (adopted): carry the settlement proof at the internal non-top
+  CALL/CREATE return (§7). The actual producer and its proofs remain open.
 
 ## 10. Gaps
 
 - **Core settlement assertion boundary:** EthVmCore §3/§5/§7 supplies the raw
   ChildSettled predicate and constructive Decidable instance. EthVmInstructions §7
   supplies the committed-spill clause at child entry. Preservation through execution,
-  call/create settlement and snapshots, returned proof production, incorporation
-  and child/resume remain open.
-  This logical decision procedure chooses neither F11 production option and
-  supplies no runtime check, settled executor or generic Q83 effect bridge.
+  call/create settlement and snapshots, returned proof production and runner
+  integration remain open. EthVmInstructions §7 proves local CREATE progress
+  through resume under the separately required child-return Φ bound (G2).
+  F11 chooses the proof-carrying return. Implement the producer and the
+  generic Q83 effect bridge.
 
-- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented; F11 and G2–G7 remain open. The current sole constructor does not rule out the conditional future invariant option or establish exhaustion dead.
+- **Checked carriers are supplied:** §3/§5/§7 own the minimal source-free error/result/transformer shapes and private complete facade clients. RunM/runVmChecked and their sole ordinary routing equation are supplied in §3/§5/§7. Actual propagation through callers, execution, budgets and guest projection remain unimplemented. The F11 producer and G2–G7 proofs remain open, including exhaustion unreachability.
 
 - **Precompile interpretation (Q83).** Core supplies the shared carriers, MeterOk,
   the Q83 predicate and Id law. `runPrecompile` supplies the base-monad invocation
@@ -530,7 +563,7 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   casts/range evidence, settlement and production of the adapter argument (F11)
   are open, along with the execution/fuel/resource/readiness gates.
 
-- **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly and runtime transport remain open; no execution, F11, D5 coupling, fuel, resource or guest/readiness result follows.
+- **Raw RunnerEnv is supplied:** §3/§5/§7 own its exact three-field Monad-only storage and private complete facade clients. Actual config/table assembly, runtime transport, execution, the F11 producer proof, D5 coupling, fuel, resource and guest/readiness remain open.
 
 - **F8 immutable address transport.** EthVmCore §3/§7 supplies the transfer-log
   helper. EthVmInstructions §7 supplies local CREATE inheritance. The runner

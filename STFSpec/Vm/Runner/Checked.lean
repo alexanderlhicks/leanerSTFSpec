@@ -14,8 +14,7 @@ Spec guidance: `STFSpec/informal/modules/EthVmRunner.md` §§3/5/7.
 
 namespace STFSpec.Vm.Runner
 
-/-- Spec-internal failure (O11), separate from frame exits and protocol rejections.
-The optional invariant failure remains reserved by F11. -/
+/-- Spec-internal failure (O11), separate from frame exits and protocol rejections. -/
 inductive InternalError where
   /-- Per-frame fuel exhaustion, retaining the complete supplied depth. -/
   | fuelExhausted (depth : Nat)

@@ -23,7 +23,7 @@ inductive StateError where
   | balanceUnderflow
   /-- The R19 credit exceeds the U256 balance range. -/
   | balanceOverflow
-  /-- A future storage write targets a missing account (R29). -/
+  /-- The transaction or full-state storage setter found no account at the address (R29, FS6). -/
   | storageOnMissingAccount
 
 end STFSpec.State

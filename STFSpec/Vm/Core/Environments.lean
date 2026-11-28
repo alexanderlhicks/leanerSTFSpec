@@ -8,9 +8,11 @@ import STFSpec.Vm.Core.Sets
 /-!
 # Raw block and transaction environments
 
-Library `EthVmCore`. Immutable VM-visible data from pinned EELS
-`src/ethereum/forks/amsterdam/vm/__init__.py:49–67,125–148` (R-ENV-1/R-ENV-2).
-State, block builders/hints and paid-write bookkeeping retain their separate owners.
+Library `EthVmCore`. Immutable VM-visible block data follows R-ENV-1 and EELS
+`src/ethereum/forks/amsterdam/vm/__init__.py:43–61` at `59c1473d`.
+The historical transaction field mapping for R-ENV-2 uses
+`src/ethereum/forks/amsterdam/vm/__init__.py:125–148` at `e1a316a0`.
+State, the block access list builder and paid-write bookkeeping have separate owners.
 Spec guidance: `STFSpec/informal/modules/EthVmCore.md` §§3/5/7.
 -/
 
