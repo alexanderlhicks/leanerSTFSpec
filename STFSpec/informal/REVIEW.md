@@ -482,6 +482,14 @@ State fault and the complete continuation with potential accounting. Source
 agreement uses the pinned prices and related entry fields. Dispatch,
 interpreter trace refinement and the composed gates remain open.
 
+Q100 specifies the SSTORE charge value and ordered handler in
+EthVmInstructions §§2.4/5/7. The separate sentry uses the same access
+expression as the execution price before warming or reading. The pure
+result keeps a signed refund and distinguishes an active zero credit.
+Prove the whole-result law and the live handler's payment and State
+boundaries. Shared derived pricing, R15 reachability, O13 and G2–G7
+retain their separate obligations.
+
 EthVmInstructions §3/§4/§5/§7 supplies standalone BLOBHASH. Its private
 laws cover ordered pop and charge, exact whole-frame and world results,
 all 32 bytes of the selected hash, and zero outside the ordered array.

@@ -1,7 +1,7 @@
 # `EthVmInstructions`: one handler per opcode, `StepResult`, child requests and resume operations
 
 *Status: informal specification, draft. Section 3 records the supplied carriers, opcode conversions, handlers and local laws. Date: 2026-11-24. Pin: `tests-zkevm@v21.0.6` @59c1473d. Architecture: `STFSpec/informal/ARCHITECTURE.md`.*
-*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, Q92, Q93, Q94, Q95, F11.*
+*Navigation: interface findings F1, F8, F10, F11, F20 (DECISIONS §3) · gate: [REVIEW §3](../REVIEW.md) · decisions: D1, D5, D13, D14, D17, D18, D26, D27 · questions: B7/Q24, B8/Q1, B14/Q23, Q91, Q92, Q93, Q94, Q95, Q100, F11.*
 
 Paths in `file:line` references are relative to `src/ethereum/forks/amsterdam/vm/` unless stated otherwise; `I/` abbreviates `instructions/`. "[V]" marks a claim checked by reading the pinned source; "[I]" an inference. EELS `file:line` citations are at `59c1473d` except where marked and those listed in `STFSpec/informal/citation-remap-manual.txt`, which are still at `e1a316a0` (`tests-zkevm@v21.0.0`); verified observations are at `e1a316a0` unless marked as at `59c1473d` (GAPS-CROSSCUTTING X16).
 
@@ -191,14 +191,44 @@ the rest of the paid frame and the supplied world. EELS
 
 ### 2.4 SSTORE (`I/storage.py:68–161`; EIP-2200, EIP-3529 refund values, EIP-8037 state gas, EIP-8038 access)
 
-In order: (1) static → `WriteInStaticContext`; (2) pop key, new; (3) `cost := cold ? 2100 : 100`; (4) `check_gas(max(cost, 2301))`: the EIP-2200 sentry, **before any state read**; (5) warm the slot; (6) read `original` (`get_storage_original`) then `current`; (7) if `original = current ≠ new`: `cost += 10000` (`STORAGE_WRITE`); (8) if `current ≠ new`: `+11616` if `original ≠ 0 ∧ current ≠ 0 ∧ new = 0`; `−11616` if `original ≠ 0 ∧ current = 0`; `+10000` if `original = new` (each independently, on the `Int` refund counter); (9) state gas `97920` (`STORAGE_SET`) if `original = current = 0 ≠ new`; (10) if `current ≠ new ∧ original = new = 0`: `credit_state_gas_refund(97920)` **before** the charges; (11) `charge_gas(cost)`, then `charge_state_gas(state)`; (12) `set_storage`.
+Q100 uses the source initializer for raw prices. The handler follows
+`src/ethereum/forks/amsterdam/vm/instructions/storage.py:68–161` at the pin.
 
-In the zero restoration case in step (10), `current ≠ 0` and
-`original = new = 0`. The step (7) write surcharge and step (9)
-state charge are zero. The earlier sentry already checked the
-entire warm or cold access charge. Preserve the source order by
-crediting the refund, charging execution gas, charging state gas
-and then writing the slot.
+1. Reject static execution with `WriteInStaticContext`. Pop the slot word
+   and convert it to all 32 big-endian bytes. Then pop the new word.
+2. Determine whether the current target and slot are cold in the entry
+   warmth set. Compute `access` as `cfg.costs.zero` plus the selected
+   `coldStorageAccess` or `warmAccess`. Check
+   `max access (cfg.costs.callStipend + 1)` without paying. This sentry
+   precedes warming and both storage reads.
+3. Warm the slot if cold. Read the original value through R12, then the
+   current value through R11. These reads supply the remaining inputs
+   to the §7 charge equation.
+4. Initialize the separate state amount to literal zero. Add the
+   write surcharge to the execution price for a clean changed word.
+   The signed refund terms apply only when the word changes. Grant
+   the clear refund when the original and current words are nonzero
+   and the new word is zero. Reverse the clear refund when the
+   original word is nonzero and the current word is zero. Add the
+   write price to the refund when the original equals the new word.
+   For a clean changed word with zero origin, set the state amount
+   to the storage-set price. When the word changes and the original
+   and new words are both zero, call `creditStateGasRefund` for the
+   storage-set price before either payment, including when the price
+   is zero.
+5. Pay execution gas, then state gas. After both succeed, call the R15
+   guarded storage write, including when the word is unchanged. Advance
+   the PC by one only after the write succeeds.
+
+At the pinned prices the access is 100 warm or 2,100 cold and the sentry
+threshold is 2,301. The write price is 10,000, the signed clear term is
+11,616 and the storage-set price is 97,920. In the changed zero-restoration
+case the execution cost is just the selected access expression, and the
+state charge is zero. The sentry already checked that access amount.
+Source comparisons under repricing require `StateGasCosts.STORAGE_SET`
+to match the storage-byte count times the state-byte price, including when
+an experiment changes those factors after Python initializes the derived
+attribute. EELS `src/ethereum/forks/amsterdam/vm/gas.py:40–60`.
 
 ### 2.5 CREATE / CREATE2 and `generic_create` (`I/system.py:59–304`)
 
@@ -315,6 +345,12 @@ EELS `src/ethereum/forks/amsterdam/vm/interpreter.py:450–465` at the pin.
 | EELS source at `59c1473d` | Lean declaration | Effects and ordered failures | Laws and tests |
 |---|---|---|---|
 | `src/ethereum/forks/amsterdam/vm/eoa_delegation.py:84–109` | `STFSpec.Vm.Instructions.resolveDelegatedCodeAddress` in `STFSpec/Vm/Instructions/DelegationResolution.lean`, exported by the Instructions facade | Lift the account and code reads in order. A State failure returns an outer fault. Ordinary code preserves the address, meter and warmth. A designator selects the price by its destination and charges execution gas. Denial returns an inner halt with the reached world. Payment returns the delegate, paid meter and updated warmth. | Whole generic action and five Id laws (§7). Recording providers, raw tariffs and direct-source cases (§4). |
+
+### Guided SSTORE handler and charge result
+
+| Source at the pin | Lean declarations and domain | Value and ordered effects | Law and controls |
+|---|---|---|---|
+| `src/ethereum/forks/amsterdam/vm/instructions/storage.py:68–161` and `src/ethereum/forks/amsterdam/vm/gas.py:40–60` | `SstoreCharges`, `sstoreCharges` on all raw configurations and words, and `sstore : Handler m` under `Monad m` (§5, Q100) | The pure value gives both charges, the signed refund and optional credit. The handler checks the pre-read sentry, then follows the R12/R11 reads, refund and optional credit, execution and state payments, R15 write and PC advance (§2.4). | The sole ordinary whole-result law is `sstoreCharges_eq` (§7). Handler and proof implementation remain open. |
 
 ### Supplied SLOAD handler
 
@@ -1399,6 +1435,15 @@ zero grants and two unequal grants above 2^256, including each large grant paire
 with zero. The pinned source comparison is a reading of the inline assignments
 in §3.
 
+**Guided SSTORE controls (Q100).** Check the complete charge result across
+warm and cold access and zero, unchanged, changed and restored values.
+Exercise signed clear refund adjustment, the configured ZERO sentry
+and the active zero-credit branch. Source controls distinguish sentry,
+original and current read failures, the two payment boundaries, and a
+paid unchanged write reaching R15. Check the PC and reached observations
+through those stages (§2.4). The handler and its source refinement
+remain to be implemented.
+
 **Standalone SLOAD controls.**
 `STFSpec/Conformance/Vm/Instructions/SloadControls.lean` exercises the public
 handler in a static frame. The cases distinguish address and slot warmth,
@@ -1954,6 +1999,17 @@ def exchange {m : Type → Type} [Monad m] : Handler m
 def balance {m : Type → Type} [Monad m] : Handler m
 def selfBalance {m : Type → Type} [Monad m] : Handler m
 def sload {m : Type → Type} [Monad m] : Handler m
+
+-- Guided standalone SSTORE (Q100).
+structure SstoreCharges where
+  execution : Nat
+  state : Nat
+  refundDelta : Int
+  stateCredit : Option Nat
+def sstoreCharges (cfg : VmConfig) (original current new : U256)
+    (cold : Bool) : SstoreCharges
+def sstore {m : Type → Type} [Monad m] : Handler m
+
 def extcodehash {m : Type → Type} [Monad m] : Handler m
 def blobHash {m : Type → Type} [Monad m] : Handler m
 def blockHash {m : Type → Type} [Monad m] : Handler m
@@ -1983,7 +2039,7 @@ def codesize {m : Type → Type} [Monad m] : Handler m
 def returndatasize {m : Type → Type} [Monad m] : Handler m
 
 -- Remaining handlers (public): extcodesize, returndatacopy, number, gasLimit,
--- blobBaseFee, sstore, msize, create, call, callcode, delegatecall, create2, staticcall,
+-- blobBaseFee, msize, create, call, callcode, delegatecall, create2, staticcall,
 -- selfdestruct : Handler m
 def genericCreate … ; def genericCall …                    -- internal, return FrameExit
 
@@ -3387,9 +3443,41 @@ warmth and residual stack, and increments the exact Nat PC. The Id
 continuation spends exactly the selected price in meter potential and
 makes strict local progress when that price is positive.
 
-Storage laws use the `getStorage` and `setStorage` observations and the exact
-SSTORE cost, refund and state-gas table of §2.4 as a function
-`sstoreCharges original current new cold`. CALL and CREATE laws give the
+**SSTORE charge result (Q100).** The only public charge law identifies
+the whole result on every raw input.
+
+```lean
+theorem sstoreCharges_eq (cfg : VmConfig) (original current new : U256)
+    (cold : Bool) :
+    sstoreCharges cfg original current new cold =
+      let access := cfg.costs.zero +
+        (if cold then cfg.costs.coldStorageAccess else cfg.costs.warmAccess)
+      let write := cfg.costs.storageWrite
+      let clear := cfg.costs.refundStorageClear
+      let storageSet := cfg.stateCosts.bytesPerStorageSet * cfg.stateCosts.costPerStateByte
+      let changed := current ≠ new
+      let clean := original = current ∧ changed
+      let restored := changed ∧ original = new
+      { execution := if clean then access + write else access
+        state := if clean ∧ original = U256.zero then storageSet else 0
+        refundDelta :=
+          (if changed ∧ original ≠ U256.zero ∧ current ≠ U256.zero ∧ new = U256.zero
+            then clear else 0) -
+          (if changed ∧ original ≠ U256.zero ∧ current = U256.zero then clear else 0) +
+          (if restored then Int.ofNat write else 0)
+        stateCredit := if restored ∧ original = U256.zero then some storageSet else none }
+```
+
+The local product in this equation specifies the value. The ownership
+of shared derived prices remains a separate question. `some 0` retains
+the active credit stage even though its numeric meter effect is
+identity. The sentry uses just the access expression before either
+storage read can supply the complete charge result. The live handler
+must establish the ordered Core payments and State observations of
+§2.4. Caller account presence, R15 reachability, O13 and G2–G7 remain
+separate obligations.
+
+CALL and CREATE laws give the
 request fields and exact parent meter after withholding, with separate resume
 equations. The remaining local laws must give exception precedence (R-GEN-2)
 as in powdr's `StepDeterminism.lean`.
@@ -4009,6 +4097,12 @@ See [COMPOSITION](../COMPOSITION.md) for how these premises are supplied and [RE
   supplies no runtime check, settled executor or generic Q83 effect bridge.
 
 - **F8 address inheritance and SELFDESTRUCT:** the CALL child-context equations, composed inheritance through nested execution and actual SELFDESTRUCT emission remain unimplemented. Require complete logs under independently varied nonliteral address and topic, zero balance, unequal/equal beneficiary and existing gas/static/state-fault ordering. Preserve revert/halt log discard through the runner.
+
+- **SSTORE guidance (Q100).** §§2.4/3/5/7 specify the charge result,
+  source initializer and ordered handler. The charge function, sole
+  whole-result law, handler and tests remain open. The live provider
+  and runner relation, R15 reachability, O13 and G2–G7 retain their
+  separate obligations.
 
 - **Standalone SLOAD supplied.** §3/§4/§5/§7 own the handler, private
   action and accounting laws, and bounded direct-source controls. Dispatch,
