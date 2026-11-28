@@ -1192,6 +1192,19 @@ EthVmRunner §7 owns the producer and continuation contracts.
 The bound on returned child potential and strict iteration progress require
 their own proofs.
 
+**Block access list gas-limit price options (Q101).** DECISIONS Q101 owns
+the selection. EthBlock §5 owns the signature. B8 owns schedule placement.
+
+| Option | Input and result at zero |
+|---|---|
+| A. Positive price | Pass the selected Nat price with a proof of positivity. The caller supplies the proof. An exceeded-limit error carries the item count and quotient. |
+| B. Checked division | Pass the selected Nat price and return a distinct failure at zero after counting. A guest classification would need a separate decision. |
+| C. Product threshold | Compare the product of the item count and selected price with the gas limit. Return the quotient in an exceeded-limit error. At zero the product test accepts every list. |
+
+All three options give the same complete result at positive prices.
+An implementation of the product test would need a cost comparison
+for multiplication at arbitrary sizes.
+
 ## 12. Not yet decided
 
 - **O12** host-resource interpretation (DISC-001, DISC-006).
